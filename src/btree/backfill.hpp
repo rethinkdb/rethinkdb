@@ -13,6 +13,7 @@
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
+#include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -50,6 +51,17 @@ public:
         store_key_t key;
         repli_timestamp_t recency;
         boost::optional<std::vector<char> > value;   /* empty indicates deletion */
+        size_t get_mem_size() const {
+            size_t s = sizeof(pair_t);
+            if (static_cast<bool>(value)) {
+                s += value->size();
+            }
+            return s;
+        }
+        /* The size of a `pair_t` assuming its value is set to the given size */
+        static size_t get_mem_size_with_value(size_t value_size) {
+            return sizeof(pair_t) + value_size;
+        }
     };
 
     key_range_t get_range() const {
@@ -62,10 +74,7 @@ public:
     size_t get_mem_size() const {
         size_t s = sizeof(backfill_item_t);
         for (const auto &pair : pairs) {
-            s += sizeof(pair_t);
-            if (static_cast<bool>(pair.value)) {
-                s += pair.value->size();
-            }
+            s += pair.get_mem_size();
         }
         return s;
     }
@@ -200,6 +209,11 @@ public:
         const void *value_in_leaf_node,
         signal_t *interruptor,
         std::vector<char> *value_out) = 0;
+    /* Similarly `size_value()` is responsible for retrieving the size of a given
+    value in the leaf node. */
+    virtual int64_t size_value(
+        buf_parent_t buf_parent,
+        const void *value_in_leaf_node) = 0;
 protected:
     virtual ~btree_backfill_item_consumer_t() { }
 };
@@ -212,6 +226,7 @@ continue_bool_t btree_send_backfill(
     repli_timestamp_t reference_timestamp,
     btree_backfill_pre_item_producer_t *pre_item_producer,
     btree_backfill_item_consumer_t *item_consumer,
+    backfill_item_memory_tracker_t *memory_tracker,
     signal_t *interruptor);
 
 /* There's no such thing as `btree_receive_backfill()`; the RDB protocol code is

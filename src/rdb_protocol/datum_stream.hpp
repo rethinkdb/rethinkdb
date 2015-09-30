@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_STREAM_HPP_
 #define RDB_PROTOCOL_DATUM_STREAM_HPP_
 
@@ -31,6 +31,7 @@ namespace ql {
 class env_t;
 class scope_env_t;
 class func_t;
+class response_t;
 
 enum class return_empty_normal_batches_t { NO, YES };
 
@@ -72,7 +73,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public bt_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
-    virtual void set_notes(Response *) const { }
+    virtual void set_notes(response_t *) const { }
 
     virtual std::vector<changespec_t> get_changespecs() = 0;
     virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
@@ -395,7 +396,7 @@ private:
 class readgen_t {
 public:
     explicit readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+        global_optargs_t global_optargs,
         std::string table_name,
         profile_bool_t profile,
         read_mode_t read_mode,
@@ -439,7 +440,7 @@ public:
 
     const std::string &get_table_name() const { return table_name; }
 protected:
-    const std::map<std::string, wire_func_t> global_optargs;
+    const global_optargs_t global_optargs;
     const std::string table_name;
     const profile_bool_t profile;
     const read_mode_t read_mode;
@@ -449,7 +450,7 @@ protected:
 class rget_readgen_t : public readgen_t {
 public:
     explicit rget_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+        global_optargs_t global_optargs,
         std::string table_name,
         const datum_range_t &original_datum_range,
         profile_bool_t profile,
@@ -493,7 +494,7 @@ public:
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
-    primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
+    primary_readgen_t(global_optargs_t global_optargs,
                       std::string table_name,
                       datum_range_t range,
                       profile_bool_t profile,
@@ -538,7 +539,7 @@ public:
     virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+        global_optargs_t global_optargs,
         std::string table_name,
         const std::string &sindex,
         datum_range_t sindex_range,
@@ -595,7 +596,7 @@ public:
     }
 private:
     intersecting_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+        global_optargs_t global_optargs,
         std::string table_name,
         const std::string &sindex,
         const datum_t &query_geometry,

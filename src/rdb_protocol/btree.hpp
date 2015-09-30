@@ -261,10 +261,19 @@ struct sindex_disk_info_t {
 
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info);
-// Note that this will throw an exception if there's an error rather than just
-// crashing.
-void deserialize_sindex_info(const std::vector<char> &data,
-                             sindex_disk_info_t *info_out)
+
+// Note that the behavior for how this reacts to obsolete indexes is controlled
+// by the `outdated_cb`.  All other errors will throw an `archive_exc_t`.
+void deserialize_sindex_info(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out,
+        const std::function<void()> &obsolete_cb);
+
+// Utility function that will call deserialize_sindex_info with an `obsolete_cb`
+// that will `fail_due_to_user_error` when an obsolete index is encountered.
+void deserialize_sindex_info_or_crash(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out)
     THROWS_ONLY(archive_exc_t);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
@@ -279,13 +288,13 @@ public:
     ~rdb_modification_report_cb_t();
 
     new_mutex_in_line_t get_in_line_for_sindex();
-    rwlock_in_line_t get_in_line_for_stamp();
+    rwlock_in_line_t get_in_line_for_cfeed_stamp();
 
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        bool update_pkey_cfeeds,
                        new_mutex_in_line_t *sindex_spot,
                        rwlock_in_line_t *stamp_spot);
-    bool has_pkey_cfeeds();
+    bool has_pkey_cfeeds(const std::vector<store_key_t> &keys);
     void finish(btree_slice_t *btree, real_superblock_t *superblock);
 
 private:

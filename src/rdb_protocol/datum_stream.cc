@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum_stream.hpp"
 
 #include <map>
@@ -220,7 +220,9 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
     if (stamp) {
         r_sanity_check(res.stamp_response);
-        for (const auto &pair : (*res.stamp_response).stamps) {
+        rcheck_datum(res.stamp_response->stamps, base_exc_t::OP_FAILED,
+                     "Changefeed aborted.  (Did you just reshard?)");
+        for (const auto &pair : *res.stamp_response->stamps) {
             // It's OK to blow away old values.
             shard_stamps[pair.first] = pair.second;
         }
@@ -370,12 +372,12 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
 }
 
 readgen_t::readgen_t(
-    const std::map<std::string, wire_func_t> &_global_optargs,
+    global_optargs_t _global_optargs,
     std::string _table_name,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
-    : global_optargs(_global_optargs),
+    : global_optargs(std::move(_global_optargs)),
       table_name(std::move(_table_name)),
       profile(_profile),
       read_mode(_read_mode),
@@ -408,13 +410,15 @@ bool readgen_t::update_range(key_range_t *active_range,
 }
 
 rget_readgen_t::rget_readgen_t(
-    const std::map<std::string, wire_func_t> &_global_optargs,
+    global_optargs_t _global_optargs,
     std::string _table_name,
     const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
-    : readgen_t(_global_optargs, std::move(_table_name), _profile, _read_mode, _sorting),
+    : readgen_t(std::move(_global_optargs),
+                std::move(_table_name),
+                _profile, _read_mode, _sorting),
       original_datum_range(_original_datum_range) { }
 
 read_t rget_readgen_t::next_read(
@@ -446,14 +450,15 @@ read_t rget_readgen_t::terminal_read(
 }
 
 primary_readgen_t::primary_readgen_t(
-    const std::map<std::string, wire_func_t> &global_optargs,
+    global_optargs_t global_optargs,
     std::string table_name,
     datum_range_t range,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range,
-                     _profile, _read_mode, sorting) { }
+    : rget_readgen_t(std::move(global_optargs),
+                     std::move(table_name),
+                     range, _profile, _read_mode, sorting) { }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
@@ -515,15 +520,16 @@ boost::optional<std::string> primary_readgen_t::sindex_name() const {
 }
 
 sindex_readgen_t::sindex_readgen_t(
-    const std::map<std::string, wire_func_t> &global_optargs,
+    global_optargs_t global_optargs,
     std::string table_name,
     const std::string &_sindex,
     datum_range_t range,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range,
-                     _profile, _read_mode, sorting),
+    : rget_readgen_t(std::move(global_optargs),
+                     std::move(table_name),
+                     range, _profile, _read_mode, sorting),
       sindex(_sindex),
       sent_first_read(false) { }
 
@@ -678,13 +684,14 @@ boost::optional<std::string> sindex_readgen_t::sindex_name() const {
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
-    const std::map<std::string, wire_func_t> &global_optargs,
+    global_optargs_t global_optargs,
     std::string table_name,
     const std::string &_sindex,
     const datum_t &_query_geometry,
     profile_bool_t _profile,
     read_mode_t _read_mode)
-    : readgen_t(global_optargs, std::move(table_name),
+    : readgen_t(std::move(global_optargs),
+                std::move(table_name),
                 _profile, _read_mode, sorting_t::UNORDERED),
       sindex(_sindex),
       query_geometry(_query_geometry) { }

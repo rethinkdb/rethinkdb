@@ -19,8 +19,8 @@ $port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied'))
 ARGV.clear
 $c = r.connect(port: $port).repl
 
-$run_exc = RethinkDB::RqlRuntimeError
-$comp_exc = RethinkDB::RqlCompileError
+$run_exc = RethinkDB::ReqlRuntimeError
+$comp_exc = RethinkDB::ReqlCompileError
 
 $s1 = r((0...10).map{|i| {a: i, b: i%2, c: i%3, d: i%5}})
 $tbl1 = r.db('test').table('1')
@@ -59,6 +59,7 @@ $gmrdata = [{"a"=>0, "arr"=>[0, 0], "id"=>0}, {"a"=>1, "arr"=>[1, 1], "b"=>1, "i
 $tbl = r.db('test').table('gmrdata')
 
 class ClientTest < UNIT_TEST_CLASS
+
   def setup
     r.db_create('test').run rescue nil
     r.db('test').table_create('test').run rescue nil
@@ -121,11 +122,11 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     end
 
     begin
-      assert_raises(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::ReqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('[', '{')}
         eq(r(1), 1)
       }
-      assert_raises(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::ReqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('1', '\u0000')}
         eq(r(1), 1)
       }
@@ -133,14 +134,37 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
       $dispatch_hook = nil
     end
     $c.register_query(1337, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Server could not parse query: Expected 1 to 3 elements in the top-level query, but found 4."] },
                  $c.wait($c.dispatch([1, 1337, 1, {}], 1337), nil))
+
     $c.register_query(-1, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
-                 $c.wait($c.dispatch(["a", 1337, 1, {}], -1), nil))
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Server could not parse query: Expected a query type as a number, but found STRING."] },
+                 $c.wait($c.dispatch(["a", 1337, {}], -1), nil))
+
     $c.register_query(16, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
-                 $c.wait($c.dispatch([1, 1337, 1, 1], 16), nil))
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Server could not parse query: Expected global optargs as an object, but found NUMBER."] },
+                 $c.wait($c.dispatch([1, 1337, 1], 16), nil))
+
+    $c.register_query(50, {})
+    assert_equal({ "t"=>16, "b"=>[], "r"=>["Server could not parse query: Unrecognized QueryType: 5843."] },
+                 $c.wait($c.dispatch([5843, 1, {}], 50), nil))
+
+    $c.register_query(82, {})
+    assert_equal({ "t"=>17, "b"=>[], "r"=>["Unrecognized TermType: 45784."] },
+                 $c.wait($c.dispatch([1, [45784], {}], 82), nil))
+
+    # Test some backtraces
+    $c.register_query(82, {})
+    assert_equal({ "t"=>17, "b"=>[1], "r"=>["Unrecognized TermType: 45784."] },
+                 $c.wait($c.dispatch([1, [24, [1, [45784]]], {}], 82), nil))
+
+    $c.register_query(82, {})
+    assert_equal({ "t"=>17, "b"=>['data'], "r"=>["Unrecognized TermType: 45785."] },
+                 $c.wait($c.dispatch([1, [24, [1, 1], {'data'=>[45785]}], {}], 82), nil))
+
+    $c.register_query(82, {})
+    assert_equal({ "t"=>17, "b"=>['data', 0], "r"=>["Unrecognized TermType: 45786."] },
+                 $c.wait($c.dispatch([1, [24, [1, 1], {'data'=>[24, [[45786]]]}], {}], 82), nil))
   end
 
   def test_gmr_slow
@@ -252,6 +276,7 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
            2=>{"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}})
     }
   end
+
 end
 
 

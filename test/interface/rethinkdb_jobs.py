@@ -4,13 +4,12 @@
 import os, socket, sys, threading, time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
-import rdb_unittest
+import rdb_unittest, utils
 
 class JobsTableTests(rdb_unittest.RdbTestCase):
     '''Tests the artificial `rethinkdb.jobs` table'''
     
     servers = 2
-
     timeout = 20
     
     def test_query(self):
@@ -41,13 +40,41 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.assertEqual(response[0]["id"][0], "query")
                 self.assertEqual(response[0]["servers"], [server.name])
                 
-                break # break if sucessfull, leaving query running
+                break # break if successful, leaving query running
             except Exception as e:
                 latestError = e
                 time.sleep(.01)
         else:
             self.fail('Timed out after %.1f seconds waiting for query to appear. Last error was: %s' % (self.timeout, latestError.message))
-    
+
+    def test_job_deletion(self):
+        (conn_a, conn_b) = [self.r.connect(host=s.host, port=s.driver_port) for s in self.cluster]
+        result = None
+
+        def query_thread(result):
+            try:
+                self.r.js("while(true) {}", timeout=10).run(conn_a)
+                err = RuntimeError("Query should have been interrupted, but returned successfully.")
+            except:
+                (_, err, _) = sys.exc_info()
+            result.append(err)
+
+        result = list() # Use a list as an output parameter
+        worker = threading.Thread(target=query_thread, args=[result])
+        worker.start()
+
+        deadline = time.time() + self.timeout
+        job_filter = self.r.db('rethinkdb').table('jobs').filter(lambda x: x['info']['query'].match('^r\.js'))
+        while len(list(job_filter.run(conn_b))) != 1 and time.time() < deadline:
+            pass
+
+        self.assertEqual(job_filter.delete()['deleted'].run(conn_b), 1)
+        worker.join()
+        self.assertEqual(len(result), 1)
+        expected = "Query terminated by the `rethinkdb.jobs` table."
+        if not isinstance(result[0], self.r.ReqlRuntimeError) or result[0].message != expected:
+            self.fail('Unexpected error: %s' % str(result[0]))
+
     def test_disk_compaction(self):
         
         # - insert a record to update
@@ -82,7 +109,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
     
     def test_index_construction(self):
         
-        valueDropsLimit = 3
+        valueDropsLimit = 10
         
         recordsToGenerate = 500
         fieldName = 'x'
@@ -92,7 +119,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         
         # - generate some records
         
-        self.populateTable(recordsToGenerate=recordsToGenerate, fieldName=fieldName)
+        utils.populateTable(conn=self.conn, table=self.table, records=recordsToGenerate, fieldName=fieldName)
         
         # - create an index
         
@@ -156,6 +183,8 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.fail('Timed out after %.1f seconds waiting for index_construction to be complete' % self.timeout)
     
     def test_backfill(self):
+    
+        valueDropsLimit = 10
         
         # - trigger a backfill with a reconfigure
         
@@ -225,6 +254,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
             else:
                 self.fail('Timed out after %.1f seconds waiting for backfill to be complete' % self.timeout)
 
+# ===== main
+
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    rdb_unittest.main()

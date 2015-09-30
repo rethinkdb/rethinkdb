@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
 """Checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
 
@@ -11,6 +11,11 @@ startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -246,7 +251,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         for i in xrange(10):
             try:
                 r.db(dbName).table(doc["name"]).insert({}).run(conn)
-            except r.RqlRuntimeError:
+            except r.ReqlRuntimeError:
                 time.sleep(1)
             else:
                 break
@@ -277,41 +282,35 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     assert "baz" not in r.db(dbName).table_list().run(conn)
 
     print("Testing that identifier_format works (%.2fs)" % (time.time() - startTime))
-    a_uuid = r.db("rethinkdb").table("server_config") \
-              .filter({"name": "a"}).nth(0)["id"].run(conn)
-    db_uuid = r.db("rethinkdb").table("db_config") \
-               .filter({"name": "test"}).nth(0)["id"].run(conn)
+    a_uuid = r.db("rethinkdb").table("server_config").filter({"name": "a"}).nth(0)["id"].run(conn)
+    db_uuid = r.db("rethinkdb").table("db_config").filter({"name": "test"}).nth(0)["id"].run(conn)
     res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
            .insert({
                "name": "idf_test",
                "db": db_uuid,
                "shards": [{"replicas": [a_uuid], "primary_replica": a_uuid}]
-               }) \
-           .run(conn)
+            }).run(conn)
     assert res["inserted"] == 1, repr(res)
-    res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
-           .filter({"name": "idf_test"}).nth(0).run(conn)
-    assert res["shards"] == [{
-        "replicas": [a_uuid],
-        "primary_replica": a_uuid,
-        "nonvoting_replicas": []
-        }], repr(res)
-    res = r.db("rethinkdb").table("table_config", identifier_format="name") \
-           .filter({"name": "idf_test"}).nth(0).run(conn)
+    
+    res = r.db("rethinkdb").table("table_config", identifier_format="uuid").filter({"name": "idf_test"}).nth(0).run(conn)
+    assert "shards" in res, repr(res)
+    assert res["shards"] == [{"replicas": [a_uuid], "primary_replica": a_uuid, "nonvoting_replicas": []}], repr(res)
+    
+    res = r.db("rethinkdb").table("table_config", identifier_format="name").filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": ["a"],
         "primary_replica": "a",
         "nonvoting_replicas": []
         }], repr(res)
     r.db(dbName).table("idf_test").wait().run(conn)
-    res = r.db("rethinkdb").table("table_status", identifier_format="uuid") \
-           .filter({"name": "idf_test"}).nth(0).run(conn)
+    
+    res = r.db("rethinkdb").table("table_status", identifier_format="uuid").filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": a_uuid, "state": "ready"}],
         "primary_replicas": [a_uuid]
         }], repr(res)
-    res = r.db("rethinkdb").table("table_status", identifier_format="name") \
-           .filter({"name": "idf_test"}).nth(0).run(conn)
+    
+    res = r.db("rethinkdb").table("table_status", identifier_format="name").filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": "a", "state": "ready"}],
         "primary_replicas": ["a"]

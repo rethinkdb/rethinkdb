@@ -5,31 +5,31 @@ tests:
   - cd: r.expr(r.epoch_time(896571240))
     ot:
       py: datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))
-      rb: (Time.at(896571240))
+      rb: Time.at(896571240)
       js: 0
 
   - cd: r.expr({'stuff':r.epoch_time(896571240), 'more':[r.epoch_time(996571240)]})
     ot:
-      py: ({'stuff':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))]})
-      rb: ({'stuff'=>Time.at(896571240), 'more'=>[Time.at(996571240)]})
+      py: {'stuff':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))]}
+      rb: {'stuff'=>Time.at(896571240), 'more'=>[Time.at(996571240)]}
       js: 0
 
   - cd: r.expr([r.epoch_time(796571240), r.epoch_time(896571240), {'stuff':r.epoch_time(996571240)}])
     ot:
-      py: ([datetime.fromtimestamp(796571240, r.ast.RqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))}])
-      rb: ([Time.at(796571240), Time.at(896571240), {'stuff'=>Time.at(996571240)}])
+      py: [datetime.fromtimestamp(796571240, r.ast.RqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))}]
+      rb: [Time.at(796571240), Time.at(896571240), {'stuff'=>Time.at(996571240)}]
       js: 0
 
   - cd: r.expr({'nested':{'time':r.epoch_time(896571240)}})
     ot:
-      py: ({'nested':{'time':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))}})
-      rb: ({'nested'=>{'time'=>Time.at(896571240)}})
+      py: {'nested':{'time':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))}}
+      rb: {'nested'=>{'time'=>Time.at(896571240)}}
       js: 0
 
   - cd: r.expr([1, "two", ["a", r.epoch_time(896571240), 3]])
     ot:
-      py: ([1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 3]])
-      rb: ([1, "two", ["a", Time.at(896571240), 3]])
+      py: [1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 3]]
+      rb: [1, "two", ["a", Time.at(896571240), 3]]
       js: 0
 
   - cd: r.epoch_time(1).to_epoch_time()
@@ -37,29 +37,29 @@ tests:
   - cd: r.epoch_time(-1).to_epoch_time()
     ot: -1
   - cd: r.epoch_time(1.4444445).to_epoch_time()
-    ot: (1.444)
+    ot: 1.444
 # Any manipulation truncates to 6 digits
   - cd: r.epoch_time(1.4444445).to_iso8601()
     js: r.epochTime(1.4444445).toISO8601()
-    ot: ("1970-01-01T00:00:01.444+00:00")
+    ot: "1970-01-01T00:00:01.444+00:00"
   - cd: r.epoch_time(1.4444445).seconds()
-    ot: (1.444          )
+    ot: 1.444
 
   - cd: r.epoch_time(253430000000).year()
-    ot: (10000)
+    ot: 10000
   - cd: r.epoch_time(253430000000).to_iso8601()
     js: r.epochTime(253430000000).toISO8601()
-    ot: err("RqlRuntimeError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
+    ot: err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
   - cd: r.epoch_time(253440000000).year()
-    ot: "err(\"RqlRuntimeError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+    ot: err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", [])
   - cd: r.epoch_time(253440000000).to_epoch_time()
-    ot: (253440000000)
+    ot: 253440000000
   - cd: r.epoch_time(-17980000000).year()
-    ot: (1400)
+    ot: 1400
   - cd: r.epoch_time(-17990000000).year()
-    ot: "err(\"RqlRuntimeError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+    ot: err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", [])
   - cd: r.epoch_time(-17990000000).to_epoch_time()
-    ot: (-17990000000)
+    ot: -17990000000
 
 # Check that we parse valid dates (couldn't hurt to add more here).
   - def: cdate = "2013-01-01"
@@ -71,26 +71,26 @@ tests:
   - def: cdt = [cdate+"T"+ctime+ctz]
   - rb: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb: r(dts).map{|x| r.iso8601(x).to_iso8601}.distinct
-    ot: (cdt)
+    ot: cdt
 
 # Check that we can put a valid date into any valid timezone.
   - rb: r(dts).concat_map{|x| tzs.map{|tz| r.epoch_time(r.iso8601(x).to_epoch_time).in_timezone(tz).to_iso8601}}.distinct
-    ot: (cdt)
+    ot: cdt
 
 # Check that we don't parse invalid dates (couldn't hurt to add more here).
   - def: bad_dates = ["201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"]
   - def: bad_times = ["a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"]
   - def: bad_tzs = ["X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"]
-  
+
   - rb:  bad_dts1 = bad_dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb:  bad_dts2 = dates.map{|d| bad_times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
 
-  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil};
-    ot: ([])
+  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::ReqlQueryLogicError => e; nil; end}.select{|x| x != nil};
+    ot: []
 
 # Check that we can't put a valid date into any invalid timezone.
   - rb: bad_dts_in_tz = r.expr(dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten)
-  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::RqlRuntimeError => e; nil; end }.select{|x| x != nil}
-    ot: ([])
+  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::ReqlQueryLogicError => e; nil; end }.select{|x| x != nil}
+    ot: []

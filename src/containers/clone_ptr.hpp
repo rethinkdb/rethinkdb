@@ -52,30 +52,6 @@ public:
 private:
     template<class U> friend class clone_ptr_t;
 
-    /* RSI: delete this completely
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const clone_ptr_t &c) {
-        // clone pointers own their pointees exclusively, so we don't
-        // have to worry about replicating any boost pointer
-        // serialization bullshit.
-        bool exists = c.object.has();
-        serialize<W>(wm, exists);
-        if (exists) {
-            serialize<W>(wm, *c.object);
-        }
-    }
-
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *s, clone_ptr_t *c) {
-        rassert(!object.has());
-        object.reset();
-        T *tmp;
-        archive_result_t res = deserialize<W>(s, &tmp);
-        object.init(tmp);
-        return res;
-    }
-    */
-
     scoped_ptr_t<T> object;
 };
 

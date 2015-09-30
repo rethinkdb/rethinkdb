@@ -42,22 +42,11 @@ bool debug_table_status_artificial_table_backend_t::write_row(
     return false;
 }
 
-ql::datum_t convert_debug_multi_table_manager_bcard_timestamp_epoch_to_datum(
-        const multi_table_manager_timestamp_t::epoch_t &epoch) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite(
-        "timestamp", ql::datum_t(static_cast<double>(epoch.timestamp)));
-    builder.overwrite("id", convert_uuid_to_datum(epoch.id));
-    return std::move(builder).to_datum();
-}
-
 ql::datum_t convert_debug_multi_table_manager_bcard_timestamp_to_datum(
         const multi_table_manager_timestamp_t &timestamp) {
     ql::datum_object_builder_t builder;
     builder.overwrite(
-        "epoch",
-        convert_debug_multi_table_manager_bcard_timestamp_epoch_to_datum(
-            timestamp.epoch));
+        "epoch", timestamp.epoch.to_datum());
     builder.overwrite(
         "log_index", ql::datum_t(static_cast<double>(timestamp.log_index)));
     return std::move(builder).to_datum();
@@ -276,7 +265,9 @@ void debug_table_status_artificial_table_backend_t::format_row(
     assert_thread();
 
     std::map<server_id_t, table_status_response_t> statuses;
-    table_meta_client->get_debug_status(table_id, interruptor_on_home, &statuses);
+    table_meta_client->get_debug_status(
+        table_id, all_replicas_ready_mode_t::INCLUDE_RAFT_TEST, interruptor_on_home,
+        &statuses);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));

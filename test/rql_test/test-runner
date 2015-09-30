@@ -7,13 +7,8 @@ from __future__ import print_function
 import atexit, collections, copy, datetime, distutils.version, distutils.spawn, itertools, json, optparse, os
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
 
-try:
-    import yaml
-except ImportError:
-    sys.exit('%s requires that PyYAML be installed: https://pypi.python.org/pypi/PyYAML' % os.path.basename(__file__))
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
-import driver, test_exceptions, utils
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"))
+import driver, parsePolyglot, test_exceptions, utils
 
 try:
     unicode
@@ -23,6 +18,26 @@ try:
     import Queue
 except ImportError:
     import queue as Queue
+try:
+    import reprlib
+except ImportError:
+    import repr as reprlib
+
+# -- repr subclass
+
+class ReprReplace(reprlib.Repr):
+    def repr_str(self, obj, level):
+        result = repr(obj)
+        if result.startswith("'"):
+            result = '"' + result[1:-1].replace('"', '\\"') + '"'
+        return result
+    
+    def repr_unicode(self, obj, level):
+        result = self.repr_str(obj, level)
+        if len(result) > 1 and result[:2] in ('u"', "u'"):
+            result = result[1:]
+        return result
+replaceRepr = ReprReplace()
 
 # -- ensure we can open enough files
 
@@ -37,13 +52,14 @@ except Exception, e:
 
 testExtensions = ['test', 'yaml', 'mocha']
 
-r = utils.import_python_driver()
+r = None
 
 print_debug = False
 
 # -- internal global variables
 
 testLock = threading.Lock()
+devNull = open(os.devnull)
 
 # -- signal and atexit handlers
 
@@ -156,9 +172,7 @@ class SrcLang(object):
         if name:
             result = self.nametranslate(result)
         if quote:
-            result = repr(result)
-            if len(result) > 1 and result[:2] in ('u"', "u'"):
-                result = result[1:]
+            result = replaceRepr.repr(result)
         return result
     
     @property
@@ -264,7 +278,7 @@ class PyLang(SrcLang):
         self.interpreter_name_exe_names.append('python')
     
     def get_interpreter_version(self, executablePath):
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -327,8 +341,15 @@ class JsLang(SrcLang):
         name = re.sub(cls.nametranslate_regex, replaceFnct, name)
         return re.sub('__', '_', name)
     
+    def translate_query(self, src, quote=True, name=False):
+        '''Handle the errors from `eval({a:1})`: JavaScript thinks it is a code block'''
+        result = super(JsLang, self).translate_query(src, quote=quote, name=name)
+        if quote and re.match('["\']\{', result):
+            result = result[0] + '(' + result[1:-1] + ')' + result[-1]
+        return result
+    
     def get_interpreter_version(self, executablePath):
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -468,13 +489,13 @@ class RbLang(SrcLang):
                     
                 except Exception: pass
         
-        # - return the string
+        # - return the string, with extraneous newlines striped out
         
-        return ''.join(source)
+        return ''.join((x.strip('\n') for x in source))
     
     def get_interpreter_version(self, executablePath):
         '''Return the version string for this interpreter'''
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -482,30 +503,61 @@ class RbLang(SrcLang):
         
         versionNumber = str(output.decode('utf-8').split()[1]).strip()
         return distutils.version.LooseVersion(versionNumber)
+    
+class JrbLang(RbLang):
+    display_name = 'JRuby'
+    
+    def class_setup(self, version):
+        if self.instance_setup is True:
+            return
+        
+        self.display_name = self.display_name + ' ' + version
+        self.test_types = []
+        self.interpreter_name_exe_names = []
+        
+        self.minVersion = distutils.version.LooseVersion(version)
+        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        
+        if version != '':
+            lastVersion = None
+            workingVersion = version
+            while lastVersion != workingVersion:
+                self.test_types.append('jrb' + workingVersion)
+                self.interpreter_name_exe_names.append('jruby' + workingVersion)
+                
+                lastVersion = workingVersion
+                workingVersion = os.path.splitext(workingVersion)[0]
+        self.test_types.append('jrb')
+        self.test_types.append('rb')
+        self.interpreter_name_exe_names.append('jruby')
+    
 
 interpreters = {
-    'js': [JsLang()],
-    'py': [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
-    'rb': [RbLang('1.9'), RbLang('2.0'), RbLang('2.1')],
+    'js':     [JsLang()],
+    'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), JrbLang('9.0')],
+    'jrb':    [JrbLang('9.0')],
     
-    'py2': [PyLang('2.6'), PyLang('2.7')],
-    'py2.6': [PyLang('2.6')],
-    'py2.7': [PyLang('2.7')],
+    'py2':    [PyLang('2.6'), PyLang('2.7')],
+    'py2.6':  [PyLang('2.6')],
+    'py2.7':  [PyLang('2.7')],
     
-    'py3': [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
-    'py3.0': [PyLang('3.0')],
-    'py3.1': [PyLang('3.1')],
-    'py3.2': [PyLang('3.2')],
-    'py3.3': [PyLang('3.3')],
-    'py3.4': [PyLang('3.4')],
+    'py3':    [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'py3.0':  [PyLang('3.0')],
+    'py3.1':  [PyLang('3.1')],
+    'py3.2':  [PyLang('3.2')],
+    'py3.3':  [PyLang('3.3')],
+    'py3.4':  [PyLang('3.4')],
     
-    'rb1': [RbLang('1.9')],
-    'rb1.9': [RbLang('1.9')],
+    'rb1':    [RbLang('1.9')],
+    'rb1.9':  [RbLang('1.9')],
     
-    'rb2': [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
-    'rb2.0': [RbLang('2.0')],
-    'rb2.1': [RbLang('2.1')],
-    'rb2.2': [RbLang('2.2')]
+    'rb2':    [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
+    'rb2.0':  [RbLang('2.0')],
+    'rb2.1':  [RbLang('2.1')],
+    'rb2.2':  [RbLang('2.2')],
+    
+    'jrb9.0': [JrbLang('9.0')]
 }
 
 # Abstracts a set of tests given in a single file
@@ -527,10 +579,8 @@ class TestGroup(object):
         
         # sourceFile
         
-        if sourceFile is None:
-            raise ValueError('buildYamlTest requires a sourceFile, got None')
-        if not os.path.isfile(sourceFile):
-            raise ValueError('buildYamlTest requires a sourceFile, got: %s' % str(sourceFile))
+        if not sourceFile or not (hasattr(sourceFile, 'read') or os.path.isfile(sourceFile)):
+            raise ValueError('buildYamlTest requires a sourceFile, got: %r' % sourceFile)
         
         # lang
         
@@ -555,7 +605,7 @@ class TestGroup(object):
         
         parsed_data = None
         try:
-            parsed_data = yaml.safe_load(open(sourceFile))
+            parsed_data = parsePolyglot.parseYAML(sourceFile)
         except Exception as e:
             raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
         if parsed_data is None:
@@ -650,14 +700,17 @@ class TestGroup(object):
                 
                 variableMatch = cls.variableRegex.match(test_case)
                 if variableMatch:
-                    testCode.testopts['variable'] = lang.nametranslate(variableMatch.group('variableName'))
-                    test_case = variableMatch.group('expression')
+                    testCode.testopts['variable'] = parsePolyglot.yamlValue(lang.nametranslate(variableMatch.group('variableName')))
+                    if isinstance(test_case, parsePolyglot.yamlValue):
+                        test_case = parsePolyglot.yamlValue(variableMatch.group('expression'), test_case.linenumber)
+                    else:
+                        test_case = variableMatch.group('expression')
                 
                 try:
                     out.write("test(%(code)s, %(expected)s, %(name)s, %(driveropts)s, %(testopts)s)\n" % {
                         'code': lang.translate_query(test_case, name=True),
                         'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
-                        'name': repr(testName),
+                        'name': repr("line %d" % test_case.linenumber) if hasattr(test_case, 'linenumber') else repr(testName),
                         'driveropts': lang.translate_query(testCode.runopts, quote=False),
                         'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })
@@ -791,6 +844,8 @@ class RethinkDBRunningServer(object):
     
     __reqlConnection = None
     
+    logfile_path = None
+    
     def __init__(self, driver_port, cluster_port):
         self.__driver_port = driver_port
         self.__cluster_port = cluster_port
@@ -866,7 +921,8 @@ class Test(object):
     
     __status = 'queued' # queued, setting up, running, ended
     __result = None # None, failed setup, failed, crashed, crashed server, timed out, canceled, succeeded
-    testProcess = None
+    __testProcess = None
+    __consoleFile = None
     
     setupStartTime = None
     setupDuration = 0
@@ -932,6 +988,10 @@ class Test(object):
         self.__result = value
     
     @property
+    def duration(self):
+        return (self.setupDuration or 0) + (self.testDuration or 0)
+    
+    @property
     def console_output(self):
         errorReturn = self.errorMessage or ''
         if self.errorDetails:
@@ -941,11 +1001,12 @@ class Test(object):
             if '\n' in self.errorDetails:
                 errorReturn += '\n'
         
-        if self.consoleFile is sys.stdout:
-            return errorReturn
-        else:
-            self.consoleFile.seek(0)
-            return (errorReturn + "\n" if errorReturn else '') + self.consoleFile.read()
+        if self.consoleFile is not sys.stdout:
+            try:
+                with open(self.consoleFile, 'r') as consoleFile:
+                    errorReturn += ("\n" if errorReturn else '') + consoleFile.read()
+            except Exception: pass
+        return errorReturn
     
     def queueTest(self):
         '''Called when the test is put (back) into the queue'''
@@ -1019,7 +1080,8 @@ class Test(object):
         # -- start the test process
         
         with testLock:
-            self.testProcess = subprocess.Popen(self.command, stdout=self.consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables)
+            self.__consoleFile = self.consoleFile if self.consoleFile is sys.stdout else open(self.consoleFile, 'w+')
+            self.__testProcess = subprocess.Popen(self.command, stdin=devNull, stdout=self.__consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables, close_fds=True)
     
     def checkTestDone(self):
         '''Check on a running test, reply with True if running, False if ended'''
@@ -1029,29 +1091,25 @@ class Test(object):
         
         # --
         
-        if self.testProcess.poll() is None:
+        if self.__testProcess.poll() is None:
             return False
         
-        elif self.testProcess.returncode == 0:
+        elif self.__testProcess.returncode == 0:
             self.result = 'succeeded'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
-        elif self.testProcess.returncode < 0:
+        elif self.__testProcess.returncode < 0:
             self.result = 'crashed'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
         else:
             self.result = 'failed'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
-        # -- kill everything in the process group, just in case
-        
-        utils.kill_process_group(self.testProcess.pid)
-        
-        # -- set the end markers
+        # -- set the end markers and clenaup
         
         self.testDuration = time.time() - self.testStartTime
-        self.__status = 'ended'
+        self.cleanupTest()
         
         # -- return True to signal it has ended
         
@@ -1066,12 +1124,7 @@ class Test(object):
         self.errorMessage = errorMessage
         self.errorDetails = errorDetails
         
-        # -- kill everything in the process group
-        
-        if self.testProcess is not None and self.testProcess.pid is not None:
-            utils.kill_process_group(self.testProcess.pid)
-        
-        # -- set the end markers
+        # -- set the end markers and cleanup
         
         if self.__status == 'setting up':
             self.setupDuration = time.time() - self.setupStartTime
@@ -1083,9 +1136,29 @@ class Test(object):
         if result == 'timed out':
             self.returncode = self.TIMED_OUT_EXIT_CODE
         
-        self.__status = 'ended'
+        self.cleanupTest()
         self.returncode = None
+    
+    def cleanupTest(self):
+        '''Perform after-test cleanup'''
         
+        # -- kill everything in the process group
+        
+        if self.__testProcess is not None and self.__testProcess.pid is not None:
+            utils.kill_process_group(self.__testProcess.pid)
+        
+        # -- close the output file
+        
+        if self.__consoleFile and self.__consoleFile is not sys.stdout:
+            self.__consoleFile.close()
+        
+        # -- toss the subprocess
+        
+        self.__testProcess = None
+        
+        # -- set the status to ended
+        
+        self.__status = 'ended'
 
 class YamlTest(Test):
     buildFolder = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'build')
@@ -1290,7 +1363,7 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
                 self.existingDBsToTables = {}
                 for dbName in r.db_list().run(self.reqlConnection):
-                    self.existingDBsToTables[dbName]  = r.db(dbName).table_list().run(self.reqlConnection)
+                    self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.reqlConnection)
             else:
                 raise ValueError('existingServer must be an instance of RethinkDBRunningServer, got: %r' % existingServer)
         
@@ -1309,8 +1382,8 @@ class WorkerThread(threading.Thread):
         # -- start a new server
         
         if self.server is None:
-            clusterFolder = tempfile.mkdtemp(prefix='cluster-', dir=self.scratchDir)
-            self.server = driver.Process(console_output=True, wait_until_ready=True, output_folder=clusterFolder)
+            clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=self.scratchDir)
+            self.server = driver.Process(name=clusterFolder, console_output=True, wait_until_ready=True)
         
         # -- check that it is running
         
@@ -1333,7 +1406,7 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
             r.db_list().run(self.reqlConnection)
         
-        except (RuntimeError, r.RqlDriverError):
+        except (RuntimeError, r.ReqlDriverError):
             if self.existingServer:
                 raise Exception('External server stopped responding while testing') # ToDo: make this a better error
             else:
@@ -1438,7 +1511,7 @@ class WorkerThread(threading.Thread):
                 
                 # -- set consoleFile
                 
-                test.consoleFile = sys.stdout if self.writeToConsole else open(os.path.join(testOutputDir, 'console.txt'), 'w+')
+                test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(testOutputDir, 'console.txt')
                 
                 # -- pre-process the test
                 
@@ -1516,21 +1589,22 @@ class WorkerThread(threading.Thread):
                             test.errorMessage += ', and the server crashed while running'
                 
                 # - copy the server contents or just the server log
-                if copyServerContents:
-                    shutil.copytree(self.server.files.db_path, os.path.join(testOutputDir, 'server'))
-                    
-                    # try to add the server log to the errorDetails
-                    try:
-                        self.server.console_file.seek(0)
-                        if test.errorDetails is None:
-                            test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
-                        else:
-                            test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
-                    except IOError: pass # stdout will cause this
-                    except Exception as e:
-                        warnings.warn(str(e))
-                else:
-                    shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
+                if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
+                    if copyServerContents:
+                        shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
+                        
+                        # try to add the server log to the errorDetails
+                        try:
+                            self.server.console_file.seek(0)
+                            if test.errorDetails is None:
+                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
+                            else:
+                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
+                        except IOError: pass # stdout will cause this
+                        except Exception as e:
+                            warnings.warn(str(e))
+                    else:
+                        shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
                 
                 if restartServer:
                     try:
@@ -1582,6 +1656,7 @@ class WorkerThread(threading.Thread):
 
 def main():
     global print_debug
+    global r
     
     testFilters = []
     testList = []
@@ -1792,7 +1867,7 @@ def main():
     for language in options.languages:
         outputFile = tempfile.NamedTemporaryFile(mode='w+')
         notificationDeadline = time.time() + 3
-        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdout=outputFile, stderr=subprocess.STDOUT)
+        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
@@ -1804,6 +1879,8 @@ def main():
             sys.exit(1)
         
         os.environ[language.driver_build_env_name] = language.driver_build_path
+    
+    r = utils.import_python_driver()
     
     # -- print pre-testing info
     
@@ -1898,12 +1975,13 @@ def main():
                     elif test.result == 'timed out':
                         extraMessage = ' after %d seconds' % test.duration
                     
-                    if options.verbose is True:
-                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
-                    else:
+                    consoleOutput = test.console_output.strip()
+                    if consoleOutput:
                         sys.stderr.write('>>> %s %s%s after %s (%s)\n\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
-                        sys.stderr.write(test.console_output)
+                        sys.stderr.write(consoleOutput)
                         sys.stderr.write('\n<<< end %s: %s\n' % (test.result.capitalize(), test.name))
+                    else:
+                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
             sys.stderr.flush()
             sys.stdout.flush()
         
@@ -1932,7 +2010,7 @@ def main():
     
     # -- report final results
     
-    failedTestNames = [test.name for test in failedTests]
+    failedTestNames = sorted([test.name for test in failedTests])
     
     if cancelRun is True:
         print('\n== Canceled after %.2f seconds with %d test%s running. %s test%s passed, %s test%s failed, and %s test%s remaining%s' % (

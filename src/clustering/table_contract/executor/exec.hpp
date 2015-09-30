@@ -51,7 +51,8 @@ public:
     events back. */
     class params_t {
     public:
-        virtual perfmon_collection_t *get_perfmon_collection() = 0;
+        virtual perfmon_collection_t *get_parent_perfmon_collection() const = 0;
+        virtual const std::string &get_perfmon_name() const = 0;
         virtual store_view_t *get_store() = 0;
 
         /* Sends the given contract ack for the given contract ID. The contract ID should

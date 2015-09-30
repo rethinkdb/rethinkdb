@@ -80,7 +80,7 @@ void prep_serializer(
 
         new_mutex_in_line_t dummy_acq;  // We don't have ordering concerns between
                                         // this and any other index_write call.
-        ser->index_write(&dummy_acq, ops);
+        ser->index_write(&dummy_acq, []{ }, ops);
     }
 }
 
@@ -226,12 +226,13 @@ file_account_t *translator_serializer_t::make_io_account(int priority, int outst
 
 void translator_serializer_t::index_write(
         new_mutex_in_line_t *mutex_acq,
+        const std::function<void()> &on_writes_reflected,
         const std::vector<index_write_op_t> &write_ops) {
     std::vector<index_write_op_t> translated_ops(write_ops);
     for (auto it = translated_ops.begin(); it < translated_ops.end(); ++it) {
         it->block_id = translate_block_id(it->block_id);
     }
-    inner->index_write(mutex_acq, translated_ops);
+    inner->index_write(mutex_acq, on_writes_reflected, translated_ops);
 }
 
 std::vector<counted_t<standard_block_token_t> >

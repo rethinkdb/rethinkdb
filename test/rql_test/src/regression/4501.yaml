@@ -1,0 +1,5 @@
+desc: index_wait should throw on missing indexes.
+table_variable_name: tbl
+tests:
+    - cd: tbl.index_wait("missing")
+      ot: err_regex('ReqlOpFailedError', 'Index `missing` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]', [0])

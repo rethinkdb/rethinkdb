@@ -518,6 +518,7 @@ void buf_lock_t::mark_deleted() {
     debugf("%p: buf_lock_t %p delete %" PRIu64 "\n", cache(), this, block_id());
 #endif
     guarantee(!empty());
+    guarantee(current_page_acq()->write_acq_signal()->is_pulsed());
     current_page_acq()->mark_deleted();
 }
 

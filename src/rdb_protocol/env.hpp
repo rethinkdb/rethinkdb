@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENV_HPP_
 #define RDB_PROTOCOL_ENV_HPP_
 
@@ -16,8 +16,11 @@
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/optargs.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/val.hpp"
+#include "rdb_protocol/var_types.hpp"
+#include "rdb_protocol/wire_func.hpp"
 
 class extproc_pool_t;
 
@@ -28,29 +31,6 @@ class RE2;
 namespace ql {
 class datum_t;
 class term_t;
-
-/* If and optarg with the given key is present and is of type DATUM it will be
- * returned. Otherwise an empty datum_t will be returned. */
-datum_t static_optarg(const std::string &key, const protob_t<const Query> q);
-
-bool is_noreply(const protob_t<const Query> &q);
-
-std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q);
-
-class global_optargs_t {
-public:
-    global_optargs_t();
-    explicit global_optargs_t(std::map<std::string, wire_func_t> optargs);
-
-    bool has_optarg(const std::string &key) const;
-    // returns NULL if no entry
-    scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key);
-    const std::map<std::string, wire_func_t> &get_all_optargs() const;
-private:
-    std::map<std::string, wire_func_t> optargs;
-};
-
-profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 
@@ -66,7 +46,7 @@ public:
     env_t(rdb_context_t *ctx,
           return_empty_normal_batches_t return_empty_normal_batches,
           signal_t *interruptor,
-          std::map<std::string, wire_func_t> optargs,
+          global_optargs_t optargs,
           profile::trace_t *trace);
 
     // Used in unittest and for some secondary index environments (hence the
@@ -102,15 +82,29 @@ public:
     void do_eval_callback();
 
 
-    const std::map<std::string, wire_func_t> &get_all_optargs() const {
-        return global_optargs_.get_all_optargs();
+    const global_optargs_t &get_all_optargs() const {
+        return global_optargs_;
     }
 
     scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key) {
         return global_optargs_.get_optarg(env, key);
     }
 
-    configured_limits_t limits() const { return limits_; }
+    configured_limits_t limits() const {
+        return limits_;
+    }
+
+    configured_limits_t limits_with_changefeed_queue_size(
+        scoped_ptr_t<val_t> changefeed_queue_size) {
+        if (changefeed_queue_size.has()) {
+            return configured_limits_t(
+                check_limit("changefeed queue size",
+                            changefeed_queue_size->as_int()),
+                limits_.array_size_limit());
+        } else {
+            return limits_;
+        }
+    }
 
     regex_cache_t &regex_cache() { return regex_cache_; }
 
@@ -144,6 +138,7 @@ public:
     profile_bool_t profile() const;
 
     rdb_context_t *get_rdb_ctx() { return rdb_ctx_; }
+
 private:
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     uint32_t evals_since_yield_;

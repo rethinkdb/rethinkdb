@@ -58,7 +58,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         
         for _ in range(30):
             self.table.get(updateItemId).update({'update':1}).run(self.conn)
-            self.assertRaises(self.r.RqlTimeoutError, feed.next, wait=.2)
+            self.assertRaises(self.r.ReqlTimeoutError, feed.next, wait=.2)
         
         # other changes should work
         
@@ -104,7 +104,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # the changefeed should have closed
         
         self.table.get(updateItemId).update({'update':1}).run(conn)
-        self.assertRaises(self.r.RqlRuntimeError, changefeed.next, wait=.2)
+        self.assertRaises(self.r.ReqlRuntimeError, changefeed.next, wait=.2)
 
     def test_secondary_failure(self):
         '''Test when a secondary shardholder fails for a range'''
@@ -173,7 +173,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # check that we error
         
         self.table.insert({}).run(stable_conn)
-        self.assertRaises(self.r.RqlDriverError, next, changefeed)
+        self.assertRaises(self.r.ReqlDriverError, next, changefeed)
 
 # - generate the table drop tests
 
@@ -195,7 +195,7 @@ for feed in [
             try:
                 while True:
                     runningFeed.next(wait=.1)
-            except self.r.RqlTimeoutError: pass
+            except self.r.ReqlTimeoutError: pass
             
             # drop the table
             
@@ -206,14 +206,14 @@ for feed in [
             result = None
             try:
                 result = runningFeed.next(wait=.2)
-            except self.r.RqlRuntimeError:
+            except self.r.ReqlRuntimeError:
                 pass # expected result
-            except self.r.RqlTimeoutError:
-                raise AssertionError('%s feed timed out rather than getting a RqlRuntimeError error' % feed['name'])
+            except self.r.ReqlTimeoutError:
+                raise AssertionError('%s feed timed out rather than getting a ReqlRuntimeError error' % feed['name'])
             except Exception as e:
-                raise AssertionError('expected RqlRuntimeError, but raised: %r' % e)
+                raise AssertionError('expected ReqlRuntimeError, but raised: %r' % e)
             else:
-                raise AssertionError('expected RqlRuntimeError, but got value: %r' % result)
+                raise AssertionError('expected ReqlRuntimeError, but got value: %r' % result)
         return test
     testName = 'test_table_drop_%s_feed' % feed['name']
     setattr(Changefeeds_Basic, testName, test_table_drop_test_generator(feed))
@@ -221,5 +221,4 @@ for feed in [
 # ==== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    rdb_unittest.main()

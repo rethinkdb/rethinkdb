@@ -154,6 +154,7 @@ public:
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
@@ -236,6 +237,7 @@ private:
     cond_t *shutdown_callback;
 
     enum shutdown_state_t {
+        shutdown_not_started,
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,

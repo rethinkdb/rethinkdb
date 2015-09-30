@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/protocol.hpp"
 
 #include <algorithm>
@@ -9,7 +9,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -23,34 +22,6 @@
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
-
-#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
-    void serialize_protobuf(write_message_t *wm, const pb_t &p) {       \
-        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
-        int size = p.ByteSize();                                        \
-        scoped_array_t<char> data(size);                                \
-        p.SerializeToArray(data.data(), size);                          \
-        int32_t size32 = size;                                          \
-        serialize_universal(wm, size32);                                \
-        wm->append(data.data(), data.size());                           \
-    }                                                                   \
-                                                                        \
-    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p) { \
-        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
-        int32_t size;                                                   \
-        archive_result_t res = deserialize_universal(s, &size);         \
-        if (bad(res)) { return res; }                                   \
-        if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
-        scoped_array_t<char> data(size);                                \
-        int64_t read_res = force_read(s, data.data(), data.size());     \
-        if (read_res != size) { return archive_result_t::SOCK_ERROR; }  \
-        p->ParseFromArray(data.data(), data.size());                    \
-        return archive_result_t::SUCCESS;                               \
-    }
-
-RDB_IMPL_PROTOB_SERIALIZABLE(Term);
-RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
-RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 namespace rdb_protocol {
 
@@ -424,6 +395,9 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (do_read) {
             auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            if (rg_out->stamp) {
+                rg_out->stamp->region = rg_out->region;
+            }
         }
         return do_read;
     }
@@ -562,14 +536,23 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
 
 void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
                     changefeed_stamp_response_t *out) {
+    out->stamps = std::map<uuid_u, uint64_t>();
     for (auto &&resp : resps) {
-        for (auto &&stamp : resp->stamps) {
+        // In the error case abort early.
+        if (!resp->stamps) {
+            out->stamps = boost::none;
+            return;
+        }
+        for (auto &&stamp : *resp->stamps) {
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
             // `include_initial_vals` changefeeds.
-            auto pair = out->stamps.insert(std::make_pair(stamp.first, stamp.second));
-            guarantee(pair.second);
+            auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
+            if (!pair.second) {
+                out->stamps = boost::none;
+                return;
+            }
         }
     }
 }
@@ -671,7 +654,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     if (q.transforms.size() != 0 || q.terminal) {
         // This asserts that the optargs have been initialized.  (There is always a
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
-        rassert(q.optargs.size() != 0);
+        rassert(q.optargs.has_optarg("db"));
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
     ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
@@ -1184,8 +1167,12 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_limit_subscribe_response_t, shards, limit_addrs);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
+
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
-    changefeed_point_stamp_response_t, stamp, initial_val);
+    changefeed_point_stamp_response_t::valid_response_t, stamp, initial_val);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(
+    changefeed_point_stamp_response_t, resp);
+
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_response_t, response, event_log, n_shards);
 RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 

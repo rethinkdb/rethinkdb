@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##
-# Tests the driver API for making connections and excercizes the
+# Tests the driver API for making connections and exercizes the
 # networking code
 ###
 
@@ -284,7 +284,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_connect(self):
         if not use_default_port:
             raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % DEFAULT_DRIVER_PORT,
                                            r.connect())
@@ -292,7 +292,7 @@ class TestNoConnection(TestCaseCompatible):
     @gen.coroutine
     def test_connect_port(self):
         port = utils.get_avalible_port()
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % port,
                                            r.connect(port=port))
@@ -301,7 +301,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_connect_host(self):
         if not use_default_port:
             raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to 0.0.0.0:%d."
                                            % DEFAULT_DRIVER_PORT,
                                            r.connect(host="0.0.0.0"))
@@ -317,7 +317,7 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+            yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                                "Connection interrupted during"
                                                " handshake with %s:%d. "
                                                "Error: Operation timed out."
@@ -331,7 +331,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and
         # didn't call `repl`
-        self.assertRaisesRegexp(r.RqlDriverError,
+        self.assertRaisesRegexp(r.ReqlDriverError,
                                 "RqlQuery.run must be given"
                                 " a connection to run on.",
                                 r.expr(1).run)
@@ -341,7 +341,7 @@ class TestNoConnection(TestCaseCompatible):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
             raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            'Could not connect to 0.0.0.0:%d."'
                                            % DEFAULT_DRIVER_PORT,
                                            r.connect(host="0.0.0.0",
@@ -366,7 +366,7 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield r.expr(1).run(c)
         yield c.close()
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Connection is closed.",
                                            r.expr(1).run(c))
 
@@ -443,13 +443,13 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         yield r.table('t2').run(c)
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist.",
                                            r.table('t1').run(c))
 
         c.use('test')
         yield r.table('t1').run(c)
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `test.t2` does not exist.",
                                            r.table('t2').run(c))
 
@@ -460,7 +460,7 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield r.table('t2').run(c)
 
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist.",
                                            r.table('t1').run(c))
 
@@ -501,7 +501,7 @@ class TestConnection(TestWithConnection):
 
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Connection is closed.",
                                            r.expr(1).run())
 
@@ -512,7 +512,7 @@ class TestConnection(TestWithConnection):
         yield r.expr(1).run(c)
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Could not convert port abc to an integer.",
                                            r.connect(port='abc',
                                                      host=sharedServerHost))
@@ -536,7 +536,7 @@ class TestShutdown(TestWithConnection):
         yield closeSharedServer()
         yield gen.sleep(0.2)
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Connection is closed.",
                                            r.expr(1).run(c))
 
@@ -604,7 +604,7 @@ class TestGetIntersectingBatching(TestWithConnection):
                 row = yield cursor.next()
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            yield self.asyncAssertRaises(r.RqlCursorEmpty, cursor.next())
+            yield self.asyncAssertRaises(r.ReqlCursorEmpty, cursor.next())
 
         self.assertTrue(seen_lazy)
 
@@ -638,7 +638,7 @@ class TestBatching(TestWithConnection):
             ids.remove(row['id'])
 
         self.assertEqual((yield cursor.next())['id'], ids.pop())
-        yield self.asyncAssertRaises(r.RqlCursorEmpty, cursor.next())
+        yield self.asyncAssertRaises(r.ReqlCursorEmpty, cursor.next())
         yield r.db('test').table_drop('t1').run(c)
 
 
@@ -726,7 +726,7 @@ class TestCursor(TestWithConnection):
                 yield cursor.next()
                 cursor.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
+        yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
             "Connection is closed.", read_cursor(cursor))
 
     @gen.coroutine
@@ -807,7 +807,7 @@ class TestCursor(TestWithConnection):
                 else:
                     yield cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
-            except r.RqlTimeoutError:
+            except r.ReqlTimeoutError:
                 cursor_timeouts[cursor_index] += 1
 
         # We need to get ahead of pre-fetching for this to get the error we want
@@ -890,7 +890,7 @@ class TestCursor(TestWithConnection):
             try:
                 while True:
                     yield cursor.next(wait=1)
-            except r.RqlTimeoutError:
+            except r.ReqlTimeoutError:
                 pass
             hanging.set_result(True)
             yield cursor.next()
@@ -898,7 +898,7 @@ class TestCursor(TestWithConnection):
         @gen.coroutine
         def read_wrapper(cursor, done, hanging):
             try:
-                yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
+                yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
                     'Connection is closed.', read_cursor(cursor, hanging))
                 done.set_result(None)
             except Exception as ex:

@@ -76,19 +76,17 @@ def makeReleaseNotesLink(version):
 		outputFile.write('[InternetShortcut]\nURL=https://github.com/rethinkdb/rethinkdb/releases/tag/v%s\n' % version)
 	return notesPath
 
-def buildPackage(versionString, serverRootPath, signingName=None):
+def buildPackage(versionString, serverRootPath, installPath=None, signingName=None):
 	'''Generate a .pkg with all of our customizations'''
 	
 	# == check for the identity
 	
 	if signingName is not None:
 		signingName = str(signingName)
-		foundSigningIdentity = False
 		for line in subprocess.check_output(['/usr/bin/security', 'find-identity', '-p', 'macappstore', '-v']).splitlines():
 			if signingName in line:
-				foundSigningIdentity = True
 				break
-		if foundSigningIdentity is False:
+		else:
 			raise ValueError('Could not find the requested signingName: %s' % signingName)
 	
 	# == build the component packages
@@ -101,8 +99,13 @@ def buildPackage(versionString, serverRootPath, signingName=None):
 	
 	serverPackagePath = os.path.join(packageFolder, 'rethinkdb_server.pkg')
 	logFile = open(os.path.join(scratchFolder, 'rethinkdb_server_pkg.log'), 'w+')
+	
+	pkgCommand = ['/usr/bin/pkgbuild', serverPackagePath, '--root', serverRootPath, '--identifier', 'com.rethinkdb.server', '--version', versionString]
+	if installPath:
+	   pkgCommand += ['--install-location', str(installPath)]
+	
 	try:
-		subprocess.check_call(['/usr/bin/pkgbuild', '--root', serverRootPath, '--identifier', 'com.rethinkdb.server', '--version', versionString, serverPackagePath], stdout=logFile, stderr=logFile)
+		subprocess.check_call(pkgCommand, stdout=logFile, stderr=logFile)
 	except Exception as e:
 		logFile.seek(0)
 		sys.stderr.write('Failed while building server package: %s\n%s' % (str(e), logFile.read()))
@@ -134,7 +137,8 @@ def main():
 	
 	import optparse
 	parser = optparse.OptionParser()
-	parser.add_option('-s', '--server-root',     dest='serverRoot',    default=None,        help='path to root of the server component')
+	parser.add_option('-s', '--server-root',     dest='serverRoot',    default=None,        help='path to the server component')
+	parser.add_option('-i', '--install-path',    dest='installPath',    default=None,       help='path to install to')
 	parser.add_option('-o', '--ouptut-location', dest='outputPath',                         help='location for the output file')
 	parser.add_option(      '--rethinkdb-name',  dest='binaryName',    default='rethinkdb', help='name of the rethinkdb server binary')
 	parser.add_option(      '--signing-name',    dest='signingName',   default=None,        help='signing identifier')
@@ -156,7 +160,7 @@ def main():
 	
 	# find the binary
 	
-	rethinkdbPath = os.path.join(options.serverRoot, 'usr', 'local', 'bin', 'rethinkdb')
+	rethinkdbPath = os.path.join(options.serverRoot, options.binaryName)
 	if not os.access(rethinkdbPath, os.X_OK):
 		parser.error('No runnable RethinkDB executable at: %s' % rethinkdbPath)
 	
@@ -169,7 +173,7 @@ def main():
 		print(e)
 		parser.error('the executable given is not a valid RethinkDB executable: %s' % rethinkdbPath)
 	
-	strictVersion = re.match('^(\d+\.?)+', versionString)
+	strictVersion = re.match('^(\d+\.?)+(-\d+)?', versionString)
 	if strictVersion is None:
 		parser.error('version string from executable does not have a regular version string: %s' % versionString)
 	strictVersion = strictVersion.group()
@@ -192,7 +196,7 @@ def main():
 	
 	# == build the pkg	
 	
-	pkgPath = buildPackage(versionString, options.serverRoot, signingName=options.signingName)
+	pkgPath = buildPackage(versionString, options.serverRoot, installPath=options.installPath, signingName=options.signingName)
 	
 	# == add dynamic content to settings
 	

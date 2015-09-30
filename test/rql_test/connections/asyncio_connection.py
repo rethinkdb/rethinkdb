@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##
-# Tests the driver API for making connections and excercizes the
+# Tests the driver API for making connections and exercizes the
 # networking code
 ###
 
@@ -195,7 +195,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_connect(self):
         if not use_default_port:
             return None  # skipTest will not raise in this environment
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % DEFAULT_DRIVER_PORT):
             yield from r.connect()
@@ -203,7 +203,7 @@ class TestNoConnection(TestCaseCompatible):
     @asyncio.coroutine
     def test_connect_port(self):
         port = utils.get_avalible_port()
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % port):
             yield from r.connect(port=port)
@@ -212,7 +212,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_connect_host(self):
         if not use_default_port:
             return None  # skipTest will not raise in this environment
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to 0.0.0.0:%d."
                                            % DEFAULT_DRIVER_PORT):
             yield from r.connect(host="0.0.0.0")
@@ -228,7 +228,7 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            with self.assertRaisesRegexp(r.RqlDriverError,
+            with self.assertRaisesRegexp(r.ReqlDriverError,
                                                "Connection interrupted during"
                                                " handshake with %s:%d. "
                                                "Error: Operation timed out."
@@ -241,7 +241,7 @@ class TestNoConnection(TestCaseCompatible):
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and
         # didn't call `repl`
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                 "RqlQuery.run must be given"
                                 " a connection to run on."):
              r.expr(1).run()
@@ -251,7 +251,7 @@ class TestNoConnection(TestCaseCompatible):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
             return None  # skipTest will not raise in this environment
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                            'Could not connect to 0.0.0.0:%d."'
                                            % DEFAULT_DRIVER_PORT):
             yield from r.connect(host="0.0.0.0", port=DEFAULT_DRIVER_PORT,
@@ -275,7 +275,7 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield from r.expr(1).run(c)
         yield from c.close()
-        with self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed."):
+        with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
             yield from r.expr(1).run(c)
 
     @asyncio.coroutine
@@ -351,13 +351,13 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         yield from r.table('t2').run(c)
-        with self.assertRaisesRegexp(r.RqlRuntimeError,
+        with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist."):
             yield from r.table('t1').run(c)
 
         c.use('test')
         yield from r.table('t1').run(c)
-        with self.assertRaisesRegexp(r.RqlRuntimeError,
+        with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `test.t2` does not exist."):
             yield from r.table('t2').run(c)
 
@@ -368,7 +368,7 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield from r.table('t2').run(c)
 
-        with self.assertRaisesRegexp(r.RqlRuntimeError,
+        with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist."):
             yield from r.table('t1').run(c)
 
@@ -409,7 +409,7 @@ class TestConnection(TestWithConnection):
 
         yield from c.close()
 
-        with self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed."):
+        with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
             yield from r.expr(1).run()
 
     @asyncio.coroutine
@@ -419,7 +419,7 @@ class TestConnection(TestWithConnection):
         yield from r.expr(1).run(c)
         yield from c.close()
 
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                "Could not convert port abc to an integer."):
             yield from r.connect(port='abc', host=sharedServerHost)
 
@@ -442,7 +442,7 @@ class TestShutdown(TestWithConnection):
         yield from closeSharedServer()
         yield from asyncio.sleep(0.2)
 
-        with self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.ReqlDriverError,
                                "Connection is closed."):
             yield from r.expr(1).run(c)
 
@@ -510,7 +510,7 @@ class TestGetIntersectingBatching(TestWithConnection):
                 row = yield from cursor.next()
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            with self.assertRaises(r.RqlCursorEmpty):
+            with self.assertRaises(r.ReqlCursorEmpty):
                 yield from cursor.next()
 
         self.assertTrue(seen_lazy)
@@ -545,7 +545,7 @@ class TestBatching(TestWithConnection):
             ids.remove(row['id'])
 
         self.assertEqual((yield from cursor.next())['id'], ids.pop())
-        with self.assertRaises(r.RqlCursorEmpty):
+        with self.assertRaises(r.ReqlCursorEmpty):
             yield from cursor.next()
         yield from r.db('test').table_drop('t1').run(c)
 
@@ -634,7 +634,7 @@ class TestCursor(TestWithConnection):
                 yield from cursor.next()
                 cursor.close()
 
-        with self.assertRaisesRegexp(r.RqlRuntimeError, "Connection is closed."):
+        with self.assertRaisesRegexp(r.ReqlRuntimeError, "Connection is closed."):
              yield from read_cursor(cursor)
 
     @asyncio.coroutine
@@ -715,7 +715,7 @@ class TestCursor(TestWithConnection):
                 else:
                     yield from cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
-            except r.RqlTimeoutError:
+            except r.ReqlTimeoutError:
                 cursor_timeouts[cursor_index] += 1
 
         # We need to get ahead of pre-fetching for this to get the error we want
@@ -798,7 +798,7 @@ class TestCursor(TestWithConnection):
             try:
                 while True:
                     yield from cursor.next(wait=1)
-            except r.RqlTimeoutError:
+            except r.ReqlTimeoutError:
                 pass
             hanging.set_result(True)
             yield from cursor.next()
@@ -806,7 +806,7 @@ class TestCursor(TestWithConnection):
         @asyncio.coroutine
         def read_wrapper(cursor, done, hanging):
             try:
-                with self.assertRaisesRegexp(r.RqlRuntimeError,
+                with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                              'Connection is closed.'):
                     yield from read_cursor(cursor, hanging)
                 done.set_result(None)

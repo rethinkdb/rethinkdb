@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -55,7 +55,13 @@ sindex_config_t sindex_config_from_string(
     std::vector<char> vec(data + prefix_sz, data + sz);
     sindex_disk_info_t sindex_info;
     try {
-        deserialize_sindex_info(vec, &sindex_info);
+        deserialize_sindex_info(vec, &sindex_info,
+            [target]() {
+                rfail_target(target, base_exc_t::LOGIC,
+                             "Attempted to import a RethinkDB 1.13 secondary index, "
+                             "which is no longer supported.  This secondary index "
+                             "may be updated by importing into RethinkDB 2.0.");
+            });
     } catch (const archive_exc_t &e) {
         rfail_target(
             target,
@@ -99,7 +105,7 @@ ql::datum_t sindex_status_to_datum(
 
 class sindex_create_term_t : public op_term_t {
 public:
-    sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_create_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -137,15 +143,13 @@ public:
                 config.func_version = reql_version_t::LATEST;
             }
         } else {
-
-            pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
-            protob_t<Term> func_term
-                = r::fun(x, r::var(x)[name_datum]).release_counted();
-            propagate_backtrace(func_term.get(), backtrace());
-
+            minidriver_t r(backtrace());
+            auto x = minidriver_t::dummy_var_t::SINDEXCREATE_X;
+            
             compile_env_t empty_compile_env((var_visibility_t()));
-            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
-                &empty_compile_env, func_term);
+            counted_t<func_term_t> func_term_term =
+                make_counted<func_term_t>(&empty_compile_env,
+                                          r.fun(x, r.var(x)[name_datum]).root_term());
 
             config.func = ql::map_wire_func_t(func_term_term->eval_to_func(env->scope));
             config.func_version = reql_version_t::LATEST;
@@ -184,7 +188,7 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_drop_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -208,7 +212,7 @@ public:
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_list_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -237,7 +241,7 @@ public:
 
 class sindex_status_term_t : public op_term_t {
 public:
-    sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_status_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -260,12 +264,13 @@ public:
 
         /* Convert it into an array and return it */
         ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
+        std::set<std::string> remaining_sindexes = sindexes;
         for (const auto &pair : configs_and_statuses) {
             if (!sindexes.empty()) {
                 if (sindexes.count(pair.first) == 0) {
                     continue;
                 } else {
-                    sindexes.erase(pair.first);
+                    remaining_sindexes.erase(pair.first);
                 }
             }
             res.add(sindex_status_to_datum(
@@ -273,9 +278,9 @@ public:
         }
 
         /* Make sure we found all the requested sindexes. */
-        rcheck(sindexes.empty(), base_exc_t::OP_FAILED,
+        rcheck(remaining_sindexes.empty(), base_exc_t::OP_FAILED,
             strprintf("Index `%s` was not found on table `%s`.",
-                      sindexes.begin()->c_str(),
+                      remaining_sindexes.begin()->c_str(),
                       table->display_name().c_str()));
 
         return new_val(std::move(res).to_datum());
@@ -290,7 +295,7 @@ int64_t max_poll_ms = 10000;
 
 class sindex_wait_term_t : public op_term_t {
 public:
-    sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_wait_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -310,6 +315,14 @@ public:
                     table->db, name_string_t::guarantee_valid(table->name.c_str()),
                     env->env->interruptor, &error, &configs_and_statuses)) {
                 REQL_RETHROW(error);
+            }
+
+            // Verify all requested sindexes exist.
+            for (const auto &sindex : sindexes) {
+                rcheck(configs_and_statuses.count(sindex) == 1, base_exc_t::OP_FAILED,
+                    strprintf("Index `%s` was not found on table `%s`.",
+                              sindex.c_str(),
+                              table->display_name().c_str()));
             }
 
             ql::datum_array_builder_t statuses(ql::configured_limits_t::unlimited);
@@ -339,7 +352,7 @@ public:
 
 class sindex_rename_term_t : public op_term_t {
 public:
-    sindex_rename_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_rename_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -379,27 +392,27 @@ public:
 };
 
 counted_t<term_t> make_sindex_create_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_drop_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_drop_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_list_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_list_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_status_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_status_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_wait_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_wait_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_rename_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_rename_term_t>(env, term);
 }
 

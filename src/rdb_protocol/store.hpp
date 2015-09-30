@@ -69,20 +69,6 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class outdated_index_report_t {
-public:
-    outdated_index_report_t() { }
-    virtual ~outdated_index_report_t() { }
-
-    // Called during store_t instantiation
-    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
-
-    // Called when indexes change during store_t lifetime
-    virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void indexes_renamed(
-        const std::map<std::string, std::string> &name_changes) = 0;
-};
-
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -96,7 +82,6 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            scoped_ptr_t<outdated_index_report_t> &&_index_report,
             namespace_id_t table_id);
     ~store_t();
 
@@ -119,6 +104,19 @@ public:
             order_token_t order_token,
             write_token_t *token,
             write_durability_t durability,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    cluster_version_t metainfo_version(read_token_t *token,
+                                       signal_t *interruptor);
+
+    void migrate_metainfo(
+            order_token_t order_token,
+            write_token_t *token,
+            cluster_version_t from,
+            cluster_version_t to,
+            const std::function<binary_blob_t(const region_t &,
+                                              const binary_blob_t &)> &cb,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -151,6 +149,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
+            backfill_item_memory_tracker_t *memory_tracker,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
     continue_bool_t receive_backfill(
@@ -192,6 +191,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
+    rwlock_in_line_t get_in_line_for_cfeed_stamp(access_t access);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -235,8 +235,6 @@ public:
         uuid_u id,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-    void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
@@ -380,13 +378,37 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with the `rdb_modification_report_cb_t` in
+    // `btree.cc`.
+    rwlock_t cfeed_stamp_lock;
 
+private:
     rdb_context_t *ctx;
-    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+    // We store regions here even though we only really need the key ranges
+    // because it's nice to have a unique identifier across `store_t`s.  In the
+    // future we may use these `region_t`s instead of the `uuid_u`s in the
+    // changefeed server.
+    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > changefeed_servers;
+    rwlock_t changefeed_servers_lock;
 
-    // This report is used by the outdated index issue tracker, and should be updated
-    // any time the set of outdated indexes for this table changes
-    scoped_ptr_t<outdated_index_report_t> index_report;
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region,
+            const rwlock_acq_t *acq);
+public:
+    // Returns a pointer to `changefeed_servers` together with a read acquisition
+    // on `changefeed_servers_lock`.
+    std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
+              scoped_ptr_t<rwlock_acq_t> > access_changefeed_servers();
+    // Return a pointer to a specific changefeed server if it exists. These can
+    // block.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region);
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const store_key_t &key);
+    // Like `changefeed_server()`, but creates the server if it doesn't exist.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
+            get_or_make_changefeed_server(const region_t &region);
 
 private:
     namespace_id_t table_id;

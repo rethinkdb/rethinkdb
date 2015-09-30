@@ -16,6 +16,7 @@
 
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "logger.hpp"
 
 host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
                                      int _res, int _errno_res)
@@ -76,6 +77,17 @@ std::string ip_to_string(addr_t &addr, int address_family) {
     return std::string(buffer);
 }
 
+size_t min_sockaddr_size_for_address_family(int address_family) {
+    switch (address_family) {
+    case AF_INET:
+        return sizeof(sockaddr_in);
+    case AF_INET6:
+        return sizeof(sockaddr_in6);
+    default:
+        return 0;
+    }
+}
+
 void hostname_to_ips_internal(const std::string &host,
                               int address_family,
                               std::set<ip_address_t> *ips) {
@@ -98,7 +110,15 @@ void hostname_to_ips_internal(const std::string &host,
 
     guarantee(addrs);
     for (struct addrinfo *ai = addrs; ai; ai = ai->ai_next) {
-        ips->insert(ip_address_t(ai->ai_addr));
+        // Workaround for bug in eglibc 2.19 (used in Ubuntu 14.04) combined with nscd
+        // See bug report here: https://sourceware.org/bugzilla/show_bug.cgi?id=16743
+        if (ai->ai_family != address_family ||
+            ai->ai_addrlen < min_sockaddr_size_for_address_family(address_family)) {
+            logWRN("Invalid address family returned by `getaddrinfo` (%d), "
+                   "are you using nscd with EGLIBC 2.19?", ai->ai_family);
+        } else {
+            ips->insert(ip_address_t(ai->ai_addr));
+        }
     }
 
     freeaddrinfo(addrs);

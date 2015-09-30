@@ -7,11 +7,15 @@ tests:
     ##  Get attr
 
     - cd: obj['a']
-      js: [obj('a'), obj.getField('a')]
+      js:
+        - obj('a')
+        - obj.getField('a')
       ot: 1
     - cd: obj['c']
-      js: [obj('c'), obj.getField('c')]
-      ot: "'str'"
+      js:
+        - obj('c')
+        - obj.getField('c')
+      ot: 'str'
 
     ## Has_Fields
 
@@ -49,63 +53,63 @@ tests:
     ## Pluck
 
     - cd: obj.pluck('a')
-      ot: ({'a':1})
+      ot: {'a':1}
     - cd: obj.pluck('a', 'b')
-      ot: ({'a':1, 'b':2})
+      ot: {'a':1, 'b':2}
 
     ## Without
 
     - cd: obj.without('a')
-      ot: ({'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
+      ot: {'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}}
     - cd: obj.without('a', 'b')
-      ot: ({'c':'str', 'd':null,'e':{'f':'buzz'}})
+      ot: {'c':'str', 'd':null,'e':{'f':'buzz'}}
     - cd: obj.without('a', 'b', 'c', 'd')
-      ot: ({'e':{'f':'buzz'}})
+      ot: {'e':{'f':'buzz'}}
     - cd: obj.without({'e':'f'})
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{}})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':{}}
     - cd: obj.without({'e':'buzz'})
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}}
 
     ## Merge
     #obj = r.expr({'a':1, 'b':2,'c':"str",'d':null,'e':{'f':'buzz'}})
 
     # complete replacement
-    - cd: "obj.merge(1)"
+    - cd: obj.merge(1)
       ot: 1
 
     # add attr
-    - cd: "obj.merge({'e':-2})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':-2})
+    - cd: obj.merge({'e':-2})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':-2}
 
     # delete attr
-    - cd: "obj.merge({'e':r.literal()})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null})
+    - cd: obj.merge({'e':r.literal()})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null}
 
     # recursive merge
-    - cd: "obj.merge({'e':{'f':'quux'}})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'quux'}})
+    - cd: obj.merge({'e':{'f':'quux'}})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'quux'}}
 
-    - cd: "obj.merge({'e':{'g':'quux'}})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz', 'g':'quux'}})
+    - cd: obj.merge({'e':{'g':'quux'}})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz', 'g':'quux'}}
 
-    - cd: "obj.merge({'e':r.literal({'g':'quux'})})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'g':'quux'}})
+    - cd: obj.merge({'e':r.literal({'g':'quux'})})
+      ot: {'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'g':'quux'}}
 
     # overwrite
-    - cd: "obj.merge({'a':-1})"
-      ot: ({'a':-1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
-    
+    - cd: obj.merge({'a':-1})
+      ot: {'a':-1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}}
+
     - def: errmsg = 'Stray literal keyword found:'+' literal is only legal inside of the object passed to merge or update and cannot nest inside other literals.'
 
     # errors
-    - cd: "r.literal('foo')"
-      ot: err("RqlRuntimeError", errmsg, [])
+    - cd: r.literal('foo')
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
-    - cd: "obj.merge(r.literal('foo'))"
-      ot: err("RqlRuntimeError", errmsg, [])
+    - cd: obj.merge(r.literal('foo'))
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
-    - cd: "obj.merge({'foo':r.literal(r.literal('foo'))})"
-      ot: err("RqlRuntimeError", errmsg, [])
+    - cd: obj.merge({'foo':r.literal(r.literal('foo'))})
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
     - def: o = r.expr({'a':{'b':1, 'c':2}, 'd':3})
 
@@ -134,3 +138,6 @@ tests:
     ## keys
     - cd: obj.keys()
       ot: (['a', 'b', 'c', 'd', 'e'])
+
+    - cd: obj.values()
+      ot: ([1, 2, 'str', null, {'f':'buzz'}])

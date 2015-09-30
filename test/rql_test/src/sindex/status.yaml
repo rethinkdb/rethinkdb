@@ -2,8 +2,28 @@ desc: sindex status
 table_variable_name: tbl2
 tests:
 
-# Index status tests. These are separate because they require much bigger
-# tables and it would just be a pain to keep them together.
+# Index status test on an empty table with two indexes.
+# This is also a regression test for #4868
+  - cd: tbl2.index_create("a")
+    ot: ({'created':1})
+  - cd: tbl2.index_create("b")
+    ot: ({'created':1})
+
+  - cd: tbl2.index_status().count()
+    ot: 2
+  - cd: tbl2.index_status("a").count()
+    ot: 1
+  - cd: tbl2.index_status("b").count()
+    ot: 1
+  - cd: tbl2.index_status("a", "b").count()
+    ot: 2
+
+  - cd: tbl2.index_drop("a")
+    ot: ({'dropped':1})
+  - cd: tbl2.index_drop("b")
+    ot: ({'dropped':1})
+
+# Index status tests with bigger tables for a single index
 
   - py: tbl2.insert(r.range(0, 5000).map({'a':r.row}))
     rb: tbl2.insert(r.range(0, 5000).map{|row| {'a':row}})

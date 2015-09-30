@@ -7,9 +7,11 @@
 #include <vector>
 
 #include "arch/compiler.hpp"
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
-#include "errors.hpp"
 
 class value_sizer_t;
 struct btree_key_t;
@@ -178,9 +180,11 @@ repli_timestamp_t min_deletion_timestamp(
     // the recency of the buf that `node` came from
     repli_timestamp_t maximum_existing_timestamp);
 
-/* Removes all timestamps and deletions earlier than the given timestamp. */
+/* Removes all timestamps and deletions. Optionally: specify a `min_timestamp`
+so that only timestamps and deletions earlier than the given timestamp are removed. */
 void erase_deletions(
-    value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_timestamp);
+    value_sizer_t *sizer, leaf_node_t *node,
+    boost::optional<repli_timestamp_t> min_timestamp);
 
 /* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
 will be in order from most recent to least recent. For entries with no timestamp, the

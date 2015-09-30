@@ -163,6 +163,12 @@ module RethinkDB
         handle(:on_close)
       end
     end
+    def handle_force_close
+      if !@closed
+        handle(:on_error, ReqlRuntimeError.new("Connection is closed."))
+      end
+      handle_close
+    end
     def safe_next_tick(&b)
       EM.next_tick {
         b.call if !@closed
@@ -380,13 +386,13 @@ module RethinkDB
     end
 
     def each(&block) # :nodoc:
-      raise RqlRuntimeError, "Can only iterate over a cursor once." if @run
+      raise ReqlRuntimeError, "Can only iterate over a cursor once." if @run
       return enum_for(:each) if !block
       @run = true
       while true
         @results.each(&block)
         return self if !@more
-        raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
+        raise ReqlRuntimeError, "Connection is closed." if @more && out_of_date
         wait_for_batch(nil)
       end
     end
@@ -419,10 +425,10 @@ module RethinkDB
 
     def next(wait=true)
       if @run
-        raise RqlRuntimeError, "Cannot call `next` on a cursor after calling `each`."
+        raise ReqlRuntimeError, "Cannot call `next` on a cursor after calling `each`."
       end
       if @more && out_of_date
-        raise RqlRuntimeError, "Connection is closed."
+        raise ReqlRuntimeError, "Connection is closed."
       end
       timeout = wait
       if wait == true
@@ -484,7 +490,7 @@ module RethinkDB
       if !opts[:noreply]
         @mon.synchronize {
           if @waiters.has_key?(token)
-            raise RqlDriverError, "Internal driver error, token already in use."
+            raise ReqlDriverError, "Internal driver error, token already in use."
           end
           @waiters[token] = callback ? callback : @mon.new_cond
           @opts[token] = opts
@@ -504,7 +510,7 @@ module RethinkDB
     end
     def run(msg, opts, b)
       reconnect(:noreply_wait => false) if @auto_reconnect && !is_open()
-      raise RqlRuntimeError, "Connection is closed." if !is_open()
+      raise ReqlRuntimeError, "Connection is closed." if !is_open()
 
       global_optargs = {}
       all_opts = @default_opts.merge(opts)
@@ -590,7 +596,7 @@ module RethinkDB
             # but this is safer in case someone makes changes to
             # `close` in the future.
             if !is_open() || !@waiters.has_key?(token)
-              raise RqlRuntimeError, "Connection is closed."
+              raise ReqlRuntimeError, "Connection is closed."
             end
 
             if end_time
@@ -673,6 +679,7 @@ module RethinkDB
     def base_socket
       socket = TCPSocket.open(@host, @port)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
       socket
     end
 
@@ -718,7 +725,7 @@ module RethinkDB
         @waiters.each {|k,v|
           case v
           when QueryHandle
-            v.handle_close
+            v.handle_force_close
           when MonitorMixin::ConditionVariable
             @waiters[k] = nil
             v.signal
@@ -739,25 +746,25 @@ module RethinkDB
     end
 
     def noreply_wait
-      raise RqlRuntimeError, "Connection is closed." if !is_open()
+      raise ReqlRuntimeError, "Connection is closed." if !is_open()
       q = [Query::QueryType::NOREPLY_WAIT]
       res = run_internal(q, {noreply: false}, new_token)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
-        raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
+        raise ReqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
       nil
     end
 
     def self.last
       return @@last if @@last
-      raise RqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+      raise ReqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end
 
     def remove_em_waiters
       @mon.synchronize {
         @waiters.each {|k,v|
           if v.is_a? QueryHandle
-            v.handle_close
+            v.handle_force_close
             @waiters.delete(k)
           end
         }
@@ -776,7 +783,7 @@ module RethinkDB
       when nil
         # nothing
       else
-        raise RqlDriverError, "Unrecognized value #{w.inspect} in `@waiters`."
+        raise ReqlDriverError, "Unrecognized value #{w.inspect} in `@waiters`."
       end
     end
 
@@ -798,7 +805,7 @@ module RethinkDB
           maybe_timeout(timeout_sec) {
             buf = read len
             if !buf || buf.length != len
-              raise RqlRuntimeError, "Connection closed by server."
+              raise ReqlRuntimeError, "Connection closed by server."
             end
             return buf
           }
@@ -811,12 +818,16 @@ module RethinkDB
         response += @socket.read_exn(1, @timeout)
       end
       response = response[0...-1]
-      if response != "SUCCESS"
-        raise RqlRuntimeError, "Server dropped connection with message: \"#{response}\""
+      if response == "SUCCESS"
+        # do nothing
+      elsif response == "ERROR: Incorrect authorization key.\n"
+        raise ReqlAuthError, "Incorrect authorization key."
+      else
+        raise ReqlRuntimeError, "Server dropped connection with message: \"#{response}\""
       end
 
       if @listener
-        raise RqlDriverError, "Internal driver error, listener already started."
+        raise ReqlDriverError, "Internal driver error, listener already started."
       end
       @listener = Thread.new {
         while true
@@ -828,7 +839,7 @@ module RethinkDB
             begin
               data = Shim.load_json(response, @opts[token])
             rescue Exception => e
-              raise RqlRuntimeError, "Bad response, server is buggy.\n" +
+              raise ReqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
             end
             @mon.synchronize{note_data(token, data)}

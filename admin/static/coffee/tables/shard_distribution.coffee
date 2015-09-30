@@ -88,7 +88,7 @@ class ShardDistribution extends Backbone.View
         margin_width_inner = Math.floor((svg_width-margin_width*2-width_of_all_bars)/2)
 
         # Y scale
-        y = d3.scale.linear().domain([0, max_keys]).range([1, svg_height-margin_height*2.5])
+        y = d3.scale.linear().domain([0, max_keys*1.05]).range([0, svg_height-margin_height*2.5])
 
         # Add svg
         #svg = d3.select('.shard-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
@@ -195,22 +195,28 @@ class ShardDistribution extends Backbone.View
 
         # Then the actual tick's value
         rules = extra_container.selectAll('.rule').data(y.ticks(5))
+
+        # Used to set the attributes of new tick marks, and to update
+        # tick marks that are transitioning (this happens when the
+        # scale of the graph changes)
+        recalc_height_and_text = (selection) =>
+            selection
+                .attr('y', (d) -> svg_height - margin_height - y(d))
+                .attr('x', margin_width)
+                .attr('text-anchor', 'middle')
+                .attr('class', 'rule')
+                .text((d, i) => if i isnt 0 then @prettify_num(d) else '')
+
+        # How to render the axis for new ticks being added:
         rules.enter()
             .append('text')
-            .attr('class', 'rule')
-            .attr('x', margin_width)
-            .attr('y', (d) -> svg_height-margin_height-y(d))
-            .attr('text-anchor', "middle")
-            .text((d, i) =>
-                if i isnt 0
-                    return @prettify_num(d) # We don't display 0
-                else
-                    return ''
-            )
+            .call(recalc_height_and_text)
+        # How to render the axis when a tick changes:
         rules.transition()
             .duration(600)
-            .attr('y', (d) -> svg_height-margin_height-y(d))
+            .call(recalc_height_and_text)
 
+        # Remove ticks that are no longer needed:
         rules.exit().remove()
 
         @$('rect').tooltip

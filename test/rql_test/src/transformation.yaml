@@ -1,16 +1,8 @@
 desc: Tests that manipulation data in tables
-table_variable_name: tbl
+table_variable_name: tbl tbl2 tbl3
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-      def: tbl2 = r.db('test').table('test2')
-
-    - cd: r.db('test').table_create('test3')
-      ot: partial({'tables_created':1})
-      def: tbl3 = r.db('test').table('test3')
-
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -21,16 +13,16 @@ tests:
             return res;
         }())
       rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
+      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100}
 
     - cd: tbl.index_create('a')
-      ot: ({'created':1})
+      ot: {'created':1}
 
-    - py: "tbl.index_create('truncated_a', lambda x: ['a' * 300, x['a']])"
-      ot: ({'created':1})
+    - py: tbl.index_create('truncated_a', lambda x: ['a' * 300, x['a']])
+      ot: {'created':1}
 
-    - py: "tbl.index_create('error_prone', lambda x: 1/x['a'])"
-      ot: ({'created':1})
+    - py: tbl.index_create('error_prone', lambda x: 1/x['a'])
+      ot: {'created':1}
 
     - cd: tbl.index_wait().pluck('index', 'ready')
 
@@ -44,7 +36,7 @@ tests:
             return res;
         }())
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
+      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100}
 
     - py: tbl3.insert([{'id':i, 'a':i%4, 'b':{'c':i%5}} for i in xrange(100)])
       js: |
@@ -56,7 +48,7 @@ tests:
             return res;
         }())
       rb: tbl3.insert((0..99).map{ |i| { :id => i, :a => i % 4, :b => { :c => i % 5 } } })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
+      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100}
 
     # Map-Reduce
     - py:
@@ -102,7 +94,7 @@ tests:
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })
       rb: tbl.concat_map{ |row| [] }
-      ot: ([])
+      ot: []
     - def:
         py: ccm = tbl.concat_map(lambda row:[row['a'], (row['a'] + 1) % 4])
         js: ccm = tbl.concatMap(function(row) { return [row('a'), row('a').add(1).mod(4)]; })
@@ -118,17 +110,17 @@ tests:
     - py: tbl.order_by('id')[0]
       js: tbl.orderBy('id').nth(0)
       rb: tbl.order_by(:id)[0]
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - py: tbl.order_by([1,2,3])
       js: tbl.orderBy([1,2,3])
       rb: tbl.order_by([1,2,3])
-      ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type STRING but found ARRAY.', [0])
 
     - py: tbl.order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).nth(0)
       rb: tbl.order_by('a', :index => :id)[0]
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - py: tbl.order_by(index='id')[0].update({'a':0})['unchanged']
       js: tbl.orderBy({index:'id'}).nth(0).update({a:0})('unchanged')
@@ -143,109 +135,109 @@ tests:
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
 
 
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
 
     - py: tbl.order_by('id').order_by(index='id')[0]
       js: tbl.orderBy('id').orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
     - py: tbl.order_by('id').order_by(index='a')[0]
       js: tbl.orderBy('id').orderBy({index:'a'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :a)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
     - py: tbl.between(5, r.maxval, index='id').order_by(index='id')[0]
       js: tbl.between(5, r.maxval, {index:'id'}).orderBy({index:'id'}).nth(0)
       rb: tbl.between(5, r.maxval, :index => :id).order_by('a', :index => :id)[0]
-      ot: ({'id':5, 'a':1})
+      ot: {'id':5, 'a':1}
 
     - py: tbl.order_by('a', index='id').between(5, r.maxval, index='id')[0]
       js: tbl.orderBy('a', {index:'id'}).between(5, r.maxval, {index:'id'}).nth(0)
       rb: tbl.order_by('a', :index => :id).between(5, r.maxval, :index => :id)[0]
-      ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION:', [0])
 
-    - py: "tbl.order_by(lambda x: x['id'])[0]"
+    - py: tbl.order_by(lambda x: x['id'])[0]
       js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
       rb: tbl.order_by{|x| x[:id]}[0]
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - cd: tbl.order_by('a', 'id').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - py: tbl.order_by('id', index='a').nth(0)
       js: tbl.orderBy('id', {index:'a'}).nth(0)
       rb: tbl.order_by('id', :index => :a).nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - py: tbl.order_by('id', index='truncated_a').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - py: tbl.order_by('id', index='error_prone').nth(0)
-      ot: ({'id':3,'a':3})
+      ot: {'id':3,'a':3}
 
-    - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"
+    - py: tbl.order_by(lambda x: [x['a'], x['id']])[0]
       js: tbl.orderBy(function (x) { return [x('a'), x('id')]; }).nth(0)
       rb: tbl.order_by{|x| [x[:a], x[:id]]}[0]
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - cd: tbl.order_by(r.desc('a'), r.asc('id')).nth(0)
-      ot: ({'id':3,'a':3})
+      ot: {'id':3,'a':3}
 
     - py: tbl.order_by('id', index=r.desc('a')).nth(0)
       js: tbl.orderBy('id', {index:r.desc('a')}).nth(0)
       rb: tbl.order_by('id', :index => r.desc(:a)).nth(0)
-      ot: ({'id':3,'a':3})
+      ot: {'id':3,'a':3}
 
-    - py: "tbl.order_by(r.desc(lambda x: x['a']), lambda x: x['id'])[0]"
+    - py: tbl.order_by(r.desc(lambda x: x['a']), lambda x: x['id'])[0]
       js: tbl.orderBy(r.desc(function (x) { return x('a'); }), function (x) { return x('id'); }).nth(0)
       rb: tbl.order_by(r.desc{|x| x[:a]}, lambda {|x| x[:id]})[0]
-      ot: ({'id':3, 'a':3})
+      ot: {'id':3, 'a':3}
 
     - cd: tbl.order_by(r.asc('a'), r.desc('id')).nth(0)
-      ot: ({'id':96,'a':0})
+      ot: {'id':96,'a':0}
 
     - py: tbl.order_by(r.desc('id'), index='a').nth(0)
       js: tbl.orderBy(r.desc('id'), {index:'a'}).nth(0)
       rb: tbl.order_by(r.desc('id'), :index => :a).nth(0)
-      ot: ({'id':96,'a':0})
+      ot: {'id':96,'a':0}
 
     - cd: tbl.order_by('id').type_of()
-      ot: "'SELECTION<ARRAY>'"
+      ot: 'SELECTION<ARRAY>'
 
     - cd: tbl.order_by('missing').order_by('id').nth(0)
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - py: tbl.order_by('missing').order_by(index='id').nth(0)
       js: tbl.order_by('missing').order_by({index:'id'}).nth(0)
       rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
     - cd: tbl.order_by('id', 'missing').nth(0)
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
     - py: tbl.order_by('missing', index='id').nth(0)
       js: tbl.order_by('missing', {index:'id'}).nth(0)
       rb: tbl.order_by('missing', :index => :id).nth(0)
-      ot: ({'id':0, 'a':0})
+      ot: {'id':0, 'a':0}
 
-    - py: "tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
+    - py: tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')
       rb: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
       js: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
       ot: true
 
-    - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
+    - py: tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')
       rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
       js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
       ot: true
 
-    - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(r.desc('id')).coerce_to('ARRAY')"
+    - py: tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(r.desc('id')).coerce_to('ARRAY')
       rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by(r.desc(:id)).coerce_to("ARRAY"))
       js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(r.desc('id')).coerce_to("ARRAY"))
       ot: true
@@ -254,17 +246,17 @@ tests:
     - cd: tbl.skip(1).count()
       ot: 99
     - cd: tbl.skip(-1).count()
-      ot: err('RqlRuntimeError', 'Cannot use a negative left index on a stream.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot use a negative left index on a stream.', [0])
     - cd: tbl.skip('foo').count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     # test limit
     - cd: tbl.limit(1).count()
       ot: 1
     - cd: tbl.limit(-1).count()
-      ot: err('RqlRuntimeError', 'LIMIT takes a non-negative argument (got -1)', [0])
+      ot: err('ReqlQueryLogicError', 'LIMIT takes a non-negative argument (got -1)', [0])
     - cd: tbl.limit('foo').count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     # test slice
     - cd: tbl.slice(1, 3).count()
@@ -272,17 +264,17 @@ tests:
     - cd: tbl.slice(5).count()
       ot: 95
     - cd: tbl.slice(-1, -3).count()
-      ot: err('RqlRuntimeError', 'Cannot use a negative left index on a stream.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot use a negative left index on a stream.', [0])
     - cd: tbl.slice(0, -3).count()
-      ot: err('RqlRuntimeError', 'Cannot use a right index < -1 on a stream.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot use a right index < -1 on a stream.', [0])
     - cd: tbl.slice(0, -1).count()
-      ot: err('RqlRuntimeError', 'Cannot slice to an open right index of -1 on a stream.', [])
+      ot: err('ReqlQueryLogicError', 'Cannot slice to an open right index of -1 on a stream.', [])
     - cd: tbl.slice('foo', 'bar').count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
     - cd: tbl.slice(1, null).count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found NULL.', [0])
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])
     - cd: tbl.slice(null, 1).count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found NULL.', [0])
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])
 
     - cd: tbl.slice(12, 20).count()
       ot: 8
@@ -300,25 +292,25 @@ tests:
       ot: 8
 
     - cd: tbl.slice(12, -1).count()
-      ot: err("RqlRuntimeError", "Cannot slice to an open right index of -1 on a stream.", [])
+      ot: err("ReqlQueryLogicError", "Cannot slice to an open right index of -1 on a stream.", [])
     - cd: tbl.slice(12, -1, :right_bound => 'closed').count()
       py: tbl.slice(12, -1, right_bound='closed').count()
       js: tbl.slice(12, -1, {right_bound:'closed'}).count()
       ot: 88
 
     - cd: tbl.slice(12, -2).count()
-      ot: err("RqlRuntimeError", "Cannot use a right index < -1 on a stream.", [])
+      ot: err("ReqlQueryLogicError", "Cannot use a right index < -1 on a stream.", [])
     - cd: tbl.slice(12, -2, :right_bound => 'closed').count()
       py: tbl.slice(12, -2, right_bound='closed').count()
       js: tbl.slice(12, -2, {right_bound:'closed'}).count()
-      ot: err("RqlRuntimeError", "Cannot use a right index < -1 on a stream.", [])
+      ot: err("ReqlQueryLogicError", "Cannot use a right index < -1 on a stream.", [])
 
     - cd: tbl.slice(-12, -2).count()
-      ot: err("RqlRuntimeError", "Cannot use a negative left index on a stream.", [])
+      ot: err("ReqlQueryLogicError", "Cannot use a negative left index on a stream.", [])
     - cd: tbl.slice(-12, -2, :right_bound => 'closed').count()
       py: tbl.slice(-12, -2, right_bound='closed').count()
       js: tbl.slice(-12, -2, {right_bound:'closed'}).count()
-      ot: err("RqlRuntimeError", "Cannot use a negative left index on a stream.", [])
+      ot: err("ReqlQueryLogicError", "Cannot use a negative left index on a stream.", [])
 
     - cd: tbl.coerce_to('array').slice(12, 20).count()
       ot: 8
@@ -358,29 +350,29 @@ tests:
 
     - def: arr = r.expr([1,2,3,4,5])
     - rb: arr[1..3]
-      ot: ([2, 3, 4])
+      ot: [2, 3, 4]
     - rb: arr[1...3]
       py: arr[1:3]
-      ot: ([2, 3])
+      ot: [2, 3]
     - rb: arr[1..-3]
-      ot: ([2, 3])
+      ot: [2, 3]
     - rb: arr[1...-3]
       py: arr[1:-3]
-      ot: ([2])
+      ot: [2]
     - rb: arr[1..-1]
       py: arr[1:]
-      ot: ([2,3,4,5])
+      ot: [2,3,4,5]
     - rb: arr[1...-1]
       py: arr[1:-1]
-      ot: ([2,3,4])
+      ot: [2,3,4]
 
     # test nth
     - cd: tbl.order_by('id').nth(1)
-      ot: ({'id':1,'a':1})
+      ot: {'id':1,'a':1}
     - cd: tbl.order_by('id').nth(-1)
-      ot: ({'id':99,'a':3})
+      ot: {'id':99,'a':3}
     - cd: tbl.order_by('id').nth('foo').count()
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     # test is_empty
     - cd: tbl.is_empty()
@@ -388,103 +380,96 @@ tests:
     - cd: tbl.limit(0).is_empty()
       ot: true
     - cd: r.expr(1).is_empty()
-      ot: err('RqlRuntimeError', 'Cannot convert NUMBER to SEQUENCE', [])
+      ot: err('ReqlQueryLogicError', 'Cannot convert NUMBER to SEQUENCE', [])
     - cd: r.expr("").is_empty()
-      ot: err('RqlRuntimeError', 'Cannot convert STRING to SEQUENCE', [])
+      ot: err('ReqlQueryLogicError', 'Cannot convert STRING to SEQUENCE', [])
 
     # Pluck
     - cd: tbl3.pluck().nth(0)
-      ot: ({}) # XXX: empty object seems to match anything
+      ot: {}
 
     - cd: tbl3.pluck({}).nth(0)
-      ot: ({}) # XXX: empty object seems to match anything
+      ot: {}
 
     - cd: tbl3.pluck([]).nth(0)
-      ot: ({}) # XXX: empty object seems to match anything
+      ot: {}
 
     - cd: tbl3.pluck('id').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.pluck(['id']).order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - py: tbl3.pluck({'id':True}).order_by('id').nth(0)
       js: tbl3.pluck({'id':true}).order_by('id').nth(0)
       rb: tbl3.pluck({'id'=>true}).order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.pluck('id', 'a').order_by('id').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - cd: tbl3.pluck(['id', 'a']).order_by('id').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - py: tbl3.pluck({'id':True, 'a':True}).order_by('id').nth(0)
       js: tbl3.pluck({'id':true, 'a':true}).order_by('id').nth(0)
       rb: tbl3.pluck({'id'=>true, 'a'=>true}).order_by('id').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - cd: tbl3.pluck('id', 'missing').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.pluck(['id', 'missing']).order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - py: tbl3.pluck({'id':True, 'missing':True}).order_by('id').nth(0)
       js: tbl3.pluck({'id':true, 'missing':true}).order_by('id').nth(0)
       rb: tbl3.pluck({'id'=>true, 'missing'=>true}).order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.pluck('id', {'b':'c'}).order_by('id').nth(0)
-      ot: ({'id':0, 'b':{'c':0}})
+      ot: {'id':0, 'b':{'c':0}}
 
     - cd: tbl3.pluck(['id', {'b':'c'}]).order_by('id').nth(0)
-      ot: ({'id':0, 'b':{'c':0}})
+      ot: {'id':0, 'b':{'c':0}}
 
     - cd: tbl3.pluck(1)
-      ot: err('RqlRuntimeError', 'Invalid path argument `1`.', [])
+      ot: err('ReqlQueryLogicError', 'Invalid path argument `1`.', [])
 
     - py: r.expr([[{"foo":1}]]).pluck("foo")
       js: r.expr([[{"foo":1}]]).pluck("foo")
       rb: r.expr([[{"foo" => 1}]]).pluck("foo")
-      ot: err('RqlRuntimeError', 'Cannot perform pluck on a sequence of sequences.', [])
+      ot: err('ReqlQueryLogicError', 'Cannot perform pluck on a sequence of sequences.', [])
 
     - py: r.expr(['a','b']).map(lambda x:r.expr({'a':1,'b':2}).pluck(x))
       js: r.expr(['a','b']).map(function (x) { return r.expr({'a':1,'b':2}).pluck(x); })
       rb: r.expr(['a','b']).map{|x| r.expr({'a'=>1,'b'=>2}).pluck(x)}
-      ot: ([{'a':1},{'b':2}])
+      ot: [{'a':1},{'b':2}]
 
     - py: r.expr({"foo":{"bar":1}}).pluck({"foo":{"bar":"buzz"}})
-      ot: ({"foo":{}})
+      ot: {"foo":{}}
 
     # without
     - cd: tbl.without().order_by('id').nth(0)
-      ot: ({'id':0,'a':0})
+      ot: {'id':0,'a':0}
 
     - cd: tbl.without('a').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl.without('id', 'a').nth(0)
-      ot: ({})
+      ot: {}
 
     - cd: tbl.without('a', 'missing').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.without('a', {'b':'c'}).order_by('id').nth(0)
-      ot: ({'id':0, 'b':{}})
+      ot: {'id':0, 'b':{}}
 
     - cd: tbl3.without(['a', {'b':'c'}]).order_by('id').nth(0)
-      ot: ({'id':0, 'b':{}})
+      ot: {'id':0, 'b':{}}
 
     - cd: tbl3.without(['a', {'b':'d'}]).order_by('id').nth(0)
-      ot: ({'id':0, 'b':{'c':0}})
-
-    # Coerce a table to an array
-    - cd: tbl.limit(5).type_of()
-      ot: '"SELECTION<STREAM>"'
-
-    - cd: tbl.limit(5).coerce_to('array').type_of()
-      ot: '"ARRAY"'
+      ot: {'id':0, 'b':{'c':0}}
 
     # Union
     - cd: tbl.union(tbl2).count()
@@ -505,9 +490,9 @@ tests:
       ot: [2]
 
     - cd: r.expr([1]).offsets_of(tbl)
-      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [])
+      ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE:', [])
 
-    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).offsets_of(x))"
+    - py: r.expr(1).do(lambda x: r.expr([2,1,0]).offsets_of(x))
       js: r.expr(1).do(function(x){ return r.expr([2,1,0]).offsets_of(x); })
       rb: r(1).do{ |x| r([2,1,0]).offsets_of x }
       ot: [1]
@@ -529,19 +514,13 @@ tests:
 
     # Filter
     - cd: tbl3.filter({'b':{'c':0}}).pluck('id').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: {'id':0}
 
     - cd: tbl3.filter({'b':{'c':6}})
-      ot: ([])
+      ot: []
 
     - cd: tbl3.filter(r.literal({'id':0}))
-      ot: ([])
+      ot: []
 
     - cd: tbl3.filter({'b':r.literal({'c':0})}).pluck('id').order_by('id').nth(0)
-      ot: ({'id':0})
-
-    # Clean up
-    - cd: r.db('test').table_drop('test2')
-      ot: partial({'tables_dropped':1})
-    - cd: r.db('test').table_drop('test3')
-      ot: partial({'tables_dropped':1})
+      ot: {'id':0}

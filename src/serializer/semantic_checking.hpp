@@ -57,11 +57,13 @@ public:
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
-                     const std::vector<index_write_op_t> &write_ops,
-                     file_account_t *io_account);
+                     const std::function<void()> &on_writes_reflected,
+                     const std::vector<index_write_op_t> &write_ops);
 
     std::vector<counted_t< scs_block_token_t<inner_serializer_t> > >
     block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
+
+    bool is_gc_active() const;
 
     max_block_size_t max_block_size() const;
 

@@ -145,18 +145,18 @@ class TestNoConnection(TestCaseCompatible):
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
-        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to localhost:%d." % DEFAULT_DRIVER_PORT, r.connect)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not connect to localhost:%d." % DEFAULT_DRIVER_PORT, r.connect)
 
     def test_connect_port(self):
         port = utils.get_avalible_port()
-        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
 
     def test_connect_host(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Could not connect to 0.0.0.0:%d." % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0")
+            r.ReqlDriverError, "Could not connect to 0.0.0.0:%d." % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0")
 
     def test_connect_timeout(self):
         '''Test that we get a ReQL error if we connect to a non-responsive port'''
@@ -167,26 +167,26 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            self.assertRaisesRegexp(r.RqlDriverError,
-                "Could not connect to %s:%d. Error: Operation timed out." % (host, port),
+            self.assertRaisesRegexp(r.ReqlTimeoutError,
+                "Could not connect to %s:%d, operation timed out." % (host, port),
                 r.connect, host=host, port=port, timeout=2)
         finally:
             useSocket.close()
 
     def test_connect_host(self):
         port = utils.get_avalible_port()
-        self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to 0.0.0.0:%d." % port, r.connect, host="0.0.0.0", port=port)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not connect to 0.0.0.0:%d." % port, r.connect, host="0.0.0.0", port=port)
 
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and didn't call `repl`
-        self.assertRaisesRegexp(r.RqlDriverError, "RqlQuery.run must be given a connection to run on.", r.expr(1).run)
+        self.assertRaisesRegexp(r.ReqlDriverError, "RqlQuery.run must be given a connection to run on.", r.expr(1).run)
 
     def test_auth_key(self):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
             self.skipTest("Not testing default port")
             return # in case we fell back on replacement_skip
-        self.assertRaisesRegexp(r.RqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
+        self.assertRaisesRegexp(r.ReqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
 
 class TestPrivateServer(TestCaseCompatible):
 
@@ -194,6 +194,7 @@ class TestPrivateServer(TestCaseCompatible):
     serverConsoleOutput = None
 
     useDefaultPort = False
+    host = None
     port = None
 
     authKey = None
@@ -209,12 +210,14 @@ class TestPrivateServer(TestCaseCompatible):
             port = str(DEFAULT_DRIVER_PORT) if cls.useDefaultPort else '0'
             cls.serverConsoleOutput = tempfile.NamedTemporaryFile('w+')
             cls.server = driver.Process(executable_path=rethinkdb_exe, console_output=cls.serverConsoleOutput, wait_until_ready=True, extra_options=['--driver-port', port])
+            cls.host = cls.server.host
             cls.port = cls.server.driver_port
 
             if cls.authKey is not None:
                 conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
-                result = r.db('rethinkdb').table('cluster_config').update({'auth_key':cls.authKey}).run(conn)
+                result = r.db('rethinkdb').table('cluster_config').get('auth').update({'auth_key':cls.authKey}).run(conn)
                 if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
+                    cls.server = None
                     raise Exception('Unable to set authkey, got: %s' % str(result))
 
     @classmethod
@@ -268,31 +271,45 @@ class TestConnectionDefaultPort(TestPrivateServer):
         if not use_default_port:
             return
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
-            r.connect, auth_key="hunter2")
+            r.ReqlAuthError,
+            "Could not connect to %s:%d, incorrect authentication key." % (self.host, self.port),
+            r.connect,
+            auth_key="hunter2")
 
 class TestAuthConnection(TestPrivateServer):
 
-    incorrectAuthMessage = 'Server dropped connection with message: "ERROR: Incorrect authorization key."'
+    incorrectAuthMessage = "Could not connect to %s:%d, incorrect authentication key."
     authKey = 'hunter2'
 
     def test_connect_no_auth(self):
-        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port)
+        self.assertRaisesRegexp(r.ReqlAuthError, self.incorrectAuthMessage % (self.host, self.port), r.connect, port=self.port)
 
     def test_connect_wrong_auth(self):
-        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="")
-        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter3")
-        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key="hunter22")
+        self.assertRaisesRegexp(
+            r.ReqlAuthError,
+            self.incorrectAuthMessage % (self.host, self.port),
+            r.connect, port=self.port, auth_key="")
+        self.assertRaisesRegexp(
+            r.ReqlAuthError,
+            self.incorrectAuthMessage % (self.host, self.port),
+            r.connect, port=self.port, auth_key="hunter3")
+        self.assertRaisesRegexp(
+            r.ReqlAuthError,
+            self.incorrectAuthMessage % (self.host, self.port),
+            r.connect, port=self.port, auth_key="hunter22")
 
     def test_connect_long_auth(self):
         long_key = str("k") * 2049
         not_long_key = str("k") * 2048
 
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
+            r.ReqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
             r.connect, port=self.port, auth_key=long_key)
 
-        self.assertRaisesRegexp(r.RqlDriverError, self.incorrectAuthMessage, r.connect, port=self.port, auth_key=not_long_key)
+        self.assertRaisesRegexp(
+            r.ReqlDriverError,
+            self.incorrectAuthMessage % (self.host, self.port),
+            r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
         conn = r.connect(port=self.port, auth_key="hunter2")
@@ -312,7 +329,7 @@ class TestConnection(TestWithConnection):
         r.expr(1).run(c)
         c.close()
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Connection is closed.",
+            r.ReqlDriverError, "Connection is closed.",
             r.expr(1).run, c)
 
     def test_noreply_wait_waits(self):
@@ -376,11 +393,11 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         r.table('t2').run(c)
-        self.assertRaisesRegexp(r.RqlRuntimeError, "Table `db2.t1` does not exist.", r.table('t1').run, c)
+        self.assertRaisesRegexp(r.ReqlRuntimeError, "Table `db2.t1` does not exist.", r.table('t1').run, c)
 
         c.use('test')
         r.table('t1').run(c)
-        self.assertRaisesRegexp( r.RqlRuntimeError, "Table `test.t2` does not exist.", r.table('t2').run, c)
+        self.assertRaisesRegexp(r.ReqlRuntimeError, "Table `test.t2` does not exist.", r.table('t2').run, c)
 
         c.close()
 
@@ -388,7 +405,7 @@ class TestConnection(TestWithConnection):
         c = r.connect(db='db2', host=sharedServerHost, port=sharedServerDriverPort)
         r.table('t2').run(c)
 
-        self.assertRaisesRegexp(r.RqlRuntimeError, "Table `db2.t1` does not exist.", r.table('t1').run, c)
+        self.assertRaisesRegexp(r.ReqlRuntimeError, "Table `db2.t1` does not exist.", r.table('t1').run, c)
 
         c.close()
 
@@ -423,14 +440,14 @@ class TestConnection(TestWithConnection):
 
         c.close()
 
-        self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed", r.expr(1).run)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed", r.expr(1).run)
 
     def test_port_conversion(self):
         c = r.connect(host=sharedServerHost, port=str(sharedServerDriverPort))
         r.expr(1).run(c)
         c.close()
 
-        self.assertRaisesRegexp(r.RqlDriverError, "Could not convert port abc to an integer.", r.connect, port='abc', host=sharedServerHost)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port abc to an integer.", r.connect, port='abc', host=sharedServerHost)
 
 class TestShutdown(TestWithConnection):
 
@@ -446,7 +463,7 @@ class TestShutdown(TestWithConnection):
         closeSharedServer()
         time.sleep(0.2)
 
-        self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed.", r.expr(1).run, c)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed.", r.expr(1).run, c)
 
 # This doesn't really have anything to do with connections but it'll go
 # in here for the time being.
@@ -512,7 +529,7 @@ class TestGetIntersectingBatching(TestWithConnection):
                 row = next(itr)
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            self.assertRaises(r.RqlCursorEmpty, lambda: next(itr))
+            self.assertRaises(r.ReqlCursorEmpty, lambda: next(itr))
 
         self.assertTrue(seen_lazy)
 
@@ -542,7 +559,7 @@ class TestBatching(TestWithConnection):
             ids.remove(row['id'])
 
         self.assertEqual(next(itr)['id'], ids.pop())
-        self.assertRaises(r.RqlCursorEmpty, lambda: next(itr))
+        self.assertRaises(r.ReqlCursorEmpty, lambda: next(itr))
         r.db('test').table_drop('t1').run(c)
 
 class TestGroupWithTimeKey(TestWithConnection):

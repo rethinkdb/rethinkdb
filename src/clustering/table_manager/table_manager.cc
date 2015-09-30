@@ -67,7 +67,7 @@ table_manager_t::table_manager_t(
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
     guarantee(!raft_member_id.is_nil());
-    guarantee(!epoch.id.is_unset());
+    guarantee(!epoch.is_unset());
 
     /* Set up the initial table bcard */
     {
@@ -131,13 +131,32 @@ void table_manager_t::get_status(
         response->shard_status = contract_executor.get_shard_status();
     }
     if (request.want_all_replicas_ready) {
-        new_mutex_acq_t leader_acq(&leader_mutex, interruptor);
-        if (static_cast<bool>(leader)) {
-            response->all_replicas_ready =
-                leader->get_contract_coordinator()->
-                    check_all_replicas_ready(interruptor);
-        } else {
-            response->all_replicas_ready = false;
+        switch (request.all_replicas_ready_mode) {
+        case all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST: {
+            rwlock_in_line_t leader_in_line(&leader_lock, access_t::read);
+            // If we cannot acquire the leader_lock immediately, that implies
+            // that the leader is currently transitioning. Instead of waiting for the
+            // lock, we simply bail out and report not all replicas ready.
+            if (leader_in_line.read_signal()->is_pulsed() && static_cast<bool>(leader)) {
+                response->all_replicas_ready =
+                    leader->get_contract_coordinator()->
+                        check_outdated_all_replicas_ready(interruptor);
+            } else {
+                response->all_replicas_ready = false;
+            }
+        } break;
+        case all_replicas_ready_mode_t::INCLUDE_RAFT_TEST: {
+            rwlock_acq_t leader_acq(&leader_lock, access_t::read, interruptor);
+            if (static_cast<bool>(leader)) {
+                response->all_replicas_ready =
+                    leader->get_contract_coordinator()->
+                        check_all_replicas_ready(interruptor);
+            } else {
+                response->all_replicas_ready = false;
+            }
+        } break;
+        default:
+            unreachable();
         }
     }
 }
@@ -170,24 +189,30 @@ table_manager_t::leader_t::~leader_t() {
 
 void table_manager_t::leader_t::on_set_config(
         signal_t *interruptor,
-        const table_config_and_shards_t &new_config,
+        const table_config_and_shards_change_t &table_config_and_shards_change,
         const mailbox_t<void(
-            boost::optional<multi_table_manager_timestamp_t>
+            boost::optional<multi_table_manager_timestamp_t>, bool
             )>::address_t &reply_addr) {
     logINF("Table %s: Configuration is changing.",
         uuid_to_str(parent->table_id).c_str());
+    bool is_change_successful = false;
     boost::optional<raft_log_index_t> result = coordinator.change_config(
-        [&](table_config_and_shards_t *config) { *config = new_config; },
+        [&](table_config_and_shards_t *config_and_shards) {
+            is_change_successful =
+                table_config_and_shards_change.apply_change(config_and_shards);
+        },
         interruptor);
-    if (static_cast<bool>(result)) {
+    if (static_cast<bool>(result) && is_change_successful) {
         multi_table_manager_timestamp_t timestamp;
         timestamp.epoch = parent->epoch;
         timestamp.log_index = *result;
         send(parent->mailbox_manager, reply_addr,
-            boost::make_optional(timestamp));
+            boost::make_optional(timestamp), true);
     } else {
+        /* If `is_change_successful` is false the change was considered a no-op and the
+        returned log_index is that of the last change, which we safely ignore. */
         send(parent->mailbox_manager, reply_addr,
-            boost::optional<multi_table_manager_timestamp_t>());
+            boost::optional<multi_table_manager_timestamp_t>(), is_change_successful);
     }
 }
 
@@ -233,7 +258,7 @@ void table_manager_t::on_raft_readiness_change() {
     coroutine to do it. */
     auto_drainer_t::lock_t keepalive(&drainer);
     coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
-        new_mutex_acq_t mutex_acq(&leader_mutex);
+        rwlock_acq_t mutex_acq(&leader_lock, access_t::write);
         bool ready = raft.get_raft()->get_readiness_for_change()->get();
         if (ready && !leader.has()) {
             leader.init(new leader_t(this));

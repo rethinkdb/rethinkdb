@@ -136,10 +136,6 @@ ifeq ($(COVERAGE), 1)
   endif
 endif
 
-ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
-  RT_CXXFLAGS += -DAGRESSIVE_BUF_UNLOADING=1
-endif
-
 # TODO: >() only works on bash >= 4
 LD_OUTPUT_FILTER ?=
 ifeq ($(COMPILER),INTEL)
@@ -198,16 +194,8 @@ ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
   RT_CXXFLAGS += -DSEMANTIC_SERIALIZER_CHECK
 endif
 
-ifeq ($(BTREE_DEBUG),1)
-  RT_CXXFLAGS += -DBTREE_DEBUG
-endif
-
 ifeq ($(JSON_SHORTCUTS),1)
   RT_CXXFLAGS += -DJSON_SHORTCUTS
-endif
-
-ifeq ($(SERIALIZER_DEBUG),1)
-  RT_CXXFLAGS += -DSERIALIZER_MARKERS
 endif
 
 ifeq ($(LEGACY_LINUX),1)
@@ -237,10 +225,6 @@ ifeq ($(VALGRIND),1)
   RT_CXXFLAGS += -DVALGRIND
 endif
 
-ifeq ($(LEGACY_PROC_STAT),1)
-  RT_CXXFLAGS += -DLEGACY_PROC_STAT
-endif
-
 ifeq ($(V8_PRE_3_19),1)
   RT_CXXFLAGS += -DV8_PRE_3_19
 endif
@@ -265,7 +249,7 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
-QL2_PROTO_NAMES := rdb_protocol/ql2 rdb_protocol/ql2_extensions
+QL2_PROTO_NAMES := rdb_protocol/ql2
 QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
 QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
 QL2_PROTO_CODE := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.cc)

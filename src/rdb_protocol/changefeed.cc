@@ -1,3 +1,4 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 
 #include <queue>
@@ -11,6 +12,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -184,45 +186,60 @@ public:
 };
 
 class squashing_queue_t : public maybe_squashing_queue_t {
+public:
     virtual void add(change_val_t change_val) {
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
-            auto pair = std::make_pair(std::move(change_val.pkey),
-                                       std::move(change_val));
-            it = queue.insert(std::move(pair)).first;
+            auto order_it = queue_order.insert(queue_order.end(), change_val.pkey);
+            auto pair = std::make_pair(
+                std::move(change_val.pkey),
+                std::make_pair(std::move(change_val), order_it));
+            auto res = queue.insert(std::move(pair));
+            it = res.first;
+            guarantee(res.second);
         } else {
-            change_val.old_val = std::move(it->second.old_val);
-            it->second = std::move(change_val);
-            bool has_old_val = it->second.old_val
-                && it->second.old_val->val.get_type() != datum_t::R_NULL;
-            bool has_new_val = it->second.new_val
-                && it->second.new_val->val.get_type() != datum_t::R_NULL;
+            change_val_t *change = &it->second.first;
+            change_val.old_val = std::move(change->old_val);
+            *change = std::move(change_val);
+            bool has_old_val = change->old_val
+                && change->old_val->val.get_type() != datum_t::R_NULL;
+            bool has_new_val = change->new_val
+                && change->new_val->val.get_type() != datum_t::R_NULL;
             if ((!has_old_val && !has_new_val)
-                || (it->second.old_val && it->second.new_val
-                    && it->second.old_val->val == it->second.new_val->val)) {
+                || (change->old_val && change->new_val
+                    && change->old_val->val == change->new_val->val)) {
+                queue_order.erase(it->second.second);
                 queue.erase(it);
             }
         }
     }
     virtual size_t size() const {
+        guarantee(queue.size() == queue_order.size());
         return queue.size();
     }
     virtual void clear() {
         queue.clear();
+        queue_order.clear();
     }
     virtual const change_val_t &peek() {
         guarantee(size() != 0);
-        auto it = queue.begin();
-        return it->second;
+        auto it = queue.find(*queue_order.begin());
+        guarantee(it != queue.end());
+        return it->second.first;
     }
     virtual change_val_t pop() {
         guarantee(size() != 0);
-        auto it = queue.begin();
-        auto ret = std::move(it->second);
+        auto it = queue.find(*queue_order.begin());
+        guarantee(it != queue.end());
+        auto ret = std::move(it->second.first);
         queue.erase(it);
+        queue_order.pop_front();
         return ret;
     }
-    std::map<store_key_t, change_val_t> queue;
+private:
+    std::map<store_key_t,
+             std::pair<change_val_t, std::list<store_key_t>::iterator> >queue;
+    std::list<store_key_t> queue_order;
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
@@ -290,9 +307,10 @@ server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
 
-server_t::server_t(mailbox_manager_t *_manager)
+server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)
     : uuid(generate_uuid()),
       manager(_manager),
+      parent(_parent),
       stop_mailbox(manager,
                    std::bind(&server_t::stop_mailbox_cb, this, ph::_1, ph::_2)),
       limit_stop_mailbox(manager, std::bind(&server_t::limit_stop_mailbox_cb,
@@ -301,6 +319,7 @@ server_t::server_t(mailbox_manager_t *_manager)
 server_t::~server_t() { }
 
 void server_t::stop_mailbox_cb(signal_t *, client_t::addr_t addr) {
+    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
@@ -361,8 +380,11 @@ void server_t::limit_stop_mailbox_cb(signal_t *,
     }
 }
 
-void server_t::add_client(const client_t::addr_t &addr, region_t region) {
-    auto_drainer_t::lock_t lock(&drainer);
+void server_t::add_client(
+        const client_t::addr_t &addr,
+        region_t region,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     client_info_t *info = &clients[addr];
@@ -379,25 +401,31 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
         info->stamp = 0;
         cond_t *stopped = new cond_t();
         info->cond.init(stopped);
-        // We spawn now so the auto drainer lock is acquired immediately.
         // Passing the raw pointer `stopped` is safe because `add_client_cb` is
         // the only function which can remove an entry from the map.
+        // TODO: This `spawn_now_dangerously` could probably be a `spawn_sometime`.
+        //   It used to be a `spawn_now_dangerously` because we used to acquire
+        //   the auto drainer lock inside of `add_client_cb`, rather than passing
+        //   `keepalive` in. This is no longer the case.
+        //   We're keeping the `spawn_now_dangerously` for now to make sure that
+        //   we don't introduce any subtle new bugs in 2.1.2.
         coro_t::spawn_now_dangerously(
-            std::bind(&server_t::add_client_cb, this, stopped, addr));
+            std::bind(&server_t::add_client_cb, this, stopped, addr, keepalive));
     }
 }
 
 void server_t::add_limit_client(
-    const client_t::addr_t &addr,
-    const region_t &region,
-    const std::string &table,
-    rdb_context_t *ctx,
-    std::map<std::string, wire_func_t> optargs,
-    const uuid_u &client_uuid,
-    const keyspec_t::limit_t &spec,
-    limit_order_t lt,
-    std::vector<item_t> &&item_vec) {
-    auto_drainer_t::lock_t lock(&drainer);
+        const client_t::addr_t &addr,
+        const region_t &region,
+        const std::string &table,
+        rdb_context_t *ctx,
+        global_optargs_t optargs,
+        const uuid_u &client_uuid,
+        const keyspec_t::limit_t &spec,
+        limit_order_t lt,
+        std::vector<item_t> &&item_vec,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
@@ -424,12 +452,15 @@ void server_t::add_limit_client(
     }
 }
 
-void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
-    auto_drainer_t::lock_t coro_lock(&drainer);
+void server_t::add_client_cb(
+        signal_t *stopped,
+        client_t::addr_t addr,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     {
         disconnect_watcher_t disconnect(manager, addr.get_peer());
         wait_any_t wait_any(
-            &disconnect, stopped, coro_lock.get_drain_signal());
+            &disconnect, stopped, keepalive.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
@@ -437,7 +468,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto it = clients.find(addr);
     // We can be removed more than once safely (e.g. in the case of oversharding).
     if (it != clients.end()) {
-        send_one_with_lock(coro_lock, &*it, msg_t(msg_t::stop_t()));
+        send_one_with_lock(&*it, msg_t(msg_t::stop_t()), keepalive);
     }
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -464,9 +495,10 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
 void server_t::send_one_with_lock(
-    const auto_drainer_t::lock_t &,
-    std::pair<const client_t::addr_t, client_info_t> *client,
-    msg_t msg) {
+        std::pair<const client_t::addr_t, client_info_t> *client,
+        msg_t msg,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     uint64_t stamp;
     {
         // We don't need a write lock as long as we make sure the coroutine
@@ -477,11 +509,13 @@ void server_t::send_one_with_lock(
     send(manager, client->first, stamped_msg_t(uuid, stamp, std::move(msg)));
 }
 
-void server_t::send_all(const msg_t &msg,
-                        const store_key_t &key,
-                        rwlock_in_line_t *stamp_spot) {
-    auto_drainer_t::lock_t lock(&drainer);
-    stamp_spot->guarantee_is_for_lock(&stamp_lock);
+void server_t::send_all(
+        const msg_t &msg,
+        const store_key_t &key,
+        rwlock_in_line_t *stamp_spot,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
+    stamp_spot->guarantee_is_for_lock(&parent->cfeed_stamp_lock);
     stamp_spot->write_signal()->wait_lazily_unordered();
 
     rwlock_acq_t acq(&clients_lock, access_t::read);
@@ -503,15 +537,6 @@ void server_t::send_all(const msg_t &msg,
     }
 }
 
-void server_t::stop_all() {
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        it->second.cond->pulse_if_not_already_pulsed();
-    }
-}
-
 server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }
@@ -520,9 +545,11 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
     return limit_stop_mailbox.get_address();
 }
 
-boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
+boost::optional<uint64_t> server_t::get_stamp(
+        const client_t::addr_t &addr,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
+    rwlock_acq_t stamp_acq(&parent->cfeed_stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
@@ -536,8 +563,10 @@ uuid_u server_t::get_uuid() {
     return uuid;
 }
 
-bool server_t::has_limit(const boost::optional<std::string> &sindex) {
-    auto_drainer_t::lock_t lock(&drainer);
+bool server_t::has_limit(
+        const boost::optional<std::string> &sindex,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
@@ -554,13 +583,19 @@ bool server_t::has_limit(const boost::optional<std::string> &sindex) {
     return false;
 }
 
-void server_t::foreach_limit(const boost::optional<std::string> &sindex,
-                             const store_key_t *pkey,
-                             std::function<void(rwlock_in_line_t *,
-                                                rwlock_in_line_t *,
-                                                rwlock_in_line_t *,
-                                                limit_manager_t *)> f) THROWS_NOTHING {
-    auto_drainer_t::lock_t lock(&drainer);
+auto_drainer_t::lock_t server_t::get_keepalive() {
+    return drainer.lock();
+}
+
+void server_t::foreach_limit(
+        const boost::optional<std::string> &sindex,
+        const store_key_t *pkey,
+        std::function<void(rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           limit_manager_t *)> f,
+        const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING {
+    keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
@@ -587,15 +622,15 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                 f(spot.get(), &lspot, &lc_spot, (*lc).get());
             } catch (const exc_t &e) {
                 (*lc)->abort(e);
-                auto_drainer_t::lock_t sub_lock(lock);
+                auto_drainer_t::lock_t sub_keepalive(keepalive);
                 auto sub_spot = make_scoped<rwlock_in_line_t>(
                     &clients_lock, access_t::read);
                 guarantee(sub_spot->read_signal()->is_pulsed());
                 // We spawn immediately so it can steal our locks.
                 coro_t::spawn_now_dangerously(
                     std::bind(&server_t::prune_dead_limit,
-                              this, &sub_lock, &sub_spot, info, sindex, i));
-                guarantee(!sub_lock.has_lock());
+                              this, &sub_keepalive, &sub_spot, info, sindex, i));
+                guarantee(!sub_keepalive.has_lock());
                 guarantee(!sub_spot.has());
             }
         }
@@ -787,7 +822,7 @@ void limit_manager_t::send(msg_t &&msg) {
         auto_drainer_t::lock_t drain_lock(&parent->drainer);
         auto it = parent->clients.find(parent_client);
         guarantee(it != parent->clients.end());
-        parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
+        parent->send_one_with_lock(&*it, std::move(msg), drain_lock);
     }
 }
 
@@ -796,7 +831,7 @@ limit_manager_t::limit_manager_t(
     region_t _region,
     std::string _table,
     rdb_context_t *ctx,
-    std::map<std::string, wire_func_t> optargs,
+    global_optargs_t optargs,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -1160,7 +1195,7 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    void set_notes(Response *res) const final { sub->set_notes(res); }
+    void set_notes(response_t *res) const final { sub->set_notes(res); }
     feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
@@ -1188,7 +1223,7 @@ class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
     virtual feed_type_t cfeed_type() const = 0;
-    void set_notes(Response *res) const;
+    void set_notes(response_t *res) const;
     std::vector<datum_t> get_els(
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
@@ -1211,8 +1246,12 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
 protected:
-    explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
+    subscription_t(feed_t *feed,
+                   configured_limits_t limits,
+                   const datum_t &squash,
+                   bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
+    void maybe_signal_queue_nearly_full_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
 
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
@@ -1223,6 +1262,7 @@ protected:
     // continuing.
     size_t skipped;
     feed_t *feed; // The feed we're subscribed to.
+    const configured_limits_t limits;
     const bool squash; // Whether or not to squash changes.
     const bool include_states; // Whether or not to include notes about the state.
     // Whether we're in the middle of one logical batch (only matters for squashing).
@@ -1238,7 +1278,8 @@ private:
 
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
-    auto_drainer_t drainer;
+    cond_t *queue_nearly_full_cond;
+    virtual auto_drainer_t *get_drainer() = 0;
     DISABLE_COPYING(subscription_t);
 };
 
@@ -1254,8 +1295,7 @@ public:
         const store_key_t &pkey,
         const boost::optional<std::string> &DEBUG_ONLY(sindex),
         boost::optional<indexed_datum_t> old_val,
-        boost::optional<indexed_datum_t> new_val,
-        const configured_limits_t &limits) {
+        boost::optional<indexed_datum_t> new_val) {
         if (update_stamp(shard_uuid, stamp)) {
             queue->add(change_val_t(
                 std::make_pair(shard_uuid, stamp),
@@ -1263,9 +1303,18 @@ public:
                 old_val,
                 new_val
                 DEBUG_ONLY(, sindex)));
-            if (queue->size() > limits.array_size_limit()) {
+            if (queue->size() > limits.changefeed_queue_size()) {
                 skipped += queue->size();
                 queue->clear();
+            } else if (queue->size() > limits.changefeed_queue_size() / 2) {
+                // We do this even if the queue is only half full because we
+                // expect it to take some time to process and we want to be
+                // super safe.  (This will only affect anything if your `squash`
+                // timer is super long, in which case a more aggressive upper
+                // limit would let us respect the `squash` timer more closely,
+                // but since the timer is a hint it's OK to be safe in this edge
+                // case.)
+                maybe_signal_queue_nearly_full_cond();
             }
             maybe_signal_cond();
         }
@@ -1301,9 +1350,6 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void each_active_range_sub(
-        const auto_drainer_t::lock_t &lock,
-        const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const auto_drainer_t::lock_t &lock,
@@ -1514,8 +1560,12 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, const datum_t &squash, bool include_states, datum_t _pkey)
-        : flat_sub_t(feed, squash, include_states),
+    point_sub_t(feed_t *feed,
+                configured_limits_t limits,
+                const datum_t &squash,
+                bool include_states,
+                datum_t _pkey)
+        : flat_sub_t(feed, std::move(limits), squash, include_states),
           pkey(std::move(_pkey)),
           stamp(0),
           started(false),
@@ -1582,9 +1632,11 @@ public:
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
-        auto resp = boost::get<changefeed_point_stamp_response_t>(
-            &read_resp.response);
-        guarantee(resp != NULL);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
+        guarantee(res != nullptr);
+        rcheck_datum(res->resp, base_exc_t::OP_FAILED,
+                     "Changefeed aborted.  (Did you just reshard?)");
+        auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
                resp->stamp,
@@ -1657,6 +1709,9 @@ private:
     bool started;
     state_t state, sent_state;
     bool include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 // This gets around some class ordering issues; `range_sub_t` needs to know how
@@ -1671,9 +1726,12 @@ counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed, const datum_t &squash,
-                bool include_states, keyspec_t::range_t _spec)
-        : flat_sub_t(feed, squash, include_states),
+    range_sub_t(feed_t *feed,
+                configured_limits_t limits,
+                const datum_t &squash,
+                bool include_states,
+                keyspec_t::range_t _spec)
+        : flat_sub_t(feed, std::move(limits), squash, include_states),
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
@@ -1771,10 +1829,13 @@ public:
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-        guarantee(resp != NULL);
-        start_stamps = std::move(resp->stamps);
-        guarantee(start_stamps.size() != 0);
+        auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != nullptr);
+        rcheck_datum(resp->stamps, base_exc_t::OP_FAILED,
+                     "Unable to retrieve the start stamps.  Did you just reshard?");
+        start_stamps = std::move(*resp->stamps);
+        rcheck_datum(start_stamps.size() != 0, base_exc_t::OP_FAILED,
+                     "Unable to retrieve the start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);
         if (maybe_src) {
@@ -1843,15 +1904,20 @@ private:
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
     bool artificial_include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
 };
 
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed, const datum_t &squash,
-                bool include_states, keyspec_t::limit_t _spec)
-        : subscription_t(feed, squash, include_states),
+    limit_sub_t(feed_t *feed,
+                configured_limits_t limits,
+                const datum_t &squash,
+                bool include_states,
+                keyspec_t::limit_t _spec)
+        : subscription_t(feed, limits, squash, include_states),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -2151,6 +2217,9 @@ public:
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
     bool include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 void real_feed_t::stop_limit_sub(limit_sub_t *sub) {
@@ -2187,22 +2256,24 @@ public:
             });
     }
     void operator()(const msg_t::change_t &change) const {
-        configured_limits_t default_limits;
         datum_t null = datum_t::null();
 
-        feed->each_active_range_sub(*lock, [&](range_sub_t *sub) {
+        feed->each_range_sub(*lock, [&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
+            if (!sub->active()) return;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
                         new_val = *d;
                     }
                 }
+                if (!sub->active()) return;
                 if (change.old_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.old_val)) {
                         old_val = *d;
                     }
                 }
+                if (!sub->active()) return;
                 // Duplicate values are caught before being written to disk and
                 // don't generate a `mod_report`, but if we have transforms the
                 // values might have changed.
@@ -2218,6 +2289,7 @@ public:
                     old_val = change.old_val;
                 }
             }
+            ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
                 std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
@@ -2241,8 +2313,7 @@ public:
                                                 std::move(old_idxs.back().second)),
                                 indexed_datum_t(new_val,
                                                 std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)),
-                                default_limits);
+                                                std::move(new_idxs.back().second)));
                     old_idxs.pop_back();
                     new_idxs.pop_back();
                 }
@@ -2252,8 +2323,7 @@ public:
                                 indexed_datum_t(old_val,
                                                 std::move(old_idxs.back().first),
                                                 std::move(old_idxs.back().second)),
-                                boost::none,
-                                default_limits);
+                                boost::none);
                     old_idxs.pop_back();
                 }
                 while (new_idxs.size() > 0) {
@@ -2262,16 +2332,14 @@ public:
                                 boost::none,
                                 indexed_datum_t(new_val,
                                                 std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)),
-                                default_limits);
+                                                std::move(new_idxs.back().second)));
                     new_idxs.pop_back();
                 }
             } else {
                 if (sub->contains(change.pkey)) {
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                 indexed_datum_t(old_val, datum_t(), boost::none),
-                                indexed_datum_t(new_val, datum_t(), boost::none),
-                                default_limits);
+                                indexed_datum_t(new_val, datum_t(), boost::none));
                 }
             }
         });
@@ -2291,8 +2359,7 @@ public:
                       change.new_val.has()
                           ? boost::optional<indexed_datum_t>(
                               indexed_datum_t(change.new_val, datum_t(), boost::none))
-                          : boost::none,
-                      default_limits));
+                          : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
@@ -2516,21 +2583,26 @@ private:
 };
 
 subscription_t::subscription_t(
-    feed_t *_feed, const datum_t &_squash, bool _include_states)
+    feed_t *_feed,
+    configured_limits_t _limits,
+    const datum_t &_squash,
+    bool _include_states)
     : skipped(0),
       feed(_feed),
+      limits(std::move(_limits)),
       squash(_squash.as_bool()),
       include_states(_include_states),
       mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
-      cond(NULL) {
+      cond(NULL),
+      queue_nearly_full_cond(NULL) {
     guarantee(feed != NULL);
 }
 
 subscription_t::~subscription_t() { }
 
-void subscription_t::set_notes(Response *res) const {
-    if (include_states) res->add_notes(Response::INCLUDES_STATES);
+void subscription_t::set_notes(response_t *res) const {
+    if (include_states) res->add_note(Response::INCLUDES_STATES);
 }
 
 std::vector<datum_t>
@@ -2539,24 +2611,37 @@ subscription_t::get_els(batcher_t *batcher,
                         const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
-    auto_drainer_t::lock_t lock(&drainer);
+    auto_drainer_t::lock_t lock(get_drainer());
 
     std::vector<datum_t> ret;
 
     // We wait for data if we don't have any or if we're squashing and not
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
-        scoped_ptr_t<signal_timer_t> timer;
+        scoped_ptr_t<signal_timer_t> batch_timer;
         if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer = make_scoped<signal_timer_t>(0);
+            batch_timer = make_scoped<signal_timer_t>(0);
         } else if (return_empty_normal_batches == return_empty_normal_batches_t::YES) {
-            timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
+            batch_timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
             && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
-            // It's OK to let the `interrupted_exc_t` propagate up.
-            nap(min_interval * 1000, interruptor);
+            signal_timer_t squash_timer(min_interval * 1000);
+            cond_t wait_for_nearly_full_queue;
+            queue_nearly_full_cond = &wait_for_nearly_full_queue;
+            try {
+                wait_any_t any_interruptor(interruptor, &squash_timer);
+                // Make sure to wait on `wait_for_nearly_full_queue` because we
+                // don't trust `queue_nearly_full_cond` to not be `NULL`
+                // already(although I'm not sure why we don't trust that).
+                wait_interruptible(&wait_for_nearly_full_queue, &any_interruptor);
+            } catch (const interrupted_exc_t &e) {
+                queue_nearly_full_cond = NULL;
+                // If we were really interrupted, rethrow.
+                if (!squash_timer.is_pulsed()) throw e;
+            }
+            r_sanity_check(queue_nearly_full_cond == NULL);
         }
         // If we still don't have data, wait for data with a timeout.  (Note
         // that if we're squashing, we started the timeout *before* waiting
@@ -2570,15 +2655,15 @@ subscription_t::get_els(batcher_t *batcher,
                 // will be pulsed if we're shutting down.  Not that `cond` might
                 // already be reset by the time we get here, so make sure to wait on
                 // `&wait_for_data`.
-                if (timer.has()) {
-                    wait_any_t any_interruptor(interruptor, timer.get());
+                if (batch_timer.has()) {
+                    wait_any_t any_interruptor(interruptor, batch_timer.get());
                     wait_interruptible(&wait_for_data, &any_interruptor);
                 } else {
                     wait_interruptible(&wait_for_data, interruptor);
                 }
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
-                if (timer.has() && timer->is_pulsed()) {
+                if (batch_timer.has() && batch_timer->is_pulsed()) {
                     r_sanity_check(ret.size() == 0);
                     return ret;
                 }
@@ -2611,8 +2696,7 @@ subscription_t::get_els(batcher_t *batcher,
         // matters for squashing.)
         mid_batch = batcher->should_send_batch();
     } else {
-        r_sanity_check(ret.size() == 0);
-        return ret;
+        r_sanity_check(false);
     }
     r_sanity_check(ret.size() != 0);
     return ret;
@@ -2633,6 +2717,15 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;
+    }
+}
+
+void subscription_t::maybe_signal_queue_nearly_full_cond() THROWS_NOTHING {
+    assert_thread();
+    if (queue_nearly_full_cond != NULL) {
+        ASSERT_NO_CORO_WAITING;
+        queue_nearly_full_cond->pulse();
+        queue_nearly_full_cond = NULL;
     }
 }
 
@@ -2795,16 +2888,6 @@ void feed_t::each_range_sub(
     each_sub_in_vec(range_subs, &spot, lock, f);
 }
 
-void feed_t::each_active_range_sub(
-    const auto_drainer_t::lock_t &lock,
-    const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
-    each_range_sub(lock, [&f](range_sub_t *sub) {
-        if (sub->active()) {
-            f(sub);
-        }
-    });
-}
-
 void feed_t::each_point_sub(
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
@@ -2898,34 +2981,45 @@ client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
     feed_t *feed,
+    configured_limits_t limits,
     const datum_t &squash,
     bool include_states,
     const keyspec_t::spec_t &spec) {
 
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
         explicit spec_visitor_t(
-            feed_t *_feed, const datum_t *_squash, bool _include_states)
-            : feed(_feed), squash(_squash), include_states(_include_states) { }
+            feed_t *_feed,
+            configured_limits_t _limits,
+            const datum_t *_squash,
+            bool _include_states)
+            : feed(_feed),
+              limits(std::move(_limits)),
+              squash(_squash),
+              include_states(_include_states) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, *squash, include_states, range);
+            return new range_sub_t(feed, limits, *squash, include_states, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, *squash, include_states, limit);
+            return new limit_sub_t(feed, limits, *squash, include_states, limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, *squash, include_states, point.key);
+            return new point_sub_t(feed, limits, *squash, include_states, point.key);
         }
         feed_t *feed;
+        configured_limits_t limits;
         const datum_t *squash;
         bool include_states;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(spec_visitor_t(feed, &squash, include_states), spec));
+        boost::apply_visitor(
+            spec_visitor_t(feed, std::move(limits), &squash, include_states),
+            spec));
 }
 
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     counted_t<datum_stream_t> maybe_src,
+    configured_limits_t limits,
     const datum_t &squash,
     bool include_states,
     const namespace_id_t &uuid,
@@ -2964,7 +3058,7 @@ counted_t<datum_stream_t> client_t::new_stream(
             on_thread_t th2(old_thread);
             real_feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub = new_sub(feed, squash, include_states, spec);
+            sub = new_sub(feed, std::move(limits), squash, include_states, spec);
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         return sub->to_stream(env, table_name, access.get(),
@@ -3035,6 +3129,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
     bool include_initial_vals,
     bool include_states,
+    configured_limits_t limits,
     const keyspec_t::spec_t &spec,
     const std::string &primary_key_name,
     const std::vector<datum_t> &initial_values,
@@ -3046,7 +3141,11 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // on the thread you want to use them on.
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
-        feed.get(), datum_t::boolean(false), include_states, spec);
+        feed.get(),
+        std::move(limits),
+        datum_t::boolean(false),
+        include_states,
+        spec);
     return sub->to_artificial_stream(
         env, uuid, primary_key_name, initial_values,
         include_initial_vals, std::move(sub), bt);

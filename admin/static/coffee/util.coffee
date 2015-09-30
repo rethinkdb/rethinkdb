@@ -159,14 +159,13 @@ Handlebars.registerHelper 'approximate_count', approximate_count
 
 # formatBytes
 # from http://stackoverflow.com/a/18650828/180718
-format_bytes = (bytes, decimals=2) ->
+format_bytes = (bytes, decimals=1) ->
     if bytes == 0
-        return '0 Byte'
-    k = 1024;
-    dm = decimals + 1
+        return '0 Bytes'
+    k = 1024
     sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
     i = Math.floor(Math.log(bytes) / Math.log(k))
-    (bytes / Math.pow(k, i)).toPrecision(dm) + ' ' + sizes[i]
+    (bytes / Math.pow(k, i)).toFixed(decimals) + ' ' + sizes[i]
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
@@ -270,7 +269,9 @@ date_to_string = (date) ->
     return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
 prettify_duration = (duration) ->
-    if duration < 1
+    if duration is null
+        return ''
+    else if duration < 1
         return '<1ms'
     else if duration < 1000
         return duration.toFixed(0)+"ms"

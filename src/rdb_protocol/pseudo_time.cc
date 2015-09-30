@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_time.hpp"
 
 #include <time.h>
@@ -645,11 +645,11 @@ double time_portion(datum_t time, time_component_t c) {
 time_t boost_date(time_t boost_time) {
     ptime_t ptime = boost_time.local_time();
     date_t d(ptime.date().year_month_day());
-    return time_t(ptime_t(d), boost_time.zone());
+    auto zone = boost_time.zone();
+    return time_t(ptime_t(d) - zone->base_utc_offset(), zone);
 }
 
-datum_t time_date(datum_t time,
-                                   const rcheckable_t *target) {
+datum_t time_date(datum_t time, const rcheckable_t *target) {
     try {
         return boost_to_time(boost_date(time_to_boost(time)), target);
     } HANDLE_BOOST_ERRORS(target);

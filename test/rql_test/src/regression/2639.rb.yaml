@@ -1,0 +1,8 @@
+desc: 2639 -- Coroutine stacks should not overflow during the query compilation phase.
+tests:
+  - rb: r.expr({id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}, 1000)
+    ot: partial({})
+
+  - rb: r.expr([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],1000).and(nil)
+    ot: nil
+

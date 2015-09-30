@@ -1217,9 +1217,6 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                                                     repli_timestamp_t::invalid,
                                                                     NULL));
                 } else {
-                    // RSP: We could probably free the resources of
-                    // snapshotted_dirtied_pages_ a bit sooner than we do.
-
                     page_t *page = it->second.page;
                     if (page->block_token().has()) {
                         // It's already on disk, we're not going to flush it.
@@ -1267,14 +1264,14 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             void on_io_complete() {
                 pulse();
             }
-        } blocks_releasable_cb;
+        } blocks_written_cb;
 
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
                                                     /* disk account is overridden
                                                      * by merger_serializer_t */
                                                     DEFAULT_DISK_ACCOUNT,
-                                                    &blocks_releasable_cb);
+                                                    &blocks_written_cb);
 
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
@@ -1308,38 +1305,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             }
         }
 
-        blocks_releasable_cb.wait();
-
-        // All blocks have been written. Update the block tokens and free the
-        // associated snapshots on the cache thread.
-        coro_t::spawn_on_thread([&]() {
-            // Update the block tokens of the written blocks
-            for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
-                if (it->block_token.has() && it->page != NULL) {
-                    // We know page is still a valid pointer because of the page_ptr_t in
-                    // snapshotted_dirtied_pages_.
-
-                    // KSI: This assertion would fail if we try to force-evict the page
-                    // simultaneously as this write.
-                    rassert(!it->page->block_token().has());
-                    eviction_bag_t *old_bag
-                        = page_cache->evicter().correct_eviction_category(it->page);
-                    it->page->init_block_token(std::move(it->block_token), page_cache);
-                    page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
-                }
-            }
-
-            for (auto &txn : txns) {
-                for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
-                    txn->snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache);
-                    page_cache->consider_evicting_current_page(
-                        txn->snapshotted_dirtied_pages_[i].block_id);
-                }
-                txn->snapshotted_dirtied_pages_.clear();
-                txn->throttler_acq_.mark_dirty_pages_written();
-            }
-            blocks_released_cond.pulse();
-        }, page_cache->home_thread());
+        blocks_written_cb.wait();
 
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
@@ -1349,8 +1315,49 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         rassert(!write_ops.empty());
         mutex_acq.acq_signal()->wait();
-        page_cache->serializer_->index_write(&mutex_acq,
-                                             write_ops);
+        page_cache->serializer_->index_write(
+            &mutex_acq,
+            [&]() {
+                // Update the block tokens and free the associated snapshots once the
+                // serializer's in-memory index has been updated (we don't need to wait
+                // until the index changes have been written to disk).
+                coro_t::spawn_on_thread([&]() {
+                    // Update the block tokens of the written blocks
+                    for (auto &block : blocks_by_tokens) {
+                        if (block.block_token.has() && block.page != NULL) {
+                            // We know page is still a valid pointer because of the
+                            // page_ptr_t in snapshotted_dirtied_pages_.
+
+                            // KSI: This assertion would fail if we try to force-evict the page
+                            // simultaneously as this write.
+                            rassert(!block.page->block_token().has());
+                            eviction_bag_t *old_bag
+                                = page_cache->evicter().correct_eviction_category(
+                                    block.page);
+                            block.page->init_block_token(
+                                std::move(block.block_token),
+                                page_cache);
+                            page_cache->evicter().change_to_correct_eviction_bag(
+                                old_bag,
+                                block.page);
+                        }
+                    }
+
+                    for (auto &txn : txns) {
+                        for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size();
+                             i < e;
+                             ++i) {
+                            txn->snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(
+                                page_cache);
+                            page_cache->consider_evicting_current_page(
+                                txn->snapshotted_dirtied_pages_[i].block_id);
+                        }
+                        txn->snapshotted_dirtied_pages_.clear();
+                        txn->throttler_acq_.mark_dirty_pages_written();
+                    }
+                    blocks_released_cond.pulse();
+                }, page_cache->home_thread());
+            }, write_ops);
     }
 
     // Wait until the block release coroutine has finished to we can safely

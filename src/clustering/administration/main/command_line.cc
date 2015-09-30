@@ -43,7 +43,7 @@
 #include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
-#include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "logger.hpp"
 
@@ -375,10 +375,6 @@ bool handle_help_or_version_option(const std::map<std::string, options::values_t
     return false;
 }
 
-serializer_filepath_t get_cluster_metadata_filename(const base_path_t& dirpath) {
-    return serializer_filepath_t(dirpath, "metadata");
-}
-
 void initialize_logfile(const std::map<std::string, options::values_t> &opts,
                         const base_path_t& dirpath) {
     std::string filename;
@@ -663,6 +659,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
 
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
+    heartbeat_semilattice_metadata_t heartbeat_metadata;
 
     server_config_versioned_t server_config;
     server_config.config.name = server_name;
@@ -679,7 +676,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
         cond_t non_interruptor;
         metadata_file_t metadata_file(
             &io_backender,
-            get_cluster_metadata_filename(base_path),
+            base_path,
             &metadata_perfmon_collection,
             [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                 write_txn->write(mdkey_server_id(),
@@ -690,6 +687,8 @@ void run_rethinkdb_create(const base_path_t &base_path,
                     cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
                     auth_semilattice_metadata_t(), interruptor);
+                write_txn->write(mdkey_heartbeat_semilattices(),
+                    heartbeat_semilattice_metadata_t(), interruptor);
             },
             &non_interruptor);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
@@ -752,17 +751,19 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         if (our_server_id != nullptr && cluster_metadata != nullptr) {
             metadata_file.init(new metadata_file_t(
                 &io_backender,
-                get_cluster_metadata_filename(base_path),
+                base_path,
                 &metadata_perfmon_collection,
                 [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                     write_txn->write(mdkey_server_id(),
                         *our_server_id, interruptor);
-                    write_txn->write(mdkey_server_config(), 
+                    write_txn->write(mdkey_server_config(),
                         *server_config, interruptor);
                     write_txn->write(mdkey_cluster_semilattices(),
                         *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
                         auth_semilattice_metadata_t(), interruptor);
+                    write_txn->write(mdkey_heartbeat_semilattices(),
+                        heartbeat_semilattice_metadata_t(), interruptor);
                 },
                 &non_interruptor));
             guarantee(!static_cast<bool>(total_cache_size), "rethinkdb porcelain should "
@@ -770,7 +771,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         } else {
             metadata_file.init(new metadata_file_t(
                 &io_backender,
-                get_cluster_metadata_filename(base_path),
+                base_path,
                 &metadata_perfmon_collection,
                 &non_interruptor));
             /* The `metadata_file_t` constructor will migrate the main metadata if it
@@ -780,7 +781,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_v1_16::migrate_auth_file(auth_path, &txn);
+                    migrate_auth_metadata_to_v2_2(&io_backender, auth_path, &txn,
+                                                  &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }

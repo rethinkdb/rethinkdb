@@ -284,7 +284,7 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
 bool artificial_reql_cluster_interface_t::table_emergency_repair(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         bool dry_run,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -296,7 +296,7 @@ bool artificial_reql_cluster_interface_t::table_emergency_repair(
             query_state_t::FAILED};
         return false;
     }
-    return next->table_emergency_repair(db, name, allow_erase, dry_run, interruptor,
+    return next->table_emergency_repair(db, name, mode, dry_run, interruptor,
         result_out, error_out);
 }
 
@@ -400,10 +400,12 @@ bool artificial_reql_cluster_interface_t::sindex_list(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        boost::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        boost::shared_ptr<semilattice_readwrite_view_t<
             auth_semilattice_metadata_t> > _auth_view,
+        boost::shared_ptr<semilattice_readwrite_view_t<
+            heartbeat_semilattice_metadata_t> > _heartbeat_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
@@ -415,7 +417,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
 
     cluster_config_backend.init(new cluster_config_artificial_table_backend_t(
-        _auth_view));
+        _auth_view, _heartbeat_view));
     backends[name_string_t::guarantee_valid("cluster_config")] =
         std::make_pair(cluster_config_backend.get(), cluster_config_backend.get());
 

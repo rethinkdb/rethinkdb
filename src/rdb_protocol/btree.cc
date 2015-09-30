@@ -281,6 +281,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                     rfail_typed_target(&new_val, "`r.minval` and `r.maxval` cannot be "
                                        "written to disk.");
                 }
+                r_sanity_check(!ql::bad(res));
             }
 
             /* Report the changes for sindex and change-feed purposes */
@@ -347,7 +348,7 @@ void do_a_replace_from_batched_replace(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
     // We need to get in line for this while still holding the superblock so
     // that stamp read operations can't queue-skip.
-    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
+    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_cfeed_stamp();
 
     rdb_live_deletion_context_t deletion_context;
     rdb_modification_report_t mod_report(*info.key);
@@ -404,7 +405,7 @@ batched_replace_response_t rdb_batched_replace(
         // We release the superblock either before or after draining on all the
         // write operations depending on the presence of limit changefeeds.
         scoped_ptr_t<real_superblock_t> current_superblock(superblock->release());
-        bool update_pkey_cfeeds = sindex_cb->has_pkey_cfeeds();
+        bool update_pkey_cfeeds = sindex_cb->has_pkey_cfeeds(keys);
         {
             auto_drainer_t drainer;
             for (size_t i = 0; i < keys.size(); ++i) {
@@ -483,6 +484,7 @@ void rdb_set(const store_key_t &key,
             rfail_typed_target(&data, "`r.minval` and `r.maxval` cannot be "
                                "written to disk.");
         }
+        r_sanity_check(!ql::bad(res));
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
@@ -970,33 +972,55 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
-bool rdb_modification_report_cb_t::has_pkey_cfeeds() {
-    return store_->changefeed_server->has_limit(boost::optional<std::string>());
+bool rdb_modification_report_cb_t::has_pkey_cfeeds(
+    const std::vector<store_key_t> &keys) {
+    const store_key_t *min = nullptr, *max = nullptr;
+    for (const auto &key : keys) {
+        if (min == nullptr || key < *min) min = &key;
+        if (max == nullptr || key > *max) max = &key;
+    }
+    if (min != nullptr && max != nullptr) {
+        key_range_t range(key_range_t::closed, *min,
+                          key_range_t::closed, *max);
+        auto cservers = store_->access_changefeed_servers();
+        for (auto &&pair : *cservers.first) {
+            if (pair.first.inner.overlaps(range)
+                && pair.second->has_limit(boost::optional<std::string>(),
+                                          pair.second->get_keepalive())) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void rdb_modification_report_cb_t::finish(
     btree_slice_t *btree, real_superblock_t *superblock) {
-    store_->changefeed_server->foreach_limit(
-        boost::optional<std::string>(),
-        nullptr,
-        [&](rwlock_in_line_t *clients_spot,
-            rwlock_in_line_t *limit_clients_spot,
-            rwlock_in_line_t *lm_spot,
-            ql::changefeed::limit_manager_t *lm) {
-            if (!lm->drainer.is_draining()) {
-                auto lock = lm->drainer.lock();
-                guarantee(clients_spot->read_signal()->is_pulsed());
-                guarantee(limit_clients_spot->read_signal()->is_pulsed());
-                lm->commit(lm_spot, ql::changefeed::primary_ref_t{btree, superblock});
-            }
-        });
+    auto cservers = store_->access_changefeed_servers();
+    for (auto &&pair : *cservers.first) {
+        pair.second->foreach_limit(
+            boost::optional<std::string>(),
+            nullptr,
+            [&](rwlock_in_line_t *clients_spot,
+                rwlock_in_line_t *limit_clients_spot,
+                rwlock_in_line_t *lm_spot,
+                ql::changefeed::limit_manager_t *lm) {
+                if (!lm->drainer.is_draining()) {
+                    auto lock = lm->drainer.lock();
+                    guarantee(clients_spot->read_signal()->is_pulsed());
+                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                    lm->commit(lm_spot,
+                               ql::changefeed::primary_ref_t{btree, superblock});
+                }
+            }, pair.second->get_keepalive());
+    }
 }
 
 new_mutex_in_line_t rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
 }
-rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
-    return store_->changefeed_server->get_in_line_for_stamp(access_t::write);
+rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_cfeed_stamp() {
+    return store_->get_in_line_for_cfeed_stamp(access_t::write);
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
@@ -1019,9 +1043,9 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond,
                       &old_keys,
                       &new_keys));
-        guarantee(store_->changefeed_server.has());
-        if (update_pkey_cfeeds) {
-            store_->changefeed_server->foreach_limit(
+        auto cserver = store_->changefeed_server(report.primary_key);
+        if (update_pkey_cfeeds && cserver.first != nullptr) {
+            cserver.first->foreach_limit(
                 boost::optional<std::string>(),
                 &report.primary_key,
                 [&](rwlock_in_line_t *clients_spot,
@@ -1042,19 +1066,22 @@ void rdb_modification_report_cb_t::on_mod_report(
                                     ql::datum_t::null(), report.info.added.first);
                         }
                     }
-                });
+                }, cserver.second);
         }
         keys_available_cond.wait_lazily_unordered();
-        store_->changefeed_server->send_all(
-            ql::changefeed::msg_t(
-                ql::changefeed::msg_t::change_t{
-                    old_keys,
-                    new_keys,
-                    report.primary_key,
-                    report.info.deleted.first,
-                    report.info.added.first}),
-            report.primary_key,
-            cfeed_stamp_spot);
+        if (cserver.first != nullptr) {
+            cserver.first->send_all(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t{
+                        old_keys,
+                            new_keys,
+                            report.primary_key,
+                            report.info.deleted.first,
+                            report.info.added.first}),
+                report.primary_key,
+                cfeed_stamp_spot,
+                cserver.second);
+        }
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
@@ -1210,18 +1237,16 @@ void serialize_sindex_info(write_message_t *wm,
     serialize<cluster_version_t::LATEST_DISK>(wm, info.geo);
 }
 
-void deserialize_sindex_info(const std::vector<char> &data,
-                             sindex_disk_info_t *info_out)
-    THROWS_ONLY(archive_exc_t) {
+void deserialize_sindex_info(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out,
+        const std::function<void()> &obsolete_cb) {
     buffer_read_stream_t read_stream(data.data(), data.size());
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success = deserialize_cluster_version(
-        &read_stream,
-        &cluster_version,
-        "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
-        "You can use RethinkDB 2.0 to upgrade your secondary index.");
+        &read_stream, &cluster_version, obsolete_cb);
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
@@ -1229,11 +1254,12 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
     case cluster_version_t::v2_0:
-    case cluster_version_t::v2_1_is_latest:
-        success = deserialize_for_version(
-                cluster_version,
+    case cluster_version_t::v2_1:
+    case cluster_version_t::v2_2_is_latest:
+        success = deserialize_reql_version(
                 &read_stream,
-                &info_out->mapping_version_info.original_reql_version);
+                &info_out->mapping_version_info.original_reql_version,
+                obsolete_cb);
         throw_if_bad_deserialization(success, "original_reql_version");
         success = deserialize_for_version(
                 cluster_version,
@@ -1250,7 +1276,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
         unreachable();
     }
 
-    success = deserialize_for_version(cluster_version, &read_stream, &info_out->mapping);
+    success = deserialize_for_version(cluster_version,
+        &read_stream, &info_out->mapping);
     throw_if_bad_deserialization(success, "sindex description");
 
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
@@ -1262,7 +1289,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_15: // fallthru
     case cluster_version_t::v1_16: // fallthru
     case cluster_version_t::v2_0: // fallthru
-    case cluster_version_t::v2_1_is_latest:
+    case cluster_version_t::v2_1: // fallthru
+    case cluster_version_t::v2_2_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;
@@ -1270,6 +1298,18 @@ void deserialize_sindex_info(const std::vector<char> &data,
     }
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
               "An sindex description was incompletely deserialized.");
+}
+
+void deserialize_sindex_info_or_crash(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out)
+            THROWS_ONLY(archive_exc_t) {
+    deserialize_sindex_info(data, info_out,
+        [] () -> void {
+            fail_due_to_user_error("Encountered a RethinkDB 1.13 secondary index, "
+                                   "which is no longer supported.  You can use "
+                                   "RethinkDB 2.0 to update your secondary index.");
+        });
 }
 
 /* Used below by rdb_update_sindexes. */
@@ -1290,12 +1330,12 @@ void rdb_update_single_sindex(
     // function.
     guarantee(modification->primary_key.size() != 0);
 
-    guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
-    guarantee(new_keys_out == NULL || new_keys_out->size() == 0);
+    guarantee(old_keys_out == nullptr || old_keys_out->size() == 0);
+    guarantee(new_keys_out == nullptr || new_keys_out->size() == 0);
 
     sindex_disk_info_t sindex_info;
     try {
-        deserialize_sindex_info(sindex->sindex.opaque_definition, &sindex_info);
+        deserialize_sindex_info_or_crash(sindex->sindex.opaque_definition, &sindex_info);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
@@ -1305,8 +1345,7 @@ void rdb_update_single_sindex(
 
     sindex_superblock_t *superblock = sindex->superblock.get();
 
-    ql::changefeed::server_t *server =
-        store->changefeed_server.has() ? store->changefeed_server.get() : NULL;
+    auto cserver = store->changefeed_server(modification->primary_key);
 
     if (modification->info.deleted.first.has()) {
         guarantee(!modification->info.deleted.second.empty());
@@ -1315,7 +1354,7 @@ void rdb_update_single_sindex(
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
-            if (old_keys_out != NULL) {
+            if (old_keys_out != nullptr) {
                 for (const auto &pair : keys) {
                     old_keys_out->push_back(
                         std::make_pair(
@@ -1323,8 +1362,8 @@ void rdb_update_single_sindex(
                                 key_to_unescaped_str(pair.first)).tag_num));
                 }
             }
-            if (server != NULL) {
-                server->foreach_limit(
+            if (cserver.first != nullptr) {
+                cserver.first->foreach_limit(
                     sindex->name.name,
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
@@ -1336,7 +1375,7 @@ void rdb_update_single_sindex(
                         for (const auto &pair : keys) {
                             lm->del(lm_spot, pair.first, is_primary_t::NO);
                         }
-                    });
+                    }, cserver.second);
             }
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1361,7 +1400,7 @@ void rdb_update_single_sindex(
                             repli_timestamp_t::distant_past,
                             deletion_context,
                             delete_mode_t::REGULAR_QUERY,
-                            NULL);
+                            nullptr);
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1372,7 +1411,7 @@ void rdb_update_single_sindex(
             // Do nothing (it wasn't actually in the index).
 
             // See comment in `catch` below.
-            guarantee(old_keys_out == NULL || old_keys_out->size() == 0);
+            guarantee(old_keys_out == nullptr || old_keys_out->size() == 0);
         }
     }
 
@@ -1389,8 +1428,8 @@ void rdb_update_single_sindex(
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
             compute_keys(modification->primary_key, added, sindex_info, &keys);
-            if (new_keys_out != NULL) {
-                guarantee(keys_available_cond != NULL);
+            if (new_keys_out != nullptr) {
+                guarantee(keys_available_cond != nullptr);
                 for (const auto &pair : keys) {
                     new_keys_out->push_back(
                         std::make_pair(
@@ -1403,8 +1442,8 @@ void rdb_update_single_sindex(
                     keys_available_cond->pulse();
                 }
             }
-            if (server != NULL) {
-                server->foreach_limit(
+            if (cserver.first != nullptr) {
+                cserver.first->foreach_limit(
                     sindex->name.name,
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
@@ -1417,7 +1456,7 @@ void rdb_update_single_sindex(
                             lm->add(lm_spot, pair.first, is_primary_t::NO,
                                     pair.second, added);
                         }
-                    });
+                    }, cserver.second);
             }
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1456,7 +1495,7 @@ void rdb_update_single_sindex(
             // can only be triggered by an exception thrown from `compute_keys`
             // (which begs the question of why so many other statements are
             // inside of it), so this guarantee should never trip.
-            if (keys_available_cond != NULL) {
+            if (keys_available_cond != nullptr) {
                 guarantee(!decremented_updates_left);
                 guarantee(new_keys_out->size() == 0);
                 guarantee(*updates_left > 0);
@@ -1466,7 +1505,7 @@ void rdb_update_single_sindex(
             }
         }
     } else {
-        if (keys_available_cond != NULL) {
+        if (keys_available_cond != nullptr) {
             guarantee(*updates_left > 0);
             if (--*updates_left == 0) {
                 keys_available_cond->pulse();
@@ -1474,8 +1513,8 @@ void rdb_update_single_sindex(
         }
     }
 
-    if (server != NULL) {
-        server->foreach_limit(
+    if (cserver.first != nullptr) {
+        cserver.first->foreach_limit(
             sindex->name.name,
             &modification->primary_key,
             [&](rwlock_in_line_t *clients_spot,
@@ -1486,7 +1525,7 @@ void rdb_update_single_sindex(
                 guarantee(limit_clients_spot->read_signal()->is_pulsed());
                 lm->commit(lm_spot, ql::changefeed::sindex_ref_t{
                         sindex->btree, superblock, &sindex_info});
-            });
+            }, cserver.second);
     }
 }
 

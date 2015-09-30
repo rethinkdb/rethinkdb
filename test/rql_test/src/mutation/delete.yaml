@@ -29,7 +29,7 @@ tests:
     - js: tbl.skip(50).delete({durability:'wrong'})
       rb: tbl.skip(50).delete({ :durability => 'wrong' })
       py: tbl.skip(50).delete(durability='wrong')
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+      ot: err('ReqlQueryLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
     # Delete selection of table, soft durability flag.
 
@@ -47,4 +47,4 @@ tests:
 
     # test deletion on a non-deletable object
     - cd: r.expr([1, 2]).delete()
-      ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type SELECTION but found DATUM:', [0])

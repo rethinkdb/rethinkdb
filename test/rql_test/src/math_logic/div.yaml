@@ -1,10 +1,15 @@
 desc: Tests for the basic usage of the division operation
 tests:
 
-    # Python supports the overloaded operator '/' in both directions
-    - py: [(r.expr(4) / 2), (4 / r.expr(2)), r.expr(4).div(2)]
-      js: r(4).div(2)
-      rb: [(r 4) / 2, r(4).div 2, 4 / r(2)]
+    - cd: r(4).div(2)
+      py: 
+        - r.expr(4) / 2
+        - 4 / r.expr(2)
+        - r.expr(4).div(2)
+      rb: 
+        - (r 4) / 2
+        - r(4).div 2
+        - 4 / r(2)
       ot: 2
 
     - py: r.expr(-1) / -2
@@ -17,11 +22,8 @@ tests:
       rb: (r 4.9) / 0.7
       ot: 4.9 / 0.7
 
-    # All arithmetic operations (except mod) actually support arbitrary arguments
-    # but this feature can't be accessed in Python because it's operators are binary
-    - js: r(1).div(2,3,4,5)
-      cd: []
-      ot: 1/120
+    - cd: r.expr(1).div(2,3,4,5)
+      ot: 1.0/120
 
     # Divide by zero test
     - cd:
@@ -38,13 +40,13 @@ tests:
         - r.expr(4.0) / 0.0
         - r.expr(0) / 0
         - r.expr(0.0) / 0.0
-      ot: err('RqlRuntimeError', 'Cannot divide by zero.', [1])
+      ot: err('ReqlQueryLogicError', 'Cannot divide by zero.', [1])
 
     # Type errors
     - py: r.expr('a') / 0.8
       cd: r('a').div(0.8)
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     - py: r.expr(1) / 'a'
       cd: r(1).div('a')
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1])

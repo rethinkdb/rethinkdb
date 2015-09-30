@@ -8,6 +8,7 @@
 #include "clustering/table_manager/server_name_cache_updater.hpp"
 #include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
+#include "concurrency/rwlock.hpp"
 
 /* `table_manager_t` hosts the `raft_member_t` and the `contract_executor_t`. It also
 hosts the `contract_coordinator_t` if we are the Raft leader. */
@@ -76,9 +77,9 @@ private:
     private:
         void on_set_config(
             signal_t *interruptor,
-            const table_config_and_shards_t &new_config_and_shards,
+            const table_config_and_shards_change_t &table_config_and_shards_change,
             const mailbox_t<void(
-                boost::optional<multi_table_manager_timestamp_t>
+                boost::optional<multi_table_manager_timestamp_t>, bool
                 )>::address_t &reply_addr);
 
         table_manager_t * const parent;
@@ -145,9 +146,9 @@ private:
     /* `leader` will be non-empty if we are the Raft leader */
     scoped_ptr_t<leader_t> leader;
 
-    /* `leader_mutex` controls access to `leader`. This is important because creating
+    /* `leader_lock` controls access to `leader`. This is important because creating
     and destroying the `leader_t` may block. */
-    new_mutex_t leader_mutex;
+    rwlock_t leader_lock;
 
     /* The `execution_bcard_read_manager` receives `contract_execution_bcard_t`s from
     `contract_executor_t`s on other servers and passes them to the

@@ -38,6 +38,7 @@ public:
     counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         counted_t<ql::datum_stream_t> maybe_src,
+        ql::configured_limits_t limits,
         const ql::datum_t &, // TODO: implement squash
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,

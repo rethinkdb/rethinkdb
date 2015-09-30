@@ -2,7 +2,6 @@ require 'pp'
 require 'set'
 
 $test_count = 0
-$failure_count = 0
 $success_count = 0
 
 DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
@@ -50,23 +49,32 @@ begin
 rescue
 end
 
+# --
+
 $defines = binding
+
+NoError = "<no error>"
+AnyUUID = "<any uuid>"
+Err = Struct.new(:class, :message, :backtrace)
+Bag = Struct.new(:items, :partial)
+PartialHash = Struct.new(:hash)
 
 # --
 
 def show(x)
   if x.is_a?(Err)
-    name = x.type.sub(/^RethinkDB::/, "")
-    return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
+    return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{'~ ' if x.message.is_a? Regexp}#{show x.message}"
+  elsif x.is_a?(Exception)
+    message = String.new(x.message)
+    message.sub!(/^(?<message>[^\n]*?)\nFailed assertion:.*$/m, '\k<message>')
+    message.sub!(/^(?<message>[^\n]*?)\nBacktrace:\n.*$/m, '\k<message>')
+    message.sub!(/^(?<message>[^\n]*?):\n.*$/m, '\k<message>:')
+    return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{message}"
+  elsif x.is_a?(String)
+    return x
   end
   return (PP.pp x, "").chomp
 end
-
-NoError = "<no error>"
-AnyUUID = "<any uuid>"
-Err = Struct.new(:type, :message, :backtrace)
-Bag = Struct.new(:items, :partial)
-PartialHash = Struct.new(:hash)
 
 def bag(list, partial=false)
   Bag.new(list, partial)
@@ -153,6 +161,8 @@ def float_cmp(value)
 end
 
 def cmp_test(expected, result, testopts={}, partial=false)
+  print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>>")
+  
   if expected.object_id == NoError.object_id
     if result.is_a?(Err)
       puts result
@@ -179,15 +189,21 @@ def cmp_test(expected, result, testopts={}, partial=false)
   if result.is_a?(String) then
     result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
+  
+  case
+  when expected.is_a?(Err) || expected.is_a?(Exception)
+    if result.is_a?(expected.class)
+      cmpMessage = show(result).sub(/^#{result.class.name.sub(/^RethinkDB::/, '')}: /, '')
+      if expected.message.is_a?(Regexp)
+        return expected.message.match(cmpMessage) ? 0 : 1 
+      else
+        return cmpMessage <=> expected.message
+      end
+    else
+      return result.class.name <=> expected.class.name
+    end
 
-  case "#{expected.class}"
-  when "Err"
-    # Don't try to be clever and rearrange this.  `<=` is used to
-    # check for subclasses, so swapping the arguments and using `>`
-    # will break this.  Likewise, `===` isn't symmetric.
-    return result.class <= expected.type && expected.message === result.message ? 0 : -1
-
-  when "Array"
+  when expected.is_a?(Array)
     if result.respond_to? :to_a
       result = result.to_a
     end
@@ -217,10 +233,10 @@ def cmp_test(expected, result, testopts={}, partial=false)
     end
     return 0
 
-  when "PartialHash"
+  when expected.is_a?(PartialHash)
     return cmp_test(expected.hash, result, testopts, true)
 
-  when "Hash"
+  when expected.is_a?(Hash)
     cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
     result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
@@ -239,7 +255,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
     }
     return 0
 
-  when "Bag"
+  when expected.is_a?(Bag)
     return cmp_test(
       expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
       result.sort{ |a, b| cmp_test(a, b, testopts) },
@@ -247,7 +263,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
       expected.partial
     )
 
-  when "Float", "Fixnum", "Number"
+  when expected.is_a?(Float) || expected.is_a?(Fixnum) || expected.is_a?(Number)
     if not (result.kind_of? Float or result.kind_of? Fixnum)
       cmp = result.class.name <=> expected.class.name
       return cmp if cmp != 0
@@ -366,6 +382,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         end
         print_debug("Running query: #{queryString} Options: #{testopts}")
         result = $defines.eval(queryString)
+        print_debug("Result: #{result}")
 
         if result.kind_of?(RethinkDB::Cursor) # convert cursors into Enumerators to allow for poping single items
 	      result = result.each
@@ -378,7 +395,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       end
 
     rescue StandardError, SyntaxError => e
-      result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], e.backtrace)
+      result = e
     end
 
     if testopts && testopts.key?(:noreply_wait) && testopts[:noreply_wait]
@@ -401,7 +418,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
     db_name, table_name = $required_external_tables.pop
     begin
         r.db(db_name).table(table_name).info().run($reql_conn)
-    rescue RethinkDB::RqlRuntimeError
+    rescue RethinkDB::ReqlRuntimeError
       "External table #{db_name}.#{table_name} did not exist"
     end
 
@@ -459,14 +476,18 @@ def check_result(name, src, result, expected, testopts={})
         expected = NoError
       end
     rescue Exception => err
-      fail_test(name, src, err, expected, type="SETUP")
+      fail_test(name, src, err, expected, type="SETUP ERROR")
       successfulTest = false
     end
     if successfulTest
       # - read out cursors
 
       if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && expected != NoError
-        result = result.to_a
+        begin
+          result = result.to_a
+        rescue RethinkDB::ReqlError => err
+          result = err
+        end
       end
 
       begin
@@ -483,29 +504,30 @@ def check_result(name, src, result, expected, testopts={})
       $success_count += 1
       return true
     else
-      $failure_count += 1
       return false
     end
-  rescue StandardError, SyntaxError => e
-     $stderr.puts("Check_result error: #{e}")
+  rescue StandardError, SyntaxError => err
+    fail_test(name, src, err, expected, type="UNEXPECTED ERROR")
   end
 end
 
 def fail_test(name, src, result, expected, type="TEST")
   $stderr.puts "TEST FAILURE: #{name}"
-  $stderr.puts "\tBODY: #{src}"
-  $stderr.puts "\tVALUE: #{show result}"
-  $stderr.puts "\tEXPECTED: #{show expected}"
-  if result && result.kind_of?(Exception)
-    $stderr.puts "\tEXCEPTION: #{result.message}"
-    $stderr.puts result.backtrace.join("\n")
+  $stderr.puts "     SOURCE:     #{src}"
+  $stderr.puts "     EXPECTED:   #{show expected}"
+  $stderr.puts "     RESULT:     #{show result}"
+  if result && result.respond_to?(:backtrace)
+    $stderr.puts "     BACKTRACE:\n<<<<<<<<<\n#{result.backtrace.join("\n")}\n>>>>>>>>>"
+  end
+  if show(result) != result
+    $stderr.puts "     RAW RESULT:\n<<<<<<<<<\n#{result}\n>>>>>>>>>"
   end
   $stderr.puts ""
 end
 
 def the_end
-  if $failure_count != 0 then
-    abort "Failed #{$failure_count} tests"
+  if $test_count != $success_count then
+    abort "Failed #{$test_count - $success_count} tests"
   end
 end
 

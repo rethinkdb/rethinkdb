@@ -14,4 +14,4 @@ tests:
   - rb: tbl.reduce{|x,y| r.expr(0)[0]}
     py: tbl.reduce(lambda x,y:r.expr(0)[0])
     js: tbl.reduce(function(x,y){return r.expr(0)(0);})
-    ot: err('RqlRuntimeError','Cannot convert NUMBER to SEQUENCE')
+    ot: err('ReqlQueryLogicError','Cannot convert NUMBER to SEQUENCE')

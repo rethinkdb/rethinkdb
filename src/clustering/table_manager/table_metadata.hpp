@@ -20,40 +20,22 @@ class multi_table_manager_timestamp_t {
 public:
     class epoch_t {
     public:
-        static epoch_t min() {
-            epoch_t e;
-            e.id = nil_uuid();
-            e.timestamp = 0;
-            return e;
-        }
+        static epoch_t min();
+        static epoch_t deletion();
+        static epoch_t migrate(time_t ts);
+        static epoch_t make(const epoch_t &prev);
 
-        static epoch_t deletion() {
-            epoch_t e;
-            e.id = nil_uuid();
-            e.timestamp = std::numeric_limits<microtime_t>::max();
-            return e;
-        }
+        ql::datum_t to_datum() const;
 
-        bool is_deletion() const {
-            return id.is_nil();
-        }
-
-        bool operator==(const epoch_t &other) const {
-            return timestamp == other.timestamp && id == other.id;
-        }
-        bool operator!=(const epoch_t &other) const {
-            return !(*this == other);
-        }
-
-        bool supersedes(const epoch_t &other) const {
-            if (timestamp > other.timestamp) {
-                return true;
-            } else if (timestamp < other.timestamp) {
-                return false;
-            } else {
-                return other.id < id;
-            }
-        }
+        bool is_unset() const;
+        bool is_deletion() const;
+        bool operator==(const epoch_t &other) const;
+        bool operator!=(const epoch_t &other) const;
+        bool supersedes(const epoch_t &other) const;
+    private:
+        // Workaround for issue #4668 - invalid timestamps that were migrated
+        // These timestamps should never supercede any other timestamps
+        static const microtime_t special_timestamp;
 
         /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
         one Raft instance. Normally tables only have one epoch; a new epoch is created
@@ -67,6 +49,8 @@ public:
         example. */
         microtime_t timestamp;
         uuid_u id;
+
+        RDB_DECLARE_ME_SERIALIZABLE(epoch_t);
     };
 
     static multi_table_manager_timestamp_t min() {
@@ -103,20 +87,31 @@ public:
         return log_index > other.log_index;
     }
 
+    // TODO: make the data members private and strictly control how they may be changed
     epoch_t epoch;
 
     /* Within each epoch, Raft log indices provide a monotonically increasing clock. */
     raft_log_index_t log_index;
 };
-RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t::epoch_t);
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t);
+
+/* In VERIFIED mode, the all replicas ready check makes sure that the leader
+still has a quorum and can perform Raft transactions. This is relatively expensive
+and causes disk writes and network overhead.
+OUTDATED_OK skips that step, but might temporarily return an incorrect result. */
+enum class all_replicas_ready_mode_t { INCLUDE_RAFT_TEST = 0, EXCLUDE_RAFT_TEST };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(all_replicas_ready_mode_t,
+                                      int8_t,
+                                      all_replicas_ready_mode_t::INCLUDE_RAFT_TEST,
+                                      all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST);
 
 class table_status_request_t {
 public:
     table_status_request_t() :
         want_config(false), want_sindexes(false), want_raft_state(false),
         want_contract_acks(false), want_shard_status(false),
-        want_all_replicas_ready(false) { }
+        want_all_replicas_ready(false),
+        all_replicas_ready_mode(all_replicas_ready_mode_t::INCLUDE_RAFT_TEST) { }
 
     bool want_config;
     bool want_sindexes;
@@ -124,6 +119,7 @@ public:
     bool want_contract_acks;
     bool want_shard_status;
     bool want_all_replicas_ready;
+    all_replicas_ready_mode_t all_replicas_ready_mode;
 };
 RDB_DECLARE_SERIALIZABLE(table_status_request_t);
 
@@ -133,6 +129,10 @@ public:
     `table_status_response_t` will be included or not. This is to avoid making an
     expensive computation if the result will not be used. If a field is not requested,
     its value is undefined (but typically empty or default-constructed). */
+
+    /* We must default-initialize boolean fields or they might cause out of range
+    errors during serialization and/or deserializtion. */
+    table_status_response_t() : all_replicas_ready(false) { }
 
     /* `config` is controlled by `want_config`. */
     boost::optional<table_config_and_shards_t> config;
@@ -236,8 +236,8 @@ public:
         commit. If something goes wrong, it returns an empty `boost::optional`, in which
         case the change may or may not eventually be committed. */
         typedef mailbox_t<void(
-            table_config_and_shards_t new_config_and_shards,
-            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>
+            table_config_and_shards_change_t config_and_shards_change,
+            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool
                 )>::address_t reply_addr
             )> set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
@@ -354,8 +354,7 @@ public:
         perfmon_collection_t *perfmon_collection_serializers) = 0;
     virtual void destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor) = 0;
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in) = 0;
 
 protected:
     virtual ~table_persistence_interface_t() { }

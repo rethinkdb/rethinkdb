@@ -31,7 +31,10 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals, const datum_t &squash, bool include_states) {
+        bool include_initial_vals,
+        configured_limits_t limits,
+        const datum_t &squash,
+        bool include_states) {
         counted_t<datum_stream_t> maybe_src;
         if (include_initial_vals) {
             // We want to provide an empty stream in this case because we get
@@ -42,6 +45,7 @@ public:
         return tbl->tbl->read_changes(
             env,
             maybe_src,
+            std::move(limits),
             squash,
             include_states,
             changefeed::keyspec_t::point_t{key},
@@ -87,7 +91,10 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals, const datum_t &squash, bool include_states) {
+        bool include_initial_vals,
+        configured_limits_t limits,
+        const datum_t &squash,
+        bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         counted_t<datum_stream_t> maybe_src;
@@ -100,6 +107,7 @@ public:
         auto s = slice->get_tbl()->tbl->read_changes(
             env,
             maybe_src,
+            std::move(limits),
             squash,
             include_states,
             std::move(spec),

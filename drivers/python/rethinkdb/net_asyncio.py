@@ -6,7 +6,8 @@ import socket
 import struct
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
+from .ast import ReQLDecoder
+from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -58,7 +59,7 @@ def translate_timeout_errors():
     try:
         yield
     except asyncio.TimeoutError:
-        raise RqlTimeoutError
+        raise ReqlTimeoutError()
 
 
 # The asyncio implementation of the Cursor object:
@@ -93,7 +94,7 @@ class AsyncioCursor(Cursor):
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
         # with mechanisms to return from a coroutine.
-        return RqlCursorEmpty(self.query.term)
+        return RqlCursorEmpty()
 
     @asyncio.coroutine
     def _get_next(self, timeout):
@@ -104,11 +105,11 @@ class AsyncioCursor(Cursor):
                 raise self.error
             with translate_timeout_errors():
                 yield from waiter(asyncio.shield(self.new_response))
-        return convert_pseudo(self.items.pop(0), self.query)
+        return self.items.popleft()
 
     def _maybe_fetch_batch(self):
         if self.error is None and \
-           len(self.items) <= self.threshold and \
+           len(self.items) < self.threshold and \
            self.outstanding_requests == 0:
             self.outstanding_requests += 1
             asyncio.async(self.conn._parent._continue(self))
@@ -137,7 +138,7 @@ class ConnectionInstance(object):
             self._streamwriter.get_extra_info('socket').setsockopt(
                                 socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except Exception as err:
-            raise RqlDriverError('Could not connect to %s:%s. Error: %s' %
+            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
         try:
@@ -148,7 +149,7 @@ class ConnectionInstance(object):
                     timeout, loop=self._io_loop,
                 )
         except Exception as err:
-            raise RqlDriverError(
+            raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
@@ -156,8 +157,11 @@ class ConnectionInstance(object):
 
         if message != 'SUCCESS':
             self.close(False, None)
-            raise RqlDriverError('Server dropped connection with message: "%s"' %
-                               message)
+            if message == "ERROR: Incorrect authorization key":
+                raise ReqlAuthError(self._parent.host, self._parent.port)
+            else:
+                raise ReqlDriverError('Server dropped connection with message: "%s"' %
+                    (message, ))
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
@@ -171,7 +175,7 @@ class ConnectionInstance(object):
     def close(self, noreply_wait, token, exception=None):
         self._closing = True
         if exception is not None:
-            err_message = "Connection is closed (%s)." + str(exception)
+            err_message = "Connection is closed (%s)." % str(exception)
         else:
             err_message = "Connection is closed."
 
@@ -180,7 +184,7 @@ class ConnectionInstance(object):
             cursor._error(err_message)
 
         for query, future in iter(self._user_queries.values()):
-            future.set_exception(RqlDriverError(err_message))
+            future.set_exception(ReqlDriverError(err_message))
 
         self._user_queries = { }
         self._cursor_cache = { }
@@ -194,7 +198,7 @@ class ConnectionInstance(object):
 
     @asyncio.coroutine
     def run_query(self, query, noreply):
-        self._streamwriter.write(query.serialize())
+        self._streamwriter.write(query.serialize(self._parent._get_json_encoder()))
         if noreply:
             return None
 
@@ -214,23 +218,21 @@ class ConnectionInstance(object):
                 buf = yield from self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
                 buf = yield from self._streamreader.readexactly(length)
-                res = Response(token, buf)
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
-                    cursor._extend(res)
+                    cursor._extend(buf)
                 elif token in self._user_queries:
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
+                    res = Response(token, buf,
+                                   self._parent._get_json_decoder(query.global_optargs))
                     if res.type == pResponse.SUCCESS_ATOM:
-                        value = convert_pseudo(res.data[0], query)
-                        future.set_result(maybe_profile(value, res))
+                        future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
-                        cursor = AsyncioCursor(self, query)
-                        self._cursor_cache[token] = cursor
-                        cursor._extend(res)
+                        cursor = AsyncioCursor(self, query, res)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
                         future.set_result(None)
@@ -238,7 +240,7 @@ class ConnectionInstance(object):
                         future.set_exception(res.make_error(query))
                     del self._user_queries[token]
                 elif not self._closing:
-                    raise RqlDriverError("Unexpected response received.")
+                    raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
                 yield from self.close(False, None, ex)
@@ -250,7 +252,7 @@ class Connection(ConnectionBase):
         try:
             self.port = int(self.port)
         except ValueError:
-            raise RqlDriverError("Could not convert port %s to an integer." % self.port)
+            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
     @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):

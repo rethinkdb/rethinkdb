@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys, time
+import atexit, itertools, os, re, sys, time, warnings
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
@@ -68,7 +68,7 @@ DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
 
 def print_debug(message):
     if DEBUG_ENABLED:
-        sys.stderr.write('DEBUG (%.2f):\t %s\n' % (time.time() - start_time, message.rstrip()))
+        print('DEBUG (%.2f):\t %s' % (time.time() - start_time, message.rstrip()))
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
 print_debug('Using driver port: %d' % DRIVER_PORT)
@@ -95,8 +95,8 @@ def print_test_failure(test_name, test_src, message):
     failure_count += 1
     print('')
     print("TEST FAILURE: %s" % test_name.encode('utf-8'))
-    print("TEST BODY:    %s" % test_src.encode('utf-8'))
-    print(message)
+    print("   TEST BODY: %s" % test_src.encode('utf-8'))
+    print("   " + message)
     print('')
 
 def check_pp(src, query):
@@ -130,6 +130,7 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
+    '''Compare array without repect to order'''
     
     # note: This only works for dicts, arrays, numbers, Nones, and strings. Anything else might as well be random.
 
@@ -202,41 +203,62 @@ class Dct:
         return repr(self.dct)
 
 class Err:
-    def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False, **kwargs):
-        self.etyp = err_type
-        self.emsg = err_msg
+    inRegex = re.compile('^(?P<message>[^\n]*?)(?: in)?:\n.*$', flags=re.DOTALL)
+    assertionRegex = re.compile('^(?P<message>[^\n]*?)\nFailed assertion:.*$', flags=re.DOTALL)
+    
+    def __init__(self, err_type=None, message=None, err_frames=None, regex=False, **kwargs):
+        
+        # translate err_type into the class
+        if type(err_type) == type(Exception) and issubclass(err_type, Exception):
+            self.err_type = err_type
+        elif hasattr(r, err_type):
+            self.err_type = r.__getattribute__(err_type)
+        elif hasattr(__builtins__, err_type):
+            self.err_type = __builtins__.__getattribute__(err_type)
+        assert issubclass(self.err_type, Exception), 'err_type must be a subclass Exception, got: %r' % err_type
+        
+        self.message = message
         self.frames = None # err_frames # TODO: test frames
         self.regex = regex
 
     def __eq__(self, other):
-        if not isinstance(other, Exception):
+        
+        # -- type
+        
+        if not isinstance(other, self.err_type):
             return False
-
-        if self.etyp and self.etyp != other.__class__.__name__:
-            return False
-
+        
+        # -- message
+        
+        # Strip details from output message
+        otherMessage = None
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            if hasattr(other, 'message'):
+                otherMessage = str(other.message)
+            else:
+                otherMessage = str(other)
+        otherMessage = re.sub(self.inRegex, '\g<message>:', otherMessage)
+        otherMessage = re.sub(self.assertionRegex, '\g<message>', otherMessage)
+        
         if self.regex:
-            return re.match(self.emsg, str(other))
-
+            if not re.match(unicode(self.message), otherMessage):
+                return False
         else:
-            otherMessage = str(other)
-            if isinstance(other, (r.errors.RqlError, r.errors.RqlDriverError)):
-                otherMessage = other.message
-                            
-                # Strip "offending object" from the error message
-                otherMessage = re.sub("(?ms)(\.)?( in)?:\n.*", ".", otherMessage)
-                otherMessage = re.sub("(?ms)\nFailed assertion:.*", "", otherMessage)
-
-            if self.emsg and self.emsg != otherMessage:
+            if not self.message == otherMessage:
                 return False
-
-            if self.frames and (not hasattr(other, 'frames') or self.frames != other.frames):
+        
+        # -- frames
+        
+        if self.frames and (not hasattr(other, 'frames') or self.frames != other.frames):
                 return False
-
-            return True
+        
+        # --
+        
+        return True
 
     def __repr__(self):
-        return "%s(%s\"%s\")" % (self.etyp, self.regex and '~' or '', repr(self.emsg) or '')
+        return "%s(%s'%s')" % (self.err_type.__name__, self.regex and '~' or '', str(self.message) or '')
 
 
 class Arr:
@@ -329,6 +351,8 @@ class PyTestDriver:
     def run(self, src, expected, name, runopts, testopts):
         global passed_count
         
+        print_debug('Test: %s' % name)
+        
         if runopts:
             runopts["profile"] = True
         else:
@@ -336,7 +360,7 @@ class PyTestDriver:
         
         compOptions = {}
         if 'precision' in testopts:
-            compOptions['precision'] = testopts['precision']
+            compOptions['precision'] = float(testopts['precision']) # errors will bubble up
         
         conn = None
         if 'new-connection' in testopts and testopts['new-connection'] is True:
@@ -351,62 +375,71 @@ class PyTestDriver:
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
+        print_debug('\tExpected: %s' % str(expected))
         
         # -- evaluate the command
         
         try:
             result = eval(src, self.scope)
-            
-            # - collect the contents of a cursor
-            
-            if isinstance(result, r.Cursor):
-                print_debug('Evaluating cursor: %s %r' % (src, runopts))
-                result = list(result)
-            
-            # - run as a query if it is one
-            
-            elif isinstance(result, r.RqlQuery):
-                print_debug('Running query: %s %r' % (src, runopts))
-                
-                # Check pretty-printing
-                
-                check_pp(src, result)
-                
-                # run the query
-                
-                result = result.run(conn, **runopts)
-                if result and "profile" in runopts and runopts["profile"] and "value" in result:
-                    result = result["value"]
-                # ToDo: do something reasonable with the profile
-            
-            else:
-                print_debug('Running: %s' % src)
-            
-            # - Save variable if requested
-            
-            if 'variable' in testopts:
-                # ToDo: handle complex variables like: a[2]
-                self.scope[testopts['variable']] = result
-                if exp_val is None:
-                    return
-
-            if 'noreply_wait' in testopts and testopts['noreply_wait']:
-                conn.noreply_wait()
-        
         except Exception as err:
+            print_debug('\tError evaluating: %s - %r' % (src, err))
             result = err
+        else:
+            try:
+                # - collect the contents of a cursor
+                
+                if isinstance(result, r.Cursor):
+                    print_debug('\tEvaluating cursor: %s %r' % (src, runopts))
+                    result = list(result)
+                
+                # - run as a query if it is one
+                
+                elif isinstance(result, r.RqlQuery):
+                    print_debug('\tRunning query: %s %r' % (src, runopts))
+                    
+                    # Check pretty-printing
+                    
+                    check_pp(src, result)
+                    
+                    # run the query
+                    
+                    result = result.run(conn, **runopts)
+                    if result and "profile" in runopts and runopts["profile"] and "value" in result:
+                        result = result["value"]
+                    # ToDo: do something reasonable with the profile
+                
+                else:
+                    print_debug('\tRunning: %s' % src)
+                
+                # - Save variable if requested
+                
+                if 'variable' in testopts:
+                    # ToDo: handle complex variables like: a[2]
+                    self.scope[testopts['variable']] = result
+                    print_debug('\tVariable: %s' % testopts['variable'])
+                    if exp_val is None:
+                        return
+    
+                if 'noreply_wait' in testopts and testopts['noreply_wait']:
+                    conn.noreply_wait()
+            
+            except Exception as err:
+                print_debug('\tError: %r' % err)
+                result = err
+            else:
+                print_debug('\tResult: %r' % result)
         
         # Compare to the expected result
         
         if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (str(result), str(result)))
+                print_test_failure(name, src, "Error running test on server:\n\tERROR:    %r\n\tEXPECTED: %r" % (result, exp_val))
             elif not eq(exp_val, **compOptions)(result):
-                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
+                print_test_failure(name, src, "Error result not equal to expected err:\n\tERROR:    %r\n\tEXPECTED: %r" % (result, exp_val))
             else:
                 passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
-            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
+            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE:    %r\n\tEXPECTED: %r" % (result, exp_val))
         else:
             passed_count += 1
 
@@ -448,7 +481,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
         db_name, table_name = required_external_tables.pop()
         try:
             r.db(db_name).table(table_name).info(driver.cpp_conn)
-        except r.RqlRuntimeError:
+        except r.ReqlRuntimeError:
             raise AssertionError('External table %s.%s did not exist' % (db_name, table_name))
         atexit.register(_clean_table, table_name=table_name, db_name=db_name)
         
@@ -498,7 +531,7 @@ def fetch(cursor, limit=None):
     result = []
     for i, value in enumerate(cursor, start=1):
         result.append(value)
-        if i >= limit:
+        if limit and i >= limit:
             break
     return result
 
@@ -506,11 +539,11 @@ def wait(seconds):
     '''Sleep for some seconds'''
     time.sleep(seconds)
 
-def err(err_type, err_msg=None, frames=None):
-    return Err(err_type, err_msg, frames)
+def err(err_type, message=None, frames=None):
+    return Err(err_type, message, frames)
 
-def err_regex(err_type, err_msg=None, frames=None):
-    return Err(err_type, err_msg, frames, True)
+def err_regex(err_type, message=None, frames=None):
+    return Err(err_type, message, frames, True)
 
 def arrlen(length, thing=None):
     return Arr(length, thing)

@@ -42,7 +42,7 @@ tests:
   - rb: ts.map{|x| (t1 + x) - t1}.map{|x| x.to_epoch_time}
     py: ts.map(lambda x:(t1 + x) - t1).map(lambda x:x.to_epoch_time())
     js: ts.map(t1.add(r.row).sub(t1)).map(r.row.toEpochTime())
-    ot: err("RqlRuntimeError", "Expected type NUMBER but found PTYPE<TIME>.", [])
+    ot: err("ReqlQueryLogicError", "Expected type NUMBER but found PTYPE<TIME>.", [])
   - rb: ts.map{|x| t1 - (t1 - x)}.map{|x| x.to_epoch_time}
     py: ts.map(lambda x:t1 - (t1 - x)).map(lambda x:x.to_epoch_time())
     js: ts.map(t1.sub(t1.sub(r.row))).map(r.row.toEpochTime())

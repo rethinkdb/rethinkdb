@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/op.hpp"
@@ -30,36 +30,35 @@ bool datum_ge(const datum_t &lhs, const datum_t &rhs) {
 
 class predicate_term_t : public op_term_t {
 public:
-    predicate_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    predicate_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2, -1)),
           namestr(0), invert(false), pred(0) {
-        int predtype = term->type();
-        switch (predtype) {
-        case Term_TermType_EQ: {
+        switch (static_cast<int>(term.type())) {
+        case Term::EQ:
             namestr = "EQ";
             pred = &datum_eq;
-        } break;
-        case Term_TermType_NE: {
+            break;
+        case Term::NE:
             namestr = "NE";
             pred = &datum_eq;
             invert = true; // we invert the == operator so (!= 1 2 3) makes sense
-        } break;
-        case Term_TermType_LT: {
+            break;
+        case Term::LT:
             namestr = "LT";
             pred = &datum_lt;
-        } break;
-        case Term_TermType_LE: {
+            break;
+        case Term::LE:
             namestr = "LE";
             pred = &datum_le;
-        } break;
-        case Term_TermType_GT: {
+            break;
+        case Term::GT:
             namestr = "GT";
             pred = &datum_gt;
-        } break;
-        case Term_TermType_GE: {
+            break;
+        case Term::GE:
             namestr = "GE";
             pred = &datum_ge;
-        } break;
+            break;
         default: unreachable();
         }
         guarantee(namestr && pred);
@@ -85,7 +84,7 @@ private:
 
 class not_term_t : public op_term_t {
 public:
-    not_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    not_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -97,11 +96,11 @@ private:
 } // Anonymous namespace
 
 counted_t<term_t> make_predicate_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<predicate_term_t>(env, term);
 }
 counted_t<term_t> make_not_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<not_term_t>(env, term);
 }
 

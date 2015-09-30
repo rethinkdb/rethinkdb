@@ -9,22 +9,37 @@
 sindex B-tree. Both of them use the exact same format, but the sindex B-trees don't make
 use of the `sindex_block` or `metainfo_blob` fields. */
 ATTR_PACKED(struct reql_btree_superblock_t {
-	block_magic_t magic;
-	block_id_t root_block;
-	block_id_t stat_block;
-	block_id_t sindex_block;
+    block_magic_t magic;
+    block_id_t root_block;
+    block_id_t stat_block;
+    block_id_t sindex_block;
 
-	static const int METAINFO_BLOB_MAXREFLEN
-		= from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(block_magic_t)
-															   - sizeof(block_id_t) * 3;
+    static const int METAINFO_BLOB_MAXREFLEN
+    = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(block_magic_t)
+        - sizeof(block_id_t) * 3;
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
-
-    static const block_magic_t expected_magic;
 });
+
 static const uint32_t REQL_BTREE_SUPERBLOCK_SIZE = sizeof(reql_btree_superblock_t);
 
-const block_magic_t reql_btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
+template <cluster_version_t>
+struct reql_btree_version_magic_t {
+    static const block_magic_t value;
+};
+
+// All pre-2.1 values are the same, so we treat them all as v2.0.x
+// Versions pre-2.1 store version_range_ts in their metainfo
+template <>
+const block_magic_t
+    reql_btree_version_magic_t<cluster_version_t::v2_0>::value =
+        { { 's', 'u', 'p', 'e' } };
+
+// Versions post-2.1 store version_ts in their metainfo
+template <>
+const block_magic_t
+    reql_btree_version_magic_t<cluster_version_t::v2_1>::value =
+        { { 's', 'u', 'p', 'f' } };
 
 void btree_superblock_ct_asserts() {
     // Just some place to put the CT_ASSERTs
@@ -134,12 +149,13 @@ void btree_slice_t::init_real_superblock(real_superblock_t *superblock,
     // Properly zero the superblock, zeroing sb->metainfo_blob, in particular.
     memset(sb, 0, REQL_BTREE_SUPERBLOCK_SIZE);
 
-    sb->magic = reql_btree_superblock_t::expected_magic;
+    sb->magic = reql_btree_version_magic_t<cluster_version_t::v2_1>::value;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = create_stat_block(buf_parent_t(superblock->get()->txn()));
     sb->sindex_block = NULL_BLOCK_ID;
 
-    set_superblock_metainfo(superblock, metainfo_key, metainfo_value);
+    set_superblock_metainfo(superblock, metainfo_key, metainfo_value,
+                            cluster_version_t::v2_1);
 
     buf_lock_t sindex_block(superblock->get(), alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
@@ -154,7 +170,7 @@ void btree_slice_t::init_sindex_superblock(sindex_superblock_t *superblock) {
     // Properly zero the superblock, zeroing sb->metainfo_blob, in particular.
     memset(sb, 0, REQL_BTREE_SUPERBLOCK_SIZE);
 
-    sb->magic = reql_btree_superblock_t::expected_magic;
+    sb->magic = reql_btree_version_magic_t<cluster_version_t::v2_1>::value;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
     sb->sindex_block = NULL_BLOCK_ID;
@@ -222,7 +238,8 @@ void superblock_metainfo_iterator_t::operator++() {
 
 void get_superblock_metainfo(
         real_superblock_t *superblock,
-        std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
+        std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out,
+        cluster_version_t *version_out) {
     std::vector<char> metainfo;
     {
         buf_read_t read(superblock->get());
@@ -230,6 +247,14 @@ void get_superblock_metainfo(
         const reql_btree_superblock_t *data
             = static_cast<const reql_btree_superblock_t *>(read.get_data_read(&sb_size));
         guarantee(sb_size == REQL_BTREE_SUPERBLOCK_SIZE);
+
+        if (data->magic == reql_btree_version_magic_t<cluster_version_t::v2_1>::value) {
+            *version_out = cluster_version_t::v2_1;
+        } else if (data->magic == reql_btree_version_magic_t<cluster_version_t::v2_0>::value) {
+            *version_out = cluster_version_t::v2_0;
+        } else {
+            crash("Unrecognized reql_btree_superblock_t::magic found.");
+        }
 
         // The const cast is okay because we access the data with access_t::read
         // and don't write to the blob.
@@ -259,19 +284,29 @@ void get_superblock_metainfo(
 
 void set_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<char> &key,
-                             const binary_blob_t &value) {
+                             const binary_blob_t &value,
+                             cluster_version_t version) {
     std::vector<std::vector<char> > keys = {key};
     std::vector<binary_blob_t> values = {value};
-    set_superblock_metainfo(superblock, keys, values);
+    set_superblock_metainfo(superblock, keys, values, version);
 }
 
 void set_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<std::vector<char> > &keys,
-                             const std::vector<binary_blob_t> &values) {
+                             const std::vector<binary_blob_t> &values,
+                             cluster_version_t version) {
     buf_write_t write(superblock->get());
     reql_btree_superblock_t *data
         = static_cast<reql_btree_superblock_t *>(
             write.get_data_write(REQL_BTREE_SUPERBLOCK_SIZE));
+
+    if (version == cluster_version_t::v2_0) {
+        data->magic = reql_btree_version_magic_t<cluster_version_t::v2_0>::value;
+    } else if (version == cluster_version_t::v2_1) {
+        data->magic = reql_btree_version_magic_t<cluster_version_t::v2_1>::value;
+    } else {
+        crash("Unsupported version when writing metainfo.");
+    }
 
     blob_t blob(superblock->get()->cache()->max_block_size(),
                 data->metainfo_blob, reql_btree_superblock_t::METAINFO_BLOB_MAXREFLEN);

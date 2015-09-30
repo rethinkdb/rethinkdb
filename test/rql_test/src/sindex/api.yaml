@@ -18,55 +18,55 @@ tests:
   - py: tbl.index_create('rename-foo', r.row['b'])
     js: tbl.index_create('rename-foo', r.row('b'))
     rb: tbl.index_create('rename-foo') {|x| x[:b]}
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - py: tbl.index_create('rename-bar', r.row['c'])
     js: tbl.index_create('rename-bar', r.row('c'))
     rb: tbl.index_create('rename-bar') {|x| x[:c]}
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - cd: tbl.index_rename('rename-foo','rename-bar')
-    ot: err_regex('RqlRuntimeError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-foo` does not exist or index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('rename-fake','rename-stuff')
-    ot: err_regex('RqlRuntimeError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-fake` does not exist or index `rename-stuff` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('id','rename-stuff')
-    ot: err('RqlRuntimeError','Index name conflict:'+' `id` is the name of the primary key.',[])
+    ot: err('ReqlQueryLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
 
   - cd: tbl.index_rename('rename-stuff','id')
-    ot: err('RqlRuntimeError','Index name conflict:'+' `id` is the name of the primary key.',[])
+    ot: err('ReqlQueryLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
 
   - cd: tbl.index_rename('rename-foo','rename-foo')
-    ot: ({'renamed':0})
+    ot: {'renamed':0}
 
   - cd: tbl.index_rename('rename-foo','rename-foo',overwrite=True)
     js: tbl.index_rename('rename-foo','rename-foo',{overwrite:true})
     rb: tbl.index_rename('rename-foo','rename-foo',:overwrite => true)
-    ot: ({'renamed':0})
+    ot: {'renamed':0}
 
   - py: tbl.index_rename('rename-foo','rename-bar',overwrite=True)
     js: tbl.index_rename('rename-foo','rename-bar',{overwrite:true})
     rb: tbl.index_rename('rename-foo','rename-bar',:overwrite => true)
-    ot: ({'renamed':1})
+    ot: {'renamed':1}
 
   - py: tbl.index_rename('rename-bar','rename-stuff',overwrite=True)
     js: tbl.index_rename('rename-bar','rename-stuff',{overwrite:true})
     rb: tbl.index_rename('rename-bar','rename-stuff',:overwrite => true)
-    ot: ({'renamed':1})
+    ot: {'renamed':1}
 
   - cd: tbl.index_rename('rename-stuff','rename-last')
-    ot: ({'renamed':1})
+    ot: {'renamed':1}
 
   - rb: tbl.index_create('minval'){|x| r.minval}
     py: tbl.index_create('minval', lambda:r.minval)
     js: tbl.index_create('minval', function(row){ return r.minval; })
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - rb: tbl.index_create('maxval'){|x| r.maxval}
     py: tbl.index_create('maxval', lambda:r.maxval)
     js: tbl.index_create('maxval', function(row){ return r.maxval; })
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - cd: tbl.index_wait('rename-last', 'minval', 'maxval').pluck('index', 'ready')
     ot: bag([{'index':'rename-last','ready':true},
@@ -95,7 +95,7 @@ tests:
     ot: 0
 
   - cd: tbl.index_create('rename-last-dup', tbl.index_status('rename-last').nth(0).get_field('function'))
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - cd: tbl.index_wait('rename-last-dup').pluck('index', 'ready')
     ot: [{'index':'rename-last-dup','ready':true}]
@@ -109,46 +109,46 @@ tests:
       - tbl.index_drop('rename-last-dup')
       - tbl.index_drop('minval')
       - tbl.index_drop('maxval')
-    ot: ({'dropped':1})
+    ot: {'dropped':1}
 
   - cd: tbl.index_list()
-    ot: (['rename-last'])
+    ot: ['rename-last']
 
   - cd: tbl.index_drop('rename-last')
-    ot: ({'dropped':1})
+    ot: {'dropped':1}
 
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: err_regex("RqlRuntimeError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.index_create('bi') {|row| row[:b]}
     py: tbl.index_create('bi', r.row['b'])
     js: tbl.indexCreate('bi', r.row('b'))
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('ci') {|row| row[:c]}
     py: tbl.index_create('ci', r.row['c'])
     js: tbl.indexCreate('ci', r.row('c'))
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('idi') {|row| row[:id]}
     py: tbl.index_create('idi', r.row['id'])
     js: tbl.indexCreate('idi', r.row('id'))
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('kdi') {|row| [row[:id]]}
     py: tbl.index_create('kdi', [r.row['id']])
     js: tbl.indexCreate('kdi', [r.row('id')])
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('mi', :multi => True) {|row| row[:m]}
     py: tbl.index_create('mi', r.row['m'], multi=True)
     js: tbl.indexCreate('mi', r.row('m'), {"multi":true})
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('brokeni') {|row| row[:broken]}
     py: tbl.index_create('brokeni', r.row['broken'])
     js: tbl.indexCreate('brokeni', r.row('broken'))
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - cd: tbl.index_wait().pluck('index', 'ready')
 
@@ -157,9 +157,9 @@ tests:
     # No error
 
   - cd: tbl.get([])
-    ot: (null)
+    ot: null
   - cd: tbl.get(-1)
-    ot: (null)
+    ot: null
   - rb: tbl.get(1)[:id]
     py: tbl.get(1)['id']
     js: tbl.get(1)('id')
@@ -167,14 +167,14 @@ tests:
   - rb: tbl.get(1).typeof
     py: tbl.get(1).type_of()
     js: tbl.get(1).typeOf()
-    ot: ('SELECTION<OBJECT>')
+    ot: 'SELECTION<OBJECT>'
   - rb: tbl.get(1).update{null}
     py: tbl.get(1).update(lambda x:null)
     js: tbl.get(1).update(function(x) { return null;})
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0}
   - rb: tbl.get(1, :ai)
     cd: tbl.get(1, 'ai')
-    ot: err("RqlCompileError", "Expected 2 arguments but found 3.", [])
+    ot: err("ReqlCompileError", "Expected 2 arguments but found 3.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
@@ -212,40 +212,40 @@ tests:
   - rb: tbl.get_all(1, :index => :id).typeof
     py: tbl.get_all(1, index='id').type_of()
     js: tbl.getAll(1, {index:'id'}).typeOf()
-    ot: ('SELECTION<STREAM>')
+    ot: 'SELECTION<STREAM>'
   - rb: tbl.get_all(1).typeof
     py: tbl.get_all(1).type_of()
     js: tbl.getAll(1).typeOf()
-    ot: ('SELECTION<STREAM>')
+    ot: 'SELECTION<STREAM>'
   - rb: tbl.get_all(1, :index => :id).update{null}
     py: tbl.get_all(1, index='id').update(lambda x:null)
     js: tbl.getAll(1, {index:'id'}).update(function(x) { return null; })
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0}
   - rb: tbl.get_all(1).update{null}
     py: tbl.get_all(1).update(lambda x:null)
     js: tbl.getAll(1).update(function(x) { return null; })
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0}
   - rb: tbl.get_all(1,2,3, :index => :id).update{null}
     py: tbl.get_all(1,2,3, index='id').update(lambda x:null)
     js: tbl.getAll(1,2,3, {index:'id'}).update(function(x) { return null; })
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0}
   - rb: tbl.get_all(1,2,3).update{null}
     py: tbl.get_all(1,2,3).update(lambda x:null)
     js: tbl.getAll(1,2,3).update(function(x) { return null; })
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':3,'errors':0,'inserted':0}
 
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
 
   - cd: tbl.get_all(r.point(0, 0))
-    ot: err("RqlRuntimeError", "Cannot use a geospatial index with `get_all`. Use `get_intersecting` instead.", [])
+    ot: err("ReqlQueryLogicError", "Cannot use a geospatial index with `get_all`. Use `get_intersecting` instead.", [])
 
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
-    ot: err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])
+    ot: err("ReqlQueryLogicError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
@@ -255,7 +255,7 @@ tests:
   - rb: tbl.get_all([], :index => :id)
     py: tbl.get_all([], index='id')
     js: tbl.getAll([], {index:'id'})
-    ot: ([])
+    ot: []
   - rb: tbl.get_all(true, :index => :idi)
     py: tbl.get_all(True, index='idi')
     js: tbl.getAll(true, {index:'idi'})
@@ -285,11 +285,11 @@ tests:
   - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+    ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
   - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
+    ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION:', [0])
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })
@@ -297,11 +297,11 @@ tests:
   - rb: tbl.get_all(1, :index => :ci).typeof
     py: tbl.get_all(1, index='ci').type_of()
     js: tbl.getAll(1, {index:'ci'}).typeOf()
-    ot: ('SELECTION<STREAM>')
+    ot: 'SELECTION<STREAM>'
   - rb: tbl.get_all(1, :index => :ci).update{null}
     py: tbl.get_all(1, index='ci').update(lambda x:null)
     js: tbl.getAll(1, {index:'ci'}).update(function(x) { return null; })
-    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0})
+    ot: {'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0}
   - rb: tbl.get_all(1, :index => :brokeni)
     py: tbl.get_all(1, index='brokeni')
     js: tbl.getAll(1, {index:'brokeni'})
@@ -310,74 +310,74 @@ tests:
   - rb: tbl.get_all(1, :index => :mi)
     py: tbl.get_all(1, index='mi')
     js: tbl.getAll(1, {index:'mi'})
-    ot: ([rows[0]])
+    ot: [rows[0]]
 
   - rb: tbl.get_all(2, :index => :mi)
     py: tbl.get_all(2, index='mi')
     js: tbl.getAll(2, {index:'mi'})
-    ot: ([rows[0]])
+    ot: [rows[0]]
 
   - rb: tbl.get_all(5, :index => :mi)
     py: tbl.get_all(5, index='mi')
     js: tbl.getAll(5, {index:'mi'})
-    ot: ([rows[1]])
+    ot: [rows[1]]
 
   - rb: tbl.get_all(7, :index => :mi)
     py: tbl.get_all(7, index='mi')
     js: tbl.getAll(7, {index:'mi'})
-    ot: ([rows[2]])
+    ot: [rows[2]]
 
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: err_regex("RqlRuntimeError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
-    ot: err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])
+    ot: err("ReqlQueryLogicError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.filter({:id => 1}).eq_join(:id, tbl, :index => :mi)
     py: tbl.filter({'id':1}).eq_join('id', tbl, index='mi')
     js: tbl.filter({id:1}).eqJoin('id', tbl, {index:'mi'})
-    ot: ([{'left':rows[1],'right':rows[0]}])
+    ot: [{'left':rows[1],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl)
     py: tbl.filter({'id':0}).eq_join('id', tbl)
     js: tbl.filter({'id':0}).eqJoin('id', tbl)
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda{|x| x[:id]}, tbl)
     py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl)
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl)
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :id)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='id')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'id'})
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :id)
     py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl, index='id')
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'id'})
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :idi)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='idi')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'idi'})
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :idi)
     py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl, index='idi')
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'idi'})
-    ot: ([{'left':rows[0],'right':rows[0]}])
+    ot: [{'left':rows[0],'right':rows[0]}]
 
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :ai).orderby(:right)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='ai').order_by('right')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'ai'}).orderBy('right')
-    ot: ([{'right':rows[0],'left':rows[0]},
+    ot: [{'right':rows[0],'left':rows[0]},
           {'right':rows[1],'left':rows[0]},
           {'right':rows[2],'left':rows[0]},
-          {'right':rows[3],'left':rows[0]}])
+          {'right':rows[3],'left':rows[0]}]
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :bi).orderby(:right)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='bi').order_by('right')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'bi'}).orderBy('right')
@@ -387,8 +387,7 @@ tests:
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :ci).orderby(:right)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='ci').order_by('right')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'ci'}).orderBy('right')
-    ot: ([{'right':rows[0],'left':rows[0]},
-          {'right':rows[1],'left':rows[0]}])
+    ot: [{'right':rows[0],'left':rows[0]}, {'right':rows[1],'left':rows[0]}]
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :brokeni)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='brokeni')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'brokeni'})
@@ -397,22 +396,22 @@ tests:
   - rb: tbl.eq_join(:c, tbl, :index => :bi).orderby(:right, :left)
     py: tbl.eq_join('c', tbl, index='bi').order_by('right', 'left')
     js: tbl.eqJoin('c', tbl, {index:'bi'}).orderBy('right', 'left')
-    ot: ([{'left':rows[0],'right':rows[0]},
-          {'left':rows[1],'right':rows[0]},
-          {'left':rows[0],'right':rows[1]},
-          {'left':rows[1],'right':rows[1]},
-          {'left':rows[0],'right':rows[2]},
-          {'left':rows[1],'right':rows[2]},
-          {'left':rows[2],'right':rows[3]},
-          {'left':rows[3],'right':rows[3]}])
+    ot: [{'left':rows[0],'right':rows[0]},
+         {'left':rows[1],'right':rows[0]},
+         {'left':rows[0],'right':rows[1]},
+         {'left':rows[1],'right':rows[1]},
+         {'left':rows[0],'right':rows[2]},
+         {'left':rows[1],'right':rows[2]},
+         {'left':rows[2],'right':rows[3]},
+         {'left':rows[3],'right':rows[3]}]
 
   - cd: tbl.index_create('id')
-    ot: 'err("RqlRuntimeError", "Index name conflict: `id` is the name of the primary key.", [])'
+    ot: err("ReqlQueryLogicError", "Index name conflict: `id` is the name of the primary key.", [])
 
   - cd: tbl.index_create('c')
-    ot: ({'created':1})
+    ot: {'created':1}
   - cd: tbl.index_create('broken')
-    ot: ({'created':1})
+    ot: {'created':1}
 
   - cd: tbl.index_wait('broken')
 
@@ -428,20 +427,17 @@ tests:
   - rb: tbl.index_create('nil') {null}
     py: tbl.index_create('nil', lambda x:null)
     js: tbl.indexCreate('nil', function(x) { return null; })
-    ot: ({'created':1})
+    ot: {'created':1}
   - cd: tbl.index_wait().pluck('index', 'ready')
 
   - rb: tbl.get_all(null, :index => :nil)
     py: tbl.get_all(null, index='nil')
     js: tbl.getAll(null, {index:'nil'})
-    ot:
-      py: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
-      rb: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
-      js: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, pseudotype, or array (got null of type NULL).", [])
+    ot: err("ReqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu" + "ll of type NULL).", [])
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})
-    ot: ({'deleted':0,'inserted':1,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
+    ot: {'deleted':0,'inserted':1,'skipped':0,'errors':0,'replaced':0,'unchanged':0}
 
   - def:
 
@@ -449,20 +445,20 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :c).orderby(:left, :right).coerce_to("ARRAY")
     py: tbl.eq_join('id', tbl, index='c').order_by('left', 'right').coerce_to("ARRAY")
     js: tbl.eqJoin('id', tbl, {index:'c'}).orderBy('left', 'right').coerceTo("ARRAY")
-    ot: ([{'right':rows[0],'left':rows[0]},
-          {'right':rows[1],'left':rows[0]},
-          {'right':rows[2],'left':rows[1]},
-          {'right':rows[3],'left':rows[1]},
-          {'right':rows[4],'left':rows[4]}])
+    ot: [{'right':rows[0],'left':rows[0]},
+         {'right':rows[1],'left':rows[0]},
+         {'right':rows[2],'left':rows[1]},
+         {'right':rows[3],'left':rows[1]},
+         {'right':rows[4],'left':rows[4]}]
 
   - rb: tbl.eq_join(:id, tbl, :index => :ci).orderby(:left, :right)
     py: tbl.eq_join('id', tbl, index='ci').order_by('left', 'right')
     js: tbl.eqJoin('id', tbl, {index:'ci'}).orderBy('left', 'right')
-    ot: ([{'right':rows[0],'left':rows[0]},
-          {'right':rows[1],'left':rows[0]},
-          {'right':rows[2],'left':rows[1]},
-          {'right':rows[3],'left':rows[1]},
-          {'right':rows[4],'left':rows[4]}])
+    ot: [{'right':rows[0],'left':rows[0]},
+         {'right':rows[1],'left':rows[0]},
+         {'right':rows[2],'left':rows[1]},
+         {'right':rows[3],'left':rows[1]},
+         {'right':rows[4],'left':rows[4]}]
 
   # test between with null bounds (allowed in old versions, now an error)
   - py:
@@ -477,7 +473,7 @@ tests:
       - tbl.between(null, 2, :index => 'id').count()
       - tbl.between(2, null, :index => 'id').count()
       - tbl.between(null, null, :index => 'id').count()
-    ot: err('RqlRuntimeError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
+    ot: err('ReqlQueryLogicError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
 
   - rb: tbl.between(r.minval, r.maxval).orderby(:id).map{|x| x[:id]}
     py: tbl.between(r.minval, r.maxval).order_by('id').map(lambda x:x['id'])
@@ -490,11 +486,11 @@ tests:
   - rb: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map{|x| x[:id]}
     py: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map(lambda x:x['id'])
     js: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map(function(x) { return x('id'); })
-    ot: err('RqlRuntimeError', 'Cannot perform multiple BETWEENs on the same table.', [0])
+    ot: err('ReqlQueryLogicError', 'Cannot perform multiple BETWEENs on the same table.', [0])
   - rb: tbl.order_by(index:'id').between(r.minval, 3).map{|x| x[:id]}
     py: tbl.order_by(index='id').between(r.minval, 3).map(lambda x:x['id'])
     js: tbl.orderBy({index:'id'}).between(r.minval, 3).map(function(x) { return x('id'); })
-    ot: ([0, 1, 2])
+    ot: [0, 1, 2]
   - rb: tbl.between(0, r.maxval).orderby(:id).map{|x| x[:id]}
     py: tbl.between(0, r.maxval).order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, r.maxval).orderBy('id').map(function(x) { return x('id'); })
@@ -908,11 +904,11 @@ tests:
   - rb: tbl.index_create('bc') {|row| [row[:b], row[:c]]}
     py: tbl.index_create('bc', lambda row:[row['b'], row['c']])
     js: tbl.indexCreate('bc', function(row) { return [row('b'), row('c')]; })
-    ot: ({'created':1})
+    ot: {'created':1}
   - rb: tbl.index_create('cb') {|row| [row[:c], row[:b]]}
     py: tbl.index_create('cb', lambda row:[row['c'], row['b']])
     js: tbl.indexCreate('cb', function(row) { return [row('c'), row('b')]; })
-    ot: ({'created':1})
+    ot: {'created':1}
   - cd: tbl.index_wait().pluck('index', 'ready')
 
   - rb: tbl.between(r.minval, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
@@ -1328,15 +1324,14 @@ tests:
   - rb: tbl.between(1, 3, :index => :mi, :right_bound => :closed).map{|x| x[:id]}
     py: tbl.between(1, 3, index='mi', right_bound='closed').map(lambda x:x['id'])
     js: tbl.between(1, 3, {'index':'mi', 'right_bound':'closed'}).map(function(x) { return x('id'); })
-    ot: ([0,0,0])
+    ot: [0,0,0]
 
   - rb: tbl.between(1, 16, :index => :mi, :right_bound => :closed).order_by(:id).map{|x| x[:id]}
     py: tbl.between(1, 16, index='mi', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between(1, 16, {'index':'mi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
-    ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
+    ot: [0,0,0,1,1,1,2,3,3,3,4,4,4]
 
   - rb: tbl.order_by(:index => :mi).map{|x| x[:id]}
     py: tbl.order_by(index='mi').map(lambda x:x['id'])
     js: tbl.orderBy({'index':'mi'}).map(function(x) { return x('id'); })
-    ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
-
+    ot: [0,0,0,1,1,1,2,3,3,3,4,4,4]

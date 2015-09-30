@@ -6,11 +6,7 @@
 # issue-description: Changing masters for a shard closes open changefeeds on that table
 # issue-discussion: This will need to change the last sections for: #3549 and #3547
 
-from __future__ import print_function
-
-import os, sys, time
-
-startTime = time.time()
+import os, sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import utils, rdb_unittest
@@ -26,7 +22,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
     
     def test_change_master(self):
     
-        print("Establishing ReQL connections (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Establishing ReQL connections")
         
         shardA, shardB = self.table.config()['shards'][:2].run(self.conn)
         
@@ -41,7 +37,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         
         connB1 = self.r.connect(host=serverA2.host, port=serverA2.driver_port)
         
-        print("Opening changefeeds (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Opening changefeeds")
         
         rangeA, rangeB = utils.getShardRanges(self.conn, self.tableName)[:2]
         
@@ -54,7 +50,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         feedB = self.table.between(rangeB[0], rangeB[1]).changes(include_initial_vals=False).run(connB1)
         pointFeed = self.table.get(sampleB_ID).changes(include_initial_vals=False).run(connB1)
         
-        print("Check that the changefeeds work (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Check that the changefeeds work")
         
         self.table.get(sampleA_ID).update({'update':'a'}).run(self.conn)
         self.table.get(sampleB_ID).update({'update':'a'}).run(self.conn)
@@ -66,7 +62,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         feedB.next(wait=.2)
         pointFeed.next(wait=.2)
         
-        print("Reverse the server assignments (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Reverse the server assignments")
         
         result = self.table.config().update({'shards':[
             {'primary_replica': serverA2.name, 'replicas':[serverA2.name, serverA1.name]}, # swapped
@@ -75,22 +71,21 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         self.assertTrue(result['errors'] == 0, msg='Failed updating table config: %s' % repr(result))
         self.table.wait(timeout=20).run(self.conn)
         
-        print("Check that feeds are indeed disconnected on a changed shard (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Check that feeds are indeed disconnected on a changed shard")
         
         self.table.get(sampleA_ID).update({'update':'b'}).run(self.conn)
 
-        self.assertRaises(self.r.RqlRuntimeError, feedA1.next, wait=.2)
-        self.assertRaises(self.r.RqlRuntimeError, feedA2.next, wait=.2)
+        self.assertRaises(self.r.ReqlRuntimeError, feedA1.next, wait=.2)
+        self.assertRaises(self.r.ReqlRuntimeError, feedA2.next, wait=.2)
         
-        print("Check that feeds are also disconnected on an unchanged shard (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Check that feeds are also disconnected on an unchanged shard")
         
         self.table.get(sampleB_ID).update({'update':'b'}).run(self.conn)
         
-        self.assertRaises(self.r.RqlRuntimeError, feedB.next, wait=.2)
-        self.assertRaises(self.r.RqlRuntimeError, pointFeed.next, wait=.2)
+        self.assertRaises(self.r.ReqlRuntimeError, feedB.next, wait=.2)
+        self.assertRaises(self.r.ReqlRuntimeError, pointFeed.next, wait=.2)
 
 # ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    rdb_unittest.main()

@@ -9,12 +9,14 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "buffer_cache/cache_balancer.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -63,7 +65,7 @@ public:
             store(region_t::universe(), serializer.get(), balancer.get(),
                 temp_file.name().permanent_path(), true,
                 &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
+                generate_uuid()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;
@@ -239,11 +241,13 @@ class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
         mailbox_manager(&connectivity_cluster, 'M'),
+        heartbeat_manager(heartbeat_semilattice_metadata),
         connectivity_cluster_run(&connectivity_cluster,
                                  get_unittest_addresses(),
                                  peer_address_t(),
                                  ANY_PORT,
-                                 0)
+                                 0,
+                                 heartbeat_manager.get_view())
         { }
     connectivity_cluster_t *get_connectivity_cluster() {
         return &connectivity_cluster;
@@ -266,6 +270,8 @@ public:
 private:
     connectivity_cluster_t connectivity_cluster;
     mailbox_manager_t mailbox_manager;
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t> heartbeat_manager;
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 

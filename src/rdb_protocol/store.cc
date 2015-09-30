@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
+#include <list>
+
 #include "btree/backfill_debug.hpp"
 #include "btree/reql_specific.hpp"
 #include "btree/superblock.hpp"
@@ -8,7 +10,6 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "containers/cow_ptr.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
@@ -18,15 +19,26 @@
 #include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
-    if (changefeed_server.has()) {
-        changefeed_server->stop_all();
+    // We acquire `changefeed_servers_lock` and move all pointers out of
+    // `changefeed_servers`. We then destruct the servers in a separate step,
+    // after releasing the lock.
+    // The reason we do this is to avoid deadlocks that could happen if someone
+    // was holding a lock on the drainer in one of the changefeed servers,
+    // and was at the same time trying to acquire the `changefeed_servers_lock`.
+    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > to_destruct;
+    {
+        rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+        ASSERT_NO_CORO_WAITING;
+        std::swap(changefeed_servers, to_destruct);
     }
+    // The changefeed servers are actually getting destructed here. This might
+    // block.
 }
 
 reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
                                                      buf_lock_t *sindex_block) {
     sindex_disk_info_t sindex_info;
-    deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
+    deserialize_sindex_info_or_crash(sindex->opaque_definition, &sindex_info);
 
     reql_version_t res = sindex_info.mapping_version_info.original_reql_version;
 
@@ -51,24 +63,6 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
     }
 
     return res;
-}
-
-void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (index_report.has()) {
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(sindex_block, &sindexes);
-
-        std::set<std::string> index_set;
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (!it->first.being_deleted &&
-                update_sindex_last_compatible_version(&it->second,
-                                                      sindex_block) !=
-                    reql_version_t::LATEST) {
-                index_set.insert(it->first.name);
-            }
-        }
-        index_report->set_outdated_indexes(std::move(index_set));
-    }
 }
 
 void store_t::help_construct_bring_sindexes_up_to_date() {
@@ -190,7 +184,7 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     }
 
     try {
-        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        deserialize_sindex_info_or_crash(sindex_mapping_data, sindex_info_out);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
@@ -265,13 +259,14 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_client(s.addr, s.region);
+        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(cserver.first != nullptr);
+        cserver.first->add_client(s.addr, s.region, cserver.second);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server->get_uuid());
-        res->addrs.insert(store->changefeed_server->get_stop_addr());
+        res->server_uuids.insert(cserver.first->get_uuid());
+        res->addrs.insert(cserver.first->get_stop_addr());
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
@@ -325,8 +320,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_limit_client(
+        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(cserver.first != nullptr);
+        cserver.first->add_limit_client(
             s.addr,
             s.region,
             s.table,
@@ -335,52 +331,52 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
-            std::move(lvec));
-        auto addr = store->changefeed_server->get_limit_stop_addr();
+            std::move(lvec),
+            cserver.second);
+        auto addr = cserver.first->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    boost::optional<changefeed_stamp_response_t> do_stamp(const changefeed_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
-            changefeed_stamp_response_t out;
-            out.stamps[store->changefeed_server->get_uuid()] = *stamp;
-            return out;
-        } else {
-            return boost::none;
+    changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s) {
+        auto cserver = store->changefeed_server(s.region);
+        if (cserver.first != nullptr) {
+            if (boost::optional<uint64_t> stamp
+                    = cserver.first->get_stamp(s.addr, cserver.second)) {
+                changefeed_stamp_response_t out;
+                out.stamps = std::map<uuid_u, uint64_t>();
+                (*out.stamps)[cserver.first->get_uuid()] = *stamp;
+                return out;
+            }
         }
+        return changefeed_stamp_response_t();
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        if (boost::optional<changefeed_stamp_response_t> resp = do_stamp(s)) {
-            response->response = *resp;
-        } else {
-            // The client was removed, so no future messages are coming.
-            changefeed_stamp_response_t removed;
-            guarantee(store->changefeed_server.has());
-            removed.stamps[store->changefeed_server->get_uuid()]
-                = std::numeric_limits<uint64_t>::max();
-            response->response = removed;
-        }
+        response->response = do_stamp(s);
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
         response->response = changefeed_point_stamp_response_t();
-        auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(), *stamp);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
+        auto cserver = store->changefeed_server(s.key);
+        if (cserver.first != nullptr) {
+            res->resp = changefeed_point_stamp_response_t::valid_response_t();
+            auto *vres = &*res->resp;
+            if (boost::optional<uint64_t> stamp
+                    = cserver.first->get_stamp(s.addr, cserver.second)) {
+                vres->stamp = std::make_pair(cserver.first->get_uuid(), *stamp);
+            } else {
+                // The client was removed, so no future messages are coming.
+                vres->stamp = std::make_pair(cserver.first->get_uuid(),
+                                             std::numeric_limits<uint64_t>::max());
+            }
+            point_read_response_t val;
+            rdb_get(s.key, btree, superblock, &val, trace);
+            vres->initial_val = val.data;
         } else {
-            // The client was removed, so no future messages are coming.
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(),
-                                        std::numeric_limits<uint64_t>::max());
+            res->resp = boost::none;
         }
-        point_read_response_t val;
-        rdb_get(s.key, btree, superblock, &val, trace);
-        res->initial_val = val.data;
     }
 
     void operator()(const point_read_t &get) {
@@ -494,7 +490,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (rget.stamp) {
             res->stamp_response = changefeed_stamp_response_t();
-            if (boost::optional<changefeed_stamp_response_t> r = do_stamp(*rget.stamp)) {
+            changefeed_stamp_response_t r = do_stamp(*rget.stamp);
+            if (r.stamps) {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(
@@ -509,7 +506,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.size() != 0);
+            rassert(rget.optargs.has_optarg("db"));
         }
         ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
                          interruptor, rget.optargs, trace);
@@ -844,4 +841,61 @@ namespace_id_t const &store_t::get_table_id() const {
 
 store_t::sindex_context_map_t *store_t::get_sindex_context_map() {
     return &sindex_context;
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const region_t &region,
+        const rwlock_acq_t *acq) {
+    acq->guarantee_is_holding(&changefeed_servers_lock);
+    for (auto &&pair : changefeed_servers) {
+        if (pair.first.inner.is_superset(region.inner)) {
+            return std::make_pair(pair.second.get(), pair.second->get_keepalive());
+        }
+    }
+    return std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>(
+        nullptr, auto_drainer_t::lock_t());
+}
+
+std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
+          scoped_ptr_t<rwlock_acq_t> > store_t::access_changefeed_servers() {
+    return std::make_pair(&changefeed_servers,
+                          make_scoped<rwlock_acq_t>(&changefeed_servers_lock,
+                                                    access_t::read));
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const region_t &region) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
+    return changefeed_server(region, &acq);
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const store_key_t &key) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
+    for (auto &&pair : changefeed_servers) {
+        if (pair.first.inner.contains_key(key)) {
+            return std::make_pair(pair.second.get(), pair.second->get_keepalive());
+        }
+    }
+    return std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>(
+        nullptr, auto_drainer_t::lock_t());
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
+        store_t::get_or_make_changefeed_server(const region_t &region) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+    guarantee(ctx != nullptr);
+    guarantee(ctx->manager != nullptr);
+    auto existing = changefeed_server(region, &acq);
+    if (existing.first != nullptr) {
+        return existing;
+    }
+    for (auto &&pair : changefeed_servers) {
+        guarantee(!pair.first.inner.overlaps(region.inner));
+    }
+    auto it = changefeed_servers.insert(
+        std::make_pair(
+            region_t(region),
+            make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
+    return std::make_pair(it->second.get(), it->second->get_keepalive());
 }

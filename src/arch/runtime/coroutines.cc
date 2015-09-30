@@ -242,7 +242,10 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    return TLS_get_cglobals() == NULL ? NULL : TLS_get_cglobals()->current_coro;
+    // Make a local copy because TLS_get_cglobals() can't be inlined, and we don't
+    // want to call it twice.
+    coro_globals_t *globals = TLS_get_cglobals();
+    return globals == nullptr ? nullptr : globals->current_coro;
 }
 
 void coro_t::wait() {   /* class method */
@@ -394,7 +397,7 @@ bool has_n_bytes_free_stack_space(size_t n) {
     // Theoretically this is not guaranteed by the C++ standard, but in practice
     // it should work.
     char tester;
-    const coro_t *current_coro = TLS_get_cglobals()->current_coro;
+    const coro_t *current_coro = coro_t::self();
     guarantee(current_coro != nullptr);
     return current_coro->stack.free_space_below(&tester) >= n;
 #endif

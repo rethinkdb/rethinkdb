@@ -119,7 +119,7 @@ def process_cursor(task, c, opts, stats):
                     handle_row(db, table, key, row is not None, opts, stats)
     except socket.timeout as ex:
         return True
-    except r.RqlCursorEmpty as ex:
+    except r.ReqlCursorEmpty as ex:
         return False
 
 def print_summary(opts, stats):

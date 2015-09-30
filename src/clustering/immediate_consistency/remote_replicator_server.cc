@@ -22,7 +22,7 @@ remote_replicator_server_t::proxy_replica_t::proxy_replica_t(
     registration = make_scoped<primary_dispatcher_t::dispatchee_registration_t>(
         parent->primary, this, client_bcard.server_id, 1.0, &first_timestamp);
     send(parent->mailbox_manager, client_bcard.intro_mailbox,
-        remote_replicator_client_intro_t { 
+        remote_replicator_client_intro_t {
             first_timestamp,
             ready_mailbox.get_address() });
 }
@@ -65,6 +65,22 @@ void remote_replicator_server_t::proxy_replica_t::do_write_sync(
     wait_interruptible(&got_response, interruptor);
 }
 
+void remote_replicator_server_t::proxy_replica_t::do_dummy_write(
+        signal_t *interruptor,
+        write_response_t *response_out) {
+    guarantee(is_ready);
+    cond_t got_response;
+    mailbox_t<void(write_response_t)> response_mailbox(
+        parent->mailbox_manager,
+        [&](signal_t *, const write_response_t &response) {
+            *response_out = response;
+            got_response.pulse();
+        });
+    send(parent->mailbox_manager, client_bcard.dummy_write_mailbox,
+        response_mailbox.get_address());
+    wait_interruptible(&got_response, interruptor);
+}
+
 void remote_replicator_server_t::proxy_replica_t::do_write_async(
         const write_t &write,
         state_timestamp_t timestamp,
@@ -80,6 +96,8 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
 }
 
 void remote_replicator_server_t::proxy_replica_t::on_ready(signal_t *) {
+    // Can't block here, or we would need an auto drainer.
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!is_ready);
     is_ready = true;
     registration->mark_ready();

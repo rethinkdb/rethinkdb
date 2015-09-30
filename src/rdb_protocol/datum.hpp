@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
@@ -206,8 +206,6 @@ public:
     bool has() const;
     void reset();
 
-    void write_to_protobuf(Datum *out, use_json_t use_json) const;
-
     type_t get_type() const;
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
@@ -292,6 +290,7 @@ public:
     // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
     // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
     template <class json_writer_t> void write_json(json_writer_t *writer) const;
+    rapidjson::Value as_json(rapidjson::Value::AllocatorType *allocator) const;
 
     // DEPRECATED: Used for backwards compatibility with reql_versions before 2.1
     cJSON *as_json_raw() const;
@@ -348,10 +347,19 @@ private:
     static std::vector<std::pair<datum_string_t, datum_t> > to_sorted_vec(
             std::map<datum_string_t, datum_t> &&map);
 
+    template <class json_writer_t>
+    void write_json_unchecked_stack(json_writer_t *writer) const;
+
     // Same as get_pair() / get(), but don't perform boundary or type checks.
     // For internal use to improve performance.
     std::pair<datum_string_t, datum_t> unchecked_get_pair(size_t index) const;
     datum_t unchecked_get(size_t) const;
+
+    datum_t default_merge_unchecked_stack(const datum_t &rhs) const;
+    datum_t custom_merge_unchecked_stack(const datum_t &rhs,
+                                         merge_resoluter_t f,
+                                         const configured_limits_t &limits,
+                                         std::set<std::string> *conditions) const;
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
@@ -362,6 +370,8 @@ private:
     void binary_to_str_key(std::string *str_out) const;
     void extrema_to_str_key(std::string *str_out) const;
 
+    int cmp_unchecked_stack(const datum_t &rhs) const;
+
     int pseudo_cmp(const datum_t &rhs) const;
     bool pseudo_compares_as_obj() const;
     static const std::set<std::string> _allowed_pts;
@@ -371,6 +381,7 @@ private:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
     // Might return null, if this is a literal without a value.
     datum_t drop_literals(bool *encountered_literal_out) const;
+    datum_t drop_literals_unchecked_stack(bool *encountered_literal_out) const;
 
     // The data_wrapper makes sure we perform proper cleanup when exceptions
     // happen during construction
@@ -462,13 +473,10 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
-datum_t to_datum(
-    const rapidjson::Value &json,
-    const configured_limits_t &,
-    reql_version_t);
 // DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
+
+datum_t to_datum(const rapidjson::Value &v, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(

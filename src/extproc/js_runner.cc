@@ -103,7 +103,7 @@ bool js_runner_t::connected() const {
 void js_runner_t::begin(extproc_pool_t *pool, signal_t *interruptor,
                         const ql::configured_limits_t &limits) {
     assert_thread();
-    if (interruptor == NULL) {
+    if (interruptor == nullptr) {
         job_data.init(new job_data_t(pool, limits));
     } else {
         job_data.init(new job_data_t(pool, interruptor, limits));
@@ -159,7 +159,7 @@ js_result_t js_runner_t::eval(const std::string &source,
 
     // If the eval returned a function, cache it
     js_id_t *any_id = boost::get<js_id_t>(&result);
-    if (any_id != NULL) {
+    if (any_id != nullptr) {
         cache_id(*any_id, source);
     }
 
@@ -175,7 +175,13 @@ js_result_t js_runner_t::call(const std::string &source,
     // This will retrieve the function from the cache if it's there, or re-eval it
     js_result_t result = eval(source, config);
     js_id_t *fn_id = boost::get<js_id_t>(&result);
-    guarantee(fn_id != NULL);
+    if (fn_id == nullptr) {
+        if (boost::get<ql::datum_t>(&result) != nullptr) {
+            result = strprintf("Javascript query `%s` returned a value when it should "
+                               "have returned a function.", source.c_str());
+        }
+        return result;
+    }
 
     object_buffer_t<js_timeout_t::sentry_t> sentry;
     sentry.create(&job_data->js_timeout, config.timeout_ms);
@@ -212,7 +218,7 @@ js_result_t js_runner_t::call(const std::string &source,
 
     // If the call returned a function, cache it
     js_id_t *any_id = boost::get<js_id_t>(&result);
-    if (any_id != NULL) {
+    if (any_id != nullptr) {
         cache_id(*any_id, source);
     }
 

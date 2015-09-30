@@ -144,6 +144,7 @@ public:
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         counted_t<ql::datum_stream_t> maybe_src,
+        ql::configured_limits_t limits,
         const ql::datum_t &squash,
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
@@ -284,7 +285,7 @@ public:
     virtual bool table_emergency_repair(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            bool allow_data_loss,
+            emergency_repair_mode_t,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,

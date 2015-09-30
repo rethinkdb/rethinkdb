@@ -98,6 +98,13 @@ void replica_t::do_write(
     end_enforcer.complete(timestamp);
 }
 
+void replica_t::do_dummy_write(
+        UNUSED signal_t *interruptor,
+        write_response_t *response_out) {
+    assert_thread();
+    response_out->response = dummy_write_response_t();
+}
+
 void replica_t::on_synchronize(
         signal_t *interruptor,
         state_timestamp_t timestamp,

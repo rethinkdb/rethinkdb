@@ -136,15 +136,19 @@ tests:
       ot: true
 
     # Test that precedence errors are detected
-    - py: r.expr(r.expr('a')['b']).default(2)
-      ot: err("RqlRuntimeError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
+    - js: r.expr(r.expr('a')('b')).default(2)
+      py: r.expr(r.expr('a')['b']).default(2)
+      rb: r(r('a')['b']).default(2)
+      ot: err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
     - py: r.expr(r.expr(True) & r.expr(False) == r.expr(False) | r.expr(True))
-      ot: err("RqlDriverError", "Calling '==' on result of infix bitwise operator.", [])
+      ot: err("ReqlDriverCompileError", "Calling '==' on result of infix bitwise operator:", [])
     - py: r.expr(r.and_(True, False) == r.or_(False, True))
       ot: False
     - rb: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
-      ot: err("RqlDriverError", "Calling >= on result of infix bitwise operator.", [])
-    - rb: r.expr(r.and(True, False) >= r.or(False, True))
+      py: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
+      ot: err("ReqlDriverCompileError", "Calling '>=' on result of infix bitwise operator:", [])
+    - cd: r.expr(r.and(True, False) >= r.or(False, True))
+      py: r.expr(r.and_(True, False) >= r.or_(False, True))
       ot: False
 
     # Type errors

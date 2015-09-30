@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/rdb_protocol.hpp"
 
 #include <vector>
@@ -14,7 +14,6 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -82,7 +81,7 @@ void run_with_namespace_interface(
                     make_scoped<store_t>(region_t::universe(), serializers[i].get(),
                         &balancer, temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx, &io_backender,
-                        base_path_t("."), scoped_ptr_t<outdated_index_report_t>(),
+                        base_path_t("."),
                         generate_uuid()));
         }
 
@@ -194,9 +193,12 @@ std::string create_sindex(const std::vector<scoped_ptr_t<store_t> > *stores) {
     std::string id = uuid_to_str(generate_uuid());
 
     const ql::sym_t arg(1);
-    ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
+
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t mapping = r.var(arg)["sid"].root_term();
+
     sindex_config_t sindex(
-        ql::map_wire_func_t(mapping, make_vector(arg), ql::backtrace_id_t::empty()),
+        ql::map_wire_func_t(mapping, make_vector(arg)),
         reql_version_t::LATEST,
         sindex_multi_bool_t::SINGLE,
         sindex_geo_bool_t::REGULAR);
@@ -751,6 +753,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           env,
                           true,
                           false,
+                          ql::configured_limits_t(),
                           keyspec_t::point_t{ql::datum_t(0.0)},
                           "id",
                           std::vector<ql::datum_t>(),
@@ -759,6 +762,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                            env,
                            true,
                            false,
+                           ql::configured_limits_t(),
                            keyspec_t::point_t{ql::datum_t(10.0)},
                            "id",
                            std::vector<ql::datum_t>(),
@@ -767,6 +771,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         env,
                         true,
                         false,
+                        ql::configured_limits_t(),
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),

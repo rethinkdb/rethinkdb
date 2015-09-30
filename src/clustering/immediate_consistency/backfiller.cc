@@ -272,7 +272,10 @@ private:
         try {
             while (threshold != parent->full_region.inner.right) {
                 /* Wait until there's room in the semaphore for the chunk we're about to
-                process */
+                process.
+                We acquire the maximum size that we want to put in this chunk first,
+                and then adjust the semaphore acquisition to the actual size of the
+                chunk later. */
                 new_semaphore_acq_t sem_acq(
                     &parent->item_throttler, parent->intro.config.item_chunk_mem_size);
                 wait_interruptible(
@@ -293,7 +296,7 @@ private:
                 subregion.inner.left = threshold.key();
 
                 /* Copy items from the store into `chunk` until the total size hits
-                `ITEM_CHUNK_SIZE`; we finish the backfill range; or we run out of
+                `item_chunk_mem_size`; we finish the backfill range; or we run out of
                 pre-items. */
 
                 backfill_item_seq_t<backfill_item_t> chunk(
@@ -322,10 +325,11 @@ private:
                     public:
                         consumer_t(
                                 backfill_item_seq_t<backfill_item_t> *_chunk,
-                                region_map_t<version_t> *_metainfo,
-                                const backfill_config_t *_config) :
-                            chunk(_chunk), metainfo(_metainfo), config(_config) { }
-                        continue_bool_t on_item(
+                                region_map_t<version_t> *_metainfo) :
+                            chunk(_chunk), metainfo(_metainfo) {
+                                guarantee(chunk->get_mem_size() == 0);
+                            }
+                        void on_item(
                                 const region_map_t<binary_blob_t> &item_metainfo,
                                 backfill_item_t &&item) THROWS_NOTHING {
                             rassert(key_range_t::right_bound_t(item.range.left) >=
@@ -333,20 +337,14 @@ private:
                             rassert(!item.range.is_empty());
                             on_metainfo(item_metainfo, item.range.right);
                             chunk->push_back(std::move(item));
-                            if (chunk->get_mem_size() < config->item_chunk_mem_size) {
-                                return continue_bool_t::CONTINUE;
-                            } else {
-                                return continue_bool_t::ABORT;
-                            }
                         }
-                        continue_bool_t on_empty_range(
+                        void on_empty_range(
                                 const region_map_t<binary_blob_t> &range_metainfo,
                                 const key_range_t::right_bound_t &new_threshold)
                                 THROWS_NOTHING {
                             rassert(new_threshold >= chunk->get_right_key());
                             on_metainfo(range_metainfo, new_threshold);
                             chunk->push_back_nothing(new_threshold);
-                            return continue_bool_t::CONTINUE;
                         }
                     private:
                         void on_metainfo(
@@ -369,11 +367,14 @@ private:
                         }
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
-                        backfill_config_t const *const config;
-                    } consumer(&chunk, &metainfo, &parent->intro.config);
+                    } consumer(&chunk, &metainfo);
+
+                    backfill_item_memory_tracker_t memory_tracker(
+                        parent->intro.config.item_chunk_mem_size);
 
                     parent->parent->store->send_backfill(
-                        parent->common_version.mask(subregion), &producer, &consumer,
+                        parent->common_version.mask(subregion),
+                        &producer, &consumer, &memory_tracker,
                         keepalive.get_drain_signal());
 
                     /* `producer` goes out of scope here, so it restores `pre_items` to
@@ -387,7 +388,7 @@ private:
                 information for the backfillee to have. */
                 if (!chunk.empty_domain()) {
                     /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely
-                    equal to `ITEM_CHUNK_SIZE`, and then transfer the semaphore
+                    equal to `item_chunk_mem_size`, and then transfer the semaphore
                     ownership. */
                     sem_acq.change_count(chunk.get_mem_size());
                     parent->item_throttler_acq.transfer_in(std::move(sem_acq));

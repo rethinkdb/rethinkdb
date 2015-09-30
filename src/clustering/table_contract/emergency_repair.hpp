@@ -13,7 +13,7 @@ fix it unless `allow_erase` is `true`. */
 void calculate_emergency_repair(
     const table_raft_state_t &old_state,
     const std::set<server_id_t> &dead_servers,
-    bool allow_erase,
+    emergency_repair_mode_t mode,
     table_raft_state_t *new_state_out,
     bool *rollback_found_out,
     bool *erase_found_out);

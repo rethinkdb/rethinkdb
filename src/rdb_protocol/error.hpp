@@ -8,9 +8,8 @@
 #include "errors.hpp"
 
 #include "containers/archive/archive.hpp"
-#include "rdb_protocol/counted_term.hpp"
+#include "containers/scoped.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/ql2_extensions.pb.h"
 #include "rpc/serialize_macros.hpp"
 
 namespace ql {
@@ -20,8 +19,6 @@ public:
     // The 0 ID corresponds to an empty backtrace
     backtrace_id_t() : id(0) { }
     explicit backtrace_id_t(uint32_t _id) : id(_id) { }
-    explicit backtrace_id_t(const Term *t) :
-        id(t->GetExtension(ql2::extension::backtrace_id)) { }
     static backtrace_id_t empty() {
         return backtrace_id_t();
     }
@@ -49,13 +46,13 @@ public:
     type_t get_type() const { return type; }
     Response::ErrorType get_error_type() const {
         switch (type) {
-        case LOGIC:            return Response::LOGIC;
+        case EMPTY_USER:       // fallthru (this only bubbles up here if misused)
+        case LOGIC:            return Response::QUERY_LOGIC;
         case INTERNAL:         return Response::INTERNAL;
-        case RESOURCE:         return Response::RESOURCE;
+        case RESOURCE:         return Response::RESOURCE_LIMIT;
         case OP_FAILED:        return Response::OP_FAILED;
         case OP_INDETERMINATE: return Response::OP_INDETERMINATE;
-        case USER:             // fallthru
-        case EMPTY_USER:       return Response::USER;
+        case USER:             return Response::USER;
         case NON_EXISTENCE:    return Response::NON_EXISTENCE;
         default: unreachable();
         }
@@ -185,9 +182,9 @@ private:
         rcheck_toplevel(false, type, strprintf(__VA_ARGS__));   \
         unreachable();                                   \
     } while (0)
-#define r_sanity_fail() do {                        \
-        r_sanity_check(false);                      \
-        unreachable();                              \
+#define r_sanity_fail() do {               \
+        r_sanity_check(false);             \
+        unreachable();                     \
     } while (0)
 
 

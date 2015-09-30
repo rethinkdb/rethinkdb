@@ -6,6 +6,11 @@ class H < RethinkDB::Handler
   def initialize
     @opened = @closed = 0
   end
+  def on_error(err)
+    if err != RethinkDB::ReqlRuntimeError.new("Connection is closed.")
+      raise err
+    end
+  end
   def on_open
     $state << [:o, @opened += 1]
     if @opened == 3

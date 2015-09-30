@@ -191,9 +191,9 @@ class AddTableModal extends ui_modals.AbstractModal
         else
             # TODO Add durability in the query when the API will be available
             if @formdata.write_disk is 'yes'
-                durability = 'soft'
-            else
                 durability = 'hard'
+            else
+                durability = 'soft'
 
             if @formdata.primary_key isnt ''
                 primary_key = @formdata.primary_key
@@ -213,6 +213,7 @@ class AddTableModal extends ui_modals.AbstractModal
                             db: @db_name
                             name: @formdata.name
                             primary_key: primary_key
+                            durability
                             shards: [
                                 primary_replica: server
                                 replicas: [server]
@@ -501,6 +502,8 @@ class ReconfigureModal extends ui_modals.AbstractModal
         driver.run_once query, (error, result) =>
             if error?
                 @model.set server_error: error.msg
+            else if result.first_error?
+                @model.set server_error: result.first_error
             else
                 @reset_buttons()
                 @remove()

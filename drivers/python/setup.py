@@ -14,7 +14,9 @@ setup(
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",
     maintainer_email="bugs@rethinkdb.com",
-    packages=['rethinkdb'],
+    packages=['rethinkdb', 'rethinkdb.backports', 'rethinkdb.backports.ssl_match_hostname'],
+    package_dir={'rethinkdb': 'rethinkdb'},
+    package_data={ 'rethinkdb':['backports/ssl_match_hostname/*.txt'] },
     entry_points={
         'console_scripts':[
             'rethinkdb-import = rethinkdb._import:main',

@@ -114,6 +114,7 @@ public:
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
     std::vector<counted_t<standard_block_token_t> >

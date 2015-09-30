@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum.hpp"
 
 #include <float.h>
@@ -8,11 +8,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iterator>
 
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "cjson/json.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
@@ -32,6 +34,10 @@
 #include "stl_utils.hpp"
 
 namespace ql {
+
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to recurse into a nested datum.
+const size_t MIN_DATUM_RECURSION_STACK_SPACE = 16 * KILOBYTE;
 
 const size_t tag_size = 8;
 
@@ -149,7 +155,9 @@ datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_b
 }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    destruct();
+    call_with_enough_stack(
+        [&] { destruct(); },
+        MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 datum_t::type_t datum_t::data_wrapper_t::get_type() const {
@@ -821,7 +829,7 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
+datum_t datum_t::drop_literals_unchecked_stack(bool *encountered_literal_out) const {
     // drop_literals will never create arrays larger than those in the
     // existing datum; so checking (and thus threading the limits
     // parameter) is unnecessary here.
@@ -918,6 +926,13 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         *encountered_literal_out = false;
         return *this;
     }
+}
+
+datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->drop_literals_unchecked_stack(
+                encountered_literal_out);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 void datum_t::rcheck_valid_replace(datum_t old_val,
@@ -1384,7 +1399,7 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
 }
 
 template <class json_writer_t>
-void datum_t::write_json(json_writer_t *writer) const {
+void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
     case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
@@ -1427,11 +1442,54 @@ void datum_t::write_json(json_writer_t *writer) const {
     }
 }
 
+template <class json_writer_t>
+void datum_t::write_json(json_writer_t *writer) const {
+    call_with_enough_stack([&] {
+            return this->write_json_unchecked_stack<json_writer_t>(writer);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
+}
+
 // Explicit instantiation
 template void datum_t::write_json(
     rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
 template void datum_t::write_json(
     rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
+
+rapidjson::Value datum_t::as_json(rapidjson::Value::AllocatorType *allocator) const {
+    switch (get_type()) {
+    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
+    case R_NULL: return rapidjson::Value(rapidjson::kNullType);
+    case R_BINARY: return pseudo::encode_base64_ptype(as_binary(), allocator);
+    case R_BOOL: return rapidjson::Value(as_bool());
+    case R_NUM: return rapidjson::Value(as_num());
+    case R_STR: return rapidjson::Value(as_str().data(), as_str().size(), *allocator);
+    case R_ARRAY: {
+        rapidjson::Value res(rapidjson::kArrayType);
+        for (size_t i = 0; i < arr_size(); ++i) {
+            call_with_enough_stack([&]() {
+                    res.PushBack(unchecked_get(i).as_json(allocator), *allocator);
+                }, MIN_DATUM_RECURSION_STACK_SPACE);
+        }
+        return res;
+    } break;
+    case R_OBJECT: {
+        rapidjson::Value res(rapidjson::kObjectType);
+        for (size_t i = 0; i < obj_size(); ++i) {
+            call_with_enough_stack([&]() {
+                    auto pair = get_pair(i);
+                    res.AddMember(rapidjson::Value(pair.first.data(),
+                                                   pair.first.size(), *allocator),
+                                  pair.second.as_json(allocator), *allocator);
+                }, MIN_DATUM_RECURSION_STACK_SPACE);
+        }
+        return res;
+    } break;
+    case UNINITIALIZED: // fallthru
+    default: unreachable();
+    }
+    unreachable();
+}
 
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
@@ -1512,7 +1570,7 @@ void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     it->second = val;
 }
 
-datum_t datum_t::merge(const datum_t &rhs) const {
+datum_t datum_t::default_merge_unchecked_stack(const datum_t &rhs) const {
     if (get_type() != R_OBJECT || rhs.get_type() != R_OBJECT) {
         return rhs;
     }
@@ -1549,7 +1607,13 @@ datum_t datum_t::merge(const datum_t &rhs) const {
     return std::move(d).to_datum();
 }
 
-datum_t datum_t::merge(const datum_t &rhs,
+datum_t datum_t::merge(const datum_t &rhs) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->default_merge_unchecked_stack(rhs);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
+}
+
+datum_t datum_t::custom_merge_unchecked_stack(const datum_t &rhs,
                        merge_resoluter_t f,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
@@ -1568,13 +1632,23 @@ datum_t datum_t::merge(const datum_t &rhs,
     return std::move(d).to_datum();
 }
 
+datum_t datum_t::merge(const datum_t &rhs,
+                       merge_resoluter_t f,
+                       const configured_limits_t &limits,
+                       std::set<std::string> *conditions_out) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->custom_merge_unchecked_stack(
+                rhs, std::move(f), limits, conditions_out);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
+}
+
 template<class T>
 int derived_cmp(T a, T b) {
     if (a == b) return 0;
     return a < b ? -1 : 1;
 }
 
-int datum_t::cmp(const datum_t &rhs) const {
+int datum_t::cmp_unchecked_stack(const datum_t &rhs) const {
     bool lhs_ptype = is_ptype() && !pseudo_compares_as_obj();
     bool rhs_ptype = rhs.is_ptype() && !rhs.pseudo_compares_as_obj();
     if (lhs_ptype && rhs_ptype) {
@@ -1636,6 +1710,12 @@ int datum_t::cmp(const datum_t &rhs) const {
     case UNINITIALIZED: // fallthru
     default: unreachable();
     }
+}
+
+int datum_t::cmp(const datum_t &rhs) const {
+    return call_with_enough_stack<int>([&] {
+            return this->cmp_unchecked_stack(rhs);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
@@ -1775,65 +1855,6 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
         return key.size() == MAX_KEY_SIZE;
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;
-    }
-}
-
-void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
-    switch (use_json) {
-    case use_json_t::NO: {
-        switch (get_type()) {
-        case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to a protobuf.");
-        case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to a protobuf.");
-        case R_NULL: {
-            d->set_type(Datum::R_NULL);
-        } break;
-        case R_BINARY: {
-            pseudo::write_binary_to_protobuf(d, data.r_str);
-        } break;
-        case R_BOOL: {
-            d->set_type(Datum::R_BOOL);
-            d->set_r_bool(data.r_bool);
-        } break;
-        case R_NUM: {
-            d->set_type(Datum::R_NUM);
-            // so we can use `isfinite` in a GCC 4.4.3-compatible way
-            using namespace std;  // NOLINT(build/namespaces)
-            r_sanity_check(isfinite(data.r_num));
-            d->set_r_num(data.r_num);
-        } break;
-        case R_STR: {
-            d->set_type(Datum::R_STR);
-            d->set_r_str(data.r_str.data(), data.r_str.size());
-        } break;
-        case R_ARRAY: {
-            d->set_type(Datum::R_ARRAY);
-            const size_t sz = arr_size();
-            for (size_t i = 0; i < sz; ++i) {
-                get(i).write_to_protobuf(d->add_r_array(), use_json);
-            }
-        } break;
-        case R_OBJECT: {
-            d->set_type(Datum::R_OBJECT);
-            // We use the opposite order so that things print the way we expect.
-            for (size_t i = obj_size(); i > 0; --i) {
-                Datum_AssocPair *ap = d->add_r_object();
-                auto pair = get_pair(i-1);
-                ap->set_key(pair.first.data(), pair.first.size());
-                pair.second.write_to_protobuf(ap->mutable_val(), use_json);
-            }
-        } break;
-        case UNINITIALIZED: // fallthru
-        default: unreachable();
-        }
-    } break;
-    case use_json_t::YES: {
-        d->set_type(Datum::R_JSON);
-        rapidjson::StringBuffer buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        write_json(&writer);
-        d->set_r_str(buffer.GetString(), buffer.GetSize());
-    } break;
-    default: unreachable();
     }
 }
 

@@ -4,12 +4,11 @@
 #include "clustering/administration/persist/file_keys.hpp"
 
 void real_branch_history_manager_t::erase(
+        metadata_file_t::write_txn_t *write_txn,
         const namespace_id_t &table_id,
-        metadata_file_t *metadata_file,
         signal_t *interruptor) {
-    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     std::set<branch_id_t> branch_ids;
-    write_txn.read_many<branch_birth_certificate_t>(
+    write_txn->read_many<branch_birth_certificate_t>(
         mdprefix_branch_birth_certificate().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &branch_id_str, const branch_birth_certificate_t &) {
             branch_id_t branch_id = str_to_uuid(branch_id_str);
@@ -17,7 +16,7 @@ void real_branch_history_manager_t::erase(
         },
         interruptor);
     for (const branch_id_t &b : branch_ids) {
-        write_txn.erase(
+        write_txn->erase(
             mdprefix_branch_birth_certificate().suffix(
                 uuid_to_str(table_id) + "/" + uuid_to_str(b)),
             interruptor);
