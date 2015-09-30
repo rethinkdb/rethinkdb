@@ -2,6 +2,9 @@
 #ifndef RDB_PROTOCOL_DATUMSPEC_HPP_
 #define RDB_PROTOCOL_DATUMSPEC_HPP_
 
+#include "errors.hpp"
+#include <boost/variant.hpp>
+
 #include "rdb_protocol/datum.hpp"
 
 namespace ql {

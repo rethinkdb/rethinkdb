@@ -13,7 +13,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "cjson/json.hpp"

@@ -16,7 +16,6 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "cjson/json.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
 #include "rapidjson/prettywriter.h"
