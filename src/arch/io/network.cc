@@ -66,7 +66,7 @@ LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
 void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
                    event_watcher_t *event_watcher, signal_t *interuptor) {
 #ifdef _WIN32
-    async_operation_t op(event_watcher);
+    overlapped_operation_t op(event_watcher);
     winsock_debugf("ATN: connecting socket %x\n", socket);
     DWORD bytes_sent; // TODO ATN: is this needed?
     BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, &bytes_sent, &op.overlapped);
@@ -299,8 +299,8 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
 #ifdef _WIN32
     // TODO ATN: handle all cases
-    async_operation_t op(event_watcher.get());
-    debugf("ATN: read on %x\n", sock.get());
+    overlapped_operation_t op(event_watcher.get());
+    debugf("ATN: request read %d bytes on %x\n", size, sock.get());
     // TODO ATN: WSARecv may be more efficient
     BOOL res = ReadFile(sock.get(), buffer, size, nullptr, &op.overlapped);
     DWORD error = GetLastError();
@@ -316,7 +316,11 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         logERR("Could not read from socket: %s", winerr_string(error).c_str());
         on_shutdown_read();
         throw tcp_conn_read_closed_exc_t();
+    } else if(op.nb_bytes == 0) {
+        on_shutdown_read();
+        throw tcp_conn_read_closed_exc_t();
     } else {
+        debugf("ATN: read complete, %d/%d on %x\n", op.nb_bytes, size, sock.get());
         return op.nb_bytes;
     }
 #else
@@ -512,12 +516,12 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
 #ifdef _WIN32 // TODO ATN
     // TODO ATN
-    async_operation_t op(event_watcher.get());
+    overlapped_operation_t op(event_watcher.get());
     WSABUF wsabuf;
     wsabuf.len = size;
     wsabuf.buf = const_cast<char*>(reinterpret_cast<const char*>(buf));
     DWORD flags = 0;
-    winsock_debugf("ATN: write on %x\n", sock.get()); 
+    winsock_debugf("ATN: write on %x\n", sock.get());
     int res = WSASend(sock.get(), &wsabuf, 1, nullptr, flags, &op.overlapped, nullptr);
     DWORD error = GetLastError();
     if (res == 0 || error == ERROR_IO_PENDING) {
@@ -537,7 +541,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         logERR("Could not write to socket %x: %s", sock.get(), winerr_string(error).c_str());
         on_shutdown_write();
     } else if (op.nb_bytes == 0) {
-        logERR("Didn't expect WriteEx to write 0 bytes.");
+        logERR("Didn't expect to write 0 bytes.");
         on_shutdown_write();
     } else {
         if (write_perfmon) write_perfmon->record(op.nb_bytes);
@@ -727,16 +731,22 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
 
 void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
-        crash("ATN TODO A: %d -> %d", home_thread(), new_thread);
         rassert(!read_in_progress);
         rassert(!write_in_progress);
         rassert(event_watcher.has());
+#ifdef _WIN32
+        event_watcher->rethread(new_thread);
+#else
         event_watcher.reset();
+#endif
 
     } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
-        crash("ATN TODO B: %d -> %d", home_thread(), new_thread);
+#ifdef _WIN32
+        event_watcher->rethread(new_thread);
+#else
         rassert(!event_watcher.has());
         event_watcher.init(new event_watcher_t(sock.get(), this));
+#endif
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
@@ -1109,7 +1119,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         fd_t listening_sock;
         int address_family;
         char addresses[ADDRESS_SIZE][2];
-        async_operation_t op;
+        overlapped_operation_t op;
         fd_t new_sock;
         DWORD bytes_recieved;
     };

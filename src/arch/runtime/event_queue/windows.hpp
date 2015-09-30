@@ -14,11 +14,6 @@ const int MAX_SIMULTANEOUS_EVENTS = 16;
 
 class linux_thread_t;
 
-enum class windows_message_type_t : ULONG_PTR {
-    EVENT_CALLBACK,
-    ASYNC_OPERATION
-};
-
 class windows_event_queue_t {
 public:
     explicit windows_event_queue_t(linux_thread_t*);

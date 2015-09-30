@@ -4,21 +4,22 @@
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
-async_operation_t::async_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+    rassert(event_watcher != nullptr);
     memset(&overlapped, 0, sizeof(overlapped));
 }
 
-async_operation_t::~async_operation_t() {
+overlapped_operation_t::~overlapped_operation_t() {
     if (!completed.is_pulsed()) {
         abort();
     }
 }
 
-void async_operation_t::set_cancel() {
+void overlapped_operation_t::set_cancel() {
     set_result(0, ERROR_CANCELLED);
 }
 
-void async_operation_t::abort() {
+void overlapped_operation_t::abort() {
     rassert(!completed.is_pulsed());
     BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
     if (!res && GetLastError() == ERROR_NOT_FOUND) {
@@ -31,7 +32,7 @@ void async_operation_t::abort() {
     }
 }
 
-void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
     rassert(!completed.is_pulsed());
     nb_bytes = nb_bytes_;
     error = error_;
@@ -42,8 +43,12 @@ void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
 }
 
 windows_event_watcher_t::windows_event_watcher_t(fd_t handle_, event_callback_t *eh) :
-    handle(handle_), error_handler(eh) {
+    handle(handle_), error_handler(eh), original_thread(get_thread_id()), current_thread_(get_thread_id()) {
     linux_thread_pool_t::get_thread()->queue.add_handle(handle);
+}
+
+void windows_event_watcher_t::rethread(threadnum_t new_thread) {
+    current_thread_ = new_thread;
 }
 
 void windows_event_watcher_t::stop_watching_for_errors() {

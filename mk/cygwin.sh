@@ -10,7 +10,8 @@ convertpaths () {
     perl -ne '
       s|([a-zA-Z]):\\|/cygdrive/\1/|g;          # convert to cygwin path
       s|\\|/|g;                                 # mirror slashes
-      print unless m{^         x64/.*\.obj.?$}' # don't list all object files when linking
+      s|( [^ ]+\.cc){10,}| ...|;                # do not list all cc files on a single line
+      print unless m{^         x64/.*\.obj.?$}' # do not list all object files when linking
 }
 
 "$MSBUILD" /maxcpucount "$@" | convertpaths

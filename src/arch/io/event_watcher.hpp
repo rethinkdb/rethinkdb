@@ -15,8 +15,8 @@
 class windows_event_watcher_t;
 
 // An asynchronous operation
-struct async_operation_t {
-    async_operation_t(windows_event_watcher_t *);
+struct overlapped_operation_t {
+    overlapped_operation_t(windows_event_watcher_t *);
 
     void reset() {
         completed.reset();
@@ -36,10 +36,10 @@ struct async_operation_t {
     size_t nb_bytes;                 // Number of bytes read or written
     DWORD error;                     // Success indicator
 
-    ~async_operation_t();
+    ~overlapped_operation_t();
 
 private:
-    DISABLE_COPYING(async_operation_t);
+    DISABLE_COPYING(overlapped_operation_t);
 };
 
 class windows_event_watcher_t {
@@ -47,13 +47,16 @@ public:
     windows_event_watcher_t(fd_t handle, event_callback_t *eh);
     ~windows_event_watcher_t();
     void stop_watching_for_errors();
-    async_operation_t make_overlapped();
     void on_error(DWORD error);
+    threadnum_t current_thread() { return current_thread_; }
+    void rethread(threadnum_t new_thread);
 
     const fd_t handle;
 
 private:
     event_callback_t *error_handler;
+    threadnum_t original_thread;
+    threadnum_t current_thread_;
 };
 
 typedef windows_event_watcher_t event_watcher_t;
