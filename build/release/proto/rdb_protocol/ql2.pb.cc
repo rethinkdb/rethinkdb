@@ -193,7 +193,7 @@ void protobuf_AssignDesc_rdb_5fprotocol_2fql2_2eproto() {
       Datum_offsets_,
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, _has_bits_[0]),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, _unknown_fields_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, _extensions_),
+      -1,
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Datum));
@@ -228,7 +228,7 @@ void protobuf_AssignDesc_rdb_5fprotocol_2fql2_2eproto() {
       Term_offsets_,
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Term, _has_bits_[0]),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Term, _unknown_fields_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Term, _extensions_),
+      -1,
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Term));
@@ -329,7 +329,7 @@ void protobuf_AddDesc_rdb_5fprotocol_2fql2_2eproto() {
     "Y_WAIT\020\004\"`\n\005Frame\022\036\n\004type\030\001 \001(\0162\020.Frame."
     "FrameType\022\013\n\003pos\030\002 \001(\003\022\013\n\003opt\030\003 \001(\t\"\035\n\tF"
     "rameType\022\007\n\003POS\020\001\022\007\n\003OPT\020\002\"#\n\tBacktrace\022"
-    "\026\n\006frames\030\001 \003(\0132\006.Frame\"\366\004\n\010Response\022$\n\004"
+    "\026\n\006frames\030\001 \003(\0132\006.Frame\"\202\005\n\010Response\022$\n\004"
     "type\030\001 \001(\0162\026.Response.ResponseType\022\'\n\ner"
     "ror_type\030\007 \001(\0162\023.Response.ErrorType\022%\n\005n"
     "otes\030\006 \003(\0162\026.Response.ResponseNote\022\r\n\005to"
@@ -339,82 +339,83 @@ void protobuf_AddDesc_rdb_5fprotocol_2fql2_2eproto() {
     "ATOM\020\001\022\024\n\020SUCCESS_SEQUENCE\020\002\022\023\n\017SUCCESS_"
     "PARTIAL\020\003\022\021\n\rWAIT_COMPLETE\020\004\022\020\n\014CLIENT_E"
     "RROR\020\020\022\021\n\rCOMPILE_ERROR\020\021\022\021\n\rRUNTIME_ERR"
-    "OR\020\022\"\207\001\n\tErrorType\022\016\n\010INTERNAL\020\300\204=\022\016\n\010RE"
-    "SOURCE\020\200\211z\022\014\n\005LOGIC\020\300\215\267\001\022\024\n\rNON_EXISTENC"
-    "E\020\340\232\275\001\022\020\n\tOP_FAILED\020\240\237\372\001\022\027\n\020OP_INDETERMI"
-    "NATE\020\300\254\200\002\022\013\n\004USER\020\300\226\261\002\"p\n\014ResponseNote\022\021"
-    "\n\rSEQUENCE_FEED\020\001\022\r\n\tATOM_FEED\020\002\022\027\n\023ORDE"
-    "R_BY_LIMIT_FEED\020\003\022\020\n\014UNIONED_FEED\020\004\022\023\n\017I"
-    "NCLUDES_STATES\020\005\"\254\002\n\005Datum\022\036\n\004type\030\001 \001(\016"
-    "2\020.Datum.DatumType\022\016\n\006r_bool\030\002 \001(\010\022\r\n\005r_"
-    "num\030\003 \001(\001\022\r\n\005r_str\030\004 \001(\t\022\027\n\007r_array\030\005 \003("
-    "\0132\006.Datum\022\"\n\010r_object\030\006 \003(\0132\020.Datum.Asso"
-    "cPair\032-\n\tAssocPair\022\013\n\003key\030\001 \001(\t\022\023\n\003val\030\002"
-    " \001(\0132\006.Datum\"`\n\tDatumType\022\n\n\006R_NULL\020\001\022\n\n"
-    "\006R_BOOL\020\002\022\t\n\005R_NUM\020\003\022\t\n\005R_STR\020\004\022\013\n\007R_ARR"
-    "AY\020\005\022\014\n\010R_OBJECT\020\006\022\n\n\006R_JSON\020\007*\007\010\220N\020\241\234\001\""
-    "\250\023\n\004Term\022\034\n\004type\030\001 \001(\0162\016.Term.TermType\022\025"
-    "\n\005datum\030\002 \001(\0132\006.Datum\022\023\n\004args\030\003 \003(\0132\005.Te"
-    "rm\022 \n\007optargs\030\004 \003(\0132\017.Term.AssocPair\032,\n\t"
-    "AssocPair\022\013\n\003key\030\001 \001(\t\022\022\n\003val\030\002 \001(\0132\005.Te"
-    "rm\"\374\021\n\010TermType\022\t\n\005DATUM\020\001\022\016\n\nMAKE_ARRAY"
-    "\020\002\022\014\n\010MAKE_OBJ\020\003\022\007\n\003VAR\020\n\022\016\n\nJAVASCRIPT\020"
-    "\013\022\t\n\004UUID\020\251\001\022\t\n\004HTTP\020\231\001\022\t\n\005ERROR\020\014\022\020\n\014IM"
-    "PLICIT_VAR\020\r\022\006\n\002DB\020\016\022\t\n\005TABLE\020\017\022\007\n\003GET\020\020"
-    "\022\013\n\007GET_ALL\020N\022\006\n\002EQ\020\021\022\006\n\002NE\020\022\022\006\n\002LT\020\023\022\006\n"
-    "\002LE\020\024\022\006\n\002GT\020\025\022\006\n\002GE\020\026\022\007\n\003NOT\020\027\022\007\n\003ADD\020\030\022"
-    "\007\n\003SUB\020\031\022\007\n\003MUL\020\032\022\007\n\003DIV\020\033\022\007\n\003MOD\020\034\022\n\n\005F"
-    "LOOR\020\267\001\022\t\n\004CEIL\020\270\001\022\n\n\005ROUND\020\271\001\022\n\n\006APPEND"
-    "\020\035\022\013\n\007PREPEND\020P\022\016\n\nDIFFERENCE\020_\022\016\n\nSET_I"
-    "NSERT\020X\022\024\n\020SET_INTERSECTION\020Y\022\r\n\tSET_UNI"
-    "ON\020Z\022\022\n\016SET_DIFFERENCE\020[\022\t\n\005SLICE\020\036\022\010\n\004S"
-    "KIP\020F\022\t\n\005LIMIT\020G\022\016\n\nOFFSETS_OF\020W\022\014\n\010CONT"
-    "AINS\020]\022\r\n\tGET_FIELD\020\037\022\010\n\004KEYS\020^\022\013\n\006OBJEC"
-    "T\020\217\001\022\016\n\nHAS_FIELDS\020 \022\017\n\013WITH_FIELDS\020`\022\t\n"
-    "\005PLUCK\020!\022\013\n\007WITHOUT\020\"\022\t\n\005MERGE\020#\022\026\n\022BETW"
-    "EEN_DEPRECATED\020$\022\014\n\007BETWEEN\020\266\001\022\n\n\006REDUCE"
-    "\020%\022\007\n\003MAP\020&\022\n\n\006FILTER\020\'\022\016\n\nCONCAT_MAP\020(\022"
-    "\014\n\010ORDER_BY\020)\022\014\n\010DISTINCT\020*\022\t\n\005COUNT\020+\022\014"
-    "\n\010IS_EMPTY\020V\022\t\n\005UNION\020,\022\007\n\003NTH\020-\022\014\n\007BRAC"
-    "KET\020\252\001\022\016\n\nINNER_JOIN\0200\022\016\n\nOUTER_JOIN\0201\022\013"
-    "\n\007EQ_JOIN\0202\022\007\n\003ZIP\020H\022\n\n\005RANGE\020\255\001\022\r\n\tINSE"
-    "RT_AT\020R\022\r\n\tDELETE_AT\020S\022\r\n\tCHANGE_AT\020T\022\r\n"
-    "\tSPLICE_AT\020U\022\r\n\tCOERCE_TO\0203\022\013\n\007TYPE_OF\0204"
-    "\022\n\n\006UPDATE\0205\022\n\n\006DELETE\0206\022\013\n\007REPLACE\0207\022\n\n"
-    "\006INSERT\0208\022\r\n\tDB_CREATE\0209\022\013\n\007DB_DROP\020:\022\013\n"
-    "\007DB_LIST\020;\022\020\n\014TABLE_CREATE\020<\022\016\n\nTABLE_DR"
-    "OP\020=\022\016\n\nTABLE_LIST\020>\022\013\n\006CONFIG\020\256\001\022\013\n\006STA"
-    "TUS\020\257\001\022\t\n\004WAIT\020\261\001\022\020\n\013RECONFIGURE\020\260\001\022\016\n\tR"
-    "EBALANCE\020\263\001\022\t\n\004SYNC\020\212\001\022\020\n\014INDEX_CREATE\020K"
-    "\022\016\n\nINDEX_DROP\020L\022\016\n\nINDEX_LIST\020M\022\021\n\014INDE"
-    "X_STATUS\020\213\001\022\017\n\nINDEX_WAIT\020\214\001\022\021\n\014INDEX_RE"
-    "NAME\020\234\001\022\013\n\007FUNCALL\020@\022\n\n\006BRANCH\020A\022\006\n\002OR\020B"
-    "\022\007\n\003AND\020C\022\014\n\010FOR_EACH\020D\022\010\n\004FUNC\020E\022\007\n\003ASC"
-    "\020I\022\010\n\004DESC\020J\022\010\n\004INFO\020O\022\t\n\005MATCH\020a\022\013\n\006UPC"
-    "ASE\020\215\001\022\r\n\010DOWNCASE\020\216\001\022\n\n\006SAMPLE\020Q\022\013\n\007DEF"
-    "AULT\020\\\022\010\n\004JSON\020b\022\023\n\016TO_JSON_STRING\020\254\001\022\013\n"
-    "\007ISO8601\020c\022\016\n\nTO_ISO8601\020d\022\016\n\nEPOCH_TIME"
-    "\020e\022\021\n\rTO_EPOCH_TIME\020f\022\007\n\003NOW\020g\022\017\n\013IN_TIM"
-    "EZONE\020h\022\n\n\006DURING\020i\022\010\n\004DATE\020j\022\017\n\013TIME_OF"
-    "_DAY\020~\022\014\n\010TIMEZONE\020\177\022\t\n\004YEAR\020\200\001\022\n\n\005MONTH"
-    "\020\201\001\022\010\n\003DAY\020\202\001\022\020\n\013DAY_OF_WEEK\020\203\001\022\020\n\013DAY_O"
-    "F_YEAR\020\204\001\022\n\n\005HOURS\020\205\001\022\014\n\007MINUTES\020\206\001\022\014\n\007S"
-    "ECONDS\020\207\001\022\t\n\004TIME\020\210\001\022\n\n\006MONDAY\020k\022\013\n\007TUES"
-    "DAY\020l\022\r\n\tWEDNESDAY\020m\022\014\n\010THURSDAY\020n\022\n\n\006FR"
-    "IDAY\020o\022\014\n\010SATURDAY\020p\022\n\n\006SUNDAY\020q\022\013\n\007JANU"
-    "ARY\020r\022\014\n\010FEBRUARY\020s\022\t\n\005MARCH\020t\022\t\n\005APRIL\020"
-    "u\022\007\n\003MAY\020v\022\010\n\004JUNE\020w\022\010\n\004JULY\020x\022\n\n\006AUGUST"
-    "\020y\022\r\n\tSEPTEMBER\020z\022\013\n\007OCTOBER\020{\022\014\n\010NOVEMB"
-    "ER\020|\022\014\n\010DECEMBER\020}\022\014\n\007LITERAL\020\211\001\022\n\n\005GROU"
-    "P\020\220\001\022\010\n\003SUM\020\221\001\022\010\n\003AVG\020\222\001\022\010\n\003MIN\020\223\001\022\010\n\003MA"
-    "X\020\224\001\022\n\n\005SPLIT\020\225\001\022\014\n\007UNGROUP\020\226\001\022\013\n\006RANDOM"
-    "\020\227\001\022\014\n\007CHANGES\020\230\001\022\t\n\004ARGS\020\232\001\022\013\n\006BINARY\020\233"
-    "\001\022\014\n\007GEOJSON\020\235\001\022\017\n\nTO_GEOJSON\020\236\001\022\n\n\005POIN"
-    "T\020\237\001\022\t\n\004LINE\020\240\001\022\014\n\007POLYGON\020\241\001\022\r\n\010DISTANC"
-    "E\020\242\001\022\017\n\nINTERSECTS\020\243\001\022\r\n\010INCLUDES\020\244\001\022\013\n\006"
-    "CIRCLE\020\245\001\022\025\n\020GET_INTERSECTING\020\246\001\022\t\n\004FILL"
-    "\020\247\001\022\020\n\013GET_NEAREST\020\250\001\022\020\n\013POLYGON_SUB\020\253\001\022"
-    "\013\n\006MINVAL\020\264\001\022\013\n\006MAXVAL\020\265\001*\007\010\220N\020\241\234\001", 3994);
+    "OR\020\022\"\223\001\n\tErrorType\022\016\n\010INTERNAL\020\300\204=\022\024\n\016RE"
+    "SOURCE_LIMIT\020\200\211z\022\022\n\013QUERY_LOGIC\020\300\215\267\001\022\024\n\r"
+    "NON_EXISTENCE\020\340\232\275\001\022\020\n\tOP_FAILED\020\240\237\372\001\022\027\n\020"
+    "OP_INDETERMINATE\020\300\254\200\002\022\013\n\004USER\020\300\226\261\002\"p\n\014Re"
+    "sponseNote\022\021\n\rSEQUENCE_FEED\020\001\022\r\n\tATOM_FE"
+    "ED\020\002\022\027\n\023ORDER_BY_LIMIT_FEED\020\003\022\020\n\014UNIONED"
+    "_FEED\020\004\022\023\n\017INCLUDES_STATES\020\005\"\243\002\n\005Datum\022\036"
+    "\n\004type\030\001 \001(\0162\020.Datum.DatumType\022\016\n\006r_bool"
+    "\030\002 \001(\010\022\r\n\005r_num\030\003 \001(\001\022\r\n\005r_str\030\004 \001(\t\022\027\n\007"
+    "r_array\030\005 \003(\0132\006.Datum\022\"\n\010r_object\030\006 \003(\0132"
+    "\020.Datum.AssocPair\032-\n\tAssocPair\022\013\n\003key\030\001 "
+    "\001(\t\022\023\n\003val\030\002 \001(\0132\006.Datum\"`\n\tDatumType\022\n\n"
+    "\006R_NULL\020\001\022\n\n\006R_BOOL\020\002\022\t\n\005R_NUM\020\003\022\t\n\005R_ST"
+    "R\020\004\022\013\n\007R_ARRAY\020\005\022\014\n\010R_OBJECT\020\006\022\n\n\006R_JSON"
+    "\020\007\"\254\023\n\004Term\022\034\n\004type\030\001 \001(\0162\016.Term.TermTyp"
+    "e\022\025\n\005datum\030\002 \001(\0132\006.Datum\022\023\n\004args\030\003 \003(\0132\005"
+    ".Term\022 \n\007optargs\030\004 \003(\0132\017.Term.AssocPair\032"
+    ",\n\tAssocPair\022\013\n\003key\030\001 \001(\t\022\022\n\003val\030\002 \001(\0132\005"
+    ".Term\"\211\022\n\010TermType\022\t\n\005DATUM\020\001\022\016\n\nMAKE_AR"
+    "RAY\020\002\022\014\n\010MAKE_OBJ\020\003\022\007\n\003VAR\020\n\022\016\n\nJAVASCRI"
+    "PT\020\013\022\t\n\004UUID\020\251\001\022\t\n\004HTTP\020\231\001\022\t\n\005ERROR\020\014\022\020\n"
+    "\014IMPLICIT_VAR\020\r\022\006\n\002DB\020\016\022\t\n\005TABLE\020\017\022\007\n\003GE"
+    "T\020\020\022\013\n\007GET_ALL\020N\022\006\n\002EQ\020\021\022\006\n\002NE\020\022\022\006\n\002LT\020\023"
+    "\022\006\n\002LE\020\024\022\006\n\002GT\020\025\022\006\n\002GE\020\026\022\007\n\003NOT\020\027\022\007\n\003ADD"
+    "\020\030\022\007\n\003SUB\020\031\022\007\n\003MUL\020\032\022\007\n\003DIV\020\033\022\007\n\003MOD\020\034\022\n"
+    "\n\005FLOOR\020\267\001\022\t\n\004CEIL\020\270\001\022\n\n\005ROUND\020\271\001\022\n\n\006APP"
+    "END\020\035\022\013\n\007PREPEND\020P\022\016\n\nDIFFERENCE\020_\022\016\n\nSE"
+    "T_INSERT\020X\022\024\n\020SET_INTERSECTION\020Y\022\r\n\tSET_"
+    "UNION\020Z\022\022\n\016SET_DIFFERENCE\020[\022\t\n\005SLICE\020\036\022\010"
+    "\n\004SKIP\020F\022\t\n\005LIMIT\020G\022\016\n\nOFFSETS_OF\020W\022\014\n\010C"
+    "ONTAINS\020]\022\r\n\tGET_FIELD\020\037\022\010\n\004KEYS\020^\022\013\n\006VA"
+    "LUES\020\272\001\022\013\n\006OBJECT\020\217\001\022\016\n\nHAS_FIELDS\020 \022\017\n\013"
+    "WITH_FIELDS\020`\022\t\n\005PLUCK\020!\022\013\n\007WITHOUT\020\"\022\t\n"
+    "\005MERGE\020#\022\026\n\022BETWEEN_DEPRECATED\020$\022\014\n\007BETW"
+    "EEN\020\266\001\022\n\n\006REDUCE\020%\022\007\n\003MAP\020&\022\n\n\006FILTER\020\'\022"
+    "\016\n\nCONCAT_MAP\020(\022\014\n\010ORDER_BY\020)\022\014\n\010DISTINC"
+    "T\020*\022\t\n\005COUNT\020+\022\014\n\010IS_EMPTY\020V\022\t\n\005UNION\020,\022"
+    "\007\n\003NTH\020-\022\014\n\007BRACKET\020\252\001\022\016\n\nINNER_JOIN\0200\022\016"
+    "\n\nOUTER_JOIN\0201\022\013\n\007EQ_JOIN\0202\022\007\n\003ZIP\020H\022\n\n\005"
+    "RANGE\020\255\001\022\r\n\tINSERT_AT\020R\022\r\n\tDELETE_AT\020S\022\r"
+    "\n\tCHANGE_AT\020T\022\r\n\tSPLICE_AT\020U\022\r\n\tCOERCE_T"
+    "O\0203\022\013\n\007TYPE_OF\0204\022\n\n\006UPDATE\0205\022\n\n\006DELETE\0206"
+    "\022\013\n\007REPLACE\0207\022\n\n\006INSERT\0208\022\r\n\tDB_CREATE\0209"
+    "\022\013\n\007DB_DROP\020:\022\013\n\007DB_LIST\020;\022\020\n\014TABLE_CREA"
+    "TE\020<\022\016\n\nTABLE_DROP\020=\022\016\n\nTABLE_LIST\020>\022\013\n\006"
+    "CONFIG\020\256\001\022\013\n\006STATUS\020\257\001\022\t\n\004WAIT\020\261\001\022\020\n\013REC"
+    "ONFIGURE\020\260\001\022\016\n\tREBALANCE\020\263\001\022\t\n\004SYNC\020\212\001\022\020"
+    "\n\014INDEX_CREATE\020K\022\016\n\nINDEX_DROP\020L\022\016\n\nINDE"
+    "X_LIST\020M\022\021\n\014INDEX_STATUS\020\213\001\022\017\n\nINDEX_WAI"
+    "T\020\214\001\022\021\n\014INDEX_RENAME\020\234\001\022\013\n\007FUNCALL\020@\022\n\n\006"
+    "BRANCH\020A\022\006\n\002OR\020B\022\007\n\003AND\020C\022\014\n\010FOR_EACH\020D\022"
+    "\010\n\004FUNC\020E\022\007\n\003ASC\020I\022\010\n\004DESC\020J\022\010\n\004INFO\020O\022\t"
+    "\n\005MATCH\020a\022\013\n\006UPCASE\020\215\001\022\r\n\010DOWNCASE\020\216\001\022\n\n"
+    "\006SAMPLE\020Q\022\013\n\007DEFAULT\020\\\022\010\n\004JSON\020b\022\023\n\016TO_J"
+    "SON_STRING\020\254\001\022\013\n\007ISO8601\020c\022\016\n\nTO_ISO8601"
+    "\020d\022\016\n\nEPOCH_TIME\020e\022\021\n\rTO_EPOCH_TIME\020f\022\007\n"
+    "\003NOW\020g\022\017\n\013IN_TIMEZONE\020h\022\n\n\006DURING\020i\022\010\n\004D"
+    "ATE\020j\022\017\n\013TIME_OF_DAY\020~\022\014\n\010TIMEZONE\020\177\022\t\n\004"
+    "YEAR\020\200\001\022\n\n\005MONTH\020\201\001\022\010\n\003DAY\020\202\001\022\020\n\013DAY_OF_"
+    "WEEK\020\203\001\022\020\n\013DAY_OF_YEAR\020\204\001\022\n\n\005HOURS\020\205\001\022\014\n"
+    "\007MINUTES\020\206\001\022\014\n\007SECONDS\020\207\001\022\t\n\004TIME\020\210\001\022\n\n\006"
+    "MONDAY\020k\022\013\n\007TUESDAY\020l\022\r\n\tWEDNESDAY\020m\022\014\n\010"
+    "THURSDAY\020n\022\n\n\006FRIDAY\020o\022\014\n\010SATURDAY\020p\022\n\n\006"
+    "SUNDAY\020q\022\013\n\007JANUARY\020r\022\014\n\010FEBRUARY\020s\022\t\n\005M"
+    "ARCH\020t\022\t\n\005APRIL\020u\022\007\n\003MAY\020v\022\010\n\004JUNE\020w\022\010\n\004"
+    "JULY\020x\022\n\n\006AUGUST\020y\022\r\n\tSEPTEMBER\020z\022\013\n\007OCT"
+    "OBER\020{\022\014\n\010NOVEMBER\020|\022\014\n\010DECEMBER\020}\022\014\n\007LI"
+    "TERAL\020\211\001\022\n\n\005GROUP\020\220\001\022\010\n\003SUM\020\221\001\022\010\n\003AVG\020\222\001"
+    "\022\010\n\003MIN\020\223\001\022\010\n\003MAX\020\224\001\022\n\n\005SPLIT\020\225\001\022\014\n\007UNGR"
+    "OUP\020\226\001\022\013\n\006RANDOM\020\227\001\022\014\n\007CHANGES\020\230\001\022\t\n\004ARG"
+    "S\020\232\001\022\013\n\006BINARY\020\233\001\022\014\n\007GEOJSON\020\235\001\022\017\n\nTO_GE"
+    "OJSON\020\236\001\022\n\n\005POINT\020\237\001\022\t\n\004LINE\020\240\001\022\014\n\007POLYG"
+    "ON\020\241\001\022\r\n\010DISTANCE\020\242\001\022\017\n\nINTERSECTS\020\243\001\022\r\n"
+    "\010INCLUDES\020\244\001\022\013\n\006CIRCLE\020\245\001\022\025\n\020GET_INTERSE"
+    "CTING\020\246\001\022\t\n\004FILL\020\247\001\022\020\n\013GET_NEAREST\020\250\001\022\020\n"
+    "\013POLYGON_SUB\020\253\001\022\013\n\006MINVAL\020\264\001\022\013\n\006MAXVAL\020\265"
+    "\001", 4001);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "rdb_protocol/ql2.proto", &protobuf_RegisterTypes);
   VersionDummy::default_instance_ = new VersionDummy();
@@ -922,9 +923,6 @@ void Query_AssocPair::CopyFrom(const Query_AssocPair& from) {
 
 bool Query_AssocPair::IsInitialized() const {
 
-  if (has_val()) {
-    if (!this->val().IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -1336,12 +1334,6 @@ void Query::CopyFrom(const Query& from) {
 
 bool Query::IsInitialized() const {
 
-  if (has_query()) {
-    if (!this->query().IsInitialized()) return false;
-  }
-  for (int i = 0; i < global_optargs_size(); i++) {
-    if (!this->global_optargs(i).IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -1957,8 +1949,8 @@ bool Response_ErrorType_IsValid(int value) {
 
 #ifndef _MSC_VER
 const Response_ErrorType Response::INTERNAL;
-const Response_ErrorType Response::RESOURCE;
-const Response_ErrorType Response::LOGIC;
+const Response_ErrorType Response::RESOURCE_LIMIT;
+const Response_ErrorType Response::QUERY_LOGIC;
 const Response_ErrorType Response::NON_EXISTENCE;
 const Response_ErrorType Response::OP_FAILED;
 const Response_ErrorType Response::OP_INDETERMINATE;
@@ -2450,12 +2442,6 @@ void Response::CopyFrom(const Response& from) {
 
 bool Response::IsInitialized() const {
 
-  for (int i = 0; i < response_size(); i++) {
-    if (!this->response(i).IsInitialized()) return false;
-  }
-  if (has_profile()) {
-    if (!this->profile().IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -2762,9 +2748,6 @@ void Datum_AssocPair::CopyFrom(const Datum_AssocPair& from) {
 
 bool Datum_AssocPair::IsInitialized() const {
 
-  if (has_val()) {
-    if (!this->val().IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -2855,7 +2838,6 @@ Datum* Datum::New() const {
 }
 
 void Datum::Clear() {
-  _extensions_.Clear();
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
     r_bool_ = false;
@@ -2983,11 +2965,6 @@ bool Datum::MergePartialFromCodedStream(
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
           return true;
         }
-        if ((80000u <= tag && tag < 160008u)) {
-          DO_(_extensions_.ParseField(tag, input, default_instance_,
-                                      mutable_unknown_fields()));
-          continue;
-        }
         DO_(::google::protobuf::internal::WireFormat::SkipField(
               input, tag, mutable_unknown_fields()));
         break;
@@ -3037,10 +3014,6 @@ void Datum::SerializeWithCachedSizes(
       6, this->r_object(i), output);
   }
 
-  // Extension range [10000, 20001)
-  _extensions_.SerializeWithCachedSizes(
-      10000, 20001, output);
-
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -3088,10 +3061,6 @@ void Datum::SerializeWithCachedSizes(
       WriteMessageNoVirtualToArray(
         6, this->r_object(i), target);
   }
-
-  // Extension range [10000, 20001)
-  target = _extensions_.SerializeWithCachedSizesToArray(
-      10000, 20001, target);
 
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
@@ -3144,8 +3113,6 @@ int Datum::ByteSize() const {
         this->r_object(i));
   }
 
-  total_size += _extensions_.ByteSize();
-
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -3187,7 +3154,6 @@ void Datum::MergeFrom(const Datum& from) {
       set_r_str(from.r_str());
     }
   }
-  _extensions_.MergeFrom(from._extensions_);
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
@@ -3205,14 +3171,7 @@ void Datum::CopyFrom(const Datum& from) {
 
 bool Datum::IsInitialized() const {
 
-  for (int i = 0; i < r_array_size(); i++) {
-    if (!this->r_array(i).IsInitialized()) return false;
-  }
-  for (int i = 0; i < r_object_size(); i++) {
-    if (!this->r_object(i).IsInitialized()) return false;
-  }
-
-  if (!_extensions_.IsInitialized()) return false;  return true;
+  return true;
 }
 
 void Datum::Swap(Datum* other) {
@@ -3226,7 +3185,6 @@ void Datum::Swap(Datum* other) {
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
-    _extensions_.Swap(&other->_extensions_);
   }
 }
 
@@ -3422,6 +3380,7 @@ bool Term_TermType_IsValid(int value) {
     case 183:
     case 184:
     case 185:
+    case 186:
       return true;
     default:
       return false;
@@ -3471,6 +3430,7 @@ const Term_TermType Term::OFFSETS_OF;
 const Term_TermType Term::CONTAINS;
 const Term_TermType Term::GET_FIELD;
 const Term_TermType Term::KEYS;
+const Term_TermType Term::VALUES;
 const Term_TermType Term::OBJECT;
 const Term_TermType Term::HAS_FIELDS;
 const Term_TermType Term::WITH_FIELDS;
@@ -3854,9 +3814,6 @@ void Term_AssocPair::CopyFrom(const Term_AssocPair& from) {
 
 bool Term_AssocPair::IsInitialized() const {
 
-  if (has_val()) {
-    if (!this->val().IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -3942,7 +3899,6 @@ Term* Term::New() const {
 }
 
 void Term::Clear() {
-  _extensions_.Clear();
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
     if (has_datum()) {
@@ -4031,11 +3987,6 @@ bool Term::MergePartialFromCodedStream(
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
           return true;
         }
-        if ((80000u <= tag && tag < 160008u)) {
-          DO_(_extensions_.ParseField(tag, input, default_instance_,
-                                      mutable_unknown_fields()));
-          continue;
-        }
         DO_(::google::protobuf::internal::WireFormat::SkipField(
               input, tag, mutable_unknown_fields()));
         break;
@@ -4072,10 +4023,6 @@ void Term::SerializeWithCachedSizes(
       4, this->optargs(i), output);
   }
 
-  // Extension range [10000, 20001)
-  _extensions_.SerializeWithCachedSizes(
-      10000, 20001, output);
-
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -4110,10 +4057,6 @@ void Term::SerializeWithCachedSizes(
       WriteMessageNoVirtualToArray(
         4, this->optargs(i), target);
   }
-
-  // Extension range [10000, 20001)
-  target = _extensions_.SerializeWithCachedSizesToArray(
-      10000, 20001, target);
 
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
@@ -4156,8 +4099,6 @@ int Term::ByteSize() const {
         this->optargs(i));
   }
 
-  total_size += _extensions_.ByteSize();
-
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -4193,7 +4134,6 @@ void Term::MergeFrom(const Term& from) {
       mutable_datum()->::Datum::MergeFrom(from.datum());
     }
   }
-  _extensions_.MergeFrom(from._extensions_);
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
@@ -4211,17 +4151,7 @@ void Term::CopyFrom(const Term& from) {
 
 bool Term::IsInitialized() const {
 
-  if (has_datum()) {
-    if (!this->datum().IsInitialized()) return false;
-  }
-  for (int i = 0; i < args_size(); i++) {
-    if (!this->args(i).IsInitialized()) return false;
-  }
-  for (int i = 0; i < optargs_size(); i++) {
-    if (!this->optargs(i).IsInitialized()) return false;
-  }
-
-  if (!_extensions_.IsInitialized()) return false;  return true;
+  return true;
 }
 
 void Term::Swap(Term* other) {
@@ -4233,7 +4163,6 @@ void Term::Swap(Term* other) {
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
-    _extensions_.Swap(&other->_extensions_);
   }
 }
 

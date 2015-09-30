@@ -149,8 +149,8 @@ inline bool Response_ResponseType_Parse(
 }
 enum Response_ErrorType {
   Response_ErrorType_INTERNAL = 1000000,
-  Response_ErrorType_RESOURCE = 2000000,
-  Response_ErrorType_LOGIC = 3000000,
+  Response_ErrorType_RESOURCE_LIMIT = 2000000,
+  Response_ErrorType_QUERY_LOGIC = 3000000,
   Response_ErrorType_NON_EXISTENCE = 3100000,
   Response_ErrorType_OP_FAILED = 4100000,
   Response_ErrorType_OP_INDETERMINATE = 4200000,
@@ -260,6 +260,7 @@ enum Term_TermType {
   Term_TermType_CONTAINS = 93,
   Term_TermType_GET_FIELD = 31,
   Term_TermType_KEYS = 94,
+  Term_TermType_VALUES = 186,
   Term_TermType_OBJECT = 143,
   Term_TermType_HAS_FIELDS = 32,
   Term_TermType_WITH_FIELDS = 96,
@@ -396,7 +397,7 @@ enum Term_TermType {
 };
 bool Term_TermType_IsValid(int value);
 const Term_TermType Term_TermType_TermType_MIN = Term_TermType_DATUM;
-const Term_TermType Term_TermType_TermType_MAX = Term_TermType_ROUND;
+const Term_TermType Term_TermType_TermType_MAX = Term_TermType_VALUES;
 const int Term_TermType_TermType_ARRAYSIZE = Term_TermType_TermType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Term_TermType_descriptor();
@@ -1096,8 +1097,8 @@ class Response : public ::google::protobuf::Message {
 
   typedef Response_ErrorType ErrorType;
   static const ErrorType INTERNAL = Response_ErrorType_INTERNAL;
-  static const ErrorType RESOURCE = Response_ErrorType_RESOURCE;
-  static const ErrorType LOGIC = Response_ErrorType_LOGIC;
+  static const ErrorType RESOURCE_LIMIT = Response_ErrorType_RESOURCE_LIMIT;
+  static const ErrorType QUERY_LOGIC = Response_ErrorType_QUERY_LOGIC;
   static const ErrorType NON_EXISTENCE = Response_ErrorType_NON_EXISTENCE;
   static const ErrorType OP_FAILED = Response_ErrorType_OP_FAILED;
   static const ErrorType OP_INDETERMINATE = Response_ErrorType_OP_INDETERMINATE;
@@ -1489,7 +1490,6 @@ class Datum : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::Datum_AssocPair >*
       mutable_r_object();
 
-  GOOGLE_PROTOBUF_EXTENSION_ACCESSORS(Datum)
   // @@protoc_insertion_point(class_scope:Datum)
  private:
   inline void set_has_type();
@@ -1500,8 +1500,6 @@ class Datum : public ::google::protobuf::Message {
   inline void clear_has_r_num();
   inline void set_has_r_str();
   inline void clear_has_r_str();
-
-  ::google::protobuf::internal::ExtensionSet _extensions_;
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1720,6 +1718,7 @@ class Term : public ::google::protobuf::Message {
   static const TermType CONTAINS = Term_TermType_CONTAINS;
   static const TermType GET_FIELD = Term_TermType_GET_FIELD;
   static const TermType KEYS = Term_TermType_KEYS;
+  static const TermType VALUES = Term_TermType_VALUES;
   static const TermType OBJECT = Term_TermType_OBJECT;
   static const TermType HAS_FIELDS = Term_TermType_HAS_FIELDS;
   static const TermType WITH_FIELDS = Term_TermType_WITH_FIELDS;
@@ -1916,15 +1915,12 @@ class Term : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::Term_AssocPair >*
       mutable_optargs();
 
-  GOOGLE_PROTOBUF_EXTENSION_ACCESSORS(Term)
   // @@protoc_insertion_point(class_scope:Term)
  private:
   inline void set_has_type();
   inline void clear_has_type();
   inline void set_has_datum();
   inline void clear_has_datum();
-
-  ::google::protobuf::internal::ExtensionSet _extensions_;
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
