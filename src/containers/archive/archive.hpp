@@ -227,6 +227,7 @@ struct serialize_universal_size_t;
         : public std::integral_constant<size_t, sizeof(typ)> { }
 
 
+
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(char);          // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed char);  // NOLINT(runtime/int)

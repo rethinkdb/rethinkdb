@@ -427,7 +427,7 @@ port_t::port_t(sockaddr const *sa) {
     }
 }
 
-int port_t::value() const {
+uint16_t port_t::value() const {
     return value_;
 }
 

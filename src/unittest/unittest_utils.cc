@@ -106,10 +106,36 @@ serializer_filepath_t temp_file_t::name() const {
 }
 
 temp_directory_t::temp_directory_t() {
+#ifdef _WIN32
+    char tmpl[] = "rdb_unittest.";
+    char path[MAX_PATH + 1 + sizeof(tmpl) + 6 + 1];
+    DWORD res = GetTempPath(sizeof(path), path);
+    guarantee_winerr(res != NULL && res < MAX_PATH + 1, "GetTempPath failed");
+    strcpy(path + res, tmpl);
+    char *end = path + strlen(path);
+    int tries = 0;
+    while (true) {
+        sprintf(end, "%06d", randint(1000000));
+        BOOL res = CreateDirectory(path, nullptr);
+        if (res) {
+            directory = base_path_t(std::string(path));
+            break;
+        }
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            if (tries > 10) {
+                guarantee_winerr(res, "CreateDirectory failed");
+            }
+            tries++;
+            continue;
+        }
+        guarantee_winerr(res, "CreateDirectory failed");
+    }
+#else
     char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
     char *res = mkdtemp(tmpl);
     guarantee_err(res != nullptr, "Couldn't create a temporary directory");
     directory = base_path_t(std::string(res));
+#endif
 
     // Some usages of this directory may require an internal temporary directory
     recreate_temporary_directory(directory);

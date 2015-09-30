@@ -62,12 +62,10 @@
     <ClInclude Include="src\**\*.tcc" />
     <ClInclude Include="windows_stub\**\*.h" />
     <ClInclude Include="build\release\proto\rdb_protocol\ql2.pb.h" />
-    <ClInclude Include="build\release\proto\rdb_protocol\ql2_extensions.pb.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\**\*.cc" /> <!-- TODO ATN Exclude="src\unittest\**\*.cc"/> -->
     <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
-    <ClCompile Include="build\release\proto\rdb_protocol\ql2_extensions.pb.cc" />
     <ClCompile Include="windows_stub\pthread.cc" />
     <ClCompile Include="build\release\web_assets\web_assets.cc" />
   </ItemGroup>

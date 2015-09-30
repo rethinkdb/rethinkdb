@@ -83,10 +83,10 @@ void run_generic_global_startup_behavior() {
 #endif
 
 #ifdef _WIN32
-	// ATN TODO
-	WSADATA wsa_data;
-	DWORD res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-        guarantee_winerr(res == NO_ERROR, "WSAStartup failed");
+    // ATN TODO
+    WSADATA wsa_data;
+    DWORD res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    guarantee_winerr(res == NO_ERROR, "WSAStartup failed");
 #endif
 }
 
@@ -176,8 +176,8 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         res1 = localtime_r(&time.tv_sec, &t);
         guarantee_err(res1 == &t, "localtime_r() failed.");
 #else
-		errno_t res = localtime_s(&t, &time.tv_sec);
-		guarantee_xerr(res == 0, res, "localtime_s() failed.");
+        errno_t res = localtime_s(&t, &time.tv_sec);
+        guarantee_xerr(res == 0, res, "localtime_s() failed.");
 #endif
     }
     buf->appendf(
@@ -260,19 +260,19 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
         }
     }
 #else
-	ptr = _aligned_malloc(size, alignment);
-	if (ptr == NULL) {
-		crash_oom();
-	}
+    ptr = _aligned_malloc(size, alignment);
+    if (ptr == NULL) {
+        crash_oom();
+    }
 #endif
     return ptr;
 }
 
 void raw_free_aligned(void *ptr) {
 #ifdef _MSC_VER
-	_aligned_free(ptr);
+    _aligned_free(ptr);
 #else
-	free(ptr);
+    free(ptr);
 #endif
 }
 
@@ -302,16 +302,16 @@ rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
 #ifdef _MSC_VER
-		seed = std::random_device{}();
+        seed = std::random_device{}();
 #else
-		seed = get_secs();
+        seed = get_secs();
 #endif
     }
 #else
     seed = 314159;
 #endif
 #ifdef _MSC_VER
-	state.seed(seed);
+    state.seed(seed);
 #else
     state[2] = seed / (1 << 16);
     state[1] = seed % (1 << 16);
@@ -389,7 +389,7 @@ size_t randsize(size_t n) {
 }
 
 double randdouble() {
-	return TLS_get_rng().randdouble();
+    return TLS_get_rng().randdouble();
 
 }
 
@@ -532,24 +532,24 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         ret.append(buf, buf + res);
     }
 #else
-	HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
-	if (hFile == INVALID_HANDLE_VALUE) return false;
-	defer_t cleanup([&] { CloseHandle(hFile); });
-	LARGE_INTEGER fileSize;
-	BOOL res = GetFileSizeEx(hFile, &fileSize);
-	if (!res) return false;
-	DWORD remaining = fileSize.QuadPart;
-	std::string ret;
-	ret.resize(remaining);
-	size_t index = 0;
-	while (remaining > 0) {
-		DWORD consumed;
-		res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
-		remaining -= consumed;
-		index += consumed;
-	}
-	*contents_out = std::move(ret);
-	return true;
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    defer_t cleanup([&] { CloseHandle(hFile); });
+    LARGE_INTEGER fileSize;
+    BOOL res = GetFileSizeEx(hFile, &fileSize);
+    if (!res) return false;
+    DWORD remaining = fileSize.QuadPart;
+    std::string ret;
+    ret.resize(remaining);
+    size_t index = 0;
+    while (remaining > 0) {
+        DWORD consumed;
+        res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
+        remaining -= consumed;
+        index += consumed;
+    }
+    *contents_out = std::move(ret);
+    return true;
 #endif
 }
 
@@ -660,11 +660,11 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 
 bool is_rw_directory(const base_path_t& path) {
 #ifndef _WIN32
-	if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
+    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
         return false;
 #else
-	if (_access(path.path().c_str(), 06 /* read and write */) != 0)
-		return false;
+    if (_access(path.path().c_str(), 06 /* read and write */) != 0)
+        return false;
 #endif
     struct stat details;
     if (stat(path.path().c_str(), &details) != 0)
@@ -685,7 +685,7 @@ void recreate_temporary_directory(const base_path_t& base_path) {
         res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
 #else
-	res = _mkdir(path.path().c_str());
+    res = _mkdir(path.path().c_str());
 #endif
     guarantee_err(res == 0, "mkdir of temporary directory %s failed",
                   path.path().c_str());

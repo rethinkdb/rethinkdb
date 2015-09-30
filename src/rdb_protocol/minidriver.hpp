@@ -117,7 +117,7 @@ public:
     private:
         template <class... T>
         void add_args(T &&... args) {
-            UNUSED int _[] = { (add_arg(std::forward<T>(args)), 1)... };
+            UNUSED int _[] = { 0, (add_arg(std::forward<T>(args)), 1)... };
         }
 
         friend class minidriver_t;

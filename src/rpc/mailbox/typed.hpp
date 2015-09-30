@@ -390,7 +390,7 @@ public: // ATN RSI
         }
 #ifdef ENABLE_MESSAGE_PROFILER
         const char *message_profiler_tag() const {
-            static const std::string tag = 
+            static const std::string tag =
                 strprintf("mailbox<%s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name());
             return tag.c_str();
         }

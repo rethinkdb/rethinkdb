@@ -118,14 +118,14 @@ public:
     explicit port_t(int _port);
     explicit port_t(struct sockaddr const *);
 
-    int value() const;
+    uint16_t value() const;
 
     std::string to_string() const;
 
     RDB_MAKE_ME_SERIALIZABLE_1(port_t, value_);
 
 private:
-    int value_;
+    uint16_t value_;
 };
 
 class ip_and_port_t {
