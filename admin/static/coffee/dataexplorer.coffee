@@ -2841,7 +2841,7 @@ class Container extends Backbone.View
     # Called if there is any on the connection
     error_on_connect: (error) =>
         if /^(Unexpected token)/.test(error.message)
-            # Unexpected token, the server couldn't parse the protobuf message
+            # Unexpected token, the server couldn't parse the message
             # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
             @results_view_wrapper.render_error(null, error)
 

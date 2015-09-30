@@ -364,11 +364,6 @@ def stop_cluster(cluster):
     """Stop the cluster"""
     cluster.check_and_stop()
 
-def check_driver():
-    '''If this driver is protobuf based, make sure we are using the C++ backend.'''
-    if hasattr(r, 'protobuf_implementation') and r.protobuf_implementation == 'py':
-        sys.exit("Please install the C++ backend for the tests.")
-
 def save_compare_results():
     """Save the current results, and if previous results are available, generate an HTML page with the differences"""
     global results, str_date
@@ -411,7 +406,6 @@ def save_compare_results():
 
 def main(data_dir):
     """Main method"""
-    check_driver()
     run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":

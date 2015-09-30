@@ -964,9 +964,8 @@ class TcpConnection extends Connection
             auth_length.writeUInt32LE(auth_buffer.length, 0)
 
             # Send the protocol type that we will be using to
-            # communicate with the server. This can be either
-            # protobuf, or json. The protobuf protocol is deprecated
-            # however.
+            # communicate with the server. Json is the only currently
+            # supported protocol.
             protocol = new Buffer(4)
             protocol.writeUInt32LE(protoProtocol, 0)
 
