@@ -1302,7 +1302,7 @@ void compute_keys(const store_key_t &primary_key,
                             skey));
                 } catch (const ql::base_exc_t &e) {
                     if (reql_version < reql_version_t::v2_1) {
-                        throw e;
+                        throw;
                     }
                     // One of the values couldn't be converted to an index key.
                     // Ignore it and move on to the next one.

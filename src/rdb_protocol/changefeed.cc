@@ -453,7 +453,7 @@ void server_t::add_limit_client(
 void server_t::add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive) {
+        auto_drainer_t::lock_t keepalive) {
     keepalive.assert_is_holding(&drainer);
     {
         disconnect_watcher_t disconnect(manager, addr.get_peer());
@@ -1249,6 +1249,7 @@ public:
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
+    virtual auto_drainer_t *get_drainer() = 0;
 protected:
     subscription_t(feed_t *feed,
                    configured_limits_t limits,
@@ -1283,7 +1284,6 @@ private:
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     cond_t *queue_nearly_full_cond;
-    virtual auto_drainer_t *get_drainer() = 0;
     DISABLE_COPYING(subscription_t);
 };
 
@@ -1369,12 +1369,16 @@ public:
 
     bool can_be_removed();
 
+    virtual void abort_feed() = 0;
+    void stop_subs(const auto_drainer_t::lock_t &lock);
+    void mark_detached() { detached = true; }
+
     const std::string pkey;
+    virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
 protected:
     bool detached;
     int64_t num_subs;
 private:
-    virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
     virtual void maybe_remove_feed() = 0;
     virtual void stop_limit_sub(limit_sub_t *sub) = 0;
 
@@ -1416,8 +1420,10 @@ public:
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
-private:
+    void abort_feed() final { aborted.pulse_if_not_already_pulsed(); }
+    uuid_u get_uuid() const { return uuid; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
+private:
     virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
@@ -1447,6 +1453,9 @@ private:
     // the set of `uuid_u`s never changes after it's initialized.
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
+
+    // Used to abort the feed when we get a `msg_t::stop_t`.
+    cond_t aborted;
 
     auto_drainer_t drainer;
 };
@@ -1513,6 +1522,20 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
     }
 }
 
+// This should only be called after the feed has been removed from the client,
+// because otherwise there could be a race condition where a new sub is added in
+// the middle.
+void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
+    const char *msg = "Changefeed aborted (unavailable).";
+    each_sub(lock,
+             std::bind(&subscription_t::stop,
+                       ph::_1,
+                       std::make_exception_ptr(
+                           datum_exc_t(base_exc_t::OP_FAILED, msg)),
+                       detach_t::YES));
+    num_subs = 0;
+}
+
 real_feed_t::~real_feed_t() {
     guarantee(num_subs == 0);
     detached = true;
@@ -1532,7 +1555,8 @@ void real_feed_t::constructor_cb() {
         for (size_t i = 0; i < disconnect_watchers.size(); ++i) {
             any_disconnect.add(disconnect_watchers[i].get());
         }
-        wait_any_t wait_any(&any_disconnect, lock->get_drain_signal());
+        wait_any_t wait_any(
+            &aborted, &any_disconnect, lock->get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     // Clear the disconnect watchers so we don't keep the watched connections open
@@ -1540,17 +1564,11 @@ void real_feed_t::constructor_cb() {
     disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
-        detached = true;
+        guarantee(detached);
         if (self.has()) {
-            const char *msg = "Disconnected from peer.";
             guarantee(lock.has());
-            each_sub(*lock,
-                     std::bind(&subscription_t::stop,
-                               ph::_1,
-                               std::make_exception_ptr(
-                                   datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                               detach_t::YES));
-            num_subs = 0;
+            stop_subs(*lock);
+            guarantee(num_subs == 0);
         } else {
             // We only get here if we were removed before we were detached.
             guarantee(num_subs == 0);
@@ -1638,8 +1656,8 @@ public:
             env->interruptor);
         auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
         guarantee(res != nullptr);
-        rcheck_datum(res->resp, base_exc_t::OP_FAILED,
-                     "Changefeed aborted.  (Did you just reshard?)");
+        rcheck_datum(res->resp, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Unable to retrieve start stamp.  (Did you just reshard?)");
         auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
@@ -1846,11 +1864,11 @@ public:
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != nullptr);
-        rcheck_datum(resp->stamps, base_exc_t::OP_FAILED,
+        rcheck_datum(resp->stamps, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
         start_stamps = std::move(*resp->stamps);
-        rcheck_datum(start_stamps.size() != 0, base_exc_t::OP_FAILED,
-                     "Unable to retrieve the start stamps.  Did you just reshard?");
+        rcheck_datum(start_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Empty start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);
         if (maybe_src) {
@@ -2391,13 +2409,7 @@ public:
                           : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
-        const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(*lock,
-                       std::bind(&subscription_t::stop,
-                                 ph::_1,
-                                 std::make_exception_ptr(
-                                     datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                                 detach_t::NO));
+        feed->abort_feed();
     }
 private:
     feed_t *feed;
@@ -3078,47 +3090,88 @@ counted_t<datum_stream_t> client_t::new_stream(
     backtrace_id_t bt,
     const std::string &table_name,
     const keyspec_t::spec_t &spec) {
-    try {
-        scoped_ptr_t<subscription_t> sub;
-        boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
-        addr_t addr;
-        {
-            threadnum_t old_thread = get_thread_id();
-            cross_thread_signal_t interruptor(env->interruptor, home_thread());
-            on_thread_t th(home_thread());
-            // If the `client_t` is being destroyed, we're shutting down, so we
-            // consider it an interruption.
-            auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
-            rwlock_in_line_t spot(&feeds_lock, access_t::write);
-            spot.read_signal()->wait_lazily_unordered();
-            auto feed_it = feeds.find(uuid);
-            if (feed_it == feeds.end()) {
-                spot.write_signal()->wait_lazily_unordered();
-                namespace_interface_access_t access =
-                        namespace_source(uuid, &interruptor);
-                // Even though we have the user's feed here, multiple
-                // users may share a feed_t, and this code path will
-                // only be run for the first one.  Rather than mess
-                // about, just use the defaults.
-                auto val = make_scoped<real_feed_t>(
-                    lock, this, manager, access.get(), uuid, &interruptor);
-                feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
-            }
+    bool is_second_try = false;
+    uuid_u last_feed_uuid;
+    for (;;) {
+        try {
+            scoped_ptr_t<subscription_t> sub;
+            boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
+            addr_t addr;
+            {
+                threadnum_t old_thread = get_thread_id();
+                cross_thread_signal_t interruptor(env->interruptor, home_thread());
+                on_thread_t th(home_thread());
+                scoped_ptr_t<real_feed_t> destroy;
+                // If the `client_t` is being destroyed, we're shutting down, so we
+                // consider it an interruption.
+                auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
+                rwlock_in_line_t spot(&feeds_lock, access_t::write);
+                spot.read_signal()->wait_lazily_unordered();
+                auto feed_it = feeds.find(uuid);
 
-            // We need to do this while holding `feeds_lock` to make sure the
-            // feed isn't destroyed before we subscribe to it.
-            on_thread_t th2(old_thread);
-            real_feed_t *feed = feed_it->second.get();
-            addr = feed->get_addr();
-            sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+                if (is_second_try) {
+                    guarantee(!last_feed_uuid.is_unset());
+                    if (feed_it != feeds.end()
+                        && feed_it->second->get_uuid() == last_feed_uuid) {
+                        // We enter this branch if we got a `RESUMABLE_OP_FAILED`
+                        // exception, tried again, and found the same feed (which is
+                        // presumably in a broken state and needs to be replaced).
+                        // We want to destroy the feed after the lock is released,
+                        // because it may be expensive.
+                        destroy.swap(feed_it->second);
+                        destroy->mark_detached();
+                        feeds.erase(feed_it);
+                        feed_it = feeds.end();
+                        destroy->stop_subs(destroy->get_drainer_lock());
+                    }
+                }
+
+                if (feed_it == feeds.end()) {
+                    spot.write_signal()->wait_lazily_unordered();
+                    namespace_interface_access_t access =
+                        namespace_source(uuid, &interruptor);
+                    // Even though we have the user's feed here, multiple
+                    // users may share a feed_t, and this code path will
+                    // only be run for the first one.  Rather than mess
+                    // about, just use the defaults.
+                    auto val = make_scoped<real_feed_t>(
+                        lock, this, manager, access.get(), uuid, &interruptor);
+                    feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
+                }
+
+                guarantee(feed_it != feeds.end());
+                real_feed_t *feed = feed_it->second.get();
+                last_feed_uuid = feed->get_uuid();
+                addr = feed->get_addr();
+
+                // We need to do this while holding `feeds_lock` to make sure
+                // the feed isn't destroyed before we subscribe to it.  If you
+                // want to change this behavior to make it more efficient, make
+                // sure `feed_t::stop_subs` remains correct.
+                on_thread_t th2(old_thread);
+                sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+            }
+            namespace_interface_access_t access =
+                namespace_source(uuid, env->interruptor);
+            return sub->to_stream(env, table_name, access.get(),
+                                  addr, std::move(maybe_src), std::move(sub), bt);
+        } catch (const cannot_perform_query_exc_t &e) {
+            rfail_datum(base_exc_t::OP_FAILED,
+                        "cannot subscribe to table `%s`: %s",
+                        table_name.c_str(), e.what());
+        } catch (const base_exc_t &e) {
+            if (e.get_type() == base_exc_t::RESUMABLE_OP_FAILED) {
+                if (is_second_try) {
+                    // We don't want multiple layers trying to resume the same
+                    // operation.
+                    e.rethrow_with_type(base_exc_t::OP_FAILED);
+                } else {
+                    is_second_try = true;
+                }
+            } else {
+                throw;
+            }
         }
-        namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
-        return sub->to_stream(env, table_name, access.get(),
-                              addr, std::move(maybe_src), std::move(sub), bt);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(base_exc_t::OP_FAILED,
-                    "cannot subscribe to table `%s`: %s",
-                    table_name.c_str(), e.what());
     }
 }
 
@@ -3154,6 +3207,7 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
     auto feed_it = feeds.find(uuid);
     if (feed_it != feeds.end()) {
         ret.swap(feed_it->second);
+        ret->mark_detached();
         feeds.erase(feed_it);
     }
     return ret;
@@ -3165,6 +3219,12 @@ public:
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }
+
+    void abort_feed() final {
+        stop_subs(get_drainer_lock());
+        maybe_remove_feed();
+    }
+
     NORETURN virtual void stop_limit_sub(limit_sub_t *) {
         crash("Limit subscriptions are not supported on artificial feeds.");
     }
