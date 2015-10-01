@@ -9,6 +9,7 @@ $c = r.connect(port: $port).repl
 r.table_create('test').run rescue nil
 r.table('test').wait.run
 r.table('test').index_create('a').run rescue nil
+r.table('test').index_wait('a').run
 
 $stop_id = rand
 $short_keys = [10, 20, -1, -1, 3, -2, 3, -2, 4, 3, $stop_id]
