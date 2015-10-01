@@ -198,7 +198,7 @@ def py_to_java_type(py_type):
         return {
             bool: 'Boolean',
             bytes: 'byte[]',
-            int: 'Integer',
+            int: 'Double',
             float: 'Double',
             str: 'String',
             dict: 'Map',
@@ -443,7 +443,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Num(self, node):
         self.write(repr(node.n))
-        if abs(node.n) > 2147483647 and not isinstance(node.n, float):
+        if not isinstance(node.n, float):
             self.write(".0")
 
     def visit_Index(self, node):
