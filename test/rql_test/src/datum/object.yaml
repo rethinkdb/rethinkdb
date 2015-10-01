@@ -79,7 +79,7 @@ tests:
       ot: err("ReqlQueryLogicError","Expected type STRING but found NUMBER.",[])
 
     - cd: r.object('e', 4, 'e', 5)
-      ot: err("ReqlQueryLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[])
+      ot: err("ReqlQueryLogicError","Duplicate key \"e\" in object.  (got 4 and 5 as values)",[])
 
     - cd: r.object('g', r.db('test'))
       ot: err("ReqlQueryLogicError","Expected type DATUM but found DATABASE:",[])
