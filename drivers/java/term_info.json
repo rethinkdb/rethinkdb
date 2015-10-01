@@ -227,17 +227,26 @@
         "id": 28
     },
     "FLOOR": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [["T_EXPR"]],
         "id": 183
     },
     "CEIL": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [["T_EXPR"]],
         "id": 184
     },
     "ROUND": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [["T_EXPR"]],
         "id": 185
     },

@@ -151,6 +151,21 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Mod(args);
     }
+    public Floor floor(Object expr){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        return new Floor(args);
+    }
+    public Ceil ceil(Object expr){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        return new Ceil(args);
+    }
+    public Round round(Object expr){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        return new Round(args);
+    }
     public ReqlObject object(Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
