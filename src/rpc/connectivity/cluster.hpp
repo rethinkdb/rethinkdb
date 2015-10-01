@@ -324,6 +324,9 @@ private:
     /* `me` is our `peer_id_t`. */
     const peer_id_t me;
 
+    /* Used to assign threads to individual cluster connections */
+    thread_allocator_t thread_allocator;
+
     /* `connections` holds open connections to other peers. It's the same on every
     thread, except that the `auto_drainer_t::lock_t`s on each thread correspond to the
     thread-specific `auto_drainer_t`s in the `connection_t`. It has an entry for every
