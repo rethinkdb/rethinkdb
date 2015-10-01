@@ -437,8 +437,9 @@ class JavaVisitor(ast.NodeVisitor):
                 "Don't know NameConstant with value %s" % node.value)
 
     def visit_Attribute(self, node):
+        self.visit(node.value)
         self.write(".")
-        self.write(node.attr)
+        self.write(metajava.dromedary(node.attr))
 
     def visit_Num(self, node):
         self.write(repr(node.n))
