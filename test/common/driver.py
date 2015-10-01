@@ -292,11 +292,22 @@ class Cluster(object):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
             return self.processes[pos]
+        elif isinstance(pos, (str, unicode)):
+            for server in self.processes:
+                if pos == server.name:
+                    return server
+            else:
+                raise KeyError('This cluster does not have a server named: %s' % pos) 
         else:
             raise TypeError("Invalid argument type: %s" % repr(pos))
     
     def __iter__(self):
         return iter(self.processes)
+    
+    def __len__(self):
+        if not self.processes:
+            return 0
+        return len(self.processes)
 
 class Process(object):
     '''A running RethinkDB server'''
