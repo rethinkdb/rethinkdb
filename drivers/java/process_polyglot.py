@@ -44,6 +44,7 @@ class FatalSkip(metajava.EmptyTemplate):
 
 
 Term = namedtuple("Term", 'line type ast')
+CustomTerm = namedtuple('CustomTerm', 'line')
 Query = namedtuple(
     'Query',
     ('query',
@@ -53,6 +54,7 @@ Query = namedtuple(
      'runopts')
 )
 Def = namedtuple('Def', 'varname term testfile test_num')
+CustomDef = namedtuple('CustomDef', 'line testfile test_num')
 Expect = namedtuple('Expect', 'bif term')
 
 
@@ -61,6 +63,7 @@ class SkippedTest(object):
 
     def __init__(self, line, reason):
         logger.info("Skipped test because %s", reason)
+        logger.debug("Skipped test: %s", line)
         self.line = line
         self.reason = reason
 
@@ -75,21 +78,6 @@ def flexiget(obj, keys, default):
         if key in obj:
             return obj[key]
     return default
-
-
-def get_python_entry(test):
-    '''Extract the 'ot' or expected result of the test. We
-    want the python specific version if it's available, so we
-    have to poke around a bit'''
-    if 'ot' in test:
-        ret = flexiget(test['ot'], ['py', 'cd'], test['ot'])
-    elif isinstance(test.get('py'), dict) and 'ot' in test['py']:
-        ret = test['py']['ot']
-    else:
-        # This is distinct from the 'ot' field having the
-        # value None in it!
-        return None
-    return py_str(ret)
 
 
 def py_str(py):
@@ -221,108 +209,184 @@ def create_context(r, table_var_names):
     return context
 
 
-def tests_and_defs(testfile, raw_test_data, context):
-    '''Generator of parsed python tests and definitions.'''
+class TestContext(object):
+    '''Holds file, context and test number info before "expected" data
+    is obtained'''
+    def __init__(self, context, testfile, test_num, runopts):
+        self.context = context
+        self.testfile = testfile
+        self.test_num = test_num
+        self.runopts = runopts
+
+    @staticmethod
+    def find_python_expected(test):
+        '''Extract the expected result of the test. We want the python
+        specific version if it's available, so we have to poke around
+        a bit'''
+        if 'ot' in test:
+            ret = flexiget(test['ot'], ['py', 'cd'], test['ot'])
+        elif isinstance(test.get('py'), dict) and 'ot' in test['py']:
+            ret = test['py']['ot']
+        else:
+            # This is distinct from the 'ot' field having the
+            # value None in it!
+            return None
+        return ret
+
+    @staticmethod
+    def find_custom_expected(test, field):
+        '''Gets the ot field for the language if it exists. If not it returns
+        None.'''
+        if 'ot' in test:
+            ret = flexiget(test['ot'], [field], None)
+        elif field in test:
+            ret = flexiget(test[field], ['ot'], None)
+        else:
+            ret = None
+        return ret
+
+    def expected_context(self, test, custom_field):
+        custom_expected = self.find_custom_expected(test, custom_field)
+        if custom_expected is not None:
+            # custom version doesn't need to be evaluated, it's in the
+            # right language already
+            term = CustomTerm(custom_expected)
+        else:
+            expected = py_str(self.find_python_expected(test))
+            expected_ast = ast.parse(expected, mode="eval").body
+            logger.debug("Evaluating: %s", expected)
+            expected_type = try_eval(expected_ast, self.context)
+            term = Term(
+                ast=expected_ast,
+                line=expected,
+                type=expected_type,
+            )
+        return ExpectedContext(self, term)
+
+    def def_from_parsed(self, define_line, parsed_define):
+        logger.debug("Evaluating: %s", define_line)
+        varname, result_type = try_eval_def(parsed_define, self.context)
+        return Def(
+            varname=varname,
+            term=Term(
+                line=define_line,
+                type=result_type,
+                ast=parsed_define),
+            testfile=self.testfile,
+            test_num=self.test_num,
+        )
+
+    def def_from_define(self, define):
+        define_line = py_str(define)
+        parsed_define = ast.parse(define_line, mode='single').body[0]
+        return self.def_from_parsed(define_line, parsed_define)
+
+    def custom_def(self, line):
+        return CustomDef(
+            line=line, testfile=self.testfile, test_num=self.test_num)
+
+
+class ExpectedContext(object):
+    '''Holds some contextual information needed to yield queries. Used by
+    the tests_and_defs generator'''
+
+    def __init__(self, test_context, expected_term):
+        self.testfile = test_context.testfile
+        self.test_num = test_context.test_num
+        self.context = test_context.context
+        self.runopts = test_context.runopts
+        self.expected_term = expected_term
+
+    def query_from_term(self, query_term):
+        if type(query_term) == SkippedTest:
+            return query_term
+        else:
+            return Query(
+                query=query_term,
+                expected=self.expected_term,
+                testfile=self.testfile,
+                test_num=self.test_num,
+                runopts=self.runopts,
+            )
+
+    def query_from_test(self, test):
+        return self.query_from_term(
+            self.term_from_test(test))
+
+    def query_from_parsed(self, testline, parsed):
+        return self.query_from_term(
+            self.term_from_parsed(testline, parsed))
+
+    def term_from_test(self, test):
+        testline = py_str(test)
+        return self.term_from_testline(testline)
+
+    def term_from_testline(self, testline):
+        parsed = ast.parse(testline, mode='eval').body
+        return self.term_from_parsed(testline, parsed)
+
+    def term_from_parsed(self, testline, parsed):
+        try:
+            logger.debug("Evaluating: %s", testline)
+            result_type = try_eval(parsed, self.context)
+        except Skip as s:
+            return SkippedTest(line=testline, reason=str(s))
+        else:
+            return Term(ast=parsed, line=testline, type=result_type)
+
+
+def tests_and_defs(testfile, raw_test_data, context, custom_field=None):
+    '''Generator of parsed python tests and definitions.
+    `testfile`      is the name of the file being converted
+    `raw_test_data` is the yaml data as python data structures
+    `context`       is the evaluation context for the values. Will be modified
+    `custom`        is the specific type of test to look for.
+                    (falls back to 'py', then 'cd')
+    '''
     for test_num, test in enumerate(raw_test_data, 1):
         runopts = test.get('runopts')
         if runopts is not None:
             runopts = {key: ast.parse(py_str(val), mode="eval").body
                        for key, val in runopts.items()}
-        if 'def' in test:
+        test_context = TestContext(context, testfile, test_num, runopts)
+        if 'def' in test and flexiget(test['def'], [custom_field], False):
+            yield test_context.custom_def(test['def'][custom_field])
+        elif 'def' in test:
             # We want to yield the definition before the test itself
-            define = flexiget(test['def'], ['py', 'cd'], test['def'])
-            # for some reason, sometimes def is just None
-            if define and type(define) is not dict:
-                # if define is a dict, it doesn't have a py key
-                # since we already checked
-                define_line = py_str(define)
-                parsed_define = ast.parse(
-                    py_str(define), mode="single").body[0]
-                logger.debug("Evaluating: %s", py_str(define_line))
-                varname, result_type = try_eval_def(parsed_define, context)
-                yield Def(
-                    varname=varname,
-                    term=Term(
-                        line=define_line,
-                        type=result_type,
-                        ast=parsed_define),
-                    testfile=testfile,
-                    test_num=test_num,
-                )
+            define = flexiget(test['def'], [custom_field], None)
+            if define is not None:
+                yield test_context.custom_def(define)
+            else:
+                define = flexiget(test['def'], ['py', 'cd'], test['def'])
+                # for some reason, sometimes def is just None
+                if define and type(define) is not dict:
+                    # if define is a dict, it doesn't have anything
+                    # relevant since we already checked
+                    yield test_context.def_from_define(define)
+        customtest = test.get(custom_field, None)
+        # as a backup try getting a python or generic test
         pytest = flexiget(test, ['py', 'cd'], None)
-        if pytest is None:
+        if customtest is None and pytest is None:
             line = flexiget(test, ['rb', 'js'], u'¯\_(ツ)_/¯')
-            yield SkippedTest(line=line, reason='No python or generic test')
+            yield SkippedTest(
+                line=line,
+                reason='No {}, python or generic test'.format(custom_field))
             continue
 
-        expected = py_str(get_python_entry(test))  # ot field
-        expected_ast = ast.parse(expected, mode="eval").body
-        logger.debug("Evaluating: %s", expected)
-        expected_type = try_eval(expected_ast, context)
-        expected_term = Term(ast=expected_ast,
-                             line=expected,
-                             type=expected_type)
-        if isinstance(pytest, basestring):
+        expected_context = test_context.expected_context(test, custom_field)
+        if customtest is not None:
+            yield expected_context.query_from_term(customtest)
+        elif isinstance(pytest, basestring):
             parsed = ast.parse(pytest, mode="single").body[0]
             if type(parsed) == ast.Expr:
-                logger.debug("Evaluating: %s", pytest)
-                try:
-                    result_type = try_eval(parsed, context)
-                except Skip as s:
-                    yield SkippedTest(line=pytest, reason=str(s))
-                yield Query(
-                    query=Term(
-                        ast=parsed.value,
-                        line=pytest,
-                        type=result_type),
-                    expected=expected_term,
-                    testfile=testfile,
-                    test_num=test_num,
-                    runopts=runopts,
-                )
+                yield expected_context.query_from_parsed(pytest, parsed.value)
             elif type(parsed) == ast.Assign:
                 # Second syntax for defines. Surprise, it wasn't a
                 # test at all, because it has an equals sign in it.
-                logger.debug("Evaluating: %s", pytest)
-                varname, result_type = try_eval_def(parsed, context)
-                yield Def(
-                    varname=varname,
-                    term=Term(
-                        ast=parsed,
-                        type=result_type,
-                        line=pytest),
-                    testfile=testfile,
-                    test_num=test_num,
-                )
+                yield test_context.def_from_parsed(pytest, parsed)
         elif type(pytest) is dict and 'cd' in pytest:
-            pytestline = py_str(pytest['cd'])
-            parsed = ast.parse(pytestline, mode="eval").body
-            logger.debug("Evaluating: %s", pytestline)
-            result_type = try_eval(parsed, context)
-            yield Query(
-                query=Term(
-                    ast=parsed,
-                    line=pytestline,
-                    type=result_type),
-                expected=expected_term,
-                testfile=testfile,
-                test_num=test_num,
-                runopts=runopts,
-            )
+            yield expected_context.query_from_test(pytest['cd'])
         else:
-            # unroll subtests
             for subtest in pytest:
-                subtestline = py_str(subtest)
-                parsed = ast.parse(subtestline, mode="eval").body
-                logger.debug("Evaluating subtest: %s", subtestline)
-                result_type = try_eval(parsed, context)
-                yield Query(
-                    query=Term(
-                        ast=parsed,
-                        line=subtestline,
-                        type=result_type),
-                    expected=expected_term,
-                    testfile=testfile,
-                    test_num=test_num,
-                    runopts=runopts,
-                )
+                # unroll subtests
+                yield expected_context.query_from_test(subtest)

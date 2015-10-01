@@ -15,11 +15,13 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.Collections;
@@ -293,6 +295,14 @@ public class ${module_name} {
         } catch (Exception e) {
             return e;
         }
+    }
+
+    IntStream range(int start, int stop) {
+        return IntStream.range(start, stop);
+    }
+
+    List list(IntStream str) {
+        return str.boxed().collect(Collectors.toList());
     }
 
     @Test

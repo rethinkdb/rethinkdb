@@ -154,7 +154,8 @@ class TestFile(object):
         self.test_generator = process_polyglot.tests_and_defs(
             self.filename,
             self.raw_test_data,
-            process_polyglot.create_context(r, self.table_var_names)
+            context=process_polyglot.create_context(r, self.table_var_names),
+            custom_field='java',
         )
         return self
 
@@ -188,7 +189,8 @@ def py_to_java_type(py_type):
         # This can be called on something already converted
         return py_type
     elif py_type.__name__ == 'function':
-        raise Skip("Can't store a lambda in a variable")
+        return 'ReqlFunction1'
+        # raise Skip("Can't store a lambda in a variable")
     elif (py_type.__module__ == 'datetime' and
           py_type.__name__ == 'datetime'):
         return 'java.util.Date'
@@ -323,12 +325,16 @@ def ast_to_java(sequence, reql_vars):
     for item in sequence:
         if type(item) == process_polyglot.Def:
             yield def_to_java(item, reql_vars)
+        elif type(item) == process_polyglot.CustomDef:
+            yield JavaDef(line=Version(item.line, item.line),
+                          testfile=item.testfile,
+                          test_num=item.test_num)
         elif type(item) == process_polyglot.Query:
             yield query_to_java(item, reql_vars)
         elif type(item) == SkippedTest:
             yield item
         else:
-            assert False, "shouldn't happen"
+            assert False, "shouldn't happen, item was {}".format(item)
 
 
 class JavaVisitor(ast.NodeVisitor):
