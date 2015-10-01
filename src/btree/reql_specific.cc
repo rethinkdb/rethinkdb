@@ -14,18 +14,9 @@ ATTR_PACKED(struct reql_btree_superblock_t {
     block_id_t stat_block;
     block_id_t sindex_block;
 
-
-#ifdef _WIN32 // ATN TODO: why?
     static const int METAINFO_BLOB_MAXREFLEN
         = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(block_magic_t)
-                                                               - sizeof(block_id_t) * 3;
-#else
-    static const int METAINFO_BLOB_MAXREFLEN
-        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
-                                                               - sizeof(root_block)
-                                                               - sizeof(stat_block)
-                                                               - sizeof(sindex_block);
-#endif
+                                                               - 3 * sizeof(block_id_t);
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 });

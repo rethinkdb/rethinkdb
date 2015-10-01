@@ -3,7 +3,7 @@
 
 // ATN: TODO
 
-#ifdef _MSC_VER
+#ifdef _MSC_VER // msc
 
 #define ATTR_ALIGNED(size) __declspec(align(size))
 #define ATTR_PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
@@ -13,7 +13,7 @@
 #define NOINLINE __declspec(noinline)
 #define CURRENT_FUNCTION_PRETTY __FUNCSIG__
 
-#else
+#else // gcc, clang
 
 #define ATTR_ALIGNED(size) __attribute__((aligned(size)))
 #define ATTR_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
