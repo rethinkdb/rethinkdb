@@ -400,9 +400,13 @@ void server_t::add_client(
         cond_t *stopped = new cond_t();
         info->cond.init(stopped);
         // Passing the raw pointer `stopped` is safe because `add_client_cb` is
-        // the only function which can remove an entry from the map.  This has
-        // to `spawn_now_dangerously` so that we know `keepalive` is still legal
-        // inside its body.
+        // the only function which can remove an entry from the map.
+        // TODO: This `spawn_now_dangerously` could probably be a `spawn_sometime`.
+        //   It used to be a `spawn_now_dangerously` because we used to acquire
+        //   the auto drainer lock inside of `add_client_cb`, rather than passing
+        //   `keepalive` in. This is no longer the case.
+        //   We're keeping the `spawn_now_dangerously` for now to make sure that
+        //   we don't introduce any subtle new bugs in 2.1.2.
         coro_t::spawn_now_dangerously(
             std::bind(&server_t::add_client_cb, this, stopped, addr, keepalive));
     }
@@ -449,7 +453,7 @@ void server_t::add_limit_client(
 void server_t::add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive) {
+        auto_drainer_t::lock_t keepalive) {
     keepalive.assert_is_holding(&drainer);
     {
         disconnect_watcher_t disconnect(manager, addr.get_peer());
@@ -1512,6 +1516,9 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
     }
 }
 
+// This should only be called after the feed has been removed from the client,
+// because otherwise there could be a race condition where a new sub is added in
+// the middle.
 void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
     const char *msg = "Changefeed aborted (unavailable).";
     each_sub(lock,
@@ -1543,7 +1550,7 @@ void real_feed_t::constructor_cb() {
             any_disconnect.add(disconnect_watchers[i].get());
         }
         wait_any_t wait_any(
-            &aborted, &any_disconnect, &aborted, lock->get_drain_signal());
+            &aborted, &any_disconnect, lock->get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     // Clear the disconnect watchers so we don't keep the watched connections open
@@ -3106,8 +3113,10 @@ counted_t<datum_stream_t> client_t::new_stream(
                 last_feed_uuid = feed->get_uuid();
                 addr = feed->get_addr();
 
-                // We need to do this while holding `feeds_lock` to make sure the
-                // feed isn't destroyed before we subscribe to it.
+                // We need to do this while holding `feeds_lock` to make sure
+                // the feed isn't destroyed before we subscribe to it.  If you
+                // want to change this behavior to make it more efficient, make
+                // sure `feed_t::stop_subs` remains correct.
                 on_thread_t th2(old_thread);
                 sub = new_sub(feed, std::move(limits), squash, include_states, spec);
             }
