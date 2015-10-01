@@ -206,7 +206,10 @@ def py_to_java_type(py_type):
             type(None): 'Object',
         }[py_type]
     elif py_type.__module__ == 'rethinkdb.ast':
-        return py_type.__name__
+        # Anomalous non-rule based capitalization in the python driver
+        return {
+            'DB': 'Db'
+        }.get(py_type.__name__, py_type.__name__)
     elif py_type.__module__ == 'rethinkdb.errors':
         return py_type.__name__
     elif py_type.__module__ == '?test?':
