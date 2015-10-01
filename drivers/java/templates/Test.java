@@ -285,6 +285,11 @@ public class ${module_name} {
         return new ErrRegex(classname, message_rgx);
     }
 
+    ErrRegex err_regex(String classname, String message_rgx, Object dummy) {
+        // Some invocations pass a stack frame as a third argument
+        return new ErrRegex(classname, message_rgx);
+    }
+
     List fetch(ReqlAst query, int values) {
         throw new RuntimeException("Not implemented!");
     }
