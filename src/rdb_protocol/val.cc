@@ -205,7 +205,7 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        bounds};
+        datumspec_t(bounds)};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
@@ -214,7 +214,14 @@ counted_t<datum_stream_t> table_t::as_seq(
     backtrace_id_t bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
-    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, read_mode);
+    return tbl->read_all(
+        env,
+        idx,
+        bt,
+        display_name(),
+        datumspec_t(bounds),
+        sorting,
+        read_mode);
 }
 
 table_t::table_t(counted_t<base_table_t> &&_tbl,
@@ -351,7 +358,7 @@ datum_t table_t::get_row(env_t *env, datum_t pval) {
 
 counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
-        datum_t value,
+        const datumspec_t &datumspec,
         const std::string &get_all_sindex_id,
         backtrace_id_t bt) {
     return tbl->read_all(
@@ -359,7 +366,7 @@ counted_t<datum_stream_t> table_t::get_all(
         get_all_sindex_id,
         bt,
         display_name(),
-        datum_range_t(value),
+        datumspec,
         sorting_t::UNORDERED,
         read_mode);
 }

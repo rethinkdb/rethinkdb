@@ -130,7 +130,7 @@ continue_bool_t btree_send_backfill_pre(
                     });
                 for (const btree_key_t *key : keys) {
                     backfill_pre_item_t pre_item;
-                    pre_item.range = key_range_t(key);
+                    pre_item.range = key_range_t::one_key(key);
                     if (continue_bool_t::ABORT ==
                             pre_item_consumer->on_pre_item(std::move(pre_item))) {
                         return continue_bool_t::ABORT;
@@ -495,7 +495,7 @@ private:
                                 "item %" PRIu64, timestamp.longtime));
                             items_from_time.push_back(backfill_item_t());
                             item = &items_from_time.back();
-                            item->range = key_range_t(key);
+                            item->range = key_range_t::one_key(key);
                             item->min_deletion_timestamp =
                                 repli_timestamp_t::distant_past;
                         } else {

@@ -33,6 +33,7 @@
 static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
+
 #define CLUSTER_VERSION_STRING "2.2.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
