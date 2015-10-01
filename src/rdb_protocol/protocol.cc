@@ -423,6 +423,18 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (do_read) {
             auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            if (static_cast<bool>(rg_out->primary_keys)) {
+                for (auto it = rg_out->primary_keys->begin();
+                     it != rg_out->primary_keys->end();) {
+                    auto cur_it = it++;
+                    if (!region_contains_key(rg_out->region, cur_it->first)) {
+                        rg_out->primary_keys->erase(cur_it);
+                    }
+                }
+                if (rg_out->primary_keys->empty()) {
+                    return false;
+                }
+            }
             if (rg_out->stamp) {
                 rg_out->stamp->region = rg_out->region;
             }
@@ -1206,14 +1218,14 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_range);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(rget_read_t,
-                                    stamp, region, optargs, table_name, batchspec,
-                                    transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(rget_read_t,
+                                     stamp, region, primary_keys, optargs, table_name,
+                                     batchspec, transforms, terminal, sindex, sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);

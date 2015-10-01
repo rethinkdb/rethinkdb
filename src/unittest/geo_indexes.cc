@@ -319,7 +319,8 @@ std::vector<datum_t> perform_get_intersecting(
                                         sindex_rangespec_t(
                                             idx_name,
                                             region_t::universe(),
-                                            ql::datum_range_t::universe()),
+                                            ql::datumspec_t(
+                                                ql::datum_range_t::universe())),
                                         query_geometry),
                 profile_bool_t::PROFILE,
                 read_mode_t::SINGLE);

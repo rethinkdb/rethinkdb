@@ -423,45 +423,6 @@ public:
     static const datum_string_t reql_type_string;
 };
 
-class datum_range_t {
-public:
-    datum_range_t();
-    datum_range_t(
-        datum_t left_bound,
-        key_range_t::bound_t left_bound_type,
-        datum_t right_bound,
-        key_range_t::bound_t right_bound_type);
-    // Range that includes just one value.
-    explicit datum_range_t(datum_t val);
-    static datum_range_t universe();
-
-    bool contains(datum_t val) const;
-    bool is_empty() const;
-    bool is_universe() const;
-
-    RDB_DECLARE_ME_SERIALIZABLE(datum_range_t);
-
-    // Make sure you know what you're doing if you call these, and think about
-    // truncated sindexes.
-    key_range_t to_primary_keyrange() const;
-    key_range_t to_sindex_keyrange(skey_version_t skey_version) const;
-
-    datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
-    datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);
-
-    std::string print() {
-        return strprintf("%c%s,%s%c",
-                         left_bound_type == key_range_t::open ? '(' : '[',
-                         left_bound.print().c_str(),
-                         right_bound.print().c_str(),
-                         right_bound_type == key_range_t::open ? ')' : ']');
-    }
-private:
-    friend class info_term_t;
-    datum_t left_bound, right_bound;
-    key_range_t::bound_t left_bound_type, right_bound_type;
-};
-
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
 datum_t to_datum(
     const rapidjson::Value &json,
