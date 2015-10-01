@@ -27,6 +27,10 @@ public class TopLevel {
         return new MapObject().with(key, val);
     }
 
+    public MapObject hashMap() {
+        return new MapObject();
+    }
+
     public List array(Object... vals){
         return Arrays.asList(vals);
     }

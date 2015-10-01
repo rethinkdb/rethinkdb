@@ -470,16 +470,20 @@ class JavaVisitor(ast.NodeVisitor):
             self.to_args(node.args, node.keywords)
 
     def visit_Dict(self, node):
-        self.write("new MapObject()")
-        for k, v in zip(node.keys, node.values):
-            self.write(".with(")
+        self.write("r.hashMap(")
+        if len(node.keys) > 0:
+            self.visit(node.keys[0])
+            self.write(", ")
+            self.visit(node.values[0])
+        for k, v in zip(node.keys[1:], node.values[1:]):
+            self.write(").with(")
             self.visit(k)
             self.write(", ")
             self.visit(v)
-            self.write(")")
+        self.write(")")
 
     def visit_List(self, node):
-        self.write("Arrays.asList(")
+        self.write("r.array(")
         self.join(", ", node.elts)
         self.write(")")
 

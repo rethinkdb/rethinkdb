@@ -672,6 +672,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         return new Filter(arguments);
     }
+    public Filter filter(Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        return new Filter(arguments);
+    }
     public ConcatMap concatMap(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
