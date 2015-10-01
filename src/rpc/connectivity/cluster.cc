@@ -1132,19 +1132,19 @@ void connectivity_cluster_t::run_t::handle(
     anything that permanently blocks before setting up `conn_closer_2`. */
     conn_closer_1.reset();
 
-    // We could pick a better way to pick a better thread, our choice
-    // now is hopefully a performance non-problem.
-    threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
+    thread_allocation_t chosen_thread(&parent->thread_allocator);
 
-    cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
+    cross_thread_signal_t connection_thread_drain_signal(
+        drainer_lock.get_drain_signal(),
+        chosen_thread.get_thread());
     cross_thread_watchable_variable_t<heartbeat_semilattice_metadata_t>
         cross_thread_heartbeat_sl_view(
             clone_ptr_t<semilattice_watchable_t<heartbeat_semilattice_metadata_t> >(
                 new semilattice_watchable_t<heartbeat_semilattice_metadata_t>(
-                    heartbeat_sl_view)), chosen_thread);
+                    heartbeat_sl_view)), chosen_thread.get_thread());
 
     rethread_tcp_conn_stream_t unregister_conn(conn, INVALID_THREAD);
-    on_thread_t conn_threader(chosen_thread);
+    on_thread_t conn_threader(chosen_thread.get_thread());
     rethread_tcp_conn_stream_t reregister_conn(conn, get_thread_id());
 
     // Make sure that if we're ordered to shut down, any pending read
@@ -1220,6 +1220,12 @@ void connectivity_cluster_t::run_t::handle(
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
+    /* We assign threads from the highest thread number downwards. This is to reduce the
+    potential for conflicting with btree threads, which assign threads from the lowest
+    thread number upwards. */
+    thread_allocator([](threadnum_t a, threadnum_t b) {
+        return a.threadnum > b.threadnum;
+    }),
     current_run(NULL),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")

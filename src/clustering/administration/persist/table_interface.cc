@@ -26,12 +26,14 @@ public:
             cache_balancer_t *cache_balancer,
             rdb_context_t *rdb_context,
             perfmon_collection_t *perfmon_collection_serializers,
-            threadnum_t serializer_thread,
-            const std::vector<threadnum_t> &store_threads,
+            scoped_ptr_t<thread_allocation_t> &&serializer_thread,
+            std::vector<scoped_ptr_t<thread_allocation_t> > &&store_threads,
             std::map<
                 namespace_id_t, std::pair<real_multistore_ptr_t *, auto_drainer_t::lock_t>
             > *real_multistores) :
         branch_history_manager(std::move(bhm)),
+        serializer_thread_allocation(std::move(serializer_thread)),
+        store_thread_allocations(std::move(store_threads)),
         map_insertion_sentry(
             real_multistores, table_id, std::make_pair(this, drainer.lock()))
     {
@@ -48,7 +50,7 @@ public:
         int res = access(path.permanent_path().c_str(), R_OK | W_OK);
         bool create = (res != 0);
 
-        on_thread_t thread_switcher(serializer_thread);
+        on_thread_t thread_switcher(serializer_thread_allocation->get_thread());
         filepath_file_opener_t file_opener(path, io_backender);
 
         if (create) {
@@ -79,7 +81,7 @@ public:
             // TODO: Exceptions? If exceptions are being thrown in here, nothing is
             // handling them.
 
-            on_thread_t thread_switcher_2(store_threads[ix]);
+            on_thread_t thread_switcher_2(store_thread_allocations[ix]->get_thread());
 
             stores[ix].init(new store_t(
                 cpu_sharding_subspace(ix),
@@ -116,6 +118,8 @@ public:
     }
 
     ~real_multistore_ptr_t() {
+        serializer_thread_allocation.reset();
+        store_thread_allocations.clear();
         map_insertion_sentry.reset();
         drainer.drain();
         pmap(CPU_SHARDING_FACTOR, [this](int ix) {
@@ -163,6 +167,9 @@ private:
     scoped_ptr_t<serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
     scoped_ptr_t<store_t> stores[CPU_SHARDING_FACTOR];
+
+    scoped_ptr_t<thread_allocation_t> serializer_thread_allocation;
+    std::vector<scoped_ptr_t<thread_allocation_t> > store_thread_allocations;
 
     auto_drainer_t drainer;
     map_insertion_sentry_t<
@@ -272,10 +279,11 @@ void real_table_persistence_interface_t::load_multistore(
         new real_branch_history_manager_t(
             table_id, metadata_file, metadata_read_txn, interruptor));
 
-    threadnum_t serializer_thread = pick_thread();
-    std::vector<threadnum_t> store_threads;
+    scoped_ptr_t<thread_allocation_t> serializer_thread(
+        new thread_allocation_t(&thread_allocator));
+    std::vector<scoped_ptr_t<thread_allocation_t> > store_threads;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-        store_threads.push_back(pick_thread());
+        store_threads.emplace_back(new thread_allocation_t(&thread_allocator));
     }
 
     multistore_ptr_out->init(new real_multistore_ptr_t(
@@ -287,8 +295,8 @@ void real_table_persistence_interface_t::load_multistore(
         cache_balancer,
         rdb_context,
         perfmon_collection_serializers,
-        serializer_thread,
-        store_threads,
+        std::move(serializer_thread),
+        std::move(store_threads),
         &real_multistores));
 }
 
@@ -319,11 +327,6 @@ void real_table_persistence_interface_t::destroy_multistore(
 serializer_filepath_t real_table_persistence_interface_t::file_name_for(
         const namespace_id_t &table_id) {
     return serializer_filepath_t(base_path, uuid_to_str(table_id));
-}
-
-threadnum_t real_table_persistence_interface_t::pick_thread() {
-    thread_counter = (thread_counter + 1) % get_num_db_threads();
-    return threadnum_t(thread_counter);
 }
 
 bool real_table_persistence_interface_t::is_gc_active() const {
