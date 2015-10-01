@@ -2827,6 +2827,7 @@ void feed_t::del_sub_with_lock(
         size_t erased = f();
         guarantee(erased == 1);
     }
+    guarantee(num_subs > 0);
     num_subs -= 1;
     if (num_subs == 0) {
         // It's possible that by the time we get the lock to remove the feed,
@@ -2944,6 +2945,7 @@ void feed_t::each_point_sub(
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
     pmap(get_num_threads(),
          std::bind(&feed_t::each_point_sub_cb,
                    this,
@@ -2964,6 +2966,7 @@ void feed_t::each_limit_sub(
     const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
     pmap(get_num_threads(),
          std::bind(&feed_t::each_limit_sub_cb,
                    this,
