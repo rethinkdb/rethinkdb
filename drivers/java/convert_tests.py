@@ -666,6 +666,7 @@ class ReQLVisitor(JavaVisitor):
         python_clashes = {
             'or_': 'or',
             'and_': 'and',
+            'not_': 'not',
         }
         self.visit(node.value)
         self.write(".")
@@ -678,6 +679,13 @@ class ReQLVisitor(JavaVisitor):
             self.write('_')
         if emit_call:
             self.write('()')
+
+    def visit_UnaryOp(self, node):
+        if type(node.op) == ast.Invert:
+            self.visit(node.operand)
+            self.write(".not()")
+        else:
+            super(ReQLVisitor, self).visit_UnaryOp(node)
 
 
 if __name__ == '__main__':
