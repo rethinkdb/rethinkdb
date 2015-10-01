@@ -43,12 +43,6 @@ public Table optArg(String optname, Object value) {
         arguments.coerceAndAddAll(exprs);
         return new GetAll(arguments);
     }
-    public Between between(Object expr, Object exprA) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(expr);
-        arguments.coerceAndAdd(exprA);
-        return new Between(arguments);
-    }
     public Insert insert(Object expr) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);

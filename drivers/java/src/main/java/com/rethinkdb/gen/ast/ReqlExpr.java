@@ -636,6 +636,12 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1C);
         return new Merge(arguments);
     }
+    public Between between(Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Between(arguments);
+    }
     public Reduce reduce(ReqlFunction2 func2) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func2);

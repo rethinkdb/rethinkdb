@@ -372,8 +372,8 @@
         "id": 36
     },
     "BETWEEN": {
-        "include_in": ["T_TABLE"],
-        "signatures": [["T_TABLE", "T_EXPR", "T_EXPR"]],
+        "include_in": ["T_EXPR"],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "optargs": {
             "index": "T_STR",
             "left_bound": "E_BOUND",
