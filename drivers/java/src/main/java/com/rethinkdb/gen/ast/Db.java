@@ -64,4 +64,8 @@ public class Db extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Rebalance(arguments);
     }
+    public Info info() {
+        Arguments arguments = new Arguments(this);
+        return new Info(arguments);
+    }
 }

@@ -824,9 +824,13 @@
     "INFO": {
         "include_in": [
             "T_TOP_LEVEL",
-            "T_EXPR"
+            "T_EXPR",
+            "T_DB"
         ],
-        "signatures": [["T_EXPR"]],
+        "signatures": [
+            ["T_EXPR"],
+            ["T_DB"]
+        ],
         "id": 79
     },
     "MATCH": {

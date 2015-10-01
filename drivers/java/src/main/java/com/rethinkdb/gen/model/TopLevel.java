@@ -380,6 +380,11 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new Info(args);
     }
+    public Info info(Db db){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(db);
+        return new Info(args);
+    }
     public Json json(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
