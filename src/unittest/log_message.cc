@@ -38,7 +38,7 @@ void test_chunks(const std::vector<size_t> &sizes) {
     guarantee(fd.get() != INVALID_FD);
 #ifndef _WIN32 // TODO ATN: delete the temp file
     int unlink_res = unlink(filename);
-    guarantee_err(unlink_res == 0);
+    guarantee_err(unlink_res == 0, "unlink failed");
 #endif
     for (size_t i = 0; i < sizes.size(); ++i) {
         std::string line(sizes[i], 'A' + i);

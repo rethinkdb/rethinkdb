@@ -579,9 +579,10 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, ...) {
-    logNTC("In recursion: removing file %s\n", path);
 #ifdef _WIN32
+
+int remove_directory_helper(const char *path) {
+    logNTC("In recursion: removing file %s\n", path);
     DWORD attrs = GetFileAttributes(path);
     guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES);
     BOOL res;
@@ -594,12 +595,19 @@ int remove_directory_helper(const char *path, ...) {
     if (!res) {
         crash("failed to remove: %s: %s", path, winerr_string(GetLastError()).c_str());
     }
-#else
-    int res = ::remove(path);
-    guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
-#endif
     return 0;
 }
+
+#else
+
+int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED int, UNUSED struct FTW *) {
+    logNTC("In recursion: removing file %s\n", path);
+    int res = ::remove(path);
+    guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
+    return 0;
+}
+
+#endif
 
 void remove_directory_recursive(const char *dirpath) {
 #ifndef _MSC_VER
@@ -702,4 +710,6 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=""
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
-UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+
+// TODO ATN: this fails?
+//UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

@@ -138,7 +138,9 @@ void crash_oom();
 // a nul-terminated string, either equal to buf or pointing at a statically allocated string.
 MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen);
 
+#ifdef _WIN32
 MUST_USE const std::string winerr_string(DWORD winerr);
+#endif
 
 #define stringify(x) #x
 

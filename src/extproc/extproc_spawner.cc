@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "arch/process.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
@@ -130,7 +131,7 @@ public:
             guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
         }
 #endif
-	}
+    }
 
     void main_loop() {
         process_ref_t spawner_pid = current_process();

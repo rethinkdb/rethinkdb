@@ -102,6 +102,7 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 #endif  // _GNU_SOURCE
 }
 
+#ifdef _WIN32
 MUST_USE const std::string winerr_string(DWORD winerr) {
     char *errmsg;
     DWORD res = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -119,6 +120,7 @@ MUST_USE const std::string winerr_string(DWORD winerr) {
         return strprintf("Unkown error 0x%x (error formatting the error: 0x%x)", winerr, GetLastError());
     }
 }
+#endif
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 

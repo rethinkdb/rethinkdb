@@ -109,7 +109,7 @@ inline void counted_release(const shared_buf_t *p) {
 
 inline intptr_t counted_use_count(const shared_buf_t *p) {
     // Finally a practical use for volatile.
-    intptr_t tmp = static_cast<const volatile intptr_t&>(p->refcount_);
+    intptr_t tmp = p->refcount_.load();
     rassert(tmp > 0);
     return tmp;
 }

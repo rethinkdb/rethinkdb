@@ -82,7 +82,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
         crash("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
-    winsock_debugf("ATN: connected %x\n",socket);
+    winsock_debugf("ATN: connected %x\n", socket);
 #else
     int res;
     do {
@@ -92,10 +92,10 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     if (res != 0) {
         if (get_errno() == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
-            wait_interruptible(&watch, interruptor);
+            wait_interruptible(&watch, interuptor);
             int error;
             socklen_t error_size = sizeof(error);
-            int getsockoptres = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+            int getsockoptres = getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &error_size);
             if (getsockoptres != 0) {
                 throw linux_tcp_conn_t::connect_failed_exc_t(error);
             }
@@ -139,6 +139,7 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
     async_connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len, event_watcher, interuptor);
 }
 
+NORETURN // TODO ATN: gcc warns if NORETURN isn't here
 void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id, event_watcher_t *event_watcher, signal_t *interuptor) {
     crash("TODO ATN: ipv6 connect");
     struct sockaddr_in6 sa;
@@ -221,7 +222,6 @@ write_perfmon(NULL),
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
 
-    int res;
     if (peer.is_ipv4()) {
         connect_ipv4_internal(sock.get(), local_port, peer.get_ipv4_addr(), port, event_watcher.get(), interruptor);
     } else {
@@ -1166,7 +1166,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 #else
     fd_t active_fd = socks[0].get();
     while(!lock.get_drain_signal()->is_pulsed()) {
-        fd_t new_sock c = accept(active_fd, NULL, NULL);
+        fd_t new_sock = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));

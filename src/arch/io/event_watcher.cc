@@ -74,7 +74,7 @@ windows_event_watcher_t::~windows_event_watcher_t() {
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
-linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh) :
+linux_event_watcher_t::linux_event_watcher_t(fd_t f, event_callback_t *eh) :
     fd(f), error_handler(eh),
     in_watcher(NULL), out_watcher(NULL),
 #ifdef __linux

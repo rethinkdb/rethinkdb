@@ -140,7 +140,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 #ifndef VALGRIND
 #ifndef _WIN32
         stack_t signal_stack;
-        signal_stack.ss_sp = malloc_aligned(SIGNAL_HANDLER_STACK_SIZE, getpagesize());
+        signal_stack.ss_sp = raw_malloc_aligned(SIGNAL_HANDLER_STACK_SIZE, getpagesize());
         signal_stack.ss_flags = 0;
         signal_stack.ss_size = SIGNAL_HANDLER_STACK_SIZE;
         int res = sigaltstack(&signal_stack, NULL);
@@ -188,7 +188,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
 #ifndef VALGRIND
 #ifndef _WIN32
-        free(signal_stack.ss_sp);
+        raw_free_aligned(signal_stack.ss_sp);
 #endif
 #endif
 

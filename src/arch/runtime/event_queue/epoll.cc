@@ -45,7 +45,7 @@ int epoll_to_user(int mode) {
     return out_mode;
 }
 
-epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *_parent)
+epoll_event_queue_t::epoll_event_queue_t(queue_parent_t *_parent)
     : parent(_parent) {
     // Create a poll fd
 
@@ -82,7 +82,7 @@ void epoll_event_queue_t::run() {
         /* Sanity check: Make sure epoll() didn't give us any events we didn't ask for */
         for (int i = 0; i < nevents; i++) {
             int events_gotten = epoll_to_user(events[i].events);
-            int events_wanted = events_requested[reinterpret_cast<linux_event_callback_t *>(events[i].data.ptr)];
+            int events_wanted = events_requested[reinterpret_cast<event_callback_t *>(events[i].data.ptr)];
             if (events_gotten & poll_event_in) rassert(events_wanted & poll_event_in);
             if (events_gotten & poll_event_out) rassert(events_wanted & poll_event_out);
         }
@@ -105,7 +105,7 @@ void epoll_event_queue_t::run() {
                 // notifying us to skip it.
                 continue;
             } else {
-                linux_event_callback_t *cb = reinterpret_cast<linux_event_callback_t *>(events[i].data.ptr);
+                event_callback_t *cb = reinterpret_cast<event_callback_t *>(events[i].data.ptr);
                 int events_gotten = epoll_to_user(events[i].events);
 #ifndef NDEBUG
                 int events_wanted = events_requested[cb];
@@ -127,7 +127,7 @@ epoll_event_queue_t::~epoll_event_queue_t() {
     rassert_err(res == 0, "Could not close epoll_fd");
 }
 
-void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
+void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, event_callback_t *cb) {
     rassert(cb);
     epoll_event event;
 
@@ -140,7 +140,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     DEBUG_ONLY_CODE(events_requested[cb] = watch_mode);
 }
 
-void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
+void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, event_callback_t *cb) {
     rassert(cb);
     epoll_event event;
 
@@ -161,7 +161,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
     DEBUG_ONLY_CODE(events_requested[cb] = watch_mode);
 }
 
-void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
+void epoll_event_queue_t::forget_resource(fd_t resource, event_callback_t *cb) {
     rassert(cb);
 
     epoll_event event;
@@ -182,6 +182,14 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     }
 
     DEBUG_ONLY_CODE(events_requested.erase(events_requested.find(cb)));
+}
+
+void epoll_event_queue_t::watch_event(system_event_t &event, event_callback_t *cb) {
+    watch_resource(event.get_notify_fd(), poll_event_in, cb);
+}
+
+void epoll_event_queue_t::forget_event(system_event_t &event, event_callback_t *cb) {
+    forget_resource(event.get_notify_fd(), cb);
 }
 
 #endif  // NO_EPOLL

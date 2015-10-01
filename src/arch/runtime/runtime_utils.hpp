@@ -41,9 +41,11 @@ struct compare_fds {
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
 
-bool compare_fds(const fd_t a, const fd_t b) {
-    return a < b;
-}
+struct compare_fds {
+    bool operator()(const fd_t a, const fd_t b) {
+        return a < b;
+    }
+};
 
 #endif
 

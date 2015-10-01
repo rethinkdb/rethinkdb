@@ -8,6 +8,9 @@
 
 #else
 
+#include "containers/archive/socket_stream.hpp"
+#include "errors.hpp"
+
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>

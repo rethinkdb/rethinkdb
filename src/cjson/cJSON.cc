@@ -128,7 +128,6 @@ static const char *parse_number(cJSON *item, const char *num) {
 
 /* Render the number nicely from the given item into a string. */
 static char *print_number(cJSON *item) {
-	const size_t max_float_str_size = 256;
     char *str;
     double d = item->valuedouble;
     guarantee(risfinite(d));
@@ -136,10 +135,10 @@ static char *print_number(cJSON *item) {
     if (d == 0.0 && std::signbit(d)) {
         str = cJSON_strdup("-0.0");
     } else {
-		str = (char*) cJSON_malloc(2014); // ATN TODO
+        str = (char*) cJSON_malloc(2014); // ATN TODO
         ret = sprintf(str, "%.20g", d);
+        guarantee(ret);
     }
-    guarantee(ret);
     return str;
 }
 

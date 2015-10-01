@@ -14,42 +14,42 @@
 #include "debug.hpp" // ATN TODO
 
 fiber_context_ref_t::~fiber_context_ref_t() {
-	rassert(fiber == nullptr, "leaking a fiber"); // ATN TODO: why not destroy it here?
+    rassert(fiber == nullptr, "leaking a fiber"); // ATN TODO: why not destroy it here?
 }
 
 DECL_THREAD_LOCAL void* thread_initial_fiber = NULL;
 
 void coro_initialize_for_thread() {
-	if (thread_initial_fiber == NULL) {
-		thread_initial_fiber = ConvertThreadToFiber(nullptr);
-		guarantee_winerr(thread_initial_fiber != NULL, "ConvertThreadToFiber failed");
-		// ATN debugf("Converted thread to fiber %p\n", thread_initial_fiber);
-	}
+    if (thread_initial_fiber == NULL) {
+        thread_initial_fiber = ConvertThreadToFiber(nullptr);
+        guarantee_winerr(thread_initial_fiber != NULL, "ConvertThreadToFiber failed");
+        // ATN debugf("Converted thread to fiber %p\n", thread_initial_fiber);
+    }
 }
 
 fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
-	context.fiber = CreateFiber(
-		stack_size, // ATN TODO: how to handle stack overflow?
-		[](void* data) { static_cast<void(*)(void)>(data)(); },
-		static_cast<void*>(initial_fun));
-	guarantee_winerr(context.fiber != nullptr, "CreateFiber failed");
-	// ATN debugf("Created fiber %p\n", context.fiber);
+    context.fiber = CreateFiber(
+        stack_size, // ATN TODO: how to handle stack overflow?
+        [](void* data) { static_cast<void(*)(void)>(data)(); },
+        static_cast<void*>(initial_fun));
+    guarantee_winerr(context.fiber != nullptr, "CreateFiber failed");
+    // ATN debugf("Created fiber %p\n", context.fiber);
 }
 
 fiber_stack_t::~fiber_stack_t() {
-	// ATN debugf("Deleting fiber %p\n", context.fiber);
-	DeleteFiber(context.fiber);
-	context.fiber = nullptr;
+    // ATN debugf("Deleting fiber %p\n", context.fiber);
+    DeleteFiber(context.fiber);
+    context.fiber = nullptr;
 }
 
 void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *dest_context_in) {
-	rassert(curr_context_out->fiber == nullptr, "switching from non-null context: %p", curr_context_out->fiber);
-	rassert(dest_context_in->fiber != nullptr);
-	curr_context_out->fiber = GetCurrentFiber();
-	// ATN debugf("Switching from fiber %p to %p\n", curr_context_out->fiber, dest_context_in->fiber);
-	void *dest_context = dest_context_in->fiber;
-	dest_context_in->fiber = nullptr;
-	SwitchToFiber(dest_context);
+    rassert(curr_context_out->fiber == nullptr, "switching from non-null context: %p", curr_context_out->fiber);
+    rassert(dest_context_in->fiber != nullptr);
+    curr_context_out->fiber = GetCurrentFiber();
+    // ATN debugf("Switching from fiber %p to %p\n", curr_context_out->fiber, dest_context_in->fiber);
+    void *dest_context = dest_context_in->fiber;
+    dest_context_in->fiber = nullptr;
+    SwitchToFiber(dest_context);
 }
 
 #else
@@ -102,12 +102,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     (except for the first page, which we are definitely going to need).
     This is an optimization to keep memory consumption in check. */
     guarantee(stack_size >= static_cast<size_t>(getpagesize()));
-    madvise(stack, stack_size - getpagesize(), MADV_DONTNEED);
+    madvise(stack.get(), stack_size - getpagesize(), MADV_DONTNEED);
 
     /* Protect the end of the stack so that we crash when we get a stack
     overflow instead of corrupting memory. */
 #ifndef THREADED_COROUTINES
-    mprotect(stack, getpagesize(), PROT_NONE);
+    mprotect(stack.get(), getpagesize(), PROT_NONE);
 #else
     /* Instruments hangs when running with mprotect and having object identification enabled.
     We don't need it for THREADED_COROUTINES anyway, so don't use it then. */
@@ -203,7 +203,7 @@ artificial_stack_t::~artificial_stack_t() {
 
     /* Undo protections changes */
 #ifndef THREADED_COROUTINES
-    mprotect(stack, getpagesize(), PROT_READ | PROT_WRITE);
+    mprotect(stack.get(), getpagesize(), PROT_READ | PROT_WRITE);
 #endif
 
     /* Return the memory to the operating system right away. This makes
@@ -213,9 +213,9 @@ artificial_stack_t::~artificial_stack_t() {
     On OS X we use MADV_FREE. On Linux MADV_FREE is not available,
     and we use MADV_DONTNEED instead. */
 #ifdef __MACH__
-    madvise(stack, stack_size, MADV_FREE);
+    madvise(stack.get(), stack_size, MADV_FREE);
 #else
-    madvise(stack, stack_size, MADV_DONTNEED);
+    madvise(stack.get(), stack_size, MADV_DONTNEED);
 #endif
 }
 

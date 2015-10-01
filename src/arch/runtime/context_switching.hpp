@@ -14,13 +14,13 @@ void coro_initialize_for_thread();
 
 class fiber_stack_t {
 public:
-	fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
-	~fiber_stack_t();
-	fiber_context_ref_t context;
+    fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
+    ~fiber_stack_t();
+    fiber_context_ref_t context;
 };
 
 void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);
-	
+
 typedef fiber_stack_t coro_stack_t;
 typedef fiber_context_ref_t coro_context_ref_t;
 
@@ -29,7 +29,6 @@ typedef fiber_context_ref_t coro_context_ref_t;
 #include <pthread.h>
 
 #include "errors.hpp"
-typedef
 #include "arch/io/concurrency.hpp"
 #include "containers/scoped.hpp"
 

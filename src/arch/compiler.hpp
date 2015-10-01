@@ -16,12 +16,12 @@
 #else
 
 #define ATTR_ALIGNED(size) __attribute__((aligned(size)))
-#define ATTR_PACKED(decl) decl __attribute__((__packed__))
-#define ATTR_FORMAT(x) __attribute__((format(x)))
+#define ATTR_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
+#define ATTR_FORMAT(...) __attribute__((format(__VA_ARGS__)))
 #define ATTR_NORETURN __attribute__((noreturn))
-#define DECL_THREAD_LOCAL __thread;
+#define DECL_THREAD_LOCAL __thread
 #define NOINLINE __attribute__ ((noinline))
-#defien CURRENT_FUCTION_PRETTY __PRETTY_FUNCTION__
+#define CURRENT_FUNCTION_PRETTY __PRETTY_FUNCTION__
 
 #endif
 

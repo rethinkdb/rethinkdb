@@ -12,7 +12,7 @@
 #include "logger.hpp"
 #include "time.hpp"
 
-timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue)
+timerfd_provider_t::timerfd_provider_t(event_queue_t *_queue)
     : queue(_queue), timer_fd(-1), callback(NULL) {
     const int fd = timerfd_create(CLOCK_MONOTONIC, 0);
     guarantee_err(fd != -1, "Could not create timer");

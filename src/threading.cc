@@ -24,7 +24,7 @@ home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t()
 
 #ifndef NDEBUG
 void home_thread_mixin_t::assert_thread() const {
-    rassert(home_thread() == get_thread_id(), "home_thread(): %d, get_thread_id(): %d", home_thread(), get_thread_id());
+    rassert(home_thread() == get_thread_id(), "home_thread(): %d, get_thread_id(): %d", home_thread().threadnum, get_thread_id().threadnum);
 }
 #endif
 

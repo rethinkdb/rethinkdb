@@ -50,14 +50,7 @@ public:
         microtime_t timestamp;
         uuid_u id;
 
-        // TODO ATN: msc things that epoch_t == int
-        // RDB_DECLARE_ME_SERIALIZABLE(epoch_t);
-
-        template <cluster_version_t W>
-        friend void serialize(write_message_t *, const class epoch_t &);
-
-        template <cluster_version_t W>
-        friend archive_result_t deserialize(read_stream_t *s, epoch_t *thing);
+        RDB_DECLARE_ME_SERIALIZABLE(class epoch_t);
     };
 
     static multi_table_manager_timestamp_t min() {

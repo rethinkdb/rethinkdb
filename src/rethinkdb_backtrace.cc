@@ -128,7 +128,9 @@ int rethinkdb_backtrace(void **buffer, int size, void *context) {
 
 #include <execinfo.h>
 
-int rethinkdb_backtrace(void **buffer, int size, void* context) {
+#include "errors.hpp"
+
+int rethinkdb_backtrace(void **buffer, int size, UNUSED void* context) {
     // TODO ATN: check context
     return backtrace(buffer, size);
 }

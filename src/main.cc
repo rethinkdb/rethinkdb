@@ -1,5 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#if 0 // TODO ATN
+#ifndef _WIN32 // TODO ATN
 
 #ifndef _MSC_VER
 #include <sys/resource.h>

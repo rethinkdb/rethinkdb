@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "utils.hpp"
 #include "debug.hpp"
 #include "rpc/serialize_macros.hpp"
 

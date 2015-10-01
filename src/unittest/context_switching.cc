@@ -18,7 +18,9 @@ TEST(ContextSwitchingTest, ContextRefSemantics) {
 }
 
 TEST(ContextSwitchingTest, CreateArtificialStack) {
-	coro_initialize_for_thread();
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
     coro_stack_t a(&noop, 1024*1024);
     EXPECT_FALSE(a.context.is_nil());
 }
@@ -44,7 +46,9 @@ static void switch_context_test(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
-	coro_initialize_for_thread();
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
     scoped_ptr_t<coro_context_ref_t> orig_context_local(new coro_context_ref_t);
     original_context = orig_context_local.get();
 
@@ -77,7 +81,9 @@ static void second_switch(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchBetweenContexts) {
-	coro_initialize_for_thread();
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
 
     scoped_ptr_t<coro_context_ref_t> orig_context_local(new coro_context_ref_t);
     original_context = orig_context_local.get();
@@ -106,10 +112,12 @@ ATTR_NORETURN static void throw_exception_from_coroutine() {
 }
 
 // ATN TODO: issue with gtest: throwing an exception from a death test doesn't seem to work
-TEST(ContextSwitchingTest, DISABLED_UncaughtException) {
-	coro_initialize_for_thread();
-	EXPECT_DEATH(throw std::runtime_error("foo"), "foo");
-    //EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
+TEST(ContextSwitchingTest, UncaughtException) {
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
+    EXPECT_DEATH(throw std::runtime_error("foo"), "foo");
+    EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
 }
 
 }   /* namespace unittest */

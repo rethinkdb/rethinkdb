@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <array>
 #include <functional>
 #include <string>
 #include <boost/optional.hpp>
@@ -58,11 +59,11 @@ public:
     double randdouble();
 
 #ifndef _WIN32
-	typedef std::array<short, 3> state_t;
+    typedef std::array<unsigned short, 3> state_t;
 #else
-	typedef std::ranlux48 state_t;
+    typedef std::ranlux48 state_t;
 #endif
-	
+
 	explicit rng_t(int seed);
 	rng_t() : rng_t(-1) { }
 	rng_t(rng_t&&) = default;

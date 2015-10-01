@@ -34,6 +34,9 @@ class fd_watcher_t
 
 #else
 
+#include "concurrency/signal.hpp"
+#include "containers/archive/archive.hpp"
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
 #include "concurrency/cond_var.hpp"
