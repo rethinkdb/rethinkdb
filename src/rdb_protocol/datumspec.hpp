@@ -77,8 +77,10 @@ public:
         return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
     }
 
-    template<class T>
-    void iter(sorting_t sorting, const T &cb) const {
+    void iter(sorting_t sorting,
+              const std::function<bool(
+                  const std::pair<ql::datum_range_t, uint64_t> &,
+                  bool)> &cb) const {
         return boost::apply_visitor(
             ds_helper_t<void>(
                 [&cb](const datum_range_t &dr) {
@@ -88,14 +90,18 @@ public:
                     if (!reversed(sorting)) {
                         for (auto it = m.begin(); it != m.end();) {
                             auto this_it = it++;
-                            if (cb(*this_it, it == m.end())) {
+                            if (cb(std::make_pair(datum_range_t(this_it->first),
+                                                  this_it->second),
+                                   it == m.end())) {
                                 break;
                             }
                         }
                     } else {
                         for (auto it = m.rbegin(); it != m.rend();) {
                             auto this_it = it++;
-                            if (cb(*this_it, it == m.rend())) {
+                            if (cb(std::make_pair(datum_range_t(this_it->first),
+                                                  this_it->second),
+                                   it == m.rend())) {
                                 break;
                             }
                         }

@@ -137,7 +137,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
-    const boost::optional<std::map<store_key_t, size_t> > &primary_keys,
+    const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,

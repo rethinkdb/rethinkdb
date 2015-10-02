@@ -963,7 +963,7 @@ public:
         r_sanity_check(
             spec->range.datumspec.visit<bool>(
                 [](const datum_range_t &) { return true; },
-                [](const std::map<datum_t, size_t> &) { return false; }));
+                [](const std::map<datum_t, uint64_t> &) { return false; }));
         datum_range_t srange = spec->range.datumspec.covering_range();
         if (start) {
             datum_t dstart = (**start)->second.first;
@@ -1936,7 +1936,7 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     keyspec_t::range_t spec;
-    boost::optional<std::map<store_key_t, size_t> > store_keys;
+    boost::optional<std::map<store_key_t, uint64_t> > store_keys;
     boost::optional<key_range_t> store_key_range;
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
@@ -2204,7 +2204,7 @@ public:
         r_sanity_check(
             spec.range.datumspec.visit<bool>(
                 [](const datum_range_t &) { return true; },
-                [](const std::map<datum_t, size_t> &) { return false; }));
+                [](const std::map<datum_t, uint64_t> &) { return false; }));
         include_initial_vals = maybe_src.has();
         read_response_t read_resp;
         nif->read(

@@ -750,7 +750,7 @@ private:
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : table->get_pkey();
 
-        std::map<datum_t, size_t> keys;
+        std::map<datum_t, uint64_t> keys;
         for (size_t i = 1; i < args->num_args(); ++i) {
             auto key = get_key_arg(args->arg(env, i));
             keys.insert(std::make_pair(std::move(key), 0)).first->second += 1;
