@@ -41,10 +41,10 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\windows_stub;$(ProjectDir)\windows_deps\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/we4005 /bigobj</AdditionalOptions>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation><!-- TODO ATN: true -->
+      <AdditionalOptions>/we4005 /bigobj /FS</AdditionalOptions><!-- TODO ATN: why /FS? -->
       <ShowIncludes>false</ShowIncludes>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration><!-- TODO ATN: true -->
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4244;4101;4267;4127;4068;4624;4661</DisableSpecificWarnings>
     </ClCompile>
@@ -64,7 +64,9 @@
     <ClInclude Include="build\release\proto\rdb_protocol\ql2.pb.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\**\*.cc" /> <!-- TODO ATN Exclude="src\unittest\**\*.cc"/> -->
+    <ClCompile Include="src\**\*.cc" />
+    <!-- TODO ATN Exclude="src\unittest\**\*.cc"/> -->
+    <ClCompile Include="src\_delete_me.cc" />
     <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
     <ClCompile Include="windows_stub\pthread.cc" />
     <ClCompile Include="build\release\web_assets\web_assets.cc" />

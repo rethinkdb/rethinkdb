@@ -25,7 +25,7 @@ init () {
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
     optional_libs="gtest termcap boost_system ssl"
-    required_libs="protobuf icui18n icuuc icudata v8 re2 z crypto curl"
+    required_libs="protobuf icui18n icuuc v8 re2 z crypto curl" # TODO ATN: icudata
     other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"

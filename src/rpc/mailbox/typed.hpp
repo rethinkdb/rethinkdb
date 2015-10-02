@@ -11,7 +11,6 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
-#include "containers/archive/boost_types.hpp"
 
 template <class> class mailbox_t;
 
@@ -29,7 +28,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
-// private: // ATN RSI
+private:
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);
     template <class a0_t>
     friend void send(mailbox_manager_t *,
@@ -370,7 +369,6 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
-public: // ATN RSI
     class write_impl_t : public mailbox_write_callback_t {
     private:
         const arg0_t &arg0;
@@ -390,7 +388,7 @@ public: // ATN RSI
         }
 #ifdef ENABLE_MESSAGE_PROFILER
         const char *message_profiler_tag() const {
-            static const std::string tag =
+            static const std::string tag = 
                 strprintf("mailbox<%s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name());
             return tag.c_str();
         }

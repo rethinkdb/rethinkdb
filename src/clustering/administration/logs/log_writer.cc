@@ -22,6 +22,13 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
+// TODO ATN
+#ifdef CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
+#error bummer
+#endif
+#include "containers/archive/boost_types.hpp"
+
+
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
 

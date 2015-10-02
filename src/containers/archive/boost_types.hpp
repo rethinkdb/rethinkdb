@@ -107,16 +107,14 @@ struct variant_deserializer<W, N, Variant> {
     }
 };
 
-/* ATN TODO: make sure this template does the right thing */
-template <cluster_version_t W, class V>
-MUST_USE archive_result_t deserialize(read_stream_t *s, V *x) {
+template <cluster_version_t W, BOOST_VARIANT_ENUM_PARAMS(class T)>
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> *x) {
     uint8_t n;
     archive_result_t res = deserialize<W>(s, &n);
     if (bad(res)) { return res; }
 
-    return variant_deserializer<W, 1, V /* ATN TODO: missing type list here? */>::deserialize_variant(n, s, x);
+    return variant_deserializer<W, 1, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)>, BOOST_VARIANT_ENUM_PARAMS(T)>::deserialize_variant(n, s, x);
 }
-
 
 template <cluster_version_t W, class T>
 void serialize(write_message_t *wm, const boost::optional<T> &x) {
