@@ -2024,7 +2024,7 @@ LiveRange* LAllocator::SplitRangeAt(LiveRange* range, LifetimePosition pos) {
 
   if (pos.Value() <= range->Start().Value()) return range;
 
-  // We can't properly connect liveranges if split occured at the end
+  // We can't properly connect liveranges if split occurred at the end
   // of control instruction.
   DCHECK(pos.IsInstructionStart() ||
          !chunk_->instructions()->at(pos.InstructionIndex())->IsControl());

@@ -2581,7 +2581,7 @@ void RegExpExecStub::Generate(MacroAssembler* masm) {
 
   __ Bind(&exception);
   Register exception_value = x0;
-  // A stack overflow (on the backtrack stack) may have occured
+  // A stack overflow (on the backtrack stack) may have occurred
   // in the RegExp code but no exception has been created yet.
   // If there is no pending exception, handle that in the runtime system.
   __ Mov(x10, Operand(isolate()->factory()->the_hole_value()));

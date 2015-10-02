@@ -4322,7 +4322,7 @@ TEST(NoBreakWhenBootstrapping) {
     v8::HandleScope handle_scope(isolate);
     v8::Context::New(isolate, &extensions);
   }
-  // Check that no DebugBreak events occured during the context creation.
+  // Check that no DebugBreak events occurred during the context creation.
   CHECK_EQ(0, break_point_hit_count);
 
   // Get rid of the debug event listener.
@@ -6934,7 +6934,7 @@ static void DebugEventContextChecker(const v8::Debug::EventDetails& details) {
 }
 
 
-// Check that event details contain context where debug event occured.
+// Check that event details contain context where debug event occurred.
 TEST(DebugEventContext) {
   v8::Isolate* isolate = CcTest::isolate();
   v8::HandleScope scope(isolate);
@@ -6965,7 +6965,7 @@ static void DebugEventBreakDataChecker(const v8::Debug::EventDetails& details) {
 }
 
 
-// Check that event details contain context where debug event occured.
+// Check that event details contain context where debug event occurred.
 TEST(DebugEventBreakData) {
   DebugLocalContext env;
   v8::Isolate* isolate = env->GetIsolate();

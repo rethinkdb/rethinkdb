@@ -53,7 +53,7 @@ Debug::Debug(Isolate* isolate)
 static v8::Handle<v8::Context> GetDebugEventContext(Isolate* isolate) {
   Handle<Context> context = isolate->debug()->debugger_entry()->GetContext();
   // Isolate::context() may have been NULL when "script collected" event
-  // occured.
+  // occurred.
   if (context.is_null()) return v8::Local<v8::Context>();
   Handle<Context> native_context(context->native_context());
   return v8::Utils::ToLocal(native_context);
