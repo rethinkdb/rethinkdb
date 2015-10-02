@@ -1,6 +1,6 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-__all__ = ['expr', 'RqlQuery']
+__all__ = ['expr', 'RqlQuery', 'ReQLEncoder', 'ReQLDecoder']
 
 import datetime
 import collections
