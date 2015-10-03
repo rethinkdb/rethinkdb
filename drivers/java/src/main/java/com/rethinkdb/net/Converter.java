@@ -99,7 +99,7 @@ public class Converter {
             Double epoch_time = (Double) obj.get("epoch_time");
             String timezone = (String) obj.get("timezone");
             Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(epoch_time.longValue() * 1000);
+            calendar.setTimeInMillis((long) (epoch_time * 1000));
             calendar.setTimeZone(TimeZone.getTimeZone(timezone));
             return calendar.getTime();
         } catch (Exception ex) {
