@@ -228,12 +228,14 @@ class TwistedCursor(Cursor):
 
 class ConnectionInstance(object):
 
-    def __init__(self, parent, start_reactor=False):
+    def __init__(self, parent, start_reactor=False, json_encoder=None, json_decoder=None):
         self._parent = parent
         self._closing = False
         self._connection = None
         self._user_queries = {}
         self._cursor_cache = {}
+        self._json_encoder = json_encoder
+        self._json_decoder = json_decoder
 
         if start_reactor:
             reactor.run()
@@ -341,6 +343,16 @@ class ConnectionInstance(object):
         else:
             res = yield response_defer
             returnValue(res)
+
+    def _get_json_decoder(self, query):
+        return (
+            query._json_decoder or self._json_decoder or
+            self._parent._get_json_decoder)(query.global_optargs)
+
+    def _get_json_encoder(self, query):
+        return (
+            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
+
 
 class Connection(ConnectionBase):
 

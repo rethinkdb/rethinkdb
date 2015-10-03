@@ -119,13 +119,15 @@ class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
 
-    def __init__(self, parent, io_loop=None):
+    def __init__(self, parent, io_loop=None, json_encoder=None, json_decoder=None):
         self._parent = parent
         self._closing = False
         self._user_queries = { }
         self._cursor_cache = { }
         self._ready = asyncio.Future()
         self._io_loop = io_loop
+        self._json_encoder = json_encoder
+        self._json_decoder = json_decoder
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
@@ -244,6 +246,15 @@ class ConnectionInstance(object):
         except Exception as ex:
             if not self._closing:
                 yield from self.close(False, None, ex)
+
+    def _get_json_decoder(self, query):
+        return (
+            query._json_decoder or self._json_decoder or
+            self._parent._get_json_decoder)(query.global_optargs)
+
+    def _get_json_encoder(self, query):
+        return (
+            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
 
 
 class Connection(ConnectionBase):

@@ -78,13 +78,15 @@ class TornadoCursor(Cursor):
 
 
 class ConnectionInstance(object):
-    def __init__(self, parent, io_loop=None):
+    def __init__(self, parent, io_loop=None, json_encoder=None, json_decoder=None):
         self._parent = parent
         self._closing = False
         self._user_queries = { }
         self._cursor_cache = { }
         self._ready = Future()
         self._io_loop = io_loop
+        self._json_encoder = json_encoder
+        self._json_decoder = json_decoder
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
 
@@ -222,6 +224,15 @@ class ConnectionInstance(object):
         except Exception as ex:
             if not self._closing:
                 self.close(False, None, ex)
+
+    def _get_json_decoder(self, query):
+        return (
+            query._json_decoder or self._json_decoder or
+            self._parent._get_json_decoder)(query.global_optargs)
+
+    def _get_json_encoder(self, query):
+        return (
+            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
 
 
 # Wrap functions from the base connection class that may throw - these will
