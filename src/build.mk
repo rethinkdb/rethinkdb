@@ -184,7 +184,7 @@ endif
 
 ifeq ($(SYMBOLS),1)
   # -rdynamic is necessary so that backtrace_symbols() works properly
-  ifneq ($(OS),Darwin)
+  ifeq ($(OS),Linux)
     RT_LDFLAGS += -rdynamic
   endif
   RT_CXXFLAGS += -g

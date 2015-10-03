@@ -91,7 +91,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
 #ifdef _GNU_SOURCE
     return strerror_r(errsv, buf, buflen);
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
     UNUSED errno_t res = strerror_s(buf, buflen, errsv);
     return buf;
 #else
@@ -257,8 +257,10 @@ void install_generic_crash_handler() {
 #ifdef _WIN32
     // TODO ATN: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
-    _CrtSetReportHook(windows_runtime_debug_failure_handler);
 #else
+#ifdef _MSC_VER
+    _CrtSetReportHook(windows_runtime_debug_failure_handler);
+#endif
 #ifndef VALGRIND
     {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);

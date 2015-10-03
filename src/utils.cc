@@ -18,12 +18,19 @@
 #include "windows.hpp"
 #include <io.h>
 #include <direct.h>
-#include <filesystem>
 #include <random>
+#ifndef __MINGW32__
+#include <filesystem>
+#endif
 #else
-#include <ftw.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#endif
+
+#ifndef __MINGW32__
+#include <filesystem>
+#else
+#include <ftw.h>
 #endif
 
 #include <google/protobuf/stubs/common.h>
@@ -100,7 +107,7 @@ startup_shutdown_t::~startup_shutdown_t() {
 
 
 void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
-#ifndef _MSC_VER // ATN: TODO
+#ifndef _WIN32 // ATN: TODO
     flockfile(stderr);
 #endif
 
@@ -160,7 +167,7 @@ void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
         length -= 16;
     }
 
-#ifndef _MSC_VER // ATN: TODO
+#ifndef _WIN32 // ATN: TODO
     funlockfile(stderr);
 #endif
 }
@@ -171,7 +178,7 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
         t = boost::posix_time::to_tm(as_ptime);
     } else {
-#ifndef _MSC_VER
+#ifndef _WIN32
         struct tm *res1;
         res1 = localtime_r(&time.tv_sec, &t);
         guarantee_err(res1 == &t, "localtime_r() failed.");
@@ -248,7 +255,7 @@ with_priority_t::~with_priority_t() {
 
 void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-#ifndef _MSC_VER
+#ifndef _WIN32
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
@@ -310,7 +317,7 @@ rng_t::rng_t(int seed) {
 #else
     seed = 314159;
 #endif
-#ifdef _MSC_VER
+#ifdef _WIN32
     state.seed(seed);
 #else
     state[2] = seed / (1 << 16);
@@ -321,7 +328,7 @@ rng_t::rng_t(int seed) {
 
 int rng_t::randint(int n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifndef _MSC_VER
+#ifndef _WIN32
     long x = nrand48(state.data());  // NOLINT(runtime/int)
 #else
     unsigned long x = state();
@@ -350,7 +357,7 @@ double rng_t::randdouble() {
     return res / (1LL << 53);
 }
 
-TLS(rng_t, rng)
+TLS_with_constructor(rng_t, rng)
 
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifndef _WIN32
@@ -579,12 +586,12 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 
 int remove_directory_helper(const char *path) {
     logNTC("In recursion: removing file %s\n", path);
     DWORD attrs = GetFileAttributes(path);
-    guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES);
+    guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES, "GetFileAttributes failed");
     BOOL res;
     if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
         res = RemoveDirectory(path);
@@ -635,7 +642,7 @@ void remove_directory_recursive(const char *dirpath) {
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
 
 void base_path_t::make_absolute() {
-#ifndef _MSC_VER // TODO ATN
+#ifndef _WIN32 // TODO ATN
     char absolute_path[PATH_MAX];
     char *res = realpath(path_.c_str(), absolute_path);
     guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());

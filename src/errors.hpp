@@ -162,16 +162,16 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 
 #ifdef _WIN32
 
-// ATN TODO TEST
-#define guarantee_winerr(cond, ...) guarantee_xwinerr(cond, GetLastError(), ##__VA_ARGS__)
-
-// ATN TODO TEST
+// ATN TODO
 #define guarantee_xwinerr(cond, err, msg, ...) do {                     \
         if (!(cond)) {                                                  \
             DWORD guarantee_winerr_err = (err);                         \
             crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%x - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
         }                                                               \
     } while (0);
+
+// ATN TODO
+#define guarantee_winerr(cond, ...) guarantee_xwinerr(cond, GetLastError(), ##__VA_ARGS__)
 
 #endif
 

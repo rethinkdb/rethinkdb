@@ -13,8 +13,8 @@ USE_CCACHE := 0
 # C++ Compiler
 COMPILER := GCC
 CXX := x86_64-w64-mingw32-g++.exe
-CXXFLAGS := -isystem $(TOP)/windows_deps/include -isystem $(TOP)/windows_stub -D_WIN32_WINNT=0x0600
-LDFLAGS := -static -L$(TOP)/windows_deps/lib/Debug $(patsubst %, -l%, $(shell ls $(TOP)/windows_deps/lib/Debug))
+CXXFLAGS := -isystem $(TOP)/windows_deps/include -isystem $(TOP)/windows_stub -D_WIN32_WINNT=0x0602
+LDFLAGS := -static -L$(TOP)/windows_deps/lib/Debug $(patsubst %.lib, -l%, $(shell ls $(TOP)/windows_deps/lib/Debug/ | grep lib$$))
 ALLOW_WARNINGS=1
 # Host System
 MACHINE := x86_64-w64-mingw32
