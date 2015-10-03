@@ -183,6 +183,10 @@ public class Util {
     @SuppressWarnings("unchecked")
     public static <T> T toPojo(Class pojoClass, Map<String, Object> map) {
         try {
+            if (map == null) {
+                return null;
+            }
+
             if (!Modifier.isPublic(pojoClass.getModifiers())) {
                 throw new IllegalAccessException(String.format("%s should be public", pojoClass));
             }
@@ -203,7 +207,6 @@ public class Util {
                     "%s should have a public parameterless constructor " +
                     "or a public constructor with %d parameters", pojoClass, map.keySet().size()));
         } catch (InstantiationException | IllegalAccessException | IntrospectionException | InvocationTargetException e) {
-            e.printStackTrace();
             throw new ReqlDriverError("Can't convert %s to a POJO: %s", map, e.getMessage());
         }
     }
