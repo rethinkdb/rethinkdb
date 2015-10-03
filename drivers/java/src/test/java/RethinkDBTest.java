@@ -4,16 +4,15 @@ import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.net.Connection;
 import junit.framework.Assert;
-
-import static org.junit.Assert.assertEquals;
-
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
+
+import static org.junit.Assert.assertEquals;
 
 public class RethinkDBTest{
 
@@ -114,6 +113,13 @@ public class RethinkDBTest{
 
         Long nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
         Assert.assertEquals(nmb10.longValue(), 10L);
+    }
+
+    @Test
+    public void testDate() {
+        Date date = new Date();
+        Date result = r.expr(date).run(conn);
+        Assert.assertEquals(date.getTime(), result.getTime());
     }
 
     @Test

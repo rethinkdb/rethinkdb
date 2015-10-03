@@ -77,7 +77,7 @@ public class Util {
 
         if (val instanceof Date) {
             TimeZone tz = TimeZone.getTimeZone("UTC");
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
             df.setTimeZone(tz);
             return Iso8601.fromString(df.format((Date) val));
         }
