@@ -37,7 +37,7 @@ void windows_event_queue_t::watch_event(windows_event_t& event, event_callback_t
     event.event_queue = this;
 }
 
-void windows_event_queue_t::forget_event(windows_event_t& event, event_callback_t *cb) {
+void windows_event_queue_t::forget_event(windows_event_t& event, UNUSED event_callback_t *cb) {
     if (event.event_queue != nullptr) {
         event.event_queue = nullptr;
     }
@@ -62,9 +62,9 @@ void windows_event_queue_t::run() {
             guarantee_winerr(res != 0, "GetQueuedCompletionStatus failed");
         }
 
-        switch (key) {
+        switch (static_cast<windows_message_type_t>(key)) {
         case windows_message_type_t::OVERLAPPED_OPERATION: {
-            overlapped_operation_t *ao = reinterpret_cast<overlapped_operation_t*>(reinterpret_cast<char*>(overlapped) - offsetof(overlapped_operation_t, overlapped));
+            overlapped_operation_t *ao = reinterpret_cast<overlapped_operation_t*>(overlapped);
             threadnum_t target_thread = ao->event_watcher->current_thread();
             if (target_thread != get_thread_id()) {
                 HANDLE target_cp = linux_thread_pool_t::get_thread_pool()->threads[target_thread.threadnum]->queue.completion_port;

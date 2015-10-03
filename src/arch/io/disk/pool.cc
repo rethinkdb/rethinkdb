@@ -159,7 +159,7 @@ void pool_diskmgr_t::action_t::run() {
         DWORD res = SetFilePointer(fd, offset_.LowPart, &offset_.HighPart, FILE_BEGIN);
         if (res == 0xFFFFFFFF && GetLastError() != ERROR_SUCCESS) {
             // TODO ATN: convert winerr -> errno
-            logERR("SetFilePointer failed: %s", winerr_string(GetLastError()));
+            logERR("SetFilePointer failed: %s", winerr_string(GetLastError()).c_str());
             io_result = -EIO;
             return;
         }
@@ -167,7 +167,7 @@ void pool_diskmgr_t::action_t::run() {
         BOOL res2 = SetEndOfFile(fd);
         if (!res2) {
             // TODO ATN: convert winerr -> errno
-            logERR("SetEndOfFile failed: %s", winerr_string(GetLastError()));
+            logERR("SetEndOfFile failed: %s", winerr_string(GetLastError()).c_str());
             io_result = -EIO;
             return;
         }

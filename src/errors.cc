@@ -92,14 +92,14 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 #ifdef _GNU_SOURCE
     return strerror_r(errsv, buf, buflen);
 #elif defined(_MSC_VER)
-	UNUSED errno_t res = strerror_s(buf, buflen, errsv);
-	return buf;
+    UNUSED errno_t res = strerror_s(buf, buflen, errsv);
+    return buf;
 #else
     // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
     // is invalid), but in either case a friendly nul-terminated buffer is written.
     UNUSED int res = strerror_r(errsv, buf, buflen);
     return buf;
-#endif  // _GNU_SOURCE
+#endif
 }
 
 #ifdef _WIN32

@@ -1,6 +1,6 @@
 #include "clustering/administration/main/directory_lock.hpp"
 
-#ifndef _WIN32 // ATN TODO
+#ifndef _MSC_VER // ATN TODO
 #include <dirent.h>
 #include <sys/file.h>
 #else
@@ -21,11 +21,11 @@ bool check_existence(const base_path_t& base_path) {
 }
 
 bool check_dir_emptiness(const base_path_t& base_path) {
-#ifdef _WIN32 // TODO ATN
-	for (auto it : std::tr2::sys::directory_iterator(base_path.path())) {
-		return false;
-	}
-	return true;
+#ifdef _MSC_VER // TODO ATN
+    for (auto it : std::tr2::sys::directory_iterator(base_path.path())) {
+        return false;
+    }
+    return true;
 #else
     DIR *dp;
     struct dirent *ep;
@@ -69,7 +69,9 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         }
         int mkdir_res;
         do {
-#ifdef _WIN32
+#if defined(__MINGW32__)
+            mkdir_res = mkdir(directory_path.path().c_str());
+#elif defined(_WIN32)
             mkdir_res = _mkdir(directory_path.path().c_str());
 #else
             mkdir_res = mkdir(directory_path.path().c_str(), 0755);
@@ -120,10 +122,10 @@ void directory_lock_t::directory_initialized() {
     initialize_done = true;
 }
 
+#ifndef _WIN32 // TODO ATN
 void directory_lock_t::change_ownership(gid_t group_id, const std::string &group_name,
                                         uid_t user_id, const std::string &user_name) {
     if (group_id != INVALID_GID || user_id != INVALID_UID) {
-#ifndef _WIN32 // TODO ATN
         if (fchown(directory_fd.get(), user_id, group_id) != 0) {
             throw std::runtime_error(strprintf("Failed to change ownership of data "
                                                "directory '%s' to '%s:%s': %s",
@@ -132,6 +134,6 @@ void directory_lock_t::change_ownership(gid_t group_id, const std::string &group
                                                group_name.c_str(),
                                                errno_string(get_errno()).c_str()));
         }
-#endif
     }
 }
+#endif

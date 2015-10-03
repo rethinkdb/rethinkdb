@@ -72,7 +72,7 @@ std::string debug_strprint(const T &obj) {
 
 class debugf_in_dtor_t {
 public:
-    explicit debugf_in_dtor_t(const char *msg, ...) ATTRIBUTE_FORMAT(printf, 2, 3);
+    explicit debugf_in_dtor_t(const char *msg, ...) ATTR_FORMAT(printf, 2, 3);
     ~debugf_in_dtor_t();
 private:
     std::string message;

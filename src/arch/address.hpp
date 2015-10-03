@@ -113,7 +113,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
 
 class port_t {
 public:
-    static constexpr int max_port = 65535;
+    static constexpr int max_port = MAX_PORT;
 
     explicit port_t(int _port);
     explicit port_t(struct sockaddr const *);

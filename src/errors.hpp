@@ -2,18 +2,13 @@
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
+#include "arch/compiler.hpp"
 #include "windows.hpp"
 
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string>
-
-#ifdef _MSC_VER
-#define ATTRIBUTE_FORMAT(...)
-#else
-#define ATTRIBUTE_FORMAT(...) __attribute__((format (__VA_ARGS__)))
-#endif
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
@@ -126,8 +121,8 @@ void set_errno(int new_errno);
         BREAKPOINT;                                                 \
     } while (0)
 
-void report_fatal_error(const char*, int, const char*, ...) ATTRIBUTE_FORMAT(printf, 3, 4);
-void report_user_error(const char*, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
+void report_fatal_error(const char*, int, const char*, ...) ATTR_FORMAT(printf, 3, 4);
+void report_user_error(const char*, ...) ATTR_FORMAT(printf, 1, 2);
 
 // Our usual crash() method does not work well in out-of-memory conditions, because
 // it performs heap-allocations itself. Use `crash_oom()` instead for these cases.

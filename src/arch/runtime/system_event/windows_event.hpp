@@ -8,6 +8,7 @@
 #include "arch/runtime/event_queue_types.hpp"
 
 class linux_thread_t;
+class windows_event_queue_t;
 
 // ATN TODO: if the event is triggered before the wait, should the wait see it?
 

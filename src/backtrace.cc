@@ -6,7 +6,7 @@
 #include <execinfo.h>
 #else
 #define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
-#pragma comment( lib, "dbghelp.lib" )
+// #pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
 #include <DbgHelp.h>
 #endif
 
@@ -325,17 +325,17 @@ void initialize_dbghelp() {
     SymSetOptions(options);
 
     // Initialize and load the symbol tables
-    BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+    UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
     // TODO ATN: test return value
 }
 #endif
 
-std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+std::string lazy_backtrace_formatter_t::print_frames(UNUSED bool use_addr2line) {
 #ifdef _WIN32
     initialize_dbghelp();
 
     std::string output;
-    for (int i = 0; i < get_num_frames(); i++) {
+    for (size_t i = 0; i < get_num_frames(); i++) {
         output.append(strprintf("%d: ", static_cast<int>(i+1)));
         DWORD64 offset;
         const int MAX_SYMBOL_LENGTH = 2048; // An arbitrary number

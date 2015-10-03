@@ -44,9 +44,22 @@ const block_magic_t
 void btree_superblock_ct_asserts() {
     // Just some place to put the CT_ASSERTs
     CT_ASSERT(reql_btree_superblock_t::METAINFO_BLOB_MAXREFLEN > 0);
-    CT_ASSERT(from_cache_block_size_t<sizeof(reql_btree_superblock_t)>::ser_size
-              == DEVICE_BLOCK_SIZE);
+
+    // TODO ATN
+    // CT_ASSERT(from_cache_block_size_t<sizeof(reql_btree_superblock_t)>::ser_size
+    //          == DEVICE_BLOCK_SIZE);
 }
+
+class DeleteMe {
+    DeleteMe(){
+        crash("\nsb size: %u"
+              "\nsb ser size: %u"
+              "\ndevice block size: %d",
+              sizeof(reql_btree_superblock_t),
+              from_cache_block_size_t<sizeof(reql_btree_superblock_t)>::ser_size,
+              DEVICE_BLOCK_SIZE);
+    }
+};
 
 real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}

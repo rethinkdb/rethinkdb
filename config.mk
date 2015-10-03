@@ -13,8 +13,9 @@ USE_CCACHE := 0
 # C++ Compiler
 COMPILER := GCC
 CXX := x86_64-w64-mingw32-g++.exe
-CXXFLAGS := -I$(TOP)/windows_deps/include
+CXXFLAGS := -isystem $(TOP)/windows_deps/include -isystem $(TOP)/windows_stub -D_WIN32_WINNT=0x0600
 LDFLAGS := -static -L$(TOP)/windows_deps/lib/Debug $(patsubst %, -l%, $(shell ls $(TOP)/windows_deps/lib/Debug))
+ALLOW_WARNINGS=1
 # Host System
 MACHINE := x86_64-w64-mingw32
 # Build System

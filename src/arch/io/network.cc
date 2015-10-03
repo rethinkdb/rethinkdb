@@ -42,9 +42,10 @@ LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
     if (!ConnectEx) {
         DWORD size = 0;
         GUID id = WSAID_CONNECTEX;
-        guarantee_winerr(0 == WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
-                                       &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
-                                       &size, nullptr, nullptr));
+        DWORD res = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                             &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
+                             &size, nullptr, nullptr);
+        guarantee_winerr(res, "WSAIoctl failed");
     }
     return ConnectEx;
 }
@@ -166,6 +167,7 @@ fd_t create_socket_wrapper(int address_family) {
 #ifdef _WIN32
     // fd_t res = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
     // TODO ATN: maybe replace this by above, or at least use address_family instead of AF_INET
+    (void) address_family;
     fd_t res = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     winsock_debugf("ATN: new socket %x\n", res); // TODO ATN
     if (res == INVALID_FD) {
@@ -905,11 +907,11 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
 
         event_watchers[i].init(new event_watcher_t(socks[i].get(), this));
 
-        int sock_fd = socks[i].get();
+        fd_t sock_fd = socks[i].get();
         guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
-        int sockoptval = 1;
 #ifndef _WIN32 // TODO ATN
+        int sockoptval = 1;
         int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval)); 
         guarantee_err(res != -1, "Could not set REUSEADDR option");
 

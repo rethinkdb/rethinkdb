@@ -384,16 +384,17 @@ log_message_t fallback_log_writer_t::assemble_log_message(
     return log_message_t(timestamp, uptime, level, m);
 }
 
+// TODO ATN: this while function could use a rewrite for windows
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg) + "\n";
 
-#ifdef _WIN32 // ATN TODO STDOUT_FILENOT
-	static int STDOUT_FILENO = -1;
-	static int STDERR_FILENO = -1;
-	if (STDOUT_FILENO == -1) {
-		STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
-		STDERR_FILENO = STDOUT_FILENO;
-	}
+#ifdef _MSC_VER // ATN TODO STDOUT_FILENOT
+    static int STDOUT_FILENO = -1;
+    static int STDERR_FILENO = -1;
+    if (STDOUT_FILENO == -1) {
+        STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
+        STDERR_FILENO = STDOUT_FILENO;
+    }
 #endif
 
     FILE* write_stream = nullptr;
@@ -421,15 +422,18 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         std::string console_formatted = format_log_message(msg, true) + "\n";
 #ifndef _WIN32 // ATN TODO
         flockfile(write_stream);
+#else
+        (void) write_stream; // ATN TODO
 #endif
 
 #ifndef _WIN32
         ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
 #else
-		// ATN TODO: use fileno
-		size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
+        // ATN TODO: use fileno
+        (void) fileno;
+        size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
 #endif
-        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+        if (write_res != static_cast<size_t>(console_formatted.length())) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }

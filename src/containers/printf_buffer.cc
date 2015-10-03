@@ -38,7 +38,7 @@ void printf_buffer_t::appendf(const char *format, ...) {
     va_end(ap);
 }
 
-ATTRIBUTE_FORMAT(printf, 5, 0)
+ATTR_FORMAT(printf, 5, 0)
 inline void alloc_copy_and_format(const char *buf, int64_t length, int append_size, int64_t alloc_limit, const char *fmt, va_list ap, char **buf_out) {
     char *new_ptr = new char[alloc_limit];
     memcpy(new_ptr, buf, length);

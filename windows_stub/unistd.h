@@ -13,7 +13,7 @@
 
 typedef int gid_t;
 typedef int uid_t;
-typedef DWORD pid_t;
+// typedef DWORD pid_t; // TODO ATN: mingw64 doesn't like this. neither does process_id_t
 
 inline ssize_t pread(HANDLE h, void* buf, size_t count, off_t offset) {
     DWORD res = SetFilePointer(h, offset, NULL, FILE_BEGIN);
@@ -46,10 +46,12 @@ inline ssize_t pwrite(HANDLE h, const void *buf, size_t count, off_t offset) {
     return bytes_written;
 }
 
+#ifdef _MSC_VER
 // for access
 #define F_OK 00
 #define W_OK 02
 #define R_OK 04
+#endif
 
 #define close _close
 #define getpid _getpid

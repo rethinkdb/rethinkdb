@@ -631,8 +631,9 @@ int perform_datasync(fd_t fd) {
 
 #elif defined(_WIN32)
 
-	// ATN TODO
-	return 0;
+    // ATN TODO
+    (void) fd;
+     return 0;
 
 #elif defined(__linux__)
 
@@ -647,8 +648,9 @@ int perform_datasync(fd_t fd) {
 MUST_USE int fsync_parent_directory(const char *path) {
     // Locate the parent directory
 #ifdef _WIN32
-	// ATN TODO
-	return 0;
+    // ATN TODO
+    (void) path;
+    return 0;
 #else
     char absolute_path[PATH_MAX];
     char *abs_res = realpath(path, absolute_path);

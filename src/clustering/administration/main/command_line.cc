@@ -703,7 +703,8 @@ void run_rethinkdb_create(const base_path_t &base_path,
 // if in doubt, DO NOT USE.
 std::string run_uname(const std::string &flags) {
 #ifdef _WIN32
-	return "Some Windows version"; // ATN TODO
+    (void) flags;
+    return "Some Windows version"; // ATN TODO
 #else
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
@@ -1269,7 +1270,7 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
     if (max_concurrent_io_requests <= 0
         || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
+        fprintf(stderr, "ERROR: io-threads must be between 1 and %" PRIi64 "\n",
                 MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
         return false;
     }

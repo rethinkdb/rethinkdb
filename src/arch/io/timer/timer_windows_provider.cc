@@ -17,14 +17,15 @@
 const HANDLE DEFAULT_TIMER_QUEUE = nullptr;
 
 timer_windows_provider_t::timer_windows_provider_t(windows_event_queue_t *event_queue_) :
-    event_queue(event_queue_), callback(nullptr), timer(nullptr) {
+    timer(nullptr), callback(nullptr), event_queue(event_queue_) {
     debugf_timer("[%p] create\n", this);
 }
 
 timer_windows_provider_t::~timer_windows_provider_t() {
     debugf_timer("[%p] destroy\n", this);
     if (timer != nullptr) {
-        guarantee_winerr(DeleteTimerQueueTimer(nullptr, timer, nullptr));
+        BOOL res = DeleteTimerQueueTimer(nullptr, timer, nullptr);
+        guarantee_winerr(res, "DeleteTimerQueueTimer failed");
     }
 }
 

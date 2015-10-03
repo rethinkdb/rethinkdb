@@ -93,8 +93,8 @@ uint64_t strtou64_strict(const char *string, const char **end, int base);
 MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
 MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
-std::string strprintf(const char *format, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
-std::string vstrprintf(const char *format, va_list ap) ATTRIBUTE_FORMAT(printf, 1, 0);
+std::string strprintf(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+std::string vstrprintf(const char *format, va_list ap) ATTR_FORMAT(printf, 1, 0);
 
 
 // formatted time:
@@ -182,12 +182,12 @@ std::string errno_string(int errsv);
 
 std::string sanitize_for_logger(const std::string &s);
 static inline std::string time2str(const time_t &t) {
-	const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN
+    const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN
     char timebuf[TIMEBUF_SIZE];
-#ifdef _MSC_VER
-	errno_t ret = ctime_s(timebuf, sizeof timebuf, &t);
-	guarantee_err(ret == 0, "time2str: invalid time");
-	return timebuf;
+#ifdef _WIN32
+    errno_t ret = ctime_s(timebuf, sizeof timebuf, &t);
+    guarantee_err(ret == 0, "time2str: invalid time");
+    return timebuf;
 #else
     return ctime_r(&t, timebuf);
 #endif

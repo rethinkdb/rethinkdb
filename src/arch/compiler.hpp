@@ -17,7 +17,13 @@
 
 #define ATTR_ALIGNED(size) __attribute__((aligned(size)))
 #define ATTR_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
+
+#ifdef __MINGW32__
+#define ATTR_FORMAT(...) // mingw64 complains about PRIu64
+#else
 #define ATTR_FORMAT(...) __attribute__((format(__VA_ARGS__)))
+#endif
+
 #define ATTR_NORETURN __attribute__((noreturn))
 #define DECL_THREAD_LOCAL __thread
 #define NOINLINE __attribute__ ((noinline))

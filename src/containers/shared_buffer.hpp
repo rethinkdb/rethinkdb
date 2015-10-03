@@ -95,12 +95,12 @@ private:
 
 
 inline void counted_add_ref(const shared_buf_t *p) {
-	intptr_t res = ++(p->refcount_);
-	rassert(res > 0);
+    DEBUG_VAR intptr_t res = ++(p->refcount_);
+    rassert(res > 0);
 }
 
 inline void counted_release(const shared_buf_t *p) {
-	int64_t res = --(p->refcount_);
+    int64_t res = --(p->refcount_);
     rassert(res >= 0);
     if (res == 0) {
         delete const_cast<shared_buf_t *>(p);

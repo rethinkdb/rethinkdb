@@ -12,8 +12,8 @@ struct io_coroutine_adapter_t : public iocallback_t {
         cont->notify_later_ordered();
     }
 
-#ifdef _WIN32
-    // TODO ATN: this helps debugging but is inelegant
+#ifdef _MSC_VER
+    // TODO ATN: this helps debugging but is inelegant. it also doesn't work
     HANDLE handle = INVALID_HANDLE_VALUE;
     io_coroutine_adapter_t(HANDLE handle_) : cont(coro_t::self()), handle(handle_) { }
     void on_io_failure(int errsv, int64_t offset, int64_t count) {
@@ -38,7 +38,7 @@ struct io_coroutine_adapter_t : public iocallback_t {
 };
 
 void co_read(file_t *file, int64_t offset, size_t length, void *buf, file_account_t *account) {
-#ifdef _WIN32
+#ifdef _MSC_VER
     io_coroutine_adapter_t adapter(file->maybe_get_fd());
 #else
     io_coroutine_adapter_t adapter;
@@ -49,7 +49,7 @@ void co_read(file_t *file, int64_t offset, size_t length, void *buf, file_accoun
 
 void co_write(file_t *file, int64_t offset, size_t length, void *buf,
               file_account_t *account, file_t::wrap_in_datasyncs_t wrap_in_datasyncs) {
-#ifdef _WIN32
+#ifdef _MSC_VER
     io_coroutine_adapter_t adapter(file->maybe_get_fd());
 #else
     io_coroutine_adapter_t adapter;

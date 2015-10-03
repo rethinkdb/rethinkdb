@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #ifdef _WIN32 // ATN TODO
+#include "windows.hpp"
 #include <ws2tcpip.h>
 #else
 #include <netinet/in.h>
@@ -67,8 +68,8 @@ template <class addr_t>
 std::string ip_to_string(addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
 #ifdef _WIN32
-	const char *result = inet_ntop(address_family, (void*)&addr,
-								   buffer, INET6_ADDRSTRLEN);
+    const char *result = inet_ntop(address_family, (void*)&addr,
+                                   buffer, INET6_ADDRSTRLEN);
 #else
     const char *result = inet_ntop(address_family, &addr,
                                    buffer, INET6_ADDRSTRLEN);
@@ -410,9 +411,7 @@ bool ip_address_t::is_any() const {
 }
 
 port_t::port_t(int _value)
-    : value_(_value) {
-    guarantee(value_ <= port_t::max_port);
-}
+    : value_(_value) { }
 
 port_t::port_t(sockaddr const *sa) {
     switch (sa->sa_family) {
