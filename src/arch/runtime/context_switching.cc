@@ -30,8 +30,8 @@ void coro_initialize_for_thread() {
 fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
     context.fiber = CreateFiber(
         stack_size, // ATN TODO: how to handle stack overflow?
-        [](void* data) { (*static_cast<decltype(initial_fun) *>(data))(); },
-        static_cast<void*>(&initial_fun));
+        [](void* data) { (reinterpret_cast<void(*)(void)>(data))(); },
+        reinterpret_cast<void*>(initial_fun));
     guarantee_winerr(context.fiber != nullptr, "CreateFiber failed");
     // ATN debugf("Created fiber %p\n", context.fiber);
 }

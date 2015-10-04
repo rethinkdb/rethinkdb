@@ -591,7 +591,12 @@ std::string errno_string(int errsv) {
 int remove_directory_helper(const char *path) {
     logNTC("In recursion: removing file %s\n", path);
     DWORD attrs = GetFileAttributes(path);
-    guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES, "GetFileAttributes failed");
+    if (GetLastError() == ERROR_FILE_NOT_FOUND) {
+        logWRN("Trying to delete non-existent file `%s'", path);
+        return 0;
+    } else {
+        guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES, "GetFileAttributes failed");
+    }
     BOOL res;
     if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
         res = RemoveDirectory(path);

@@ -32,7 +32,7 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-//* TODO ATN
+/* TODO ATN
 #define winsock_debugf debugf /*/
 #define winsock_debugf(...) ((void)0) //*/
 
@@ -45,7 +45,7 @@ LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
         DWORD res = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
                              &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
                              &size, nullptr, nullptr);
-        guarantee_winerr(res, "WSAIoctl failed");
+        guarantee_winerr(res == 0, "WSAIoctl failed");
     }
     return ConnectEx;
 }
@@ -55,10 +55,10 @@ LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
     if (!AcceptEx) {
         DWORD size = 0;
         GUID id = WSAID_ACCEPTEX;
-        guarantee_winerr(0 == WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
-                                       &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
-                                       &size, nullptr, nullptr),
-                         "WSAIoctl failed");
+        DWORD res = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                             &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
+                             &size, nullptr, nullptr);
+        guarantee_winerr(res == 0, "WSAIoctl failed");
     }
     return AcceptEx;
 }
