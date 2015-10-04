@@ -6,7 +6,7 @@
 #include <execinfo.h>
 #else
 #define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
-// #pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
+#pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
 #include <DbgHelp.h>
 #endif
 

@@ -143,4 +143,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
     }
 }
 
+#define RDB_IMPL_DESERIALIZE_OPTIONAL(...) RDB_IMPL_DESERIALIZE_TEMPLATE(boost::optional, __VA_ARGS__)
+#define RDB_IMPL_DESERIALIZE_VARIANT(...) RDB_IMPL_DESERIALIZE_TEMPLATE(boost::variant, __VA_ARGS__)
+
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

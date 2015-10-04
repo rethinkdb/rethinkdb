@@ -48,7 +48,7 @@ std::string debug_str(const T &t) {
 }
 
 #ifndef NDEBUG
-void debugf(const char *msg, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
+void debugf(const char *msg, ...) ATTR_FORMAT(printf, 1, 2);
 template <class T>
 void debugf_print(const char *msg, const T &obj) {
     printf_buffer_t buf;

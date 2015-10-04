@@ -41,10 +41,10 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\windows_stub;$(ProjectDir)\windows_deps\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation><!-- TODO ATN: true -->
-      <AdditionalOptions>/we4005 /bigobj /FS</AdditionalOptions><!-- TODO ATN: why /FS? -->
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/we4005 /bigobj</AdditionalOptions>
       <ShowIncludes>false</ShowIncludes>
-      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration><!-- TODO ATN: true -->
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4244;4101;4267;4127;4068;4624;4661</DisableSpecificWarnings>
     </ClCompile>

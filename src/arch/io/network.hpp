@@ -10,8 +10,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #else
-// #pragma comment(lib, "Ws2_32.lib") // TODO ATN: mingw64 ingores this
-//ATN TODO: errors in wsock without this
+#pragma comment(lib, "Ws2_32.lib") // TODO ATN: mingw64 ingores this
+//ATN TODO: errors in wsock without this. see windows.hpp
 #define OPTIONAL
 #include <mswsock.h>
 #endif

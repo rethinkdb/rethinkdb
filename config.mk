@@ -158,3 +158,12 @@ SYSCONFDIR := /usr/local/etc
 # Runtime data prefix
 LOCALSTATEDIR := /usr/local/var
 CONFIGURE_STATUS := success
+
+RE2_LIBS :=
+CURL_LIBS :=
+CRYPTO_LIBS :=
+V8_LIBS :=
+PROTOBUF_LIBS :=
+ICUI18N_LIBS :=
+ICUUC_LIBS :=
+ICUDATA_LIBS :=

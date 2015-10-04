@@ -53,7 +53,7 @@ public:
 private:
     friend class mailbox_manager_t;
     friend class raw_mailbox_writer_t;
-    friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
+    friend void send_write(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
     mailbox_manager_t *manager;
 
@@ -98,8 +98,8 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_3(address_t, peer, thread, mailbox_id);
 
-    //private: // ATN RSI
-        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
+    private:
+        friend void send_write(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
@@ -126,13 +126,13 @@ public:
     address_t get_address() const;
 };
 
-/* `send()` sends a message to a mailbox. `send()` can block and must be called
-in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
+/* `send_write()` sends a message to a mailbox. `send_write()` can block and must be called
+in a coroutine. If the mailbox does not exist or the peer is disconnected, `send_write()`
 will silently fail. Mailbox messages are not necessarily delivered in order. */
 
-void send(mailbox_manager_t *src,
-          raw_mailbox_t::address_t dest,
-          mailbox_write_callback_t *callback);
+void send_write(mailbox_manager_t *src,
+                raw_mailbox_t::address_t dest,
+                mailbox_write_callback_t *callback);
 
 /* `mailbox_manager_t` is a `cluster_message_handler_t` that takes care
 of actually routing messages to mailboxes. */
@@ -144,7 +144,7 @@ public:
 
 private:
     friend struct raw_mailbox_t;
-    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
+    friend void send_write(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
 
     struct mailbox_table_t {
         mailbox_table_t();

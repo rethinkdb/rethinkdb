@@ -13,7 +13,11 @@
 
 typedef int gid_t;
 typedef int uid_t;
-// typedef DWORD pid_t; // TODO ATN: mingw64 doesn't like this. neither does process_id_t
+
+// TODO ATN: get rid of references to pid_t
+#ifndef __MINGW32__
+typedef DWORD pid_t;
+#endif
 
 inline ssize_t pread(HANDLE h, void* buf, size_t count, off_t offset) {
     DWORD res = SetFilePointer(h, offset, NULL, FILE_BEGIN);

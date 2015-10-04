@@ -1,11 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 
-// TODO ATN
-#ifdef CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
-#error bummer
-#endif
-
 #include "containers/archive/boost_types.hpp" // TODO ATN
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(

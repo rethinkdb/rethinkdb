@@ -138,8 +138,7 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 //
 // - wan 2005-11-16
 //
-// Starting with Visual C++ 2005, WinNT.h includes ARRAYSIZE.
-#if !defined(ARRAYSIZE)
+#ifndef _MSC_VER
 #define ARRAYSIZE(a) \
   ((sizeof(a) / sizeof(*(a))) / \
    static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))

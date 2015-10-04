@@ -8,7 +8,10 @@
 #define WIN32_LEAN_AND_MEAN
 #define _SCL_SECURE_NO_WARNINGS
 #define NOGDI
-// #define NOUSER // this breaks mingw include files
+
+#ifdef __MINGW32__
+#define NOUSER  // this breaks mingw include files
+#endif
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -23,8 +26,11 @@
 // defined by both Windows and RethinkDB
 #undef DELETE
 #undef OPTIONAL
+
+#ifndef NOUSER
 #undef ERROR
 #undef DIFFERENCE
+#endif
 
 // Windows uses different names for things
 typedef SSIZE_T ssize_t;

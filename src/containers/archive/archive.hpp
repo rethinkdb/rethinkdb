@@ -275,4 +275,14 @@ void serialize(write_message_t *wm, const in6_addr &addr);
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
+#ifdef _MSC_VER
+#define RDB_IMPL_DESERIALIZE_TEMPLATE(T, ...)                           \
+    template <cluster_version_t W>                                      \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, T<__VA_ARGS__> *x) { \
+        deserialize<W, __VA_ARGS__>(s, x);                              \
+    }
+#else
+#define RDB_IMPL_DESERIALIZE_TEMPLATE
+#endif
+
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

@@ -26,6 +26,7 @@
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "containers/archive/boost_types.hpp"
 
 class artificial_table_backend_t;
 class auto_drainer_t;
@@ -40,6 +41,15 @@ struct sindex_disk_info_t;
 
 typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
 typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
+
+//RDB_IMPL_DESERIALIZE_OPTIONAL(std::string)
+/*
+template <cluster_version_t W>
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<std::string> *x) {
+    deserialize<W, std::string>(s, x);
+}
+*/
+
 
 namespace ql {
 
