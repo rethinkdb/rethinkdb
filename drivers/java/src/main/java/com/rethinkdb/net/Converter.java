@@ -8,7 +8,13 @@ import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Converter {
@@ -94,14 +100,12 @@ public class Converter {
                 .collect(Collectors.toList());
     }
 
-    private static Date getTime(Map<String, Object> obj) {
+    private static OffsetDateTime getTime(Map<String, Object> obj) {
         try {
-            Double epoch_time = (Double) obj.get("epoch_time");
-            String timezone = (String) obj.get("timezone");
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis((long) (epoch_time * 1000));
-            calendar.setTimeZone(TimeZone.getTimeZone(timezone));
-            return calendar.getTime();
+            ZoneOffset offset = ZoneOffset.of((String) obj.get("timezone"));
+            Double epochTime = (Double) obj.get("epoch_time");
+            Instant timeInstant = Instant.ofEpochMilli(((Double) (epochTime * 1000.0)).longValue());
+            return OffsetDateTime.ofInstant(timeInstant, offset);
         } catch (Exception ex) {
             throw new ReqlDriverError("Error handling date", ex);
         }

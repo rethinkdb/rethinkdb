@@ -193,7 +193,7 @@ def py_to_java_type(py_type):
         # raise Skip("Can't store a lambda in a variable")
     elif (py_type.__module__ == 'datetime' and
           py_type.__name__ == 'datetime'):
-        return 'java.util.Date'
+        return 'OffsetDateTime'
     elif py_type.__module__ == 'builtins':
         return {
             bool: 'Boolean',

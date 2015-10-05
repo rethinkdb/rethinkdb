@@ -2,19 +2,25 @@ package com.rethinkdb.ast;
 
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverError;
-import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.ReqlLambda;
 
 
-import java.lang.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.Date;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.Number;
+import java.lang.Object;
+import java.lang.String;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public class Util {
@@ -75,11 +81,18 @@ public class Util {
             return Func.fromLambda((ReqlLambda) val);
         }
 
-        if (val instanceof Date) {
-            TimeZone tz = TimeZone.getTimeZone("UTC");
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-            df.setTimeZone(tz);
-            return Iso8601.fromString(df.format((Date) val));
+        final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+
+        if (val instanceof LocalDateTime) {
+            ZoneId zid = ZoneId.systemDefault();
+            DateTimeFormatter fmt2 = fmt.withZone(zid);
+            return Iso8601.fromString(((LocalDateTime) val).format(fmt2));
+        }
+        if (val instanceof ZonedDateTime) {
+            return Iso8601.fromString(((ZonedDateTime) val).format(fmt));
+        }
+        if (val instanceof OffsetDateTime) {
+            return Iso8601.fromString(((OffsetDateTime) val).format(fmt));
         }
 
         if (val instanceof Integer) {
