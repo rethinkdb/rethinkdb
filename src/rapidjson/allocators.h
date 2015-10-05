@@ -105,6 +105,13 @@ public:
     \tparam BaseAllocator the allocator type for allocating memory chunks. Default is RAllocator.
     \note implements Allocator concept
 */
+// RethinkDB patch: The MemoryPoolAllocator doesn't currently work properly on
+// ARM. See https://github.com/rethinkdb/rethinkdb/issues/4839
+// and https://github.com/miloyip/rapidjson/issues/388 .
+#if defined(__arm__)
+#define MAYBE_POOL_ALLOCATOR RAllocator
+#else
+#define MAYBE_POOL_ALLOCATOR MemoryPoolAllocator<>
 template <typename BaseAllocator = RAllocator>
 class MemoryPoolAllocator {
 public:
@@ -252,6 +259,7 @@ private:
     BaseAllocator* baseAllocator_;  //!< base allocator for allocating memory chunks.
     BaseAllocator* ownBaseAllocator_;   //!< base allocator created by this object.
 };
+#endif /* Compiling the MemoryPoolAllocator only if not on ARM */
 
 RAPIDJSON_NAMESPACE_END
 
