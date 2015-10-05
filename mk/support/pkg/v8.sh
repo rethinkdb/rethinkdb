@@ -4,18 +4,26 @@ version=3.30.33.16
 
 src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
 
-pkg_fetch () {
-    pkg_fetch_archive
-    if [[ "$CROSS_COMPILING" != 1 ]]; then
-        find "$src_dir"/third_party/icu/* -maxdepth 0 -not -name 'icu.gyp*' -print0 | xargs -0 rm -rf
-    fi
-}
-
 pkg_install-include () {
+    pkg_copy_src_to_build
+    
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
     cp -RL "$src_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
+    
+    # -- assemble the icu headers
+    if [[ "$CROSS_COMPILING" = 1 ]]; then
+        ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+    else
+        in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
+    fi
+    # The install-headers-recursive target is missing. Let's patch it.
+    sed -i.bak $'s/distclean-recursive/install-headers-recursive/g;$a\\\ninstall-headers-local:' "$build_dir/third_party/icu/source/Makefile"
+    for file in "$build_dir"/third_party/icu/source/*/Makefile; do
+        sed -i.bak $'$a\\\ninstall-headers:' "$file"
+    done
+    in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
 }
 
 pkg_install () {
@@ -37,7 +45,7 @@ pkg_install () {
         *)      arch=native ;;
     esac
     mode=release
-    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Duse_system_icu=1 -Dwerror= $arch_gypflags" V=1
+    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Dwerror= $arch_gypflags" V=1
     for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
         name=`basename $lib`
         cp $lib "$install_dir/lib/${name/.$arch/}"
@@ -48,14 +56,10 @@ pkg_install () {
 pkg_link-flags () {
     # These are the necessary libraries recommended by the docs:
     # https://developers.google.com/v8/get_started#hello
-    # ICU is linked separately
     for lib in libv8_{base,libbase,snapshot,libplatform}; do
         echo "$install_dir/lib/$lib.a"
     done
-}
-
-pkg_depends () {
-    if will_fetch icu; then
-        echo icu
-    fi
+    for lib in libicu{i18n,uc,data}; do
+        echo "$install_dir/lib/$lib.a"
+    done
 }
