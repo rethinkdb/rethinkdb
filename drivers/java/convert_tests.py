@@ -262,6 +262,20 @@ def escape_string(s, ctx=None):
     return e
 
 
+def attr_matches(path, node):
+    '''Helper function. Several places need to know if they are an
+    attribute of some root object'''
+    root, name = path.split('.')
+    ret = is_name(root, node.value) and node.attr == name
+    return ret
+
+
+def is_name(name, node):
+    '''Determine if the current attribute node is a Name with the
+    given name'''
+    return type(node) == ast.Name and node.id == name
+
+
 def def_to_java(item, reql_vars):
     if is_reql(item.term.type):
         reql_vars.add(item.varname)
@@ -440,8 +454,18 @@ class JavaVisitor(ast.NodeVisitor):
                 "Don't know NameConstant with value %s" % node.value)
 
     def visit_Attribute(self, node):
-        self.visit(node.value)
-        self.write(".")
+        skip_parent = False
+        if attr_matches("r.ast", node):
+            # The java driver doesn't have that namespace, so we skip
+            # the `r.` prefix and create an ast class member in the
+            # test file. So stuff like `r.ast.rqlTzinfo(...)` converts
+            # to `ast.rqlTzinfo(...)`
+            skip_parent = True
+            print("SKIPPED PARENT OF", ast.dump(node))
+
+        if not skip_parent:
+            self.visit(node.value)
+            self.write(".")
         self.write(metajava.dromedary(node.attr))
 
     def visit_Num(self, node):
@@ -660,23 +684,28 @@ class ReQLVisitor(JavaVisitor):
 
     def visit_Attribute(self, node):
         emit_call = False
-        if type(node.value) == ast.Name and node.value.id == 'r':
-            if node.attr == 'row':
-                raise FatalSkip("Java driver doesn't support r.row")
-            elif node.attr in self.TOPLEVEL_CONSTANTS:
-                # Python has r.minval, r.saturday etc. We need to emit
-                # r.minval() and r.saturday()
-                emit_call = True
+        if attr_matches("r.row", node):
+            raise FatalSkip("Java driver doesn't support r.row")
+        elif is_name("r", node.value) and node.attr in self.TOPLEVEL_CONSTANTS:
+            # Python has r.minval, r.saturday etc. We need to emit
+            # r.minval() and r.saturday()
+            emit_call = True
         python_clashes = {
+            # These are underscored in the python driver to avoid
+            # keywords, but they aren't java keywords so we convert
+            # them back.
             'or_': 'or',
             'and_': 'and',
             'not_': 'not',
         }
+        method_aliases = {metajava.dromedary(k): v
+                          for k, v in metajava.java_term_info
+                          .METHOD_ALIASES.items()}
         self.visit(node.value)
         self.write(".")
         initial = python_clashes.get(
             node.attr, metajava.dromedary(node.attr))
-        initial = metajava.java_term_info.METHOD_RENAMES.get(initial, initial)
+        initial = method_aliases.get(initial, initial)
         self.write(initial)
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:

@@ -342,6 +342,14 @@ public class ${module_name} {
 
     static final DateTime datetime = new DateTime();
 
+    static class Ast {
+        ZoneOffset rqlTzinfo(String offset) {
+            return ZoneOffset.of(offset);
+        }
+    }
+
+    static final Ast ast = new Ast();
+
     Double float_(Double nbr) {
         return nbr;
     }
