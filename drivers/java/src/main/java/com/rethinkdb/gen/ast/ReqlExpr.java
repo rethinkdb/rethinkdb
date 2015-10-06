@@ -688,9 +688,226 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         return new ConcatMap(arguments);
     }
-    public OrderBy orderBy(Object... exprs) {
+    public OrderBy orderBy() {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAddAll(exprs);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(func1B);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, Object exprC, Object exprD) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(exprD);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, Object exprC, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, ReqlFunction1 func1, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprC);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(func1B);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(func1B);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1B);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, ReqlFunction1 func1C) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(func1C);
         return new OrderBy(arguments);
     }
     public Distinct distinct() {
