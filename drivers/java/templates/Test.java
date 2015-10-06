@@ -370,9 +370,9 @@ public class ${module_name} {
         <%rendered_something = True %>
         {
             // ${item.testfile} #${item.test_num}
-            // ${item.expected_line.original}
+            /* ${item.expected_line.original} */
             ${item.expected_type} expected = ${item.expected_line.java};
-            // ${item.line.original}
+            /* ${item.line.original} */
             Object obtained = runOrCatch(${item.line.java},
                                           new OptArgs()
             %if item.runopts:

@@ -190,7 +190,6 @@ def py_to_java_type(py_type):
         return py_type
     elif py_type.__name__ == 'function':
         return 'ReqlFunction1'
-        # raise Skip("Can't store a lambda in a variable")
     elif (py_type.__module__ == 'datetime' and
           py_type.__name__ == 'datetime'):
         return 'OffsetDateTime'
@@ -198,7 +197,7 @@ def py_to_java_type(py_type):
         return {
             bool: 'Boolean',
             bytes: 'byte[]',
-            int: 'Double',
+            int: 'Integer',
             float: 'Double',
             str: 'String',
             dict: 'Map',
@@ -284,8 +283,10 @@ def def_to_java(item, reql_vars):
             visitor = ReQLVisitor
         else:
             visitor = JavaVisitor
-        java_line = visitor(
-            reql_vars, type_=item.term.type).convert(item.term.ast)
+        java_line = visitor(reql_vars,
+                            type_=item.term.type,
+                            is_def=True,
+                            ).convert(item.term.ast)
     except Skip as skip:
         return SkippedTest(line=item.term.line, reason=str(skip))
     return JavaDef(
@@ -357,15 +358,26 @@ def ast_to_java(sequence, reql_vars):
 class JavaVisitor(ast.NodeVisitor):
     '''Converts python ast nodes into a java string'''
 
-    def __init__(self, reql_vars=frozenset("r"), out=None, type_=None):
+    def __init__(self,
+                 reql_vars=frozenset("r"),
+                 out=None,
+                 type_=None,
+                 is_def=False):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
         if type_ is None:  # RSI
             raise Exception("Didn't provide overall_type")
         self.type = py_to_java_type(type_)
         self._type = type_
+        self.is_def = is_def
         super(JavaVisitor, self).__init__()
         self.write = self.out.write
+
+    def skip(self, message, *args, **kwargs):
+        cls = Skip
+        if self.is_def:
+            cls = FatalSkip
+        raise cls(message, *args, **kwargs)
 
     def convert(self, node):
         '''Convert a text line to another text line'''
@@ -429,7 +441,7 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Name(self, node):
         name = node.id
         if name == 'frozenset':
-            raise Skip("don't handle frozensets")
+            self.skip("don't handle frozensets")
         if name in metajava.java_term_info.JAVA_KEYWORDS:
             name += '_'
         self.write({
@@ -461,7 +473,6 @@ class JavaVisitor(ast.NodeVisitor):
             # test file. So stuff like `r.ast.rqlTzinfo(...)` converts
             # to `ast.rqlTzinfo(...)`
             skip_parent = True
-            print("SKIPPED PARENT OF", ast.dump(node))
 
         if not skip_parent:
             self.visit(node.value)
@@ -471,7 +482,7 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Num(self, node):
         self.write(repr(node.n))
         if not isinstance(node.n, float):
-            self.write(".0")
+            pass  # self.write(".0")
 
     def visit_Index(self, node):
         self.visit(node.value)
@@ -481,7 +492,7 @@ class JavaVisitor(ast.NodeVisitor):
         rgx = re.compile('(Expected|Got) .* arguments')
         try:
             if node.func.id == 'err' and rgx.match(node.args[1].s):
-                raise Skip("Arity checks done by java type system")
+                self.skip("Arity checks done by java type system")
         except (AttributeError, TypeError):
             pass
 
@@ -685,7 +696,7 @@ class ReQLVisitor(JavaVisitor):
     def visit_Attribute(self, node):
         emit_call = False
         if attr_matches("r.row", node):
-            raise FatalSkip("Java driver doesn't support r.row")
+            self.skip("Java driver doesn't support r.row")
         elif is_name("r", node.value) and node.attr in self.TOPLEVEL_CONSTANTS:
             # Python has r.minval, r.saturday etc. We need to emit
             # r.minval() and r.saturday()
