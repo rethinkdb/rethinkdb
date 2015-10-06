@@ -18,7 +18,7 @@ Bug fix release
 * Fixed a race condition that resulted in a crash with the message
   `std::terminate() called without any exception.` when losing a cluster connection
   (#4878)
-* Fixed a segmentation fault in the `mark_ready()` function that could occurr when
+* Fixed a segmentation fault in the `mark_ready()` function that could occur when
   reconfiguring a table (#4875)
 * Fixed a segmentation fault when using changefeeds on `orderBy.limit` queries (#4850)
 * Made the Data Explorer handle changefeeds on `orderBy.limit` queries correctly (#4852)
@@ -37,7 +37,7 @@ Bug fix release
 
 ### Performance improvements ###
 
-* Improved the performance of `getAll` queries which fetch multiple keys at once (#1526)
+* Improved the performance of `getAll` queries that fetch multiple keys at once (#1526)
 * Optimized the distribution of tasks across threads on multi-core servers (#4905)
 
 --
