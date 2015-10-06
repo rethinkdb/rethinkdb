@@ -1116,7 +1116,7 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         return new Default(arguments);
     }
-    public ToJsonString to_json() {
+    public ToJsonString toJson() {
         Arguments arguments = new Arguments(this);
         return new ToJsonString(arguments);
     }

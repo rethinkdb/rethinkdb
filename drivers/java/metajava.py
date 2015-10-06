@@ -434,7 +434,7 @@ class java_term_info(object):
     @staticmethod
     def nice_name(term, info):
         '''Whether the nice name for a term is in a given set'''
-        return info.get('alias', dromedary(term))
+        return dromedary(info.get('alias', term))
 
 
 def camel(varname):
