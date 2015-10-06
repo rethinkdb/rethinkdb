@@ -385,6 +385,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1C);
         return new Contains(arguments);
     }
+    public GetField getField(Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        return new GetField(arguments);
+    }
     public GetField g(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1115,6 +1120,10 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
         return new Default(arguments);
+    }
+    public ToJsonString toJsonString() {
+        Arguments arguments = new Arguments(this);
+        return new ToJsonString(arguments);
     }
     public ToJsonString toJson() {
         Arguments arguments = new Arguments(this);

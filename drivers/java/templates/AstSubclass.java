@@ -39,22 +39,24 @@ public ${classname} optArg(String optname, Object value) {
 <%block name="special_methods" />\
 % for term, info in all_terms.items():
   % if classname in info.get('include_in'):
-    % for signature in info['signatures']:
-      % if signature['first_arg'] == classname:
-    public ${info['classname']} ${info['methodname']}(${
+    % for methodname in info['methodnames']:
+      % for signature in info['signatures']:
+        % if signature['first_arg'] == classname:
+    public ${info['classname']} ${methodname}(${
             ', '.join("%s %s" % (arg['type'], arg['var'])
                       for arg in signature['args'][1:])}) {
         Arguments arguments = new Arguments(this);
-        %for arg in signature['args'][1:]:
-          %if arg['type'].endswith('...'):
+          %for arg in signature['args'][1:]:
+            %if arg['type'].endswith('...'):
         arguments.coerceAndAddAll(${arg['var']});
-          %else:
+            %else:
         arguments.coerceAndAdd(${arg['var']});
-          %endif
-        %endfor
+            %endif
+          %endfor
         return new ${info['classname']}(arguments);
     }
-      % endif
+        % endif
+      % endfor
     % endfor
   % endif
 % endfor

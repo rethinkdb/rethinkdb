@@ -159,7 +159,7 @@ class java_term_info(object):
 
     # Terms we don't want to create
     TERM_BLACKLIST = {
-        'row'  # Java 8 lambda syntax is nice, so no need for row
+        'IMPLICIT_VAR'  # Java 8 lambda syntax is nice, so no need for row
     }
 
     # Special aliases for the java driver only
@@ -168,8 +168,13 @@ class java_term_info(object):
     }
 
     # Renames for methods
-    METHOD_RENAMES = {
-        'getField': 'g'  # getField is too long for such a common operation
+    METHOD_ALIASES = {
+        'GET_FIELD': 'g'  # getField is too long for such a common operation
+    }
+
+    # Aliases that should never be emitted as method namespace
+    ALIAS_BLACKLIST = {
+        'funcall', 'javascript'
     }
 
     # Manual override of superclasses for terms. Default is ReqlExpr
@@ -405,18 +410,25 @@ class java_term_info(object):
             json.dump(self.java_terminfo, outputfile, indent=2)
 
     def delete_if_blacklisted(self, term, info):
-        if self.nice_name(term, info) in self.TERM_BLACKLIST:
+        if term in self.TERM_BLACKLIST:
             del self.java_terminfo[term]
 
     def add_methodname(self, term, info):
-        methodname = self.nice_name(term, info)
-        if methodname in self.JAVA_KEYWORDS:
-            methodname += '_'
-        elif methodname in self.OBJECT_METHODS:
-            methodname += '_'
-        elif methodname in self.METHOD_RENAMES:
-            methodname = self.METHOD_RENAMES[methodname]
-        info['methodname'] = methodname
+        methodnames = self.nice_names(term, info)
+
+        def filter_methodname(methodname):
+            if methodname in self.JAVA_KEYWORDS:
+                methodname += '_'
+            elif methodname in self.OBJECT_METHODS:
+                methodname += '_'
+            if methodname in self.ALIAS_BLACKLIST:
+                return None
+            else:
+                return methodname
+
+        info['methodnames'] = [filter_methodname(n)
+                               for n in methodnames
+                               if filter_methodname(n) is not None]
 
     def add_classname(self, term, info):
         info['classname'] = self.FORCED_CLASS_RENAMES.get(term, camel(term))
@@ -432,9 +444,14 @@ class java_term_info(object):
                               for t in info.get('include_in')]
 
     @staticmethod
-    def nice_name(term, info):
+    def nice_names(term, info):
         '''Whether the nice name for a term is in a given set'''
-        return dromedary(info.get('alias', term))
+        result = [dromedary(term)]
+        if 'alias' in info:
+            result.append(dromedary(info['alias']))
+        if term in java_term_info.METHOD_ALIASES:
+            result.append(java_term_info.METHOD_ALIASES[term])
+        return result
 
 
 def camel(varname):
