@@ -413,14 +413,17 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(".getBytes(StandardCharsets.UTF_8)")
 
     def visit_Name(self, node):
-        if node.id == 'frozenset':
+        name = node.id
+        if name == 'frozenset':
             raise Skip("don't handle frozensets")
+        if name in metajava.java_term_info.JAVA_KEYWORDS:
+            name += '_'
         self.write({
             'True': 'true',
             'False': 'false',
             'None': 'null',
             'nil': 'null',
-            }.get(node.id, node.id))
+            }.get(name, name))
 
     def visit_arg(self, node):
         self.write(node.arg)
