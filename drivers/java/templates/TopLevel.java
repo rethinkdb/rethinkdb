@@ -23,7 +23,7 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(String key, Object val){
+    public MapObject hashMap(Object key, Object val){
         return new MapObject().with(key, val);
     }
 

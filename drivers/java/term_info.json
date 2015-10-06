@@ -771,7 +771,7 @@
         ],
         "signatures": [
             ["T_EXPR", "T_EXPR", "*"],
-            ["T_FUNCX", "T_EXPR", "T_EXPR", "*"]
+            ["T_FUNCX", "T_EXPR", "*"]
         ],
         "id": 64
     },
@@ -779,7 +779,7 @@
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 65
     },
     "OR": {

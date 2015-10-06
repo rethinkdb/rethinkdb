@@ -9,7 +9,7 @@ import com.rethinkdb.ast.ReqlAst;
 
 <%block name="add_imports" />
 
-public class ${classname} extends ${superclass} {
+public class ${classname} extends ${superclass} ${"implements " + ", ".join(implements) if implements else ""}{
 <%block name="member_vars" />
 <%block name="constructors">
     %if term_name is not None:

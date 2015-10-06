@@ -27,7 +27,7 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(String key, Object val){
+    public MapObject hashMap(Object key, Object val){
         return new MapObject().with(key, val);
     }
 
@@ -315,6 +315,11 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Funcall(args);
     }
+    public Funcall do_(ReqlFunction0 func0){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(func0);
+        return new Funcall(args);
+    }
     public Funcall do_(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -336,20 +341,12 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+    public Branch branch(Object expr, Object exprA, Object exprB, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
-        args.coerceAndAdd(func4);
-        return new Funcall(args);
-    }
-    public Branch branch(Object expr, Object exprA, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
+        args.coerceAndAddAll(exprs);
         return new Branch(args);
     }
     public Or or(Object expr, Object exprA, Object... exprs){

@@ -209,6 +209,7 @@ class java_term_info(object):
             self.add_methodname(term, info)
             self.add_classname(term, info)
             self.add_superclass(term, info)
+            self.add_implements(term, info)
             self.translate_include_in(info)
             info['signatures'] = self.reify_signatures(term,
                 info.get('signatures', []))
@@ -439,6 +440,19 @@ class java_term_info(object):
         issue'''
         info['superclass'] = self.SUPERCLASSES.get(term, 'ReqlExpr')
 
+    def add_implements(self, term, info):
+        '''Creates a list of interfaces a term should implement. Right
+        now there is just a hard override, but if there's a need maybe
+        later there would be some more general system.'''
+        if term == "JAVASCRIPT":
+            info["implements"] = [
+                "ReqlFunction0",
+                "ReqlFunction1",
+                "ReqlFunction2",
+            ]
+        else:
+            info["implements"] = []
+
     def translate_include_in(self, info):
         info['include_in'] = [self.INCLUDE_IN_CLASSNAMES[t]
                               for t in info.get('include_in')]
@@ -515,7 +529,7 @@ class JavaRenderer(object):
         '''Finds the maximum arity a function will be from
         java_term_info.json, then creates an interface for each
         arity'''
-        for arity in range(1, self.max_arity+1):
+        for arity in range(0, self.max_arity+1):
             self.render(
                 'ReqlFunction.java',
                 output_dir=self.gen_dir+'/ast',
@@ -549,6 +563,7 @@ class JavaRenderer(object):
             None, {
                 "superclass": "ReqlAst",
                 "classname": "ReqlExpr",
+                "implements": [],
             }
         )
         # This will render an AstSubclass for each term
@@ -571,6 +586,7 @@ class JavaRenderer(object):
             all_terms=self.term_info,
             max_arity=self.max_arity,
             optargs=meta.get('optargs'),
+            implements=meta['implements'],
         )
 
     def render_proto_enums(self):

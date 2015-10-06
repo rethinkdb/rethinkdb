@@ -1065,14 +1065,6 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func3);
         return new Funcall(arguments);
     }
-    public Funcall do_(Object exprA, Object exprB, Object exprC, ReqlFunction4 func4) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(exprC);
-        arguments.coerceAndAdd(func4);
-        return new Funcall(arguments);
-    }
     public Or or(Object exprA, Object... exprs) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
