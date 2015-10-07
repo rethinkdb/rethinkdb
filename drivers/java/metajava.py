@@ -446,11 +446,7 @@ class java_term_info(object):
         now there is just a hard override, but if there's a need maybe
         later there would be some more general system.'''
         if term == "JAVASCRIPT":
-            info["implements"] = [
-                "ReqlFunction0",
-                "ReqlFunction1",
-                "ReqlFunction2",
-            ]
+            info["implements"] = ["ReqlFunction1"]
         else:
             info["implements"] = []
 

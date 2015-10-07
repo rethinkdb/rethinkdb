@@ -732,13 +732,21 @@ class ReQLVisitor(JavaVisitor):
             super(ReQLVisitor, self).visit_UnaryOp(node)
 
     def visit_Call(self, node):
-        if (type(node.func) == ast.Attribute and
-           node.func.attr == 'for_each' and
+        if (attr_equals(node.func, "attr", "for_each") and
            type(node.args[0]) != ast.Lambda):
             self.skip("the java driver doesn't allow "
                       "non-function arguments to forEach")
+        elif (attr_equals(node.func, "attr", "map") and
+              all(type(n) != ast.Lambda for n in node.args)):
+            self.skip("the java driver statically checks that "
+                      "map contains a function argument")
         else:
             return super(ReQLVisitor, self).visit_Call(node)
+
+
+def attr_equals(node, attr, value):
+    '''Helper for digging into ast nodes'''
+    return hasattr(node, attr) and getattr(node, attr) == value
 
 
 if __name__ == '__main__':
