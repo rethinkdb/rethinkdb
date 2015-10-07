@@ -365,8 +365,6 @@ class JavaVisitor(ast.NodeVisitor):
                  is_def=False):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
-        if type_ is None:  # RSI
-            raise Exception("Didn't provide overall_type")
         self.type = py_to_java_type(type_)
         self._type = type_
         self.is_def = is_def
@@ -426,7 +424,9 @@ class JavaVisitor(ast.NodeVisitor):
         if is_reql(self._type):
             ReQLVisitor(self.reql_vars,
                         out=self.out,
-                        type_=self.type).visit(node.value)
+                        type_=self.type,
+                        is_def=True,
+                        ).visit(node.value)
         else:
             self.visit(node.value)
         self.write(";")
@@ -738,12 +738,12 @@ class ReQLVisitor(JavaVisitor):
         # file, if we bail out afterwards it's still ok
         super_result = super(ReQLVisitor, self).visit_Call(node)
 
-        # r.for_each(1) etc should fail
+        # r.for_each(1) etc should be skipped
         if (attr_equals(node.func, "attr", "for_each") and
            type(node.args[0]) != ast.Lambda):
             self.skip("the java driver doesn't allow "
                       "non-function arguments to forEach")
-        # map(1) should fail.
+        # map(1) should be skipped
         elif attr_equals(node.func, "attr", "map"):
             def check(node):
                 if type(node) == ast.Lambda:
