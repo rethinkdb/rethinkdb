@@ -4,7 +4,7 @@ Released on 2015-10-07
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.5 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
   in the same cluster
@@ -48,7 +48,7 @@ Released on 2015-09-16
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.4 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
   in the same cluster
@@ -71,7 +71,7 @@ Released on 2015-09-04
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.3 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
   in the same cluster
@@ -122,7 +122,7 @@ Released on 2015-08-25
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.2 servers cannot be mixed with servers running earlier versions in the
   same cluster
@@ -285,7 +285,7 @@ separately in your application if you need to. You can find the
 
 As part of this change, ReQL error types now use the `Reql` name prefix instead of `Rql`
 (for example `ReqlRuntimeError` instead of `RqlRuntimeError`).
-The old type names are still supported in our drivers for backwards compatiblity.
+The old type names are still supported in our drivers for backwards compatibility.
 
 [error-types]: http://rethinkdb.com/docs/error-types/
 
