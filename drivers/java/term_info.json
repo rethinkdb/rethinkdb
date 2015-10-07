@@ -800,7 +800,10 @@
     },
     "FOR_EACH": {
         "include_in": ["T_EXPR"],
-        "signatures": [["T_EXPR", "T_FUNC1"]],
+        "signatures": [
+            ["T_EXPR", "T_FUNC0"],
+            ["T_EXPR", "T_FUNC1"]
+        ],
         "id": 68
     },
     "FUNC": {

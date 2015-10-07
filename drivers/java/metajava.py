@@ -484,7 +484,9 @@ def dromedary(varname):
     if re.match(r'[A-Z][A-Z0-9_]*$|[a-z][a-z0-9_]*$', varname):
         chunks = varname.split('_')
         suffix = "_" if varname.endswith('_') else ""
-        return chunks[0].lower() + ''.join(x.title() for x in chunks[1:]) + suffix
+        return (chunks[0].lower() +
+                ''.join(x.title() for x in chunks[1:]) +
+                suffix)
     else:
         return varname[0].lower() + varname[1:]
 

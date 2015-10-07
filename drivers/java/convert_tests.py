@@ -441,7 +441,7 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Name(self, node):
         name = node.id
         if name == 'frozenset':
-            self.skip("don't handle frozensets")
+            self.skip("can't convert frozensets to GroupedData yet")
         if name in metajava.java_term_info.JAVA_KEYWORDS:
             name += '_'
         self.write({
@@ -492,7 +492,7 @@ class JavaVisitor(ast.NodeVisitor):
         rgx = re.compile('(Expected|Got) .* arguments')
         try:
             if node.func.id == 'err' and rgx.match(node.args[1].s):
-                self.skip("Arity checks done by java type system")
+                self.skip("arity checks done by java type system")
         except (AttributeError, TypeError):
             pass
 
@@ -730,6 +730,15 @@ class ReQLVisitor(JavaVisitor):
             self.write(".not()")
         else:
             super(ReQLVisitor, self).visit_UnaryOp(node)
+
+    def visit_Call(self, node):
+        if (type(node.func) == ast.Attribute and
+           node.func.attr == 'for_each' and
+           type(node.args[0]) != ast.Lambda):
+            self.skip("the java driver doesn't allow "
+                      "non-function arguments to forEach")
+        else:
+            return super(ReQLVisitor, self).visit_Call(node)
 
 
 if __name__ == '__main__':
