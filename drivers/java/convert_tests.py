@@ -217,7 +217,7 @@ def py_to_java_type(py_type):
         return {
             bool: 'Boolean',
             bytes: 'byte[]',
-            int: 'Integer',
+            int: 'Long',
             float: 'Double',
             str: 'String',
             dict: 'Map',
@@ -502,7 +502,10 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Num(self, node):
         self.write(repr(node.n))
         if not isinstance(node.n, float):
-            pass  # self.write(".0")
+            if node.n > 9223372036854775807 or node.n < -9223372036854775808:
+                self.write(".0")
+            else:
+                self.write("L")
 
     def visit_Index(self, node):
         self.visit(node.value)
@@ -617,11 +620,12 @@ class JavaVisitor(ast.NodeVisitor):
             self.write(opMap[t])
             self.visit(node.right)
         elif t == ast.Pow:
-            self.write("Math.pow(")
-            self.visit(node.left)
-            self.write(", ")
-            self.visit(node.right)
-            self.write(")")
+            if type(node.left) == ast.Num and node.left.n == 2:
+                self.visit(node.left)
+                self.write(" << ")
+                self.visit(node.right)
+            else:
+                raise Unhandled("Can't do exponent with non 2 base")
 
 
 class ReQLVisitor(JavaVisitor):

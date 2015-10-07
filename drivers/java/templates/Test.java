@@ -184,7 +184,7 @@ public class ${module_name} {
         }
     }
 
-    ArrLen arrlen(Double length, Object thing) {
+    ArrLen arrlen(Integer length, Object thing) {
         return new ArrLen(length.intValue(), thing);
     }
 
@@ -311,13 +311,11 @@ public class ${module_name} {
         return str.boxed().collect(Collectors.toList());
     }
 
-    static class FloatInfo {
-        public static final Double min = Double.MIN_VALUE;
-        public static final Double max = Double.MAX_VALUE;
-    }
-
-    static class Sys {
-        public static final FloatInfo floatInfo = new FloatInfo();
+    static class sys {
+        static class floatInfo {
+            public static final Double min = Double.MIN_VALUE;
+            public static final Double max = Double.MAX_VALUE;
+        }
     }
 
     ZoneOffset PacificTimeZone() {
@@ -328,27 +326,23 @@ public class ${module_name} {
         return ZoneOffset.ofHours(0);
     }
 
-    static class DateTime {
-        OffsetDateTime fromtimestamp(double seconds, ZoneOffset offset) {
+    static class datetime {
+        static OffsetDateTime fromtimestamp(double seconds, ZoneOffset offset) {
             Instant inst = Instant.ofEpochMilli(
                 (new Double(seconds * 1000)).longValue());
             return OffsetDateTime.ofInstant(inst, offset);
         }
 
-        OffsetDateTime now() {
+        static OffsetDateTime now() {
             return OffsetDateTime.now();
         }
     }
 
-    static final DateTime datetime = new DateTime();
-
-    static class Ast {
-        ZoneOffset rqlTzinfo(String offset) {
+    static class ast {
+        static ZoneOffset rqlTzinfo(String offset) {
             return ZoneOffset.of(offset);
         }
     }
-
-    static final Ast ast = new Ast();
 
     Double float_(Double nbr) {
         return nbr;
