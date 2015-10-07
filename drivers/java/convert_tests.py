@@ -663,15 +663,14 @@ class ReQLVisitor(JavaVisitor):
             ast.Eq: "eq",
             ast.NotEq: "ne",
         }
-        self.write("r.")
         if len(node.ops) != 1:
             # Python syntax allows chained comparisons (a < b < c) but
             # we don't deal with that here
             raise Unhandled("Compare hack bailed on: ", ast.dump(node))
+        self.visit(node.left)
+        self.write(".")
         self.write(opMap[type(node.ops[0])])
         self.write("(")
-        self.visit(node.left)
-        self.write(", ")
         self.visit(node.comparators[0])
         self.write(")")
 
