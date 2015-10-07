@@ -47,6 +47,9 @@ def main():
         logging.root.setLevel(logging.DEBUG)
     elif args.info:
         logging.root.setLevel(logging.INFO)
+    if args.e:
+        evaluate_snippet(args.e)
+        exit(0)
     global r
     r = import_python_driver(args.test_common_dir)
     renderer = metajava.Renderer(
@@ -100,13 +103,17 @@ def parse_args():
         help="Print debug output",
         dest='debug',
         action='store_true')
+    parser.set_defaults(debug=False)
     parser.add_argument(
         '--info',
         help="Print info level output",
         dest='info',
         action='store_true')
-    parser.set_defaults(debug=False)
-    parser.set_defaults(debug=False)
+    parser.set_defaults(info=False)
+    parser.add_argument(
+        '-e',
+        help="Convert an inline python reql to java reql snippet",
+    )
     return parser.parse_args()
 
 
@@ -130,6 +137,17 @@ JavaQuery = namedtuple(
 JavaDef = namedtuple('JavaDef', 'line testfile test_num')
 Version = namedtuple("Version", "original java")
 
+
+def evaluate_snippet(snippet):
+    '''Just converts a single expression snippet into java'''
+    try:
+        parsed = ast.parse(snippet, mode='eval').body
+    except Exception as e:
+        return print("Error:", e)
+    try:
+        print(ReQLVisitor().convert(parsed))
+    except Exception as e:
+        return print("Error:", e)
 
 class TestFile(object):
     '''Represents a single test file'''
@@ -185,7 +203,9 @@ class TestFile(object):
 
 def py_to_java_type(py_type):
     '''Converts python types to their Java equivalents'''
-    if isinstance(py_type, str):
+    if py_type is None:
+        return None
+    elif isinstance(py_type, str):
         # This can be called on something already converted
         return py_type
     elif py_type.__name__ == 'function':
@@ -659,7 +679,12 @@ class ReQLVisitor(JavaVisitor):
         self.visit(node.value)
         if type(node.slice) == ast.Index:
             # Syntax like a[2] or a["b"]
-            self.write(".bracket(")
+            if type(node.slice.value) == ast.Str:
+                self.write(".g(")
+            elif type(node.slice.value) == ast.Num:
+                self.write(".nth(")
+            else:
+                self.write(".bracket(")
             self.visit(node.slice.value)
         elif type(node.slice) == ast.Slice:
             # Syntax like a[1:2] or a[:2]
