@@ -62,8 +62,11 @@ class SkippedTest(object):
     __slots__ = ('line', 'reason')
 
     def __init__(self, line, reason):
-        logger.info("Skipped test because %s", reason)
-        logger.debug("Skipped test: %s", line)
+        if reason == "No java, python or generic test":
+            logger.debug("Skipped test because %s", reason)
+        else:
+            logger.info("Skipped test because %s", reason)
+            logger.info(" - Skipped test was: %s", line)
         self.line = line
         self.reason = reason
 

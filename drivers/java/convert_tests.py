@@ -732,22 +732,41 @@ class ReQLVisitor(JavaVisitor):
             super(ReQLVisitor, self).visit_UnaryOp(node)
 
     def visit_Call(self, node):
+        # We call the superclass first, so if it's going to fail
+        # because of r.row or whatever it already does it. Since
+        # everything is written to a stringIO object not directly to a
+        # file, if we bail out afterwards it's still ok
+        super_result = super(ReQLVisitor, self).visit_Call(node)
+
+        # r.for_each(1) etc should fail
         if (attr_equals(node.func, "attr", "for_each") and
            type(node.args[0]) != ast.Lambda):
             self.skip("the java driver doesn't allow "
                       "non-function arguments to forEach")
-        elif (attr_equals(node.func, "attr", "map") and
-              all(type(n) != ast.Lambda for n in node.args)):
-            self.skip("the java driver statically checks that "
-                      "map contains a function argument")
+        # map(1) should fail.
+        elif attr_equals(node.func, "attr", "map"):
+            def check(node):
+                if type(node) == ast.Lambda:
+                    return True
+                elif hasattr(node, "func") and attr_matches("r.js", node.func):
+                    return True
+                elif type(node) == ast.Name:
+                    # The assumption is that if you're passing a
+                    # variable to map, it's at least potentially a
+                    # function. This may be misguided
+                    return True
+                else:
+                    return False
+            if all(not check(n) for n in node.args):
+                self.skip("the java driver statically checks that "
+                          "map contains a function argument")
         else:
-            return super(ReQLVisitor, self).visit_Call(node)
+            return super_result
 
 
 def attr_equals(node, attr, value):
     '''Helper for digging into ast nodes'''
     return hasattr(node, attr) and getattr(node, attr) == value
-
 
 if __name__ == '__main__':
     main()
