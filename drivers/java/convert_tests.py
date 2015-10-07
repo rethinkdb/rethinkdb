@@ -646,13 +646,11 @@ class ReQLVisitor(JavaVisitor):
             ast.BitAnd: "and",
             ast.BitOr: "or",
         }
-        self.write("r.")
-        self.write(opMap[type(node.op)])
-        self.write("(")
-        self.visit(node.left)
-        self.write(", ")
-        self.visit(node.right)
-        self.write(")")
+        func = opMap[type(node.op)]
+        if self.is_not_reql(node.left):
+            self.prefix(func, node.left, node.right)
+        else:
+            self.infix(func, node.left, node.right)
 
     def visit_Compare(self, node):
         opMap = {
@@ -667,12 +665,39 @@ class ReQLVisitor(JavaVisitor):
             # Python syntax allows chained comparisons (a < b < c) but
             # we don't deal with that here
             raise Unhandled("Compare hack bailed on: ", ast.dump(node))
-        self.visit(node.left)
-        self.write(".")
-        self.write(opMap[type(node.ops[0])])
+        left = node.left
+        right = node.comparators[0]
+        func_name = opMap[type(node.ops[0])]
+        if self.is_not_reql(node.left):
+            self.prefix(func_name, left, right)
+        else:
+            self.infix(func_name, left, right)
+
+    def prefix(self, func_name, left, right):
+        self.write("r.")
+        self.write(func_name)
         self.write("(")
-        self.visit(node.comparators[0])
+        self.visit(left)
+        self.write(", ")
+        self.visit(right)
         self.write(")")
+
+    def infix(self, func_name, left, right):
+        self.visit(left)
+        self.write(".")
+        self.write(func_name)
+        self.write("(")
+        self.visit(right)
+        self.write(")")
+
+    def is_not_reql(self, node):
+        if isinstance(node, (ast.Num, ast.Str, ast.Dict, ast.List)):
+            return True
+        elif hasattr(node, "id") and \
+             node.id in ("null", "None", "true", "false", "True", "False"):
+            return True
+        else:
+            return False
 
     def visit_Subscript(self, node):
         self.visit(node.value)
@@ -783,7 +808,7 @@ class ReQLVisitor(JavaVisitor):
                     return True
                 else:
                     return False
-            if all(not check(n) for n in node.args):
+            if not check(node.args[-1]):
                 self.skip("the java driver statically checks that "
                           "map contains a function argument")
         else:
