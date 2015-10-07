@@ -294,6 +294,7 @@ class java_term_info(object):
                     'T_DB': 'Db',
                     'T_EXPR': 'Object',
                     'T_TABLE': 'Table',
+                    'T_FUNC0': 'ReqlFunction0',
                     'T_FUNC1': 'ReqlFunction1',
                     'T_FUNC2': 'ReqlFunction2',
                 }[arg]

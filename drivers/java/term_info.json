@@ -392,6 +392,7 @@
             "T_EXPR"
         ],
         "signatures": [
+            ["T_EXPR", "T_FUNC0"],
             ["T_EXPR", "T_EXPR", "*", "T_FUNCX"]
         ],
         "id": 38

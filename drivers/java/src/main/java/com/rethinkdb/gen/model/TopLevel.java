@@ -175,6 +175,12 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new ReqlObject(args);
     }
+    public Map map(Object expr, ReqlFunction0 func0){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func0);
+        return new Map(args);
+    }
     public Map map(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);

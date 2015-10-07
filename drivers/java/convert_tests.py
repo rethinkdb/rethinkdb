@@ -489,7 +489,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def skip_if_arity_check(self, node):
         '''Throws out tests for arity'''
-        rgx = re.compile('(Expected|Got) .* arguments')
+        rgx = re.compile('.*([Ee]xpect(ed|s)|Got) .* argument')
         try:
             if node.func.id == 'err' and rgx.match(node.args[1].s):
                 self.skip("arity checks done by java type system")

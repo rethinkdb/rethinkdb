@@ -652,6 +652,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Reduce(arguments);
     }
+    public Map map(ReqlFunction0 func0) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func0);
+        return new Map(arguments);
+    }
     public Map map(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -1075,6 +1080,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAddAll(exprs);
         return new And(arguments);
+    }
+    public ForEach forEach(ReqlFunction0 func0) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func0);
+        return new ForEach(arguments);
     }
     public ForEach forEach(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
