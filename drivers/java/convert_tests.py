@@ -695,10 +695,8 @@ class ReQLVisitor(JavaVisitor):
         self.write(")")
 
     def is_not_reql(self, node):
-        if isinstance(node, (ast.Num, ast.Str, ast.Dict, ast.List)):
-            return True
-        elif hasattr(node, "id") and \
-             node.id in ("null", "None", "true", "false", "True", "False"):
+        if type(node) in (ast.Name, ast.NameConstant,
+                          ast.Num, ast.Str, ast.Dict, ast.List):
             return True
         else:
             return False
