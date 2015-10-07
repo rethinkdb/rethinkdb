@@ -774,6 +774,8 @@ class ReQLVisitor(JavaVisitor):
                     return True
                 elif hasattr(node, "func") and attr_matches("r.js", node.func):
                     return True
+                elif type(node) == ast.Dict:
+                    return True
                 elif type(node) == ast.Name:
                     # The assumption is that if you're passing a
                     # variable to map, it's at least potentially a
