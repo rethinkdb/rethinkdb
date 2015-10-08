@@ -652,6 +652,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Reduce(arguments);
     }
+    public Reduce reduce(Javascript javascript) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(javascript);
+        return new Reduce(arguments);
+    }
     public Map map(ReqlFunction0 func0) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func0);

@@ -383,7 +383,10 @@
     },
     "REDUCE": {
         "include_in": ["T_EXPR"],
-        "signatures": [["T_EXPR", "T_FUNC2"]],
+        "signatures": [
+            ["T_EXPR", "T_FUNC2"],
+            ["T_EXPR", "T_JS"]
+        ],
         "id": 37
     },
     "MAP": {

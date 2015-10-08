@@ -297,6 +297,7 @@ class java_term_info(object):
                     'T_FUNC0': 'ReqlFunction0',
                     'T_FUNC1': 'ReqlFunction1',
                     'T_FUNC2': 'ReqlFunction2',
+                    'T_JS': 'Javascript',
                 }[arg]
             elif isinstance(arg, list):
                 return [translate(a) for a in arg]
