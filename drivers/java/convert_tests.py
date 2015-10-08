@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -455,8 +455,17 @@ class JavaVisitor(ast.NodeVisitor):
         self.to_str(node.s)
 
     def visit_Bytes(self, node):
-        self.to_str(node.s)
-        self.write(".getBytes(StandardCharsets.UTF_8)")
+        self.write("new byte[]{")
+        for i, byte in enumerate(node.s):
+            if i > 0:
+                self.write(", ")
+            # Java bytes are signed :(
+            if byte > 127:
+                self.write(str(-(256 - byte)))
+            else:
+                self.write(str(byte))
+        self.write("}")
+        #self.write(".getBytes(StandardCharsets.UTF_8)")
 
     def visit_Name(self, node):
         name = node.id
