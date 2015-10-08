@@ -134,9 +134,10 @@ JavaQuery = namedtuple(
      'test_num',
      'runopts')
 )
-JavaDef = namedtuple('JavaDef', 'line testfile test_num')
+JavaDef = namedtuple('JavaDef', 'line varname vartype value testfile test_num')
 Version = namedtuple("Version", "original java")
 
+JAVA_DECL = re.compile(r'(?P<type>.+) (?P<var>\w+) = (?P<value>.*);')
 
 def evaluate_snippet(snippet):
     '''Just converts a single expression snippet into java'''
@@ -309,11 +310,15 @@ def def_to_java(item, reql_vars):
                             ).convert(item.term.ast)
     except Skip as skip:
         return SkippedTest(line=item.term.line, reason=str(skip))
+    java_decl = JAVA_DECL.match(java_line).groupdict()
     return JavaDef(
         line=Version(
             original=item.term.line,
             java=java_line,
         ),
+        varname=java_decl['var'],
+        vartype=java_decl['type'],
+        value=java_decl['value'],
         testfile=item.testfile,
         test_num=item.test_num,
     )
