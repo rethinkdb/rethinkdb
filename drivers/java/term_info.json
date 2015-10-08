@@ -837,14 +837,20 @@
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR"]],
+        "signatures": [
+            ["T_EXPR"],
+            ["T_FUNC1"]
+        ],
         "id": 73
     },
     "DESC": {
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR"]],
+        "signatures": [
+            ["T_EXPR"],
+            ["T_FUNC1"]
+        ],
         "id": 74
     },
     "INFO": {

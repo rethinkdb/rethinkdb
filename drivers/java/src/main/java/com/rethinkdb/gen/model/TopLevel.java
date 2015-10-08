@@ -373,9 +373,19 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new Asc(args);
     }
+    public Asc asc(ReqlFunction1 func1){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(func1);
+        return new Asc(args);
+    }
     public Desc desc(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
+        return new Desc(args);
+    }
+    public Desc desc(ReqlFunction1 func1){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(func1);
         return new Desc(args);
     }
     public Info info(Object expr){
