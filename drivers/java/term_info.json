@@ -617,7 +617,10 @@
             "T_TOP_LEVEL",
             "T_DB"
         ],
-        "signatures": [["T_DB", "T_EXPR"]],
+        "signatures": [
+            ["T_EXPR"],
+            ["T_DB", "T_EXPR"]
+        ],
         "optargs": {
             "primary_key": "T_STR",
             "durability": "E_DURABILITY",
@@ -644,7 +647,10 @@
             "T_TOP_LEVEL",
             "T_DB"
         ],
-        "signatures": [["T_DB"]],
+        "signatures": [
+            [],
+            ["T_DB"]
+        ],
         "id": 62
     },
     "CONFIG": {

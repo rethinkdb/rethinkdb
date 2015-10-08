@@ -38,18 +38,19 @@ public class TopLevel {
 %for term in all_terms.values():
   %if "TopLevel" in term["include_in"]:
     %for methodname in term['methodnames']:
-      %for signature in term['signatures']:
+      %for sig in term['signatures']:
+        %if sig['first_arg'] != 'Db':
     public ${term['classname']} ${methodname}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
-                  for arg in signature['args'])}){
+                  for arg in sig['args'])}){
           % if methodname == 'binary':
-        <% firstarg = signature['args'][0]['var'] %>
+        <% firstarg = sig['args'][0]['var'] %>
         if(${firstarg} instanceof byte[]){
             return new ${term['classname']}((byte[]) ${firstarg});
         }else{
           %endif
         Arguments args = new Arguments();
-          %for arg in signature['args']:
+          %for arg in sig['args']:
             %if arg['type'] == 'Object...':
         args.coerceAndAddAll(${arg['var']});
             %else:
@@ -61,6 +62,7 @@ public class TopLevel {
         }
           %endif
     }
+        %endif
       %endfor
     %endfor
   %endif

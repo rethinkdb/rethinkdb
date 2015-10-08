@@ -67,12 +67,6 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new Db(args);
     }
-    public Table table(Db db, Object expr){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
-        args.coerceAndAdd(expr);
-        return new Table(args);
-    }
     public Table table(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -281,35 +275,22 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new DbList(args);
     }
-    public TableCreate tableCreate(Db db, Object expr){
+    public TableCreate tableCreate(Object expr){
         Arguments args = new Arguments();
-        args.coerceAndAdd(db);
         args.coerceAndAdd(expr);
         return new TableCreate(args);
-    }
-    public TableDrop tableDrop(Db db, Object expr){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
-        args.coerceAndAdd(expr);
-        return new TableDrop(args);
     }
     public TableDrop tableDrop(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TableDrop(args);
     }
-    public TableList tableList(Db db){
+    public TableList tableList(){
         Arguments args = new Arguments();
-        args.coerceAndAdd(db);
         return new TableList(args);
     }
     public Wait wait_(){
         Arguments args = new Arguments();
-        return new Wait(args);
-    }
-    public Wait wait_(Db db){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
         return new Wait(args);
     }
     public Wait wait_(Table table){
@@ -321,11 +302,6 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new Reconfigure(args);
     }
-    public Reconfigure reconfigure(Db db){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
-        return new Reconfigure(args);
-    }
     public Reconfigure reconfigure(Table table){
         Arguments args = new Arguments();
         args.coerceAndAdd(table);
@@ -333,11 +309,6 @@ public class TopLevel {
     }
     public Rebalance rebalance(){
         Arguments args = new Arguments();
-        return new Rebalance(args);
-    }
-    public Rebalance rebalance(Db db){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
         return new Rebalance(args);
     }
     public Rebalance rebalance(Table table){
@@ -453,11 +424,6 @@ public class TopLevel {
         Arguments args = new Arguments();
         args.coerceAndAdd(func1);
         return new Desc(args);
-    }
-    public Info info(Db db){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(db);
-        return new Info(args);
     }
     public Info info(Object expr){
         Arguments args = new Arguments();
