@@ -167,14 +167,170 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Contains(arguments);
     }
+    public Contains contains(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(jsC);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(exprA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Javascript jsA, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new Contains(arguments);
+    }
     public Contains contains(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new Contains(arguments);
     }
-    public Contains contains(ReqlFunction1 func1) {
+    public Contains contains(Object exprA, Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Javascript js, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
         return new Contains(arguments);
     }
     public Contains contains(Object exprA, Object exprB) {
@@ -183,22 +339,27 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprB);
         return new Contains(arguments);
     }
-    public Contains contains(Object exprA, ReqlFunction1 func1) {
+    public Contains contains(Object exprA, Object exprB, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
         return new Contains(arguments);
     }
-    public Contains contains(ReqlFunction1 func1, Object exprA) {
+    public Contains contains(Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
         return new Contains(arguments);
     }
-    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A) {
+    public Contains contains(Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprC);
         return new Contains(arguments);
     }
     public Contains contains(Object exprA, Object exprB, Object exprC) {
@@ -208,53 +369,12 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprC);
         return new Contains(arguments);
     }
-    public Contains contains(Object exprA, Object exprB, ReqlFunction1 func1) {
+    public Contains contains(Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(func1);
-        return new Contains(arguments);
-    }
-    public Contains contains(Object exprA, ReqlFunction1 func1, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprB);
-        return new Contains(arguments);
-    }
-    public Contains contains(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        return new Contains(arguments);
-    }
-    public Contains contains(ReqlFunction1 func1, Object exprA, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        return new Contains(arguments);
-    }
-    public Contains contains(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1A);
-        return new Contains(arguments);
-    }
-    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(exprA);
-        return new Contains(arguments);
-    }
-    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(js);
         return new Contains(arguments);
     }
     public Contains contains(Object exprA, Object exprB, Object exprC, Object exprD) {
@@ -270,6 +390,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func1);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, Object exprB, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(func1);
         return new Contains(arguments);
     }
@@ -289,6 +416,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1A);
         return new Contains(arguments);
     }
+    public Contains contains(Object exprA, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, ReqlFunction1 func1, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
     public Contains contains(Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -302,6 +442,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Contains(arguments);
+    }
+    public Contains contains(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         return new Contains(arguments);
     }
@@ -321,6 +468,24 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Contains(arguments);
     }
+    public Contains contains(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new Contains(arguments);
+    }
+    public Contains contains(ReqlFunction1 func1, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        return new Contains(arguments);
+    }
+    public Contains contains(ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Contains(arguments);
+    }
     public Contains contains(ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -334,6 +499,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Contains(arguments);
+    }
+    public Contains contains(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1A);
         return new Contains(arguments);
     }
@@ -353,6 +525,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Contains(arguments);
     }
+    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new Contains(arguments);
+    }
+    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        return new Contains(arguments);
+    }
     public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -366,6 +551,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1B);
+        return new Contains(arguments);
+    }
+    public Contains contains(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(func1B);
         return new Contains(arguments);
     }
@@ -423,14 +615,170 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Merge(arguments);
     }
+    public Merge merge(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(jsC);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(exprA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Javascript jsA, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new Merge(arguments);
+    }
     public Merge merge(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new Merge(arguments);
     }
-    public Merge merge(ReqlFunction1 func1) {
+    public Merge merge(Object exprA, Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Javascript js, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
         return new Merge(arguments);
     }
     public Merge merge(Object exprA, Object exprB) {
@@ -439,22 +787,27 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprB);
         return new Merge(arguments);
     }
-    public Merge merge(Object exprA, ReqlFunction1 func1) {
+    public Merge merge(Object exprA, Object exprB, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
         return new Merge(arguments);
     }
-    public Merge merge(ReqlFunction1 func1, Object exprA) {
+    public Merge merge(Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
         return new Merge(arguments);
     }
-    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A) {
+    public Merge merge(Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprC);
         return new Merge(arguments);
     }
     public Merge merge(Object exprA, Object exprB, Object exprC) {
@@ -464,53 +817,12 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprC);
         return new Merge(arguments);
     }
-    public Merge merge(Object exprA, Object exprB, ReqlFunction1 func1) {
+    public Merge merge(Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(func1);
-        return new Merge(arguments);
-    }
-    public Merge merge(Object exprA, ReqlFunction1 func1, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprB);
-        return new Merge(arguments);
-    }
-    public Merge merge(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        return new Merge(arguments);
-    }
-    public Merge merge(ReqlFunction1 func1, Object exprA, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        return new Merge(arguments);
-    }
-    public Merge merge(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1A);
-        return new Merge(arguments);
-    }
-    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(exprA);
-        return new Merge(arguments);
-    }
-    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(js);
         return new Merge(arguments);
     }
     public Merge merge(Object exprA, Object exprB, Object exprC, Object exprD) {
@@ -526,6 +838,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func1);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, Object exprB, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(func1);
         return new Merge(arguments);
     }
@@ -545,6 +864,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1A);
         return new Merge(arguments);
     }
+    public Merge merge(Object exprA, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, ReqlFunction1 func1, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
     public Merge merge(Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -558,6 +890,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Merge(arguments);
+    }
+    public Merge merge(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         return new Merge(arguments);
     }
@@ -577,6 +916,24 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Merge(arguments);
     }
+    public Merge merge(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new Merge(arguments);
+    }
+    public Merge merge(ReqlFunction1 func1, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        return new Merge(arguments);
+    }
+    public Merge merge(ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Merge(arguments);
+    }
     public Merge merge(ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -590,6 +947,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Merge(arguments);
+    }
+    public Merge merge(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1A);
         return new Merge(arguments);
     }
@@ -609,6 +973,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Merge(arguments);
     }
+    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new Merge(arguments);
+    }
+    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        return new Merge(arguments);
+    }
     public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -622,6 +999,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1B);
+        return new Merge(arguments);
+    }
+    public Merge merge(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(func1B);
         return new Merge(arguments);
     }
@@ -652,25 +1036,43 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Reduce(arguments);
     }
-    public Reduce reduce(Javascript javascript) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(javascript);
-        return new Reduce(arguments);
-    }
     public Map map(ReqlFunction0 func0) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func0);
         return new Map(arguments);
     }
-    public Map map(ReqlFunction1 func1) {
+    public Map map(Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(js);
         return new Map(arguments);
     }
-    public Map map(Object exprA, ReqlFunction2 func2) {
+    public Map map(Object exprA, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func2);
+        arguments.coerceAndAdd(js);
+        return new Map(arguments);
+    }
+    public Map map(Object exprA, Object exprB, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        return new Map(arguments);
+    }
+    public Map map(Object exprA, Object exprB, Object exprC, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(js);
+        return new Map(arguments);
+    }
+    public Map map(Object exprA, Object exprB, Object exprC, ReqlFunction4 func4) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func4);
         return new Map(arguments);
     }
     public Map map(Object exprA, Object exprB, ReqlFunction3 func3) {
@@ -680,12 +1082,15 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func3);
         return new Map(arguments);
     }
-    public Map map(Object exprA, Object exprB, Object exprC, ReqlFunction4 func4) {
+    public Map map(Object exprA, ReqlFunction2 func2) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(exprC);
-        arguments.coerceAndAdd(func4);
+        arguments.coerceAndAdd(func2);
+        return new Map(arguments);
+    }
+    public Map map(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
         return new Map(arguments);
     }
     public Filter filter(ReqlFunction1 func1) {
@@ -707,14 +1112,170 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new OrderBy(arguments);
     }
+    public OrderBy orderBy(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(jsC);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Javascript jsA, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new OrderBy(arguments);
+    }
     public OrderBy orderBy(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new OrderBy(arguments);
     }
-    public OrderBy orderBy(ReqlFunction1 func1) {
+    public OrderBy orderBy(Object exprA, Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Javascript js, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
         return new OrderBy(arguments);
     }
     public OrderBy orderBy(Object exprA, Object exprB) {
@@ -723,22 +1284,27 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprB);
         return new OrderBy(arguments);
     }
-    public OrderBy orderBy(Object exprA, ReqlFunction1 func1) {
+    public OrderBy orderBy(Object exprA, Object exprB, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
         return new OrderBy(arguments);
     }
-    public OrderBy orderBy(ReqlFunction1 func1, Object exprA) {
+    public OrderBy orderBy(Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
         return new OrderBy(arguments);
     }
-    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A) {
+    public OrderBy orderBy(Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprC);
         return new OrderBy(arguments);
     }
     public OrderBy orderBy(Object exprA, Object exprB, Object exprC) {
@@ -748,53 +1314,12 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprC);
         return new OrderBy(arguments);
     }
-    public OrderBy orderBy(Object exprA, Object exprB, ReqlFunction1 func1) {
+    public OrderBy orderBy(Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(func1);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprB);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1A);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(exprA);
-        return new OrderBy(arguments);
-    }
-    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(js);
         return new OrderBy(arguments);
     }
     public OrderBy orderBy(Object exprA, Object exprB, Object exprC, Object exprD) {
@@ -810,6 +1335,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, Object exprB, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(func1);
         return new OrderBy(arguments);
     }
@@ -829,6 +1361,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1A);
         return new OrderBy(arguments);
     }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
     public OrderBy orderBy(Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -842,6 +1387,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         return new OrderBy(arguments);
     }
@@ -861,6 +1413,24 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new OrderBy(arguments);
     }
+    public OrderBy orderBy(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new OrderBy(arguments);
+    }
     public OrderBy orderBy(ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -874,6 +1444,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1A);
         return new OrderBy(arguments);
     }
@@ -893,6 +1470,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new OrderBy(arguments);
     }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        return new OrderBy(arguments);
+    }
     public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -906,6 +1496,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1B);
+        return new OrderBy(arguments);
+    }
+    public OrderBy orderBy(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(func1B);
         return new OrderBy(arguments);
     }
@@ -1057,9 +1654,29 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAddAll(exprs);
         return new Funcall(arguments);
     }
-    public Funcall do_(ReqlFunction1 func1) {
+    public Funcall do_(Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(js);
+        return new Funcall(arguments);
+    }
+    public Funcall do_(Object exprA, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new Funcall(arguments);
+    }
+    public Funcall do_(Object exprA, Object exprB, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        return new Funcall(arguments);
+    }
+    public Funcall do_(Object exprA, Object exprB, ReqlFunction3 func3) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func3);
         return new Funcall(arguments);
     }
     public Funcall do_(Object exprA, ReqlFunction2 func2) {
@@ -1068,11 +1685,9 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Funcall(arguments);
     }
-    public Funcall do_(Object exprA, Object exprB, ReqlFunction3 func3) {
+    public Funcall do_(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(func3);
+        arguments.coerceAndAdd(func1);
         return new Funcall(arguments);
     }
     public Or or(Object exprA, Object... exprs) {
@@ -1203,14 +1818,170 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Group(arguments);
     }
+    public Group group(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(jsC);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        arguments.coerceAndAdd(exprA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Javascript jsA, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Group(arguments);
+    }
+    public Group group(Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
+        return new Group(arguments);
+    }
     public Group group(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new Group(arguments);
     }
-    public Group group(ReqlFunction1 func1) {
+    public Group group(Object exprA, Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(jsB);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Javascript jsA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Object exprB, Javascript jsA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(jsA);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Javascript js, Object exprB, Object exprC) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(exprC);
         return new Group(arguments);
     }
     public Group group(Object exprA, Object exprB) {
@@ -1219,22 +1990,27 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprB);
         return new Group(arguments);
     }
-    public Group group(Object exprA, ReqlFunction1 func1) {
+    public Group group(Object exprA, Object exprB, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
         return new Group(arguments);
     }
-    public Group group(ReqlFunction1 func1, Object exprA) {
+    public Group group(Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(jsA);
         return new Group(arguments);
     }
-    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A) {
+    public Group group(Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprC);
         return new Group(arguments);
     }
     public Group group(Object exprA, Object exprB, Object exprC) {
@@ -1244,53 +2020,12 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprC);
         return new Group(arguments);
     }
-    public Group group(Object exprA, Object exprB, ReqlFunction1 func1) {
+    public Group group(Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
-        arguments.coerceAndAdd(func1);
-        return new Group(arguments);
-    }
-    public Group group(Object exprA, ReqlFunction1 func1, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprB);
-        return new Group(arguments);
-    }
-    public Group group(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        return new Group(arguments);
-    }
-    public Group group(ReqlFunction1 func1, Object exprA, Object exprB) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(exprB);
-        return new Group(arguments);
-    }
-    public Group group(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(exprA);
-        arguments.coerceAndAdd(func1A);
-        return new Group(arguments);
-    }
-    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(exprA);
-        return new Group(arguments);
-    }
-    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        arguments.coerceAndAdd(func1A);
-        arguments.coerceAndAdd(func1B);
+        arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(js);
         return new Group(arguments);
     }
     public Group group(Object exprA, Object exprB, Object exprC, Object exprD) {
@@ -1306,6 +2041,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(exprC);
+        arguments.coerceAndAdd(func1);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, Object exprB, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
         arguments.coerceAndAdd(func1);
         return new Group(arguments);
     }
@@ -1325,6 +2067,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1A);
         return new Group(arguments);
     }
+    public Group group(Object exprA, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, ReqlFunction1 func1, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
     public Group group(Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1338,6 +2093,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Group(arguments);
+    }
+    public Group group(Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         return new Group(arguments);
     }
@@ -1357,6 +2119,24 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Group(arguments);
     }
+    public Group group(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new Group(arguments);
+    }
+    public Group group(ReqlFunction1 func1, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        return new Group(arguments);
+    }
+    public Group group(ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
+        return new Group(arguments);
+    }
     public Group group(ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -1370,6 +2150,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(exprB);
+        arguments.coerceAndAdd(func1A);
+        return new Group(arguments);
+    }
+    public Group group(ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func1A);
         return new Group(arguments);
     }
@@ -1389,6 +2176,19 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1B);
         return new Group(arguments);
     }
+    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        return new Group(arguments);
+    }
+    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
+        arguments.coerceAndAdd(exprA);
+        return new Group(arguments);
+    }
     public Group group(ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -1402,6 +2202,13 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1);
         arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1B);
+        return new Group(arguments);
+    }
+    public Group group(ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(func1A);
         arguments.coerceAndAdd(func1B);
         return new Group(arguments);
     }

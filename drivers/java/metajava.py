@@ -209,7 +209,6 @@ class java_term_info(object):
             self.add_methodname(term, info)
             self.add_classname(term, info)
             self.add_superclass(term, info)
-            self.add_implements(term, info)
             self.translate_include_in(info)
             info['signatures'] = self.reify_signatures(term,
                 info.get('signatures', []))
@@ -277,6 +276,8 @@ class java_term_info(object):
                     varname = 'func' + arity + suffix
                 elif arg == 'Object':
                     varname = 'expr' + suffix
+                elif arg == 'Javascript':
+                    varname = 'js' + suffix
                 else:
                     varname = arg.lower() + suffix
             args.append({"type": arg, "var": varname})
@@ -329,13 +330,21 @@ class java_term_info(object):
             reql does in principle, but it should be ok for practical
             purposes and allow convenient type inference.
             '''
-            before_prev = formal_args[:-1]
+            before_prev = tuple(formal_args[:-1])
             prev = formal_args[i-1]
-            result = []
+            result = set()
+
+            def swap_for_js(arg):
+                if arg.startswith('ReqlFunction'):
+                    return 'Javascript'
+                else:
+                    return arg
             for reps in range(0, cls.STAR_EXPAND+1):
-                result.extend(before_prev+list(p)
-                              for p in itertools.product(prev, repeat=reps))
-            return result
+                result.update(before_prev + p
+                           for p in itertools.product(prev, repeat=reps))
+                result.update(tuple(swap_for_js(arg) for arg in before_prev + p)
+                           for p in itertools.product(prev, repeat=reps))
+            return list(sorted(result))
 
         def expand_funcx(formal_args):
             '''This manually expands T_FUNCX arguments.
@@ -354,15 +363,15 @@ class java_term_info(object):
             arbitrary number of arguments, a few suffice.
             '''
             prev = formal_args[-1].rstrip('...')
-            before_prev = formal_args[:-1]
+            before_prev = tuple(formal_args[:-1])
             base_arity = len(before_prev)
-            result = []
+            result = set()
             for arity in range(base_arity, cls.FUNCX_EXPAND+base_arity+1):
-                result.append(
-                    before_prev +  # Any existing prefix arguments
-                    [prev]*(arity-base_arity) +  # repeated type
-                    ['ReqlFunction'+str(arity)])  # function type
-            return result
+                prev_args = before_prev + (prev,) * (arity - base_arity)
+                result.add(prev_args + ('ReqlFunction' + str(arity),))
+                result.add(prev_args + ("Javascript",))
+            #import pdb; pdb.set_trace()
+            return list(sorted(result))
 
         formal_args = []
         expanded = False
@@ -441,15 +450,6 @@ class java_term_info(object):
         ast_type_hierarchy in global_info.json if it became an
         issue'''
         info['superclass'] = self.SUPERCLASSES.get(term, 'ReqlExpr')
-
-    def add_implements(self, term, info):
-        '''Creates a list of interfaces a term should implement. Right
-        now there is just a hard override, but if there's a need maybe
-        later there would be some more general system.'''
-        if term == "JAVASCRIPT":
-            info["implements"] = ["ReqlFunction1"]
-        else:
-            info["implements"] = []
 
     def translate_include_in(self, info):
         info['include_in'] = [self.INCLUDE_IN_CLASSNAMES[t]
@@ -563,7 +563,6 @@ class JavaRenderer(object):
             None, {
                 "superclass": "ReqlAst",
                 "classname": "ReqlExpr",
-                "implements": [],
             }
         )
         # This will render an AstSubclass for each term
@@ -586,7 +585,6 @@ class JavaRenderer(object):
             all_terms=self.term_info,
             max_arity=self.max_arity,
             optargs=meta.get('optargs'),
-            implements=meta['implements'],
         )
 
     def render_proto_enums(self):

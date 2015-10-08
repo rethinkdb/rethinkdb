@@ -181,17 +181,43 @@ public class TopLevel {
         args.coerceAndAdd(func0);
         return new Map(args);
     }
-    public Map map(Object expr, ReqlFunction1 func1){
+    public Map map(Object expr, Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
+        args.coerceAndAdd(js);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, ReqlFunction2 func2){
+    public Map map(Object expr, Object exprA, Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func2);
+        args.coerceAndAdd(js);
+        return new Map(args);
+    }
+    public Map map(Object expr, Object exprA, Object exprB, Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(js);
+        return new Map(args);
+    }
+    public Map map(Object expr, Object exprA, Object exprB, Object exprC, Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        args.coerceAndAdd(js);
+        return new Map(args);
+    }
+    public Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        args.coerceAndAdd(func4);
         return new Map(args);
     }
     public Map map(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
@@ -202,13 +228,17 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+    public Map map(Object expr, Object exprA, ReqlFunction2 func2){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
-        args.coerceAndAdd(func4);
+        args.coerceAndAdd(func2);
+        return new Map(args);
+    }
+    public Map map(Object expr, ReqlFunction1 func1){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
         return new Map(args);
     }
     public Union union(Object expr, Object... exprs){
@@ -321,15 +351,38 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Funcall(args);
     }
-    public Funcall do_(ReqlFunction0 func0){
+    public Funcall do_(Javascript js){
         Arguments args = new Arguments();
-        args.coerceAndAdd(func0);
+        args.coerceAndAdd(js);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, ReqlFunction1 func1){
+    public Funcall do_(Object expr, Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
+        args.coerceAndAdd(js);
+        return new Funcall(args);
+    }
+    public Funcall do_(Object expr, Object exprA, Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        return new Funcall(args);
+    }
+    public Funcall do_(Object expr, Object exprA, Object exprB, Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(js);
+        return new Funcall(args);
+    }
+    public Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(func3);
         return new Funcall(args);
     }
     public Funcall do_(Object expr, Object exprA, ReqlFunction2 func2){
@@ -339,12 +392,15 @@ public class TopLevel {
         args.coerceAndAdd(func2);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+    public Funcall do_(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(func3);
+        args.coerceAndAdd(func1);
+        return new Funcall(args);
+    }
+    public Funcall do_(ReqlFunction0 func0){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(func0);
         return new Funcall(args);
     }
     public Branch branch(Object expr, Object exprA, Object exprB, Object... exprs){
