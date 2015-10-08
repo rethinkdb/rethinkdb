@@ -267,21 +267,16 @@ def escape_string(s, out):
 
 
 def render_bytes(s, out):
-    try:
-        out.write("new byte[]{")
-        for i, byte in enumerate(s):
-            if i > 0:
-                out.write(", ")
-            # Java bytes are signed :(
-            if byte > 127:
-                out.write(str(-(256 - byte)))
-            else:
-                out.write(str(byte))
-        out.write("}")
-    except Exception as e:
-        print("Was converting to bytes: %r" % s)
-        import pdb; pdb.set_trace()
-        raise
+    out.write("new byte[]{")
+    for i, byte in enumerate(s):
+        if i > 0:
+            out.write(", ")
+        # Java bytes are signed :(
+        if byte > 127:
+            out.write(str(-(256 - byte)))
+        else:
+            out.write(str(byte))
+    out.write("}")
 
 
 def attr_matches(path, node):
