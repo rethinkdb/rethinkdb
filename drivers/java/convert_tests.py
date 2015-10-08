@@ -502,7 +502,7 @@ class JavaVisitor(ast.NodeVisitor):
         if not isinstance(node.n, float):
             if node.n > 9223372036854775807 or node.n < -9223372036854775808:
                 self.write(".0")
-            else:
+            elif node.n > 2147483647 or node.n < -2147483648:
                 self.write("L")
 
     def visit_Index(self, node):
@@ -583,9 +583,10 @@ class JavaVisitor(ast.NodeVisitor):
             logger.error("While doing: %s", ast.dump(node))
             raise Unhandled("Only integers subscript can be converted."
                             " Got %s" % node.slice.value.s)
-        self.write("[")
+        self.visit(node.value)
+        self.write(".get(")
         self.visit(node.slice.value)
-        self.write("]")
+        self.write(")")
 
     def visit_ListComp(self, node):
         gen = node.generators[0]

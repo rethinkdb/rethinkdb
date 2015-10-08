@@ -302,7 +302,7 @@ class java_term_info(object):
             elif isinstance(arg, list):
                 return [translate(a) for a in arg]
             else:
-                raise Unhandled(
+                raise RuntimeError(
                     "Got something unexpected in signature %s", type(arg))
 
         def expand_alternation(formal_args, index):

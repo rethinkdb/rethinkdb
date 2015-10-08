@@ -371,7 +371,11 @@ public class ${module_name} {
         {
             // ${item.testfile} #${item.test_num}
             /* ${item.expected_line.original} */
+            %if item.expected_type == 'Long':
+            Long expected = new Long(${item.expected_line.java});
+            %else:
             ${item.expected_type} expected = ${item.expected_line.java};
+            %endif
             /* ${item.line.original} */
             Object obtained = runOrCatch(${item.line.java},
                                           new OptArgs()
