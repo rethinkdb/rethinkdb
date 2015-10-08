@@ -67,14 +67,14 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new Db(args);
     }
-    public Table table(Object expr){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        return new Table(args);
-    }
     public Table table(Db db, Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
+        args.coerceAndAdd(expr);
+        return new Table(args);
+    }
+    public Table table(Object expr){
+        Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Table(args);
     }
@@ -175,12 +175,6 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new ReqlObject(args);
     }
-    public Map map(Object expr, ReqlFunction0 func0){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func0);
-        return new Map(args);
-    }
     public Map map(Object expr, Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -235,6 +229,12 @@ public class TopLevel {
         args.coerceAndAdd(func2);
         return new Map(args);
     }
+    public Map map(Object expr, ReqlFunction0 func0){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func0);
+        return new Map(args);
+    }
     public Map map(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -287,14 +287,14 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new TableCreate(args);
     }
-    public TableDrop tableDrop(Object expr){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        return new TableDrop(args);
-    }
     public TableDrop tableDrop(Db db, Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
+        args.coerceAndAdd(expr);
+        return new TableDrop(args);
+    }
+    public TableDrop tableDrop(Object expr){
+        Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TableDrop(args);
     }
@@ -307,28 +307,28 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new Wait(args);
     }
-    public Wait wait_(Table table){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(table);
-        return new Wait(args);
-    }
     public Wait wait_(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
+        return new Wait(args);
+    }
+    public Wait wait_(Table table){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(table);
         return new Wait(args);
     }
     public Reconfigure reconfigure(){
         Arguments args = new Arguments();
         return new Reconfigure(args);
     }
-    public Reconfigure reconfigure(Table table){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(table);
-        return new Reconfigure(args);
-    }
     public Reconfigure reconfigure(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
+        return new Reconfigure(args);
+    }
+    public Reconfigure reconfigure(Table table){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(table);
         return new Reconfigure(args);
     }
     public Rebalance rebalance(){
@@ -344,12 +344,6 @@ public class TopLevel {
         Arguments args = new Arguments();
         args.coerceAndAdd(table);
         return new Rebalance(args);
-    }
-    public Funcall do_(Object expr, Object... exprs){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAddAll(exprs);
-        return new Funcall(args);
     }
     public Funcall do_(Javascript js){
         Arguments args = new Arguments();
@@ -392,6 +386,12 @@ public class TopLevel {
         args.coerceAndAdd(func2);
         return new Funcall(args);
     }
+    public Funcall do_(Object expr, Object... exprs){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAddAll(exprs);
+        return new Funcall(args);
+    }
     public Funcall do_(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -424,6 +424,11 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new And(args);
     }
+    public Asc asc(Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(js);
+        return new Asc(args);
+    }
     public Asc asc(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -433,6 +438,11 @@ public class TopLevel {
         Arguments args = new Arguments();
         args.coerceAndAdd(func1);
         return new Asc(args);
+    }
+    public Desc desc(Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(js);
+        return new Desc(args);
     }
     public Desc desc(Object expr){
         Arguments args = new Arguments();
@@ -444,14 +454,14 @@ public class TopLevel {
         args.coerceAndAdd(func1);
         return new Desc(args);
     }
-    public Info info(Object expr){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        return new Info(args);
-    }
     public Info info(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
+        return new Info(args);
+    }
+    public Info info(Object expr){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
         return new Info(args);
     }
     public Json json(Object expr){

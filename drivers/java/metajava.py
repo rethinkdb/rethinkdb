@@ -218,9 +218,11 @@ class java_term_info(object):
         '''This takes the general signatures from terminfo.json and
         turns them into signatures that can actually be created in the
         Java.'''
-        return [cls.elaborate_signature(x)
-                for sig in signatures
-                for x in cls.reify_signature(term, sig)]
+        reified_sigs = sorted({
+            x for sig in signatures
+            for x in cls.reify_signature(term, sig)
+        })
+        return [cls.elaborate_signature(sig) for sig in reified_sigs]
 
     @staticmethod
     def elaborate_signature(sig):
@@ -333,17 +335,9 @@ class java_term_info(object):
             before_prev = tuple(formal_args[:-1])
             prev = formal_args[i-1]
             result = set()
-
-            def swap_for_js(arg):
-                if arg.startswith('ReqlFunction'):
-                    return 'Javascript'
-                else:
-                    return arg
             for reps in range(0, cls.STAR_EXPAND+1):
                 result.update(before_prev + p
-                           for p in itertools.product(prev, repeat=reps))
-                result.update(tuple(swap_for_js(arg) for arg in before_prev + p)
-                           for p in itertools.product(prev, repeat=reps))
+                              for p in itertools.product(prev, repeat=reps))
             return list(sorted(result))
 
         def expand_funcx(formal_args):
@@ -369,9 +363,13 @@ class java_term_info(object):
             for arity in range(base_arity, cls.FUNCX_EXPAND+base_arity+1):
                 prev_args = before_prev + (prev,) * (arity - base_arity)
                 result.add(prev_args + ('ReqlFunction' + str(arity),))
-                result.add(prev_args + ("Javascript",))
-            #import pdb; pdb.set_trace()
             return list(sorted(result))
+
+        def swap_for_js(arg):
+            if arg.startswith('ReqlFunction'):
+                return 'Javascript'
+            else:
+                return arg
 
         formal_args = []
         expanded = False
@@ -415,7 +413,15 @@ class java_term_info(object):
                     formal_args = expand_funcx(formal_args)
             else:
                 formal_args.append(translate(arg))
-        return [formal_args] if not expanded else formal_args
+
+        subtotal = [formal_args] if not expanded else formal_args
+        final_args = []
+        for sig in subtotal:
+            final_args.append(tuple(sig))
+            if any(arg.startswith('ReqlFunction') for arg in sig):
+                # Javascript term can stand in for function arguments
+                final_args.append(tuple(swap_for_js(a) for a in sig))
+        return final_args
 
     def write_output(self):
         with open(self.output_filename, 'w') as outputfile:

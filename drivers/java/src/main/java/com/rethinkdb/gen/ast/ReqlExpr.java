@@ -153,6 +153,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new Limit(arguments);
     }
+    public OffsetsOf offsetsOf(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new OffsetsOf(arguments);
+    }
     public OffsetsOf offsetsOf(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1031,15 +1036,15 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprB);
         return new Between(arguments);
     }
+    public Reduce reduce(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Reduce(arguments);
+    }
     public Reduce reduce(ReqlFunction2 func2) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func2);
         return new Reduce(arguments);
-    }
-    public Map map(ReqlFunction0 func0) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func0);
-        return new Map(arguments);
     }
     public Map map(Javascript js) {
         Arguments arguments = new Arguments(this);
@@ -1088,20 +1093,35 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Map(arguments);
     }
+    public Map map(ReqlFunction0 func0) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func0);
+        return new Map(arguments);
+    }
     public Map map(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
         return new Map(arguments);
     }
-    public Filter filter(ReqlFunction1 func1) {
+    public Filter filter(Javascript js) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(js);
         return new Filter(arguments);
     }
     public Filter filter(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new Filter(arguments);
+    }
+    public Filter filter(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new Filter(arguments);
+    }
+    public ConcatMap concatMap(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new ConcatMap(arguments);
     }
     public ConcatMap concatMap(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
@@ -1530,6 +1550,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Count(arguments);
     }
+    public Count count(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Count(arguments);
+    }
     public Count count(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1559,17 +1584,35 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new Bracket(arguments);
     }
+    public InnerJoin innerJoin(Object exprA, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new InnerJoin(arguments);
+    }
     public InnerJoin innerJoin(Object exprA, ReqlFunction2 func2) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func2);
         return new InnerJoin(arguments);
     }
+    public OuterJoin outerJoin(Object exprA, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new OuterJoin(arguments);
+    }
     public OuterJoin outerJoin(Object exprA, ReqlFunction2 func2) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         arguments.coerceAndAdd(func2);
         return new OuterJoin(arguments);
+    }
+    public EqJoin eqJoin(Javascript js, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        arguments.coerceAndAdd(exprA);
+        return new EqJoin(arguments);
     }
     public EqJoin eqJoin(Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
@@ -1625,6 +1668,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new TypeOf(arguments);
     }
+    public Update update(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Update(arguments);
+    }
     public Update update(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1639,6 +1687,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Delete(arguments);
     }
+    public Replace replace(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Replace(arguments);
+    }
     public Replace replace(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -1648,11 +1701,6 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
         return new Replace(arguments);
-    }
-    public Funcall do_(Object... exprs) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAddAll(exprs);
-        return new Funcall(arguments);
     }
     public Funcall do_(Javascript js) {
         Arguments arguments = new Arguments(this);
@@ -1685,6 +1733,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Funcall(arguments);
     }
+    public Funcall do_(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new Funcall(arguments);
+    }
     public Funcall do_(ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func1);
@@ -1700,6 +1753,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAddAll(exprs);
         return new And(arguments);
+    }
+    public ForEach forEach(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new ForEach(arguments);
     }
     public ForEach forEach(ReqlFunction0 func0) {
         Arguments arguments = new Arguments(this);
@@ -1732,6 +1790,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new Sample(arguments);
+    }
+    public Default default_(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Default(arguments);
     }
     public Default default_(Object exprA) {
         Arguments arguments = new Arguments(this);
@@ -2232,6 +2295,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Sum(arguments);
     }
+    public Sum sum(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Sum(arguments);
+    }
     public Sum sum(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -2244,6 +2312,11 @@ public class ReqlExpr extends ReqlAst {
     }
     public Avg avg() {
         Arguments arguments = new Arguments(this);
+        return new Avg(arguments);
+    }
+    public Avg avg(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
         return new Avg(arguments);
     }
     public Avg avg(Object exprA) {
@@ -2260,6 +2333,11 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Min(arguments);
     }
+    public Min min(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new Min(arguments);
+    }
     public Min min(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
@@ -2272,6 +2350,11 @@ public class ReqlExpr extends ReqlAst {
     }
     public Max max() {
         Arguments arguments = new Arguments(this);
+        return new Max(arguments);
+    }
+    public Max max(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
         return new Max(arguments);
     }
     public Max max(Object exprA) {

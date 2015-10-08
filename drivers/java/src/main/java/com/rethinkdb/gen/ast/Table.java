@@ -77,10 +77,16 @@ public Table optArg(String optname, Object value) {
         arguments.coerceAndAdd(expr);
         return new IndexCreate(arguments);
     }
-    public IndexCreate indexCreate(Object expr, ReqlFunction1 func1) {
+    public IndexCreate indexCreate(Object expr, Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAdd(js);
+        return new IndexCreate(arguments);
+    }
+    public IndexCreate indexCreate(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
         return new IndexCreate(arguments);
     }
     public IndexCreate indexCreate(Object expr, ReqlFunction0 func0) {
@@ -89,10 +95,10 @@ public Table optArg(String optname, Object value) {
         arguments.coerceAndAdd(func0);
         return new IndexCreate(arguments);
     }
-    public IndexCreate indexCreate(Object expr, Object exprA) {
+    public IndexCreate indexCreate(Object expr, ReqlFunction1 func1) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func1);
         return new IndexCreate(arguments);
     }
     public IndexDrop indexDrop(Object expr) {
