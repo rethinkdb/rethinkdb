@@ -1,16 +1,18 @@
-# Release 2.1.5 (Forbidden Planet)
+# Release 2.1.5-2 (Forbidden Planet)
 
-Released on 2015-10-07
+Released on 2015-10-08
 
 Bug fix release
 
 ### Compatibility ###
 
-* RethinkDB 2.1.5 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
+* RethinkDB 2.1.5 servers cannot be mixed with servers running RethinkDB 2.1.4 or earlier
   in the same cluster
 
 ### Bug fixes ###
 
+* Fixed a memory corruption bug that caused segmentation faults on some systems
+  (#4917)
 * Made the build system compatible with OS X El Capitan (#4602)
 * Fixed spurious "Query terminated by `rethinkdb.jobs` table" errors (#4819)
 * Fixed an issue that caused changefeeds to keep failing after a table finished
