@@ -735,7 +735,9 @@
         ],
         "signatures": [
             ["T_TABLE", "T_EXPR"],
-            ["T_TABLE", "T_EXPR", "T_FUNC1"]
+            ["T_TABLE", "T_EXPR", "T_FUNC1"],
+            ["T_TABLE", "T_EXPR", "T_FUNC0"],
+            ["T_TABLE", "T_EXPR", "T_EXPR"]
         ],
         "optargs": {
             "multi": "T_BOOL",

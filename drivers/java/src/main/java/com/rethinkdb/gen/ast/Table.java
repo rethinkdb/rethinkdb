@@ -83,6 +83,18 @@ public Table optArg(String optname, Object value) {
         arguments.coerceAndAdd(func1);
         return new IndexCreate(arguments);
     }
+    public IndexCreate indexCreate(Object expr, ReqlFunction0 func0) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(func0);
+        return new IndexCreate(arguments);
+    }
+    public IndexCreate indexCreate(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new IndexCreate(arguments);
+    }
     public IndexDrop indexDrop(Object expr) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);
