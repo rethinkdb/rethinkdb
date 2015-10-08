@@ -521,8 +521,30 @@ class JavaVisitor(ast.NodeVisitor):
         except (AttributeError, TypeError):
             pass
 
+    def convert_if_string_encode(self, node):
+        '''Finds strings like 'foo'.encode("utf-8") and turns them into the
+        java version: "foo".getBytes(StandardCharsets.UTF_8)'''
+        try:
+            assert node.func.attr == 'encode'
+            node.func.value.s
+            encoding = node.args[0].s
+        except Exception:
+            return False
+        java_encoding = {
+            "ascii": "US_ASCII",
+            "utf-16": "UTF_16",
+            "utf-8": "UTF_8",
+        }[encoding]
+        self.visit(node.func.value)
+        self.write(".getBytes(StandardCharsets.")
+        self.write(java_encoding)
+        self.write(")")
+        return True
+
     def visit_Call(self, node):
         self.skip_if_arity_check(node)
+        if self.convert_if_string_encode(node):
+            return
         self.visit(node.func)
         # This weird special case is because sometimes the tests use
         # r.error and sometimes they use r.error(). The java driver
@@ -784,9 +806,10 @@ class ReQLVisitor(JavaVisitor):
 
     def visit_Call(self, node):
         # We call the superclass first, so if it's going to fail
-        # because of r.row or whatever it already does it. Since
-        # everything is written to a stringIO object not directly to a
-        # file, if we bail out afterwards it's still ok
+        # because of r.row or other things it fails first, rather than
+        # hitting the checks in this method. Since everything is
+        # written to a stringIO object not directly to a file, if we
+        # bail out afterwards it's still ok
         super_result = super(ReQLVisitor, self).visit_Call(node)
 
         # r.for_each(1) etc should be skipped
@@ -813,9 +836,6 @@ class ReQLVisitor(JavaVisitor):
             if not check(node.args[-1]):
                 self.skip("the java driver statically checks that "
                           "map contains a function argument")
-        elif False:
-            # TODO: make this work for "string.encode(x)"
-            pass  #self.write(".getBytes(StandardCharsets.UTF_8)")
         else:
             return super_result
 

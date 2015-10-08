@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import ast
 import json
@@ -12,7 +12,7 @@ def convert_to_dict(node):
         nodedict = node.__dict__.copy()
         nodedict['<type>'] = node.__class__.__name__
         return convert_to_dict(nodedict)
-    elif isinstance(node, (int, float, str, bool, unicode)):
+    elif isinstance(node, (int, float, str, bool)):
         return node
     else:
         return repr(node)
@@ -24,6 +24,7 @@ def get_astjson(expr, mode='eval'):
         asta = asta[0]
     converted = convert_to_dict(asta)
     return json.dumps(converted, indent=4, sort_keys=True)
+
 
 def ppast(expr, mode='eval'):
     astjson = get_astjson(expr, mode=mode)
