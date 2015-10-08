@@ -204,8 +204,8 @@ public class ${module_name} {
     }
 
     static class IntCmp {
-        final Integer nbr;
-        public IntCmp(Integer nbr) {
+        final Long nbr;
+        public IntCmp(Long nbr) {
             this.nbr = nbr;
         }
         public boolean equals(Object other) {
@@ -213,8 +213,8 @@ public class ${module_name} {
         }
     }
 
-    IntCmp int_cmp(Double nbr) {
-        return new IntCmp(nbr.intValue());
+    IntCmp int_cmp(Long nbr) {
+        return new IntCmp(nbr);
     }
 
     static class FloatCmp {

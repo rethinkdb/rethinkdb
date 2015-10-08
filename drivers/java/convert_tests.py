@@ -251,35 +251,36 @@ def is_reql(t):
     return t.__module__ == 'rethinkdb.ast'
 
 
-def escape_string(s, ctx=None):
-    was_hex = [False]
-    if type(s) is str:
-        def string_escape(c, was_hex):
-            if c == '"':
-                return '\\"'
-            if c == '\\':
-                return '\\\\'
-            if c == '\n':
-                return '\\n'
+def escape_string(s, out):
+    out.write('"')
+    for codepoint in s:
+        rpr = repr(codepoint)[1:-1]
+        if rpr.startswith('\\x'):
+            # Python will shorten unicode escapes that are less than a
+            # byte to use \x instead of \u . Java doesn't accept \x so
+            # we have to expand it back out.
+            rpr = '\\u00' + rpr[2:]
+        out.write(rpr)
+    out.write('"')
+
+def render_bytes(s, out):
+    try:
+        out.write("new byte[]{")
+        for i, byte in enumerate(s):
+            if i > 0:
+                out.write(", ")
+            # Java bytes are signed :(
+            if byte > 127:
+                out.write(str(-(256 - byte)))
             else:
-                return c
-    elif type(s) is bytes:
-        def string_escape(c, was_hex):
-            if c < 32 or c > 127 or (
-                    was_hex[0] and chr(c) in "0123456789abcdefABCDEF"):
-                was_hex[0] = True
-                return '\\x' + ('0' + hex(c)[2:])[-2:]
-            was_hex[0] = False
-            if c == 34:
-                return '\\"'
-            if c == 92:
-                return '\\\\'
-            else:
-                return chr(c)
-    else:
-        raise Unhandled("string type: " + repr(type(s)))
-    e = ''.join([string_escape(c, was_hex) for c in s])
-    return e
+                out.write(str(byte))
+        out.write("}")
+    except Exception as e:
+        print("Was converting to bytes: %r" % s)
+        import pdb; pdb.set_trace()
+        raise
+
+
 
 
 def attr_matches(path, node):
@@ -417,10 +418,7 @@ class JavaVisitor(ast.NodeVisitor):
             self.visit(item)
 
     def to_str(self, s):
-        escaped = escape_string(s)
-        self.write('"')
-        self.write(escaped)
-        self.write('"')
+        escape_string(s, self.out)
 
     def to_args(self, args, optargs=[]):
         self.write("(")
@@ -460,17 +458,7 @@ class JavaVisitor(ast.NodeVisitor):
         self.to_str(node.s)
 
     def visit_Bytes(self, node):
-        self.write("new byte[]{")
-        for i, byte in enumerate(node.s):
-            if i > 0:
-                self.write(", ")
-            # Java bytes are signed :(
-            if byte > 127:
-                self.write(str(-(256 - byte)))
-            else:
-                self.write(str(byte))
-        self.write("}")
-        #self.write(".getBytes(StandardCharsets.UTF_8)")
+        render_bytes(node.s, self.out)
 
     def visit_Name(self, node):
         name = node.id
@@ -534,8 +522,6 @@ class JavaVisitor(ast.NodeVisitor):
             pass
 
     def visit_Call(self, node):
-        assert not node.kwargs
-        assert not node.starargs
         self.skip_if_arity_check(node)
         self.visit(node.func)
         # This weird special case is because sometimes the tests use
@@ -827,6 +813,9 @@ class ReQLVisitor(JavaVisitor):
             if not check(node.args[-1]):
                 self.skip("the java driver statically checks that "
                           "map contains a function argument")
+        elif False:
+            # TODO: make this work for "string.encode(x)"
+            pass  #self.write(".getBytes(StandardCharsets.UTF_8)")
         else:
             return super_result
 
