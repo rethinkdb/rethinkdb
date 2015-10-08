@@ -2534,7 +2534,7 @@ private:
                  const indexed_datum_t &val) {
         store_key_t key;
         if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version_t(), pkey, tag_num));
+            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
         } else {
             key = pkey;
         }
