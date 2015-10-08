@@ -260,8 +260,11 @@ def escape_string(s, out):
             # byte to use \x instead of \u . Java doesn't accept \x so
             # we have to expand it back out.
             rpr = '\\u00' + rpr[2:]
+        elif rpr == '"':
+            rpr = r'\"'
         out.write(rpr)
     out.write('"')
+
 
 def render_bytes(s, out):
     try:
@@ -279,8 +282,6 @@ def render_bytes(s, out):
         print("Was converting to bytes: %r" % s)
         import pdb; pdb.set_trace()
         raise
-
-
 
 
 def attr_matches(path, node):
