@@ -31,12 +31,12 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(
@@ -91,14 +91,14 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(

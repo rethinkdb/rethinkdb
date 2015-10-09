@@ -1248,7 +1248,7 @@ public:
         const uuid_u &uuid,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_vals,
-        bool include_initial_vals,
+        bool include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
     virtual auto_drainer_t *get_drainer() = 0;
@@ -1595,7 +1595,7 @@ public:
           started(false),
           state(state_t::INITIALIZING),
           sent_state(state_t::NONE),
-          include_initial_vals(false) {
+          include_initial(false) {
         feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
@@ -1618,7 +1618,7 @@ public:
             return state_datum(state);
         }
         datum_t ret;
-        if (state != state_t::READY && include_initial_vals) {
+        if (state != state_t::READY && include_initial) {
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
         } else {
@@ -1630,7 +1630,7 @@ public:
     }
     bool has_el() final {
         return (include_states && state != sent_state)
-            || (include_initial_vals && state != state_t::READY)
+            || (include_initial && state != state_t::READY)
             || has_change_val();
     }
     counted_t<datum_stream_t> to_stream(
@@ -1644,8 +1644,8 @@ public:
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        include_initial_vals = maybe_src.has();
-        if (!include_initial_vals) {
+        include_initial = maybe_src.has();
+        if (!include_initial) {
             state = state_t::READY;
         }
 
@@ -1694,14 +1694,14 @@ public:
         const uuid_u &,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
-        bool _include_initial_vals,
+        bool _include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        include_initial_vals = _include_initial_vals;
-        if (!include_initial_vals) {
+        include_initial = _include_initial;
+        if (!include_initial) {
             state = state_t::READY;
         }
 
@@ -1732,7 +1732,7 @@ private:
     uint64_t stamp;
     bool started;
     state_t state, sent_state;
-    bool include_initial_vals;
+    bool include_initial;
 
     auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
@@ -1759,7 +1759,7 @@ public:
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
-          artificial_include_initial_vals(false) {
+          artificial_include_initial(false) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -1821,7 +1821,7 @@ public:
         // Note that we currently *DO NOT* update the stamp for range
         // subscriptions.  If we get changes with stamps after the start stamp
         // we eventually receive, they are just discarded.  This will change in
-        // the future when we support `include_initial_vals` on range changefeeds.
+        // the future when we support `include_initial` on range changefeeds.
         return new_stamp >= it->second;
     }
 
@@ -1880,7 +1880,7 @@ public:
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
             rcheck_src(bt, stamped, base_exc_t::LOGIC,
-                       "Cannot call `include_initial_vals` on an unstampable stream.");
+                       "Cannot call `include_initial` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
@@ -1891,17 +1891,17 @@ public:
         const uuid_u &uuid,
         const std::string &pkey_name,
         const std::vector<datum_t> &initial_vals,
-        bool include_initial_vals,
+        bool include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        artificial_include_initial_vals = include_initial_vals;
+        artificial_include_initial = include_initial;
 
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
-        if (artificial_include_initial_vals) {
+        if (artificial_include_initial) {
             state = state_t::INITIALIZING;
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
                 for (size_t i = 0;
@@ -1942,7 +1942,7 @@ private:
     boost::optional<key_range_t> store_key_range;
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
-    bool artificial_include_initial_vals;
+    bool artificial_include_initial;
 
     auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
@@ -1964,7 +1964,7 @@ public:
           gt(limit_order_t(spec.range.sorting)),
           item_queue(gt),
           active_data(gt),
-          include_initial_vals(false) {
+          include_initial(false) {
         feed->add_limit_sub(this, uuid);
     }
 
@@ -1979,7 +1979,7 @@ public:
         // logic should go here.
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
-            if (include_initial_vals) {
+            if (include_initial) {
                 if (include_states) els.push_back(initializing_datum());
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                     els.push_back(
@@ -2207,7 +2207,7 @@ public:
             spec.range.datumspec.visit<bool>(
                 [](const datum_range_t &) { return true; },
                 [](const std::map<datum_t, size_t> &) { return false; }));
-        include_initial_vals = maybe_src.has();
+        include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_limit_subscribe_t(
@@ -2261,7 +2261,7 @@ public:
     std::vector<std::pair<boost::optional<std::string>, boost::optional<item_t> > >
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
-    bool include_initial_vals;
+    bool include_initial;
 
     auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
@@ -3243,7 +3243,7 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
-    bool include_initial_vals,
+    bool include_initial,
     bool include_states,
     configured_limits_t limits,
     const keyspec_t::spec_t &spec,
@@ -3264,7 +3264,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
         spec);
     return sub->to_artificial_stream(
         env, uuid, primary_key_name, initial_values,
-        include_initial_vals, std::move(sub), bt);
+        include_initial, std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {

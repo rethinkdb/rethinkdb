@@ -64,7 +64,6 @@ struct changespec_t {
                  counted_t<datum_stream_t> _stream)
         : keyspec(std::move(_keyspec)),
           stream(std::move(_stream)) { }
-    bool include_initial_vals();
     changefeed::keyspec_t keyspec;
     counted_t<datum_stream_t> stream;
 };

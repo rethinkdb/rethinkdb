@@ -57,7 +57,7 @@ r.table_create('test').run rescue nil
   $statelog = []
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {id: i, z: 9}}).run
-  q = r.table('test').between(10, 20).changes(include_initial_vals: true)
+  q = r.table('test').between(10, 20).changes(include_initial: true)
   EM.run {
     $h = H.new
     $handle = q.em_run($h, max_batch_rows: 1)
