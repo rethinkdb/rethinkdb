@@ -61,10 +61,13 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, TimeLocal) {
-#ifndef _WIN32 // ATN TODO
     // Change the timezone for the duration of this test
     char *hastz = getenv("TZ");
     std::string oldtz(hastz ? hastz : "");
+#ifdef _WIN32
+    _putenv("TZ=UTC+7"); // TODO ATN: this seems wrong, but the test passes
+    _tzset();
+#else
     setenv("TZ", "America/Los_Angeles", 1);
     tzset();
 #endif
@@ -79,11 +82,14 @@ TEST(UtilsTest, TimeLocal) {
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 
-#ifndef _WIN32 // ATN TODO
+#ifdef _WIN32 // ATN TODO
+    _putenv(("TZ=" + oldtz).c_str());
+    _tzset();
+#else
     if (hastz) {
-      setenv("TZ", oldtz.c_str(), 1);
+        setenv("TZ", oldtz.c_str(), 1);
     } else {
-      unsetenv("TZ");
+        unsetenv("TZ");
     }
     tzset();
 #endif
