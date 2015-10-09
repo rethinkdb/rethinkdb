@@ -108,6 +108,7 @@ private:
                         to the backfiller, and it replied; then we drained the `items`
                         queue. So this session is over. */
                         guarantee(callback_returned_false);
+                        parent->progress_tracker->is_ready = true;
                         done_cond.pulse();
                         return;
                     }
@@ -246,13 +247,14 @@ private:
 
             wait_interruptible(&got_ack_end_session, keepalive.get_drain_signal());
             guarantee(items.empty_domain());
+            parent->progress_tracker->is_ready = true;
             done_cond.pulse();
 
         } catch (const interrupted_exc_t &) {
-            /* The backfillee was destroyed */
+            /* The backfillee was destroyed, if the session is restarted `is_ready` will
+            be set to false again. */
+            parent->progress_tracker->is_ready = true;
         }
-
-        parent->progress_tracker->is_ready = true;
     }
 
     /* `send_ack_items()` lets the backfiller know the total mem size of the items we've
