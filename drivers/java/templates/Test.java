@@ -1,4 +1,4 @@
-package gen;
+//package gen;
 
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.*;
@@ -38,15 +38,16 @@ public class ${module_name} {
     %endfor
 
     Connection<?> conn;
-    public String hostname = "newton";
-    public int port = 31157;
+    public String hostname = TestingFramework.getConfig().getHostName();
+    public int port = TestingFramework.getConfig().getPort();
 
     @Before
     public void setUp() throws Exception {
-        conn = r.connection()
-            .hostname(hostname)
-            .port(port)
-            .connect();
+        conn = TestingFramework.createConnection();
+        try {
+            r.dbCreate("test").run(conn);
+            r.db("test").wait_().run(conn);
+        }catch (Exception e){}
         %for var_name in table_var_names:
         r.db("test").tableCreate("${var_name}").run(conn);
         %endfor
@@ -395,7 +396,7 @@ public class ${module_name} {
               %endfor
             %endif
                                           );
-            assertEquals(expected_, obtained);
+            assert(expected_.equals(obtained));
         }
         %endif
         %endfor

@@ -8,7 +8,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -43,9 +43,6 @@ public class RethinkDBTest{
         Connection<?> conn = TestingFramework.createConnection();
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
-        }catch(ReqlError e){}
-        try {
-            r.dbDrop(dbName).run(conn);
         }catch(ReqlError e){}
         conn.close();
     }
@@ -117,9 +114,9 @@ public class RethinkDBTest{
 
     @Test
     public void testDate() {
-        Date date = new Date();
-        Date result = r.expr(date).run(conn);
-        Assert.assertEquals(date.getTime(), result.getTime());
+        OffsetDateTime date = OffsetDateTime.now();
+        OffsetDateTime result = r.expr(date).run(conn);
+        Assert.assertEquals(date, result);
     }
 
     @Test
