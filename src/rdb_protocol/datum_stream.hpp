@@ -518,7 +518,7 @@ private:
     virtual changefeed::keyspec_t::range_t get_range_spec(
             std::vector<transform_variant_t> transforms) const;
 
-    boost::optional<std::map<store_key_t, size_t> > store_keys;
+    boost::optional<std::map<store_key_t, uint64_t> > store_keys;
 };
 
 class sindex_readgen_t : public rget_readgen_t {

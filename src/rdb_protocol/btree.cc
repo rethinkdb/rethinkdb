@@ -793,7 +793,7 @@ continue_bool_t rget_cb_t::handle_pair(
 void rdb_rget_slice(
         btree_slice_t *slice,
         const key_range_t &range,
-        const boost::optional<std::map<store_key_t, size_t> > &primary_keys,
+        const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
         superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -813,7 +813,7 @@ void rdb_rget_slice(
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     if (primary_keys) {
-        auto cb = [&](const std::pair<store_key_t, size_t> &pair, bool is_last) {
+        auto cb = [&](const std::pair<store_key_t, uint64_t> &pair, bool is_last) {
             rget_cb_wrapper_t wrapper(&callback, pair.second);
             btree_concurrent_traversal(
                 superblock,
@@ -883,7 +883,7 @@ void rdb_rget_secondary_slice(
         sindex_region_range);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
-    auto cb = [&](const std::pair<ql::datum_range_t, size_t> &pair, bool is_last) {
+    auto cb = [&](const std::pair<ql::datum_range_t, uint64_t> &pair, bool is_last) {
         rget_cb_wrapper_t wrapper(&callback, pair.second);
         key_range_t active_range = active_region_range.intersection(
             pair.first.to_sindex_keyrange(sindex_func_reql_version));
