@@ -1595,11 +1595,10 @@ class WorkerThread(threading.Thread):
                         
                         # try to add the server log to the errorDetails
                         try:
-                            self.server.console_file.seek(0)
                             if test.errorDetails is None:
-                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
+                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_output
                             else:
-                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
+                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_output
                         except IOError: pass # stdout will cause this
                         except Exception as e:
                             warnings.warn(str(e))

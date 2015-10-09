@@ -148,10 +148,11 @@ class Metacluster(object):
             process.update_routing()
 
 class Cluster(object):
-    """A `Cluster` represents a group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
+    """A group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
     
     metacluster = None
     processes = None
+    output_folder = None
     
     def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
         
@@ -215,6 +216,15 @@ class Cluster(object):
     
     def __exit__(self, type, value, traceback):
         self.check_and_stop()
+    
+    @property
+    def running(self):
+        if not self.processes:
+            return False
+        for process in self.processes:
+            if not process.running:
+                return False
+        return True
     
     def check(self):
         """Throws an exception if any of the processes in the cluster has stopped or crashed. """
@@ -319,7 +329,7 @@ class Process(object):
     
     data_path = None
     logfile_path = None
-    console_file = None
+    _console_file = None
     _console_file_name = 'console.txt'
     _console_file_path = None
     
@@ -385,9 +395,10 @@ class Process(object):
             server_tags += ['--server-tag', tag]
         
         if not os.path.exists(os.path.join(self.data_path, 'metadata')):
-            self.console_file.write("Creating data directory at %s (%s)\n" % (self.data_path, datetime.datetime.now().isoformat()))
+            self._console_file.write("Creating data directory at %s (%s)\n" % (self.data_path, datetime.datetime.now().isoformat()))
+            self._console_file.flush()
             command = self.command_prefix + [self.executable_path] + ['create', '--server-name', self._desired_name, '--directory', self.data_path, '--log-file', str(self.logfile_path)] + server_tags
-            subprocess.check_call(command, stdout=self.console_file, stderr=subprocess.STDOUT)
+            subprocess.check_call(command, stdout=self._console_file, stderr=subprocess.STDOUT)
     
     def __init__(self, cluster=None, name=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
         global runningServers
@@ -438,19 +449,19 @@ class Process(object):
         if console_output is None:
             # default to stdout
             self._console_file_path = None
-            self.console_file = sys.stdout
+            self._console_file = sys.stdout
         elif console_output is False:
             # throw away file
             self._console_file_path = None
-            self.console_file = tempfile.NamedTemporaryFile(mode='w+')
+            self._console_file = tempfile.NamedTemporaryFile(mode='w+')
         elif console_output is True:
             # keep it with the data, but create it in the encosing folder until we are running
             self._console_file_path = os.path.join(self.data_path, self._console_file_name)
-            self.console_file = tempfile.NamedTemporaryFile(mode='w+', dir=os.path.dirname(self.data_path), delete=False)
+            self._console_file = tempfile.NamedTemporaryFile(mode='w+', dir=os.path.dirname(self.data_path), delete=False)
         elif hasattr(console_output, 'write'):
             # file-like object:
             self._console_file_path = None
-            self.console_file = console_output
+            self._console_file = console_output
         else:
             # a path
             assert isinstance(console_output, (str, unicode)), 'Unknown console_output: %r' % console_output
@@ -458,7 +469,7 @@ class Process(object):
             assert os.path.isdir(os.path.dirname(console_output)), 'console_output parent directory was not a folder: %r' % console_output
             assert os.path.isfile(console_output) or not os.path.exists(console_output), 'console_output location was not useable: %r' % console_output
             self._console_file_path = console_output
-            self.console_file = open(console_output, 'a')
+            self._console_file = open(console_output, 'a')
         
         # - server_tags
         if server_tags is None:
@@ -572,8 +583,9 @@ class Process(object):
         # -- start the process
         
         try:
-            self.console_file.write("Launching at %s:\n\t%s\n" % (datetime.datetime.now().isoformat(), " ".join(options)))
-            self.process = subprocess.Popen(options, stdout=self.console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
+            self._console_file.write("Launching at %s:\n\t%s\n" % (datetime.datetime.now().isoformat(), " ".join(options)))
+            self._console_file.flush()
+            self.process = subprocess.Popen(options, stdout=self._console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             if not self in runningServers:
                 runningServers.append(self)
@@ -588,7 +600,7 @@ class Process(object):
         finally:
             # - move console file if necessary
             if self._console_file_path and not os.path.exists(self._console_file_path):
-                os.rename(self.console_file.name, self._console_file_path)
+                os.rename(self._console_file.name, self._console_file_path)
         
         # -- wait until ready (if requested)
         if wait_until_ready:
@@ -818,6 +830,21 @@ class Process(object):
         self._log_maker = None
     def close(self):
         self.stop()
+    
+    @property
+    def console_output(self):
+        if self._console_file:
+            try:
+                self._console_file.flush()
+            except Exception: pass
+        if self._console_file_path and os.path.isfile(self._console_file_path):
+            try:
+                with open(self._console_file_path, 'r') as outputFile:
+                    return(outputFile.read())
+            except Exception as e:
+                print('Error: unable to read server console output!')
+        else:
+            return ''
     
     def update_routing(self):
         self.cluster.update_routing(self)
