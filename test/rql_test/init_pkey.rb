@@ -52,7 +52,7 @@ class H < RethinkDB::Handler
 end
 
 r.table_create('test').run rescue nil
-(0...100).each {|i|
+(0...10).each {|i|
   p i
   $statelog = []
   r.table('test').delete.run

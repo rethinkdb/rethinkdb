@@ -2475,56 +2475,73 @@ public:
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
-        // If there's nothing left to read, behave like a normal feed.  `ready`
-        // should only be called after we've confirmed `is_exhausted` returns
-        // true.
-        if (src->is_exhausted() && ready()) {
-            // This will send the `ready` state as its first doc.
-            return stream_t::next_stream_batch(env, bs);
-        }
-
         std::vector<datum_t> ret;
         batcher_t batcher = bs.to_batcher();
-        // We have to do a little song and dance to make sure we've read at
-        // least once before deciding whether or not to discard changes, because
-        // otherwise we don't know the `skey_version`.  We can remove this hack
-        // once we're no longer backwards-compatible with pre-1.16 (I think?)
-        // skey versions.
-        if (read_once) {
-            while (sub->has_change_val() && !batcher.should_send_batch()) {
-                change_val_t cv = sub->pop_change_val();
-                datum_t el = change_val_to_change(
-                    cv,
-                    cv.old_val && discard(
-                        cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
-                    cv.new_val && discard(
-                        cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
-                if (el.has()) {
-                    batcher.note_el(el);
-                    ret.push_back(std::move(el));
+
+        while (ret.size() == 0) {
+            r_sanity_check(!batcher.should_send_batch());
+            // If there's nothing left to read, behave like a normal feed.  `ready`
+            // should only be called after we've confirmed `is_exhausted` returns
+            // true.
+            if (src->is_exhausted() && ready()) {
+                // This will send the `ready` state as its first doc.
+                return stream_t::next_stream_batch(env, bs);
+            }
+
+            // We have to do a little song and dance to make sure we've read at
+            // least once before deciding whether or not to discard changes, because
+            // otherwise we don't know the `skey_version`.  We can remove this hack
+            // once we're no longer backwards-compatible with pre-1.16 (I think?)
+            // skey versions.
+            if (read_once) {
+                while (sub->has_change_val() && !batcher.should_send_batch()) {
+                    change_val_t cv = sub->pop_change_val();
+                    datum_t el = change_val_to_change(
+                        cv,
+                        cv.old_val && discard(
+                            cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                        cv.new_val && discard(
+                            cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
+                    if (el.has()) {
+                        batcher.note_el(el);
+                        ret.push_back(std::move(el));
+                    }
+                }
+                remove_outdated_ranges();
+            } else {
+                if (sub->include_states) {
+                    ret.push_back(state_datum(state_t::INITIALIZING));
                 }
             }
-            remove_outdated_ranges();
-        } else {
-            if (sub->include_states) {
-                ret.push_back(state_datum(state_t::INITIALIZING));
-            }
-        }
-        if (!batcher.should_send_batch()) {
-            std::vector<datum_t> batch = src->next_batch(env, bs);
-            update_ranges();
-            r_sanity_check(active_state);
-            read_once = true;
-            ret.reserve(ret.size() + batch.size());
-            for (auto &&datum : batch) {
-                ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
+            if (!src->is_exhausted() && !batcher.should_send_batch()) {
+                std::vector<datum_t> batch = src->next_batch(env, bs);
+                update_ranges();
+                r_sanity_check(active_state);
+                read_once = true;
+
+                if (batch.size() == 0) {
+                    r_sanity_check(src->is_exhausted());
+                } else {
+                    ret.reserve(ret.size() + batch.size());
+                    for (auto &&datum : batch) {
+                        ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
+                    }
+                }
+            } else {
+                if (ret.size() == 0) {
+                    // If we've exhausted the stream but aren't ready yet then
+                    // we nap for 50ms to wait for changes.  The other
+                    // alternatives would be to send back empty batches or to
+                    // have more complicated logic to block until a change is
+                    // available.  This shouldn't matter too much because this
+                    // case should be rare in practice, and napping more than
+                    // once should be extremely rare.
+                    nap(50);
+                }
             }
         }
 
-        // If we've exhausted the stream but aren't ready yet than we may send
-        // back empty batches, but that's OK and should be rare in practice.  In
-        // the future we should consider either sleeping for 100ms in that case
-        // or hooking into the waiting logic to block until we're ready.
+        r_sanity_check(ret.size() != 0);
         return ret;
     }
 
