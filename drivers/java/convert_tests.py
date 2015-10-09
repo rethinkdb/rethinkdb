@@ -266,18 +266,6 @@ def escape_string(s, out):
     out.write('"')
 
 
-def render_bytes(s, out):
-    out.write("new byte[]{")
-    for i, byte in enumerate(s):
-        if i > 0:
-            out.write(", ")
-        # Java bytes are signed :(
-        if byte > 127:
-            out.write(str(-(256 - byte)))
-        else:
-            out.write(str(byte))
-    out.write("}")
-
 
 def attr_matches(path, node):
     '''Helper function. Several places need to know if they are an
@@ -416,7 +404,7 @@ class JavaVisitor(ast.NodeVisitor):
     def to_str(self, s):
         escape_string(s, self.out)
 
-    def cast_null(self, arg, cast):
+    def cast_null(self, arg, cast='ReqlExpr'):
         '''Emits a cast to (ReqlExpr) if the node represents null'''
         if (type(arg) == ast.Name and arg.id == 'null') or \
            (type(arg) == ast.NameConstant and arg.value == "None"):
@@ -428,10 +416,10 @@ class JavaVisitor(ast.NodeVisitor):
     def to_args(self, args, optargs=[]):
         self.write("(")
         if args:
-            self.cast_null(args[0], 'ReqlExpr')
+            self.cast_null(args[0])
         for arg in args[1:]:
             self.write(', ')
-            self.cast_null(arg, 'ReqlExpr')
+            self.cast_null(arg)
         self.write(")")
         for optarg in optargs:
             self.write(".optArg(")
@@ -467,8 +455,21 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Str(self, node):
         self.to_str(node.s)
 
-    def visit_Bytes(self, node):
-        render_bytes(node.s, self.out)
+    def visit_Bytes(self, node, skip_prefix=False, skip_suffix=False):
+        if not skip_prefix:
+            self.write("new byte[]{")
+        for i, byte in enumerate(node.s):
+            if i > 0:
+                self.write(", ")
+            # Java bytes are signed :(
+            if byte > 127:
+                self.write(str(-(256 - byte)))
+            else:
+                self.write(str(byte))
+        if not skip_suffix:
+            self.write("}")
+        else:
+            self.write(", ")
 
     def visit_Name(self, node):
         name = node.id
@@ -552,9 +553,37 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(")")
         return True
 
+    def bag_data_hack(self, node):
+        '''This is a very specific hack that isn't a general conversion method
+        whatsoever. In the tests we have an expected value like
+        bag(data * 2) where data is a list. This doesn't work in Java
+        obviously, but the only way to detect it "correctly" requires
+        type information in the ast, which we don't have. So the hack
+        here looks for this very specific case and rejiggers it. PRs
+        welcome for fixing this in a non-nasty way. In the meantime
+        I've made this extremely specific so it hopefully only gets
+        triggered by this specific case in the tests and not on
+        general conversions.
+        '''
+        try:
+            assert node.func.id == 'bag'
+            assert node.args[0].left.id == 'data'
+            assert type(node.args[0].op) == ast.Mult
+            assert node.args[0].right.n == 2
+            self.write("bag((List)")
+            self.write("Stream.concat(data.stream(), data.stream())")
+            self.write(".collect(Collectors.toList())")
+            self.write(")")
+        except Exception:
+            return False
+        else:
+            return True
+
     def visit_Call(self, node):
         self.skip_if_arity_check(node)
         if self.convert_if_string_encode(node):
+            return
+        if self.bag_data_hack(node):
             return
         self.visit(node.func)
         # This weird special case is because sometimes the tests use
@@ -676,7 +705,21 @@ class ReQLVisitor(JavaVisitor):
         'november', 'december', 'minval', 'maxval', 'error'
     }
 
+    def is_byte_array_add(self, node):
+        '''Some places we do stuff like b'foo' + b'bar' and byte
+        arrays don't like that much'''
+        if (type(node.left) == ast.Bytes and
+           type(node.right) == ast.Bytes and
+           type(node.op) == ast.Add):
+            self.visit_Bytes(node.left, skip_suffix=True)
+            self.visit_Bytes(node.right, skip_prefix=True)
+            return True
+        else:
+            return False
+
     def visit_BinOp(self, node):
+        if self.is_byte_array_add(node):
+            return
         opMap = {
             ast.Add: "add",
             ast.Sub: "sub",
