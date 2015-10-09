@@ -12,7 +12,7 @@ void response_t::fill_error(Response::ResponseType _type,
                             const std::string &message,
                             const ql::datum_t &_backtrace) {
     clear();
-    type_ = _type;
+    set_type(_type);
     error_type_ = _error_type;
     backtrace_ = _backtrace;
     data_.push_back(ql::datum_t(datum_string_t(message)));
@@ -24,6 +24,7 @@ void response_t::fill_error(Response::ResponseType _type,
 
 void response_t::set_type(Response::ResponseType _type) {
     type_ = _type;
+    type_is_initialized_ = true;
 }
 
 void response_t::set_data(const ql::datum_t &_data) {
@@ -46,7 +47,7 @@ void response_t::add_note(Response::ResponseNote note) {
 }
 
 void response_t::clear() {
-    type_ = static_cast<Response::ResponseType>(-1);
+    type_is_initialized_ = false;
     data_.clear();
     notes_.clear();
     error_type_ = boost::optional<Response::ErrorType>();
@@ -55,32 +56,32 @@ void response_t::clear() {
 }
 
 Response::ResponseType response_t::type() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return type_;
 }
 
 const boost::optional<Response::ErrorType> &response_t::error_type() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return error_type_;
 }
 
 const std::vector<ql::datum_t> &response_t::data() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return data_;
 }
 
 const std::vector<Response::ResponseNote> &response_t::notes() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return notes_;
 }
 
 const boost::optional<ql::datum_t> &response_t::backtrace() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return backtrace_;
 }
 
 const boost::optional<ql::datum_t> &response_t::profile() const {
-    guarantee(type_ != -1);
+    guarantee(type_is_initialized_);
     return profile_;
 }
 
