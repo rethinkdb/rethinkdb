@@ -55,10 +55,10 @@ geo_job_data_t::geo_job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec
         const std::vector<ql::transform_variant_t> &_transforms,
         const boost::optional<ql::terminal_variant_t> &_terminal)
     : env(_env),
-      batcher(batchspec.to_batcher()),
+      batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
       accumulator(_terminal
                   ? ql::make_terminal(*_terminal)
-                  : ql::make_append(sorting_t::UNORDERED, &batcher)) {
+                  : ql::make_append(sorting_t::UNORDERED, batcher.get())) {
     for (size_t i = 0; i < _transforms.size(); ++i) {
         transformers.push_back(ql::make_op(_transforms[i]));
     }
