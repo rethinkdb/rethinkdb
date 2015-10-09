@@ -56,7 +56,7 @@ A great place to start is [rethinkdb.com/community](http://rethinkdb.com/communi
 
 If you need help right now, you can also find us [on Slack](http://slack.rethinkdb.com/), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
 
-**Join us now:** [![Public Slack Discussion](http://slack.rethinkdb.com/badge.svg)](http://slack.rethinkdb.com/)
+**Join us now:** <a valign="middle" href="http://slack.rethinkdb.com/"><img src="http://slack.rethinkdb.com/badge.svg"></a>
 
 Need help with something serious like _"production"_? We also offer training and on-demand support in our [support services](http://rethinkdb.com/services/) as provided by the core RethinkDB team (and the Thinker too).
 
