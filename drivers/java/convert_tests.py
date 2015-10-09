@@ -460,7 +460,8 @@ class JavaVisitor(ast.NodeVisitor):
         name = node.id
         if name == 'frozenset':
             self.skip("can't convert frozensets to GroupedData yet")
-        if name in metajava.java_term_info.JAVA_KEYWORDS:
+        if name in metajava.java_term_info.JAVA_KEYWORDS or \
+           name in metajava.java_term_info.OBJECT_METHODS:
             name += '_'
         self.write({
             'True': 'true',
