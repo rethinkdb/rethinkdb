@@ -416,9 +416,22 @@ class JavaVisitor(ast.NodeVisitor):
     def to_str(self, s):
         escape_string(s, self.out)
 
+    def cast_null(self, arg, cast):
+        '''Emits a cast to (ReqlExpr) if the node represents null'''
+        if (type(arg) == ast.Name and arg.id == 'null') or \
+           (type(arg) == ast.NameConstant and arg.value == "None"):
+            self.write("(")
+            self.write(cast)
+            self.write(") ")
+        self.visit(arg)
+
     def to_args(self, args, optargs=[]):
         self.write("(")
-        self.join(", ", args)
+        if args:
+            self.cast_null(args[0], 'ReqlExpr')
+        for arg in args[1:]:
+            self.write(', ')
+            self.cast_null(arg, 'ReqlExpr')
         self.write(")")
         for optarg in optargs:
             self.write(".optArg(")
@@ -439,7 +452,7 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(node.targets[0].id)
         self.write(" = (")
         self.write(self.type)
-        self.write(") ")
+        self.write(") (")
         if is_reql(self._type):
             ReQLVisitor(self.reql_vars,
                         out=self.out,
@@ -448,7 +461,8 @@ class JavaVisitor(ast.NodeVisitor):
                         ).visit(node.value)
         else:
             self.visit(node.value)
-        self.write(";")
+
+        self.write(");")
 
     def visit_Str(self, node):
         self.to_str(node.s)
@@ -642,8 +656,10 @@ class JavaVisitor(ast.NodeVisitor):
         elif t == ast.Pow:
             if type(node.left) == ast.Num and node.left.n == 2:
                 self.visit(node.left)
+                self.write("L")
                 self.write(" << ")
                 self.visit(node.right)
+                self.write("L")
             else:
                 raise Unhandled("Can't do exponent with non 2 base")
 
