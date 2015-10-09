@@ -72,9 +72,10 @@ const std::string &real_table_t::get_pkey() const {
     return pkey;
 }
 
-ql::datum_t real_table_t::read_row(ql::env_t *env,
-        ql::datum_t pval, read_mode_t read_mode) {
-    read_t read(point_read_t(store_key_t(pval.print_primary())), env->profile(), read_mode);
+ql::datum_t real_table_t::read_row(
+    ql::env_t *env, ql::datum_t pval, read_mode_t read_mode) {
+    read_t read(point_read_t(store_key_t(pval.print_primary())),
+                env->profile(), read_mode);
     read_response_t res;
     read_with_profile(env, read, &res);
     point_read_response_t *p_res = boost::get<point_read_response_t>(&res.response);

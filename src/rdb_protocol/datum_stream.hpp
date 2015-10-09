@@ -439,6 +439,7 @@ public:
         std::vector<transform_variant_t>) const = 0;
 
     const std::string &get_table_name() const { return table_name; }
+    read_mode_t get_read_mode() const { return read_mode; }
 protected:
     const global_optargs_t global_optargs;
     const std::string table_name;
