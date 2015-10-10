@@ -9,7 +9,7 @@ import uuid
 
 from .utils import *
 
-libc = cdll.LoadLibrary('libc.dylib')
+libc = cdll.LoadLibrary('/usr/lib/libc.dylib')
 
 # Constants
 FSOPT_NOFOLLOW         = 0x00000001
