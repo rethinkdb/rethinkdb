@@ -243,6 +243,12 @@ public class ${module_name} {
     static class Err {
         public final Class clazz;
         public final String message;
+        public final Pattern inRegex = Pattern.compile(
+            "^(?<message>[^\n]*?)(?: in)?:\n.*$",
+            Pattern.DOTALL);
+        public final Pattern assertionRegex = Pattern.compile(
+            "^(?<message>[^\n]*?)\nFailed assertion:.*$",
+            Pattern.DOTALL);
 
         public Err(String classname, String message) {
             String clazzname = "com.rethinkdb.gen.exc." + classname;
@@ -256,9 +262,17 @@ public class ${module_name} {
 
         public boolean equals(Object other) {
             if(other.getClass() != clazz) {
+                System.out.println("Classes didn't match: "
+                                   + clazz + " vs. " + other.getClass());
                 return false;
             }
-            return message.equals(((Exception)other).getMessage());
+            String otherMessage = ((Exception) other).getMessage();
+            otherMessage = inRegex.matcher(otherMessage)
+## Thise ${} syntax is double escaped to avoid confusing mako
+                .replaceFirst("${'${message}:'}");
+            otherMessage = assertionRegex.matcher(otherMessage)
+                .replaceFirst("${'${message}'}");
+            return message.equals(otherMessage);
         }
     }
 
