@@ -7,7 +7,6 @@ import com.rethinkdb.model.GroupedResult;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -19,8 +18,8 @@ import java.util.stream.Collectors;
 
 public class Converter {
 
-    private static final Base64.Decoder b64decoder = Base64.getDecoder();
-    private static final Base64.Encoder b64encoder = Base64.getEncoder();
+    private static final Base64.Decoder b64decoder = Base64.getMimeDecoder();
+    private static final Base64.Encoder b64encoder = Base64.getMimeEncoder();
 
 
     public static final String PSEUDOTYPE_KEY = "$reql_type$";
@@ -114,7 +113,7 @@ public class Converter {
     @SuppressWarnings("unchecked")
     private static byte[] getBinary(Map<String, Object> value) {
         String str = (String) value.get("data");
-        return b64decoder.decode(str.getBytes(StandardCharsets.UTF_8));
+        return b64decoder.decode(str);
     }
 
     public static Map<String,Object> toBinary(byte[] data){
