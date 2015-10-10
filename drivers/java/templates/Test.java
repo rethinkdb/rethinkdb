@@ -427,6 +427,10 @@ public class ${module_name} {
             try {
             %if item.expected_type.endswith('[]'):
                 assertArrayEquals(expected_, (${item.expected_type}) obtained);
+            %elif item.expected_type == 'Double':
+                assertEquals((double) expected_,
+                             ((Number) obtained).doubleValue(),
+                             0.00000000001);
             %else:
                 assertEquals(expected_, obtained);
             %endif
