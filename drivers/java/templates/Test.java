@@ -347,7 +347,7 @@ public class ${module_name} {
     }
 
     ZoneOffset PacificTimeZone() {
-        return ZoneOffset.ofHours(-8);
+        return ZoneOffset.ofHours(-7);
     }
 
     ZoneOffset UTCTimeZone() {
