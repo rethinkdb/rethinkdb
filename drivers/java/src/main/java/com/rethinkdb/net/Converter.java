@@ -103,7 +103,7 @@ public class Converter {
     private static OffsetDateTime getTime(Map<String, Object> obj) {
         try {
             ZoneOffset offset = ZoneOffset.of((String) obj.get("timezone"));
-            Double epochTime = (Double) obj.get("epoch_time");
+            Double epochTime = ((Number) obj.get("epoch_time")).doubleValue();
             Instant timeInstant = Instant.ofEpochMilli(((Double) (epochTime * 1000.0)).longValue());
             return OffsetDateTime.ofInstant(timeInstant, offset);
         } catch (Exception ex) {

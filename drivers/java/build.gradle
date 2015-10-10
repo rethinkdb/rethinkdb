@@ -18,8 +18,14 @@ repositories {
 
 dependencies {
     testCompile "junit:junit:4.12"
-    compile 'org.slf4j:slf4j-api:1.7.2'
+    compile 'org.slf4j:slf4j-api:1.7.12'
     compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+}
+
+test {
+    testLogging {
+        events 'passed'
+    }
 }
 
 buildDir = '../../build/drivers/java/gradle'

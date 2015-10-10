@@ -368,6 +368,9 @@ public class ${module_name} {
 
     static class ast {
         static ZoneOffset rqlTzinfo(String offset) {
+            if(offset.equals("00:00")){
+                offset = "Z";
+            }
             return ZoneOffset.of(offset);
         }
     }
@@ -383,37 +386,15 @@ public class ${module_name} {
         return null;
     }
 
-    void assertEquals(Map expected_, Map obtained) {
-        if(expected_.size() > obtained.size()) {
-            throw new AssertionError("expected was larger than obtained");
-        }else if(expected_.size() < obtained.size()) {
-            throw new AssertionError("obained was larger than expected");
-        }
-        for (Object _exp : expected_.entrySet()) {
-            Map.Entry<Object,Object> exp = (Map.Entry<Object,Object>) _exp;
-            if(!obtained.containsKey(exp.getKey())){
-                throw new AssertionError("Expected key \"" + exp.getKey() + "\" but didn't get it");
-            }
-            Object obVal = obtained.get(exp.getKey());
-            if(!exp.getValue().equals(obVal)){
-                throw new AssertionError("Expected value of key \"" + exp.getKey() + "\" to be " + exp.getValue() + " but got " + obVal);
-            }
-        }
-    }
-
     void assertEquals(Object expected_, Object obtained) {
-        if(expected_ instanceof Map && obtained instanceof Map){
-            assertEquals((Map)expected_, (Map)obtained);
-            return;
-        }
         try {
-            if(!expected_.equals(obtained)){
-                System.out.println("Test failed man.");
-                throw new AssertionError("blech");
-            }
+            assert(expected_.equals(obtained));
         } catch (AssertionError e) {
             System.out.println("Expected " + expected_);
             System.out.println("Obtained " + obtained);
+            if(obtained instanceof Throwable) {
+                ((Throwable) obtained).printStackTrace();
+            }
             throw e;
         }
     }
