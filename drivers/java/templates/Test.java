@@ -7,9 +7,11 @@ import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Cursor;
 import junit.framework.Assert;
 import junit.framework.TestCase;
-import static org.junit.Assert.assertEquals;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -22,7 +24,7 @@ import java.util.Set;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.Instant;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.concurrent.TimeoutException;
@@ -31,7 +33,7 @@ import java.util.Collections;
 import java.nio.charset.StandardCharsets;
 
 public class ${module_name} {
-
+    Logger logger = LoggerFactory.getLogger(${module_name}.class);
     public static final RethinkDB r = RethinkDB.r;
     %for var_name in table_var_names:
     public static final Table ${var_name} = r.db("test").table("${var_name}");
@@ -49,7 +51,10 @@ public class ${module_name} {
             r.db("test").wait_().run(conn);
         }catch (Exception e){}
         %for var_name in table_var_names:
-        r.db("test").tableCreate("${var_name}").run(conn);
+        try {
+            r.db("test").tableCreate("${var_name}").run(conn);
+            r.db("test").table(${var_name}).wait_().run(conn);
+        }catch (Exception e){}
         %endfor
     }
 
@@ -58,6 +63,7 @@ public class ${module_name} {
         %for var_name in table_var_names:
         r.db("test").tableDrop("${var_name}").run(conn);
         %endfor
+        r.dbDrop("test").run(conn);
         conn.close();
     }
 
@@ -185,7 +191,7 @@ public class ${module_name} {
         }
     }
 
-    ArrLen arrlen(Integer length, Object thing) {
+    ArrLen arrlen(Long length, Object thing) {
         return new ArrLen(length.intValue(), thing);
     }
 
@@ -205,8 +211,8 @@ public class ${module_name} {
     }
 
     static class IntCmp {
-        final Integer nbr;
-        public IntCmp(Integer nbr) {
+        final Long nbr;
+        public IntCmp(Long nbr) {
             this.nbr = nbr;
         }
         public boolean equals(Object other) {
@@ -214,7 +220,7 @@ public class ${module_name} {
         }
     }
 
-    IntCmp int_cmp(int nbr) {
+    IntCmp int_cmp(Long nbr) {
         return new IntCmp(nbr);
     }
 
@@ -238,10 +244,11 @@ public class ${module_name} {
         public final String message;
 
         public Err(String classname, String message) {
+            String clazzname = "com.rethinkdb.gen.exc." + classname;
             try {
-                this.clazz = Class.forName(classname);
+                this.clazz = Class.forName(clazzname);
             } catch (ClassNotFoundException cnfe) {
-                throw new RuntimeException("Bad exception class", cnfe);
+                throw new RuntimeException("Bad exception class: "+clazzname, cnfe);
             }
             this.message = message;
         }
@@ -267,10 +274,11 @@ public class ${module_name} {
         public final String message_rgx;
 
         public ErrRegex(String classname, String message_rgx) {
+            String clazzname = "com.rethinkdb.gen.exc." + classname;
             try {
-                this.clazz = Class.forName(classname);
+                this.clazz = Class.forName(clazzname);
             } catch (ClassNotFoundException cnfe) {
-                throw new RuntimeException("Bad exception class", cnfe);
+                throw new RuntimeException("Bad exception class: "+clazzname, cnfe);
             }
             this.message_rgx = message_rgx;
         }
@@ -292,13 +300,29 @@ public class ${module_name} {
         return new ErrRegex(classname, message_rgx);
     }
 
-    List fetch(ReqlAst query, int values) {
-        throw new RuntimeException("Not implemented!");
+    ReqlExpr fetch(ReqlExpr query, long limit) {
+        return query.limit(limit).coerceTo("ARRAY");
+    }
+    ArrayList fetch(Cursor cursor, long limit) {
+        long total = 0;
+        ArrayList result = new ArrayList((int) limit);
+        for(long i = 0; i < limit; i++) {
+            if(!cursor.hasNext()){
+                break;
+            }
+            result.set((int) i, cursor.next());
+        }
+        return result;
     }
 
     Object runOrCatch(Object query, OptArgs runopts) {
         if(query == null) {
             return null;
+        }
+        if(query instanceof Cursor) {
+            ArrayList ret = new ArrayList();
+            ((Cursor)query).forEachRemaining(ret::add);
+            return ret;
         }
         try {
             return ((ReqlAst)query).run(conn, runopts);
@@ -307,11 +331,11 @@ public class ${module_name} {
         }
     }
 
-    IntStream range(int start, int stop) {
-        return IntStream.range(start, stop);
+    LongStream range(long start, long stop) {
+        return LongStream.range(start, stop);
     }
 
-    List list(IntStream str) {
+    List list(LongStream str) {
         return str.boxed().collect(Collectors.toList());
     }
 
@@ -352,11 +376,46 @@ public class ${module_name} {
         return nbr;
     }
 
-    Object wait_(int length) {
+    Object wait_(long length) {
         try {
             Thread.sleep(length * 1000);
         }catch(InterruptedException ie) {}
         return null;
+    }
+
+    void assertEquals(Map expected_, Map obtained) {
+        if(expected_.size() > obtained.size()) {
+            throw new AssertionError("expected was larger than obtained");
+        }else if(expected_.size() < obtained.size()) {
+            throw new AssertionError("obained was larger than expected");
+        }
+        for (Object _exp : expected_.entrySet()) {
+            Map.Entry<Object,Object> exp = (Map.Entry<Object,Object>) _exp;
+            if(!obtained.containsKey(exp.getKey())){
+                throw new AssertionError("Expected key \"" + exp.getKey() + "\" but didn't get it");
+            }
+            Object obVal = obtained.get(exp.getKey());
+            if(!exp.getValue().equals(obVal)){
+                throw new AssertionError("Expected value of key \"" + exp.getKey() + "\" to be " + exp.getValue() + " but got " + obVal);
+            }
+        }
+    }
+
+    void assertEquals(Object expected_, Object obtained) {
+        if(expected_ instanceof Map && obtained instanceof Map){
+            assertEquals((Map)expected_, (Map)obtained);
+            return;
+        }
+        try {
+            if(!expected_.equals(obtained)){
+                System.out.println("Test failed man.");
+                throw new AssertionError("blech");
+            }
+        } catch (AssertionError e) {
+            System.out.println("Expected " + expected_);
+            System.out.println("Obtained " + obtained);
+            throw e;
+        }
     }
 
     // Autogenerated tests below
@@ -396,7 +455,7 @@ public class ${module_name} {
               %endfor
             %endif
                                           );
-            assert(expected_.equals(obtained));
+            assertEquals(expected_, obtained);
         }
         %endif
         %endfor

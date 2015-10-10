@@ -518,7 +518,7 @@ class JavaVisitor(ast.NodeVisitor):
         if not isinstance(node.n, float):
             if node.n > 9223372036854775807 or node.n < -9223372036854775808:
                 self.write(".0")
-            elif node.n > 2147483647 or node.n < -2147483648:
+            else:
                 self.write("L")
 
     def visit_Index(self, node):
@@ -629,7 +629,7 @@ class JavaVisitor(ast.NodeVisitor):
                             " Got %s" % node.slice.value.s)
         self.visit(node.value)
         self.write(".get(")
-        self.visit(node.slice.value)
+        self.write(str(node.slice.value.n))
         self.write(")")
 
     def visit_ListComp(self, node):
@@ -640,7 +640,7 @@ class JavaVisitor(ast.NodeVisitor):
             # range(i)] comprehensions that are used in the polyglot
             # tests sometimes. It won't handle translating arbitrary
             # comprehensions to Java streams.
-            self.write("IntStream.range(")
+            self.write("LongStream.range(")
             if len(gen.iter.args) == 1:
                 self.write("0, ")
                 self.visit(gen.iter.args[0])
@@ -685,10 +685,8 @@ class JavaVisitor(ast.NodeVisitor):
         elif t == ast.Pow:
             if type(node.left) == ast.Num and node.left.n == 2:
                 self.visit(node.left)
-                self.write("L")
                 self.write(" << ")
                 self.visit(node.right)
-                self.write("L")
             else:
                 raise Unhandled("Can't do exponent with non 2 base")
 
