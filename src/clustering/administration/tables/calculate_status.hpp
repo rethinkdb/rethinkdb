@@ -57,6 +57,7 @@ public:
     table_config_and_shards_t config;
     std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
         table_shard_status_t> > server_shards;
+    boost::optional<server_id_t> raft_leader;
     std::set<server_id_t> disconnected;
     server_name_map_t server_names;
 };
