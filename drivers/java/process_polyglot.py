@@ -300,7 +300,7 @@ class ExpectedContext(object):
         self.runopts = test_context.runopts
         self.expected_term = expected_term
 
-    def query_from_term(self, query_term):
+    def query_from_term(self, query_term, test_num=None):
         if type(query_term) == SkippedTest:
             return query_term
         else:
@@ -308,13 +308,18 @@ class ExpectedContext(object):
                 query=query_term,
                 expected=self.expected_term,
                 testfile=self.testfile,
-                test_num=self.test_num,
+                test_num=self.test_num if test_num is None else test_num,
                 runopts=self.runopts,
             )
 
     def query_from_test(self, test):
         return self.query_from_term(
             self.term_from_test(test))
+
+    def query_from_subtest(self, test, subtest_num):
+        return self.query_from_term(
+            self.term_from_test(test),
+            (self.test_num, subtest_num))
 
     def query_from_parsed(self, testline, parsed):
         return self.query_from_term(
@@ -390,6 +395,6 @@ def tests_and_defs(testfile, raw_test_data, context, custom_field=None):
         elif type(pytest) is dict and 'cd' in pytest:
             yield expected_context.query_from_test(pytest['cd'])
         else:
-            for subtest in pytest:
+            for i, subtest in enumerate(pytest, start=1):
                 # unroll subtests
-                yield expected_context.query_from_test(subtest)
+                yield expected_context.query_from_subtest(subtest, i)
