@@ -23,7 +23,7 @@ tests:
       ot: [0, 0, 0]
 
     - js: r.range(3).map(r.range(4), function(){return 0})
-      py: r.range(3).map(r.range(4), lambda:0)
+      py: r.range(3).map(r.range(4), lambda x,y:0)
       rb: r.range(3).map(r.range(4)){0}
       ot: [0, 0, 0]
 
