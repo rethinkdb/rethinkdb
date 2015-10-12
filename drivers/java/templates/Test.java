@@ -196,6 +196,10 @@ public class ${module_name} {
         return new ArrLen(length.intValue(), thing);
     }
 
+    ArrLen arrlen(Long length) {
+        return new ArrLen(length.intValue(), null);
+    }
+
     static class Uuid {
         public boolean equals(Object other) {
             if(!(other instanceof String)) {
