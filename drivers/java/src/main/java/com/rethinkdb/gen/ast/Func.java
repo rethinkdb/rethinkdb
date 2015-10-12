@@ -27,7 +27,11 @@ public class Func extends ReqlExpr {
         super(TermType.FUNC, args, null);
     }
     public static Func fromLambda(ReqlLambda function) {
-        if(function instanceof ReqlFunction1){
+        if(function instanceof ReqlFunction0) {
+            return new Func(Arguments.make(new MakeArray(Arrays.asList()),
+                            Util.toReqlAst(((ReqlFunction0) function).apply())));
+        }
+        else if(function instanceof ReqlFunction1){
             ReqlFunction1 func1 = (ReqlFunction1) function;
             int var1 = nextVarId();
             List<Integer> varIds = Arrays.asList(

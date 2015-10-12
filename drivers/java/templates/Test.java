@@ -334,13 +334,15 @@ public class ${module_name} {
         if(query == null) {
             return null;
         }
-        if(query instanceof Cursor) {
-            ArrayList ret = new ArrayList();
-            ((Cursor)query).forEachRemaining(ret::add);
-            return ret;
-        }
         try {
-            return ((ReqlAst)query).run(conn, runopts);
+            Object res = ((ReqlAst)query).run(conn, runopts);
+            if(res instanceof com.rethinkdb.net.Cursor) {
+                ArrayList ret = new ArrayList();
+                ((com.rethinkdb.net.Cursor) res).forEachRemaining(ret::add);
+                return ret;
+            }else{
+                return res;
+            }
         } catch (Exception e) {
             return e;
         }
