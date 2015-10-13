@@ -88,7 +88,7 @@ public class ${module_name} {
     static class Bag {
         final List lst;
         public Bag(List lst) {
-            Collections.sort(lst);
+            stringSort(lst);
             this.lst = lst;
         }
 
@@ -97,8 +97,13 @@ public class ${module_name} {
                 return false;
             }
             List otherList = (List) other;
-            Collections.sort(otherList);
+            stringSort(otherList);
             return lst.equals(otherList);
+        }
+
+        public void stringSort(List input) {
+            Collections.sort(input, (Object a, Object b) ->
+                             a.toString().compareTo(b.toString()));
         }
 
         public String toString() {
@@ -334,19 +339,39 @@ public class ${module_name} {
         return new ErrRegex(classname, message_rgx);
     }
 
-    ReqlExpr fetch(ReqlExpr query, long limit) {
-        return query.limit(limit).coerceTo("ARRAY");
-    }
-    ArrayList fetch(Cursor cursor, long limit) {
-        long total = 0;
-        ArrayList result = new ArrayList((int) limit);
-        for(long i = 0; i < limit; i++) {
-            if(!cursor.hasNext()){
-                break;
+    static class Fetch {
+        public ReqlExpr query;
+        public long limit;
+
+        Fetch(ReqlExpr query, long limit) {
+            this.query = query;
+            if(limit < 0) {
+                this.limit = Long.MAX_VALUE;
+            }else{
+                this.limit = limit;
             }
-            result.set((int) i, cursor.next());
         }
-        return result;
+
+        public Object run(Connection conn, OptArgs runopts) {
+            Cursor cursor = (Cursor) query.run(conn, runopts);
+            long total = 0;
+            ArrayList result = new ArrayList((int) limit);
+            for(long i = 0; i < limit; i++) {
+                if(!cursor.hasNext()){
+                    break;
+                }
+                result.set((int) i, cursor.next());
+            }
+            return result;
+        }
+    }
+
+    Fetch fetch(ReqlExpr query, long limit) {
+        return new Fetch(query, limit);
+    }
+
+    Fetch fetch(ReqlExpr query) {
+        return new Fetch(query, -1L);
     }
 
     Object runOrCatch(Object query, OptArgs runopts) {
@@ -354,7 +379,12 @@ public class ${module_name} {
             return null;
         }
         try {
-            Object res = ((ReqlAst)query).run(conn, runopts);
+            Object res;
+            if(query instanceof Fetch) {
+                res = ((Fetch)query).run(conn, runopts);
+            }else{
+                res = ((ReqlAst)query).run(conn, runopts);
+            }
             if(res instanceof com.rethinkdb.net.Cursor) {
                 ArrayList ret = new ArrayList();
                 ((com.rethinkdb.net.Cursor) res).forEachRemaining(ret::add);
