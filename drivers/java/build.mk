@@ -48,7 +48,7 @@ java-super-clean: | java-clean
 	rm -rf $(TEST_GEN_DIR)/*
 
 .PHONY: java-convert-tests
-java-convert-tests: py-driver
+java-convert-tests: | py-driver java-driver
 	$P CONVERT JAVA TESTS
 	$(CONVERT_TESTS) \
 	    --test-dir=$(TOP)/test/rql_test/src             \
