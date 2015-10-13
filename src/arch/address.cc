@@ -26,7 +26,7 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
       errno_res(_errno_res) {
     std::string info =
 #ifndef _WIN32
-		(res == EAI_SYSTEM) ?
+        (res == EAI_SYSTEM) ?
         strprintf("%s (errno %d)", errno_string(errno_res).c_str(), errno_res) :
 #endif
         strprintf("%s (gai_errno %d)", gai_strerror(res), res);
@@ -37,7 +37,7 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
 #ifdef _WIN32
-	const int namelen = 256; // (cf. RFC 1035)
+    const int namelen = 256; // (cf. RFC 1035)
 #else
     const int namelen = _POSIX_HOST_NAME_MAX;
 #endif
@@ -46,7 +46,12 @@ std::string str_gethostname() {
     bytes[namelen] = '0';
 
     int res = gethostname(bytes.data(), namelen);
+
+#ifdef _WIN32
+    guarantee_winerr(res == 0, "gethostname() failed");
+#else
     guarantee_err(res == 0, "gethostname() failed");
+#endif
     return std::string(bytes.data());
 }
 
@@ -157,7 +162,6 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         // Continue on, this probably means there's no DNS entry for this host
     }
 
-#ifndef _WIN32 // TODO ATN
     // Ignore loopback addresses - those will be returned by getifaddrs, and
     // getaddrinfo is not so trustworthy.
     // See https://github.com/rethinkdb/rethinkdb/issues/2405
@@ -168,6 +172,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         }
     }
 
+#ifndef _WIN32 // TODO ATN
     struct ifaddrs *addrs;
     int res = getifaddrs(&addrs);
     guarantee_err(res == 0,

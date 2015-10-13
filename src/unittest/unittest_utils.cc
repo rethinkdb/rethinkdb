@@ -68,11 +68,12 @@ temp_file_t::temp_file_t() {
     char tmpl[MAX_PATH + 2];
     BOOL res = GetTempPath(sizeof(tmpl), tmpl);
     guarantee_winerr(res, "GetTempPath failed");
-    // TODO ATN: buffer overflow
+    // TODO ATN: buffer overflow ?
     strcpy(tmpl + res, "rdb_unittest.XXXXXX");
+    // TODO ATN: this always returns the same filename, causing conflicts, hence the randint
     errno_t err = _mktemp_s(tmpl, sizeof(tmpl));
     guarantee_xerr(err == 0, err, "_mktemp_s failed");
-    filename = tmpl;
+    filename = std::string(tmpl) + strprintf("-%d", randint(100000));
 #else
     char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
     for (;;) {

@@ -8,7 +8,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "utils.hpp"
 
-#define ALT_DEBUG 1 // TODO ATN
+#define ALT_DEBUG 0
 
 using alt::block_version_t;
 using alt::current_page_acq_t;

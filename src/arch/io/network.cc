@@ -1,7 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
-#ifndef _WIN32 // TODO ATN
+#ifndef _WIN32
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netdb.h>
@@ -32,11 +32,11 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-/* TODO ATN
+//* TODO ATN
 #define winsock_debugf debugf /*/
 #define winsock_debugf(...) ((void)0) //*/
 
-#ifdef _WIN32 // ATN TODO
+#ifdef _WIN32
 LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
     static LPFN_CONNECTEX ConnectEx = nullptr;
     if (!ConnectEx) {
@@ -80,7 +80,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     winsock_debugf("ATN: waiting for connection on %x\n",socket);
     wait_interruptible(&op.completed, interuptor);
     if (op.error != NO_ERROR) {
-        crash("ConnectEx failed: %s", winerr_string(op.error).c_str());
+        logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
     winsock_debugf("ATN: connected %x\n", socket);
@@ -122,7 +122,7 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
     // TODO ATN: on Windows at least, bind can block. Can it block in this use case?
     winsock_debugf("ATN: binding socket for connect %x\n", socket);
     if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
-        logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+        logWRN("Failed to bind to local port %d: %s", local_port, winerr_string(GetLastError()).c_str());
     }
 #else
     if (local_port != 0) {
@@ -142,12 +142,19 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
 
 NORETURN // TODO ATN: gcc warns if NORETURN isn't here
 void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id, event_watcher_t *event_watcher, signal_t *interuptor) {
-    crash("TODO ATN: ipv6 connect");
     struct sockaddr_in6 sa;
     socklen_t sa_len(sizeof(sa));
     memset(&sa, 0, sa_len);
     sa.sin6_family = AF_INET6;
 
+#ifdef _WIN32
+    sa.sin6_port = htons(local_port);
+    sa.sin6_addr = in6addr_any;
+    winsock_debugf("ATN: binding socket for connect %x\n", socket);
+    if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
+        logWRN("Failed to bind to local port %d: %s", local_port, winerr_string(GetLastError()).c_str());
+    }
+#else
     if (local_port != 0) {
         sa.sin6_port = htons(local_port);
         sa.sin6_addr = in6addr_any;
@@ -155,6 +162,7 @@ void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, in
             logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
         }
     }
+#endif
 
     sa.sin6_port = htons(port);
     sa.sin6_addr = addr;
@@ -167,8 +175,7 @@ fd_t create_socket_wrapper(int address_family) {
 #ifdef _WIN32
     // fd_t res = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
     // TODO ATN: maybe replace this by above, or at least use address_family instead of AF_INET
-    (void) address_family;
-    fd_t res = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    fd_t res = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
     winsock_debugf("ATN: new socket %x\n", res); // TODO ATN
     if (res == INVALID_FD) {
         DWORD err = GetLastError();
@@ -854,7 +861,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     for (size_t i = 0; i < socks.size(); ++i) {
         winsock_debugf("ATN: listening on socket %x\n", socks[i].get()); // TODO ATN
         int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
-        guarantee_err(res == 0, "Couldn't listen to the socket"); // TODO ATN: on windows, GetLastERror instead of errno
+        guarantee_err(res == 0, "Couldn't listen to the socket"); // TODO ATN: on windows, GetLastError instead of errno
 
 #ifndef _WIN32 // TODO ATN
         res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
@@ -892,10 +899,11 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
 
 #ifdef _WIN32
         // socks[i].reset(WSASocket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
-        // TODO ATN: maybe restore above line, or at least use the correct family
-        socks[i].reset(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+        // TODO ATN: maybe restore above line
+        socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP));
         winsock_debugf("ATN: new socket for listening: %x\n", socks[i]);
         if (socks[i].get() == INVALID_FD) {
+            logERR("socket failed: %s", winerr_string(GetLastError()));
             return EIO; // TODO ATN: winerr -> errno
         }
 #else
@@ -955,9 +963,6 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
 }
 
 int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
-#ifdef _WIN32
-    crash("ATN TODO: ipv6");
-#endif
     sockaddr_in6 serv_addr;
     socklen_t sa_len(sizeof(serv_addr));
     memset(&serv_addr, 0, sa_len);
