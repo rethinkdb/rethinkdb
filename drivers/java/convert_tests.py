@@ -502,7 +502,7 @@ class JavaVisitor(ast.NodeVisitor):
             raise Unhandled(
                 "Don't know NameConstant with value %s" % node.value)
 
-    def visit_Attribute(self, node):
+    def visit_Attribute(self, node, emit_parens=True):
         skip_parent = False
         if attr_matches("r.ast", node):
             # The java driver doesn't have that namespace, so we skip
@@ -588,13 +588,16 @@ class JavaVisitor(ast.NodeVisitor):
             return
         if self.bag_data_hack(node):
             return
-        self.visit(node.func)
-        # This weird special case is because sometimes the tests use
-        # r.error and sometimes they use r.error(). The java driver
-        # only supports r.error(), so we need to avoid emitting the
-        # parens since the self.visit(node.func) already did it
-        if type(node.func) != ast.Attribute or node.func.attr != 'error':
-            self.to_args(node.args, node.keywords)
+        if type(node.func) == ast.Attribute and node.func.attr == 'error':
+            # This weird special case is because sometimes the tests
+            # use r.error and sometimes they use r.error(). The java
+            # driver only supports r.error(). Since we're coming in
+            # from a call here, we have to prevent visit_Attribute
+            # from emitting the parents on an r.error for us.
+            self.visit_Attribute(node.func, emit_parens=False)
+        else:
+            self.visit(node.func)
+        self.to_args(node.args, node.keywords)
 
     def visit_Dict(self, node):
         self.write("r.hashMap(")
@@ -824,14 +827,14 @@ class ReQLVisitor(JavaVisitor):
 
         return get_bound(slc.lower, 0), get_bound(slc.upper, -1)
 
-    def visit_Attribute(self, node):
-        emit_call = False
+    def visit_Attribute(self, node, emit_parens=True):
+        is_toplevel_constant = False
         if attr_matches("r.row", node):
             self.skip("Java driver doesn't support r.row", fatal=True)
         elif is_name("r", node.value) and node.attr in self.TOPLEVEL_CONSTANTS:
             # Python has r.minval, r.saturday etc. We need to emit
             # r.minval() and r.saturday()
-            emit_call = True
+            is_toplevel_constant = True
         python_clashes = {
             # These are underscored in the python driver to avoid
             # keywords, but they aren't java keywords so we convert
@@ -852,7 +855,7 @@ class ReQLVisitor(JavaVisitor):
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:
             self.write('_')
-        if emit_call:
+        if emit_parens and is_toplevel_constant:
             self.write('()')
 
     def visit_UnaryOp(self, node):
