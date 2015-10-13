@@ -29,9 +29,10 @@ r = None
 
 TEST_EXCLUSIONS = [
     # python only tests
-    'regression/1133',
-    'regression/767',
-    'regression/1005',
+    # 'regression/1133',
+    # 'regression/767',
+    # 'regression/1005',
+    'regression/',
     # double run
     'changefeeds/squash',
     # arity checked at compile time
@@ -51,7 +52,7 @@ def main():
         evaluate_snippet(args.e)
         exit(0)
     global r
-    r = import_python_driver(args.test_common_dir)
+    r = import_python_driver(args.python_driver_dir)
     renderer = metajava.Renderer(
         args.template_dir,
         invoking_filenames=[
@@ -90,9 +91,9 @@ def parse_args():
         default="./templates",
     )
     parser.add_argument(
-        "--test-common-dir",
-        help="Where the common test modules are located",
-        default="../../test/common"
+        "--python-driver-dir",
+        help="Where the built python driver is located",
+        default="../../build/drivers/python"
     )
     parser.add_argument(
         "--test-file",
@@ -117,13 +118,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def import_python_driver(common_dir):
+def import_python_driver(py_driver_dir):
     '''Imports the test driver header'''
     stashed_path = sys.path
-    sys.path.insert(0, os.path.realpath(common_dir))
-    import utils
+    sys.path.insert(0, os.path.realpath(py_driver_dir))
+    import rethinkdb as r
     sys.path = stashed_path
-    return utils.import_python_driver()
+    return r
 
 JavaQuery = namedtuple(
     'JavaQuery',
@@ -139,6 +140,7 @@ Version = namedtuple("Version", "original java")
 
 JAVA_DECL = re.compile(r'(?P<type>.+) (?P<var>\w+) = (?P<value>.*);')
 
+
 def evaluate_snippet(snippet):
     '''Just converts a single expression snippet into java'''
     try:
@@ -149,6 +151,7 @@ def evaluate_snippet(snippet):
         print(ReQLVisitor().convert(parsed))
     except Exception as e:
         return print("Error:", e)
+
 
 class TestFile(object):
     '''Represents a single test file'''
@@ -264,7 +267,6 @@ def escape_string(s, out):
             rpr = r'\"'
         out.write(rpr)
     out.write('"')
-
 
 
 def attr_matches(path, node):
@@ -383,7 +385,8 @@ class JavaVisitor(ast.NodeVisitor):
 
     def skip(self, message, *args, **kwargs):
         cls = Skip
-        if self.is_def:
+        is_fatal = kwargs.pop('fatal', False)
+        if self.is_def or is_fatal:
             cls = FatalSkip
         raise cls(message, *args, **kwargs)
 
@@ -824,7 +827,7 @@ class ReQLVisitor(JavaVisitor):
     def visit_Attribute(self, node):
         emit_call = False
         if attr_matches("r.row", node):
-            self.skip("Java driver doesn't support r.row")
+            self.skip("Java driver doesn't support r.row", fatal=True)
         elif is_name("r", node.value) and node.attr in self.TOPLEVEL_CONSTANTS:
             # Python has r.minval, r.saturday etc. We need to emit
             # r.minval() and r.saturday()

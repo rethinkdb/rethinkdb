@@ -133,9 +133,18 @@ def all_yaml_tests(test_dir, exclusions):
     for root, dirs, files in os.walk(test_dir):
         for f in files:
             path = os.path.relpath(os.path.join(root, f), test_dir)
-            parts = path.split('.')
-            if parts[-1] == 'yaml' and parts[0] not in exclusions:
+            if valid_filename(exclusions, path):
                 yield path
+
+
+def valid_filename(exclusions, filepath):
+    parts = filepath.split('.')
+    if parts[-1] != 'yaml':
+        return False
+    for exclusion in exclusions:
+        if filepath.startswith(exclusion):
+            return False
+    return True
 
 
 def create_context(r, table_var_names):

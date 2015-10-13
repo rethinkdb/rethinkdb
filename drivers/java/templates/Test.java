@@ -254,6 +254,10 @@ public class ${module_name} {
             "^(?<message>[^\n]*?)\nFailed assertion:.*$",
             Pattern.DOTALL);
 
+        public String toString() {
+            return "Err(" + clazz + ": " + message + ")";
+        }
+
         public Err(String classname, String message) {
             String clazzname = "com.rethinkdb.gen.exc." + classname;
             try {
