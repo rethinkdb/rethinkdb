@@ -148,7 +148,7 @@ def evaluate_snippet(snippet):
     except Exception as e:
         return print("Error:", e)
     try:
-        print(ReQLVisitor().convert(parsed))
+        print(ReQLVisitor(smart_bracket=True).convert(parsed))
     except Exception as e:
         return print("Error:", e)
 
@@ -374,12 +374,15 @@ class JavaVisitor(ast.NodeVisitor):
                  reql_vars=frozenset("r"),
                  out=None,
                  type_=None,
-                 is_def=False):
+                 is_def=False,
+                 smart_bracket=False,
+    ):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
         self.type = py_to_java_type(type_)
         self._type = type_
         self.is_def = is_def
+        self.smart_bracket = smart_bracket
         super(JavaVisitor, self).__init__()
         self.write = self.out.write
 
@@ -788,9 +791,9 @@ class ReQLVisitor(JavaVisitor):
         self.visit(node.value)
         if type(node.slice) == ast.Index:
             # Syntax like a[2] or a["b"]
-            if type(node.slice.value) == ast.Str:
+            if self.smart_bracket and type(node.slice.value) == ast.Str:
                 self.write(".g(")
-            elif type(node.slice.value) == ast.Num:
+            elif self.smart_bracket and type(node.slice.value) == ast.Num:
                 self.write(".nth(")
             else:
                 self.write(".bracket(")
