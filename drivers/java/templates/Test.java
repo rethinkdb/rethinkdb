@@ -100,6 +100,10 @@ public class ${module_name} {
             Collections.sort(otherList);
             return lst.equals(otherList);
         }
+
+        public String toString() {
+            return "Bag(" + lst + ")";
+        }
     }
 
     Bag bag(List lst) {
@@ -201,13 +205,20 @@ public class ${module_name} {
     }
 
     static class Uuid {
+        static final String uuidRgx =
+            "[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}";
+
         public boolean equals(Object other) {
             if(!(other instanceof String)) {
+                System.out.println("Not compared to a string! Got: " + other);
                 return false;
             }
-            return Pattern.matches(
-            "[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}",
-            (String) other);
+            System.out.println("Compared to a string");
+            return Pattern.matches(uuidRgx, (String) other);
+        }
+
+        public String toString() {
+            return "Uuid(" + uuidRgx + ")";
         }
     }
 
