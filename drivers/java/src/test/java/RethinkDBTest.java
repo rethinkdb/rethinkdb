@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 
@@ -43,6 +44,7 @@ public class RethinkDBTest{
         Connection<?> conn = TestingFramework.createConnection();
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
+            r.dbDrop(dbName).run(conn);
         }catch(ReqlError e){}
         conn.close();
     }
