@@ -1,7 +1,9 @@
 desc: Test that UUIDs work
 tests:
   - cd: r.uuid()
+    ot: uuid()
   - cd: r.expr(r.uuid())
+    ot: uuid()
   - cd: r.type_of(r.uuid())
     ot: ('STRING')
   - cd: r.uuid().ne(r.uuid())
