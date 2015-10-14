@@ -114,7 +114,7 @@ private:
 
             if (type == Term::ASC || type == Term::DESC) {
                 rcheck_src(bt,
-                    prev_frame == nullptr || prev_frame->type == Term::ORDER_BY,
+                    prev_frame != nullptr && prev_frame->type == Term::ORDER_BY,
                     base_exc_t::LOGIC,
                     strprintf("%s may only be used as an argument to ORDER_BY.",
                               (type == Term::ASC ? "ASC" : "DESC")));
