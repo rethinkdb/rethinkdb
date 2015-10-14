@@ -16,9 +16,8 @@ var numRows = parseInt(process.env.TEST_ROWS) || 100;
 var numRowsMany = parseInt(process.env.TEST_MANY_ROWS) || 10000; // Keep a "big" value to try hitting `maximum call stack exceed`
 
 // -- load rethinkdb from the proper location
-var rdbModule = require(path.resolve(__dirname, '..', 'importRethinkDB.js'));
-var r = rdbModule.r;
-var Promise = rdbModule.bluebird;
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var Promise = r._bluebird;
 
 // -- globals
 
