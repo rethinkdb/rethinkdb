@@ -16,8 +16,9 @@ var numRows = parseInt(process.env.TEST_ROWS) || 100;
 var numRowsMany = parseInt(process.env.TEST_MANY_ROWS) || 10000; // Keep a "big" value to try hitting `maximum call stack exceed`
 
 // -- load rethinkdb from the proper location
-
-var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var rdbModule = require(path.resolve(__dirname, '..', 'importRethinkDB.js'));
+var r = rdbModule.r;
+var Promise = rdbModule.bluebird;
 
 // -- globals
 
@@ -77,7 +78,7 @@ var withTableCursor = function() {
 
 var argErrorTest = function(expectedMsg) {
     return function(err) {
-        return (err instanceof r.Error.ReqlDriverError) && (expectedMsg == err.msg)
+        return (err instanceof r.Error.ReqlDriverCompileError) && (expectedMsg == err.msg)
     }
 }
 
@@ -261,7 +262,8 @@ describe('JavaScript Cursor', function() {
 
         it('errors on extra argument to toString', function(done) {
             expectedMsg = 'Expected 0 arguments but found 1.';
-            assert.throws(function() { tableCursor.toString(1); }, argErrorTest(expectedMsg));
+            assert.throws(function() {tableCursor.toString(1); },
+                          argErrorTest(expectedMsg));
             done();
         });
     });
