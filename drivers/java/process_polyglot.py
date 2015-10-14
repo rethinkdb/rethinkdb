@@ -53,7 +53,7 @@ Query = namedtuple(
      'test_num',
      'runopts')
 )
-Def = namedtuple('Def', 'varname term testfile test_num')
+Def = namedtuple('Def', 'varname term run_if_query testfile test_num')
 CustomDef = namedtuple('CustomDef', 'line testfile test_num')
 Expect = namedtuple('Expect', 'bif term')
 
@@ -275,7 +275,7 @@ class TestContext(object):
             )
         return ExpectedContext(self, term)
 
-    def def_from_parsed(self, define_line, parsed_define):
+    def def_from_parsed(self, define_line, parsed_define, run_if_query):
         logger.debug("Evaluating: %s", define_line)
         varname, result_type = try_eval_def(parsed_define, self.context)
         return Def(
@@ -284,14 +284,15 @@ class TestContext(object):
                 line=define_line,
                 type=result_type,
                 ast=parsed_define),
+            run_if_query=run_if_query,
             testfile=self.testfile,
             test_num=self.test_num,
         )
 
-    def def_from_define(self, define):
+    def def_from_define(self, define, run_if_query):
         define_line = py_str(define)
         parsed_define = ast.parse(define_line, mode='single').body[0]
-        return self.def_from_parsed(define_line, parsed_define)
+        return self.def_from_parsed(define_line, parsed_define, run_if_query)
 
     def custom_def(self, line):
         return CustomDef(
@@ -378,8 +379,12 @@ def tests_and_defs(testfile, raw_test_data, context, custom_field=None):
                 # for some reason, sometimes def is just None
                 if define and type(define) is not dict:
                     # if define is a dict, it doesn't have anything
-                    # relevant since we already checked
-                    yield test_context.def_from_define(define)
+                    # relevant since we already checked. if this
+                    # happens to be a query fragment, the test
+                    # framework should not run it, just store the
+                    # fragment in the variable.
+                    yield test_context.def_from_define(
+                        define, run_if_query=False)
         customtest = test.get(custom_field, None)
         # as a backup try getting a python or generic test
         pytest = flexiget(test, ['py', 'cd'], None)
@@ -400,7 +405,9 @@ def tests_and_defs(testfile, raw_test_data, context, custom_field=None):
             elif type(parsed) == ast.Assign:
                 # Second syntax for defines. Surprise, it wasn't a
                 # test at all, because it has an equals sign in it.
-                yield test_context.def_from_parsed(pytest, parsed)
+                # if this happens to be a query, it will be run.
+                yield test_context.def_from_parsed(
+                    pytest, parsed, run_if_query=True)
         elif type(pytest) is dict and 'cd' in pytest:
             yield expected_context.query_from_test(pytest['cd'])
         else:

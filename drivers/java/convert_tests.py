@@ -135,7 +135,16 @@ JavaQuery = namedtuple(
      'test_num',
      'runopts')
 )
-JavaDef = namedtuple('JavaDef', 'line varname vartype value testfile test_num')
+JavaDef = namedtuple(
+    'JavaDef',
+    ('line',
+     'varname',
+     'vartype',
+     'value',
+     'run_if_query',
+     'testfile',
+     'test_num')
+)
 Version = namedtuple("Version", "original java")
 
 JAVA_DECL = re.compile(r'(?P<type>.+) (?P<var>\w+) = (?P<value>.*);')
@@ -306,6 +315,7 @@ def def_to_java(item, reql_vars):
         varname=java_decl['var'],
         vartype=java_decl['type'],
         value=java_decl['value'],
+        run_if_query=item.run_if_query,
         testfile=item.testfile,
         test_num=item.test_num,
     )
