@@ -121,8 +121,8 @@ public class Connection<C extends ConnectionInstance> {
         return nextToken.incrementAndGet();
     }
 
-    Response readResponse(long token, Optional<Integer> deadline) {
-        return checkOpen().readResponse(token, deadline);
+    Optional<Response> readResponse(Query query, Optional<Integer> deadline) {
+        return checkOpen().readResponse(query, deadline);
     }
     void runQueryNoreply(Query query){
         ConnectionInstance inst = checkOpen();
@@ -138,7 +138,7 @@ public class Connection<C extends ConnectionInstance> {
                 .orElseThrow(() -> new ReqlDriverError("No socket open."))
                 .write(query.serialize());
 
-        Response res = inst.readResponse(query.token);
+        Response res = inst.readResponse(query).get();
         if(res.isAtom()) {
             try {
                 Converter.FormatOptions fmt =
@@ -149,8 +149,7 @@ public class Connection<C extends ConnectionInstance> {
                 throw new ReqlDriverError("Atom response was empty!", ex);
             }
         } else if(res.isPartial() || res.isSequence()) {
-            Cursor cursor = Cursor.empty(this, query);
-            cursor.extend(res);
+            Cursor cursor = Cursor.create(this, query, res);
             return (T) cursor;
         } else if(res.isWaitComplete()) {
             return null;

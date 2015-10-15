@@ -75,9 +75,9 @@ class Response {
         ResponseType responseType;
         ArrayList<ResponseNote> notes = new ArrayList<>();
         JSONArray data = new JSONArray();
-        Optional<Profile> profile;
-        Optional<Backtrace> backtrace;
-        Optional<ErrorType> errorType;
+        Optional<Profile> profile = Optional.empty();
+        Optional<Backtrace> backtrace = Optional.empty();
+        Optional<ErrorType> errorType = Optional.empty();
 
         Builder(long token, ResponseType responseType){
             this.token = token;

@@ -37,6 +37,7 @@ public class SocketWrapper {
         try {
             socketChannel.configureBlocking(true);
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
             socketChannel.socket().connect(
                     new InetSocketAddress(hostname, port),
                     timeout.orElse(0));

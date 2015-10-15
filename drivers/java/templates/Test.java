@@ -61,6 +61,9 @@ public class ${module_name} {
 
     @After
     public void tearDown() throws Exception {
+        if(!conn.isOpen()){
+            conn.reconnect();
+        }
         %for var_name in table_var_names:
         r.db("test").tableDrop("${var_name}").run(conn);
         %endfor
@@ -350,7 +353,7 @@ public class ${module_name} {
             if(!cursor.hasNext()){
                 break;
             }
-            result.set((int) i, cursor.next());
+            result.add(cursor.next());
         }
         return result;
     }
@@ -362,6 +365,9 @@ public class ${module_name} {
     Object runOrCatch(Object query, OptArgs runopts) {
         if(query == null) {
             return null;
+        }
+        if(query instanceof List) {
+            return query;
         }
         try {
             Object res = ((ReqlAst)query).run(conn, runopts);

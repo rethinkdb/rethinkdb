@@ -1,5 +1,6 @@
 package com.rethinkdb.net;
 
+import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.exc.*;
 
 import java.nio.ByteBuffer;
@@ -51,11 +52,12 @@ public class ConnectionInstance {
         cursorCache.remove(token);
     }
 
-    Response readResponse(long token) {
-        return readResponse(token, Optional.empty());
+    Optional<Response> readResponse(Query query) {
+        return readResponse(query, Optional.empty());
     }
 
-    Response readResponse(long token, Optional<Integer> deadline) {
+    Optional<Response> readResponse(Query query, Optional<Integer> deadline) {
+        long token = query.token;
         SocketWrapper sock = socket.orElseThrow(() ->
             new ReqlError("Socket not open"));
         while(true) {
@@ -67,15 +69,15 @@ public class ConnectionInstance {
             ByteBuffer resBuf = sock.recvall(resLen, deadline);
             headerInProgress = Optional.empty();
 
-            Response res = Response.parseFrom(resToken, resBuf);
-
-            Optional<Cursor> cursor = Optional.ofNullable(
-                    cursorCache.get(resToken));
-            cursor.ifPresent(c -> c.extend(res));
-
-            if(res.token == token) {
-                return res;
-            }else if(closing || cursor.isPresent()) {
+            Optional<Cursor> cursor = Optional.ofNullable(cursorCache.get(resToken));
+            if(cursor.isPresent()) {
+                cursor.get().extend(resBuf);
+                if(resToken == token) {
+                    return Optional.empty();
+                }
+            }else if(resToken == token) {
+                return Optional.of(Response.parseFrom(resToken, resBuf));
+            }else if(!closing) {
                 close();
                 throw new ReqlDriverError("Unexpected response received");
             }
