@@ -274,7 +274,7 @@ describe('JavaScript Promise style', function() {
                 r.Error.ReqlCompileError,
                 givesError(
                     r.Error.ReqlCompileError,
-                    "Unrecognized global optional argument `non_valid_option`."
+                    "Unrecognized global optional argument `non_valid_option`"
                 )
             )
         });
