@@ -698,7 +698,7 @@ class ReQLEncoder(py_json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, RqlQuery):
             return obj.build()
-        return py_json.JSONEncoder.default(self, o)
+        return py_json.JSONEncoder.default(self, obj)
 
 
 class ReQLDecoder(py_json.JSONDecoder):
