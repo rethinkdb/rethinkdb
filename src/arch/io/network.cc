@@ -32,7 +32,7 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-//* TODO ATN
+/* TODO ATN
 #define winsock_debugf debugf /*/
 #define winsock_debugf(...) ((void)0) //*/
 
