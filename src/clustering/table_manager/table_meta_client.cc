@@ -230,6 +230,23 @@ void table_meta_client_t::get_shard_status(
     }
 }
 
+void table_meta_client_t::get_raft_leader(
+        const namespace_id_t &table_id,
+        signal_t *interruptor_on_caller,
+        boost::optional<server_id_t> *raft_leader_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
+    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+
+    table_manager_directory->read_all(
+      [&](const std::pair<peer_id_t, namespace_id_t> &key,
+          const table_manager_bcard_t *bcard) {
+          if (key.second == table_id && static_cast<bool>(bcard->leader)) {
+            *raft_leader_out = boost::make_optional(bcard->server_id);
+          }
+      });
+}
+
 void table_meta_client_t::get_debug_status(
         const namespace_id_t &table_id,
         all_replicas_ready_mode_t all_replicas_ready_mode,

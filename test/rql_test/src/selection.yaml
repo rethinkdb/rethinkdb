@@ -39,6 +39,13 @@ tests:
     - cd: r.db('test').table('missing')
       ot: err("ReqlOpFailedError", 'Table `test.missing` does not exist.', [0])
 
+    # Nulls should not be allowed in primary keys
+    - cd: tbl.insert({"id":"\x00"}).pluck("errors","inserted")
+      ot: ({"errors":1,"inserted":0})
+
+    - cd: tbl.insert({"id":["embedded",["null\x00"]]}).pluck("errors","inserted")
+      ot: ({"errors":1,"inserted":0})
+
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})

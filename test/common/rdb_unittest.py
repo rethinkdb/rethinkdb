@@ -145,24 +145,35 @@ class RdbTestCase(unittest.TestCase):
             try:
                 self.checkCluster()
             except:
+                try:
+                    self.cluster.check_and_stop()
+                except Exception: pass
                 self.__class__.cluster = None
                 self.__class__._conn = None
                 self.__class__.table = None
         
-        # - start new servers if necessary
-        
-        # note: we start up enough servers to make sure they each have only one role
+        # - ensure we have a cluster
         
         if self.cluster is None:
-            initalServers = max(self.shards * self.replicas, self.servers)
-            if self.servers is not None and initalServers > self.servers:
-                raise ValueError('servers must always be >= shards * replicas. If you need another configuration you must set it up manually')
-            self.__class__.cluster = driver.Cluster(
-                initial_servers=initalServers,
-                wait_until_ready=True,
-                command_prefix=self.server_command_prefix,
-                extra_options=self.server_extra_options
-            )
+            self.__class__.cluster = driver.Cluster()
+        
+        # - make sure we have any named servers
+        
+        if hasattr(self.servers, '__iter__'):
+            for name in self.servers:
+                firstServer = len(self.cluster) == 0
+                if not name in self.cluster:
+                    driver.Process(cluster=self.cluster, name=name, console_output=True, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options, wait_until_ready=firstServer)
+        
+        # - ensure we have the proper number of servers
+        # note: we start up enough servers to make sure they each have only one role
+        
+        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers)
+        for _ in range(serverCount - len(self.cluster)):
+            firstServer = len(self.cluster) == 0
+            driver.Process(cluster=self.cluster, wait_until_ready=firstServer, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options)
+        
+        self.cluster.wait_until_ready()
         
         # -- ensure db is available
         

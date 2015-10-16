@@ -19,7 +19,8 @@ private:
             break;
         case reql_version_t::v1_16:
         case reql_version_t::v2_0:
-        case reql_version_t::v2_1_is_latest:
+        case reql_version_t::v2_1:
+        case reql_version_t::v2_2_is_latest:
             rcheck_target(v,
                           d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
                           base_exc_t::LOGIC,
@@ -83,9 +84,9 @@ private:
             datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::LOGIC,
-                   strprintf("Duplicate key `%s` in object.  "
-                             "(got `%s` and `%s` as values)",
-                             key.to_std().c_str(),
+                   strprintf("Duplicate key %s in object.  "
+                             "(got %s and %s as values)",
+                             datum_t(key).print().c_str(),
                              obj.at(key).trunc_print().c_str(),
                              keyval.trunc_print().c_str()));
         }

@@ -395,6 +395,18 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (do_read) {
             auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            if (static_cast<bool>(rg_out->primary_keys)) {
+                for (auto it = rg_out->primary_keys->begin();
+                     it != rg_out->primary_keys->end();) {
+                    auto cur_it = it++;
+                    if (!region_contains_key(rg_out->region, cur_it->first)) {
+                        rg_out->primary_keys->erase(cur_it);
+                    }
+                }
+                if (rg_out->primary_keys->empty()) {
+                    return false;
+                }
+            }
             if (rg_out->stamp) {
                 rg_out->stamp->region = rg_out->region;
             }
@@ -664,7 +676,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
     out->truncated = false;
-    out->skey_version = ql::skey_version_t::pre_1_16;
+    out->reql_version = reql_version_t::v1_14;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -681,17 +693,17 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         }
 
         if (i == 0) {
-            out->skey_version = resp->skey_version;
+            out->reql_version = resp->reql_version;
         } else {
 #ifndef NDEBUG
-            guarantee(out->skey_version == resp->skey_version);
+            guarantee(out->reql_version == resp->reql_version);
 #else
-            if (out->skey_version != resp->skey_version) {
+            if (out->reql_version != resp->reql_version) {
                 out->result = ql::exc_t(
                     ql::base_exc_t::INTERNAL,
-                    strprintf("Mismatched skey versions %d and %d.",
-                              static_cast<int>(out->skey_version),
-                              static_cast<int>(resp->skey_version)),
+                    strprintf("Mismatched reql versions %d and %d.",
+                              static_cast<int>(out->reql_version),
+                              static_cast<int>(resp->reql_version)),
                     ql::backtrace_id_t::empty());
                 return;
             }
@@ -1159,7 +1171,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
     ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    rget_read_response_t, stamp_response, result, skey_version, truncated, last_key);
+    rget_read_response_t, stamp_response, result, reql_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
@@ -1178,14 +1190,14 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_range);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(rget_read_t,
-                                    stamp, region, optargs, table_name, batchspec,
-                                    transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(rget_read_t,
+                                     stamp, region, primary_keys, optargs, table_name,
+                                     batchspec, transforms, terminal, sindex, sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);

@@ -449,6 +449,10 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                 });
             });
             guarantee(!outer_query.has());
+            // Since we're using `spawn_now_dangerously` above, we need to yield
+            // here to stop a client sending a constant stream of expensive queries
+            // from stalling the thread.
+            coro_t::yield();
         }
     }
 

@@ -773,14 +773,15 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         false,
                         ql::configured_limits_t(),
                         keyspec_t::range_t{
-                          std::vector<ql::transform_variant_t>(),
-                          boost::optional<std::string>(),
-                          sorting_t::UNORDERED,
-                          ql::datum_range_t(
-                              ql::datum_t(0.0),
-                              key_range_t::closed,
-                              ql::datum_t(10.0),
-                              key_range_t::open)},
+                            std::vector<ql::transform_variant_t>(),
+                            boost::optional<std::string>(),
+                            sorting_t::UNORDERED,
+                            ql::datumspec_t(
+                                ql::datum_range_t(
+                                    ql::datum_t(0.0),
+                                    key_range_t::closed,
+                                    ql::datum_t(10.0),
+                                    key_range_t::open))},
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

@@ -115,14 +115,14 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 struct rget_read_response_t {
     boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
-    ql::skey_version_t skey_version;
+    reql_version_t reql_version;
     bool truncated;
     store_key_t last_key;
 
     rget_read_response_t()
-        : skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
+        : reql_version(reql_version_t::v1_14), truncated(false) { }
     explicit rget_read_response_t(const ql::exc_t &ex)
-        : result(ex), skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
+        : result(ex), reql_version(reql_version_t::v1_14), truncated(false) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
@@ -254,14 +254,15 @@ struct sindex_rangespec_t {
                        // This is the region in the sindex keyspace.  It's
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
-                       boost::optional<region_t> &&_region,
-                       const ql::datum_range_t _original_range)
-        : id(_id), region(std::move(_region)), original_range(_original_range) { }
+                       boost::optional<region_t> _region,
+                       ql::datumspec_t _datumspec)
+        : id(_id), region(std::move(_region)), datumspec(std::move(_datumspec)) { }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
-    ql::datum_range_t original_range; // For dealing with truncation.
+    // For dealing with truncation and `get_all`.
+    ql::datumspec_t datumspec;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
@@ -280,6 +281,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
+                boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 ql::global_optargs_t _optargs,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
@@ -289,6 +291,7 @@ public:
                 sorting_t _sorting)
     : stamp(std::move(_stamp)),
       region(std::move(_region)),
+      primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
       table_name(std::move(_table_name)),
       batchspec(std::move(_batchspec)),
@@ -300,6 +303,11 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
+
+    // The `uint64_t`s here are counts.  This map is used to make `get_all` more
+    // efficient, and it's legal to pass duplicate keys to `get_all`.
+    boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
+
     ql::global_optargs_t optargs;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
@@ -455,6 +463,7 @@ struct read_t {
                            changefeed_point_stamp_t,
                            distribution_read_t,
                            dummy_read_t> variant_t;
+
     variant_t read;
     profile_bool_t profile;
     read_mode_t read_mode;

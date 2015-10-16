@@ -235,14 +235,20 @@ public:
             std::map<store_key_t, std::string>::iterator prev = p;
             --p;
             kv_.erase(prev);
+            EXPECT_TRUE(right->ShouldHave((*prev).first));
         }
 
-        ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(median));
+        Verify();
+        right->Verify();
     }
 
     bool IsFull(const store_key_t& key, const std::string& value) {
         short_value_buffer_t value_buf(value);
         return leaf::is_full(&sizer_, node(), key.btree_key(), value_buf.data());
+    }
+
+    bool IsUnderfull() {
+        return leaf::is_underfull(&sizer_, node());
     }
 
     bool ShouldHave(const store_key_t& key) {
@@ -266,7 +272,6 @@ public:
             printf("%s: %s;", key_to_debug_str(p->first).c_str(), p->second.c_str());
         }
     }
-
 
     void Verify() {
         // Of course, this will fail with rassert, not a gtest assertion.
@@ -393,18 +398,31 @@ TEST(LeafNodeTest, InsertRemove) {
     }
 }
 
-void test_random_out_of_order(int num_keys, int num_ops, bool random_tstamps) {
-    LeafNodeTracker tracker;
+std::string random_letter_string(rng_t *rng, int min_length, int max_length) {
+    std::string ret;
+    int size = min_length + rng->randint(max_length - min_length + 1);
+    for (int i = 0; i < size; i++) {
+        ret.push_back('a' + rng->randint(26));
+    }
+    return ret;
+}
+
+scoped_ptr_t<LeafNodeTracker> test_random_out_of_order(
+        int num_keys,
+        int num_ops,
+        bool random_tstamps,
+        store_key_t low_key=store_key_t::min(),
+        store_key_t high_key=store_key_t::max()) {
+
+    scoped_ptr_t<LeafNodeTracker> tracker(new LeafNodeTracker());
 
     rng_t rng;
 
     std::vector<store_key_t> key_pool(num_keys);
     for (int i = 0; i < num_keys; ++i) {
-        key_pool[i].set_size(rng.randint(160));
-        char letter = 'a' + rng.randint(26);
-        for (int j = 0; j < key_pool[i].size(); ++j) {
-            key_pool[i].contents()[j] = letter;
-        }
+        do {
+            key_pool[i] = store_key_t(random_letter_string(&rng, 0, 159));
+        } while (key_pool[i].compare(low_key) < 0 || key_pool[i].compare(high_key) >= 0);
     }
 
     for (int i = 0; i < num_ops; ++i) {
@@ -416,22 +434,19 @@ void test_random_out_of_order(int num_keys, int num_ops, bool random_tstamps) {
             tstamp.longtime = 0;
         }
 
-        if (rng.randint(2) == 1) {
-            std::string value;
-            int length = rng.randint(160);
-            char letter = 'a' + rng.randint(26);
-            for (int j = 0; j < length; ++j) {
-                value.push_back(letter);
+        if (rng.randint(2) == 0) {
+            if (tracker->ShouldHave(key)) {
+                tracker->Remove(key);
             }
+        } else {
+            std::string value = random_letter_string(&rng, 0, 159);
             /* If the key doesn't fit, that's OK; it will just not insert it
             and return `false`, which we ignore. */
-            tracker.Insert(key, value, tstamp);
-        } else {
-            if (tracker.ShouldHave(key)) {
-                tracker.Remove(key);
-            }
+            tracker->Insert(key, value, tstamp);
         }
     }
+
+    return tracker;
 }
 
 TEST(LeafNodeTest, RandomOutOfOrder) {
@@ -445,6 +460,71 @@ TEST(LeafNodeTest, RandomOutOfOrderLowTstamp) {
         // In contrast to RandomOutOfOrder, we use a fixed tstamp of 0
         // to test some corner cases better.
         test_random_out_of_order(50, 20000, false);
+    }
+}
+
+void make_node_underfull(LeafNodeTracker *tracker, rng_t *rng) {
+    leaf_node_t *node = tracker->node();
+    while (!tracker->IsUnderfull() ||
+           (node->num_pairs > 0 && rng->randint(2) == 0)) {
+        int chosen = rng->randint(node->num_pairs);
+        auto pair = *leaf_node_t::iterator(node, chosen);
+
+        // We might hit a removal entry; skip those.
+        if (tracker->ShouldHave(store_key_t(pair.first))) {
+            tracker->Remove(store_key_t(pair.first));
+        }
+    }
+}
+
+TEST(LeafNodeTest, RandomMerging) {
+    rng_t rng;
+
+    for (int try_num = 0; try_num < 100; ++try_num) {
+        // choose a random split key with some space on the ends for values
+        store_key_t split_key;
+        while (split_key.size() == 0 ||
+               split_key.contents()[0] == 'a' ||
+               split_key.contents()[0] == 'z') {
+            split_key = store_key_t(random_letter_string(&rng, 4, 8));
+        }
+
+        bool zero_timestamps = (try_num % 2) == 0;
+
+        scoped_ptr_t<LeafNodeTracker> left = test_random_out_of_order(
+                40, 200, zero_timestamps, store_key_t::min(), split_key);
+        scoped_ptr_t<LeafNodeTracker> right = test_random_out_of_order(
+                40, 200, zero_timestamps, split_key, store_key_t::max());
+
+        make_node_underfull(left.get(), &rng);
+        make_node_underfull(right.get(), &rng);
+
+        right->Merge(left.get());
+    }
+}
+
+TEST(LeafNodeTest, RandomSplitting) {
+    rng_t rng;
+
+    for (int try_num = 0; try_num < 100; ++try_num) {
+        bool zero_timestamps = (try_num % 2) == 0;
+
+        scoped_ptr_t<LeafNodeTracker> node = test_random_out_of_order(
+                40, 200, zero_timestamps);
+
+        // The node might not be full yet; add some values until it is.
+        while (true) {
+            store_key_t key(random_letter_string(&rng, 0, 160));
+            std::string value = random_letter_string(&rng, 0, 160);
+            if (node->IsFull(key, value)) {
+                break;
+            } else {
+                node->Insert(key, value);
+            }
+        }
+
+        LeafNodeTracker right;
+        node->Split(&right);
     }
 }
 

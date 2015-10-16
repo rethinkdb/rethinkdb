@@ -1,0 +1,21 @@
+desc: sindex nulls in strings
+table_variable_name: tbl
+tests:
+  - cd: tbl.index_create("key")
+    ot: ({"created":1})
+  - cd: tbl.index_wait().pluck("ready")
+    ot: ([{"ready":true}])
+
+  # if nulls aren't escaped properly, these two "key" arrays map to the same sindex btree key
+  - cd: tbl.insert([{"id":1,"key":["a","b"]},{"id":2,"key":["a\u0000Sb"]}]).pluck("inserted")
+    ot: ({"inserted":2})
+
+  - py: tbl.get_all(["a\u0000Sb"], index="key").pluck("id")
+    rb: tbl.get_all(["a\u0000Sb"], :index => "key").pluck("id")
+    js: tbl.get_all(["a\u0000Sb"], {"index":"key"}).pluck("id")
+    ot: ([{"id":2}])
+
+  - py: tbl.get_all(["a","b"], index="key").pluck("id")
+    rb: tbl.get_all(["a","b"], :index => "key").pluck("id")
+    js: tbl.get_all(["a","b"], {"index":"key"}).pluck("id")
+    ot: ([{"id":1}])

@@ -260,12 +260,9 @@ public:
     key_range_t(bound_t lm, const btree_key_t *l,
                 bound_t rm, const btree_key_t *r);
 
-    explicit key_range_t(const btree_key_t *key) {
-        left.assign(key);
-        right.unbounded = false;
-        right.key().assign(key);
-        bool ok = right.increment();
-        guarantee(ok);
+    template<class T>
+    static key_range_t one_key(const T &key) {
+        return key_range_t(closed, key, closed, key);
     }
 
     static key_range_t empty() THROWS_NOTHING {
@@ -299,6 +296,7 @@ public:
         }
     }
 
+    // TODO: rename these all to `contains` for consistency with other classes.
     bool contains_key(const store_key_t& key) const {
         bool left_ok = left <= key;
         bool right_ok = right.unbounded || key < right.key();

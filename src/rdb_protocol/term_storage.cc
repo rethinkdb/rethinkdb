@@ -390,7 +390,7 @@ MUST_USE archive_result_t deserialize_protobuf<Backtrace>(read_stream_t *s,
                                                           Backtrace *bt);
 
 rapidjson::Value convert_datum(const Datum &src,
-                               rapidjson::MemoryPoolAllocator<> *allocator) {
+                               rapidjson::MAYBE_POOL_ALLOCATOR *allocator) {
     guarantee(src.has_type());
     switch (src.type()) {
     case Datum::R_NULL:
@@ -439,10 +439,10 @@ rapidjson::Value convert_datum(const Datum &src,
 }
 
 rapidjson::Value convert_term_tree(const Term &src,
-                                   rapidjson::MemoryPoolAllocator<> *allocator);
+                                   rapidjson::MAYBE_POOL_ALLOCATOR *allocator);
 
 rapidjson::Value convert_optargs(const Term &src,
-                                 rapidjson::MemoryPoolAllocator<> *allocator) {
+                                 rapidjson::MAYBE_POOL_ALLOCATOR *allocator) {
     rapidjson::Value dest(rapidjson::kObjectType);
     for (int i = 0; i < src.optargs_size(); ++i) {
         const Term_AssocPair &optarg = src.optargs(i);
@@ -455,7 +455,7 @@ rapidjson::Value convert_optargs(const Term &src,
 }
 
 rapidjson::Value convert_term_tree(const Term &src,
-                                   rapidjson::MemoryPoolAllocator<> *allocator) {
+                                   rapidjson::MAYBE_POOL_ALLOCATOR *allocator) {
     guarantee(src.has_type());
 
     rapidjson::Value dest(rapidjson::kArrayType);

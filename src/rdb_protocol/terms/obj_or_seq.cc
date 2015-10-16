@@ -61,7 +61,8 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
             break;
         case reql_version_t::v1_16:
         case reql_version_t::v2_0:
-        case reql_version_t::v2_1_is_latest:
+        case reql_version_t::v2_1:
+        case reql_version_t::v2_2_is_latest:
             if (d.is_ptype() &&
                 acceptable_ptypes.find(d.get_reql_type()) == acceptable_ptypes.end()) {
                 rfail_target(v0, base_exc_t::LOGIC,
@@ -241,7 +242,8 @@ private:
                         break;
                     case reql_version_t::v1_16:
                     case reql_version_t::v2_0:
-                    case reql_version_t::v2_1_is_latest:
+                    case reql_version_t::v2_1:
+                    case reql_version_t::v2_2_is_latest:
                         rcheck_target(v,
                                       !d0.is_ptype() || d0.is_ptype("LITERAL"),
                                       base_exc_t::LOGIC,
@@ -262,7 +264,8 @@ private:
                         break;
                     case reql_version_t::v1_16:
                     case reql_version_t::v2_0:
-                    case reql_version_t::v2_1_is_latest:
+                    case reql_version_t::v2_1:
+                    case reql_version_t::v2_2_is_latest:
                         rcheck_target(v,
                                       !d0.is_ptype() || d0.is_ptype("LITERAL"),
                                       base_exc_t::LOGIC,

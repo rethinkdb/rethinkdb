@@ -20,6 +20,7 @@
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -133,7 +134,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        datumspec_t datumspec;
     };
     struct limit_t {
         range_t range;
@@ -486,7 +487,7 @@ private:
     void add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive);
+        auto_drainer_t::lock_t keepalive);
 
     // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages

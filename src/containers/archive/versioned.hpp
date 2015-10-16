@@ -61,7 +61,7 @@ inline MUST_USE archive_result_t deserialize_reql_version(
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
         rassert(raw >= static_cast<int8_t>(reql_version_t::v1_14)
-                && raw <= static_cast<int8_t>(reql_version_t::v2_1_is_latest));
+                && raw <= static_cast<int8_t>(reql_version_t::v2_2_is_latest));
         *thing = static_cast<reql_version_t>(raw);
     }
     return res;

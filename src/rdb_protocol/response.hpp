@@ -40,6 +40,8 @@ public:
                     const ql::datum_t &_backtrace);
 
 private:
+    // Used to make sure type_ is set before we get any of the other fields
+    bool type_is_initialized_;
     Response::ResponseType type_;
     std::vector<ql::datum_t> data_;
     std::vector<Response::ResponseNote> notes_;

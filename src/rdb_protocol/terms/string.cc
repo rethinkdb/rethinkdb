@@ -255,7 +255,8 @@ private:
         case reql_version_t::v2_0:
             res = old_split(s, delim, maxnum);
             break;
-        case reql_version_t::v2_1_is_latest:
+        case reql_version_t::v2_1:
+        case reql_version_t::v2_2_is_latest:
             res = utf8_aware_split(s, delim, maxnum);
             break;
         default:

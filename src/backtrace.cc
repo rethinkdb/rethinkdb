@@ -369,7 +369,7 @@ std::string lazy_backtrace_formatter_t::print_frames(UNUSED bool use_addr2line) 
         backtrace_frame_t current_frame = get_frame(i);
         current_frame.initialize_symbols();
 
-        output.append(strprintf("%d: ", static_cast<int>(i+1)));
+        output.append(strprintf("%d [%p]: ", static_cast<int>(i+1), current_frame.get_addr()));
 
         try {
             output.append(current_frame.get_demangled_name());

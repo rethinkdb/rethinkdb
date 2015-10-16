@@ -2,6 +2,8 @@
 #define THREADING_HPP_
 
 #include <stdint.h>
+#include <functional>
+#include <vector>
 
 #include "errors.hpp"
 
@@ -89,5 +91,31 @@ public:
 };
 
 int get_num_db_threads();
+
+/* Tries to distribute allocations evenly across the db threads.
+Uses secondary_lt as a tie breaker. */
+class thread_allocator_t : public home_thread_mixin_t {
+public:
+    explicit thread_allocator_t(
+        const std::function<bool(threadnum_t, threadnum_t)> &secondary_lt);
+    ~thread_allocator_t();
+private:
+    std::function<bool(threadnum_t, threadnum_t)> secondary_lt;
+    std::vector<size_t> num_allocated;
+    friend class thread_allocation_t;
+    DISABLE_COPYING(thread_allocator_t);
+};
+
+class thread_allocation_t {
+public:
+    explicit thread_allocation_t(thread_allocator_t *p);
+    ~thread_allocation_t();
+    threadnum_t get_thread() const;
+private:
+    threadnum_t thread;
+    thread_allocator_t *parent;
+    DISABLE_COPYING(thread_allocation_t);
+};
+
 
 #endif  // THREADING_HPP_

@@ -1,166 +1,143 @@
 #!/usr/bin/env python
-import commands
-import getpass
-import os
-import subprocess
-import signal
-import time
-import random
-import sys
-import socket
-from optparse import OptionParser
 
-names = """Aphrodite
-Apollo
-Ares
-Artemis
-Athena
-Demeter
-Dionysus
-Hades
-Hephaestus
-Hera
-Hermes
-Hestia
-Poseidon
-Zeus
-Aether
-Ananke
-Erebos
-Gaia
-Hemera
-Chaos
-Chronos
-Nesoi
-Nyx
-Uranus
-Ourea
-Phanes
-Pontus
-Tartarus
-Thalassa
-Hyperion
-Lapetus
-Coeus
-Crius
-Cronus
-Mnemosyne
-Oceanus
-Phoebe
-Rhea
-Tethys
-Themis
-Asteria
-Astraeus
-Atlas
-Aura
-Dione
-Eos
-Epimetheus
-Eurybia
-Eurynome
-Helios
-Clumene
-Lelantos
-Leto
-Menoetius
-Metis
-Ophion
-Phallas
-Perses
-Prometheus
-Selene
-Styx""".splitlines()
+from __future__ import print_function
 
+import copy, optparse, os, signal, subprocess, sys, time
 
-parser = OptionParser()
-parser.add_option("--cache-size", dest="cache_size", metavar="MEGABYTES", default=1000, type="int")
-parser.add_option("--cores", dest="cores", metavar="THREAD_COUNT", default=0, type="int")
-parser.add_option("--keep", dest="keep_data", action="store_true", default=False)
-parser.add_option("--dir", dest="build_dir", metavar="DIRNAME", default="debug")
-(options, args) = parser.parse_args()
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'test', 'common')))
+import driver, utils
 
-def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--dir <build_dir>] [--cores <thread_count>] [--cache-size <MB>]"
-    print """Where:
-    p is the port you want the cluster to use
-    N is the number of servers you want in the cluster
-    data_root_directory is the directory where RethinkDB will store each server data
-    --keep preserve the data directories between runs (by default, they are deleted)
-    --dir tells which build directory to use (by default, 'debug')
-    --cores and --cache-size will be passed through to rethinkdb
-    if --dir contains 'valgrind', the cluster will be run under valgrind. """
+# == signal handler
 
+keepRunning = True
+def sigintHandler(signal, frame):
+    global keepRunning
+    print('\nShutting down servers')
+    keepRunning = False
+signal.signal(signal.SIGINT, sigintHandler)
 
-if len(args) < 2 or len(args) > 3:
-    usage()
-    exit(1)
+# == main
 
-# Determine launch options
-port = int(args[0])
-n_servers = int(args[1])
-parent_dir = ''
-valgrind = ("valgrind" in options.build_dir)
-build_dir = options.build_dir
-keep_data = options.keep_data
-hostname = socket.gethostname()
-cores = options.cores
-cache_size = options.cache_size
+def main():
+    
+    # -- parse input
+    
+    parser = optparse.OptionParser()
+    parser.add_option('-b', '--binary',     dest='binary',     metavar='EXECUTABLE',   default=None)
+    parser.add_option(      '--cache-size', dest='cache_size', metavar='MEGABYTES',    default=None, type="int")
+    parser.add_option(      '--cores',      dest='cores',      metavar='COUNT',        default=None, type="int")
+    parser.add_option(      '--direct-io',  dest='direct_io',  action='store_true',    default=False)
+    parser.add_option(      '--io-threads', dest='io_threads', metavar='COUNT',        default=None, type="int")
+    parser.add_option('-o', '--output-dir', dest='output_dir', metavar='DIRNAME',      default=None)
+    parser.add_option('-s', '--servers',    dest='servers',    metavar='COUNT',        default=2,    type="int")
+    (options, args) = parser.parse_args()
+    
+    options.valgrind = False
+    
+    # -- validate options
+    
+    if options.binary is not None:
+        if os.path.isfile(options.binary) and os.access(options.binary, os.X_OK):
+            options.binary = os.path.realpath(options.binary)
+            if 'valgrind' in os.path.basename(os.path.dirname(options.binary)):
+                options.valgrind = True
+        else:
+            parser.error('-b/--binary does not exist or is not runnable')
+    else:
+        try:
+            options.binary = utils.find_rethinkdb_executable()
+        except Exception as e:
+            parser.error(str(e))
+    
+    if options.cores is not None and options.cores < 1:
+        parser.error('--cores must be greater than 1')
+    
+    if options.servers is not None and options.servers < 1:
+        parser.error('--servers must be greater than 1')
+    
+    # -- setup the options
+    
+    # - options
+    
+    extraOptions = []
+    if options.cache_size:
+        extraOptions += ['--cache-size', str(options.cache_size)]
+    
+    if options.cores:
+        extraOptions += ['--cores', str(options.cores)]
+    
+    if options.direct_io:
+        extraOptions += ['--direct-io']
+    
+    if options.io_threads:
+        if options.io_threads < 1:
+            parser.error('--io-threads must be 1 or greater')
+        extraOptions += ['--io-threads', str(options.io_threads)]
+    
+    # - command prefix
+    
+    commandPrefix = []
+    if options.valgrind:
+        print('Valgrind build detected, using it')
+        commandPrefix = ['valgrind', '--leak-check=full', '--track-origins=yes', '--suppressions=' + os.path.join(__file__, 'rethinkdb-valgrind-suppressions.supp')]
+    
+    # -- print the server information
+    print(options.binary)
+    versionString = ''
+    try:
+        versionString, _ = subprocess.Popen([options.binary, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
+    except Exception as e:
+        parser.error('Unable to get RethinkDB version: %s' % str(e))
+    print('Using rethinkdb binary from: %s\n\tversion: %s' % (options.binary, versionString.strip()))
 
-valgrind_options = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp"]
+    # -- start the cluster
+    
+    cluster = driver.Cluster(
+        initial_servers = options.servers,
+        output_folder   = options.output_dir,
+        console_output  = True,
+        executable_path = options.binary,
+        command_prefix  = commandPrefix,
+        extra_options   = extraOptions
+    )
+    
+    # - print the cluster information
+    
+    print('\t%sdata dir: %s' % ('' if options.output_dir else 'temporary ', cluster.output_folder))
 
-if len(args) == 3:
-    parent_dir = args[2]
+    for server in cluster:
+        print('Server %s (pid: %d)\n\tdata folder:  %s\n\tcluster port: %d\n\tdriver port:  %d\n\tweb admin:    http://%s:%s' %
+            (server.name, server.pid, server.data_path, server.cluster_port, server.driver_port, server.host, server.http_port))
+    
+    print('To shut down servers use ctl-c')
+    
+    # -- wait for cluster to close, or cmd-c
+    
+    monitoredServers = cluster[:] # copy the list
+    while keepRunning:
+        if monitoredServers:
+            time.sleep(0.2)
+            for server in copy.copy(monitoredServers):
+                if not server.running:
+                    if server.returncode == 0:
+                        print('Server %s exited cleanly' % server.name)
+                    else:
+                        consoleOutput = server.console_output
+                        print('\nServer %s exited with code: %r%s' % (server.name, server.returncode, '\n<<<<<<<<\n' + consoleOutput + ">>>>>>>>\n" if consoleOutput else ''))
+                    monitoredServers.remove(server)
+        else:
+            if options.output_dir:
+                print('No servers still running')
+            else:
+                print('No servers still running, waiting for ctl-c to keep files')
+                if hasattr(signal, 'pause'):
+                    signal.pause()
+                else:
+                    while True:
+                        time.sleep(10)
+    try:
+        cluster.check_and_stop()
+    except Exception: pass
 
-if n_servers < 1:
-    usage()
-    exit(1)
-
-kids = []
-server_names = random.sample(names, n_servers)
-for i, server_name in enumerate(server_names):
-    directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
-    # cleanup the directory
-    if not keep_data:
-        os.system("rm -rf " + directory)
-
-    binary = "../build/" + build_dir + "/rethinkdb"
-
-    rdb_options = [binary]
-    rdb_options.extend(["--directory", directory])
-    rdb_options.extend(["--server-name", server_name])
-    rdb_options.extend(["--port-offset", str(i + port)])
-    rdb_options.extend(["--bind", "all"])
-    rdb_options.extend(["--cache-size", str(cache_size)])
-
-    if cores != 0:
-        rdb_options += ["--cores", str(cores)]
-
-    if i != 0:
-        rdb_options += ["--join", "%s:%d" % (hostname, 29015 + port)]
-
-    if valgrind:
-        rdb_options = valgrind_options + rdb_options
-
-    print ' '.join(rdb_options)
-    kids += [subprocess.Popen(rdb_options, stdout=sys.stdout, stderr=sys.stderr)]
-    time.sleep(1)
-
-time.sleep(1)
-print "CTRL-C to kill me http requests can be sent to ports:",
-for i in range(n_servers):
-    if i != 0:
-        print ",",
-
-    print port + (i * 2) + 1,
-
-print ""
-
-sys.stdout.flush()
-sys.stderr.flush()
-
-try:
-    signal.pause()
-except:
-    for kid in kids:
-        kid.terminate()
+if __name__ == '__main__':
+    main()

@@ -37,12 +37,13 @@ struct make_sindex_read_t {
             rget_read_t(
                 boost::optional<changefeed_stamp_t>(),
                 region_t::universe(),
+                boost::none,
                 ql::global_optargs_t(),
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
-                sindex_rangespec_t(id, boost::none, rng),
+                sindex_rangespec_t(id, boost::none, ql::datumspec_t(rng)),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE,
             read_mode_t::SINGLE);
