@@ -5,12 +5,9 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public class Util {
-    public static int getTimestamp() {
-        return (int)(System.nanoTime() / 1_000_000L);
-    }
 
-    public static int deadline(int timeout){
-        return getTimestamp() + timeout;
+    public static long deadline(long timeout){
+        return System.currentTimeMillis() + timeout;
     }
 
     public static ByteBuffer leByteBuffer(int capacity) {

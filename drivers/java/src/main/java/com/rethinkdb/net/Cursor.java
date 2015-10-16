@@ -6,6 +6,7 @@ import com.rethinkdb.gen.exc.ReqlRuntimeError;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 
 public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
@@ -24,7 +25,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     protected int threshold = 1;
     protected Optional<RuntimeException> error = Optional.empty();
 
-    public Cursor(Connection connection, Query query, Response firstResponse){
+    public Cursor(Connection connection, Query query, Response firstResponse) {
         this.connection = connection;
         this.query = query;
         this.token = query.token;
@@ -42,6 +43,14 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                 connection.stop(this);
             }
         }
+    }
+
+    public int bufferedSize() {
+        return items.size();
+    }
+
+    public ArrayList<T> bufferedItems() {
+        return new ArrayList<>(items);
     }
 
     public boolean isFeed() {
@@ -97,10 +106,14 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
 
 
     public T next() {
-        return getNext(Optional.empty());
+        try {
+            return getNext(Optional.empty());
+        }catch(TimeoutException toe) {
+            throw new RuntimeException("Timeout can't happen here");
+        }
     }
 
-    public T next(int timeout) {
+    public T next(long timeout) throws TimeoutException {
         return getNext(Optional.of(timeout));
     }
 
@@ -109,7 +122,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     }
 
     // Abstract methods
-    abstract T getNext(Optional<Integer> timeout);
+    abstract T getNext(Optional<Long> timeout) throws TimeoutException;
 
     private static class DefaultCursor<T> extends Cursor<T> {
         public final Converter.FormatOptions fmt;
@@ -131,12 +144,12 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                 return true;
             }
             maybeSendContinue();
-            connection.readResponse(query, Optional.empty());
+            connection.readResponse(query);
             return items.size() > 0;
         }
 
         @SuppressWarnings("unchecked")
-        T getNext(Optional<Integer> timeout) {
+        T getNext(Optional<Long> timeout) throws TimeoutException {
             while(items.size() == 0) {
                 maybeSendContinue();
                 error.ifPresent(exc -> {

@@ -25,7 +25,7 @@ public class Connection<C extends ConnectionInstance> {
 
     // private mutable
     private Optional<String> dbname;
-    private Optional<Integer> connectTimeout;
+    private Optional<Long> connectTimeout;
     private ByteBuffer handshake;
     private Optional<C> instance = Optional.empty();
 
@@ -33,10 +33,10 @@ public class Connection<C extends ConnectionInstance> {
         dbname = builder.dbname;
         String authKey = builder.authKey.orElse("");
         handshake = Util.leByteBuffer(4 + 4 + authKey.length() + 4)
-            .putInt(Version.V0_4.value)
-            .putInt(authKey.length())
-            .put(authKey.getBytes())
-            .putInt(Protocol.JSON.value);
+                .putInt(Version.V0_4.value)
+                .putInt(authKey.length())
+                .put(authKey.getBytes())
+                .putInt(Protocol.JSON.value);
         handshake.flip();
         hostname = builder.hostname.orElse("localhost");
         port = builder.port.orElse(28015);
@@ -53,7 +53,7 @@ public class Connection<C extends ConnectionInstance> {
         return dbname;
     }
 
-    void addToCache(long token, Cursor cursor){
+    void addToCache(long token, Cursor cursor) {
         instance.ifPresent(i -> i.addToCache(token, cursor));
         instance.orElseThrow(() ->
                 new ReqlDriverError(
@@ -68,16 +68,20 @@ public class Connection<C extends ConnectionInstance> {
         dbname = Optional.of(db);
     }
 
-    public Optional<Integer> timeout() {
+    public Optional<Long> timeout() {
         return connectTimeout;
     }
 
-    public Connection<C> reconnect() throws TimeoutException {
-        return reconnect(false, Optional.empty());
+    public Connection<C> reconnect() {
+        try {
+            return reconnect(false, Optional.empty());
+        } catch (TimeoutException toe) {
+            throw new RuntimeException("Timeout can't happen here.");
+        }
     }
 
-    public Connection<C> reconnect(boolean noreplyWait, Optional<Integer> timeout) throws TimeoutException  {
-        if(!timeout.isPresent()){
+    public Connection<C> reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
+        if (!timeout.isPresent()) {
             timeout = connectTimeout;
         }
         close(noreplyWait);
@@ -92,24 +96,24 @@ public class Connection<C extends ConnectionInstance> {
     }
 
     public C checkOpen() {
-        if(instance.map(c -> !c.isOpen()).orElse(true)){
+        if (instance.map(c -> !c.isOpen()).orElse(true)) {
             throw new ReqlDriverError("Connection is closed.");
         } else {
             return instance.get();
         }
     }
 
-    public void close(){
+    public void close() {
         close(true);
     }
 
     public void close(boolean shouldNoreplyWait) {
         instance.ifPresent(inst -> {
             try {
-                if(shouldNoreplyWait) {
+                if (shouldNoreplyWait) {
                     noreplyWait();
                 }
-            }finally {
+            } finally {
                 instance = Optional.empty();
                 nextToken.set(0);
                 inst.close();
@@ -121,9 +125,14 @@ public class Connection<C extends ConnectionInstance> {
         return nextToken.incrementAndGet();
     }
 
-    Optional<Response> readResponse(Query query, Optional<Integer> deadline) {
+    Optional<Response> readResponse(Query query, Optional<Long> deadline) throws TimeoutException {
         return checkOpen().readResponse(query, deadline);
     }
+
+    Optional<Response> readResponse(Query query) {
+        return checkOpen().readResponse(query);
+    }
+
     void runQueryNoreply(Query query){
         ConnectionInstance inst = checkOpen();
         inst.socket
@@ -181,6 +190,7 @@ public class Connection<C extends ConnectionInstance> {
 
     public void runNoReply(ReqlAst term, OptArgs globalOpts){
         setDefaultDB(globalOpts);
+        globalOpts.with("noreply", true);
         runQueryNoreply(Query.start(newToken(), term, globalOpts));
     }
 
@@ -198,7 +208,7 @@ public class Connection<C extends ConnectionInstance> {
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
         private Optional<String> authKey = Optional.empty();
-        private Optional<Integer> timeout = Optional.empty();
+        private Optional<Long> timeout = Optional.empty();
 
         public Builder(Supplier<T> instanceMaker) {
             this.instanceMaker = instanceMaker;
@@ -211,7 +221,7 @@ public class Connection<C extends ConnectionInstance> {
             { dbname   = Optional.of(val); return this; }
         public Builder<T> authKey(String val)
             { authKey  = Optional.of(val); return this; }
-        public Builder<T> timeout(int val)
+        public Builder<T> timeout(long val)
             { timeout  = Optional.of(val); return this; }
 
         public Connection<T> connect() throws TimeoutException {

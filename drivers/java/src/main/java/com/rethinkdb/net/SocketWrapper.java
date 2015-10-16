@@ -4,6 +4,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -14,14 +15,14 @@ import java.util.concurrent.TimeoutException;
 
 public class SocketWrapper {
     private SocketChannel socketChannel;
-    private Optional<Integer> timeout = Optional.empty();
+    private Optional<Long> timeout = Optional.empty();
     private Optional<ByteBuffer> readBuffer = Optional.empty();
 
     public final String hostname;
     public final int port;
 
     public SocketWrapper(String hostname, int port,
-                         Optional<Integer> timeout) {
+                         Optional<Long> timeout) {
         this.hostname = hostname;
         this.port = port;
         this.timeout = timeout;
@@ -33,14 +34,14 @@ public class SocketWrapper {
     }
 
     public void connect(ByteBuffer handshake) throws TimeoutException {
-        Optional<Integer> deadline = timeout.map(Util::deadline);
+        Optional<Long> deadline = timeout.map(Util::deadline);
         try {
             socketChannel.configureBlocking(true);
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
             socketChannel.socket().connect(
                     new InetSocketAddress(hostname, port),
-                    timeout.orElse(0));
+                    timeout.orElse(0L).intValue());
             socketChannel.write(handshake);
             String msg = readNullTerminatedString(deadline);
             if (!msg.equals("SUCCESS")) {
@@ -65,7 +66,7 @@ public class SocketWrapper {
         }
     }
 
-    private String readNullTerminatedString(Optional<Integer> deadline)
+    private String readNullTerminatedString(Optional<Long> deadline)
             throws IOException {
         ByteBuffer byteBuf = Util.leByteBuffer(1);
         List<Byte> bytelist = new ArrayList<>();
@@ -74,10 +75,12 @@ public class SocketWrapper {
             if(bytesRead == 0){
                 continue;
             }
-            // Maybe we read -1? Throw an error
+            if(bytesRead == -1) {
+                throw new ReqlDriverError("Read -1 bytes on socket.");
+            }
 
             deadline.ifPresent(d -> {
-                if(d <= Util.getTimestamp()) {
+                if(d <= System.currentTimeMillis()) {
                     throw new ReqlDriverError("Connection timed out.");
                 }
             });
@@ -137,21 +140,32 @@ public class SocketWrapper {
     }
 
     public ByteBuffer recvall(int bufsize) {
-        return recvall(bufsize, Optional.empty());
+        try {
+            return recvall(bufsize, Optional.empty());
+        }catch(TimeoutException toe) {
+            throw new RuntimeException("Timeout can't happen here.");
+        }
     }
 
-    public ByteBuffer recvall(int bufsize, Optional<Integer> deadline) {
-        // TODO: make deadline work
+    public ByteBuffer recvall(int bufsize, Optional<Long> deadline) throws TimeoutException {
         ByteBuffer buf = Util.leByteBuffer(bufsize);
-        try {
-            int bytesRead = socketChannel.read(buf);
-            if (bytesRead != bufsize) {
-                do {
-                    bytesRead += socketChannel.read(buf);
-                } while(bytesRead < bufsize);
+        int bytesRead = 0;
+        while(bytesRead < bufsize) try {
+            if (deadline.isPresent()) {
+                long timeout = Math.max(0L, deadline.get() - System.currentTimeMillis());
+                socketChannel.socket().setSoTimeout((int) timeout);
             }
-        } catch(IOException ex) {
+            bytesRead += socketChannel.read(buf);
+        } catch (SocketTimeoutException ste) {
+            throw new TimeoutException("Read timed out." + ste.getMessage());
+        } catch (IOException ex) {
             throw new ReqlDriverError(ex);
+        } finally {
+            try {
+                socketChannel.socket().setSoTimeout(0);
+            }catch (SocketException se){
+                throw new ReqlDriverError(se);
+            }
         }
         buf.flip();
         return buf;

@@ -25,7 +25,7 @@ public class ConnectionInstance {
             String hostname,
             int port,
             ByteBuffer handshake,
-            Optional<Integer> timeout) throws TimeoutException {
+            Optional<Long> timeout) throws TimeoutException {
         SocketWrapper sock = new SocketWrapper(hostname, port, timeout);
         sock.connect(handshake);
         socket = Optional.of(sock);
@@ -35,13 +35,14 @@ public class ConnectionInstance {
         return socket.map(SocketWrapper::isOpen).orElse(false);
     }
 
-    public <T> void close() {
+    public void close() {
         closing = true;
         for (Cursor cursor : cursorCache.values()) {
             cursor.setError("Connection is closed.");
         }
         cursorCache.clear();
         socket.ifPresent(SocketWrapper::close);
+        headerInProgress = Optional.empty();
     }
 
     void addToCache(long token, Cursor cursor) {
@@ -53,10 +54,14 @@ public class ConnectionInstance {
     }
 
     Optional<Response> readResponse(Query query) {
-        return readResponse(query, Optional.empty());
+        try {
+            return readResponse(query, Optional.empty());
+        } catch (TimeoutException toe) {
+            throw new RuntimeException("Timeout exception can't happen here.");
+        }
     }
 
-    Optional<Response> readResponse(Query query, Optional<Integer> deadline) {
+    Optional<Response> readResponse(Query query, Optional<Long> deadline) throws TimeoutException {
         long token = query.token;
         SocketWrapper sock = socket.orElseThrow(() ->
             new ReqlError("Socket not open"));
@@ -76,10 +81,12 @@ public class ConnectionInstance {
                     return Optional.empty();
                 }
             }else if(resToken == token) {
-                return Optional.of(Response.parseFrom(resToken, resBuf));
+                Response resp = Response.parseFrom(resToken, resBuf);
+                return Optional.of(resp);
             }else if(!closing) {
                 close();
-                throw new ReqlDriverError("Unexpected response received");
+                throw new ReqlDriverError("Unexpected response received: " +
+                        Response.parseFrom(resToken, resBuf));
             }
         }
     }
