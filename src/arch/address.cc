@@ -162,6 +162,9 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         // Continue on, this probably means there's no DNS entry for this host
     }
 
+#ifdef _WIN32 // TODO ATN
+    all_ips.emplace("127.0.0.1");
+#else
     // Ignore loopback addresses - those will be returned by getifaddrs, and
     // getaddrinfo is not so trustworthy.
     // See https://github.com/rethinkdb/rethinkdb/issues/2405
@@ -172,7 +175,6 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         }
     }
 
-#ifndef _WIN32 // TODO ATN
     struct ifaddrs *addrs;
     int res = getifaddrs(&addrs);
     guarantee_err(res == 0,

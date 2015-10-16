@@ -41,7 +41,6 @@ inline ssize_t pwrite(HANDLE h, const void *buf, size_t count, off_t offset) {
     // overlapped.OffsetHigh = offset >> 32; // ATN TODO
     DWORD bytes_written;
     if (WriteFile(h, buf, count, &bytes_written, &overlapped) == FALSE) {
-        DebugBreak();
         set_errno(EIO); // TODO ATN: GetLastError -> errno
         logERR("pwrite: WriteFile failed: %s", winerr_string(GetLastError()).c_str());
         return -1;

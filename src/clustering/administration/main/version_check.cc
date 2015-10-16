@@ -44,6 +44,10 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
                   keepalive.get_drain_signal(),
                   ql::global_optargs_t(),
                   nullptr);
+#ifdef _WIN32
+    // ATN TODO: this method requries extprocs to work
+    return;
+#endif
     http_opts_t opts;
     opts.limits = env.limits();
     opts.result_format = http_result_format_t::JSON;

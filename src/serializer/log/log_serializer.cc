@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
+// TODO ATN: on windows, this doesn't use temporary files
+// rename/MoveFile fail to move the open file
+
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,7 +34,11 @@ std::string filepath_file_opener_t::file_name() const {
 }
 
 std::string filepath_file_opener_t::temporary_file_name() const {
+#ifdef _WIN32
+    return filepath_.permanent_path();
+#else
     return filepath_.temporary_path();
+#endif
 }
 
 std::string filepath_file_opener_t::current_file_name() const {
@@ -69,6 +76,18 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
 
     guarantee(opened_temporary_);
+
+#ifdef _WIN32
+    /* TODO ATN
+    BOOL res = MoveFile(temporary_file_name().c_str(), file_name().c_str());
+
+    if (!res) {
+        crash("Could not rename database file %s to permanent location %s (%s)\n",
+              temporary_file_name().c_str(), file_name().c_str(),
+              winerr_string(GetLastError()).c_str());
+    }
+    */
+#else
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
@@ -78,6 +97,7 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     }
 
     warn_fsync_parent_directory(file_name().c_str());
+#endif
 
     opened_temporary_ = false;
 }
@@ -93,6 +113,7 @@ void filepath_file_opener_t::unlink_serializer_file() {
 
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     guarantee(opened_temporary_);
+    debugf("ATN: unlinking serializer file `%s'\n", current_file_name().c_str());
     const int res = ::unlink(current_file_name().c_str());
     guarantee_err(res == 0, "unlink() failed");
 }

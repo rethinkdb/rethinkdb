@@ -408,20 +408,27 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     scoped_fd_t fd;
 
 #ifdef _WIN32 // ATN TODO
+#define D(...) logDBG("ATN: " __VA_ARGS__)
+
     DWORD create_mode;
     if (mode & linux_file_t::mode_truncate) {
+        D("truncate");
         create_mode = CREATE_ALWAYS;
     } else if (mode & linux_file_t::mode_create) {
+        D("create");
         create_mode = OPEN_ALWAYS;
     } else {
+        D("open");
         create_mode = OPEN_EXISTING;
     }
 
     DWORD access_mode = 0;
     if (mode & linux_file_t::mode_write) {
+        D("write");
         access_mode |= GENERIC_WRITE;
     }
     if (mode & linux_file_t::mode_read) {
+        D("read");
         access_mode |= GENERIC_READ;
     }
     if (access_mode == 0) {
@@ -433,7 +440,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
     if (fd.get() == INVALID_FD) {
-        logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
+        // TODO ATN: logERR, not crash
+        crash("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
         return file_open_result_t(file_open_result_t::ERROR, EIO); // TODO: getlasterror -> errno
     }
 
@@ -568,7 +576,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) {
     guarantee(open_res.outcome == file_open_result_t::ERROR);
-    fail_due_to_user_error(
+    crash( // TODO ATN: should be fail_due_to_user_error
         "Inaccessible database file: \"%s\": %s"
         "\nSome possible reasons:"
         "\n- the database file couldn't be created or opened for reading and writing"

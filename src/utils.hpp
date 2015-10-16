@@ -19,6 +19,12 @@
 typedef SSIZE_T ssize_t;
 #endif
 
+#ifdef _WIN32
+#define PATH_SEPERATOR "\\"
+#else
+#define PATH_SEPERATOR "/"
+#endif
+
 class printf_buffer_t;
 
 namespace ph = std::placeholders;
@@ -28,7 +34,6 @@ public:
     startup_shutdown_t();
     ~startup_shutdown_t();
 };
-
 
 struct const_charslice {
     const char *beg, *end;
@@ -221,8 +226,8 @@ serializer_filepath_t manual_serializer_filepath(const std::string& permanent_pa
 class serializer_filepath_t {
 public:
     serializer_filepath_t(const base_path_t& directory, const std::string& relative_path)
-        : permanent_path_(directory.path() + "/" + relative_path),
-          temporary_path_(directory.path() + "/" + TEMPORARY_DIRECTORY_NAME + "/" + relative_path + ".create") {
+        : permanent_path_(directory.path() + PATH_SEPERATOR + relative_path),
+          temporary_path_(directory.path() + PATH_SEPERATOR + TEMPORARY_DIRECTORY_NAME + PATH_SEPERATOR + relative_path + ".create") {
         guarantee(!relative_path.empty());
     }
 

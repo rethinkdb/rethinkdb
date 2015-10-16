@@ -52,6 +52,9 @@
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
+    // Make sure stderr is non-buffered
+    setvbuf(stderr, nullptr, _IONBF, 0);
+
     install_generic_crash_handler();
     install_new_oom_handler();
 

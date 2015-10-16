@@ -138,11 +138,11 @@ public:
 
         while(true) {
 #ifdef _WIN32
-            rassert("TODO ATN: get worker_socket from socket? also test this.");
+            crash("TODO ATN: get worker_socket from socket? also test this.");
             char path[MAX_PATH];
             DWORD res = GetModuleFileName(NULL, path, sizeof(path));
             guarantee_winerr(res != 0 && res != sizeof(path), "GetModuleFileName failed");
-            rassert("TODO ATN: rethinkdb start-worker");
+            crash("TODO ATN: rethinkdb start-worker");
             std::string command_line = strprintf("rethinkdb start-worker " /* ATN TODO */);
             std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
             mutable_command_line.push_back('\0');
@@ -165,7 +165,7 @@ public:
                 worker_runner.main_loop();
                 ::_exit(EXIT_FAILURE);
             }
-			guarantee_err(res != -1, "could not fork worker process");
+            guarantee_err(res != -1, "could not fork worker process");
             scoped_fd_t closer(worker_socket);
 #endif
         }
@@ -210,7 +210,7 @@ extproc_spawner_t *extproc_spawner_t::get_instance() {
 void extproc_spawner_t::fork_spawner() {
     guarantee(spawner_socket.get() == INVALID_FD);
 #ifdef _WIN32
-	rassert(false, "ATN TODO");
+    logERR("ATN TODO: extprocs not implemented");
 #else
     fd_t fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
@@ -239,8 +239,8 @@ void extproc_spawner_t::fork_spawner() {
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
 fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, process_ref_t *pid_out) {
 #ifdef _WIN32
-	rassert(false, "ATN TODO");
-	return fd_t();
+    logERR("ATN TODO: extprocs are not implemented");
+    return fd_t();
 #else
     guarantee(spawner_socket.get() != INVALID_FD);
 

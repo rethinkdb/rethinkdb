@@ -168,7 +168,7 @@ MUST_USE const std::string winerr_string(DWORD winerr);
             DWORD guarantee_winerr_err = (err);                         \
             crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%x - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
         }                                                               \
-    } while (0);
+    } while (0)
 
 // ATN TODO
 #define guarantee_winerr(cond, ...) guarantee_xwinerr(cond, GetLastError(), ##__VA_ARGS__)
