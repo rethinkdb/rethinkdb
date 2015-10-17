@@ -309,7 +309,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 #ifdef _WIN32
     // TODO ATN: handle all cases
     overlapped_operation_t op(event_watcher.get());
-    debugf("ATN: request read %d bytes on %x\n", size, sock.get());
+    winsock_debugf("ATN: request read %d bytes on %x\n", size, sock.get());
     // TODO ATN: WSARecv may be more efficient
     BOOL res = ReadFile(sock.get(), buffer, size, nullptr, &op.overlapped);
     DWORD error = GetLastError();
@@ -329,7 +329,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         on_shutdown_read();
         throw tcp_conn_read_closed_exc_t();
     } else {
-        debugf("ATN: read complete, %d/%d on %x\n", op.nb_bytes, size, sock.get());
+        winsock_debugf("ATN: read complete, %d/%d on %x\n", op.nb_bytes, size, sock.get());
         return op.nb_bytes;
     }
 #else

@@ -77,9 +77,13 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+#ifdef _WIN32
+std::string windows_version_string();
+#else
 // Defined in command_line.cc; not in any header, because it is not
 // safe to run in general.
 std::string run_uname(const std::string &flags);
+#endif
 
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
@@ -92,7 +96,11 @@ bool do_serve(io_backender_t *io_backender,
     components of the server. */
 
     // Do this here so we don't block on popen while pretending to serve.
+#ifdef _WIN32
+    std::string uname = windows_version_string();
+#else
     std::string uname = run_uname("ms");
+#endif
     try {
         /* `extproc_pool` spawns several subprocesses that can be used to run tasks that
         we don't want to run in the main RethinkDB process, such as Javascript

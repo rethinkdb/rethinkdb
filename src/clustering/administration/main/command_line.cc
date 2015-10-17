@@ -699,13 +699,32 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
+#ifdef _WIN32
+std::string windows_version_string() {
+    // TODO ATN: the return value of GetVersion may be capped,
+    // see https://msdn.microsoft.com/en-us/library/dn481241(v=vs.85).aspx
+    DWORD version = GetVersion();
+    int major = LOBYTE(LOWORD(version));
+    int minor = HIBYTE(LOWORD(version));
+    int build = version < 0x80000000 ?  HIWORD(version) : 0;
+    std::string name;
+    switch (LOWORD(version)) {
+    case 0x000A: name ="Windows 10, Server 2016"; break;
+    case 0x0306: name ="Windows 8.1, Server 2012"; break;
+    case 0x0206: name ="Windows 8, Server 2012"; break;
+    case 0x0106: name ="Windows 7, Server 2008 R2"; break;
+    case 0x0006: name ="Windows Vista, Server 2008"; break;
+    case 0x0205: name ="Windows XP 64-bit, Server 2003"; break;
+    case 0x0105: name ="Windows XP"; break;
+    case 0x0005: name ="Windows 2000"; break;
+    default: name = "Unkown";
+    }
+    return strprintf("%d.%d.%d (%s)", major, minor, build, name.c_str());
+}
+#else
 // WARNING WARNING WARNING blocking
 // if in doubt, DO NOT USE.
 std::string run_uname(const std::string &flags) {
-#ifdef _WIN32
-    (void) flags;
-    return "Some Windows version"; // ATN TODO
-#else
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
     const std::string combined = "uname -" + flags;
@@ -717,12 +736,12 @@ std::string run_uname(const std::string &flags) {
     }
     pclose(out);
     return buf;
-#endif
 }
 
 std::string uname_msr() {
     return run_uname("msr");
 }
+#endif
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
@@ -736,7 +755,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
     logNTC("Running %s...\n", RETHINKDB_VERSION_STR);
+#ifdef _WIN32
+    logNTC("Running on %s", windows_version_string().c_str());
+#else
     logNTC("Running on %s", uname_msr().c_str());
+#endif
     os_signal_cond_t sigint_cond;
 
     logNTC("Loading data from directory %s\n", base_path.path().c_str());

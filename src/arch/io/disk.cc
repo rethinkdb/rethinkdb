@@ -407,28 +407,21 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                              scoped_ptr_t<file_t> *out) {
     scoped_fd_t fd;
 
-#ifdef _WIN32 // ATN TODO
-#define D(...) logDBG("ATN: " __VA_ARGS__)
-
+#ifdef _WIN32
     DWORD create_mode;
     if (mode & linux_file_t::mode_truncate) {
-        D("truncate");
         create_mode = CREATE_ALWAYS;
     } else if (mode & linux_file_t::mode_create) {
-        D("create");
         create_mode = OPEN_ALWAYS;
     } else {
-        D("open");
         create_mode = OPEN_EXISTING;
     }
 
     DWORD access_mode = 0;
     if (mode & linux_file_t::mode_write) {
-        D("write");
         access_mode |= GENERIC_WRITE;
     }
     if (mode & linux_file_t::mode_read) {
-        D("read");
         access_mode |= GENERIC_READ;
     }
     if (access_mode == 0) {
