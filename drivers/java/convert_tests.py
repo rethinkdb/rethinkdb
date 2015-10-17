@@ -809,16 +809,19 @@ class ReQLVisitor(JavaVisitor):
             else:
                 self.write(".bracket(")
             self.visit(node.slice.value)
+            self.write(")")
         elif type(node.slice) == ast.Slice:
             # Syntax like a[1:2] or a[:2]
             self.write(".slice(")
-            lower, upper = self.get_slice_bounds(node.slice)
+            lower, upper, rclosed = self.get_slice_bounds(node.slice)
             self.write(str(lower))
             self.write(", ")
             self.write(str(upper))
+            self.write(")")
+            if rclosed:
+                self.write('.optArg("right_bound", "closed")')
         else:
             raise Unhandled("No translation for ExtSlice")
-        self.write(")")
 
     def get_slice_bounds(self, slc):
         '''Used to extract bounds when using bracket slice
@@ -826,7 +829,7 @@ class ReQLVisitor(JavaVisitor):
         UnaryOp(op=USub, operand=Num(1)) instead of Num(-1) like
         Python2 does'''
         if not slc:
-            return 0, -1
+            return 0, -1, True
 
         def get_bound(bound, default):
             if bound is None:
@@ -839,7 +842,9 @@ class ReQLVisitor(JavaVisitor):
                 raise Unhandled(
                     "Not handling bound: %s" % ast.dump(bound))
 
-        return get_bound(slc.lower, 0), get_bound(slc.upper, -1)
+        right_closed = slc.upper is None
+
+        return get_bound(slc.lower, 0), get_bound(slc.upper, -1), right_closed
 
     def visit_Attribute(self, node, emit_parens=True):
         is_toplevel_constant = False
