@@ -39,7 +39,7 @@ public class Query {
     }
 
     public static Query stop(long token) {
-        return new Query(QueryType.STOP, token, null, (new OptArgs()).with("noreply", true));
+        return new Query(QueryType.STOP, token, null, new OptArgs());
     }
 
     public static Query continue_(long token) {
