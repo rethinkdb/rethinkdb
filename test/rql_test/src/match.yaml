@@ -14,7 +14,7 @@ tests:
       ot: (["aca", "ada"])
 
     - cd: tbl.insert([{'id':0,'a':'abc'},{'id':1,'a':'ab'},{'id':2,'a':'bc'}])
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
+      ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':3})
 
     - cd: tbl.filter{|row| row['a'].match('b')}.orderby('id')
       py: tbl.filter(lambda row:row['a'].match('b')).order_by('id')
