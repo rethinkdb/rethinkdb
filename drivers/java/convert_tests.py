@@ -236,6 +236,7 @@ def py_to_java_type(py_type):
             str: 'String',
             dict: 'Map',
             list: 'List',
+            object: 'Object',
             type(None): 'Object',
         }[py_type]
     elif py_type.__module__ == 'rethinkdb.ast':

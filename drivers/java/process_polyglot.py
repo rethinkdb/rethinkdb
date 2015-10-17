@@ -57,6 +57,12 @@ Def = namedtuple('Def', 'varname term run_if_query testfile test_num')
 CustomDef = namedtuple('CustomDef', 'line testfile test_num')
 Expect = namedtuple('Expect', 'bif term')
 
+class AnythingIsFine(object):
+    def __init__(self):
+        self.type = object
+        self.ast = ast.Name("AnythingIsFine", None)
+        self.line = "AnythingIsFine"
+
 
 class SkippedTest(object):
     __slots__ = ('line', 'reason')
@@ -242,7 +248,7 @@ class TestContext(object):
         else:
             # This is distinct from the 'ot' field having the
             # value None in it!
-            return None
+            return AnythingIsFine()
         return ret
 
     @staticmethod
@@ -264,7 +270,10 @@ class TestContext(object):
             # right language already
             term = CustomTerm(custom_expected)
         else:
-            expected = py_str(self.find_python_expected(test))
+            exp = self.find_python_expected(test)
+            if type(exp) == AnythingIsFine:
+                return ExpectedContext(self, AnythingIsFine())
+            expected = py_str(exp)
             expected_ast = ast.parse(expected, mode="eval").body
             logger.debug("Evaluating: %s", expected)
             expected_type = try_eval(expected_ast, self.context)
