@@ -8,9 +8,16 @@ import base64
 import binascii
 import json as py_json
 import threading
+import os
 
 from .errors import ReqlDriverError, ReqlDriverCompileError, QueryPrinter, T
 from . import ql2_pb2 as p
+
+from yaml import load, dump
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 pTerm = p.Term.TermType
 
@@ -1098,6 +1105,18 @@ class DB(RqlTopLevelQuery):
     def table(self, *args, **kwargs):
         return Table(self, *args, **kwargs)
 
+    def import_from_yaml(self, *args, **kwargs):
+        if 'file' in kwargs:
+            with open( os.path.expanduser(kwargs['file']), 'r') as f:
+                datamap = load(f)
+                for entry in datamap:
+                    for key in entry.keys():
+                        table_name = key
+                        table_obj = Table(self, table_name)
+                        for records in entry[key]:
+                            table_obj.insert(records).run()
+
+
 
 class FunCall(RqlQuery):
     tt = pTerm.FUNCALL
@@ -1190,7 +1209,6 @@ class Table(RqlQuery):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
         else:
             return T('r.table(', T(*(args), intsp=', '), ')')
-
 
 class Get(RqlMethodQuery):
     tt = pTerm.GET
