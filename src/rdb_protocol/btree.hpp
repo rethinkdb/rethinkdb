@@ -268,7 +268,7 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(
         const std::vector<char> &data,
         sindex_disk_info_t *info_out,
-        const std::function<void()> &obsolete_cb);
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb);
 
 // Utility function that will call deserialize_sindex_info with an `obsolete_cb`
 // that will `fail_due_to_user_error` when an obsolete index is encountered.

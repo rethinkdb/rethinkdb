@@ -280,7 +280,7 @@ boost::optional<datum_t> apply_ops(
         groups_t groups;
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
-            (*op)(env, &groups, key);
+            (*op)(env, &groups, [&]() { return key; });
         }
         // TODO: when we support `.group.changes` this will need to change.
         guarantee(groups.size() <= 1);
@@ -2534,7 +2534,7 @@ private:
                  const indexed_datum_t &val) {
         store_key_t key;
         if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version_t(), pkey, tag_num));
+            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
         } else {
             key = pkey;
         }

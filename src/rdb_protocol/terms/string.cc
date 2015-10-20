@@ -250,8 +250,7 @@ private:
         std::vector<datum_t> res;
 
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_14:
-        case reql_version_t::v1_16: // v1_15 is the same as v1_14
+        case reql_version_t::v1_16:
         case reql_version_t::v2_0:
             res = old_split(s, delim, maxnum);
             break;

@@ -272,23 +272,47 @@ region_t monokey_region(const store_key_t &k) {
 }
 
 key_range_t sindex_key_range(const store_key_t &start,
-                             const store_key_t &end) {
+                             const store_key_t &end,
+                             key_range_t::bound_t end_type,
+                             ql::skey_version_t skey_version) {
+
+    const size_t max_trunc_size = ql::datum_t::max_trunc_size(skey_version);
+
+    // If `end` is not truncated and right bound is open, we don't increment the right
+    // bound.
+    guarantee(static_cast<size_t>(end.size()) <= max_trunc_size);
     store_key_t end_key;
-    std::string end_key_str(key_to_unescaped_str(end));
+    const bool end_is_truncated = static_cast<size_t>(end.size()) == max_trunc_size;
+    // The key range we generate must be open on the right end because the keys in the
+    // btree have extra data appended to the secondary key part.
+    if (end_is_truncated) {
+        // Since the key is already truncated, we must make it larger without making it
+        // longer.
+        std::string end_key_str(key_to_unescaped_str(end));
+        while (end_key_str.length() > 0 &&
+               end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+            end_key_str.erase(end_key_str.length() - 1);
+        }
 
-    // Need to make the next largest store_key_t without making the key longer
-    while (end_key_str.length() > 0 &&
-           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
-        end_key_str.erase(end_key_str.length() - 1);
-    }
-
-    if (end_key_str.length() == 0) {
-        end_key = store_key_t::max();
+        if (end_key_str.length() == 0) {
+            end_key = store_key_t::max();
+        } else {
+            ++end_key_str[end_key_str.length() - 1];
+            end_key = store_key_t(end_key_str);
+        }
+    } else if (end_type == key_range_t::bound_t::closed) {
+        // `end` is not truncated, but the range is closed. We know that `end` is
+        // currently terminated by a null byte. We can replace that by a '\1' to ensure
+        // that any key in the btree with that exact secondary index value will be
+        // included in the range.
+        end_key = end;
+        guarantee(end_key.size() > 0);
+        guarantee(end_key.contents()[end_key.size() - 1] == 0);
+        end_key.contents()[end_key.size() - 1] = 1;
     } else {
-        ++end_key_str[end_key_str.length() - 1];
-        end_key = store_key_t(end_key_str);
+        end_key = end;
     }
-    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
+    return key_range_t(key_range_t::closed, start, key_range_t::open, std::move(end_key));
 }
 
 }  // namespace rdb_protocol
@@ -676,7 +700,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
     out->truncated = false;
-    out->reql_version = reql_version_t::v1_14;
+    out->reql_version = reql_version_t::EARLIEST;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
@@ -1169,7 +1193,7 @@ int write_t::expected_document_changes() const {
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
-    ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
+    ql::skey_version_t::post_1_16, ql::skey_version_t::post_1_16);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
     rget_read_response_t, stamp_response, result, reql_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);

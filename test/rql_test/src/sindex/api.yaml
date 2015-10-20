@@ -1335,3 +1335,14 @@ tests:
     py: tbl.order_by(index='mi').map(lambda x:x['id'])
     js: tbl.orderBy({'index':'mi'}).map(function(x) { return x('id'); })
     ot: [0,0,0,1,1,1,2,3,3,3,4,4,4]
+
+  # Test open left bounds with both the primary and a secondary index
+  - rb: tbl.between(0, 1, :index => :c, :right_bound => :closed, :left_bound => :open).orderby(:id)[:id]
+    py: tbl.between(0, 1, index='c', right_bound='closed', left_bound='open').order_by('id')['id']
+    js: tbl.between(0, 1, {index:'c', rightBound:'closed', leftBound:'open'}).orderBy('id')('id')
+    ot: [2, 3]
+  - rb: tbl.between(0, 1, :index => :id, :right_bound => :closed, :left_bound => :open).orderby(:id)[:id]
+    py: tbl.between(0, 1, index='id', right_bound='closed', left_bound='open').order_by('id')['id']
+    js: tbl.between(0, 1, {index:'id', rightBound:'closed', leftBound:'open'}).orderBy('id')('id')
+    ot: [1]
+

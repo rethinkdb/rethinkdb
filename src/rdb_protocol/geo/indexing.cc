@@ -112,8 +112,6 @@ std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
     version is 1.16 or higher, the high bit on the 'G' will be set. */
     uint8_t first_char;
     switch (skey_version) {
-        case ql::skey_version_t::pre_1_16:
-            first_char = 'G'; break;
         case ql::skey_version_t::post_1_16:
             first_char = static_cast<uint8_t>('G') | 0x80; break;
         default: unreachable();
