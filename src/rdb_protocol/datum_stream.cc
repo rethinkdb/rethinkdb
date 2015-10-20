@@ -15,11 +15,17 @@
 
 namespace ql {
 
-bool changespec_t::include_initial_vals() {
-    if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
-        return !range->datumspec.is_universe();
+read_mode_t up_to_date_read_mode(read_mode_t in) {
+    switch (in) {
+    case read_mode_t::MAJORITY: return in;
+    case read_mode_t::SINGLE:   return in;
+    case read_mode_t::OUTDATED: return read_mode_t::SINGLE;
+    case read_mode_t::DEBUG_DIRECT:
+        rfail_datum(base_exc_t::LOGIC,
+                    "DEBUG_DIRECT is not a legal read mode for this operation "
+                    "(an up-to-date read mode is required).");
+    default: unreachable();
     }
-    return true;
 }
 
 // RANGE/READGEN STUFF
@@ -444,7 +450,7 @@ read_t rget_readgen_t::next_read(
             std::move(transforms),
             batchspec),
         profile,
-        read_mode);
+        stamp ? up_to_date_read_mode(read_mode) : read_mode);
 }
 
 // TODO: this is how we did it before, but it sucks.

@@ -51,7 +51,7 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
-    bool include_initial_vals,
+    bool include_initial,
     bool include_states,
     ql::configured_limits_t limits,
     ql::backtrace_id_t bt,
@@ -102,7 +102,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
     try {
         *cfeed_out = machinery->subscribe(
             env,
-            include_initial_vals,
+            include_initial,
             include_states,
             std::move(limits),
             std::move(spec),

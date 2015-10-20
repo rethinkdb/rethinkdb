@@ -559,7 +559,7 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
-            // `include_initial_vals` changefeeds.
+            // `include_initial` changefeeds.
             auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
             if (!pair.second) {
                 out->stamps = boost::none;

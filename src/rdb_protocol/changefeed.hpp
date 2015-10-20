@@ -550,7 +550,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
         configured_limits_t limits,
         const keyspec_t::spec_t &spec,
