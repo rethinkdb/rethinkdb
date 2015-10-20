@@ -1,5 +1,5 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/lazy_json.hpp"
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include "rdb_protocol/lazy_btree_val.hpp"
 
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/versioned.hpp"
@@ -24,7 +24,7 @@ ql::datum_t get_data(const rdb_value_t *value, buf_parent_t parent) {
     return data;
 }
 
-const ql::datum_t &lazy_json_t::get() const {
+const ql::datum_t &lazy_btree_val_t::get() const {
     guarantee(pointee.has());
     if (!pointee->ptr.has()) {
         pointee->ptr = get_data(pointee->rdb_value, pointee->parent);
@@ -34,10 +34,10 @@ const ql::datum_t &lazy_json_t::get() const {
     return pointee->ptr;
 }
 
-bool lazy_json_t::references_parent() const {
+bool lazy_btree_val_t::references_parent() const {
     return pointee.has() && !pointee->parent.empty();
 }
 
-void lazy_json_t::reset() {
+void lazy_btree_val_t::reset() {
     pointee.reset();
 }

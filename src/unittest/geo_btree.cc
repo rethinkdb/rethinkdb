@@ -30,29 +30,36 @@ bool find_pred(S2CellId id, S2CellId *pred_out) {
     return true;
 }
 
-void test_btree_key(const std::string &str_key) {
+void test_btree_key(std::string str_key) {
     SCOPED_TRACE("test_btree_key(" + ::testing::PrintToString(str_key) + ")");
+    // Set the top bit in `key` to 1 to match the format in which we store secondary
+    // keys to the btree (since 1.16).
+    str_key[0] |= static_cast<char>(0x80);
     store_key_t key(str_key);
     std::pair<S2CellId, bool> res =
         order_btree_key_relative_to_s2cellid_keys(
             key.btree_key(),
-            /* `pre_1_16` matches the output of `s2cellid_to_key()`. */
-            ql::skey_version_t::pre_1_16);
+            ql::skey_version_t::post_1_16);
     if (res.first == S2CellId::Sentinel()) {
         ASSERT_LT(s2cellid_to_key(S2CellId::FromFacePosLevel(5, 0, 0).range_max()),
             str_key);
     } else if (res.second) {
-        std::string prefix = s2cellid_to_key(res.first);
+        std::string reference_key = s2cellid_to_key(res.first);
+        reference_key[0] |= static_cast<char>(0x80);
+        std::string prefix = reference_key;
         ASSERT_EQ(prefix, str_key.substr(0, prefix.size()));
     } else {
-        ASSERT_GT(s2cellid_to_key(res.first), str_key);
+        std::string reference_key = s2cellid_to_key(res.first);
+        reference_key[0] |= static_cast<char>(0x80);
+        ASSERT_GT(reference_key, str_key);
         SCOPED_TRACE("note: res.first = " +
-            ::testing::PrintToString(s2cellid_to_key(res.first)));
+            ::testing::PrintToString(reference_key));
         S2CellId pred;
-        if (find_pred(res.first, &pred)) { 
-            std::string prefix = s2cellid_to_key(pred);
-            ASSERT_LE(prefix, str_key);
-            ASSERT_NE(prefix, str_key.substr(0, prefix.size()));
+        if (find_pred(res.first, &pred)) {
+            std::string reference_prefix = s2cellid_to_key(pred);
+            reference_prefix[0] |= static_cast<char>(0x80);
+            ASSERT_LE(reference_prefix, str_key);
+            ASSERT_NE(reference_prefix, str_key.substr(0, reference_prefix.size()));
         }
     }
 }

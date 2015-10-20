@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
 #include <functional>
@@ -28,7 +28,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/geo_traversal.hpp"
-#include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/lazy_btree_val.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 #include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -549,7 +549,14 @@ public:
           active_region_range_inout(_active_region_range_inout),
           func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()),
-          multi(_multi) { }
+          multi(_multi) {
+        datumspec.visit<void>(
+            [&](const ql::datum_range_t &r) {
+                lbound_trunc_key = r.get_left_bound_trunc_key(func_reql_version);
+                rbound_trunc_key = r.get_right_bound_trunc_key(func_reql_version);
+            },
+            [](const std::map<ql::datum_t, uint64_t> &) { });
+    }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
@@ -558,6 +565,9 @@ private:
     const reql_version_t func_reql_version;
     const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
+    // The (truncated) boundary keys for the datum range stored in `datumspec`.
+    std::string lbound_trunc_key;
+    std::string rbound_trunc_key;
 };
 
 class job_data_t {
@@ -620,6 +630,7 @@ public:
     continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         size_t default_copies,
+        const boost::optional<std::string> &skey_left,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -634,6 +645,8 @@ private:
     job_data_t job; // What to do next (stateful).
     const boost::optional<rget_sindex_data_t> sindex; // Optional sindex information.
 
+    scoped_ptr_t<ql::env_t> sindex_env;
+
     // State for internal bookkeeping.
     bool bad_init;
     scoped_ptr_t<profile::disabler_t> disabler;
@@ -644,17 +657,25 @@ private:
 // little bit more so we use this wrapper to hold the extra information.
 class rget_cb_wrapper_t : public concurrent_traversal_callback_t {
 public:
-    rget_cb_wrapper_t(rget_cb_t *_cb, size_t _copies)
-        : cb(_cb), copies(_copies) { }
+    rget_cb_wrapper_t(
+            rget_cb_t *_cb,
+            size_t _copies,
+            boost::optional<std::string> _skey_left)
+        : cb(_cb), copies(_copies), skey_left(std::move(_skey_left)) { }
     virtual continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
-        return cb->handle_pair(std::move(keyvalue), copies, std::move(waiter));
+        return cb->handle_pair(
+            std::move(keyvalue),
+            copies,
+            skey_left,
+            std::move(waiter));
     }
 private:
     rget_cb_t *cb;
     size_t copies;
+    boost::optional<std::string> skey_left;
 };
 
 rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
@@ -665,12 +686,22 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
       job(std::move(_job)),
       sindex(std::move(_sindex)),
       bad_init(false) {
+
     if (!reversed(job.sorting)) {
         io.response->last_key = range.left;
     } else {
         io.response->last_key = range.right.unbounded
             ? store_key_t::max()
             : range.right.key();
+    }
+
+    if (sindex) {
+        // Secondary index functions are deterministic (so no need for an
+        // rdb_context_t) and evaluated in a pristine environment (without global
+        // optargs).
+        sindex_env.init(new ql::env_t(job.env->interruptor,
+                                      ql::return_empty_normal_batches_t::NO,
+                                      sindex->func_reql_version));
     }
 
     // We must disable profiler events for subtasks, because multiple instances
@@ -692,8 +723,10 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
     size_t default_copies,
+    const boost::optional<std::string> &skey_left,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
+
     sampler->new_sample();
 
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
@@ -706,8 +739,8 @@ continue_bool_t rget_cb_t::handle_pair(
         return continue_bool_t::CONTINUE;
     }
 
-    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
-                    keyvalue.expose_buf());
+    lazy_btree_val_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                         keyvalue.expose_buf());
     ql::datum_t val;
 
     // Count stats whether or not we deserialize the value
@@ -741,41 +774,148 @@ continue_bool_t rget_cb_t::handle_pair(
             }
         }
 
-        // Check whether we're out of sindex range.
-        ql::datum_t sindex_val; // NULL if no sindex.
+        // There are certain transformations and accumulators that need the
+        // secondary index value, though many don't. We don't want to compute
+        // it if we don't end up needing it, because that would be expensive.
+        // So we provide a function that computes the secondary index value
+        // lazily the first time it's called.
+        ql::datum_t sindex_val_cache; // an empty `datum_t` until initialized
+        auto lazy_sindex_val = [&]() -> ql::datum_t {
+            if (sindex && !sindex_val_cache.has()) {
+                sindex_val_cache =
+                    sindex->func->call(sindex_env.get(), val)->as_datum();
+                if (sindex->multi == sindex_multi_bool_t::MULTI
+                    && sindex_val_cache.get_type() == ql::datum_t::R_ARRAY) {
+                    boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
+                    guarantee(tag);
+                    sindex_val_cache = sindex_val_cache.get(*tag, ql::NOTHROW);
+                    guarantee(sindex_val_cache.has());
+                }
+            }
+            return sindex_val_cache;
+        };
+
+        // Check whether we're outside the sindex range.
+        // We only need to check this if we are on the boundary of the sindex range, and
+        // the involved keys are truncated.
         size_t copies = default_copies;
         if (sindex) {
-            // Secondary index functions are deterministic (so no need for an
-            // rdb_context_t) and evaluated in a pristine environment (without global
-            // optargs).
-            ql::env_t sindex_env(job.env->interruptor,
-                                 ql::return_empty_normal_batches_t::NO,
-                                 sindex->func_reql_version);
-            sindex_val = sindex->func->call(&sindex_env, val)->as_datum();
-            if (sindex->multi == sindex_multi_bool_t::MULTI
-                && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
-                boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
-                guarantee(tag);
-                sindex_val = sindex_val.get(*tag, ql::NOTHROW);
-                guarantee(sindex_val.has());
-            }
+            /* Here's an attempt at explaining the different case distinctions handled in
+               this check (for the left bound; the right bound check is similar):
+               The case distinctions are as follows:
+               1. left_bound_is_truncated
+                If the left bound key had to be truncated, we first compare the prefix of
+                the current secondary key (skey_current), and the left bound key.
+                The comparison cannot be -1, because that would mean that we computed the
+                traversal key range incorrectly in the first place (there's no need to
+                consider keys that are *smaller* than the left bound).
+                If the comparison is 1, the current key's secondary part is larger than
+                the left bound, and we know that the corresponding datum_t value must
+                also be larger than the datum_t corresponding to the left bound.
+                Finally, since the left bound is truncated, the comparison can determine
+                that the prefix is equal for values in the btree with corresponding index
+                values that are either left of the bound (but match in the truncated
+                prefix), at the bound (which we want to include only if the left bound is
+                closed), or right of the bound (which we always want to include, as far
+                as the left bound id concerned). We can't determine which case we have,
+                by looking only at the keys. Hence we must check the number of copies for
+                `cmp == 0`. The only exception is if the current key was actually not
+                truncated, in which case we know that it will actually be smaller than
+                the left bound (that's encoded in line 825).
+               2. !left_bound_is_truncated && left_bound is closed
+                If the bound wasn't truncated, we know that the traversal range will not
+                include any values which are smaller than the left bound. Hence we can
+                skip the check for whether the sindex value is actually in the datum
+                range.
+               3. !left_bound_is_truncated && left_bound is open
+                In contrast, if the left bound is open, we compare the left bound and
+                current key. If they have the same size and their contents compare equal,
+                we actually know that they are outside the range and could set the number
+                of copies to 0. We do the slightly less optimal but simpler thing and
+                just check the number of copies in this case, so that we can share the
+                code path with case 1. */
+            const size_t max_trunc_size =
+                ql::datum_t::max_trunc_size(
+                    ql::skey_version_from_reql_version(sindex->func_reql_version));
+            sindex->datumspec.visit<void>(
+            [&](const ql::datum_range_t &r) {
+                bool must_check_copies = false;
+                std::string skey_current =
+                    ql::datum_t::extract_truncated_secondary(key_to_unescaped_str(key));
+                const bool left_bound_is_truncated =
+                    sindex->lbound_trunc_key.size() == max_trunc_size;
+                if (left_bound_is_truncated
+                    || r.left_bound_type == key_range_t::bound_t::open) {
+                    int cmp = memcmp(
+                        skey_current.data(),
+                        sindex->lbound_trunc_key.data(),
+                        std::min<size_t>(skey_current.size(),
+                                         sindex->lbound_trunc_key.size()));
+                    if (skey_current.size() < sindex->lbound_trunc_key.size()) {
+                        guarantee(cmp != 0);
+                    }
+                    guarantee(cmp >= 0);
+                    if (cmp == 0
+                        && skey_current.size() == sindex->lbound_trunc_key.size()) {
+                        must_check_copies = true;
+                    }
+                }
+                if (!must_check_copies) {
+                    const bool right_bound_is_truncated =
+                        sindex->rbound_trunc_key.size() == max_trunc_size;
+                    if (right_bound_is_truncated
+                        || r.right_bound_type == key_range_t::bound_t::open) {
+                        int cmp = memcmp(
+                            skey_current.data(),
+                            sindex->rbound_trunc_key.data(),
+                            std::min<size_t>(skey_current.size(),
+                                             sindex->rbound_trunc_key.size()));
+                        if (skey_current.size() > sindex->rbound_trunc_key.size()) {
+                            guarantee(cmp != 0);
+                        }
+                        guarantee(cmp <= 0);
+                        if (cmp == 0
+                            && skey_current.size() == sindex->rbound_trunc_key.size()) {
+                            must_check_copies = true;
+                        }
+                    }
+                }
+                if (must_check_copies) {
+                    copies = sindex->datumspec.copies(lazy_sindex_val());
+                } else {
+                    copies = 1;
+                }
+            },
+            [&](const std::map<ql::datum_t, uint64_t> &) {
+                guarantee(skey_left);
+                std::string skey_current =
+                    ql::datum_t::extract_secondary(key_to_unescaped_str(key));
+                const bool skey_current_is_truncated =
+                    skey_current.size() >= max_trunc_size;
+                const bool skey_left_is_truncated = skey_left->size() >= max_trunc_size;
 
-            copies = sindex->datumspec.copies(sindex_val);
-            if (copies == 0) return continue_bool_t::CONTINUE;
+                if (skey_current_is_truncated || skey_left_is_truncated) {
+                    copies = sindex->datumspec.copies(lazy_sindex_val());
+                } else if (*skey_left != skey_current) {
+                    copies = 0;
+                }
+            });
+            if (copies == 0) {
+                return continue_bool_t::CONTINUE;
+            }
         }
 
         ql::groups_t data = {{ql::datum_t(), ql::datums_t(copies, val)}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (**it)(job.env, &data, sindex_val);
-            //                     ^^^^^^^^^^ NULL if no sindex
+            (**it)(job.env, &data, lazy_sindex_val);
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
         return (*job.accumulator)(job.env,
                                   &data,
-                                  std::move(key),
-                                  std::move(sindex_val)); // NULL if no sindex
+                                  key,
+                                  lazy_sindex_val);
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return continue_bool_t::ABORT;
@@ -814,7 +954,7 @@ void rdb_rget_slice(
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     if (primary_keys) {
         auto cb = [&](const std::pair<store_key_t, uint64_t> &pair, bool is_last) {
-            rget_cb_wrapper_t wrapper(&callback, pair.second);
+            rget_cb_wrapper_t wrapper(&callback, pair.second, boost::none);
             btree_concurrent_traversal(
                 superblock,
                 key_range_t::one_key(pair.first),
@@ -841,7 +981,7 @@ void rdb_rget_slice(
             }
         }
     } else {
-        rget_cb_wrapper_t wrapper(&callback, 1);
+        rget_cb_wrapper_t wrapper(&callback, 1, boost::none);
         btree_concurrent_traversal(
             superblock, range, &wrapper, direction, release_superblock);
     }
@@ -884,9 +1024,13 @@ void rdb_rget_secondary_slice(
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     auto cb = [&](const std::pair<ql::datum_range_t, uint64_t> &pair, bool is_last) {
-        rget_cb_wrapper_t wrapper(&callback, pair.second);
-        key_range_t active_range = active_region_range.intersection(
-            pair.first.to_sindex_keyrange(sindex_func_reql_version));
+        key_range_t sindex_keyrange =
+            pair.first.to_sindex_keyrange(sindex_func_reql_version);
+        rget_cb_wrapper_t wrapper(
+            &callback,
+            pair.second,
+            key_to_unescaped_str(sindex_keyrange.left));
+        key_range_t active_range = active_region_range.intersection(sindex_keyrange);
         // This can happen sometimes with truncated keys.
         if (active_range.is_empty()) return false;
         btree_concurrent_traversal(
@@ -1342,13 +1486,21 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(
         const std::vector<char> &data,
         sindex_disk_info_t *info_out,
-        const std::function<void()> &obsolete_cb) {
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb) {
     buffer_read_stream_t read_stream(data.data(), data.size());
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
+    static_assert(obsolete_cluster_version_t::v1_13_2_is_latest
+                  == obsolete_cluster_version_t::v1_13_2,
+                  "1.13 is no longer the only obsolete cluster version.  "
+                  "Instead of passing a constant obsolete_reql_version_t::v1_13 into "
+                  "`obsolete_cb` below, there should be a separate `obsolete_cb` to "
+                  "handle the different obsolete cluster versions.");
     archive_result_t success = deserialize_cluster_version(
-        &read_stream, &cluster_version, obsolete_cb);
+        &read_stream,
+        &cluster_version,
+        std::bind(obsolete_cb, obsolete_reql_version_t::v1_13));
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
@@ -1407,10 +1559,22 @@ void deserialize_sindex_info_or_crash(
         sindex_disk_info_t *info_out)
             THROWS_ONLY(archive_exc_t) {
     deserialize_sindex_info(data, info_out,
-        [] () -> void {
-            fail_due_to_user_error("Encountered a RethinkDB 1.13 secondary index, "
-                                   "which is no longer supported.  You can use "
-                                   "RethinkDB 2.0 to update your secondary index.");
+        [](obsolete_reql_version_t ver) -> void {
+            switch (ver) {
+            case obsolete_reql_version_t::v1_13:
+                fail_due_to_user_error("Encountered a RethinkDB 1.13 secondary index, "
+                                       "which is no longer supported.  You can use "
+                                       "RethinkDB 2.0.5 to update your secondary index.");
+                break;
+            // v1_15 is equal to v1_14
+            case obsolete_reql_version_t::v1_14:
+                fail_due_to_user_error("Encountered an index from before RethinkDB "
+                                       "1.16, which is no longer supported.  You can "
+                                       "use RethinkDB 2.1 to update your secondary "
+                                       "index.");
+                break;
+            default: unreachable();
+            }
         });
 }
 

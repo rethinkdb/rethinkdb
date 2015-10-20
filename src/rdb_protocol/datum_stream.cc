@@ -958,7 +958,7 @@ eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
         }
         (*out)[datum_t()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
-            (**it)(env, out, datum_t());
+            (**it)(env, out, []() { return datum_t(); });
         }
     }
     return done_t::NO;

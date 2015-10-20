@@ -14,23 +14,12 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
-        switch (env->env->reql_version()) {
-        case reql_version_t::v1_14: // v1_15 is the same as v1_14
-            break;
-        case reql_version_t::v1_16:
-        case reql_version_t::v2_0:
-        case reql_version_t::v2_1:
-        case reql_version_t::v2_2_is_latest:
-            rcheck_target(v,
-                          d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
-                          base_exc_t::LOGIC,
-                          strprintf("Cannot call `%s` on objects of type `%s`.",
-                                    name(),
-                                    d.get_type_name().c_str()));
-            break;
-        default:
-            unreachable();
-        }
+        rcheck_target(v,
+                      d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
+                      base_exc_t::LOGIC,
+                      strprintf("Cannot call `%s` on objects of type `%s`.",
+                                name(),
+                                d.get_type_name().c_str()));
 
         std::vector<datum_t> arr;
         arr.reserve(d.obj_size());
