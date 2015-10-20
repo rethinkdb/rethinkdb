@@ -411,8 +411,8 @@ scoped_ptr_t<LeafNodeTracker> test_random_out_of_order(
         int num_keys,
         int num_ops,
         bool random_tstamps,
-        store_key_t low_key=store_key_t::min(),
-        store_key_t high_key=store_key_t::max()) {
+        store_key_t low_key = store_key_t::min(),
+        store_key_t high_key = store_key_t::max()) {
 
     scoped_ptr_t<LeafNodeTracker> tracker(new LeafNodeTracker());
 
