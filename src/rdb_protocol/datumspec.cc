@@ -18,14 +18,14 @@ datum_range_t::datum_range_t()
 datum_range_t::datum_range_t(
     datum_t _left_bound, key_range_t::bound_t _left_bound_type,
     datum_t _right_bound, key_range_t::bound_t _right_bound_type)
-    : left_bound(_left_bound), right_bound(_right_bound),
-      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) {
+    : left_bound_type(_left_bound_type), right_bound_type(_right_bound_type),
+      left_bound(_left_bound), right_bound(_right_bound) {
     r_sanity_check(left_bound.has() && right_bound.has());
 }
 
 datum_range_t::datum_range_t(datum_t val)
-    : left_bound(val), right_bound(val),
-      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) {
+    : left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed),
+      left_bound(val), right_bound(val) {
     r_sanity_check(val.has());
 }
 
@@ -102,8 +102,24 @@ key_range_t datum_range_t::to_sindex_keyrange(reql_version_t reql_version) const
     r_sanity_check(left_bound.has() && right_bound.has());
     object_buffer_t<store_key_t> lb, rb;
     return rdb_protocol::sindex_key_range(
-        store_key_t(left_bound.truncated_secondary(reql_version, extrema_ok_t::OK)),
-        store_key_t(right_bound.truncated_secondary(reql_version, extrema_ok_t::OK)));
+        store_key_t(get_left_bound_trunc_key(reql_version)),
+        store_key_t(get_right_bound_trunc_key(reql_version)),
+        right_bound_type,
+        ql::skey_version_from_reql_version(reql_version));
+}
+
+std::string datum_range_t::get_left_bound_trunc_key(reql_version_t reql_ver) const {
+    guarantee(left_bound_type != key_range_t::bound_t::none);
+    return key_to_unescaped_str(left_bound.truncated_secondary(
+        reql_ver,
+        ql::extrema_ok_t::OK));
+}
+
+std::string datum_range_t::get_right_bound_trunc_key(reql_version_t reql_ver) const {
+    guarantee(right_bound_type != key_range_t::bound_t::none);
+    return key_to_unescaped_str(right_bound.truncated_secondary(
+        reql_ver,
+        ql::extrema_ok_t::OK));
 }
 
 datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {

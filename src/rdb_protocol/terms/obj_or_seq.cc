@@ -56,22 +56,11 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
     }
 
     if (d.has() && d.get_type() == datum_t::R_OBJECT) {
-        switch (env->env->reql_version()) {
-        case reql_version_t::v1_14: // v1_15 is the same as v1_14
-            break;
-        case reql_version_t::v1_16:
-        case reql_version_t::v2_0:
-        case reql_version_t::v2_1:
-        case reql_version_t::v2_2_is_latest:
-            if (d.is_ptype() &&
-                acceptable_ptypes.find(d.get_reql_type()) == acceptable_ptypes.end()) {
-                rfail_target(v0, base_exc_t::LOGIC,
-                             "Cannot call `%s` on objects of type `%s`.",
-                             parent->name(), d.get_type_name().c_str());
-            }
-            break;
-        default:
-            unreachable();
+        if (d.is_ptype() &&
+            acceptable_ptypes.find(d.get_reql_type()) == acceptable_ptypes.end()) {
+            rfail_target(v0, base_exc_t::LOGIC,
+                         "Cannot call `%s` on objects of type `%s`.",
+                         parent->name(), d.get_type_name().c_str());
         }
         return helper();
     } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
@@ -237,44 +226,22 @@ private:
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d0 = v->as_datum();
                 if (d0.get_type() == datum_t::R_OBJECT) {
-                    switch (env->env->reql_version()) {
-                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-                        break;
-                    case reql_version_t::v1_16:
-                    case reql_version_t::v2_0:
-                    case reql_version_t::v2_1:
-                    case reql_version_t::v2_2_is_latest:
-                        rcheck_target(v,
-                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
-                                      base_exc_t::LOGIC,
-                                      strprintf("Cannot merge objects of type `%s`.",
-                                                d0.get_type_name().c_str()));
-                        break;
-                    default:
-                        unreachable();
-                    }
+                    rcheck_target(v,
+                                  !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                  base_exc_t::LOGIC,
+                                  strprintf("Cannot merge objects of type `%s`.",
+                                            d0.get_type_name().c_str()));
                 }
                 d = d.merge(d0);
             } else {
                 auto f = v->as_func(CONSTANT_SHORTCUT);
                 datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
                 if (d0.get_type() == datum_t::R_OBJECT) {
-                    switch (env->env->reql_version()) {
-                    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-                        break;
-                    case reql_version_t::v1_16:
-                    case reql_version_t::v2_0:
-                    case reql_version_t::v2_1:
-                    case reql_version_t::v2_2_is_latest:
-                        rcheck_target(v,
-                                      !d0.is_ptype() || d0.is_ptype("LITERAL"),
-                                      base_exc_t::LOGIC,
-                                      strprintf("Cannot merge objects of type `%s`.",
-                                                d0.get_type_name().c_str()));
-                        break;
-                    default:
-                        unreachable();
-                    }
+                    rcheck_target(v,
+                                  !d0.is_ptype() || d0.is_ptype("LITERAL"),
+                                  base_exc_t::LOGIC,
+                                  strprintf("Cannot merge objects of type `%s`.",
+                                            d0.get_type_name().c_str()));
                 }
                 d = d.merge(d0);
             }

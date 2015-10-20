@@ -61,16 +61,17 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual continue_bool_t operator()(env_t *env,
-                                         groups_t *groups,
-                                         const store_key_t &key,
-                                         const datum_t &sindex_val) {
+    virtual continue_bool_t operator()(
+            env_t *env,
+            groups_t *groups,
+            const store_key_t &key,
+            const std::function<datum_t()> &lazy_sindex_val) {
         for (auto it = groups->begin(); it != groups->end(); ++it) {
             auto pair = acc.insert(std::make_pair(it->first, default_val));
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
-                keep |= accumulate(env, *el, &t_it->second, key, sindex_val);
+                keep |= accumulate(env, *el, &t_it->second, key, lazy_sindex_val);
             }
             if (!keep) {
                 acc.erase(t_it);
@@ -82,8 +83,7 @@ private:
                             const datum_t &el,
                             T *t,
                             const store_key_t &key,
-                            // sindex_val may be NULL
-                            const datum_t &sindex_val) = 0;
+                            const std::function<datum_t()> &lazy_sindex_val) = 0;
 
     virtual bool should_send_batch() = 0;
 
@@ -139,14 +139,14 @@ protected:
                             const datum_t &el,
                             stream_t *stream,
                             const store_key_t &key,
-                            // sindex_val may be NULL
-                            const datum_t &sindex_val) {
+                            // Returns a datum that might be null
+                            const std::function<datum_t()> &lazy_sindex_val) {
         if (batcher) batcher->note_el(el);
         // We don't bother storing the sindex if we aren't sorting (this is
         // purely a performance optimization).
         datum_t rget_sindex_val = (sorting == sorting_t::UNORDERED)
             ? datum_t()
-            : sindex_val;
+            : lazy_sindex_val();
         stream->push_back(rget_item_t(store_key_t(key), rget_sindex_val, el));
         return true;
     }
@@ -242,13 +242,13 @@ private:
                             const datum_t &el,
                             stream_t *stream,
                             const store_key_t &key,
-                            // sindex_val may be NULL
-                            const datum_t &sindex_val) {
+                            // Returns a datum that might be null
+                            const std::function<datum_t()> &lazy_sindex_val) {
         bool ret;
         size_t seen_this_time = 0;
         {
             stream_t substream;
-            ret = append_t::accumulate(env, el, &substream, key, sindex_val);
+            ret = append_t::accumulate(env, el, &substream, key, lazy_sindex_val);
             for (auto &&item : substream) {
                 if (boost::optional<datum_t> d
                     = ql::changefeed::apply_ops(item.data, *ops, env, item.sindex_key)) {
@@ -468,7 +468,7 @@ private:
                             const datum_t &el,
                             T *t,
                             const store_key_t &,
-                            const datum_t &) {
+                            const std::function<datum_t()> &) {
         return accumulate(env, el, t);
     }
     virtual bool accumulate(env_t *env,
@@ -733,9 +733,9 @@ class ungrouped_op_t : public op_t {
 protected:
 private:
     virtual void operator()(
-        env_t *env, groups_t *groups, const datum_t &sindex_val) {
+        env_t *env, groups_t *groups, const std::function<datum_t()> &lazy_sindex_val) {
         for (auto it = groups->begin(); it != groups->end();) {
-            lst_transform(env, &it->second, sindex_val);
+            lst_transform(env, &it->second, lazy_sindex_val);
             if (it->second.size() == 0) {
                 groups->erase(it++); // This is important for batching with filter.
             } else {
@@ -743,9 +743,9 @@ private:
             }
         }
     }
-    // sindex_val may be NULL.
+    // `lazy_sindex_val` returns a datum that might be null
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const datum_t &sindex_val) = 0;
+        env_t *env, datums_t *lst, const std::function<datum_t()> &lazy_sindex_val) = 0;
 };
 
 class group_trans_t : public op_t {
@@ -760,7 +760,7 @@ public:
 private:
     virtual void operator()(env_t *env,
                             groups_t *groups,
-                            const datum_t &sindex_val) {
+                            const std::function<datum_t()> &lazy_sindex_val) {
         if (groups->size() == 0) return;
         r_sanity_check(groups->size() == 1 && !groups->begin()->first.has());
         datums_t *ds = &groups->begin()->second;
@@ -783,6 +783,7 @@ private:
                 }
             }
             if (append_index) {
+                datum_t sindex_val = lazy_sindex_val();
                 r_sanity_check(sindex_val.has());
                 arr.push_back(sindex_val);
             }
@@ -866,7 +867,7 @@ public:
         : f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const datum_t &) {
+        env_t *env, datums_t *lst, const std::function<datum_t()> &) {
         try {
             for (auto it = lst->begin(); it != lst->end(); ++it) {
                 *it = f->call(env, *it)->as_datum();
@@ -888,11 +889,12 @@ public:
 private:
     // sindex_val may be NULL
     virtual void lst_transform(
-        env_t *, datums_t *lst, const datum_t &sindex_val) {
+        env_t *, datums_t *lst, const std::function<datum_t()> &lazy_sindex_val) {
         auto it = lst->begin();
         auto loc = it;
         for (; it != lst->end(); ++it) {
             if (use_index) {
+                datum_t sindex_val = lazy_sindex_val();
                 r_sanity_check(sindex_val.has());
                 *it = sindex_val;
             }
@@ -918,7 +920,7 @@ public:
                       : counted_t<const func_t>()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const datum_t &) {
+        env_t *env, datums_t *lst, const std::function<datum_t()> &) {
         auto it = lst->begin();
         auto loc = it;
         try {
@@ -942,7 +944,7 @@ public:
         : f(_f.compile_wire_func()) { }
 private:
     virtual void lst_transform(
-        env_t *env, datums_t *lst, const datum_t &) {
+        env_t *env, datums_t *lst, const std::function<datum_t()> &) {
         datums_t new_lst;
         batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
         profile::sampler_t sampler("Evaluating CONCAT_MAP elements.", env->trace);
@@ -970,7 +972,7 @@ public:
     explicit zip_trans_t(const zip_wire_func_t &) {}
 private:
     virtual void lst_transform(env_t *, datums_t *lst,
-                               const datum_t &) {
+                               const std::function<datum_t()> &) {
         for (auto it = lst->begin(); it != lst->end(); ++it) {
             auto left = (*it).get_field("left", NOTHROW);
             auto right = (*it).get_field("right", NOTHROW);

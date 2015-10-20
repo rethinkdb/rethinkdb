@@ -280,7 +280,7 @@ boost::optional<datum_t> apply_ops(
         groups_t groups;
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
-            (*op)(env, &groups, key);
+            (*op)(env, &groups, [&]() { return key; });
         }
         // TODO: when we support `.group.changes` this will need to change.
         guarantee(groups.size() <= 1);

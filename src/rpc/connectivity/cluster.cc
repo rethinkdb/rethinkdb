@@ -931,12 +931,9 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            auto reason = handshake_result_t::error(
-                handshake_result_code_t::INCOMPATIBLE_BUILD,
-                strprintf("local: %s, remote: %s",
-                          cluster_build_mode.c_str(), remote_build_mode.c_str()));
-            fail_handshake(conn, peername, reason);
-            return;
+            logWRN("Connecting nodes with different build modes, local: %s, remote: %s",
+                   cluster_build_mode.c_str(),
+                   remote_build_mode.c_str());
         }
     }
 

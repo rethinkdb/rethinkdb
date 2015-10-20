@@ -219,9 +219,12 @@ class IterableResult
 
         self = @
         nextCb = (err, data) =>
-            if err?.message is 'No more rows in the cursor.'
-                onFinished?()
-            else if cb(err, data) isnt false
+            if err?
+                if err.message is 'No more rows in the cursor.'
+                    onFinished?()
+                else
+                    cb(err)
+            else if cb(null, data) isnt false
                 @_next nextCb
             else
                 onFinished?()
@@ -230,7 +233,7 @@ class IterableResult
 
     _eachAsync: (cb) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverError "First argument to eachAsync must be a function."
+            throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
 
         nextCb = =>
             @_next().then(cb).then(nextCb).catch (err) ->
@@ -241,7 +244,7 @@ class IterableResult
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
-            throw new err.ReqlDriverError "First argument to `toArray` must be a function or undefined."
+            throw new err.ReqlDriverCompileError "First argument to `toArray` must be a function or undefined."
 
         results = []
         return @eachAsync(results.push.bind(results)).return(results).nodeify(cb)

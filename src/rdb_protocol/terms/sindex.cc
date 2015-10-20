@@ -56,11 +56,24 @@ sindex_config_t sindex_config_from_string(
     sindex_disk_info_t sindex_info;
     try {
         deserialize_sindex_info(vec, &sindex_info,
-            [target]() {
-                rfail_target(target, base_exc_t::LOGIC,
-                             "Attempted to import a RethinkDB 1.13 secondary index, "
-                             "which is no longer supported.  This secondary index "
-                             "may be updated by importing into RethinkDB 2.0.");
+            [target](obsolete_reql_version_t ver) {
+                switch (ver) {
+                case obsolete_reql_version_t::v1_13:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a RethinkDB 1.13 secondary index, "
+                                 "which is no longer supported.  This secondary index "
+                                 "may be updated by importing into RethinkDB 2.0.");
+                    break;
+                // v1_15 is equal to v1_14
+                case obsolete_reql_version_t::v1_14:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a secondary index from before "
+                                 "RethinkDB 1.16, which is no longer supported.  This "
+                                 "secondary index may be updated by importing into "
+                                 "RethinkDB 2.1.");
+                    break;
+                default: unreachable();
+                }
             });
     } catch (const archive_exc_t &e) {
         rfail_target(
@@ -145,7 +158,7 @@ public:
         } else {
             minidriver_t r(backtrace());
             auto x = minidriver_t::dummy_var_t::SINDEXCREATE_X;
-            
+
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term_term =
                 make_counted<func_term_t>(&empty_compile_env,

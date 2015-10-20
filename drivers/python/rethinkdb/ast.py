@@ -797,9 +797,6 @@ class MakeArray(RqlQuery):
     def compose(self, args, optargs):
         return T('[', T(*args, intsp=', '), ']')
 
-    def do(self, *args):
-        return FunCall(self, *args)
-
 
 class MakeObj(RqlQuery):
     tt = pTerm.MAKE_OBJ

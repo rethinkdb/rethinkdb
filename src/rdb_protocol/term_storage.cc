@@ -43,7 +43,7 @@ raw_term_t::raw_term_t() { }
 raw_term_t::raw_term_t(const term_variant_t &source) {
     class param_visitor_t : public boost::static_visitor<void> {
     public:
-        param_visitor_t(raw_term_t *_parent) : parent(_parent) { }
+        explicit param_visitor_t(raw_term_t *_parent) : parent(_parent) { }
         void operator() (const rapidjson::Value *json_source) {
             parent->init_json(json_source);
         }
