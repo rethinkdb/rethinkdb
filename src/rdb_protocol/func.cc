@@ -273,10 +273,28 @@ std::string reql_func_t::print_source() const {
         if (i != 0) {
             ret += ", ";
         }
-        ret += strprintf("%" PRIi64, arg_names[i].value);
+        ret += pprint::print_var(arg_names[i].value);
     }
     ret += "]) ";
     ret += pprint::pretty_print(80, pprint::render_as_javascript(body->get_src()));
+    return ret;
+}
+
+std::string reql_func_t::print_js_function() const {
+    if (captured_scope.size() != 0) {
+        return "non-printable function (captured scope not empty)";
+    }
+
+    std::string ret = "function(";
+    for (size_t i = 0; i < arg_names.size(); ++i) {
+        if (i != 0) {
+            ret += ", ";
+        }
+        ret += pprint::print_var(arg_names[i].value);
+    }
+    ret += ") { return ";
+    ret += pprint::pretty_print(80, pprint::render_as_javascript(body->get_src()));
+    ret += "; }";
     return ret;
 }
 
@@ -284,6 +302,10 @@ std::string js_func_t::print_source() const {
     std::string ret = strprintf("javascript timeout=%" PRIu64 "ms, source=", js_timeout_ms);
     ret += js_source;
     return ret;
+}
+
+std::string js_func_t::print_js_function() const {
+    return "r.js(" + js_source + ")";
 }
 
 bool js_func_t::filter_helper(env_t *env, datum_t arg) const {

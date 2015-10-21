@@ -69,6 +69,8 @@ public:
 
     var_visibility_t compute_visibility() const;
 
+    size_t size() const;
+
     template <cluster_version_t W>
     friend void serialize(write_message_t *wm, const var_scope_t &);
     template <cluster_version_t W>

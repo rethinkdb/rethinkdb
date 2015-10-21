@@ -574,7 +574,7 @@ private:
     }
 
     counted_t<const document_t> var_name(const ql::datum_t &d) {
-        return make_text("var" + std::to_string(lrint(d.as_num())));
+        return make_text(print_var(lrint(d.as_num())));
     }
 
     counted_t<const document_t> to_js_func(const ql::raw_term_t &t) {

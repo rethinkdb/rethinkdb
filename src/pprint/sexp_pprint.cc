@@ -230,7 +230,7 @@ private:
 
     counted_t<const document_t> var_name(const ql::datum_t &d) {
         r_sanity_check(d.get_type() == ql::datum_t::type_t::R_NUM);
-        return make_text("var" + std::to_string(lrint(d.as_num())));
+        return make_text(print_var(lrint(d.as_num())));
     }
 
     counted_t<const document_t> to_lisp_func(const ql::raw_term_t &t) {

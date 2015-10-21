@@ -42,6 +42,11 @@ public:
     // Used by info_term_t.
     virtual std::string print_source() const = 0;
 
+    // Similar to `print_source()`, but prints a JS expression of the form
+    // `function(arg1, arg2, ...) { return body; }`. Fails if the func_t has a non-empty
+    // captured scope.
+    virtual std::string print_js_function() const = 0;
+
     virtual void visit(func_visitor_t *visitor) const = 0;
 
     void assert_deterministic(const char *extra_msg) const;
@@ -94,6 +99,7 @@ public:
     bool is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 
@@ -135,6 +141,7 @@ public:
     bool is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 

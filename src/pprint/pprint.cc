@@ -5,6 +5,7 @@
 #include <list>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -698,6 +699,15 @@ std::string pretty_print(size_t width, counted_t<const document_t> doc) {
     counted_t<fn_wrapper_t> annotate = annotate_stream(corr_gbeg);
     generate_stream(doc, annotate);
     return output->result;
+}
+
+std::string print_var(int64_t var_num) {
+    if (var_num < 0) {
+        // Internal variables
+        return "_var" + std::to_string(-var_num);
+    } else {
+        return "var" + std::to_string(var_num);
+    }
 }
 
 } // namespace pprint

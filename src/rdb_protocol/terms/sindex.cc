@@ -90,6 +90,40 @@ sindex_config_t sindex_config_from_string(
         sindex_info.geo);
 }
 
+// Helper for `sindex_status_to_datum()`
+std::string format_index_create_query(
+        const std::string &name,
+        const sindex_config_t &config) {
+    // TODO: Theoretically we need to escape quotes and UTF-8 characters inside the name.
+    // Maybe use RapidJSON? Does our pretty-printer even do that for strings?
+    std::string ret = "indexCreate('" + name + "', ";
+    ret += config.func.compile_wire_func()->print_js_function();
+    bool first_optarg = true;
+    if (config.multi == sindex_multi_bool_t::MULTI) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "multi: true";
+    }
+    if (config.geo == sindex_geo_bool_t::GEO) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "geo: true";
+    }
+    if (!first_optarg) {
+        ret += "}";
+    }
+    ret += ")";
+    return ret;
+}
+
 /* `sindex_status_to_datum()` produces the documents that are returned from
 `sindex_status()` and `sindex_wait()`. */
 
@@ -113,6 +147,8 @@ ql::datum_t sindex_status_to_datum(
         ql::datum_t::boolean(config.geo == sindex_geo_bool_t::GEO));
     stat.overwrite("function",
         ql::datum_t::binary(sindex_config_to_string(config)));
+    stat.overwrite("query",
+        ql::datum_t(datum_string_t(format_index_create_query(name, config))));
     return std::move(stat).to_datum();
 }
 
