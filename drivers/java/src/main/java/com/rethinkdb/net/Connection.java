@@ -135,9 +135,10 @@ public class Connection<C extends ConnectionInstance> {
 
     void runQueryNoreply(Query query){
         ConnectionInstance inst = checkOpen();
+        ByteBuffer serialized_query = query.serialize();
         inst.socket
                 .orElseThrow(() -> new ReqlDriverError("No socket open."))
-                .write(query.serialize());
+                .write(serialized_query);
     }
 
     @SuppressWarnings("unchecked")

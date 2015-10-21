@@ -33,7 +33,7 @@ TEST_EXCLUSIONS = [
     # 'regression/767',
     # 'regression/1005',
     'regression/',
-    'limits',  # temporary pending fix
+    #'limits',  # pending fix in issue #4965
     # double run
     'changefeeds/squash',
     # arity checked at compile time

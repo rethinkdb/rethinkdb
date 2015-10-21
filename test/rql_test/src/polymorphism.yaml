@@ -31,4 +31,3 @@ tests:
         - tbl.pluck('a').nth(0)
         - obj.pluck('a')
       ot: ({'a':0})
-
