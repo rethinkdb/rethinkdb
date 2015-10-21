@@ -608,7 +608,7 @@ class TestSuccessAtomFeed(TestWithConnection):
         t1.index_create('a', lambda x: x['a']).run(c)
         t1.index_wait('a').run(c)
 
-        changes = t1.get(0).changes().run(c)
+        changes = t1.get(0).changes(include_initial=True).run(c)
         self.assertTrue(changes.error is None)
         self.assertEqual(len(changes.items), 1)
 
