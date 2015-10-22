@@ -136,15 +136,23 @@ public:
       return String(str.data(), SizeType(str.size()));
     }
 
-    // RethinkDB addition: Inject a raw JSON string
-    bool RawJson(const std::basic_string<Ch>& raw) {
+#endif
+    // RethinkDB addition: Splice a buffer (containing an array) into the current array
+    bool SpliceArray(const rapidjson::StringBuffer &buffer) {
+        RAPIDJSON_ASSERT(level_stack_.template Top<Level>()->inArray);
         Prefix(kStringType); // The type doesn't matter here
-        for (const Ch &c : raw) {
-            os_->Put(c);
+
+        const Ch *data = buffer.GetString();
+        const size_t size = buffer.GetSize();
+
+        // Ignore the start and end square brackets in the array
+        RAPIDJSON_ASSERT(data[0] == '[');
+        RAPIDJSON_ASSERT(data[size - 1] == ']');
+        for (size_t i = 1; i < size - 1; ++i) {
+            os_->Put(data[i]);
         }
         return true;
     }
-#endif
 
     bool StartObject() {
         Prefix(kObjectType);

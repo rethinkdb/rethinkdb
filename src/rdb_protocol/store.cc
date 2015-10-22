@@ -202,14 +202,23 @@ void do_read(ql::env_t *env,
              release_superblock_t release_superblock) {
     if (!rget.sindex) {
         // Normal rget
-        rdb_rget_slice(btree, rget.region.inner, superblock,
-                       env, rget.batchspec, rget.transforms, rget.terminal,
-                       rget.sorting, res, release_superblock);
+        rdb_rget_slice(
+            btree,
+            rget.region.inner,
+            rget.primary_keys,
+            superblock,
+            env,
+            rget.batchspec,
+            rget.transforms,
+            rget.terminal,
+            rget.sorting,
+            res,
+            release_superblock);
     } else {
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
-        region_t true_region;
+        key_range_t sindex_range;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -219,13 +228,16 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
-            ql::skey_version_t skey_version =
-                ql::skey_version_from_reql_version(
-                    sindex_info.mapping_version_info.latest_compatible_reql_version);
-            res->skey_version = skey_version;
-            true_region = rget.sindex->region
-                ? *rget.sindex->region
-                : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
+            reql_version_t reql_version =
+                sindex_info.mapping_version_info.latest_compatible_reql_version;
+            res->reql_version = reql_version;
+            if (static_cast<bool>(rget.sindex->region)) {
+                sindex_range = rget.sindex->region->inner;
+            } else {
+                sindex_range =
+                    rget.sindex->datumspec.covering_range().to_sindex_keyrange(
+                        reql_version);
+            }
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;
@@ -249,10 +261,18 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->original_range, std::move(true_region),
-            sindex_sb.get(), env, rget.batchspec, rget.transforms,
-            rget.terminal, rget.region.inner, rget.sorting,
-            sindex_info, res, release_superblock_t::RELEASE);
+            rget.sindex->datumspec,
+            sindex_range,
+            sindex_sb.get(),
+            env,
+            rget.batchspec,
+            rget.transforms,
+            rget.terminal,
+            rget.region.inner,
+            rget.sorting,
+            sindex_info,
+            res,
+            release_superblock_t::RELEASE);
     }
 }
 
@@ -291,7 +311,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     boost::none, // We just want to use whole range.
-                    s.spec.range.range);
+                    s.spec.range.datumspec);
             } else {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES,
@@ -506,7 +526,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.size() != 0);
+            rassert(rget.optargs.has_optarg("db"));
         }
         ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
                          interruptor, rget.optargs, trace);

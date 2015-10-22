@@ -417,7 +417,7 @@ template <typename T> struct IsGenericValue : IsGenericValueImpl<T>::Type {};
     \tparam Encoding    Encoding of the value. (Even non-string values need to have the same encoding in a document)
     \tparam Allocator   Allocator type for allocating memory of object, array and string.
 */
-template <typename Encoding, typename Allocator = MemoryPoolAllocator<> >
+template <typename Encoding, typename Allocator = MAYBE_POOL_ALLOCATOR >
 class GenericValue {
 public:
     //! Name-value pair in an object.
@@ -1623,7 +1623,7 @@ typedef GenericValue<UTF8<> > Value;
     \tparam StackAllocator Allocator for allocating memory for stack during parsing.
     \warning Although GenericDocument inherits from GenericValue, the API does \b not provide any virtual functions, especially no virtual destructor.  To avoid memory leaks, do not \c delete a GenericDocument object via a pointer to a GenericValue.
 */
-template <typename Encoding, typename Allocator = MemoryPoolAllocator<>, typename StackAllocator = RAllocator>
+template <typename Encoding, typename Allocator = MAYBE_POOL_ALLOCATOR, typename StackAllocator = RAllocator>
 class GenericDocument : public GenericValue<Encoding, Allocator> {
 public:
     typedef typename Encoding::Ch Ch;                       //!< Character type derived from Encoding.

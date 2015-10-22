@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_FUNC_HPP_
 #define RDB_PROTOCOL_FUNC_HPP_
 
@@ -17,6 +17,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
+#include "rdb_protocol/term_storage.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class js_runner_t;
@@ -40,6 +41,11 @@ public:
 
     // Used by info_term_t.
     virtual std::string print_source() const = 0;
+
+    // Similar to `print_source()`, but prints a JS expression of the form
+    // `function(arg1, arg2, ...) { return body; }`. Fails if the func_t has a non-empty
+    // captured scope.
+    virtual std::string print_js_function() const = 0;
 
     virtual void visit(func_visitor_t *visitor) const = 0;
 
@@ -70,10 +76,17 @@ private:
 
 class reql_func_t : public func_t {
 public:
-    reql_func_t(backtrace_id_t backtrace, // for bt_rcheckable_t
+    // Used when constructing in an existing environment - reusing another term storage
+    reql_func_t(const var_scope_t &captured_scope,
+                std::vector<sym_t> arg_names,
+                counted_t<const term_t> body);
+
+    // Used when constructing from a function read off the wire
+    reql_func_t(scoped_ptr_t<term_storage_t> &&_storage,
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<const term_t> body);
+
     ~reql_func_t();
 
     scoped_ptr_t<val_t> call(
@@ -86,6 +99,7 @@ public:
     bool is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 
@@ -98,6 +112,10 @@ private:
 
     // The argument names, for the corresponding positional argument number.
     std::vector<sym_t> arg_names;
+
+    // Term storage if this was deserialized off the wire to ensure the lifetime of
+    // the raw term tree.
+    scoped_ptr_t<term_storage_t> term_storage;
 
     // The body of the function, which gets ->eval(...) called when call(...) is called.
     counted_t<const term_t> body;
@@ -123,6 +141,7 @@ public:
     bool is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 
@@ -148,21 +167,11 @@ protected:
 
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
-
-counted_t<const func_t> new_constant_func(datum_t obj,
-                                          backtrace_id_t bt);
-
-counted_t<const func_t> new_pluck_func(datum_t obj,
-                                       backtrace_id_t bt);
-
-counted_t<const func_t> new_get_field_func(datum_t obj,
-                                           backtrace_id_t bt);
-
-counted_t<const func_t> new_eq_comparison_func(datum_t obj,
-                                               backtrace_id_t bt);
-
-counted_t<const func_t> new_page_func(datum_t method,
-                                      backtrace_id_t bt);
+counted_t<const func_t> new_constant_func(datum_t obj, backtrace_id_t bt);
+counted_t<const func_t> new_pluck_func(datum_t obj, backtrace_id_t bt);
+counted_t<const func_t> new_get_field_func(datum_t obj, backtrace_id_t bt);
+counted_t<const func_t> new_eq_comparison_func(datum_t obj, backtrace_id_t bt);
+counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt);
 
 class js_result_visitor_t : public boost::static_visitor<val_t *> {
 public:
@@ -192,9 +201,9 @@ private:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(compile_env_t *env, const protob_t<const Term> &term);
+    func_term_t(compile_env_t *env, const raw_term_t &term);
 
-    // eval(scope_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
+    // eval(scoped_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
     // going by way of val_t, and without requiring a full-blown env.
     counted_t<const func_t> eval_to_func(const var_scope_t &env_scope) const;
 

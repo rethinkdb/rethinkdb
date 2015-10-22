@@ -1,7 +1,0 @@
-// Internal extensions. Do not distribute.
-package ql2.extension;
-import "rdb_protocol/ql2.proto";
-
-extend Term {
-    optional uint32 backtrace_id = 10000;
-};

@@ -137,6 +137,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
+    const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -148,8 +149,8 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const ql::datum_range_t &datum_range,
-    const region_t &sindex_region,
+    const ql::datumspec_t &datumspec,
+    const key_range_t &sindex_range,
     sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -267,7 +268,7 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(
         const std::vector<char> &data,
         sindex_disk_info_t *info_out,
-        const std::function<void()> &obsolete_cb);
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb);
 
 // Utility function that will call deserialize_sindex_info with an `obsolete_cb`
 // that will `fail_due_to_user_error` when an obsolete index is encountered.

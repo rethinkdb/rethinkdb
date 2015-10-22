@@ -56,7 +56,7 @@ r.table('test').index_wait('a').run
 ['a'].each {|field|
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {field => i, id: i, z: 9}}).run
-  q = r.table('test').between(10, 20, index: field).changes(include_initial_vals: true)
+  q = r.table('test').between(10, 20, index: field).changes(include_initial: true)
   EM.run {
     $h = H.new(field)
     $handle = q.em_run($h, max_batch_rows: 1)

@@ -1,144 +1,136 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
-
 import os, pprint, random, string, sys, threading, time
 
-startTime = time.time()
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils, vcoptparse
+import driver, rdb_unittest, scenario_common, utils, vcoptparse
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
-parsed_opts = opts.parse(sys.argv)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(parsed_opts)
+_, command_prefix, server_options = scenario_common.parse_mode_flags(opts.parse(sys.argv))
 
-r = utils.import_python_driver()
-
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-
-    print("Starting first server and creating a database (%.2fs)" % (time.time() - startTime))
-    files1 = driver.Files(metacluster, "my_server_name", db_path="server1_data",
-        command_prefix=command_prefix, console_output=True)
-    server1a = driver.Process(cluster, files1,
-        command_prefix=command_prefix, extra_options=serve_options,
-        wait_until_ready=True, console_output=True)
-    conn1a = r.connect(host=server1a.host, port=server1a.driver_port)
-    res = r.db_create("my_database_name").run(conn1a)
-    db1_uuid = res["config_changes"][0]["new_val"]["id"]
-    assert list(r.db("rethinkdb").table("current_issues").run(conn1a)) == []
-
-    print("Stopping first server (%.2fs)" % (time.time() - startTime))
-    server1a.check_and_stop()
-
-    print("Starting second server and creating a database (%.2fs)" % (time.time() - startTime))
-    files2 = driver.Files(metacluster, "my_server_name", db_path="server2_data",
-        command_prefix=command_prefix, console_output=True)
-    server2a = driver.Process(cluster, files2,
-        command_prefix=command_prefix, extra_options=serve_options,
-        wait_until_ready=True, console_output=True)
-    conn2a = r.connect(host=server2a.host, port=server2a.driver_port)
-    res = r.db_create("my_database_name").run(conn2a)
-    db2_uuid = res["config_changes"][0]["new_val"]["id"]
-    assert list(r.db("rethinkdb").table("current_issues").run(conn2a)) == []
-
-    print("Restarting first server (%.2fs)" % (time.time() - startTime))
-    server1b = driver.Process(cluster, files1,
-        command_prefix=command_prefix, extra_options=serve_options,
-        wait_until_ready=True, console_output=True)
-    conn1b = r.connect(host=server1b.host, port=server1b.driver_port)
-
-    print("Checking for server and DB name collision issues (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("current_issues").run(conn2a))
-    try:
-        assert len(issues) == 2
-        if issues[0]["type"] == "server_name_collision":
-            server_issue, db_issue = issues
-        else:
-            db_issue, server_issue = issues
-
-        assert server_issue["type"] == "server_name_collision"
-        assert server_issue["critical"]
-        assert server_issue["info"]["name"] == "my_server_name"
-        assert set(server_issue["info"]["ids"]) == set([server1b.uuid, server2a.uuid])
-
-        assert db_issue["type"] == "db_name_collision"
-        assert db_issue["critical"]
-        assert db_issue["info"]["name"] == "my_database_name"
-        assert set(db_issue["info"]["ids"]) == set([db1_uuid, db2_uuid])
-    except Exception, e:
-        pprint.pprint(issues)
-        raise
-
-    print("Resolving server and DB name collision issues (%.2fs)" % (time.time() - startTime))
-    res = r.db("rethinkdb").table("server_config").get(server2a.uuid) \
-        .update({"name": "my_server_name2"}).run(conn2a)
-    assert res["replaced"] == 1 and res["errors"] == 0
-    res = r.db("rethinkdb").table("db_config").get(db2_uuid) \
-        .update({"name": "my_database_name2"}).run(conn2a)
-    assert res["replaced"] == 1 and res["errors"] == 0
-
-    print("Confirming that server and DB name collision issues are gone (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("current_issues").run(conn2a))
-    assert len(issues) == 0, issues
-
-    print("Stopping second server (%.2fs)" % (time.time() - startTime))
-    server2a.check_and_stop()
-
-    print("Creating a table on first server (%.2fs)" % (time.time() - startTime))
-    res = r.db("my_database_name").table_create("my_table_name").run(conn1b)
-    table1_uuid = res["config_changes"][0]["new_val"]["id"]
-    assert list(r.db("rethinkdb").table("current_issues").run(conn1b)) == []
-
-    print("Stopping first server (%.2fs)" % (time.time() - startTime))
-    server1b.check_and_stop()
-
-    print("Restarting second server (%.2fs)" % (time.time() - startTime))
-    server2b = driver.Process(cluster, files2,
-        command_prefix=command_prefix, extra_options=serve_options,
-        wait_until_ready=True, console_output=True)
-    conn2b = r.connect(host=server2b.host, port=server2b.driver_port)
-
-    print("Creating a table on second server (%.2fs)" % (time.time() - startTime))
-    res = r.db("my_database_name").table_create("my_table_name").run(conn2b)
-    table2_uuid = res["config_changes"][0]["new_val"]["id"]
-    assert list(r.db("rethinkdb").table("current_issues").run(conn2b)) == []
-
-    print("Restarting first server (%.2fs)" % (time.time() - startTime))
-    server1c = driver.Process(cluster, files1,
-        command_prefix=command_prefix, extra_options=serve_options,
-        wait_until_ready=True, console_output=True)
-    conn1c = r.connect(host=server1c.host, port=server1c.driver_port)
-
-    print("Checking for table name collision issue (%.2fs)" % (time.time() - startTime))
-    issues = list(r.db("rethinkdb").table("current_issues").run(conn1c))
-    try:
-        assert len(issues) == 1
+class NameCollision(rdb_unittest.RdbTestCase):
+    servers = 2
+    destructiveTest = True
+    
+    def test_server_name_collision(self):
+        '''run two servers with the same name, then resolve the issue'''
+        
+        alpha = self.cluster[0]
+        serverName = alpha.name
+        
+        # -- stop the first server
+        alpha.stop()
+        
+        # -- startup another server with the same name
+        beta = driver.Process(cluster=self.cluster, name=serverName, command_prefix=command_prefix, extra_options=server_options, console_output=True)
+        
+        # -- restart the first server
+        alpha.start()
+        
+        # -- check for the server name collision
+        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        assert len(issues) == 1, pprint.pformat(issues)
+        server_issue = issues[0]
+        
+        assert server_issue["type"] == "server_name_collision", server_issue
+        assert server_issue["critical"], server_issue
+        assert server_issue["info"]["name"] == serverName, server_issue
+        assert set(server_issue["info"]["ids"]) == set([alpha.uuid, beta.uuid]), server_issue
+        
+        # -- resolve the server name collision
+        res = self.r.db("rethinkdb").table("server_config").get(beta.uuid).update({"name":serverName + '2'}).run(self.conn)
+        assert res["replaced"] == 1 and res["errors"] == 0, res
+        
+        # -- confirm the cluster is ok
+        self.cluster.check()
+    
+    def test_db_name_collision(self):
+        '''alternately shut down servers to create conflicting database names on them'''
+        
+        alpha = self.cluster[0]
+        beta = self.cluster[1]
+        
+        db_name = 'db_name_collision'
+        
+        alpha_db_uuid = None
+        beta_db_uuid = None
+        
+        # -- shut down the second server and setup the first
+        beta.stop()
+        
+        alpha_db_uuid = self.r.db_create(db_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
+        self.r.db(db_name).wait().run(self.conn)
+        
+        # -- reverse and setup the second server
+        alpha.stop()
+        beta.start()
+        beta_db_uuid = self.r.db_create(db_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
+        self.r.db(db_name).wait().run(self.conn)
+        
+        # -- bring up both servers and observe the error
+        alpha.start()
+        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        assert len(issues) == 1, pprint.pformat(issues)
+        db_issue = issues[0]
+        
+        assert db_issue["type"] == "db_name_collision", db_issue
+        assert db_issue["critical"], db_issue
+        assert db_issue["info"]["name"] == db_name, db_issue
+        assert set(db_issue["info"]["ids"]) == set([alpha_db_uuid, beta_db_uuid]), db_issue
+        
+        # -- resolve the name issue
+        res = self.r.db("rethinkdb").table("db_config").get(beta_db_uuid).update({"name":db_name + "2"}).run(self.conn)
+        assert res["replaced"] == 1 and res["errors"] == 0, res
+        
+        # -- confirm the cluster is ok
+        self.cluster.check()
+    
+    def test_table_name_collision(self):
+        '''alternately shut down servers to create conflicting table names on them'''
+        
+        alpha = self.cluster[0]
+        beta = self.cluster[1]
+        
+        table_name = 'table_name_collision'
+        
+        alpha_table_uuid = None
+        beta_table_uuid = None
+        
+        # -- shut down the second server and setup the first
+        beta.stop()
+        
+        alpha_table_uuid = self.db.table_create(table_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
+        self.db.table(table_name).wait().run(self.conn)
+        
+        # -- reverse and setup the second server
+        alpha.stop()
+        beta.start()
+        
+        beta_table_uuid = self.db.table_create(table_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
+        self.db.table(table_name).wait().run(self.conn)
+        
+        # -- bring up both servers and observe the error
+        alpha.start()
+        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        assert len(issues) == 1, pprint.pformat(issues)
         table_issue = issues[0]
 
-        assert table_issue["type"] == "table_name_collision"
-        assert table_issue["critical"]
-        assert table_issue["info"]["name"] == "my_table_name"
-        assert table_issue["info"]["db"] == "my_database_name"
-        assert set(table_issue["info"]["ids"]) == set([table1_uuid, table2_uuid])
-    except Exception, e:
-        pprint.pprint(issues)
-        raise
+        assert table_issue["type"] == table_name, table_issue
+        assert table_issue["critical"], table_issue
+        assert table_issue["info"]["name"] == table_name, table_issue
+        assert table_issue["info"]["db"] == self.dbName, table_issue
+        assert set(table_issue["info"]["ids"]) == set([alpha_table_uuid, beta_table_uuid]), table_issue
+        
+        # -- resolve the name issue
+        res = self.r.db("rethinkdb").table("table_config").get(beta_table_uuid).update({"name":table_name + "2"}).run(self.conn)
+        assert res["replaced"] == 1 and res["errors"] == 0
+        
+        # -- confirm the cluster is ok
+        self.cluster.check()
 
-    print("Resolving table name collision issue (%.2fs)" % (time.time() - startTime))
-    res = r.db("rethinkdb").table("table_config").get(table2_uuid) \
-        .update({"name": "my_table_name2"}).run(conn1c)
-    assert res["replaced"] == 1 and res["errors"] == 0
+# ==== main
 
-    print("Confirming that table collision issue are gone (%.2fs)" % (time.time() - startTime))
-    r.db("my_database_name").table("my_table_name").wait().run(conn1c)
-    r.db("my_database_name").table("my_table_name2").wait().run(conn1c)
-    issues = list(r.db("rethinkdb").table("current_issues").run(conn1c))
-    assert len(issues) == 0, issues
-
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
-
+if __name__ == '__main__':
+    rdb_unittest.main()

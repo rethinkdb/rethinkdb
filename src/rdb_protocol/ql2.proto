@@ -227,8 +227,6 @@ message Datum {
         optional Datum val = 2;
     }
     repeated AssocPair r_object = 6;
-
-    extensions 10000 to 20000;
 }
 
 // A [Term] is either a piece of data (see **Datum** above), or an operator and
@@ -781,8 +779,6 @@ message Term {
     repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
     // (Note that the order of the optional arguments doesn't matter; think of a
     // Hash.)
-
-    extensions 10000 to 20000;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

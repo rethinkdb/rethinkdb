@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -15,7 +15,6 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
@@ -87,9 +86,10 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 sindex_name_t create_sindex(store_t *store) {
     std::string name = uuid_to_str(generate_uuid());
     ql::sym_t one(1);
-    ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t mapping = r.var(one)["sid"].root_term();
     sindex_config_t config(
-        ql::map_wire_func_t(mapping, make_vector(one), ql::backtrace_id_t::empty()),
+        ql::map_wire_func_t(mapping, make_vector(one)),
         reql_version_t::LATEST,
         sindex_multi_bool_t::SINGLE,
         sindex_geo_bool_t::REGULAR);
@@ -151,8 +151,8 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     rdb_rget_secondary_slice(
         store->get_sindex_slice(sindex_uuid),
-        datum_range,
-        region_t(datum_range.to_sindex_keyrange(ql::skey_version_t::post_1_16)),
+        ql::datumspec_t(datum_range),
+        datum_range.to_sindex_keyrange(reql_version_t::LATEST),
         sindex_sb.get(),
         &dummy_env, // env_t
         ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),

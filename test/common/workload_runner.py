@@ -24,7 +24,7 @@ def run(command_line, ports, timeout, db_name=None, table_name=None):
             ports.db_name = db_name
         if table_name is not None:
             ports.table_name = table_name
-    else: # probably a driver._Process subclass
+    else: # probably a driver.Process or subclass
         assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
         assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
         
@@ -79,7 +79,7 @@ class ContinuousWorkload(object):
             if table_name is not None:
                 self.ports.table_name = table_name
         
-        else: # probably a driver._Process subclass
+        else: # probably a driver.Process or subclass
             assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
             assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
             
@@ -167,7 +167,7 @@ class SplitOrContinuousWorkload(object):
             if table_name is not None:
                 self.ports.table_name = table_name
         
-        else: # probably a driver._Process subclass
+        else: # probably a driver.Process or subclass
             assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
             assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
             

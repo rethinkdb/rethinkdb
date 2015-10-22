@@ -267,7 +267,7 @@ tests:
 
     # Test coercions
     - py: r.binary(b'foo').coerce_to('string')
-      ot: ('foo')
+      ot: 'foo'
     - py:
         cd: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')).coerce_to('string')
         ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'
@@ -312,19 +312,19 @@ tests:
     # Test binary_format optarg
     - cd: r.binary(b)
       runopts:
-        binary_format: '"native"'
+        binary_format: "native"
       ot: b
     - cd: r.binary(b)
       runopts:
-        binary_format: '"raw"'
-      ot: ({'$reql_type$':'BINARY','data':'AAE='})
+        binary_format: "raw"
+      ot: {'$reql_type$':'BINARY','data':'AAE='}
 
     # Test r.binary of nested terms
     - cd: r.binary(r.expr("data"))
       ot:
         js: Buffer("data", "binary")
-        rb: ("data")
-        py: (b"data")
+        rb: "data"
+        py: b"data"
 
     - cd: r.binary(r.expr({}))
       ot: err('ReqlQueryLogicError', 'Expected type STRING but found OBJECT.', [])

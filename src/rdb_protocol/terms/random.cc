@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <algorithm>
 #include <limits>
 #include <cmath>
@@ -13,7 +13,7 @@ namespace ql {
 
 class sample_term_t : public op_term_t {
 public:
-    sample_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sample_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -78,7 +78,7 @@ public:
 
 class random_term_t : public op_term_t {
 public:
-    random_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    random_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) { }
 private:
     virtual bool is_deterministic() const {
@@ -185,11 +185,11 @@ private:
 };
 
 counted_t<term_t> make_sample_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sample_term_t>(env, term);
 }
 counted_t<term_t> make_random_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<random_term_t>(env, term);
 }
 

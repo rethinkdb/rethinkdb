@@ -39,7 +39,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
         rassert(raw >= static_cast<int8_t>(cluster_version_t::v1_14)
-                && raw <= static_cast<int8_t>(cluster_version_t::v2_1_is_latest));
+                && raw <= static_cast<int8_t>(cluster_version_t::v2_2_is_latest));
         *thing = static_cast<cluster_version_t>(raw);
     }
     return res;
@@ -47,7 +47,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
 
 inline MUST_USE archive_result_t deserialize_reql_version(
         read_stream_t *s, reql_version_t *thing,
-        const std::function<void()> &obsolete_cb) {
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb) {
     // Initialize `thing` to *something* because GCC 4.6.3 thinks that `thing`
     // could be used uninitialized, even when the return value of this function
     // is checked through `guarantee_deserialization()`.
@@ -55,13 +55,16 @@ inline MUST_USE archive_result_t deserialize_reql_version(
     *thing = reql_version_t::LATEST;
     int8_t raw;
     archive_result_t res = deserialize_universal(s, &raw);
-    if (raw == static_cast<int8_t>(obsolete_reql_version_t::v1_13)) {
-        obsolete_cb();
+    if (raw < static_cast<int8_t>(reql_version_t::EARLIEST)) {
+        guarantee(
+            raw >= static_cast<int8_t>(obsolete_reql_version_t::EARLIEST)
+            && raw <= static_cast<int8_t>(obsolete_reql_version_t::LATEST));
+        obsolete_cb(static_cast<obsolete_reql_version_t>(raw));
         crash("Outdated index handling did not crash or throw.");
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
-        rassert(raw >= static_cast<int8_t>(reql_version_t::v1_14)
-                && raw <= static_cast<int8_t>(reql_version_t::v2_1_is_latest));
+        guarantee(raw >= static_cast<int8_t>(reql_version_t::EARLIEST)
+                  && raw <= static_cast<int8_t>(reql_version_t::LATEST));
         *thing = static_cast<reql_version_t>(raw);
     }
     return res;
@@ -98,13 +101,14 @@ archive_result_t deserialize_for_version(cluster_version_t version,
         return deserialize<cluster_version_t::v1_16>(s, thing);
     case cluster_version_t::v2_0:
         return deserialize<cluster_version_t::v2_0>(s, thing);
-    case cluster_version_t::v2_1_is_latest:
-        return deserialize<cluster_version_t::v2_1_is_latest>(s, thing);
+    case cluster_version_t::v2_1:
+        return deserialize<cluster_version_t::v2_1>(s, thing);
+    case cluster_version_t::v2_2_is_latest:
+        return deserialize<cluster_version_t::v2_2_is_latest>(s, thing);
     default:
         unreachable();
     }
 }
-
 
 // Some serialized_size needs to be visible, apparently, so that
 // serialized_size_for_version will actually parse.
@@ -123,8 +127,10 @@ size_t serialized_size_for_version(cluster_version_t version,
         return serialized_size<cluster_version_t::v1_16>(thing);
     case cluster_version_t::v2_0:
         return serialized_size<cluster_version_t::v2_0>(thing);
-    case cluster_version_t::v2_1_is_latest:
-        return serialized_size<cluster_version_t::v2_1_is_latest>(thing);
+    case cluster_version_t::v2_1:
+        return serialized_size<cluster_version_t::v2_1>(thing);
+    case cluster_version_t::v2_2_is_latest:
+        return serialized_size<cluster_version_t::v2_2_is_latest>(thing);
     default:
         unreachable();
     }
@@ -172,7 +178,9 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v2_0>(              \
             read_stream_t *, typ *);                                             \
-    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
+    template archive_result_t deserialize<cluster_version_t::v2_1>(              \
+            read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_13(typ)        \
@@ -184,7 +192,9 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v2_0>(              \
             read_stream_t *, typ *);                                             \
-    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
+    template archive_result_t deserialize<cluster_version_t::v2_1>(              \
+            read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_16(typ)        \
@@ -192,7 +202,9 @@ size_t serialized_size_for_version(cluster_version_t version,
     INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)
 
 #define INSTANTIATE_DESERIALIZE_SINCE_v2_1(typ)                                  \
-    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
+    template archive_result_t deserialize<cluster_version_t::v2_1>(              \
+            read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v2_1(typ)         \

@@ -16,8 +16,8 @@ var numRows = parseInt(process.env.TEST_ROWS) || 100;
 var numRowsMany = parseInt(process.env.TEST_MANY_ROWS) || 10000; // Keep a "big" value to try hitting `maximum call stack exceed`
 
 // -- load rethinkdb from the proper location
-
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var Promise = r._bluebird;
 
 // -- globals
 
@@ -77,7 +77,7 @@ var withTableCursor = function() {
 
 var argErrorTest = function(expectedMsg) {
     return function(err) {
-        return (err instanceof r.Error.ReqlDriverError) && (expectedMsg == err.msg)
+        return (err instanceof r.Error.ReqlDriverCompileError) && (expectedMsg == err.msg)
     }
 }
 
@@ -169,9 +169,83 @@ describe('JavaScript Cursor', function() {
                 );
             });
 
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.each(
+                    function(err, row) {
+                        assert.ifError(err);
+                        assert.deepEqual(row, {'id':i});
+                        if (row.id === 10) {
+                            return false;
+                        }
+                        i++;
+                    },
+                    function() {
+                        assert.equal(i, 10);
+                        done();
+                    }
+                );
+            });
+
             it('errors when missing argument', function(done) {
                 expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
                 assert.throws(function() { tableCursor.each(); }, argErrorTest(expectedMsg));
+                done();
+            });
+        });
+
+        describe('eachAsync', function() {
+            it('iterates over table', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                }).then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('resolves before continuing iteration', function(done) {
+                var i = 0,
+                    handled = 0;
+
+                function asyncHandler(row) {
+                    return Promise.resolve().then(function () {
+                        assert.equal(handled++, row.id);
+                    })
+                }
+
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                    return asyncHandler(row);
+                })
+                .then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    if (row.id === 10) {
+                        return Promise.reject(row);
+                    }
+                    i++;
+                })
+                .catch(function(row) {
+                    assert.equal(i, 10);
+                    assert.equal(row.id, 10);
+                    done();
+                });
+            });
+
+            it('errors when missing argument', function(done) {
+                expectedMsg = 'First argument to eachAsync must be a function.';
+                assert.throws(function() { tableCursor.eachAsync(); }, argErrorTest(expectedMsg));
                 done();
             });
         });
@@ -187,7 +261,8 @@ describe('JavaScript Cursor', function() {
 
         it('errors on extra argument to toString', function(done) {
             expectedMsg = 'Expected 0 arguments but found 1.';
-            assert.throws(function() { tableCursor.toString(1); }, argErrorTest(expectedMsg));
+            assert.throws(function() {tableCursor.toString(1); },
+                          argErrorTest(expectedMsg));
             done();
         });
     });

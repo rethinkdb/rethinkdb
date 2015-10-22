@@ -117,6 +117,9 @@ inline counted_t<const document_t> r_dot(Ts &&... docs) {
 // Render document at the given width.
 std::string pretty_print(size_t width, counted_t<const document_t> doc);
 
+// Prints a variable name from a variable number for use inside of lambda functions.
+std::string print_var(int64_t var_num);
+
 } // namespace pprint
 
 #endif  // PPRINT_PPRINT_HPP_

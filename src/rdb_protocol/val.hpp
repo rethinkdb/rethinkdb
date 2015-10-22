@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
@@ -22,7 +22,6 @@ namespace ql {
 
 class datum_t;
 class env_t;
-template <class> class protob_t;
 class scope_env_t;
 class term_t;
 class val_t;
@@ -39,7 +38,7 @@ public:
     datum_t get_row(env_t *env, datum_t pval);
     counted_t<datum_stream_t> get_all(
             env_t *env,
-            datum_t value,
+            const datumspec_t &datumspec,
             const std::string &sindex_id,
             backtrace_id_t bt);
     counted_t<datum_stream_t> get_intersecting(
@@ -154,7 +153,7 @@ public:
 
     virtual datum_t get() = 0;
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) = 0;

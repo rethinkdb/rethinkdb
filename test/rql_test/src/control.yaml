@@ -4,74 +4,73 @@ tests:
 
     ## FunCall
 
-    - py: "r.expr(1).do(lambda v: v * 2)"
+    - py: r.expr(1).do(lambda v: v * 2)
       js: r.expr(1).do(function(v) { return v.mul(2); })
       rb: r.expr(1).do{|v| v * 2 }
       ot: 2
 
-    - py: "r.expr([0, 1, 2]).do(lambda v: v.append(3))"
+    - py: r.expr([0, 1, 2]).do(lambda v: v.append(3))
       js: r([0, 1, 2]).do(function(v) { return v.append(3); })
       rb: r([0, 1, 2]).do{ |v| v.append(3) }
       ot: [0, 1, 2, 3]
 
-    - py: "r.do(1, 2, lambda x, y: x + y)"
+    - py: r.do(1, 2, lambda x, y: x + y)
       js: r.do(1, 2, function(x, y) { return x.add(y); })
       rb: r.do(1, 2) {|x, y| x + y}
       ot: 3
 
-    - py: "r.do(lambda: 1)"
+    - py: r.do(lambda: 1)
       js: r.do(function() { return 1; })
       rb: r.do{1}
       ot: 1
 
     # do error cases
-    - py: "r.do(1, 2, lambda x: x)"
+    - py: r.do(1, 2, lambda x: x)
       js: r.do(1, 2, function(x) { return x; })
       rb: r.do(1, 2) {|x| x}
       ot: err("ReqlQueryLogicError", 'Expected function with 2 arguments but found function with 1 argument.', [1])
 
-    - py: "r.do(1, 2, 3, lambda x, y: x + y)"
+    - py: r.do(1, 2, 3, lambda x, y: x + y)
       js: r.do(1, 2, 3, function(x, y) { return x.add(y); })
       rb: r.do(1, 2, 3) {|x, y| x + y}
       ot: err("ReqlQueryLogicError", 'Expected function with 3 arguments but found function with 2 arguments.', [1])
 
-    - cd: "r.do(1)"
+    - cd: r.do(1)
       ot: 1
 
     - js: r.do(1, function(x) {})
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - js: r.do(1, function(x) { return undefined; })
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - cd: r.do()
       ot:
         cd: err("ReqlCompileError", 'Expected 1 or more arguments but found 0.', [1])
-        js: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
     # FunCall errors
 
-    - py: "r.expr('abc').do(lambda v: v.append(3))"
+    - py: r.expr('abc').do(lambda v: v.append(3))
       js: r('abc').do(function(v) { return v.append(3); })
       rb: r('abc').do{ |v| v.append(3) }
       ot: err("ReqlQueryLogicError", "Expected type ARRAY but found STRING.", [1, 0])
 
-    - py: "r.expr('abc').do(lambda v: v + 3)"
+    - py: r.expr('abc').do(lambda v: v + 3)
       js: r('abc').do(function(v) { return v.add(3); })
       rb: r('abc').do{ |v| v + 3 }
       ot: err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", [1, 1])
 
-    - py: "r.expr('abc').do(lambda v: v + 'def') + 3"
+    - py: r.expr('abc').do(lambda v: v + 'def') + 3
       js: r('abc').do(function(v) { return v.add('def'); }).add(3)
       rb: r('abc').do{ |v| v + 'def' } + 3
       ot: err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", [1])
 
-    - py: "r.expr(0).do(lambda a,b: a + b)"
+    - py: r.expr(0).do(lambda a,b: a + b)
       js: r(0).do(function(a,b) { return a.add(b); })
       rb: r(0).do{ |a, b| a + b }
       ot: err("ReqlQueryLogicError", 'Expected function with 1 argument but found function with 2 arguments.', [1])
 
-    - py: "r.do(1, 2, lambda a: a)"
+    - py: r.do(1, 2, lambda a: a)
       js: r.do(1,2, function(a) { return a; })
       rb: r.do(1, 2) { |a| a }
       ot: err("ReqlQueryLogicError", 'Expected function with 2 arguments but found function with 1 argument.', [1])
@@ -123,18 +122,19 @@ tests:
     - cd: r.error('Hello World')
       ot: err("ReqlUserError", "Hello World", [0])
 
-    - cd: r.error(5) # we might want to allow this eventually
+    - cd: r.error(5)
+      # we might want to allow this eventually
       ot: err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", [0])
 
     # r.filter
     - cd: r.expr([1, 2, 3]).filter()
       ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 1.", [0])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [0])
     - cd: r.expr([1, 2, 3]).filter(1, 2)
       ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 3.", [0])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -150,7 +150,7 @@ tests:
       ot: 2
 
     - cd: r.expr('foo').do(r.js('(function(x) { return x + "bar"; })'))
-      ot: "'foobar'"
+      ot: 'foobar'
 
     # js timeout optarg shouldn't be triggered
     - cd: r.js('1 + 2', {timeout:1.2})
@@ -162,7 +162,7 @@ tests:
       ot: err("ReqlQueryLogicError", "Query result must be of type DATUM, GROUPED_DATA, or STREAM (got FUNCTION).", [0])
 
     - cd: r.js('function() { return 1; }')
-      ot: 'err("ReqlQueryLogicError", "SyntaxError: Unexpected token (", [0])'
+      ot: err("ReqlQueryLogicError", "SyntaxError: Unexpected token (", [0])
 
     # Play with the number of arguments in the JS function
     - cd: r.do(1, 2, r.js('(function(a) { return a; })'))
@@ -224,7 +224,7 @@ tests:
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
       rb: r.expr([1,2,3]).for_each{ |row| [tbl.insert({ :id => row}), tbl.insert({ :id => row*10})] }
-      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"foo\":\t3,\n\t\"id\":\t1\n}\n{\n\t\"id\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
+      ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"foo\":\t3,\n\t\"id\":\t1\n}\n{\n\t\"id\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3}
 
     - cd: tbl.count()
       ot: 6
@@ -248,25 +248,25 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
 
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
+      ot: err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
       rb: r([1, 2, 3]).for_each{ |x| x }
-      ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])
 
     - cd: r.expr([1, 2, 3]).for_each(r.row)
       rb: r([1, 2, 3]).for_each{ |row| row }
-      ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
       rb: r([1, 2, 3]).for_each{ |row| tbl }
-      ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.", [1, 1])'
+      ot: err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.", [1, 1])
 
       # This is only relevant in JS -- what happens when we return undefined
-    - js: "r([1, 2, 3]).forEach(function (row) {})"
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+    - js: r([1, 2, 3]).forEach(function (row) {})
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))

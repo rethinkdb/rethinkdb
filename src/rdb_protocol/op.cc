@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/op.hpp"
 
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/validate.hpp"
 
 #include "debug.hpp"
 
@@ -28,16 +27,14 @@ bool argspec_t::contains(int n) const {
 
 optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
     init(args.size(), args.begin());
-    for (auto i = legal_args.cbegin(); i != legal_args.cend(); ++i) {
-        r_sanity_check(optarg_is_valid(*i), "Optarg `%s` not listed in "
-                                            "`acceptable_keys`", i->c_str());
-    }
 }
-
 
 void optargspec_t::init(int num_args, const char *const *args) {
     for (int i = 0; i < num_args; ++i) {
-        legal_args.insert(args[i]);
+        auto res = legal_args.insert(args[i]);
+        r_sanity_check(res.second, "Duplicate optarg in optargspec_t: %s", args[i]);
+        r_sanity_check(global_optargs_t::optarg_is_valid(*res.first),
+                       "Optarg `%s` not listed in `acceptable_keys`", args[i]);
     }
 }
 
@@ -68,7 +65,7 @@ private:
 
 class arg_terms_t : public bt_rcheckable_t {
 public:
-    arg_terms_t(const protob_t<const Term> _src, argspec_t _argspec,
+    arg_terms_t(const raw_term_t &_src, argspec_t _argspec,
                 std::vector<counted_t<const term_t> > _original_args);
     // Evals the r.args arguments, and returns the expanded argument list.
     argvec_t start_eval(scope_env_t *env, eval_flags_t flags) const;
@@ -77,21 +74,21 @@ public:
         return original_args;
     }
 private:
-    const protob_t<const Term> src;
+    const raw_term_t src;
     const argspec_t argspec;
     const std::vector<counted_t<const term_t> > original_args;
 
     DISABLE_COPYING(arg_terms_t);
 };
 
-arg_terms_t::arg_terms_t(const protob_t<const Term> _src, argspec_t _argspec,
+arg_terms_t::arg_terms_t(const raw_term_t &_src, argspec_t _argspec,
                          std::vector<counted_t<const term_t> > _original_args)
-    : bt_rcheckable_t(backtrace_id_t(_src.get())),
-      src(std::move(_src)),
+    : bt_rcheckable_t(_src.bt()),
+      src(_src),
       argspec(std::move(_argspec)),
       original_args(std::move(_original_args)) {
-    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
-        if ((*it)->get_src()->type() == Term::ARGS) {
+    for (const auto &arg : original_args) {
+        if (arg->get_src().type() == Term::ARGS) {
             return;
         }
     }
@@ -107,10 +104,10 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     eval_flags_t new_flags = static_cast<eval_flags_t>(
         flags | argspec.get_eval_flags());
     std::vector<counted_t<const runtime_term_t> > args;
-    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
-        if ((*it)->get_src()->type() == Term::ARGS) {
-            bool det = (*it)->is_deterministic();
-            scoped_ptr_t<val_t> v = (*it)->eval(env, new_flags);
+    for (const auto &arg : original_args) {
+        if (arg->get_src().type() == Term::ARGS) {
+            bool det = arg->is_deterministic();
+            scoped_ptr_t<val_t> v = arg->eval(env, new_flags);
             datum_t d = v->as_datum();
             for (size_t i = 0; i < d.arr_size(); ++i) {
                 // This is a little hacky because the determinism flag is for
@@ -119,7 +116,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
                 args.push_back(make_counted<faux_term_t>(backtrace(), d.get(i), det));
             }
         } else {
-            args.push_back(counted_t<const runtime_term_t>(*it));
+            args.push_back(counted_t<const runtime_term_t>(arg));
         }
     }
     rcheck(argspec.contains(args.size()),
@@ -174,30 +171,28 @@ args_t::args_t(const op_term_t *_op_term,
     : op_term(_op_term), argv(std::move(_argv)), arg0(std::move(_arg0)) { }
 
 
-op_term_t::op_term_t(compile_env_t *env, const protob_t<const Term> term,
+op_term_t::op_term_t(compile_env_t *env, const raw_term_t &term,
                      argspec_t argspec, optargspec_t optargspec)
         : term_t(term) {
     std::vector<counted_t<const term_t> > original_args;
-    original_args.reserve(term->args_size());
-    for (int i = 0; i < term->args_size(); ++i) {
-        counted_t<const term_t> t
-            = compile_term(env, term.make_child(&term->args(i)));
+    original_args.reserve(term.num_args());
+    for (size_t i = 0; i < term.num_args(); ++i) {
+        counted_t<const term_t> t = compile_term(env, term.arg(i));
         original_args.push_back(t);
     }
     arg_terms.init(new arg_terms_t(term, std::move(argspec), std::move(original_args)));
 
-    for (int i = 0; i < term->optargs_size(); ++i) {
-        const Term_AssocPair *ap = &term->optargs(i);
-        rcheck_src(backtrace_id_t(&ap->val()), optargspec.contains(ap->key()),
-                   base_exc_t::LOGIC, strprintf("Unrecognized optional argument `%s`.",
-                                                  ap->key().c_str()));
-        counted_t<const term_t> t =
-            compile_term(env, term.make_child(&ap->val()));
-        auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
-        rcheck_src(backtrace_id_t(&ap->val()), res.second,
-                   base_exc_t::LOGIC, strprintf("Duplicate optional argument: %s",
-                                                  ap->key().c_str()));
-    }
+    term.each_optarg([&](const raw_term_t &o, const std::string &name) {
+            rcheck_src(o.bt(), optargspec.contains(name),
+                       base_exc_t::LOGIC,
+                       strprintf("Unrecognized optional argument `%s`.", name.c_str()));
+            counted_t<const term_t> t = compile_term(env, o);
+            auto res = optargs.insert(std::make_pair(name, std::move(t)));
+            rcheck_src(o.bt(), res.second,
+                       base_exc_t::LOGIC,
+                       strprintf("Duplicate optional argument: %s", name.c_str()));
+            
+        });
 }
 op_term_t::~op_term_t() { }
 
@@ -243,12 +238,14 @@ scoped_ptr_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) 
     return env->env->get_optarg(env->env, key);
 }
 
-counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const std::string &key) const {
-    std::map<std::string, counted_t<const term_t> >::const_iterator it = optargs.find(key);
+counted_t<const func_term_t> op_term_t::lazy_literal_optarg(
+        compile_env_t *env, const std::string &key) const {
+    std::map<std::string, counted_t<const term_t> >::const_iterator it =
+        optargs.find(key);
     if (it != optargs.end()) {
-        protob_t<Term> func(make_counted_term());
-        r::fun(r::expr(*it->second->get_src().get())).swap(*func.get());
-        return make_counted<func_term_t>(env, func);
+        minidriver_t r(backtrace());
+        return make_counted<func_term_t>(env,
+            r.fun(r.expr(it->second->get_src())).root_term());
     }
     return counted_t<func_term_t>();
 }
@@ -264,8 +261,8 @@ void accumulate_all_captures(
 void op_term_t::accumulate_captures(var_captures_t *captures) const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
-    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
-        (*it)->accumulate_captures(captures);
+    for (const auto &arg : original_args) {
+        arg->accumulate_captures(captures);
     }
     accumulate_all_captures(optargs, captures);
 }
@@ -316,7 +313,7 @@ void op_term_t::maybe_grouped_data(scope_env_t *env,
     }
 }
 
-bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,
+bounded_op_term_t::bounded_op_term_t(compile_env_t *env, const raw_term_t &term,
                                      argspec_t argspec, optargspec_t optargspec)
     : op_term_t(env, term, argspec,
                 optargspec.with({"left_bound", "right_bound"})) { }

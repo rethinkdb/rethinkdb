@@ -517,10 +517,10 @@ def fail_test(name, src, result, expected, type="TEST")
   $stderr.puts "     EXPECTED:   #{show expected}"
   $stderr.puts "     RESULT:     #{show result}"
   if result && result.respond_to?(:backtrace)
-    $stderr.puts "     BACKTRACE:\n<<<<<<<<<\n#{result.backtrace.join("\n")}\n>>>>>>>>"
+    $stderr.puts "     BACKTRACE:\n<<<<<<<<<\n#{result.backtrace.join("\n")}\n>>>>>>>>>"
   end
   if show(result) != result
-    $stderr.puts "     RAW RESULT:\n<<<<<<<<<\n#{result}\n>>>>>>>>"
+    $stderr.puts "     RAW RESULT:\n<<<<<<<<<\n#{result}\n>>>>>>>>>"
   end
   $stderr.puts ""
 end

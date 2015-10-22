@@ -3,46 +3,91 @@ desc: Tests of conversion to and from the RQL number type
 tests:
 
     # Simple integers
-    - py: r.expr(1)         # Text given here eval'd in context of language driver
-      js: [r(1), r.expr(1)] # Lists are treated as syntactics variants of the same test
-      rb: r 1
-      ot: 1                 # Commonly expected result for all languages and variants
-    - py: r.expr(-1)
-      js: [r(-1), r.expr(-1)]
-      rb: r -1
+    - cd: r.expr(1)
+      js:
+        - r(1)
+        - r.expr(1)
+      rb:
+        - r 1
+        - r(1)
+        - r.expr(1)
+      ot: 1
+    - cd: r.expr(-1)
+      js: 
+        - r(-1)
+        - r.expr(-1)
+      rb:
+        - r -1
+        - r(-1)
+        - r.expr(-1)
       ot: -1
-    - py: r.expr(0)
-      js: [r(0), r.expr(0)]
-      rb: r 0
+    - cd: r.expr(0)
+      js:
+        - r(0)
+        - r.expr(0)
+      rb:
+        - r 0
+        - r(0)
+        - r.expr(0)
       ot: 0
 
     # Floats
-    - py: r.expr(1.0)
-      js: [r(1.0), r.expr(1.0)]
-      rb: r 1.0
+    - cd: r.expr(1.0)
+      js:
+        - r(1.0)
+        - r.expr(1.0)
+      rb:
+        - r 1.0
+        - r(1.0)
+        - r.expr(1.0)
       ot: 1.0
-    - py: r.expr(1.5)
-      js: [r(1.5), r.expr(1.5)]
-      rb: r 1.5
+    - cd: r.expr(1.5)
+      js:
+        - r(1.5)
+        - r.expr(1.5)
+      rb:
+        - r 1.5
+        - r(1.5)
+        - r.expr(1.5)
       ot: 1.5
-    - py: r.expr(-0.5)
-      js: [r(-0.5), r.expr(-0.5)]
-      rb: r -0.5
+    - cd: r.expr(-0.5)
+      js:
+        - r(-0.5)
+        - r.expr(-0.5)
+      rb:
+        - r -0.5
+        - r(-0.5)
+        - r.expr(-0.5)
       ot: -0.5
-    - py: r.expr(67498.89278)
-      js: r(67498.89278)
-      rb: r 67498.89278
+    - cd: r.expr(67498.89278)
+      js:
+       - r(67498.89278)
+       - r.expr(67498.89278)
+      rb:
+       - r 67498.89278
+       - r(67498.89278)
+       - r.expr(67498.89278)
       ot: 67498.89278
 
     # Big numbers
-    - py: r.expr(1234567890)
-      js: [r(1234567890), r.expr(1234567890)]
-      rb: r 1234567890
+    - cd: r.expr(1234567890)
+      js:
+        - r(1234567890)
+        - r.expr(1234567890)
+      rb:
+        - r 1234567890
+        - r(1234567890)
+        - r.expr(1234567890)
       ot: 1234567890
 
-    - py: r.expr(-73850380122423)
-      js: [r.expr(-73850380122423), r(-73850380122423)]
-      rb: r -73850380122423
+    - cd: r.expr(-73850380122423)
+      js:
+        - r.expr(-73850380122423)
+        - r(-73850380122423)
+      rb:
+        - r -73850380122423
+        - r.expr(-73850380122423)
+        - r(-73850380122423)
       ot: -73850380122423
 
     # Test that numbers round-trip correctly
@@ -53,14 +98,14 @@ tests:
         cd: r.expr(1234567890123456789012345678901234567890)
         ot: 1234567890123456789012345678901234567890
     - cd: r.expr(123.4567890123456789012345678901234567890)
-      ot: (123.4567890123456789012345678901234567890)
+      ot: 123.4567890123456789012345678901234567890
 
     - cd: r.expr(1).type_of()
-      ot: "'NUMBER'"
+      ot: 'NUMBER'
 
     # test coercions
     - cd: r.expr(1).coerce_to('string')
-      ot: "'1'"
+      ot: '1'
 
     - cd: r.expr(1).coerce_to('number')
       ot: 1

@@ -94,7 +94,7 @@ class Response(object):
         if self.type == pResponse.CLIENT_ERROR:
             return ReqlDriverError(self.data[0], query.term, self.backtrace)
         elif self.type == pResponse.COMPILE_ERROR:
-            return ReqlCompileError(self.data[0], query.term, self.backtrace)
+            return ReqlServerCompileError(self.data[0], query.term, self.backtrace)
         elif self.type == pResponse.RUNTIME_ERROR:
             return {
                 pErrorType.INTERNAL: ReqlInternalError,

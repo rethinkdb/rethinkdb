@@ -1,22 +1,28 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TERM_WALKER_HPP_
 #define RDB_PROTOCOL_TERM_WALKER_HPP_
 
-#include "rdb_protocol/error.hpp"
-
-class Term;
+#include "rapidjson/document.h"
 
 namespace ql {
 
 class backtrace_registry_t;
+ 
+// `preprocess_term_tree(...)` walks the raw term tree provided, edits it to add
+// backtraces, and checks the validity of the terms and their placement.
+// Most notably:
+//   r.asc() and r.desc() must be direct descendants of an r.order_by() term
+//   r.now() is rewritten to a literal datum
+//   objects are rewritten to MAKE_OBJ terms
+//   it is enforced that each term has exactly zero or one set each of args and optargs
+void preprocess_term_tree(rapidjson::Value *query_json,
+                          rapidjson::Value::AllocatorType *allocator,
+                          backtrace_registry_t *bt_reg);
 
-// Fills in the backtraces of a term and checks that it's well-formed with
-// regard to write placement.
-void preprocess_term(Term *root, backtrace_registry_t *bt_reg);
-
-// Propagates a backtrace down a tree until it hits a node that already has a
-// backtrace (this is used for e.g. rewrite terms so that they return reasonable
-// backtraces in the macroexpanded nodes).
-void propagate_backtrace(Term *root, backtrace_id_t bt);
+// `preprocess_global_optarg(...)` performs the same tasks as `preprocess_term_tree`,
+// except that the backtraces it attaches are all the 'root' backtrace: []
+void preprocess_global_optarg(rapidjson::Value *optarg,
+                              rapidjson::Value::AllocatorType *allocator);
 
 } // namespace ql
 

@@ -16,8 +16,8 @@ $streams = [
 
 $infstreams = [
   $t.changes(),
-  $t.between(10, 100, index: 'id').changes(include_initial_vals: false),
-  $t.get(0).changes().skip(1)
+  $t.between(10, 100, index: 'id').changes(include_initial: false),
+  $t.get(0).changes(include_initial: true).skip(1)
 ]
 
 # TODO: uncomment these once we increase the stack size.  (Issue #4348.)

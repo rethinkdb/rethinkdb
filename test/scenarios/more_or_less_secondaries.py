@@ -36,33 +36,22 @@ workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow
 scenario_common.prepare_option_parser_mode_flags(op)
 op["sequence"] = vcoptparse.PositionalArg(converter=ReplicaSequence)
 opts = op.parse(sys.argv)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+_, command_prefix, server_options = scenario_common.parse_mode_flags(opts)
 
 r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
 numReplicas = opts["sequence"].peak()
 
-print('Starting cluster (%.2fs)' % (time.time() - startTime))
-with driver.Cluster(output_folder='.') as cluster:
-    
-    print('Starting primary server (%.2fs)' % (time.time() - startTime))
-    
-    primary_files = driver.Files(cluster.metacluster, db_path="db-primary", console_output=True, command_prefix=command_prefix)
-    primary_process = driver.Process(cluster, primary_files, console_output=True, command_prefix=command_prefix, extra_options=serve_options)
-    
-    print('Starting %d replicas (%.2fs)' % (numReplicas, time.time() - startTime))
-    
-    replica_processes = [driver.Process(cluster=cluster, console_output=True, command_prefix=command_prefix, extra_options=serve_options) for i in xrange(numReplicas)]
-    cluster.wait_until_ready()
+with driver.Cluster(output_folder='.', initial_servers=numReplicas + 1, console_output=True, command_prefix=command_prefix, extra_options=server_options) as cluster:
     primary = cluster[0]
     replicaPool = cluster[1:]
     
-    print('Establishing ReQL connection (%.2fs)' % (time.time() - startTime))
+    utils.print_with_time('Establishing ReQL connection')
     
     conn = r.connect(host=primary.host, port=primary.driver_port)
     
-    print('Creating db/table %s/%s (%.2fs)' % (dbName, tableName, time.time() - startTime))
+    utils.print_with_time('Creating db/table %s/%s' % (dbName, tableName))
     
     if dbName not in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
@@ -70,7 +59,7 @@ with driver.Cluster(output_folder='.') as cluster:
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
     
-    print('Setting inital table replication settings (%.2fs)' % (time.time() - startTime))
+    utils.print_with_time('Setting inital table replication settings')
     assert r.db(dbName).table(tableName).config() \
         .update({'shards':[
             {'primary_replica':primary.name, 'replicas':[primary.name, replicaPool[0].name]}
@@ -81,7 +70,7 @@ with driver.Cluster(output_folder='.') as cluster:
     issues = list(r.db('rethinkdb').table('current_issues').run(conn))
     assert len(issues) == 0, 'There were issues on the server: %s' % str(issues)
     
-    print('Starting workload (%.2fs)' % (time.time() - startTime))
+    utils.print_with_time('Starting workload')
     
     workload_ports = workload_runner.RDBPorts(host=primary.host, http_port=primary.http_port, rdb_port=primary.driver_port, db_name=dbName, table_name=tableName)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
@@ -96,7 +85,7 @@ with driver.Cluster(output_folder='.') as cluster:
         for i, s in enumerate(opts["sequence"].steps):
             if i != 0:
                 workload.run_between()
-            print("Changing the number of secondaries from %d to %d (%.2fs)" % (current, current + s, time.time() - startTime))
+            utils.print_with_time("Changing the number of secondaries from %d to %d" % (current, current + s))
             current += s
             
             assert r.db(dbName).table(tableName).config() \
@@ -112,5 +101,5 @@ with driver.Cluster(output_folder='.') as cluster:
 
     assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
     
-    print('Cleaning up (%.2fs)' % (time.time() - startTime))
-print('Done. (%.2fs)' % (time.time() - startTime))
+    utils.print_with_time('Cleaning up')
+utils.print_with_time('Done.')

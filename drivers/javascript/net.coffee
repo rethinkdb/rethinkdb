@@ -374,7 +374,7 @@ class Connection extends events.EventEmitter
                         # response and the original query
                         # (`root`). Then we delete the token from
                         # `@outstandingCallbacks`.
-                        cb mkErr(err.ReqlCompileError, response, root)
+                        cb mkErr(err.ReqlServerCompileError, response, root)
                         @_delQuery(token)
                     when protoResponseType.CLIENT_ERROR
                         # Client errors are returned when the client
@@ -964,9 +964,8 @@ class TcpConnection extends Connection
             auth_length.writeUInt32LE(auth_buffer.length, 0)
 
             # Send the protocol type that we will be using to
-            # communicate with the server. This can be either
-            # protobuf, or json. The protobuf protocol is deprecated
-            # however.
+            # communicate with the server. Json is the only currently
+            # supported protocol.
             protocol = new Buffer(4)
             protocol.writeUInt32LE(protoProtocol, 0)
 

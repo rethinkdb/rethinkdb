@@ -93,6 +93,7 @@ private:
 
     mutex_t write_mutex;
     log_write_issue_tracker_t log_write_issue_tracker;
+    bool has_parse_error;
 
     DISABLE_COPYING(thread_pool_log_writer_t);
 };

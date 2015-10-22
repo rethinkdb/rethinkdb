@@ -3,6 +3,8 @@
 __all__ = ["ReqlCursorEmpty",
            "ReqlError",
            "ReqlCompileError",
+           "ReqlDriverCompileError",
+           "ReqlServerCompileError",
            "ReqlRuntimeError",
            "ReqlQueryLogicError",
            "ReqlNonExistenceError",
@@ -80,6 +82,12 @@ class ReqlCompileError(ReqlError):
     pass
 
 RqlCompileError = ReqlCompileError
+
+class ReqlDriverCompileError(ReqlCompileError):
+    pass
+
+class ReqlServerCompileError(ReqlCompileError):
+    pass
 
 
 class ReqlRuntimeError(ReqlError):

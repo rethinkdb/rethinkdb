@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
@@ -19,8 +19,8 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -124,7 +124,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        datumspec_t datumspec;
     };
     struct limit_t {
         range_t range;
@@ -361,7 +361,7 @@ public:
         region_t _region,
         std::string _table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -435,7 +435,7 @@ public:
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -477,7 +477,7 @@ private:
     void add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive);
+        auto_drainer_t::lock_t keepalive);
 
     // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
@@ -550,7 +550,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
         configured_limits_t limits,
         const keyspec_t::spec_t &spec,

@@ -1,0 +1,21 @@
+desc: 3449 -- test openness and closedness of range limits under descending ordering
+table_variable_name: tbl
+tests:
+  - js: tbl.insert([{id: 0}, {id: 1}, {id: 2}, {id: 3}])
+    ot: {'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':0, 'inserted':4}
+
+  # Test ascending ordering as well for completeness
+  - js: tbl.between(1, 3).orderBy({index: r.asc('id')})
+    ot: [{id:1}, {id:2}]
+  - js: tbl.between(1, 3).orderBy({index: r.desc('id')})
+    ot: [{id:2}, {id:1}]
+
+  - js: tbl.between(1, 3, {left_bound: 'open'}).orderBy({index: r.asc('id')})
+    ot: [{id:2}]
+  - js: tbl.between(1, 3, {left_bound: 'open'}).orderBy({index: r.desc('id')})
+    ot: [{id:2}]
+
+  - js: tbl.between(1, 3, {left_bound: 'open', right_bound: 'closed'}).orderBy({index: r.asc('id')})
+    ot: [{id:2}, {id:3}]
+  - js: tbl.between(1, 3, {left_bound: 'open', right_bound: 'closed'}).orderBy({index: r.desc('id')})
+    ot: [{id:3}, {id:2}]

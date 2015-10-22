@@ -1,7 +1,5 @@
 desc: Tests r.default
 tests:
-
-    # tst
     - cd: r.expr(1).default(2)
       ot: 1
     - cd: r.expr(null).default(2)
@@ -88,7 +86,7 @@ tests:
     - cd: r.expr({})['b'].default{|e| e}
       py: r.expr({})['b'].default(lambda e:e)
       js: r.expr({})('b').default(function(e){return e})
-      ot: ("No attribute `b` in object:\n{}")
+      ot: "No attribute `b` in object:\n{}"
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
@@ -127,7 +125,8 @@ tests:
     - cd: arr.filter(:default => true){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=True)
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':true})
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
     - cd: arr.filter(:default => r.js('true')){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=r.js('true'))
       js: arr.filter(function(x) { return x('a').eq(1) }, { 'default':r.js('true') })
@@ -148,7 +147,8 @@ tests:
     - cd: r.expr(true).do{|d| arr.filter(:default => d){|x| x['a'].eq(1)}}.orderby('a')
       py: r.expr(True).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d)).order_by('a')
       js: r.expr(true).do(function(d){return arr.filter(function(x){return x('a').eq(1)}, {default:d})}).orderBy('a')
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
 
     - cd: arr.filter{|x| x['a'].default(0).eq(1)}
       py: arr.filter(lambda x:x['a'].default(0).eq(1))
@@ -161,7 +161,8 @@ tests:
     - cd: arr.filter{|x| x['a'].default(r.error).eq(1)}
       py: arr.filter(lambda x:x['a'].default(r.error()).eq(1))
       js: arr.filter(function(x){return x('a').default(r.error()).eq(1)})
-      ot: [{'a':1}] # gets caught by `filter` default
+      ot: [{'a':1}]
+      # gets caught by `filter` default
 
     - cd: r.expr(0).do{|i| arr.filter{|x| x['a'].default(i).eq(1)}}
       py: r.expr(0).do(lambda i:arr.filter(lambda x:x['a'].default(i).eq(1)))
@@ -208,7 +209,8 @@ tests:
     - cd: tbl.filter(:default => true){|x| x['a'].eq(1)}
       py: tbl.filter(lambda x:x['a'].eq(1), default=True)
       js: tbl.filter(function(x){return x('a').eq(1)}, {'default':true})
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1)}
       py: tbl.filter(lambda x:x['a'].eq(1), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1)}, {'default':r.error()})
@@ -221,7 +223,8 @@ tests:
     - cd: r.expr(true).do{|d| tbl.filter(:default => d){|x| x['a'].eq(1)}}.orderby('a')
       py: r.expr(True).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d)).order_by('a')
       js: r.expr(true).do(function(d){return tbl.filter(function(x){return x('a').eq(1)}, {default:d})}).orderBy('a')
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
 
     - cd: tbl.filter{|x| x['a'].default(0).eq(1)}
       py: tbl.filter(lambda x:x['a'].default(0).eq(1))
@@ -234,7 +237,8 @@ tests:
     - cd: tbl.filter{|x| x['a'].default(r.error).eq(1)}
       py: tbl.filter(lambda x:x['a'].default(r.error()).eq(1))
       js: tbl.filter(function(x){return x('a').default(r.error()).eq(1)})
-      ot: [{'a':1}] # gets caught by `filter` default
+      ot: [{'a':1}]
+      # gets caught by `filter` default
 
     - cd: r.expr(0).do{|i| tbl.filter{|x| x['a'].default(i).eq(1)}}
       py: r.expr(0).do(lambda i:tbl.filter(lambda x:x['a'].default(i).eq(1)))

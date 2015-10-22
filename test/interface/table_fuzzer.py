@@ -14,6 +14,11 @@ startTime = time.time()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
 opts['random-seed'] = vcoptparse.FloatFlag('--random-seed', random.random())

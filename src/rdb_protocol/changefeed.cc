@@ -1,3 +1,4 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 
 #include <queue>
@@ -11,6 +12,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -278,7 +280,7 @@ boost::optional<datum_t> apply_ops(
         groups_t groups;
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
-            (*op)(env, &groups, key);
+            (*op)(env, &groups, [&]() { return key; });
         }
         // TODO: when we support `.group.changes` this will need to change.
         guarantee(groups.size() <= 1);
@@ -417,7 +419,7 @@ void server_t::add_limit_client(
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -453,7 +455,7 @@ void server_t::add_limit_client(
 void server_t::add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive) {
+        auto_drainer_t::lock_t keepalive) {
     keepalive.assert_is_holding(&drainer);
     {
         disconnect_watcher_t disconnect(manager, addr.get_peer());
@@ -829,7 +831,7 @@ limit_manager_t::limit_manager_t(
     region_t _region,
     std::string _table,
     rdb_context_t *ctx,
-    std::map<std::string, wire_func_t> optargs,
+    global_optargs_t optargs,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -874,7 +876,7 @@ void limit_manager_t::add(
     guarantee(spot->write_signal()->is_pulsed());
     guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
     if ((is_primary == is_primary_t::YES && region.inner.contains_key(sk))
-        || (is_primary == is_primary_t::NO && spec.range.range.contains(key))) {
+        || (is_primary == is_primary_t::NO && spec.range.datumspec.copies(key) != 0)) {
         if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
             added.push_back(
                 std::make_pair(
@@ -933,6 +935,7 @@ public:
         rdb_rget_slice(
             ref.btree,
             range,
+            boost::none,
             ref.superblock,
             env,
             batchspec_t::all(),
@@ -958,7 +961,12 @@ public:
     std::vector<item_t> operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
         guarantee(spec->range.sindex);
-        datum_range_t srange = spec->range.range;
+        // `.limit().changes()` is currently only allowed on a single range
+        r_sanity_check(
+            spec->range.datumspec.visit<bool>(
+                [](const datum_range_t &) { return true; },
+                [](const std::map<datum_t, uint64_t> &) { return false; }));
+        datum_range_t srange = spec->range.datumspec.covering_range();
         if (start) {
             datum_t dstart = (**start)->second.first;
             switch (sorting) {
@@ -972,12 +980,12 @@ public:
             default: unreachable();
             }
         }
-        skey_version_t skey_version = skey_version_from_reql_version(
-            ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
+        reql_version_t reql_version =
+            ref.sindex_info->mapping_version_info.latest_compatible_reql_version;
         rdb_rget_secondary_slice(
             ref.btree,
-            srange,
-            region_t(srange.to_sindex_keyrange(skey_version)),
+            ql::datumspec_t(srange),
+            srange.to_sindex_keyrange(reql_version),
             ref.superblock,
             env,
             batchspec_t::all(), // Terminal takes care of early termination
@@ -1193,7 +1201,7 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    void set_notes(Response *res) const final { sub->set_notes(res); }
+    void set_notes(response_t *res) const final { sub->set_notes(res); }
     feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
@@ -1221,7 +1229,7 @@ class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
     virtual feed_type_t cfeed_type() const = 0;
-    void set_notes(Response *res) const;
+    void set_notes(response_t *res) const;
     std::vector<datum_t> get_els(
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
@@ -1240,9 +1248,10 @@ public:
         const uuid_u &uuid,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_vals,
-        bool include_initial_vals,
+        bool include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
+    virtual auto_drainer_t *get_drainer() = 0;
 protected:
     subscription_t(feed_t *feed,
                    configured_limits_t limits,
@@ -1277,7 +1286,6 @@ private:
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     cond_t *queue_nearly_full_cond;
-    auto_drainer_t drainer;
     DISABLE_COPYING(subscription_t);
 };
 
@@ -1363,12 +1371,16 @@ public:
 
     bool can_be_removed();
 
+    virtual void abort_feed() = 0;
+    void stop_subs(const auto_drainer_t::lock_t &lock);
+    void mark_detached() { detached = true; }
+
     const std::string pkey;
+    virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
 protected:
     bool detached;
     int64_t num_subs;
 private:
-    virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
     virtual void maybe_remove_feed() = 0;
     virtual void stop_limit_sub(limit_sub_t *sub) = 0;
 
@@ -1410,8 +1422,10 @@ public:
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
-private:
+    void abort_feed() final { aborted.pulse_if_not_already_pulsed(); }
+    uuid_u get_uuid() const { return uuid; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
+private:
     virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
@@ -1441,6 +1455,9 @@ private:
     // the set of `uuid_u`s never changes after it's initialized.
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
+
+    // Used to abort the feed when we get a `msg_t::stop_t`.
+    cond_t aborted;
 
     auto_drainer_t drainer;
 };
@@ -1507,6 +1524,20 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
     }
 }
 
+// This should only be called after the feed has been removed from the client,
+// because otherwise there could be a race condition where a new sub is added in
+// the middle.
+void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
+    const char *msg = "Changefeed aborted (unavailable).";
+    each_sub(lock,
+             std::bind(&subscription_t::stop,
+                       ph::_1,
+                       std::make_exception_ptr(
+                           datum_exc_t(base_exc_t::OP_FAILED, msg)),
+                       detach_t::YES));
+    num_subs = 0;
+}
+
 real_feed_t::~real_feed_t() {
     guarantee(num_subs == 0);
     detached = true;
@@ -1526,7 +1557,8 @@ void real_feed_t::constructor_cb() {
         for (size_t i = 0; i < disconnect_watchers.size(); ++i) {
             any_disconnect.add(disconnect_watchers[i].get());
         }
-        wait_any_t wait_any(&any_disconnect, lock->get_drain_signal());
+        wait_any_t wait_any(
+            &aborted, &any_disconnect, lock->get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     // Clear the disconnect watchers so we don't keep the watched connections open
@@ -1534,17 +1566,11 @@ void real_feed_t::constructor_cb() {
     disconnect_watchers.clear();
     if (!detached) {
         scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
-        detached = true;
+        guarantee(detached);
         if (self.has()) {
-            const char *msg = "Disconnected from peer.";
             guarantee(lock.has());
-            each_sub(*lock,
-                     std::bind(&subscription_t::stop,
-                               ph::_1,
-                               std::make_exception_ptr(
-                                   datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                               detach_t::YES));
-            num_subs = 0;
+            stop_subs(*lock);
+            guarantee(num_subs == 0);
         } else {
             // We only get here if we were removed before we were detached.
             guarantee(num_subs == 0);
@@ -1569,7 +1595,7 @@ public:
           started(false),
           state(state_t::INITIALIZING),
           sent_state(state_t::NONE),
-          include_initial_vals(false) {
+          include_initial(false) {
         feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
@@ -1592,7 +1618,7 @@ public:
             return state_datum(state);
         }
         datum_t ret;
-        if (state != state_t::READY && include_initial_vals) {
+        if (state != state_t::READY && include_initial) {
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
         } else {
@@ -1604,7 +1630,7 @@ public:
     }
     bool has_el() final {
         return (include_states && state != sent_state)
-            || (include_initial_vals && state != state_t::READY)
+            || (include_initial && state != state_t::READY)
             || has_change_val();
     }
     counted_t<datum_stream_t> to_stream(
@@ -1618,8 +1644,8 @@ public:
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        include_initial_vals = maybe_src.has();
-        if (!include_initial_vals) {
+        include_initial = maybe_src.has();
+        if (!include_initial) {
             state = state_t::READY;
         }
 
@@ -1632,8 +1658,8 @@ public:
             env->interruptor);
         auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
         guarantee(res != nullptr);
-        rcheck_datum(res->resp, base_exc_t::OP_FAILED,
-                     "Changefeed aborted.  (Did you just reshard?)");
+        rcheck_datum(res->resp, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Unable to retrieve start stamp.  (Did you just reshard?)");
         auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
@@ -1668,14 +1694,14 @@ public:
         const uuid_u &,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
-        bool _include_initial_vals,
+        bool _include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        include_initial_vals = _include_initial_vals;
-        if (!include_initial_vals) {
+        include_initial = _include_initial;
+        if (!include_initial) {
             state = state_t::READY;
         }
 
@@ -1706,7 +1732,10 @@ private:
     uint64_t stamp;
     bool started;
     state_t state, sent_state;
-    bool include_initial_vals;
+    bool include_initial;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 // This gets around some class ordering issues; `range_sub_t` needs to know how
@@ -1730,9 +1759,13 @@ public:
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
-          artificial_include_initial_vals(false) {
+          artificial_include_initial(false) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
+        }
+        store_keys = spec.datumspec.primary_key_map();
+        if (!store_keys) {
+            store_key_range = spec.datumspec.covering_range().to_primary_keyrange();
         }
         feed->add_range_sub(this);
     }
@@ -1741,13 +1774,20 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
     boost::optional<std::string> sindex() const { return spec.sindex; }
-    bool contains(const datum_t &sindex_key) const {
+    size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
-        return spec.range.contains(sindex_key);
+        return spec.datumspec.copies(sindex_key);
     }
-    bool contains(const store_key_t &pkey) const {
+    size_t copies(const store_key_t &pkey) const {
         guarantee(!spec.sindex);
-        return spec.range.to_primary_keyrange().contains_key(pkey);
+        if (store_keys) {
+            guarantee(store_keys);
+            auto it = store_keys->find(pkey);
+            return it != store_keys->end() ? it->second : 0;
+        } else {
+            guarantee(store_key_range);
+            return store_key_range->contains_key(pkey) ? 1 : 0;
+        }
     }
 
     virtual bool active() {
@@ -1781,7 +1821,7 @@ public:
         // Note that we currently *DO NOT* update the stamp for range
         // subscriptions.  If we get changes with stamps after the start stamp
         // we eventually receive, they are just discarded.  This will change in
-        // the future when we support `include_initial_vals` on range changefeeds.
+        // the future when we support `include_initial` on range changefeeds.
         return new_stamp >= it->second;
     }
 
@@ -1826,11 +1866,11 @@ public:
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != nullptr);
-        rcheck_datum(resp->stamps, base_exc_t::OP_FAILED,
+        rcheck_datum(resp->stamps, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
         start_stamps = std::move(*resp->stamps);
-        rcheck_datum(start_stamps.size() != 0, base_exc_t::OP_FAILED,
-                     "Unable to retrieve the start stamps.  Did you just reshard?");
+        rcheck_datum(start_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Empty start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);
         if (maybe_src) {
@@ -1840,7 +1880,7 @@ public:
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
             rcheck_src(bt, stamped, base_exc_t::LOGIC,
-                       "Cannot call `include_initial_vals` on an unstampable stream.");
+                       "Cannot call `include_initial` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
@@ -1851,20 +1891,22 @@ public:
         const uuid_u &uuid,
         const std::string &pkey_name,
         const std::vector<datum_t> &initial_vals,
-        bool include_initial_vals,
+        bool include_initial,
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
-        artificial_include_initial_vals = include_initial_vals;
+        artificial_include_initial = include_initial;
 
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
-        if (artificial_include_initial_vals) {
+        if (artificial_include_initial) {
             state = state_t::INITIALIZING;
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                if (spec.range.contains(it->get_field(datum_string_t(pkey_name)))) {
+                for (size_t i = 0;
+                     i < spec.datumspec.copies(it->get_field(datum_string_t(pkey_name)));
+                     ++i) {
                     artificial_initial_vals.push_back(*it);
                 }
             }
@@ -1896,9 +1938,13 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     keyspec_t::range_t spec;
+    boost::optional<std::map<store_key_t, uint64_t> > store_keys;
+    boost::optional<key_range_t> store_key_range;
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
-    bool artificial_include_initial_vals;
+    bool artificial_include_initial;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
 };
 
@@ -1918,7 +1964,7 @@ public:
           gt(limit_order_t(spec.range.sorting)),
           item_queue(gt),
           active_data(gt),
-          include_initial_vals(false) {
+          include_initial(false) {
         feed->add_limit_sub(this, uuid);
     }
 
@@ -1933,7 +1979,7 @@ public:
         // logic should go here.
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
-            if (include_initial_vals) {
+            if (include_initial) {
                 if (include_states) els.push_back(initializing_datum());
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                     els.push_back(
@@ -2156,7 +2202,12 @@ public:
         backtrace_id_t bt) final {
         assert_thread();
         r_sanity_check(self.get() == this);
-        include_initial_vals = maybe_src.has();
+        // `.limit().changes()` is currently only allowed on a single range.
+        r_sanity_check(
+            spec.range.datumspec.visit<bool>(
+                [](const datum_range_t &) { return true; },
+                [](const std::map<datum_t, uint64_t> &) { return false; }));
+        include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_limit_subscribe_t(
@@ -2167,7 +2218,8 @@ public:
                        env->get_all_optargs(),
                        spec.range.sindex
                        ? region_t::universe()
-                       : region_t(spec.range.range.to_primary_keyrange())),
+                       : region_t(
+                           spec.range.datumspec.covering_range().to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
@@ -2209,7 +2261,10 @@ public:
     std::vector<std::pair<boost::optional<std::string>, boost::optional<item_t> > >
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
-    bool include_initial_vals;
+    bool include_initial;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 void real_feed_t::stop_limit_sub(limit_sub_t *sub) {
@@ -2287,13 +2342,17 @@ public:
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
-                        if (sub->contains(idx.first)) old_idxs.push_back(idx);
+                        for (size_t i = 0; i < sub->copies(idx.first); ++i) {
+                            old_idxs.push_back(idx);
+                        }
                     }
                 }
                 auto new_it = change.new_indexes.find(*sindex);
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
-                        if (sub->contains(idx.first)) new_idxs.push_back(idx);
+                        for (size_t i = 0; i < sub->copies(idx.first); ++i) {
+                            new_idxs.push_back(idx);
+                        }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
@@ -2326,7 +2385,7 @@ public:
                     new_idxs.pop_back();
                 }
             } else {
-                if (sub->contains(change.pkey)) {
+                for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                 indexed_datum_t(old_val, datum_t(), boost::none),
                                 indexed_datum_t(new_val, datum_t(), boost::none));
@@ -2352,13 +2411,7 @@ public:
                           : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
-        const char *msg = "Changefeed aborted (table unavailable).";
-        feed->each_sub(*lock,
-                       std::bind(&subscription_t::stop,
-                                 ph::_1,
-                                 std::make_exception_ptr(
-                                     datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                                 detach_t::NO));
+        feed->abort_feed();
     }
 private:
     feed_t *feed;
@@ -2422,56 +2475,73 @@ public:
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
-        // If there's nothing left to read, behave like a normal feed.  `ready`
-        // should only be called after we've confirmed `is_exhausted` returns
-        // true.
-        if (src->is_exhausted() && ready()) {
-            // This will send the `ready` state as its first doc.
-            return stream_t::next_stream_batch(env, bs);
-        }
-
         std::vector<datum_t> ret;
         batcher_t batcher = bs.to_batcher();
-        // We have to do a little song and dance to make sure we've read at
-        // least once before deciding whether or not to discard changes, because
-        // otherwise we don't know the `skey_version`.  We can remove this hack
-        // once we're no longer backwards-compatible with pre-1.16 (I think?)
-        // skey versions.
-        if (read_once) {
-            while (sub->has_change_val() && !batcher.should_send_batch()) {
-                change_val_t cv = sub->pop_change_val();
-                datum_t el = change_val_to_change(
-                    cv,
-                    cv.old_val && discard(
-                        cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
-                    cv.new_val && discard(
-                        cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
-                if (el.has()) {
-                    batcher.note_el(el);
-                    ret.push_back(std::move(el));
+
+        while (ret.size() == 0) {
+            r_sanity_check(!batcher.should_send_batch());
+            // If there's nothing left to read, behave like a normal feed.  `ready`
+            // should only be called after we've confirmed `is_exhausted` returns
+            // true.
+            if (src->is_exhausted() && ready()) {
+                // This will send the `ready` state as its first doc.
+                return stream_t::next_stream_batch(env, bs);
+            }
+
+            // We have to do a little song and dance to make sure we've read at
+            // least once before deciding whether or not to discard changes, because
+            // otherwise we don't know the `skey_version`.  We can remove this hack
+            // once we're no longer backwards-compatible with pre-1.16 (I think?)
+            // skey versions.
+            if (read_once) {
+                while (sub->has_change_val() && !batcher.should_send_batch()) {
+                    change_val_t cv = sub->pop_change_val();
+                    datum_t el = change_val_to_change(
+                        cv,
+                        cv.old_val && discard(
+                            cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                        cv.new_val && discard(
+                            cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
+                    if (el.has()) {
+                        batcher.note_el(el);
+                        ret.push_back(std::move(el));
+                    }
+                }
+                remove_outdated_ranges();
+            } else {
+                if (sub->include_states) {
+                    ret.push_back(state_datum(state_t::INITIALIZING));
                 }
             }
-            remove_outdated_ranges();
-        } else {
-            if (sub->include_states) {
-                ret.push_back(state_datum(state_t::INITIALIZING));
-            }
-        }
-        if (!batcher.should_send_batch()) {
-            std::vector<datum_t> batch = src->next_batch(env, bs);
-            update_ranges();
-            r_sanity_check(active_state);
-            read_once = true;
-            ret.reserve(ret.size() + batch.size());
-            for (auto &&datum : batch) {
-                ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
+            if (!src->is_exhausted() && !batcher.should_send_batch()) {
+                std::vector<datum_t> batch = src->next_batch(env, bs);
+                update_ranges();
+                r_sanity_check(active_state);
+                read_once = true;
+
+                if (batch.size() == 0) {
+                    r_sanity_check(src->is_exhausted());
+                } else {
+                    ret.reserve(ret.size() + batch.size());
+                    for (auto &&datum : batch) {
+                        ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
+                    }
+                }
+            } else {
+                if (ret.size() == 0) {
+                    // If we've exhausted the stream but aren't ready yet then
+                    // we nap for 50ms to wait for changes.  The other
+                    // alternatives would be to send back empty batches or to
+                    // have more complicated logic to block until a change is
+                    // available.  This shouldn't matter too much because this
+                    // case should be rare in practice, and napping more than
+                    // once should be extremely rare.
+                    nap(50);
+                }
             }
         }
 
-        // If we've exhausted the stream but aren't ready yet than we may send
-        // back empty batches, but that's OK and should be rare in practice.  In
-        // the future we should consider either sleeping for 100ms in that case
-        // or hooking into the waiting logic to block until we're ready.
+        r_sanity_check(ret.size() != 0);
         return ret;
     }
 
@@ -2481,8 +2551,7 @@ private:
                  const indexed_datum_t &val) {
         store_key_t key;
         if (val.index.has()) {
-            key = store_key_t(
-                val.index.print_secondary(skey_version(), pkey, tag_num));
+            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
         } else {
             key = pkey;
         }
@@ -2548,10 +2617,10 @@ private:
         r_sanity_check(active_state);
         return active_state->shard_stamps;
     }
-    const skey_version_t &skey_version() const {
+    const reql_version_t &reql_version() const {
         r_sanity_check(active_state);
-        r_sanity_check(active_state->skey_version);
-        return *(active_state->skey_version);
+        r_sanity_check(active_state->reql_version);
+        return *(active_state->reql_version);
     }
     bool ready() {
         // It's OK to cache this because we only ever call `ready` once we're
@@ -2591,8 +2660,8 @@ subscription_t::subscription_t(
 
 subscription_t::~subscription_t() { }
 
-void subscription_t::set_notes(Response *res) const {
-    if (include_states) res->add_notes(Response::INCLUDES_STATES);
+void subscription_t::set_notes(response_t *res) const {
+    if (include_states) res->add_note(Response::INCLUDES_STATES);
 }
 
 std::vector<datum_t>
@@ -2601,7 +2670,7 @@ subscription_t::get_els(batcher_t *batcher,
                         const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
-    auto_drainer_t::lock_t lock(&drainer);
+    auto_drainer_t::lock_t lock(get_drainer());
 
     std::vector<datum_t> ret;
 
@@ -2739,7 +2808,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 keyspec_t::~keyspec_t() { }
 
 RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(
-    keyspec_t::range_t, transforms, sindex, sorting, range);
+    keyspec_t::range_t, transforms, sindex, sorting, datumspec);
 RDB_MAKE_SERIALIZABLE_2_FOR_CLUSTER(keyspec_t::limit_t, range, limit);
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
 
@@ -2776,6 +2845,7 @@ void feed_t::del_sub_with_lock(
         size_t erased = f();
         guarantee(erased == 1);
     }
+    guarantee(num_subs > 0);
     num_subs -= 1;
     if (num_subs == 0) {
         // It's possible that by the time we get the lock to remove the feed,
@@ -2893,6 +2963,7 @@ void feed_t::each_point_sub(
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
     pmap(get_num_threads(),
          std::bind(&feed_t::each_point_sub_cb,
                    this,
@@ -2913,6 +2984,7 @@ void feed_t::each_limit_sub(
     const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
     pmap(get_num_threads(),
          std::bind(&feed_t::each_limit_sub_cb,
                    this,
@@ -3039,47 +3111,88 @@ counted_t<datum_stream_t> client_t::new_stream(
     backtrace_id_t bt,
     const std::string &table_name,
     const keyspec_t::spec_t &spec) {
-    try {
-        scoped_ptr_t<subscription_t> sub;
-        boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
-        addr_t addr;
-        {
-            threadnum_t old_thread = get_thread_id();
-            cross_thread_signal_t interruptor(env->interruptor, home_thread());
-            on_thread_t th(home_thread());
-            // If the `client_t` is being destroyed, we're shutting down, so we
-            // consider it an interruption.
-            auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
-            rwlock_in_line_t spot(&feeds_lock, access_t::write);
-            spot.read_signal()->wait_lazily_unordered();
-            auto feed_it = feeds.find(uuid);
-            if (feed_it == feeds.end()) {
-                spot.write_signal()->wait_lazily_unordered();
-                namespace_interface_access_t access =
-                        namespace_source(uuid, &interruptor);
-                // Even though we have the user's feed here, multiple
-                // users may share a feed_t, and this code path will
-                // only be run for the first one.  Rather than mess
-                // about, just use the defaults.
-                auto val = make_scoped<real_feed_t>(
-                    lock, this, manager, access.get(), uuid, &interruptor);
-                feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
-            }
+    bool is_second_try = false;
+    uuid_u last_feed_uuid;
+    for (;;) {
+        try {
+            scoped_ptr_t<subscription_t> sub;
+            boost::variant<scoped_ptr_t<range_sub_t>, scoped_ptr_t<point_sub_t> > presub;
+            addr_t addr;
+            {
+                threadnum_t old_thread = get_thread_id();
+                cross_thread_signal_t interruptor(env->interruptor, home_thread());
+                on_thread_t th(home_thread());
+                scoped_ptr_t<real_feed_t> destroy;
+                // If the `client_t` is being destroyed, we're shutting down, so we
+                // consider it an interruption.
+                auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
+                rwlock_in_line_t spot(&feeds_lock, access_t::write);
+                spot.read_signal()->wait_lazily_unordered();
+                auto feed_it = feeds.find(uuid);
 
-            // We need to do this while holding `feeds_lock` to make sure the
-            // feed isn't destroyed before we subscribe to it.
-            on_thread_t th2(old_thread);
-            real_feed_t *feed = feed_it->second.get();
-            addr = feed->get_addr();
-            sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+                if (is_second_try) {
+                    guarantee(!last_feed_uuid.is_unset());
+                    if (feed_it != feeds.end()
+                        && feed_it->second->get_uuid() == last_feed_uuid) {
+                        // We enter this branch if we got a `RESUMABLE_OP_FAILED`
+                        // exception, tried again, and found the same feed (which is
+                        // presumably in a broken state and needs to be replaced).
+                        // We want to destroy the feed after the lock is released,
+                        // because it may be expensive.
+                        destroy.swap(feed_it->second);
+                        destroy->mark_detached();
+                        feeds.erase(feed_it);
+                        feed_it = feeds.end();
+                        destroy->stop_subs(destroy->get_drainer_lock());
+                    }
+                }
+
+                if (feed_it == feeds.end()) {
+                    spot.write_signal()->wait_lazily_unordered();
+                    namespace_interface_access_t access =
+                        namespace_source(uuid, &interruptor);
+                    // Even though we have the user's feed here, multiple
+                    // users may share a feed_t, and this code path will
+                    // only be run for the first one.  Rather than mess
+                    // about, just use the defaults.
+                    auto val = make_scoped<real_feed_t>(
+                        lock, this, manager, access.get(), uuid, &interruptor);
+                    feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
+                }
+
+                guarantee(feed_it != feeds.end());
+                real_feed_t *feed = feed_it->second.get();
+                last_feed_uuid = feed->get_uuid();
+                addr = feed->get_addr();
+
+                // We need to do this while holding `feeds_lock` to make sure
+                // the feed isn't destroyed before we subscribe to it.  If you
+                // want to change this behavior to make it more efficient, make
+                // sure `feed_t::stop_subs` remains correct.
+                on_thread_t th2(old_thread);
+                sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+            }
+            namespace_interface_access_t access =
+                namespace_source(uuid, env->interruptor);
+            return sub->to_stream(env, table_name, access.get(),
+                                  addr, std::move(maybe_src), std::move(sub), bt);
+        } catch (const cannot_perform_query_exc_t &e) {
+            rfail_datum(base_exc_t::OP_FAILED,
+                        "cannot subscribe to table `%s`: %s",
+                        table_name.c_str(), e.what());
+        } catch (const base_exc_t &e) {
+            if (e.get_type() == base_exc_t::RESUMABLE_OP_FAILED) {
+                if (is_second_try) {
+                    // We don't want multiple layers trying to resume the same
+                    // operation.
+                    e.rethrow_with_type(base_exc_t::OP_FAILED);
+                } else {
+                    is_second_try = true;
+                }
+            } else {
+                throw;
+            }
         }
-        namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
-        return sub->to_stream(env, table_name, access.get(),
-                              addr, std::move(maybe_src), std::move(sub), bt);
-    } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(base_exc_t::OP_FAILED,
-                    "cannot subscribe to table `%s`: %s",
-                    table_name.c_str(), e.what());
     }
 }
 
@@ -3115,6 +3228,7 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
     auto feed_it = feeds.find(uuid);
     if (feed_it != feeds.end()) {
         ret.swap(feed_it->second);
+        ret->mark_detached();
         feeds.erase(feed_it);
     }
     return ret;
@@ -3126,6 +3240,12 @@ public:
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }
+
+    void abort_feed() final {
+        stop_subs(get_drainer_lock());
+        maybe_remove_feed();
+    }
+
     NORETURN virtual void stop_limit_sub(limit_sub_t *) {
         crash("Limit subscriptions are not supported on artificial feeds.");
     }
@@ -3140,7 +3260,7 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
-    bool include_initial_vals,
+    bool include_initial,
     bool include_states,
     configured_limits_t limits,
     const keyspec_t::spec_t &spec,
@@ -3161,7 +3281,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
         spec);
     return sub->to_artificial_stream(
         env, uuid, primary_key_name, initial_values,
-        include_initial_vals, std::move(sub), bt);
+        include_initial, std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {

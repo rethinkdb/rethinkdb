@@ -79,6 +79,9 @@ void get_table_status(
     status_out->total_loss = false;
     status_out->config = config;
 
+    /* Determine raft leader for this table */
+    table_meta_client->get_raft_leader(table_id, interruptor, &status_out->raft_leader);
+
     /* Send the status query to every server for the table. */
     bool all_replicas_ready;
     try {

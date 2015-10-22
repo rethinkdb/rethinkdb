@@ -59,16 +59,16 @@ function printTestFailure(test, result) {
     			"     EXPECTED:   " + stringValue(test.exp_fun) + "\n" +
     			"     RESULT:     " + stringValue(result));
     if (result.stack) {
-        console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>")
+        console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>>")
     }
     if (result.cmpMsg) {
-        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>")
+        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>>")
     }
     console.log('')
 }
 
 function eq_test(expected, result, compOpts, partial) {
-    TRACE("eq_test - expected: " + stringValue(expected) + " result: " + stringValue(result) + " partial: " + (partial == true));
+    TRACE("eq_test - expected: " + stringValue(expected) + " result: " + stringValue(result) + " partial: " + (partial == true) + " settings: " + stringValue(compOpts));
     
     if (expected instanceof Function) {
         return expected(result);
@@ -80,8 +80,8 @@ function eq_test(expected, result, compOpts, partial) {
         return false;
 
     } else if (parseFloat(expected) === expected && parseFloat(result) === result) {
-        if (compOpts && 'precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
-            return Math.abs(expected - result) <= compOpts['precision'];
+        if (compOpts && 'precision' in compOpts && !Number.isNaN(parseFloat(compOpts['precision']))) {
+            return Math.abs(expected - result) <= parseFloat(compOpts['precision']);
         } else {
             return expected === result;
         }

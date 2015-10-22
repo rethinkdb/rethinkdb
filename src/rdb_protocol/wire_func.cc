@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/wire_func.hpp"
 
 #include "containers/archive/boost_types.hpp"
@@ -7,6 +7,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/term_walker.hpp"
 #include "stl_utils.hpp"
 
@@ -18,12 +19,11 @@ wire_func_t::wire_func_t(const counted_t<const func_t> &f) : func(f) {
     r_sanity_check(func.has());
 }
 
-wire_func_t::wire_func_t(protob_t<const Term> body,
-                         std::vector<sym_t> arg_names,
-                         backtrace_id_t bt) {
+wire_func_t::wire_func_t(const raw_term_t &body,
+                         std::vector<sym_t> arg_names) {
     compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names));
-    func = make_counted<reql_func_t>(bt, var_scope_t(), arg_names,
-                                     compile_term(&env, body));
+    func = make_counted<reql_func_t>(var_scope_t(),
+                                     arg_names, compile_term(&env, body));
 }
 
 wire_func_t::wire_func_t(const wire_func_t &copyee)
@@ -62,8 +62,8 @@ public:
         serialize<W>(wm, scope);
         const std::vector<sym_t> &arg_names = reql_func->arg_names;
         serialize<W>(wm, arg_names);
-        const protob_t<const Term> &body = reql_func->body->get_src();
-        serialize_protobuf(wm, *body);
+        const raw_term_t &body = reql_func->body->get_src();
+        serialize_term_tree<W>(wm, body);
         backtrace_id_t backtrace = reql_func->backtrace();
         serialize<W>(wm, backtrace);
     }
@@ -113,17 +113,19 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         res = deserialize<W>(s, &arg_names);
         if (bad(res)) { return res; }
 
-        protob_t<Term> body = make_counted_term();
-        res = deserialize_protobuf(s, &*body);
+        scoped_ptr_t<term_storage_t> term_storage;
+        res = deserialize_term_tree<W>(s, &term_storage);
         if (bad(res)) { return res; }
 
         res = deserialize_protobuf(s, &dummy_bt);
         if (bad(res)) { return res; }
 
-        compile_env_t env(
-            scope.compute_visibility().with_func_arg_name_list(arg_names));
-        wf->func = make_counted<reql_func_t>(
-            backtrace_id_t::empty(), scope, arg_names, compile_term(&env, body));
+        compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
+        counted_t<const term_t> term_tree =
+            compile_term(&env, term_storage->root_term());
+        wf->func = make_counted<reql_func_t>(std::move(term_storage),
+                                             scope, arg_names,
+                                             std::move(term_tree));
         return res;
     }
     case wire_func_type_t::JS: {
@@ -157,11 +159,9 @@ template archive_result_t deserialize<cluster_version_t::v2_0>(
         read_stream_t *, wire_func_t *);
 
 // deserialize function for 2.1 and above
-template <>
-archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
-    read_stream_t *s, wire_func_t *wf) {
-
-    const cluster_version_t W = cluster_version_t::v2_1_is_latest;
+template <cluster_version_t W>
+archive_result_t deserialize_wire_func(
+        read_stream_t *s, wire_func_t *wf) {
     archive_result_t res;
 
     wire_func_type_t type;
@@ -177,18 +177,20 @@ archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
         res = deserialize<W>(s, &arg_names);
         if (bad(res)) { return res; }
 
-        protob_t<Term> body = make_counted_term();
-        res = deserialize_protobuf(s, &*body);
+        scoped_ptr_t<term_storage_t> term_storage;
+        res = deserialize_term_tree<W>(s, &term_storage);
         if (bad(res)) { return res; }
 
         backtrace_id_t bt;
         res = deserialize<W>(s, &bt);
         if (bad(res)) { return res; }
 
-        compile_env_t env(
-            scope.compute_visibility().with_func_arg_name_list(arg_names));
-        wf->func = make_counted<reql_func_t>(
-            bt, scope, arg_names, compile_term(&env, body));
+        compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
+        counted_t<const term_t> term_tree =
+            compile_term(&env, term_storage->root_term());
+        wf->func = make_counted<reql_func_t>(std::move(term_storage),
+                                             scope, arg_names,
+                                             std::move(term_tree));
         return res;
     }
     case wire_func_type_t::JS: {
@@ -210,6 +212,18 @@ archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
     default:
         unreachable();
     }
+}
+
+template <>
+archive_result_t deserialize<cluster_version_t::v2_1>(
+        read_stream_t *s, wire_func_t *wf) {
+    return deserialize_wire_func<cluster_version_t::v2_1>(s, wf);
+}
+
+template <>
+archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(
+        read_stream_t *s, wire_func_t *wf) {
+    return deserialize_wire_func<cluster_version_t::v2_2_is_latest>(s, wf);
 }
 
 template <cluster_version_t W>

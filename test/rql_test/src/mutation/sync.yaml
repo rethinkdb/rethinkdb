@@ -7,27 +7,27 @@ tests:
     - cd: r.db('test').table_create('test1soft')
       ot: partial({'tables_created':1})
     - cd: r.db('test').table('test1soft').config().update({'durability':'soft'})
-      ot: ({'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':1, 'inserted':0})
+      ot: {'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':1, 'inserted':0}
     - def: tbl = r.db('test').table('test1')
     - def: tbl_soft = r.db('test').table('test1soft')
     - cd: tbl.index_create('x')
       ot: partial({'created':1})
     - cd: tbl.index_wait('x').pluck('index', 'ready')
-      ot: ([{'ready':True, 'index':'x'}])
+      ot: [{'ready':True, 'index':'x'}]
 
     # This is the only way one can use sync legally at the moment
     - cd: tbl.sync()
-      ot: ({'synced':1})
+      ot: {'synced':1}
     - cd: tbl_soft.sync()
-      ot: ({'synced':1})
+      ot: {'synced':1}
     - cd: tbl.sync()
-      ot: ({'synced':1})
+      ot: {'synced':1}
       runopts:
-        durability: '"soft"'
+        durability: "soft"
     - cd: tbl.sync()
-      ot: ({'synced':1})
+      ot: {'synced':1}
       runopts:
-        durability: '"hard"'
+        durability: "hard"
 
     # This is of type table, but sync should still fail (because it makes little sense)
     - cd: tbl.between(1, 2).sync()
@@ -46,7 +46,7 @@ tests:
 
     # clean up
     - cd: r.db('test').table_drop('test1')
-      ot: "partial({'tables_dropped':1})"
+      ot: partial({'tables_dropped':1})
     - cd: r.db('test').table_drop('test1soft')
-      ot: "partial({'tables_dropped':1})"
+      ot: partial({'tables_dropped':1})
 

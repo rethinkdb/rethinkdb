@@ -5,28 +5,28 @@ tests:
   # test simplistic array limits
   - cd: r.expr([1,1,1,1]).union([1, 1, 1, 1])
     runopts:
-      array_limit: '8'
+      array_limit: 8
     ot: [1,1,1,1,1,1,1,1]
   - cd: r.expr([1,2,3,4]).union([5, 6, 7, 8])
     runopts:
-      array_limit: '4'
+      array_limit: 4
     ot: err("ReqlResourceLimitError", "Array over size limit `4`.", [0])
 
   # test array limits on query creation
   - cd: r.expr([1,2,3,4,5,6,7,8])
     runopts:
-      array_limit: '4'
+      array_limit: 4
     ot: err("ReqlResourceLimitError", "Array over size limit `4`.", [0])
 
   # test bizarre array limits
   - cd: r.expr([1,2,3,4,5,6,7,8])
     runopts:
-      array_limit: '-1'
+      array_limit: -1
     ot: err("ReqlQueryLogicError", "Illegal array size limit `-1`.  (Must be >= 1.)", [])
 
   - cd: r.expr([1,2,3,4,5,6,7,8])
     runopts:
-      array_limit: '0'
+      array_limit: 0
     ot: err("ReqlQueryLogicError", "Illegal array size limit `0`.  (Must be >= 1.)", [])
 
   # make enormous > 100,000 element array
@@ -40,18 +40,18 @@ tests:
       rb: huge_l = r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}
   - cd: huge_l.append(1).count()
     runopts:
-      array_limit: '100001'
+      array_limit: 100001
     ot: 100001
 
   # attempt to insert enormous array
   - cd: tbl.insert({'id':0, 'array':huge_l.append(1)})
     runopts:
-      array_limit: '100001'
+      array_limit: 100001
     ot: partial({'errors':1, 'first_error':"Array too large for disk writes (limit 100,000 elements)."})
 
   - cd: tbl.get(0)
     runopts:
-      array_limit: '100001'
+      array_limit: 100001
     ot: (null)
 
   # attempt to read array that violates limit from disk
@@ -59,7 +59,7 @@ tests:
     ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1})
   - cd: tbl.get(1)
     runopts:
-      array_limit: '4'
+      array_limit: 4
     ot: ({'array':[1,2,3,4,5,6,7,8,9,10],'id':1})
 
 
@@ -100,7 +100,7 @@ tests:
   - cd: c2 = tbl.changes({squash:1000000})
     py: c2 = tbl.changes(squash=1000000)
     runopts:
-      changefeed_queue_size: '10'
+      changefeed_queue_size: 10
 
 
   - cd: tbl.insert([{'id':0}, {'id':1}, {'id':2}, {'id':3}, {'id':4}, {'id':5}, {'id':6}]).get_field('inserted')

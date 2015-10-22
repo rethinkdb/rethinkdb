@@ -205,7 +205,7 @@ tests:
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       py:
         - tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
         - tbl.group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -216,7 +216,7 @@ tests:
 
     - cd: r.expr([{'a':1}]).filter(true).limit(1).group('a')
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[1, [{'a':1}]]]})
 
     # GMR
@@ -243,7 +243,7 @@ tests:
 
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       py:
         - tbl.union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -255,7 +255,7 @@ tests:
     # GMR
     - rb: tbl.coerce_to("array").union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       py:
         - tbl.coerce_to("array").union(tbl).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.coerce_to("array").union(tbl).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -267,7 +267,7 @@ tests:
     # GMR
     - rb: tbl.union(tbl.coerce_to("array")).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       py:
         - tbl.union(tbl.coerce_to("array")).group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a + b)
         - tbl.union(tbl.coerce_to("array")).group(r.row['a']).map(r.row['id']).reduce(lambda a,b:a + b)
@@ -285,7 +285,7 @@ tests:
         - tbl.group('a').map(r.row('id')).reduce(function(a,b){return a.add(b)})
       rb: tbl.group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # undefined...
@@ -302,7 +302,7 @@ tests:
         - tbl.reduce(function(a,b){return a+b}).group(function(row){})
         - tbl.reduce(function(a,b){return a+b}).map(function(row){})
         - tbl.reduce(function(a,b){return a+b}).reduce(function(row){})
-      ot: err('ReqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
+      ot: err('ReqlDriverCompileError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
 
@@ -310,19 +310,19 @@ tests:
 
     - cd: tbl.group('a').count()
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     # SUM
     - cd: tbl.group('a').sum('id')
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1200], [1, 1225], [2, 1250], [3, 1275]]})
 
     # AVG
     - cd: tbl.group('a').avg('id')
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 48], [1, 49], [2, 50], [3, 51]]})
 
     # Pattern Matching
@@ -330,7 +330,7 @@ tests:
       py: tbl3.group(lambda row:row['b']['c']).count()
       js: tbl3.group(function(row){return row('b')('c')}).count()
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 20], [1, 20], [2, 20], [3, 20], [4, 20]]})
 
     # Multiple keys
@@ -338,23 +338,23 @@ tests:
       py: tbl.group('a', lambda row:row['id'].mod(3)).count()
       js: tbl.group('a', function(row){return row('id').mod(3)}).count()
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 9], [[0, 1], 8], [[0, 2], 8], [[1, 0], 8], [[1, 1], 9], [[1, 2], 8], [[2, 0], 8], [[2, 1], 8], [[2, 2], 9], [[3, 0], 9], [[3, 1], 8], [[3, 2], 8]]})
 
     # Grouping by time
     - rb: tbl4.group('time').coerce_to('array')
       runopts:
-        time_format: '"raw"'
+        time_format: 'raw'
       ot: ({{"$reql_type$"=>"TIME","epoch_time"=>1375115782.24,"timezone"=>"+00:00"}=>[{"id"=>0,"time"=>{"$reql_type$"=>"TIME","epoch_time"=>1375115782.24,"timezone"=>"+00:00"}}],{"$reql_type$"=>"TIME","epoch_time"=>1375147296.68,"timezone"=>"+00:00"}=>[{"id"=>1,"time"=>{"$reql_type$"=>"TIME","epoch_time"=>1375147296.68,"timezone"=>"+00:00"}}]})
 
     - py: tbl4.group('time').coerce_to('array')
       runopts:
-        time_format: '"raw"'
+        time_format: 'raw'
       ot: ({frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375115782.24)]):[{'id':0,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375115782.24}}],frozenset([('$reql_type$','TIME'),('timezone','+00:00'),('epoch_time',1375147296.68)]):[{'id':1,'time':{'timezone':'+00:00','$reql_type$':'TIME','epoch_time':1375147296.68}}]})
 
     - js: tbl4.group('time').coerce_to('array')
       runopts:
-        timeFormat: '"raw"'
+        timeFormat: 'raw'
       ot: ([{'group':{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"},'reduction':[{"id":0,"time":{"$reql_type$":"TIME","epoch_time":1375115782240,"timezone":"+00:00"}}]},{'group':{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"},'reduction':[{"id":1,"time":{"$reql_type$":"TIME","epoch_time":1375147296680,"timezone":"+00:00"}}]}])
 
     # Distinct
@@ -451,35 +451,35 @@ tests:
       js: tbl.group({index:'id'}).count()
       cd: tbl.group(index:'id').count
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1], [11, 1], [12, 1], [13, 1], [14, 1], [15, 1], [16, 1], [17, 1], [18, 1], [19, 1], [20, 1], [21, 1], [22, 1], [23, 1], [24, 1], [25, 1], [26, 1], [27, 1], [28, 1], [29, 1], [30, 1], [31, 1], [32, 1], [33, 1], [34, 1], [35, 1], [36, 1], [37, 1], [38, 1], [39, 1], [40, 1], [41, 1], [42, 1], [43, 1], [44, 1], [45, 1], [46, 1], [47, 1], [48, 1], [49, 1], [50, 1], [51, 1], [52, 1], [53, 1], [54, 1], [55, 1], [56, 1], [57, 1], [58, 1], [59, 1], [60, 1], [61, 1], [62, 1], [63, 1], [64, 1], [65, 1], [66, 1], [67, 1], [68, 1], [69, 1], [70, 1], [71, 1], [72, 1], [73, 1], [74, 1], [75, 1], [76, 1], [77, 1], [78, 1], [79, 1], [80, 1], [81, 1], [82, 1], [83, 1], [84, 1], [85, 1], [86, 1], [87, 1], [88, 1], [89, 1], [90, 1], [91, 1], [92, 1], [93, 1], [94, 1], [95, 1], [96, 1], [97, 1], [98, 1], [99, 1]]})
 
     - py: tbl.group(index='a').count()
       js: tbl.group({index:'a'}).count()
       rb: tbl.group(index:'a').count
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[0, 25], [1, 25], [2, 25], [3, 25]]})
 
     - py: tbl.group('a', index='id').count()
       js: tbl.group('a', {index:'id'}).count()
       rb: tbl.group('a', index:'id').count
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 1], [[0, 4], 1], [[0, 8], 1], [[0, 12], 1], [[0, 16], 1], [[0, 20], 1], [[0, 24], 1], [[0, 28], 1], [[0, 32], 1], [[0, 36], 1], [[0, 40], 1], [[0, 44], 1], [[0, 48], 1], [[0, 52], 1], [[0, 56], 1], [[0, 60], 1], [[0, 64], 1], [[0, 68], 1], [[0, 72], 1], [[0, 76], 1], [[0, 80], 1], [[0, 84], 1], [[0, 88], 1], [[0, 92], 1], [[0, 96], 1], [[1, 1], 1], [[1, 5], 1], [[1, 9], 1], [[1, 13], 1], [[1, 17], 1], [[1, 21], 1], [[1, 25], 1], [[1, 29], 1], [[1, 33], 1], [[1, 37], 1], [[1, 41], 1], [[1, 45], 1], [[1, 49], 1], [[1, 53], 1], [[1, 57], 1], [[1, 61], 1], [[1, 65], 1], [[1, 69], 1], [[1, 73], 1], [[1, 77], 1], [[1, 81], 1], [[1, 85], 1], [[1, 89], 1], [[1, 93], 1], [[1, 97], 1], [[2, 2], 1], [[2, 6], 1], [[2, 10], 1], [[2, 14], 1], [[2, 18], 1], [[2, 22], 1], [[2, 26], 1], [[2, 30], 1], [[2, 34], 1], [[2, 38], 1], [[2, 42], 1], [[2, 46], 1], [[2, 50], 1], [[2, 54], 1], [[2, 58], 1], [[2, 62], 1], [[2, 66], 1], [[2, 70], 1], [[2, 74], 1], [[2, 78], 1], [[2, 82], 1], [[2, 86], 1], [[2, 90], 1], [[2, 94], 1], [[2, 98], 1], [[3, 3], 1], [[3, 7], 1], [[3, 11], 1], [[3, 15], 1], [[3, 19], 1], [[3, 23], 1], [[3, 27], 1], [[3, 31], 1], [[3, 35], 1], [[3, 39], 1], [[3, 43], 1], [[3, 47], 1], [[3, 51], 1], [[3, 55], 1], [[3, 59], 1], [[3, 63], 1], [[3, 67], 1], [[3, 71], 1], [[3, 75], 1], [[3, 79], 1], [[3, 83], 1], [[3, 87], 1], [[3, 91], 1], [[3, 95], 1], [[3, 99], 1]]})
 
     - py: tbl.group('a', index='a').count()
       js: tbl.group('a', {index:'a'}).count()
       rb: tbl.group('a', index:'a').count
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
 
     - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], null, 0]}, multi:true).count
       py: tbl.group('a', lambda row:'f', lambda row:[], lambda row:[{}, [0], null, 0], multi=True).count()
       js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
       runopts:
-        group_format: '"raw"'
+        group_format: 'raw'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, "f", null, [0]], 25], [[0, "f", null, null], 25], [[0, "f", null, 0], 25], [[0, "f", null, {}], 25], [[1, "f", null, [0]], 25], [[1, "f", null, null], 25], [[1, "f", null, 0], 25], [[1, "f", null, {}], 25], [[2, "f", null, [0]], 25], [[2, "f", null, null], 25], [[2, "f", null, 0], 25], [[2, "f", null, {}], 25], [[3, "f", null, [0]], 25], [[3, "f", null, null], 25], [[3, "f", null, 0], 25], [[3, "f", null, {}], 25]]})
 
     - cd: tbl.group('a').count().ungroup()

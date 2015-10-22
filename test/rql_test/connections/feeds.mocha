@@ -81,6 +81,10 @@ var withTableFeed = function() {
             function(value) { return r.db(dbName).tableCreate(value); }
         ).run(reqlConn);
     })
+    // make sure the table is ready
+    .then(function() {
+        return r.db(dbName).table(tableName).wait().run(reqlConn)
+    })
     // provide a clean tableFeed
     .then(function() {
         try {
@@ -249,19 +253,25 @@ describe('JavaScript changefeed', function() {
             tbl.changes().run(reqlConn, function(err, tableFeed) {
                 assert.ifError(err);
                 tableFeed.close();
+                var deadline = Date.now() + 200
 
                 // wait a moment then ensure it is closed
-                setTimeout(function() {
+                var checkError = function() {
                     tableFeed.next()
                     .then(function() {
-                        err = new Error("Expected error when closed cursor used was not thrown");
-                        done(err);
+                        if (Date.now() > deadline) {
+                            err = new Error("The expected error when a closed cursor is used was not thrown");
+                            done(err);
+                        } else {
+                            setTimeout(checkError, 5);
+                        }
                     })
                     .catch(r.Error.ReqlDriverError, function(err) {
                         done();
                     })
                     .catch(function(err) { done(err); })
-                }, 100);
+                }
+                setTimeout(checkError, 10) // give it a moment to close
             });
         });
 
@@ -286,6 +296,7 @@ describe('JavaScript changefeed', function() {
 
     describe('EventEmitter interface', function() {
         var shortTimeout = 200;
+        var checkDelay = 5
 
         // ensure we have a clean reqlConn for the next test
         afterEach(function() { reqlConn.removeAllListeners; reqlConn = null; });
@@ -299,6 +310,7 @@ describe('JavaScript changefeed', function() {
         it('emits an event when data is inserted', function(done) {
             var eventCounter = 0;
             var expectedEvents = 3;
+            var deadline = Date.now() + shortTimeout;
 
             // set the event receiver
             tableFeed.on('data', function() { eventCounter += 1; });
@@ -306,21 +318,25 @@ describe('JavaScript changefeed', function() {
             // do the inserts
             r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'data on'}); }).run(reqlConn);
 
-            // set a timeout to check on the result
-            setTimeout(function() {
+            // check on the result periodically, up to a deadline
+            var checkEvents = function() {
                 if(eventCounter == expectedEvents) {
                     done();
-                } else {
+                } else if (Date.now() > deadline) {
                     err = new Error('Expected ' + expectedEvents + ' events but only saw ' + eventCounter);
                     done(err);
+                } else {
+                    setTimeout(checkEvents, checkDelay);
                 }
-            }, shortTimeout);
+            }
+            checkEvents();
         });
 
         it('emits an event to two receivers when data is inserted', function(done) {
             var eventCounterA = 0;
             var eventCounterB = 0;
             var expectedEvents = 3;
+            var deadline = Date.now() + shortTimeout;
 
             // set the event receivers
             tableFeed.on('data', function() { eventCounterA += 1; });
@@ -329,20 +345,24 @@ describe('JavaScript changefeed', function() {
             // do the inserts
             r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'data on with two receivers'}); }).run(reqlConn);
 
-            // set a timeout to check on the result
-            setTimeout(function() {
+            // check on the result periodically, up to a deadline
+            var checkEvents = function() {
                 if(eventCounterA == expectedEvents) {
                      done();
-                } else {
+                } else if (Date.now() > deadline) {
                     err = new Error('Expected ' + expectedEvents + ' events but saw ' + eventCounterA + '/' + eventCounterB);
                     done(err);
+                } else {
+                    setTimeout(checkEvents, checkDelay);
                 }
-            }, shortTimeout);
+            }
+            checkEvents();
         });
 
         describe('once', function() {
             it('emits only one event', function(done) {
                 var eventCounter = 0;
+                var deadline = Date.now() + shortTimeout;
 
                 // set the event receiver
                 tableFeed.once('data', function(row) {
@@ -354,8 +374,8 @@ describe('JavaScript changefeed', function() {
                 // insert 2 events
                 tbl.insert([{'test':'data once'}, {'test':'data once'}]).run(reqlConn);
 
-                // set a timeout to check on the result
-                setTimeout(function() {
+                // check on the result periodically, up to a deadline
+                var checkEvents = function() {
                     if(eventCounter == 1) {
                         if(tableFeed.listeners('data').length == 0) {
                             done();
@@ -363,33 +383,39 @@ describe('JavaScript changefeed', function() {
                             err = new Error('Expected no event listeners but found ' + tableFeed.listeners('data').length);
                             done(err);
                         }
-                    } else {
+                    } else if (Date.now() > deadline) {
                         err = new Error('Expected 1 event but saw ' + eventCounter);
                         done(err);
+                    } else {
+                        setTimeout(checkEvents, checkDelay);
                     }
-                }, shortTimeout);
+                }
+                checkEvents();
             });
         });
 
         it('emits error events', function(done) {
             var eventCounter = 0;
             var expectedEvents = 1;
+            var deadline = Date.now() + shortTimeout;
 
             // set the event receiver
             tableFeed.on('error', function(error) { eventCounter += 1; });
 
-            // drop the table to generate an error in the feed
-            r.db(dbName).tableDrop(tableName).run(reqlConn)
-
-            // set a timeout to check on the result
-            setTimeout(function() {
+            // check on the result periodically, up to a deadline
+            var checkEvents = function() {
                 if(eventCounter == expectedEvents) {
                     done();
-                } else {
+                } else if (Date.now() > deadline) {
                     err = new Error('Expected ' + expectedEvents + ' errors but only saw ' + eventCounter);
                     done(err);
+                } else {
+                    setTimeout(checkEvents, checkDelay);
                 }
-            }, shortTimeout);
+            }
+            
+            // drop the table to generate an error in the feed
+            r.db(dbName).tableDrop(tableName).run(reqlConn).then(checkEvents);
         });
 
         it('supports removeListener', function() {
@@ -452,6 +478,7 @@ describe('JavaScript changefeed', function() {
 
         it("doesn't emit events after close", function(done) {
             var counter = 0;
+            var deadline = Date.now() + shortTimeout;
 
             // set the event receiver
             tableFeed.on('data', function() { counter += 1; });
@@ -462,16 +489,18 @@ describe('JavaScript changefeed', function() {
             // insert an item
             tbl.insert({}).run(reqlConn);
 
-            // after a short timeout check that counter is still 0
-            setTimeout(function() {
+            // check on the result periodically, up to a deadline
+            var checkEvents = function() {
                 if(counter == 0) {
                     done();
-                } else {
+                } else if (Date.now() > deadline) {
                     err = new Error('Expected 0 events after a close but saw ' + counter);
                     done(err);
+                } else {
+                    setTimeout(checkEvents, checkDelay);
                 }
-            }, shortTimeout);
-
+            }
+            checkEvents();
         });
     });
 });
