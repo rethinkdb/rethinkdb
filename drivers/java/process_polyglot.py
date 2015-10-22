@@ -50,12 +50,13 @@ Query = namedtuple(
     ('query',
      'expected',
      'testfile',
-     'test_num',
+     'line_num',
      'runopts')
 )
-Def = namedtuple('Def', 'varname term run_if_query testfile test_num')
-CustomDef = namedtuple('CustomDef', 'line testfile test_num')
+Def = namedtuple('Def', 'varname term run_if_query testfile line_num')
+CustomDef = namedtuple('CustomDef', 'line testfile line_num')
 Expect = namedtuple('Expect', 'bif term')
+
 
 class AnythingIsFine(object):
     def __init__(self):
@@ -119,6 +120,8 @@ def _try_eval(node, context):
         raise Skip("Java type system prevents static Reql errors")
     except AttributeError:
         raise Skip("Java type system prevents attribute errors")
+    except Exception:
+        logger.error("Failed evaluating %r", ast.dump(node_4_eval))
     return type(value), value
 
 
@@ -148,7 +151,9 @@ def valid_filename(exclusions, filepath):
     if parts[-1] != 'yaml':
         return False
     for exclusion in exclusions:
-        if filepath.startswith(exclusion):
+        if exclusion in filepath:
+            logger.info("Skipped %s due to exclusion %r",
+                        filepath, exclusion)
             return False
     return True
 
@@ -230,10 +235,9 @@ def create_context(r, table_var_names):
 class TestContext(object):
     '''Holds file, context and test number info before "expected" data
     is obtained'''
-    def __init__(self, context, testfile, test_num, runopts):
+    def __init__(self, context, testfile, runopts):
         self.context = context
         self.testfile = testfile
-        self.test_num = test_num
         self.runopts = runopts
 
     @staticmethod
@@ -295,7 +299,7 @@ class TestContext(object):
                 ast=parsed_define),
             run_if_query=run_if_query,
             testfile=self.testfile,
-            test_num=self.test_num,
+            line_num=define_line.linenumber,
         )
 
     def def_from_define(self, define, run_if_query):
@@ -305,7 +309,7 @@ class TestContext(object):
 
     def custom_def(self, line):
         return CustomDef(
-            line=line, testfile=self.testfile, test_num=self.test_num)
+            line=line, testfile=self.testfile, line_num=line.linenumber)
 
 
 class ExpectedContext(object):
@@ -314,12 +318,11 @@ class ExpectedContext(object):
 
     def __init__(self, test_context, expected_term):
         self.testfile = test_context.testfile
-        self.test_num = test_context.test_num
         self.context = test_context.context
         self.runopts = test_context.runopts
         self.expected_term = expected_term
 
-    def query_from_term(self, query_term, test_num=None):
+    def query_from_term(self, query_term, line_num=None):
         if type(query_term) == SkippedTest:
             return query_term
         else:
@@ -327,18 +330,18 @@ class ExpectedContext(object):
                 query=query_term,
                 expected=self.expected_term,
                 testfile=self.testfile,
-                test_num=self.test_num if test_num is None else test_num,
+                line_num=query_term.line.linenumber,
                 runopts=self.runopts,
             )
 
     def query_from_test(self, test):
         return self.query_from_term(
-            self.term_from_test(test))
+            self.term_from_test(test), test.linenumber)
 
-    def query_from_subtest(self, test, subtest_num):
+    def query_from_subtest(self, test, subline_num):
         return self.query_from_term(
             self.term_from_test(test),
-            (self.test_num, subtest_num))
+            (test.linenumber, subline_num))
 
     def query_from_parsed(self, testline, parsed):
         return self.query_from_term(
@@ -370,12 +373,12 @@ def tests_and_defs(testfile, raw_test_data, context, custom_field=None):
     `custom`        is the specific type of test to look for.
                     (falls back to 'py', then 'cd')
     '''
-    for test_num, test in enumerate(raw_test_data, 1):
+    for test in raw_test_data:
         runopts = test.get('runopts')
         if runopts is not None:
             runopts = {key: ast.parse(py_str(val), mode="eval").body
                        for key, val in runopts.items()}
-        test_context = TestContext(context, testfile, test_num, runopts)
+        test_context = TestContext(context, testfile, runopts=runopts)
         if 'def' in test and flexiget(test['def'], [custom_field], False):
             yield test_context.custom_def(test['def'][custom_field])
         elif 'def' in test:

@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TimesApi {
+    // date/time api (#977)
     Logger logger = LoggerFactory.getLogger(TimesApi.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class TimesApi {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class TimesApi {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,38 +76,37 @@ public class TimesApi {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // times/api.yaml #1
+        // times/api.yaml line #6
         // rt1 = 1375147296.6812
-        System.out.println("Possibly executing: Double rt1 = (Double) (1375147296.6812);");
+        logger.info("Possibly executing: Double rt1 = (Double) (1375147296.6812);");
         Double rt1 = (Double) (1375147296.6812);
                 
-        // times/api.yaml #2
+        // times/api.yaml line #7
         // t1 = r.epoch_time(rt1)
-        System.out.println("Possibly executing: EpochTime t1 = (EpochTime) (r.epochTime(rt1));");
+        logger.info("Possibly executing: EpochTime t1 = (EpochTime) (r.epochTime(rt1));");
         EpochTime t1 = (EpochTime) (r.epochTime(rt1));
                 
-        // times/api.yaml #3
+        // times/api.yaml line #8
         // t2 = r.epoch_time(rt1 + 1000)
-        System.out.println("Possibly executing: EpochTime t2 = (EpochTime) (r.epochTime(r.add(rt1, 1000L)));");
+        logger.info("Possibly executing: EpochTime t2 = (EpochTime) (r.epochTime(r.add(rt1, 1000L)));");
         EpochTime t2 = (EpochTime) (r.epochTime(r.add(rt1, 1000L)));
                 
         {
-            // times/api.yaml #4
+            // times/api.yaml line #11
             /* (1375148296.681) */
             Double expected_ = 1375148296.681;
             /* (t1 + 1000).to_epoch_time() */
-            System.out.println("About to run #4: r.add(t1, 1000L).toEpochTime()");
+            logger.info("About to run line #11: r.add(t1, 1000L).toEpochTime()");
             Object obtained = runOrCatch(r.add(t1, 1000L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -114,22 +115,21 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #5
+            // times/api.yaml line #14
             /* (1375146296.681) */
             Double expected_ = 1375146296.681;
             /* (t1 - 1000).to_epoch_time() */
-            System.out.println("About to run #5: r.sub(t1, 1000L).toEpochTime()");
+            logger.info("About to run line #14: r.sub(t1, 1000L).toEpochTime()");
             Object obtained = runOrCatch(r.sub(t1, 1000L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -138,20 +138,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #6
+            // times/api.yaml line #17
             /* 1000 */
             Long expected_ = 1000L;
             /* (t1 - (t1 - 1000)) */
-            System.out.println("About to run #6: r.sub(t1, r.sub(t1, 1000L))");
+            logger.info("About to run line #17: r.sub(t1, r.sub(t1, 1000L))");
             Object obtained = runOrCatch(r.sub(t1, r.sub(t1, 1000L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -160,20 +159,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #7
-            /* False */
+            // times/api.yaml line #22
+            /* false */
             Boolean expected_ = false;
             /* (t1 < t1) */
-            System.out.println("About to run #7: r.lt(t1, t1)");
+            logger.info("About to run line #22: r.lt(t1, t1)");
             Object obtained = runOrCatch(r.lt(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -182,20 +180,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #8
-            /* True */
+            // times/api.yaml line #25
+            /* true */
             Boolean expected_ = true;
             /* (t1 <= t1) */
-            System.out.println("About to run #8: r.le(t1, t1)");
+            logger.info("About to run line #25: r.le(t1, t1)");
             Object obtained = runOrCatch(r.le(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -204,20 +201,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #9
-            /* True */
+            // times/api.yaml line #29
+            /* true */
             Boolean expected_ = true;
             /* (t1 == t1) */
-            System.out.println("About to run #9: r.eq(t1, t1)");
+            logger.info("About to run line #29: r.eq(t1, t1)");
             Object obtained = runOrCatch(r.eq(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -226,20 +222,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #10
-            /* False */
+            // times/api.yaml line #32
+            /* false */
             Boolean expected_ = false;
             /* (t1 != t1) */
-            System.out.println("About to run #10: r.ne(t1, t1)");
+            logger.info("About to run line #32: r.ne(t1, t1)");
             Object obtained = runOrCatch(r.ne(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #32");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #32:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -248,20 +243,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #11
-            /* True */
+            // times/api.yaml line #34
+            /* true */
             Boolean expected_ = true;
             /* (t1 >= t1) */
-            System.out.println("About to run #11: r.ge(t1, t1)");
+            logger.info("About to run line #34: r.ge(t1, t1)");
             Object obtained = runOrCatch(r.ge(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -270,20 +264,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #12
-            /* False */
+            // times/api.yaml line #37
+            /* false */
             Boolean expected_ = false;
             /* (t1 > t1) */
-            System.out.println("About to run #12: r.gt(t1, t1)");
+            logger.info("About to run line #37: r.gt(t1, t1)");
             Object obtained = runOrCatch(r.gt(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -292,20 +285,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #13
-            /* True */
+            // times/api.yaml line #40
+            /* true */
             Boolean expected_ = true;
             /* (t1 < t2) */
-            System.out.println("About to run #13: r.lt(t1, t2)");
+            logger.info("About to run line #40: r.lt(t1, t2)");
             Object obtained = runOrCatch(r.lt(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -314,20 +306,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #14
-            /* True */
+            // times/api.yaml line #43
+            /* true */
             Boolean expected_ = true;
             /* (t1 <= t2) */
-            System.out.println("About to run #14: r.le(t1, t2)");
+            logger.info("About to run line #43: r.le(t1, t2)");
             Object obtained = runOrCatch(r.le(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #43");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #43:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -336,20 +327,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #15
-            /* False */
+            // times/api.yaml line #47
+            /* false */
             Boolean expected_ = false;
             /* (t1 == t2) */
-            System.out.println("About to run #15: r.eq(t1, t2)");
+            logger.info("About to run line #47: r.eq(t1, t2)");
             Object obtained = runOrCatch(r.eq(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -358,20 +348,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #16
-            /* True */
+            // times/api.yaml line #50
+            /* true */
             Boolean expected_ = true;
             /* (t1 != t2) */
-            System.out.println("About to run #16: r.ne(t1, t2)");
+            logger.info("About to run line #50: r.ne(t1, t2)");
             Object obtained = runOrCatch(r.ne(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -380,20 +369,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #17
-            /* False */
+            // times/api.yaml line #52
+            /* false */
             Boolean expected_ = false;
             /* (t1 >= t2) */
-            System.out.println("About to run #17: r.ge(t1, t2)");
+            logger.info("About to run line #52: r.ge(t1, t2)");
             Object obtained = runOrCatch(r.ge(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -402,20 +390,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #18
-            /* False */
+            // times/api.yaml line #55
+            /* false */
             Boolean expected_ = false;
             /* (t1 > t2) */
-            System.out.println("About to run #18: r.gt(t1, t2)");
+            logger.info("About to run line #55: r.gt(t1, t2)");
             Object obtained = runOrCatch(r.gt(t1, t2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -424,20 +411,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #19
-            /* True */
+            // times/api.yaml line #60
+            /* true */
             Boolean expected_ = true;
             /* t1.during(t1, t1 + 1000) */
-            System.out.println("About to run #19: t1.during(t1, r.add(t1, 1000L))");
+            logger.info("About to run line #60: t1.during(t1, r.add(t1, 1000L))");
             Object obtained = runOrCatch(t1.during(t1, r.add(t1, 1000L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -446,20 +432,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #20
-            /* False */
+            // times/api.yaml line #64
+            /* false */
             Boolean expected_ = false;
             /* t1.during(t1, t1 + 1000, left_bound='open') */
-            System.out.println("About to run #20: t1.during(t1, r.add(t1, 1000L)).optArg('left_bound', 'open')");
+            logger.info("About to run line #64: t1.during(t1, r.add(t1, 1000L)).optArg('left_bound', 'open')");
             Object obtained = runOrCatch(t1.during(t1, r.add(t1, 1000L)).optArg("left_bound", "open"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -468,20 +453,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #21
-            /* False */
+            // times/api.yaml line #67
+            /* false */
             Boolean expected_ = false;
             /* t1.during(t1, t1) */
-            System.out.println("About to run #21: t1.during(t1, t1)");
+            logger.info("About to run line #67: t1.during(t1, t1)");
             Object obtained = runOrCatch(t1.during(t1, t1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #67");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #67:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -490,20 +474,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #22
-            /* True */
+            // times/api.yaml line #70
+            /* true */
             Boolean expected_ = true;
             /* t1.during(t1, t1, right_bound='closed') */
-            System.out.println("About to run #22: t1.during(t1, t1).optArg('right_bound', 'closed')");
+            logger.info("About to run line #70: t1.during(t1, t1).optArg('right_bound', 'closed')");
             Object obtained = runOrCatch(t1.during(t1, t1).optArg("right_bound", "closed"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #70");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -512,20 +495,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #23
+            // times/api.yaml line #77
             /* 1375142400 */
             Long expected_ = 1375142400L;
             /* t1.date().to_epoch_time() */
-            System.out.println("About to run #23: t1.date().toEpochTime()");
+            logger.info("About to run line #77: t1.date().toEpochTime()");
             Object obtained = runOrCatch(t1.date().toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #77");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #77:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -534,22 +516,21 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #24
+            // times/api.yaml line #79
             /* (4896.681) */
             Double expected_ = 4896.681;
             /* t1.time_of_day() */
-            System.out.println("About to run #24: t1.timeOfDay()");
+            logger.info("About to run line #79: t1.timeOfDay()");
             Object obtained = runOrCatch(t1.timeOfDay(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #79");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #79:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -558,20 +539,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #25
+            // times/api.yaml line #81
             /* 2013 */
             Long expected_ = 2013L;
             /* t1.year() */
-            System.out.println("About to run #25: t1.year()");
+            logger.info("About to run line #81: t1.year()");
             Object obtained = runOrCatch(t1.year(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -580,20 +560,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #26
+            // times/api.yaml line #83
             /* 7 */
             Long expected_ = 7L;
             /* t1.month() */
-            System.out.println("About to run #26: t1.month()");
+            logger.info("About to run line #83: t1.month()");
             Object obtained = runOrCatch(t1.month(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -602,20 +581,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #27
+            // times/api.yaml line #85
             /* 30 */
             Long expected_ = 30L;
             /* t1.day() */
-            System.out.println("About to run #27: t1.day()");
+            logger.info("About to run line #85: t1.day()");
             Object obtained = runOrCatch(t1.day(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -624,20 +602,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #28
+            // times/api.yaml line #87
             /* 2 */
             Long expected_ = 2L;
             /* t1.day_of_week() */
-            System.out.println("About to run #28: t1.dayOfWeek()");
+            logger.info("About to run line #87: t1.dayOfWeek()");
             Object obtained = runOrCatch(t1.dayOfWeek(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #87");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #87:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -646,20 +623,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #29
+            // times/api.yaml line #89
             /* 211 */
             Long expected_ = 211L;
             /* t1.day_of_year() */
-            System.out.println("About to run #29: t1.dayOfYear()");
+            logger.info("About to run line #89: t1.dayOfYear()");
             Object obtained = runOrCatch(t1.dayOfYear(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #89");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #89:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -668,20 +644,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #30
+            // times/api.yaml line #91
             /* 1 */
             Long expected_ = 1L;
             /* t1.hours() */
-            System.out.println("About to run #30: t1.hours()");
+            logger.info("About to run line #91: t1.hours()");
             Object obtained = runOrCatch(t1.hours(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -690,20 +665,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #31
+            // times/api.yaml line #93
             /* 21 */
             Long expected_ = 21L;
             /* t1.minutes() */
-            System.out.println("About to run #31: t1.minutes()");
+            logger.info("About to run line #93: t1.minutes()");
             Object obtained = runOrCatch(t1.minutes(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -712,22 +686,21 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #32
+            // times/api.yaml line #95
             /* 36.681 */
             Double expected_ = 36.681;
             /* t1.seconds() */
-            System.out.println("About to run #32: t1.seconds()");
+            logger.info("About to run line #95: t1.seconds()");
             Object obtained = runOrCatch(t1.seconds(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #95");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #95:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -736,22 +709,21 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #33
+            // times/api.yaml line #99
             /* (1375165800.1) */
             Double expected_ = 1375165800.1;
             /* r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").to_epoch_time() */
-            System.out.println("About to run #33: r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, '-07:00').toEpochTime()");
+            logger.info("About to run line #99: r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, '-07:00').toEpochTime()");
             Object obtained = runOrCatch(r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, "-07:00").toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -760,20 +732,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #34
+            // times/api.yaml line #101
             /* ("-07:00") */
             String expected_ = "-07:00";
             /* r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone() */
-            System.out.println("About to run #34: r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, '-07:00').timezone()");
+            logger.info("About to run line #101: r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, '-07:00').timezone()");
             Object obtained = runOrCatch(r.time(2013L, r.july(), 29L, 23L, 30L, 0.1, "-07:00").timezone(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -782,20 +753,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #38
+            // times/api.yaml line #109
             /* err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", r.array());
             /* r.time(2013, r.july, 29, 23).to_epoch_time() */
-            System.out.println("About to run #38: r.time(2013L, r.july(), 29L, 23L).toEpochTime()");
+            logger.info("About to run line #109: r.time(2013L, r.july(), 29L, 23L).toEpochTime()");
             Object obtained = runOrCatch(r.time(2013L, r.july(), 29L, 23L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #109");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #109:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -804,20 +774,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #39
+            // times/api.yaml line #111
             /* 1375081200 */
             Long expected_ = 1375081200L;
             /* r.time(2013, r.july, 29, "-07:00").to_epoch_time() */
-            System.out.println("About to run #39: r.time(2013L, r.july(), 29L, '-07:00').toEpochTime()");
+            logger.info("About to run line #111: r.time(2013L, r.july(), 29L, '-07:00').toEpochTime()");
             Object obtained = runOrCatch(r.time(2013L, r.july(), 29L, "-07:00").toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #111");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #111:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -826,20 +795,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #40
+            // times/api.yaml line #113
             /* ("-07:00") */
             String expected_ = "-07:00";
             /* r.time(2013, r.july, 29, "-07:00").timezone() */
-            System.out.println("About to run #40: r.time(2013L, r.july(), 29L, '-07:00').timezone()");
+            logger.info("About to run line #113: r.time(2013L, r.july(), 29L, '-07:00').timezone()");
             Object obtained = runOrCatch(r.time(2013L, r.july(), 29L, "-07:00").timezone(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -848,20 +816,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #43
+            // times/api.yaml line #119
             /* 1375242965 */
             Long expected_ = 1375242965L;
             /* r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time() */
-            System.out.println("About to run #43: r.iso8601('2013-07-30T20:56:05-07:00').toEpochTime()");
+            logger.info("About to run line #119: r.iso8601('2013-07-30T20:56:05-07:00').toEpochTime()");
             Object obtained = runOrCatch(r.iso8601("2013-07-30T20:56:05-07:00").toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #119");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #119:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -870,20 +837,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #44
+            // times/api.yaml line #122
             /* ("2013-07-30T20:56:05-07:00") */
             String expected_ = "2013-07-30T20:56:05-07:00";
             /* r.epoch_time(1375242965).in_timezone("-07:00").to_iso8601() */
-            System.out.println("About to run #44: r.epochTime(1375242965L).inTimezone('-07:00').toIso8601()");
+            logger.info("About to run line #122: r.epochTime(1375242965L).inTimezone('-07:00').toIso8601()");
             Object obtained = runOrCatch(r.epochTime(1375242965L).inTimezone("-07:00").toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -892,20 +858,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #45
+            // times/api.yaml line #125
             /* ("PTYPE<TIME>") */
             String expected_ = "PTYPE<TIME>";
             /* r.now().type_of() */
-            System.out.println("About to run #45: r.now().typeOf()");
+            logger.info("About to run line #125: r.now().typeOf()");
             Object obtained = runOrCatch(r.now().typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #125");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #125:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -914,20 +879,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #46
+            // times/api.yaml line #127
             /* 0 */
             Long expected_ = 0L;
             /* (r.now() - r.now()) */
-            System.out.println("About to run #46: r.now().sub(r.now())");
+            logger.info("About to run line #127: r.now().sub(r.now())");
             Object obtained = runOrCatch(r.now().sub(r.now()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #127");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #127:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -936,20 +900,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #47
+            // times/api.yaml line #132
             /* err("ReqlQueryLogicError", "ISO 8601 string has no time zone, and no default time zone was provided.", []) */
             Err expected_ = err("ReqlQueryLogicError", "ISO 8601 string has no time zone, and no default time zone was provided.", r.array());
             /* r.iso8601("2013-07-30T20:56:05").to_iso8601() */
-            System.out.println("About to run #47: r.iso8601('2013-07-30T20:56:05').toIso8601()");
+            logger.info("About to run line #132: r.iso8601('2013-07-30T20:56:05').toIso8601()");
             Object obtained = runOrCatch(r.iso8601("2013-07-30T20:56:05").toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #132");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #132:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -958,20 +921,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #48
+            // times/api.yaml line #136
             /* ("2013-07-30T20:56:05-07:00") */
             String expected_ = "2013-07-30T20:56:05-07:00";
             /* r.iso8601("2013-07-30T20:56:05", default_timezone='-07').to_iso8601() */
-            System.out.println("About to run #48: r.iso8601('2013-07-30T20:56:05').optArg('default_timezone', '-07').toIso8601()");
+            logger.info("About to run line #136: r.iso8601('2013-07-30T20:56:05').optArg('default_timezone', '-07').toIso8601()");
             Object obtained = runOrCatch(r.iso8601("2013-07-30T20:56:05").optArg("default_timezone", "-07").toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #136");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #136:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -980,20 +942,19 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #49
+            // times/api.yaml line #140
             /* ([1, 2, 3, 4, 5, 6, 7]) */
             List expected_ = r.array(1L, 2L, 3L, 4L, 5L, 6L, 7L);
             /* r.expr([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday]) */
-            System.out.println("About to run #49: r.expr(r.array(r.monday(), r.tuesday(), r.wednesday(), r.thursday(), r.friday(), r.saturday(), r.sunday()))");
+            logger.info("About to run line #140: r.expr(r.array(r.monday(), r.tuesday(), r.wednesday(), r.thursday(), r.friday(), r.saturday(), r.sunday()))");
             Object obtained = runOrCatch(r.expr(r.array(r.monday(), r.tuesday(), r.wednesday(), r.thursday(), r.friday(), r.saturday(), r.sunday())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #140");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #140:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1002,20 +963,20 @@ public class TimesApi {
         }
         
         {
-            // times/api.yaml #50
+            // times/api.yaml line #142
             /* ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) */
             List expected_ = r.array(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L);
-            /* r.expr([r.january, r.february, r.march, r.april, r.may, r.june, r.july, r.august, r.september, r.october, r.november, r.december]) */
-            System.out.println("About to run #50: r.expr(r.array(r.january(), r.february(), r.march(), r.april(), r.may(), r.june(), r.july(), r.august(), r.september(), r.october(), r.november(), r.december()))");
+            /* r.expr([r.january, r.february, r.march, r.april, r.may, r.june,
+r.july, r.august, r.september, r.october, r.november, r.december]) */
+            logger.info("About to run line #142: r.expr(r.array(r.january(), r.february(), r.march(), r.april(), r.may(), r.june(), r.july(), r.august(), r.september(), r.october(), r.november(), r.december()))");
             Object obtained = runOrCatch(r.expr(r.array(r.january(), r.february(), r.march(), r.april(), r.may(), r.june(), r.july(), r.august(), r.september(), r.october(), r.november(), r.december())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #142");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #142:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

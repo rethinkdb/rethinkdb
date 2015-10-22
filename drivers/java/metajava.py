@@ -30,6 +30,7 @@ jsonf = namedtuple("jsonf", "filename json")
 
 arity_regex = re.compile(r'ReqlFunction(\d+)')
 
+
 def jsonfile(filename):
     return jsonf(filename,
                  json.load(open(filename), object_pairs_hook=OrderedDict))

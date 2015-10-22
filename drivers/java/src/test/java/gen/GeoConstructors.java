@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class GeoConstructors {
+    // Test geo constructors
     Logger logger = LoggerFactory.getLogger(GeoConstructors.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class GeoConstructors {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class GeoConstructors {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class GeoConstructors {
     public void test() throws Exception {
                 
         {
-            // geo/constructors.yaml #1
+            // geo/constructors.yaml line #4
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[0, 0], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(0L, 0L)).with("type", "Point");
             /* r.point(0, 0) */
-            System.out.println("About to run #1: r.point(0L, 0L)");
+            logger.info("About to run line #4: r.point(0L, 0L)");
             Object obtained = runOrCatch(r.point(0L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #4");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #2
+            // geo/constructors.yaml line #6
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[0, -90], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(0L, -90L)).with("type", "Point");
             /* r.point(0, -90) */
-            System.out.println("About to run #2: r.point(0L, -90L)");
+            logger.info("About to run line #6: r.point(0L, -90L)");
             Object obtained = runOrCatch(r.point(0L, -90L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #3
+            // geo/constructors.yaml line #8
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[0, 90], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(0L, 90L)).with("type", "Point");
             /* r.point(0, 90) */
-            System.out.println("About to run #3: r.point(0L, 90L)");
+            logger.info("About to run line #8: r.point(0L, 90L)");
             Object obtained = runOrCatch(r.point(0L, 90L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #4
+            // geo/constructors.yaml line #10
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[-180, 0], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(-180L, 0L)).with("type", "Point");
             /* r.point(-180, 0) */
-            System.out.println("About to run #4: r.point(-180L, 0L)");
+            logger.info("About to run line #10: r.point(-180L, 0L)");
             Object obtained = runOrCatch(r.point(-180L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #5
+            // geo/constructors.yaml line #12
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[180, 0], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(180L, 0L)).with("type", "Point");
             /* r.point(180, 0) */
-            System.out.println("About to run #5: r.point(180L, 0L)");
+            logger.info("About to run line #12: r.point(180L, 0L)");
             Object obtained = runOrCatch(r.point(180L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #6
+            // geo/constructors.yaml line #14
             /* err('ReqlQueryLogicError', 'Latitude must be between -90 and 90.  Got -91.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Latitude must be between -90 and 90.  Got -91.", r.array(0L));
             /* r.point(0, -91) */
-            System.out.println("About to run #6: r.point(0L, -91L)");
+            logger.info("About to run line #14: r.point(0L, -91L)");
             Object obtained = runOrCatch(r.point(0L, -91L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #7
+            // geo/constructors.yaml line #16
             /* err('ReqlQueryLogicError', 'Latitude must be between -90 and 90.  Got 91.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Latitude must be between -90 and 90.  Got 91.", r.array(0L));
             /* r.point(0, 91) */
-            System.out.println("About to run #7: r.point(0L, 91L)");
+            logger.info("About to run line #16: r.point(0L, 91L)");
             Object obtained = runOrCatch(r.point(0L, 91L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #8
+            // geo/constructors.yaml line #18
             /* err('ReqlQueryLogicError', 'Longitude must be between -180 and 180.  Got -181.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Longitude must be between -180 and 180.  Got -181.", r.array(0L));
             /* r.point(-181, 0) */
-            System.out.println("About to run #8: r.point(-181L, 0L)");
+            logger.info("About to run line #18: r.point(-181L, 0L)");
             Object obtained = runOrCatch(r.point(-181L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #9
+            // geo/constructors.yaml line #20
             /* err('ReqlQueryLogicError', 'Longitude must be between -180 and 180.  Got 181.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Longitude must be between -180 and 180.  Got 181.", r.array(0L));
             /* r.point(181, 0) */
-            System.out.println("About to run #9: r.point(181L, 0L)");
+            logger.info("About to run line #20: r.point(181L, 0L)");
             Object obtained = runOrCatch(r.point(181L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #12
+            // geo/constructors.yaml line #28
             /* err('ReqlQueryLogicError', 'Invalid LineString.  Are there antipodal or duplicate vertices?', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid LineString.  Are there antipodal or duplicate vertices?", r.array(0L));
             /* r.line([0,0], [0,0]) */
-            System.out.println("About to run #12: r.line(r.array(0L, 0L), r.array(0L, 0L))");
+            logger.info("About to run line #28: r.line(r.array(0L, 0L), r.array(0L, 0L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #13
+            // geo/constructors.yaml line #30
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[0,0], [0,1]], 'type':'LineString'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(0L, 0L), r.array(0L, 1L))).with("type", "LineString");
             /* r.line([0,0], [0,1]) */
-            System.out.println("About to run #13: r.line(r.array(0L, 0L), r.array(0L, 1L))");
+            logger.info("About to run line #30: r.line(r.array(0L, 0L), r.array(0L, 1L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(0L, 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #14
+            // geo/constructors.yaml line #32
             /* err('ReqlQueryLogicError', 'Expected point coordinate pair.  Got 1 element array instead of a 2 element one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected point coordinate pair.  Got 1 element array instead of a 2 element one.", r.array(0L));
             /* r.line([0,0], [1]) */
-            System.out.println("About to run #14: r.line(r.array(0L, 0L), r.array(1L))");
+            logger.info("About to run line #32: r.line(r.array(0L, 0L), r.array(1L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #32");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #32:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #15
+            // geo/constructors.yaml line #34
             /* err('ReqlQueryLogicError', 'Expected point coordinate pair.  Got 3 element array instead of a 2 element one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected point coordinate pair.  Got 3 element array instead of a 2 element one.", r.array(0L));
             /* r.line([0,0], [1,0,0]) */
-            System.out.println("About to run #15: r.line(r.array(0L, 0L), r.array(1L, 0L, 0L))");
+            logger.info("About to run line #34: r.line(r.array(0L, 0L), r.array(1L, 0L, 0L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(1L, 0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #16
+            // geo/constructors.yaml line #36
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[0,0], [0,1], [0,0]], 'type':'LineString'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 0L))).with("type", "LineString");
             /* r.line([0,0], [0,1], [0,0]) */
-            System.out.println("About to run #16: r.line(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 0L))");
+            logger.info("About to run line #36: r.line(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 0L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #36");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #36:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #17
+            // geo/constructors.yaml line #38
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[0,0], [0,1], [0,0]], 'type':'LineString'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 0L))).with("type", "LineString");
             /* r.line(r.point(0,0), r.point(0,1), r.point(0,0)) */
-            System.out.println("About to run #17: r.line(r.point(0L, 0L), r.point(0L, 1L), r.point(0L, 0L))");
+            logger.info("About to run line #38: r.line(r.point(0L, 0L), r.point(0L, 1L), r.point(0L, 0L))");
             Object obtained = runOrCatch(r.line(r.point(0L, 0L), r.point(0L, 1L), r.point(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #18
+            // geo/constructors.yaml line #40
             /* err('ReqlQueryLogicError', 'Expected geometry of type `Point` but found `LineString`.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected geometry of type `Point` but found `LineString`.", r.array(0L));
             /* r.line(r.point(0,0), r.point(1,0), r.line([0,0], [1,0])) */
-            System.out.println("About to run #18: r.line(r.point(0L, 0L), r.point(1L, 0L), r.line(r.array(0L, 0L), r.array(1L, 0L)))");
+            logger.info("About to run line #40: r.line(r.point(0L, 0L), r.point(1L, 0L), r.line(r.array(0L, 0L), r.array(1L, 0L)))");
             Object obtained = runOrCatch(r.line(r.point(0L, 0L), r.point(1L, 0L), r.line(r.array(0L, 0L), r.array(1L, 0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -427,20 +413,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #22
+            // geo/constructors.yaml line #50
             /* err('ReqlQueryLogicError', 'Invalid LinearRing.  Are there antipodal or duplicate vertices? Is it self-intersecting?', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid LinearRing.  Are there antipodal or duplicate vertices? Is it self-intersecting?", r.array(0L));
             /* r.polygon([0,0], [0,0], [0,0], [0,0]) */
-            System.out.println("About to run #22: r.polygon(r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L))");
+            logger.info("About to run line #50: r.polygon(r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L), r.array(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -449,20 +434,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #23
+            // geo/constructors.yaml line #52
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0,0], [0,1], [1,0], [0,0]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with("type", "Polygon");
             /* r.polygon([0,0], [0,1], [1,0]) */
-            System.out.println("About to run #23: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L))");
+            logger.info("About to run line #52: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -471,20 +455,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #24
+            // geo/constructors.yaml line #54
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0,0], [0,1], [1,0], [0,0]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with("type", "Polygon");
             /* r.polygon([0,0], [0,1], [1,0], [0,0]) */
-            System.out.println("About to run #24: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L))");
+            logger.info("About to run line #54: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -493,20 +476,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #25
+            // geo/constructors.yaml line #56
             /* err('ReqlQueryLogicError', 'Invalid LinearRing.  Are there antipodal or duplicate vertices? Is it self-intersecting?', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid LinearRing.  Are there antipodal or duplicate vertices? Is it self-intersecting?", r.array(0L));
             /* r.polygon([0,0], [0,1], [1,0], [-1,0.5]) */
-            System.out.println("About to run #25: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(-1L, 0.5))");
+            logger.info("About to run line #56: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(-1L, 0.5))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(-1L, 0.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #56");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #56:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,20 +497,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #26
+            // geo/constructors.yaml line #58
             /* err('ReqlQueryLogicError', 'Expected point coordinate pair.  Got 1 element array instead of a 2 element one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected point coordinate pair.  Got 1 element array instead of a 2 element one.", r.array(0L));
             /* r.polygon([0,0], [0,1], [0]) */
-            System.out.println("About to run #26: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L))");
+            logger.info("About to run line #58: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -537,20 +518,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #27
+            // geo/constructors.yaml line #60
             /* err('ReqlQueryLogicError', 'Expected point coordinate pair.  Got 3 element array instead of a 2 element one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected point coordinate pair.  Got 3 element array instead of a 2 element one.", r.array(0L));
             /* r.polygon([0,0], [0,1], [0,1,0]) */
-            System.out.println("About to run #27: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 1L, 0L))");
+            logger.info("About to run line #60: r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 1L, 0L))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(0L, 1L), r.array(0L, 1L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -559,20 +539,19 @@ public class GeoConstructors {
         }
         
         {
-            // geo/constructors.yaml #28
+            // geo/constructors.yaml line #62
             /* err('ReqlQueryLogicError', 'Expected geometry of type `Point` but found `LineString`.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected geometry of type `Point` but found `LineString`.", r.array(0L));
             /* r.polygon(r.point(0,0), r.point(0,1), r.line([0,0], [0,1])) */
-            System.out.println("About to run #28: r.polygon(r.point(0L, 0L), r.point(0L, 1L), r.line(r.array(0L, 0L), r.array(0L, 1L)))");
+            logger.info("About to run line #62: r.polygon(r.point(0L, 0L), r.point(0L, 1L), r.line(r.array(0L, 0L), r.array(0L, 1L)))");
             Object obtained = runOrCatch(r.polygon(r.point(0L, 0L), r.point(0L, 1L), r.line(r.array(0L, 0L), r.array(0L, 1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #62");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

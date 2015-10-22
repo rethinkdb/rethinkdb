@@ -27,7 +27,10 @@ class YamlValue(unicode):
     linenumber = None
 
     def __new__(cls, value, linenumber=None):
-        real = unicode.__new__(cls, value.decode('utf-8'))
+        if type(value) == unicode:
+            real = unicode.__new__(cls, value)
+        else:
+            real = unicode.__new__(cls, value, "utf-8")
         if linenumber is not None:
             real.linenumber = int(linenumber)
         return real

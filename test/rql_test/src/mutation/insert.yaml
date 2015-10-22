@@ -53,7 +53,6 @@ tests:
     # test pkey clash error
     - cd: tbl.insert({'id':2,'b':20})
       ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0}
->>>>>>> next
 
     # test error conflict option (object exists)
     - py: tbl.insert({'id':2,'b':20}, conflict='error')

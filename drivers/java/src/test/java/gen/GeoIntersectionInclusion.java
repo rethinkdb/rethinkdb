@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class GeoIntersectionInclusion {
+    // Test intersects and includes semantics
     Logger logger = LoggerFactory.getLogger(GeoIntersectionInclusion.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class GeoIntersectionInclusion {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class GeoIntersectionInclusion {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class GeoIntersectionInclusion {
     public void test() throws Exception {
                 
         {
-            // geo/intersection_inclusion.yaml #1
-            /* True */
+            // geo/intersection_inclusion.yaml line #4
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.point(1.5,1.5)) */
-            System.out.println("About to run #1: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(1.5, 1.5))");
+            logger.info("About to run line #4: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #4");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #2
-            /* False */
+            // geo/intersection_inclusion.yaml line #6
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.point(2.5,2.5)) */
-            System.out.println("About to run #2: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2.5, 2.5))");
+            logger.info("About to run line #6: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2.5, 2.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2.5, 2.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #3
-            /* False */
+            // geo/intersection_inclusion.yaml line #8
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.point(1.5,1.5)) */
-            System.out.println("About to run #3: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.5))");
+            logger.info("About to run line #8: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #4
-            /* True */
+            // geo/intersection_inclusion.yaml line #10
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.point(1.05,1.05)) */
-            System.out.println("About to run #4: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.05, 1.05))");
+            logger.info("About to run line #10: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.05, 1.05))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.05, 1.05)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #5
-            /* True */
+            // geo/intersection_inclusion.yaml line #13
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.point(2,2)) */
-            System.out.println("About to run #5: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 2L))");
+            logger.info("About to run line #13: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 2L))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #13");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #6
-            /* True */
+            // geo/intersection_inclusion.yaml line #15
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.point(2,1.5)) */
-            System.out.println("About to run #6: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 1.5))");
+            logger.info("About to run line #15: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.point(2L, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #7
-            /* True */
+            // geo/intersection_inclusion.yaml line #17
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.line([1.5,1.5], [2,2])) */
-            System.out.println("About to run #7: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 2L)))");
+            logger.info("About to run line #17: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #8
-            /* True */
+            // geo/intersection_inclusion.yaml line #19
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.line([1.5,1.5], [2,1.5])) */
-            System.out.println("About to run #8: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 1.5)))");
+            logger.info("About to run line #19: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 1.5)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(2L, 1.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #9
-            /* True */
+            // geo/intersection_inclusion.yaml line #22
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.point(1.1,1.1)) */
-            System.out.println("About to run #9: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.1, 1.1))");
+            logger.info("About to run line #22: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.1, 1.1))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.1, 1.1)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #10
-            /* True */
+            // geo/intersection_inclusion.yaml line #24
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.point(1.5,1.1)) */
-            System.out.println("About to run #10: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.1))");
+            logger.info("About to run line #24: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.1))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.point(1.5, 1.1)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #11
-            /* False */
+            // geo/intersection_inclusion.yaml line #27
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.line([2,2], [3,3])) */
-            System.out.println("About to run #11: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 2L), r.array(3L, 3L)))");
+            logger.info("About to run line #27: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 2L), r.array(3L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 2L), r.array(3L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #12
-            /* False */
+            // geo/intersection_inclusion.yaml line #29
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.line([2,1.5], [3,3])) */
-            System.out.println("About to run #12: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 1.5), r.array(3L, 3L)))");
+            logger.info("About to run line #29: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 1.5), r.array(3L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(2L, 1.5), r.array(3L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #13
-            /* True */
+            // geo/intersection_inclusion.yaml line #31
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.line([1.5,1.5], [3,3])) */
-            System.out.println("About to run #13: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(3L, 3L)))");
+            logger.info("About to run line #31: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(3L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.line(r.array(1.5, 1.5), r.array(3L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #14
-            /* True */
+            // geo/intersection_inclusion.yaml line #33
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.polygon([1.2,1.2], [1.8,1.2], [1.8,1.8], [1.2,1.8])) */
-            System.out.println("About to run #14: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
+            logger.info("About to run line #33: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #33");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #33:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #15
-            /* True */
+            // geo/intersection_inclusion.yaml line #35
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.polygon([1.5,1.5], [2.5,1.5], [2.5,2.5], [1.5,2.5])) */
-            System.out.println("About to run #15: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5)))");
+            logger.info("About to run line #35: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #16
-            /* False */
+            // geo/intersection_inclusion.yaml line #37
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.polygon([1.2,1.2], [1.8,1.2], [1.8,1.8], [1.2,1.8])) */
-            System.out.println("About to run #16: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
+            logger.info("About to run line #37: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -427,20 +413,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #17
-            /* False */
+            // geo/intersection_inclusion.yaml line #39
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).intersects(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])) */
-            System.out.println("About to run #17: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9)))");
+            logger.info("About to run line #39: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).intersects(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -449,20 +434,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #18
-            /* True */
+            // geo/intersection_inclusion.yaml line #42
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.polygon([2,1.1], [3,1.1], [3,1.9], [2,1.9])) */
-            System.out.println("About to run #18: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9)))");
+            logger.info("About to run line #42: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -471,20 +455,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #19
-            /* False */
+            // geo/intersection_inclusion.yaml line #44
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).intersects(r.polygon([2,2], [3,2], [3,3], [2,3])) */
-            System.out.println("About to run #19: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L)))");
+            logger.info("About to run line #44: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).intersects(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -493,20 +476,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #20
-            /* False */
+            // geo/intersection_inclusion.yaml line #46
+            /* false */
             Boolean expected_ = false;
             /* r.point(1,1).intersects(r.point(1.5,1.5)) */
-            System.out.println("About to run #20: r.point(1L, 1L).intersects(r.point(1.5, 1.5))");
+            logger.info("About to run line #46: r.point(1L, 1L).intersects(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.point(1L, 1L).intersects(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,20 +497,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #21
-            /* True */
+            // geo/intersection_inclusion.yaml line #48
+            /* true */
             Boolean expected_ = true;
             /* r.point(1,1).intersects(r.point(1,1)) */
-            System.out.println("About to run #21: r.point(1L, 1L).intersects(r.point(1L, 1L))");
+            logger.info("About to run line #48: r.point(1L, 1L).intersects(r.point(1L, 1L))");
             Object obtained = runOrCatch(r.point(1L, 1L).intersects(r.point(1L, 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #48");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #48:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -537,20 +518,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #22
-            /* True */
+            // geo/intersection_inclusion.yaml line #50
+            /* true */
             Boolean expected_ = true;
             /* r.line([1,1], [2,1]).intersects(r.point(1,1)) */
-            System.out.println("About to run #22: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1L, 1L))");
+            logger.info("About to run line #50: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1L, 1L))");
             Object obtained = runOrCatch(r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1L, 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -559,20 +539,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #23
-            /* True */
+            // geo/intersection_inclusion.yaml line #55
+            /* true */
             Boolean expected_ = true;
             /* r.line([1,1], [1,2]).intersects(r.point(1,1.8)) */
-            System.out.println("About to run #23: r.line(r.array(1L, 1L), r.array(1L, 2L)).intersects(r.point(1L, 1.8))");
+            logger.info("About to run line #55: r.line(r.array(1L, 1L), r.array(1L, 2L)).intersects(r.point(1L, 1.8))");
             Object obtained = runOrCatch(r.line(r.array(1L, 1L), r.array(1L, 2L)).intersects(r.point(1L, 1.8)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -581,20 +560,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #24
-            /* True */
+            // geo/intersection_inclusion.yaml line #57
+            /* true */
             Boolean expected_ = true;
             /* r.line([1,0], [2,0]).intersects(r.point(1.8,0)) */
-            System.out.println("About to run #24: r.line(r.array(1L, 0L), r.array(2L, 0L)).intersects(r.point(1.8, 0L))");
+            logger.info("About to run line #57: r.line(r.array(1L, 0L), r.array(2L, 0L)).intersects(r.point(1.8, 0L))");
             Object obtained = runOrCatch(r.line(r.array(1L, 0L), r.array(2L, 0L)).intersects(r.point(1.8, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -603,20 +581,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #25
-            /* False */
+            // geo/intersection_inclusion.yaml line #59
+            /* false */
             Boolean expected_ = false;
             /* r.line([1,1], [2,1]).intersects(r.point(1.5,1.5)) */
-            System.out.println("About to run #25: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1.5, 1.5))");
+            logger.info("About to run line #59: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -625,20 +602,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #26
-            /* True */
+            // geo/intersection_inclusion.yaml line #61
+            /* true */
             Boolean expected_ = true;
             /* r.line([1,1], [2,1]).intersects(r.line([2,1], [3,1])) */
-            System.out.println("About to run #26: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.line(r.array(2L, 1L), r.array(3L, 1L)))");
+            logger.info("About to run line #61: r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.line(r.array(2L, 1L), r.array(3L, 1L)))");
             Object obtained = runOrCatch(r.line(r.array(1L, 1L), r.array(2L, 1L)).intersects(r.line(r.array(2L, 1L), r.array(3L, 1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #61");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #61:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -647,20 +623,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #27
+            // geo/intersection_inclusion.yaml line #64
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([r.point(1, 0), r.point(3,0), r.point(2, 0)]).intersects(r.line([0,0], [2, 0])).count() */
-            System.out.println("About to run #27: r.expr(r.array(r.point(1L, 0L), r.point(3L, 0L), r.point(2L, 0L))).intersects(r.line(r.array(0L, 0L), r.array(2L, 0L))).count()");
+            logger.info("About to run line #64: r.expr(r.array(r.point(1L, 0L), r.point(3L, 0L), r.point(2L, 0L))).intersects(r.line(r.array(0L, 0L), r.array(2L, 0L))).count()");
             Object obtained = runOrCatch(r.expr(r.array(r.point(1L, 0L), r.point(3L, 0L), r.point(2L, 0L))).intersects(r.line(r.array(0L, 0L), r.array(2L, 0L))).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -669,20 +644,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #28
-            /* True */
+            // geo/intersection_inclusion.yaml line #68
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.point(1.5,1.5)) */
-            System.out.println("About to run #28: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(1.5, 1.5))");
+            logger.info("About to run line #68: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #68");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #68:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -691,20 +665,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #29
-            /* False */
+            // geo/intersection_inclusion.yaml line #70
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.point(2.5,2.5)) */
-            System.out.println("About to run #29: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2.5, 2.5))");
+            logger.info("About to run line #70: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2.5, 2.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2.5, 2.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #70");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -713,20 +686,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #30
-            /* False */
+            // geo/intersection_inclusion.yaml line #72
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.point(1.5,1.5)) */
-            System.out.println("About to run #30: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.5))");
+            logger.info("About to run line #72: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -735,20 +707,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #31
-            /* True */
+            // geo/intersection_inclusion.yaml line #74
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.point(1.05,1.05)) */
-            System.out.println("About to run #31: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.05, 1.05))");
+            logger.info("About to run line #74: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.05, 1.05))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.05, 1.05)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #74");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #74:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -757,20 +728,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #32
-            /* True */
+            // geo/intersection_inclusion.yaml line #76
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.point(2,2)) */
-            System.out.println("About to run #32: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 2L))");
+            logger.info("About to run line #76: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 2L))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #76");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #76:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -779,20 +749,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #33
-            /* True */
+            // geo/intersection_inclusion.yaml line #78
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.point(2,1.5)) */
-            System.out.println("About to run #33: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 1.5))");
+            logger.info("About to run line #78: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 1.5))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.point(2L, 1.5)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -801,20 +770,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #34
-            /* True */
+            // geo/intersection_inclusion.yaml line #80
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([1.5,1.5], [2,2])) */
-            System.out.println("About to run #34: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 2L)))");
+            logger.info("About to run line #80: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #80");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #80:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -823,20 +791,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #35
-            /* True */
+            // geo/intersection_inclusion.yaml line #82
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([1.5,1.5], [2,1.5])) */
-            System.out.println("About to run #35: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 1.5)))");
+            logger.info("About to run line #82: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 1.5)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(2L, 1.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -845,20 +812,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #36
-            /* True */
+            // geo/intersection_inclusion.yaml line #84
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.point(1.1,1.1)) */
-            System.out.println("About to run #36: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.1, 1.1))");
+            logger.info("About to run line #84: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.1, 1.1))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.1, 1.1)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -867,20 +833,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #37
-            /* True */
+            // geo/intersection_inclusion.yaml line #86
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.point(1.5,1.1)) */
-            System.out.println("About to run #37: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.1))");
+            logger.info("About to run line #86: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.1))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.point(1.5, 1.1)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -889,20 +854,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #38
-            /* False */
+            // geo/intersection_inclusion.yaml line #88
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([2,2], [3,3])) */
-            System.out.println("About to run #38: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 2L), r.array(3L, 3L)))");
+            logger.info("About to run line #88: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 2L), r.array(3L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 2L), r.array(3L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #88");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #88:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -911,20 +875,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #39
-            /* True */
+            // geo/intersection_inclusion.yaml line #90
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([2,1.5], [2,2])) */
-            System.out.println("About to run #39: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1.5), r.array(2L, 2L)))");
+            logger.info("About to run line #90: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1.5), r.array(2L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1.5), r.array(2L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #90");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #90:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -933,20 +896,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #40
-            /* True */
+            // geo/intersection_inclusion.yaml line #92
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([2,1], [2,2])) */
-            System.out.println("About to run #40: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1L), r.array(2L, 2L)))");
+            logger.info("About to run line #92: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1L), r.array(2L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(2L, 1L), r.array(2L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #92");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #92:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -955,20 +917,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #41
-            /* False */
+            // geo/intersection_inclusion.yaml line #94
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.line([1.5,1.5], [3,3])) */
-            System.out.println("About to run #41: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(3L, 3L)))");
+            logger.info("About to run line #94: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(3L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.line(r.array(1.5, 1.5), r.array(3L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #94");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #94:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -977,20 +938,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #42
-            /* True */
+            // geo/intersection_inclusion.yaml line #96
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([1,1], [2,1], [2,2], [1,2])) */
-            System.out.println("About to run #42: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)))");
+            logger.info("About to run line #96: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #96");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #96:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -999,20 +959,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #43
-            /* True */
+            // geo/intersection_inclusion.yaml line #98
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([1.2,1.2], [1.8,1.2], [1.8,1.8], [1.2,1.8])) */
-            System.out.println("About to run #43: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
+            logger.info("About to run line #98: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #98");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #98:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1021,20 +980,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #44
-            /* True */
+            // geo/intersection_inclusion.yaml line #100
+            /* true */
             Boolean expected_ = true;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([1.5,1.5], [2,1.5], [2,2], [1.5,2])) */
-            System.out.println("About to run #44: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2L, 1.5), r.array(2L, 2L), r.array(1.5, 2L)))");
+            logger.info("About to run line #100: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2L, 1.5), r.array(2L, 2L), r.array(1.5, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2L, 1.5), r.array(2L, 2L), r.array(1.5, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1043,20 +1001,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #45
-            /* False */
+            // geo/intersection_inclusion.yaml line #102
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([1.5,1.5], [2.5,1.5], [2.5,2.5], [1.5,2.5])) */
-            System.out.println("About to run #45: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5)))");
+            logger.info("About to run line #102: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(1.5, 1.5), r.array(2.5, 1.5), r.array(2.5, 2.5), r.array(1.5, 2.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #102");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #102:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1065,20 +1022,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #46
-            /* False */
+            // geo/intersection_inclusion.yaml line #104
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.polygon([1.2,1.2], [1.8,1.2], [1.8,1.8], [1.2,1.8])) */
-            System.out.println("About to run #46: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
+            logger.info("About to run line #104: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.2, 1.2), r.array(1.8, 1.2), r.array(1.8, 1.8), r.array(1.2, 1.8))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #104");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #104:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1087,20 +1043,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #47
-            /* False */
+            // geo/intersection_inclusion.yaml line #106
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).polygon_sub(r.polygon([1.1,1.1], [1.9,1.1], [1.9,1.9], [1.1,1.9])).includes(r.polygon([1.1,1.1], [2,1.1], [2,2], [1.1,2])) */
-            System.out.println("About to run #47: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.1, 1.1), r.array(2L, 1.1), r.array(2L, 2L), r.array(1.1, 2L)))");
+            logger.info("About to run line #106: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.1, 1.1), r.array(2L, 1.1), r.array(2L, 2L), r.array(1.1, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).polygonSub(r.polygon(r.array(1.1, 1.1), r.array(1.9, 1.1), r.array(1.9, 1.9), r.array(1.1, 1.9))).includes(r.polygon(r.array(1.1, 1.1), r.array(2L, 1.1), r.array(2L, 2L), r.array(1.1, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #106");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #106:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1109,20 +1064,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #48
-            /* False */
+            // geo/intersection_inclusion.yaml line #108
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([2,1.1], [3,1.1], [3,1.9], [2,1.9])) */
-            System.out.println("About to run #48: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9)))");
+            logger.info("About to run line #108: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 1.1), r.array(3L, 1.1), r.array(3L, 1.9), r.array(2L, 1.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #108");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #108:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1131,20 +1085,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #49
-            /* False */
+            // geo/intersection_inclusion.yaml line #110
+            /* false */
             Boolean expected_ = false;
             /* r.polygon([1,1], [2,1], [2,2], [1,2]).includes(r.polygon([2,2], [3,2], [3,3], [2,3])) */
-            System.out.println("About to run #49: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L)))");
+            logger.info("About to run line #110: r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L)))");
             Object obtained = runOrCatch(r.polygon(r.array(1L, 1L), r.array(2L, 1L), r.array(2L, 2L), r.array(1L, 2L)).includes(r.polygon(r.array(2L, 2L), r.array(3L, 2L), r.array(3L, 3L), r.array(2L, 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #110");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #110:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1153,20 +1106,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #50
+            // geo/intersection_inclusion.yaml line #113
             /* 1 */
             Long expected_ = 1L;
             /* r.expr([r.polygon([0,0], [1,1], [1,0]), r.polygon([0,1], [1,2], [1,1])]).includes(r.point(0,0)).count() */
-            System.out.println("About to run #50: r.expr(r.array(r.polygon(r.array(0L, 0L), r.array(1L, 1L), r.array(1L, 0L)), r.polygon(r.array(0L, 1L), r.array(1L, 2L), r.array(1L, 1L)))).includes(r.point(0L, 0L)).count()");
+            logger.info("About to run line #113: r.expr(r.array(r.polygon(r.array(0L, 0L), r.array(1L, 1L), r.array(1L, 0L)), r.polygon(r.array(0L, 1L), r.array(1L, 2L), r.array(1L, 1L)))).includes(r.point(0L, 0L)).count()");
             Object obtained = runOrCatch(r.expr(r.array(r.polygon(r.array(0L, 0L), r.array(1L, 1L), r.array(1L, 0L)), r.polygon(r.array(0L, 1L), r.array(1L, 2L), r.array(1L, 1L)))).includes(r.point(0L, 0L)).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1175,20 +1127,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #51
+            // geo/intersection_inclusion.yaml line #116
             /* err('ReqlQueryLogicError', 'Expected geometry of type `Polygon` but found `Point`.') */
             Err expected_ = err("ReqlQueryLogicError", "Expected geometry of type `Polygon` but found `Point`.");
             /* r.point(0,0).includes(r.point(0,0)) */
-            System.out.println("About to run #51: r.point(0L, 0L).includes(r.point(0L, 0L))");
+            logger.info("About to run line #116: r.point(0L, 0L).includes(r.point(0L, 0L))");
             Object obtained = runOrCatch(r.point(0L, 0L).includes(r.point(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #116");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #116:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1197,20 +1148,19 @@ public class GeoIntersectionInclusion {
         }
         
         {
-            // geo/intersection_inclusion.yaml #52
+            // geo/intersection_inclusion.yaml line #118
             /* err('ReqlQueryLogicError', 'Expected geometry of type `Polygon` but found `LineString`.') */
             Err expected_ = err("ReqlQueryLogicError", "Expected geometry of type `Polygon` but found `LineString`.");
             /* r.line([0,0], [0,1]).includes(r.point(0,0)) */
-            System.out.println("About to run #52: r.line(r.array(0L, 0L), r.array(0L, 1L)).includes(r.point(0L, 0L))");
+            logger.info("About to run line #118: r.line(r.array(0L, 0L), r.array(0L, 1L)).includes(r.point(0L, 0L))");
             Object obtained = runOrCatch(r.line(r.array(0L, 0L), r.array(0L, 1L)).includes(r.point(0L, 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

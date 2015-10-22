@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class ChangefeedsIncludeStates {
+    // Test `include_states`
     Logger logger = LoggerFactory.getLogger(ChangefeedsIncludeStates.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class ChangefeedsIncludeStates {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class ChangefeedsIncludeStates {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -81,20 +83,19 @@ public class ChangefeedsIncludeStates {
     public void test() throws Exception {
                 
         {
-            // changefeeds/include_states.yaml #1
-            /* [{'state': 'ready'}] */
+            // changefeeds/include_states.yaml line #4
+            /* [{'state':'ready'}] */
             List expected_ = r.array(r.hashMap("state", "ready"));
             /* tbl.changes(squash=true, include_states=true).limit(1) */
-            System.out.println("About to run #1: tbl.changes().optArg('squash', true).optArg('include_states', true).limit(1L)");
+            logger.info("About to run line #4: tbl.changes().optArg('squash', true).optArg('include_states', true).limit(1L)");
             Object obtained = runOrCatch(tbl.changes().optArg("squash", true).optArg("include_states", true).limit(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #4");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -103,20 +104,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #2
-            /* [{'state': 'initializing'}, {'new_val': None}, {'state': 'ready'}] */
+            // changefeeds/include_states.yaml line #9
+            /* [{'state':'initializing'}, {'new_val':null}, {'state':'ready'}] */
             List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", null), r.hashMap("state", "ready"));
-            /* tbl.get(0).changes(squash=true, include_states=true).limit(3) */
-            System.out.println("About to run #2: tbl.get(0L).changes().optArg('squash', true).optArg('include_states', true).limit(3L)");
-            Object obtained = runOrCatch(tbl.get(0L).changes().optArg("squash", true).optArg("include_states", true).limit(3L),
+            /* tbl.get(0).changes(squash=true, include_states=true, include_initial=true).limit(3) */
+            logger.info("About to run line #9: tbl.get(0L).changes().optArg('squash', true).optArg('include_states', true).optArg('include_initial', true).limit(3L)");
+            Object obtained = runOrCatch(tbl.get(0L).changes().optArg("squash", true).optArg("include_states", true).optArg("include_initial", true).limit(3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -125,20 +125,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #3
-            /* [{'state': 'initializing'}, {'state': 'ready'}] */
+            // changefeeds/include_states.yaml line #14
+            /* [{'state':'initializing'}, {'state':'ready'}] */
             List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("state", "ready"));
-            /* tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true).limit(2) */
-            System.out.println("About to run #3: tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('squash', true).optArg('include_states', true).limit(2L)");
-            Object obtained = runOrCatch(tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("squash", true).optArg("include_states", true).limit(2L),
+            /* tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true, include_initial=true).limit(2) */
+            logger.info("About to run line #14: tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('squash', true).optArg('include_states', true).optArg('include_initial', true).limit(2L)");
+            Object obtained = runOrCatch(tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("squash", true).optArg("include_states", true).optArg("include_initial", true).limit(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -147,20 +146,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #4
+            // changefeeds/include_states.yaml line #19
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* tbl.insert({'id':1}) */
-            System.out.println("About to run #4: tbl.insert(r.hashMap('id', 1L))");
+            logger.info("About to run line #19: tbl.insert(r.hashMap('id', 1L))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -169,20 +167,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #5
-            /* [{'state': 'initializing'}, {'new_val': {'id': 1}}, {'state': 'ready'}] */
+            // changefeeds/include_states.yaml line #21
+            /* [{'state':'initializing'}, {'new_val':{'id':1}}, {'state':'ready'}] */
             List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 1L)), r.hashMap("state", "ready"));
-            /* tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true).limit(3) */
-            System.out.println("About to run #5: tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('squash', true).optArg('include_states', true).limit(3L)");
-            Object obtained = runOrCatch(tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("squash", true).optArg("include_states", true).limit(3L),
+            /* tbl.order_by(index='id').limit(10).changes(squash=true, include_states=true, include_initial=true).limit(3) */
+            logger.info("About to run line #21: tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('squash', true).optArg('include_states', true).optArg('include_initial', true).limit(3L)");
+            Object obtained = runOrCatch(tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("squash", true).optArg("include_states", true).optArg("include_initial", true).limit(3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -190,26 +187,25 @@ public class ChangefeedsIncludeStates {
             }
         }
         
-        // changefeeds/include_states.yaml #6
+        // changefeeds/include_states.yaml line #26
         // tblchanges = tbl.changes(squash=true, include_states=true)
-        System.out.println("Possibly executing: Changes tblchanges = (Changes) (tbl.changes().optArg('squash', true).optArg('include_states', true));");
+        logger.info("Possibly executing: Changes tblchanges = (Changes) (tbl.changes().optArg('squash', true).optArg('include_states', true));");
         Object tblchanges = maybeRun((Changes) (tbl.changes().optArg("squash", true).optArg("include_states", true)), conn);
                 
         {
-            // changefeeds/include_states.yaml #7
+            // changefeeds/include_states.yaml line #30
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* tbl.insert({'id':2}) */
-            System.out.println("About to run #7: tbl.insert(r.hashMap('id', 2L))");
+            logger.info("About to run line #30: tbl.insert(r.hashMap('id', 2L))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -218,20 +214,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #8
-            /* [{'state': 'ready'}, {'new_val': {'id': 2}, 'old_val': None}] */
+            // changefeeds/include_states.yaml line #32
+            /* [{'state':'ready'},{'new_val':{'id':2},'old_val':null}] */
             List expected_ = r.array(r.hashMap("state", "ready"), r.hashMap("new_val", r.hashMap("id", 2L)).with("old_val", null));
             /* fetch(tblchanges, 2) */
-            System.out.println("About to run #8: fetch(tblchanges, 2L)");
+            logger.info("About to run line #32: fetch(tblchanges, 2L)");
             Object obtained = runOrCatch(fetch(tblchanges, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #32");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #32:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -239,26 +234,25 @@ public class ChangefeedsIncludeStates {
             }
         }
         
-        // changefeeds/include_states.yaml #9
-        // getchanges = tbl.get(2).changes(include_states=true)
-        System.out.println("Possibly executing: Changes getchanges = (Changes) (tbl.get(2L).changes().optArg('include_states', true));");
-        Object getchanges = maybeRun((Changes) (tbl.get(2L).changes().optArg("include_states", true)), conn);
+        // changefeeds/include_states.yaml line #35
+        // getchanges = tbl.get(2).changes(include_states=true, include_initial=true)
+        logger.info("Possibly executing: Changes getchanges = (Changes) (tbl.get(2L).changes().optArg('include_states', true).optArg('include_initial', true));");
+        Object getchanges = maybeRun((Changes) (tbl.get(2L).changes().optArg("include_states", true).optArg("include_initial", true)), conn);
                 
         {
-            // changefeeds/include_states.yaml #10
+            // changefeeds/include_states.yaml line #39
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* tbl.get(2).update({'a':1}) */
-            System.out.println("About to run #10: tbl.get(2L).update(r.hashMap('a', 1L))");
+            logger.info("About to run line #39: tbl.get(2L).update(r.hashMap('a', 1L))");
             Object obtained = runOrCatch(tbl.get(2L).update(r.hashMap("a", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -267,20 +261,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #11
-            /* [{'state': 'initializing'}, {'new_val': {'id': 2}}, {'state': 'ready'}, {'new_val': {'id': 2, 'a': 1}, 'old_val': {'id': 2}}] */
-            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 2L)), r.hashMap("state", "ready"), r.hashMap("new_val", r.hashMap("id", 2L).with("a", 1L)).with("old_val", r.hashMap("id", 2L)));
+            // changefeeds/include_states.yaml line #41
+            /* [{'state':'initializing'}, {'new_val':{'id':2}}, {'state':'ready'}, {'old_val':{'id':2},'new_val':{'id':2,'a':1}}] */
+            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 2L)), r.hashMap("state", "ready"), r.hashMap("old_val", r.hashMap("id", 2L)).with("new_val", r.hashMap("id", 2L).with("a", 1L)));
             /* fetch(getchanges, 4) */
-            System.out.println("About to run #11: fetch(getchanges, 4L)");
+            logger.info("About to run line #41: fetch(getchanges, 4L)");
             Object obtained = runOrCatch(fetch(getchanges, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -288,31 +281,30 @@ public class ChangefeedsIncludeStates {
             }
         }
         
-        // changefeeds/include_states.yaml #12
-        // limitchanges = tbl.order_by(index='id').limit(10).changes(include_states=true)
-        System.out.println("Possibly executing: Changes limitchanges = (Changes) (tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('include_states', true));");
-        Object limitchanges = maybeRun((Changes) (tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("include_states", true)), conn);
+        // changefeeds/include_states.yaml line #44
+        // limitchanges = tbl.order_by(index='id').limit(10).changes(include_states=true, include_initial=true)
+        logger.info("Possibly executing: Changes limitchanges = (Changes) (tbl.orderBy().optArg('index', 'id').limit(10L).changes().optArg('include_states', true).optArg('include_initial', true));");
+        Object limitchanges = maybeRun((Changes) (tbl.orderBy().optArg("index", "id").limit(10L).changes().optArg("include_states", true).optArg("include_initial", true)), conn);
                 
-        // changefeeds/include_states.yaml #13
-        // limitchangesdesc = tbl.order_by(index=r.desc('id')).limit(10).changes(include_states=true)
-        System.out.println("Possibly executing: Changes limitchangesdesc = (Changes) (tbl.orderBy().optArg('index', r.desc('id')).limit(10L).changes().optArg('include_states', true));");
-        Object limitchangesdesc = maybeRun((Changes) (tbl.orderBy().optArg("index", r.desc("id")).limit(10L).changes().optArg("include_states", true)), conn);
+        // changefeeds/include_states.yaml line #48
+        // limitchangesdesc = tbl.order_by(index=r.desc('id')).limit(10).changes(include_states=true, include_initial=true)
+        logger.info("Possibly executing: Changes limitchangesdesc = (Changes) (tbl.orderBy().optArg('index', r.desc('id')).limit(10L).changes().optArg('include_states', true).optArg('include_initial', true));");
+        Object limitchangesdesc = maybeRun((Changes) (tbl.orderBy().optArg("index", r.desc("id")).limit(10L).changes().optArg("include_states", true).optArg("include_initial", true)), conn);
                 
         {
-            // changefeeds/include_states.yaml #14
+            // changefeeds/include_states.yaml line #52
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* tbl.insert({'id':3}) */
-            System.out.println("About to run #14: tbl.insert(r.hashMap('id', 3L))");
+            logger.info("About to run line #52: tbl.insert(r.hashMap('id', 3L))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 3L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -321,20 +313,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #15
-            /* [{'state': 'initializing'}, {'new_val': {'id': 1}}, {'new_val': {'id': 2, 'a': 1}}, {'state': 'ready'}, {'new_val': {'id': 3}, 'old_val': None}] */
-            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 1L)), r.hashMap("new_val", r.hashMap("id", 2L).with("a", 1L)), r.hashMap("state", "ready"), r.hashMap("new_val", r.hashMap("id", 3L)).with("old_val", null));
+            // changefeeds/include_states.yaml line #54
+            /* [{'state':'initializing'}, {'new_val':{'id':1}}, {'new_val':{'a':1, 'id':2}}, {'state':'ready'}, {'old_val':null, 'new_val':{'id':3}}] */
+            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 1L)), r.hashMap("new_val", r.hashMap("a", 1L).with("id", 2L)), r.hashMap("state", "ready"), r.hashMap("old_val", null).with("new_val", r.hashMap("id", 3L)));
             /* fetch(limitchanges, 5) */
-            System.out.println("About to run #15: fetch(limitchanges, 5L)");
+            logger.info("About to run line #54: fetch(limitchanges, 5L)");
             Object obtained = runOrCatch(fetch(limitchanges, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -343,20 +334,19 @@ public class ChangefeedsIncludeStates {
         }
         
         {
-            // changefeeds/include_states.yaml #16
-            /* [{'state': 'initializing'}, {'new_val': {'id': 2, 'a': 1}}, {'new_val': {'id': 1}}, {'state': 'ready'}, {'new_val': {'id': 3}, 'old_val': None}] */
-            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("id", 2L).with("a", 1L)), r.hashMap("new_val", r.hashMap("id", 1L)), r.hashMap("state", "ready"), r.hashMap("new_val", r.hashMap("id", 3L)).with("old_val", null));
+            // changefeeds/include_states.yaml line #57
+            /* [{'state':'initializing'}, {'new_val':{'a':1, 'id':2}}, {'new_val':{'id':1}}, {'state':'ready'}, {'old_val':null, 'new_val':{'id':3}}] */
+            List expected_ = r.array(r.hashMap("state", "initializing"), r.hashMap("new_val", r.hashMap("a", 1L).with("id", 2L)), r.hashMap("new_val", r.hashMap("id", 1L)), r.hashMap("state", "ready"), r.hashMap("old_val", null).with("new_val", r.hashMap("id", 3L)));
             /* fetch(limitchangesdesc, 5) */
-            System.out.println("About to run #16: fetch(limitchangesdesc, 5L)");
+            logger.info("About to run line #57: fetch(limitchangesdesc, 5L)");
             Object obtained = runOrCatch(fetch(limitchangesdesc, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

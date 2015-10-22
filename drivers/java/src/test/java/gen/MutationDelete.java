@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MutationDelete {
+    // Tests deletes of selections
     Logger logger = LoggerFactory.getLogger(MutationDelete.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class MutationDelete {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class MutationDelete {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -81,20 +83,19 @@ public class MutationDelete {
     public void test() throws Exception {
                 
         {
-            // mutation/delete.yaml #1
+            // mutation/delete.yaml line #7
             /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':100}) */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 100L);
             /* tbl.insert([{'id':i} for i in xrange(100)]) */
-            System.out.println("About to run #1: tbl.insert(LongStream.range(0, 100L).boxed().map(i -> r.hashMap('id', i)).collect(Collectors.toList()))");
+            logger.info("About to run line #7: tbl.insert(LongStream.range(0, 100L).boxed().map(i -> r.hashMap('id', i)).collect(Collectors.toList()))");
             Object obtained = runOrCatch(tbl.insert(LongStream.range(0, 100L).boxed().map(i -> r.hashMap("id", i)).collect(Collectors.toList())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -103,20 +104,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #2
+            // mutation/delete.yaml line #19
             /* 100 */
             Long expected_ = 100L;
             /* tbl.count() */
-            System.out.println("About to run #2: tbl.count()");
+            logger.info("About to run line #19: tbl.count()");
             Object obtained = runOrCatch(tbl.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -125,20 +125,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #3
+            // mutation/delete.yaml line #24
             /* ({'deleted':1,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
             Map expected_ = r.hashMap("deleted", 1L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.get(12).delete() */
-            System.out.println("About to run #3: tbl.get(12L).delete()");
+            logger.info("About to run line #24: tbl.get(12L).delete()");
             Object obtained = runOrCatch(tbl.get(12L).delete(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -147,20 +146,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #4
+            // mutation/delete.yaml line #31
             /* err('ReqlQueryLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", r.array(0L));
             /* tbl.skip(50).delete(durability='wrong') */
-            System.out.println("About to run #4: tbl.skip(50L).delete().optArg('durability', 'wrong')");
+            logger.info("About to run line #31: tbl.skip(50L).delete().optArg('durability', 'wrong')");
             Object obtained = runOrCatch(tbl.skip(50L).delete().optArg("durability", "wrong"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -169,20 +167,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #5
+            // mutation/delete.yaml line #38
             /* ({'deleted':49,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
             Map expected_ = r.hashMap("deleted", 49L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.skip(50).delete(durability='soft') */
-            System.out.println("About to run #5: tbl.skip(50L).delete().optArg('durability', 'soft')");
+            logger.info("About to run line #38: tbl.skip(50L).delete().optArg('durability', 'soft')");
             Object obtained = runOrCatch(tbl.skip(50L).delete().optArg("durability", "soft"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -191,20 +188,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #6
+            // mutation/delete.yaml line #45
             /* ({'deleted':50,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
             Map expected_ = r.hashMap("deleted", 50L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.delete(durability='hard') */
-            System.out.println("About to run #6: tbl.delete().optArg('durability', 'hard')");
+            logger.info("About to run line #45: tbl.delete().optArg('durability', 'hard')");
             Object obtained = runOrCatch(tbl.delete().optArg("durability", "hard"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #45");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #45:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -213,20 +209,19 @@ public class MutationDelete {
         }
         
         {
-            // mutation/delete.yaml #7
+            // mutation/delete.yaml line #49
             /* err('ReqlQueryLogicError', 'Expected type SELECTION but found DATUM:', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type SELECTION but found DATUM:", r.array(0L));
             /* r.expr([1, 2]).delete() */
-            System.out.println("About to run #7: r.expr(r.array(1L, 2L)).delete()");
+            logger.info("About to run line #49: r.expr(r.array(1L, 2L)).delete()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).delete(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

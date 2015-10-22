@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MutationInsert {
+    // Tests insertion into tables
     Logger logger = LoggerFactory.getLogger(MutationInsert.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class MutationInsert {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class MutationInsert {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -81,20 +83,19 @@ public class MutationInsert {
     public void test() throws Exception {
                 
         {
-            // mutation/insert.yaml #1
+            // mutation/insert.yaml line #6
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* r.db('test').table_create('test2') */
-            System.out.println("About to run #1: r.db('test').tableCreate('test2')");
+            logger.info("About to run line #6: r.db('test').tableCreate('test2')");
             Object obtained = runOrCatch(r.db("test").tableCreate("test2"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -102,26 +103,25 @@ public class MutationInsert {
             }
         }
         
-        // mutation/insert.yaml #2
+        // mutation/insert.yaml line #9
         // tbl2 = r.db('test').table('test2')
-        System.out.println("Possibly executing: Table tbl2 = (Table) (r.db('test').table('test2'));");
+        logger.info("Possibly executing: Table tbl2 = (Table) (r.db('test').table('test2'));");
         Table tbl2 = (Table) (r.db("test").table("test2"));
                 
         {
-            // mutation/insert.yaml #3
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #12
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':0,'a':0}) */
-            System.out.println("About to run #3: tbl.insert(r.hashMap('id', 0L).with('a', 0L))");
+            logger.info("About to run line #12: tbl.insert(r.hashMap('id', 0L).with('a', 0L))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L).with("a", 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -130,20 +130,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #4
+            // mutation/insert.yaml line #14
             /* 1 */
             Long expected_ = 1L;
             /* tbl.count() */
-            System.out.println("About to run #4: tbl.count()");
+            logger.info("About to run line #14: tbl.count()");
             Object obtained = runOrCatch(tbl.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -152,20 +151,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #5
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #18
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':1, 'a':1}, durability='hard') */
-            System.out.println("About to run #5: tbl.insert(r.hashMap('id', 1L).with('a', 1L)).optArg('durability', 'hard')");
+            logger.info("About to run line #18: tbl.insert(r.hashMap('id', 1L).with('a', 1L)).optArg('durability', 'hard')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 1L).with("a", 1L)).optArg("durability", "hard"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -174,20 +172,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #6
+            // mutation/insert.yaml line #22
             /* 2 */
             Long expected_ = 2L;
             /* tbl.count() */
-            System.out.println("About to run #6: tbl.count()");
+            logger.info("About to run line #22: tbl.count()");
             Object obtained = runOrCatch(tbl.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -196,20 +193,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #7
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #26
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':2, 'a':2}, durability='soft') */
-            System.out.println("About to run #7: tbl.insert(r.hashMap('id', 2L).with('a', 2L)).optArg('durability', 'soft')");
+            logger.info("About to run line #26: tbl.insert(r.hashMap('id', 2L).with('a', 2L)).optArg('durability', 'soft')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L).with("a", 2L)).optArg("durability", "soft"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -218,20 +214,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #8
+            // mutation/insert.yaml line #30
             /* 3 */
             Long expected_ = 3L;
             /* tbl.count() */
-            System.out.println("About to run #8: tbl.count()");
+            logger.info("About to run line #30: tbl.count()");
             Object obtained = runOrCatch(tbl.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -240,20 +235,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #9
+            // mutation/insert.yaml line #34
             /* err('ReqlQueryLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", r.array(0L));
             /* tbl.insert({'id':3, 'a':3}, durability='wrong') */
-            System.out.println("About to run #9: tbl.insert(r.hashMap('id', 3L).with('a', 3L)).optArg('durability', 'wrong')");
+            logger.info("About to run line #34: tbl.insert(r.hashMap('id', 3L).with('a', 3L)).optArg('durability', 'wrong')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 3L).with("a", 3L)).optArg("durability", "wrong"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -262,20 +256,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #10
+            // mutation/insert.yaml line #38
             /* 3 */
             Long expected_ = 3L;
             /* tbl.count() */
-            System.out.println("About to run #10: tbl.count()");
+            logger.info("About to run line #38: tbl.count()");
             Object obtained = runOrCatch(tbl.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -284,20 +277,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #11
-            /* ({'deleted':1,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
+            // mutation/insert.yaml line #42
+            /* {'deleted':1,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0} */
             Map expected_ = r.hashMap("deleted", 1L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.get(2).delete() */
-            System.out.println("About to run #11: tbl.get(2L).delete()");
+            logger.info("About to run line #42: tbl.get(2L).delete()");
             Object obtained = runOrCatch(tbl.get(2L).delete(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -306,20 +298,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #12
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':2}) */
+            // mutation/insert.yaml line #46
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':2} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 2L);
             /* tbl.insert([{'id':2,'a':2}, {'id':3,'a':3}]) */
-            System.out.println("About to run #12: tbl.insert(r.array(r.hashMap('id', 2L).with('a', 2L), r.hashMap('id', 3L).with('a', 3L)))");
+            logger.info("About to run line #46: tbl.insert(r.array(r.hashMap('id', 2L).with('a', 2L), r.hashMap('id', 3L).with('a', 3L)))");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 2L).with("a", 2L), r.hashMap("id", 3L).with("a", 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -328,20 +319,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #13
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':4}) */
+            // mutation/insert.yaml line #50
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':4} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 4L);
             /* tbl2.insert(tbl) */
-            System.out.println("About to run #13: tbl2.insert(tbl)");
+            logger.info("About to run line #50: tbl2.insert(tbl)");
             Object obtained = runOrCatch(tbl2.insert(tbl),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -350,20 +340,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #14
-            /* ({'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0}) */
+            // mutation/insert.yaml line #54
+            /* {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0} */
             Map expected_ = r.hashMap("first_error", "Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}").with("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 1L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.insert({'id':2,'b':20}) */
-            System.out.println("About to run #14: tbl.insert(r.hashMap('id', 2L).with('b', 20L))");
+            logger.info("About to run line #54: tbl.insert(r.hashMap('id', 2L).with('b', 20L))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L).with("b", 20L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -372,20 +361,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #15
-            /* ({'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0}) */
+            // mutation/insert.yaml line #58
+            /* {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0} */
             Map expected_ = r.hashMap("first_error", "Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}").with("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 1L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.insert({'id':2,'b':20}, conflict='error') */
-            System.out.println("About to run #15: tbl.insert(r.hashMap('id', 2L).with('b', 20L)).optArg('conflict', 'error')");
+            logger.info("About to run line #58: tbl.insert(r.hashMap('id', 2L).with('b', 20L)).optArg('conflict', 'error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L).with("b", 20L)).optArg("conflict", "error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -394,20 +382,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #16
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #64
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':15,'b':20}, conflict='error') */
-            System.out.println("About to run #16: tbl.insert(r.hashMap('id', 15L).with('b', 20L)).optArg('conflict', 'error')");
+            logger.info("About to run line #64: tbl.insert(r.hashMap('id', 15L).with('b', 20L)).optArg('conflict', 'error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 15L).with("b", 20L)).optArg("conflict", "error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -416,20 +403,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #17
-            /* ({'id':15,'b':20}) */
+            // mutation/insert.yaml line #69
+            /* {'id':15,'b':20} */
             Map expected_ = r.hashMap("id", 15L).with("b", 20L);
             /* tbl.get(15) */
-            System.out.println("About to run #17: tbl.get(15L)");
+            logger.info("About to run line #69: tbl.get(15L)");
             Object obtained = runOrCatch(tbl.get(15L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -438,20 +424,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #18
-            /* ({'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
+            // mutation/insert.yaml line #73
+            /* {'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 1L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.insert({'id':2,'b':20}, conflict='replace') */
-            System.out.println("About to run #18: tbl.insert(r.hashMap('id', 2L).with('b', 20L)).optArg('conflict', 'replace')");
+            logger.info("About to run line #73: tbl.insert(r.hashMap('id', 2L).with('b', 20L)).optArg('conflict', 'replace')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L).with("b", 20L)).optArg("conflict", "replace"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -460,20 +445,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #19
-            /* ({'id':2,'b':20}) */
+            // mutation/insert.yaml line #78
+            /* {'id':2,'b':20} */
             Map expected_ = r.hashMap("id", 2L).with("b", 20L);
             /* tbl.get(2) */
-            System.out.println("About to run #19: tbl.get(2L)");
+            logger.info("About to run line #78: tbl.get(2L)");
             Object obtained = runOrCatch(tbl.get(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -482,20 +466,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #20
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #82
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':20,'b':20}, conflict='replace') */
-            System.out.println("About to run #20: tbl.insert(r.hashMap('id', 20L).with('b', 20L)).optArg('conflict', 'replace')");
+            logger.info("About to run line #82: tbl.insert(r.hashMap('id', 20L).with('b', 20L)).optArg('conflict', 'replace')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 20L).with("b", 20L)).optArg("conflict", "replace"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -504,20 +487,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #21
-            /* ({'id':20,'b':20}) */
+            // mutation/insert.yaml line #87
+            /* {'id':20,'b':20} */
             Map expected_ = r.hashMap("id", 20L).with("b", 20L);
             /* tbl.get(20) */
-            System.out.println("About to run #21: tbl.get(20L)");
+            logger.info("About to run line #87: tbl.get(20L)");
             Object obtained = runOrCatch(tbl.get(20L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #87");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #87:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -526,20 +508,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #22
-            /* ({'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0}) */
+            // mutation/insert.yaml line #91
+            /* {'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 1L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 0L);
             /* tbl.insert({'id':2,'c':30}, conflict='update') */
-            System.out.println("About to run #22: tbl.insert(r.hashMap('id', 2L).with('c', 30L)).optArg('conflict', 'update')");
+            logger.info("About to run line #91: tbl.insert(r.hashMap('id', 2L).with('c', 30L)).optArg('conflict', 'update')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 2L).with("c", 30L)).optArg("conflict", "update"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -548,20 +529,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #23
-            /* ({'id':2, 'b':20, 'c':30}) */
+            // mutation/insert.yaml line #96
+            /* {'id':2, 'b':20, 'c':30} */
             Map expected_ = r.hashMap("id", 2L).with("b", 20L).with("c", 30L);
             /* tbl.get(2) */
-            System.out.println("About to run #23: tbl.get(2L)");
+            logger.info("About to run line #96: tbl.get(2L)");
             Object obtained = runOrCatch(tbl.get(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #96");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #96:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -570,20 +550,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #24
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #100
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tbl.insert({'id':30,'b':20}, conflict='update') */
-            System.out.println("About to run #24: tbl.insert(r.hashMap('id', 30L).with('b', 20L)).optArg('conflict', 'update')");
+            logger.info("About to run line #100: tbl.insert(r.hashMap('id', 30L).with('b', 20L)).optArg('conflict', 'update')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 30L).with("b", 20L)).optArg("conflict", "update"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -592,20 +571,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #25
-            /* ({'id':30,'b':20}) */
+            // mutation/insert.yaml line #105
+            /* {'id':30,'b':20} */
             Map expected_ = r.hashMap("id", 30L).with("b", 20L);
             /* tbl.get(30) */
-            System.out.println("About to run #25: tbl.get(30L)");
+            logger.info("About to run line #105: tbl.get(30L)");
             Object obtained = runOrCatch(tbl.get(30L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #105");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #105:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -614,20 +592,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #26
+            // mutation/insert.yaml line #109
             /* err('ReqlQueryLogicError', 'Conflict option `wrong` unrecognized (options are "error", "replace" and "update").', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Conflict option `wrong` unrecognized (options are \"error\", \"replace\" and \"update\").", r.array(0L));
             /* tbl.insert({'id':3, 'a':3}, conflict='wrong') */
-            System.out.println("About to run #26: tbl.insert(r.hashMap('id', 3L).with('a', 3L)).optArg('conflict', 'wrong')");
+            logger.info("About to run line #109: tbl.insert(r.hashMap('id', 3L).with('a', 3L)).optArg('conflict', 'wrong')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 3L).with("a", 3L)).optArg("conflict", "wrong"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #109");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #109:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -635,26 +612,25 @@ public class MutationInsert {
             }
         }
         
-        // mutation/insert.yaml #27
+        // mutation/insert.yaml line #120
         // tblpkey = r.db('test').table('testpkey')
-        System.out.println("Possibly executing: Table tblpkey = (Table) (r.db('test').table('testpkey'));");
+        logger.info("Possibly executing: Table tblpkey = (Table) (r.db('test').table('testpkey'));");
         Table tblpkey = (Table) (r.db("test").table("testpkey"));
                 
         {
-            // mutation/insert.yaml #27
+            // mutation/insert.yaml line #115
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* r.db('test').table_create('testpkey', primary_key='foo') */
-            System.out.println("About to run #27: r.db('test').tableCreate('testpkey').optArg('primary_key', 'foo')");
+            logger.info("About to run line #115: r.db('test').tableCreate('testpkey').optArg('primary_key', 'foo')");
             Object obtained = runOrCatch(r.db("test").tableCreate("testpkey").optArg("primary_key", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #115");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #115:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -663,20 +639,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #28
-            /* ({'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #122
+            /* {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("generated_keys", arrlen(1L, uuid())).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tblpkey.insert({}) */
-            System.out.println("About to run #28: tblpkey.insert(r.hashMap())");
+            logger.info("About to run line #122: tblpkey.insert(r.hashMap())");
             Object obtained = runOrCatch(tblpkey.insert(r.hashMap()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -685,20 +660,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #29
-            /* ([{'foo':uuid()}]) */
+            // mutation/insert.yaml line #125
+            /* [{'foo':uuid()}] */
             List expected_ = r.array(r.hashMap("foo", uuid()));
             /* tblpkey */
-            System.out.println("About to run #29: tblpkey");
+            logger.info("About to run line #125: tblpkey");
             Object obtained = runOrCatch(tblpkey,
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #125");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #125:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -707,20 +681,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #30
-            /* ({'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #129
+            /* {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("generated_keys", arrlen(1L, uuid())).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tblpkey.insert({'b':20}, conflict='replace') */
-            System.out.println("About to run #30: tblpkey.insert(r.hashMap('b', 20L)).optArg('conflict', 'replace')");
+            logger.info("About to run line #129: tblpkey.insert(r.hashMap('b', 20L)).optArg('conflict', 'replace')");
             Object obtained = runOrCatch(tblpkey.insert(r.hashMap("b", 20L)).optArg("conflict", "replace"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #129");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #129:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -729,20 +702,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #31
-            /* ({'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}) */
+            // mutation/insert.yaml line #135
+            /* {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("generated_keys", arrlen(1L, uuid())).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 1L);
             /* tblpkey.insert({'b':20}, conflict='update') */
-            System.out.println("About to run #31: tblpkey.insert(r.hashMap('b', 20L)).optArg('conflict', 'update')");
+            logger.info("About to run line #135: tblpkey.insert(r.hashMap('b', 20L)).optArg('conflict', 'update')");
             Object obtained = runOrCatch(tblpkey.insert(r.hashMap("b", 20L)).optArg("conflict", "update"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #135");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #135:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -751,20 +723,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #32
+            // mutation/insert.yaml line #140
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.db('test').table_drop('testpkey') */
-            System.out.println("About to run #32: r.db('test').tableDrop('testpkey')");
+            logger.info("About to run line #140: r.db('test').tableDrop('testpkey')");
             Object obtained = runOrCatch(r.db("test").tableDrop("testpkey"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #140");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #140:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -773,20 +744,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #33
-            /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':7}) */
+            // mutation/insert.yaml line #144
+            /* {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':7} */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 7L);
             /* tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   ) */
-            System.out.println("About to run #33: tbl.forEach(row -> tbl2.insert(row.merge(r.hashMap('id', row.bracket('id').add(100L)))))");
+            logger.info("About to run line #144: tbl.forEach(row -> tbl2.insert(row.merge(r.hashMap('id', row.bracket('id').add(100L)))))");
             Object obtained = runOrCatch(tbl.forEach(row -> tbl2.insert(row.merge(r.hashMap("id", row.bracket("id").add(100L))))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #144");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #144:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -795,20 +765,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #34
+            // mutation/insert.yaml line #150
             /* partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'}) */
             Partial expected_ = partial(r.hashMap("errors", 1L).with("first_error", "`r.minval` and `r.maxval` cannot be written to disk."));
             /* tbl.insert({'value':r.minval}) */
-            System.out.println("About to run #34: tbl.insert(r.hashMap('value', r.minval()))");
+            logger.info("About to run line #150: tbl.insert(r.hashMap('value', r.minval()))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("value", r.minval())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #150");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #150:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -817,20 +786,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #35
+            // mutation/insert.yaml line #154
             /* partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'}) */
             Partial expected_ = partial(r.hashMap("errors", 1L).with("first_error", "`r.minval` and `r.maxval` cannot be written to disk."));
             /* tbl.insert({'value':r.maxval}) */
-            System.out.println("About to run #35: tbl.insert(r.hashMap('value', r.maxval()))");
+            logger.info("About to run line #154: tbl.insert(r.hashMap('value', r.maxval()))");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("value", r.maxval())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #154");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #154:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -839,20 +807,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #36
+            // mutation/insert.yaml line #159
             /* err('ReqlQueryLogicError','Cannot convert `r.minval` to JSON.') */
             Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.minval` to JSON.");
             /* r.minval */
-            System.out.println("About to run #36: r.minval()");
+            logger.info("About to run line #159: r.minval()");
             Object obtained = runOrCatch(r.minval(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #159");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #159:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -861,20 +828,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #37
+            // mutation/insert.yaml line #162
             /* err('ReqlQueryLogicError','Cannot convert `r.maxval` to JSON.') */
             Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.maxval` to JSON.");
             /* r.maxval */
-            System.out.println("About to run #37: r.maxval()");
+            logger.info("About to run line #162: r.maxval()");
             Object obtained = runOrCatch(r.maxval(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #162");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #162:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -883,20 +849,19 @@ public class MutationInsert {
         }
         
         {
-            // mutation/insert.yaml #38
+            // mutation/insert.yaml line #166
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.db('test').table_drop('test2') */
-            System.out.println("About to run #38: r.db('test').tableDrop('test2')");
+            logger.info("About to run line #166: r.db('test').tableDrop('test2')");
             Object obtained = runOrCatch(r.db("test").tableDrop("test2"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #166");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #166:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

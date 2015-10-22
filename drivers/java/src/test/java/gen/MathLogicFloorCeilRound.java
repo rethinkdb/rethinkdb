@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MathLogicFloorCeilRound {
+    // tests for `floor`, `ceil`, and `round`, tests inspired by the Python test suite
     Logger logger = LoggerFactory.getLogger(MathLogicFloorCeilRound.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MathLogicFloorCeilRound {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MathLogicFloorCeilRound {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MathLogicFloorCeilRound {
     public void test() throws Exception {
                 
         {
-            // math_logic/floor_ceil_round.yaml #1
+            // math_logic/floor_ceil_round.yaml line #3
             /* "NUMBER" */
             String expected_ = "NUMBER";
             /* r.floor(1.0).type_of() */
-            System.out.println("About to run #1: r.floor(1.0).typeOf()");
+            logger.info("About to run line #3: r.floor(1.0).typeOf()");
             Object obtained = runOrCatch(r.floor(1.0).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #3");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #3:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,22 +98,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #2
+            // math_logic/floor_ceil_round.yaml line #5
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.floor(1.0) */
-            System.out.println("About to run #2: r.floor(1.0)");
+            logger.info("About to run line #5: r.floor(1.0)");
             Object obtained = runOrCatch(r.floor(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -121,22 +121,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #3
+            // math_logic/floor_ceil_round.yaml line #7
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.expr(1.0).floor() */
-            System.out.println("About to run #3: r.expr(1.0).floor()");
+            logger.info("About to run line #7: r.expr(1.0).floor()");
             Object obtained = runOrCatch(r.expr(1.0).floor(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -145,22 +144,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #4
+            // math_logic/floor_ceil_round.yaml line #10
             /* 0.0 */
             Double expected_ = 0.0;
             /* r.floor(0.5) */
-            System.out.println("About to run #4: r.floor(0.5)");
+            logger.info("About to run line #10: r.floor(0.5)");
             Object obtained = runOrCatch(r.floor(0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -169,22 +167,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #5
+            // math_logic/floor_ceil_round.yaml line #12
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.floor(1.0) */
-            System.out.println("About to run #5: r.floor(1.0)");
+            logger.info("About to run line #12: r.floor(1.0)");
             Object obtained = runOrCatch(r.floor(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -193,22 +190,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #6
+            // math_logic/floor_ceil_round.yaml line #14
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.floor(1.5) */
-            System.out.println("About to run #6: r.floor(1.5)");
+            logger.info("About to run line #14: r.floor(1.5)");
             Object obtained = runOrCatch(r.floor(1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -217,22 +213,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #7
+            // math_logic/floor_ceil_round.yaml line #16
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.floor(-0.5) */
-            System.out.println("About to run #7: r.floor(-0.5)");
+            logger.info("About to run line #16: r.floor(-0.5)");
             Object obtained = runOrCatch(r.floor(-0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -241,22 +236,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #8
+            // math_logic/floor_ceil_round.yaml line #18
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.floor(-1.0) */
-            System.out.println("About to run #8: r.floor(-1.0)");
+            logger.info("About to run line #18: r.floor(-1.0)");
             Object obtained = runOrCatch(r.floor(-1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -265,22 +259,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #9
+            // math_logic/floor_ceil_round.yaml line #20
             /* -2.0 */
             Double expected_ = -2.0;
             /* r.floor(-1.5) */
-            System.out.println("About to run #9: r.floor(-1.5)");
+            logger.info("About to run line #20: r.floor(-1.5)");
             Object obtained = runOrCatch(r.floor(-1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -289,20 +282,19 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #10
+            // math_logic/floor_ceil_round.yaml line #23
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* r.expr('X').floor() */
-            System.out.println("About to run #10: r.expr('X').floor()");
+            logger.info("About to run line #23: r.expr('X').floor()");
             Object obtained = runOrCatch(r.expr("X").floor(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -311,20 +303,19 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #11
+            // math_logic/floor_ceil_round.yaml line #27
             /* "NUMBER" */
             String expected_ = "NUMBER";
             /* r.ceil(1.0).type_of() */
-            System.out.println("About to run #11: r.ceil(1.0).typeOf()");
+            logger.info("About to run line #27: r.ceil(1.0).typeOf()");
             Object obtained = runOrCatch(r.ceil(1.0).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -333,22 +324,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #12
+            // math_logic/floor_ceil_round.yaml line #29
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.ceil(1.0) */
-            System.out.println("About to run #12: r.ceil(1.0)");
+            logger.info("About to run line #29: r.ceil(1.0)");
             Object obtained = runOrCatch(r.ceil(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -357,22 +347,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #13
+            // math_logic/floor_ceil_round.yaml line #31
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.expr(1.0).ceil() */
-            System.out.println("About to run #13: r.expr(1.0).ceil()");
+            logger.info("About to run line #31: r.expr(1.0).ceil()");
             Object obtained = runOrCatch(r.expr(1.0).ceil(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -381,22 +370,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #14
+            // math_logic/floor_ceil_round.yaml line #34
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.ceil(0.5) */
-            System.out.println("About to run #14: r.ceil(0.5)");
+            logger.info("About to run line #34: r.ceil(0.5)");
             Object obtained = runOrCatch(r.ceil(0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,22 +393,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #15
+            // math_logic/floor_ceil_round.yaml line #36
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.ceil(1.0) */
-            System.out.println("About to run #15: r.ceil(1.0)");
+            logger.info("About to run line #36: r.ceil(1.0)");
             Object obtained = runOrCatch(r.ceil(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #36");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #36:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -429,22 +416,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #16
+            // math_logic/floor_ceil_round.yaml line #38
             /* 2.0 */
             Double expected_ = 2.0;
             /* r.ceil(1.5) */
-            System.out.println("About to run #16: r.ceil(1.5)");
+            logger.info("About to run line #38: r.ceil(1.5)");
             Object obtained = runOrCatch(r.ceil(1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -453,22 +439,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #17
+            // math_logic/floor_ceil_round.yaml line #40
             /* 0.0 */
             Double expected_ = 0.0;
             /* r.ceil(-0.5) */
-            System.out.println("About to run #17: r.ceil(-0.5)");
+            logger.info("About to run line #40: r.ceil(-0.5)");
             Object obtained = runOrCatch(r.ceil(-0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -477,22 +462,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #18
+            // math_logic/floor_ceil_round.yaml line #42
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.ceil(-1.0) */
-            System.out.println("About to run #18: r.ceil(-1.0)");
+            logger.info("About to run line #42: r.ceil(-1.0)");
             Object obtained = runOrCatch(r.ceil(-1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -501,22 +485,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #19
+            // math_logic/floor_ceil_round.yaml line #44
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.ceil(-1.5) */
-            System.out.println("About to run #19: r.ceil(-1.5)");
+            logger.info("About to run line #44: r.ceil(-1.5)");
             Object obtained = runOrCatch(r.ceil(-1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -525,20 +508,19 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #20
+            // math_logic/floor_ceil_round.yaml line #47
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* r.expr('X').ceil() */
-            System.out.println("About to run #20: r.expr('X').ceil()");
+            logger.info("About to run line #47: r.expr('X').ceil()");
             Object obtained = runOrCatch(r.expr("X").ceil(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -547,20 +529,19 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #21
+            // math_logic/floor_ceil_round.yaml line #51
             /* "NUMBER" */
             String expected_ = "NUMBER";
             /* r.round(1.0).type_of() */
-            System.out.println("About to run #21: r.round(1.0).typeOf()");
+            logger.info("About to run line #51: r.round(1.0).typeOf()");
             Object obtained = runOrCatch(r.round(1.0).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -569,22 +550,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #22
+            // math_logic/floor_ceil_round.yaml line #53
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.round(1.0) */
-            System.out.println("About to run #22: r.round(1.0)");
+            logger.info("About to run line #53: r.round(1.0)");
             Object obtained = runOrCatch(r.round(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -593,22 +573,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #23
+            // math_logic/floor_ceil_round.yaml line #55
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.expr(1.0).round() */
-            System.out.println("About to run #23: r.expr(1.0).round()");
+            logger.info("About to run line #55: r.expr(1.0).round()");
             Object obtained = runOrCatch(r.expr(1.0).round(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -617,22 +596,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #24
+            // math_logic/floor_ceil_round.yaml line #58
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.round(0.5) */
-            System.out.println("About to run #24: r.round(0.5)");
+            logger.info("About to run line #58: r.round(0.5)");
             Object obtained = runOrCatch(r.round(0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -641,22 +619,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #25
+            // math_logic/floor_ceil_round.yaml line #60
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.round(-0.5) */
-            System.out.println("About to run #25: r.round(-0.5)");
+            logger.info("About to run line #60: r.round(-0.5)");
             Object obtained = runOrCatch(r.round(-0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -665,22 +642,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #26
+            // math_logic/floor_ceil_round.yaml line #63
             /* 0.0 */
             Double expected_ = 0.0;
             /* r.round(0.0) */
-            System.out.println("About to run #26: r.round(0.0)");
+            logger.info("About to run line #63: r.round(0.0)");
             Object obtained = runOrCatch(r.round(0.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #63");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #63:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -689,22 +665,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #27
+            // math_logic/floor_ceil_round.yaml line #65
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.round(1.0) */
-            System.out.println("About to run #27: r.round(1.0)");
+            logger.info("About to run line #65: r.round(1.0)");
             Object obtained = runOrCatch(r.round(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -713,22 +688,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #28
+            // math_logic/floor_ceil_round.yaml line #67
             /* 10.0 */
             Double expected_ = 10.0;
             /* r.round(10.0) */
-            System.out.println("About to run #28: r.round(10.0)");
+            logger.info("About to run line #67: r.round(10.0)");
             Object obtained = runOrCatch(r.round(10.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #67");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #67:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -737,22 +711,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #29
+            // math_logic/floor_ceil_round.yaml line #69
             /* 1000000000.0 */
             Double expected_ = 1000000000.0;
             /* r.round(1000000000.0) */
-            System.out.println("About to run #29: r.round(1000000000.0)");
+            logger.info("About to run line #69: r.round(1000000000.0)");
             Object obtained = runOrCatch(r.round(1000000000.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -761,22 +734,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #30
+            // math_logic/floor_ceil_round.yaml line #71
             /* 1e20 */
             Double expected_ = 1e+20;
             /* r.round(1e20) */
-            System.out.println("About to run #30: r.round(1e+20)");
+            logger.info("About to run line #71: r.round(1e+20)");
             Object obtained = runOrCatch(r.round(1e+20),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #71");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #71:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -785,22 +757,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #31
+            // math_logic/floor_ceil_round.yaml line #74
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.round(-1.0) */
-            System.out.println("About to run #31: r.round(-1.0)");
+            logger.info("About to run line #74: r.round(-1.0)");
             Object obtained = runOrCatch(r.round(-1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #74");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #74:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -809,22 +780,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #32
+            // math_logic/floor_ceil_round.yaml line #76
             /* -10.0 */
             Double expected_ = -10.0;
             /* r.round(-10.0) */
-            System.out.println("About to run #32: r.round(-10.0)");
+            logger.info("About to run line #76: r.round(-10.0)");
             Object obtained = runOrCatch(r.round(-10.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #76");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #76:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -833,22 +803,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #33
+            // math_logic/floor_ceil_round.yaml line #78
             /* -1000000000.0 */
             Double expected_ = -1000000000.0;
             /* r.round(-1000000000.0) */
-            System.out.println("About to run #33: r.round(-1000000000.0)");
+            logger.info("About to run line #78: r.round(-1000000000.0)");
             Object obtained = runOrCatch(r.round(-1000000000.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -857,22 +826,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #34
+            // math_logic/floor_ceil_round.yaml line #80
             /* -1e20 */
             Double expected_ = -1e+20;
             /* r.round(-1e20) */
-            System.out.println("About to run #34: r.round(-1e+20)");
+            logger.info("About to run line #80: r.round(-1e+20)");
             Object obtained = runOrCatch(r.round(-1e+20),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #80");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #80:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -881,22 +849,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #35
+            // math_logic/floor_ceil_round.yaml line #83
             /* 0.0 */
             Double expected_ = 0.0;
             /* r.round(0.1) */
-            System.out.println("About to run #35: r.round(0.1)");
+            logger.info("About to run line #83: r.round(0.1)");
             Object obtained = runOrCatch(r.round(0.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -905,22 +872,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #36
+            // math_logic/floor_ceil_round.yaml line #85
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.round(1.1) */
-            System.out.println("About to run #36: r.round(1.1)");
+            logger.info("About to run line #85: r.round(1.1)");
             Object obtained = runOrCatch(r.round(1.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -929,22 +895,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #37
+            // math_logic/floor_ceil_round.yaml line #87
             /* 10.0 */
             Double expected_ = 10.0;
             /* r.round(10.1) */
-            System.out.println("About to run #37: r.round(10.1)");
+            logger.info("About to run line #87: r.round(10.1)");
             Object obtained = runOrCatch(r.round(10.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #87");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #87:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -953,22 +918,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #38
+            // math_logic/floor_ceil_round.yaml line #89
             /* 1000000000.0 */
             Double expected_ = 1000000000.0;
             /* r.round(1000000000.1) */
-            System.out.println("About to run #38: r.round(1000000000.1)");
+            logger.info("About to run line #89: r.round(1000000000.1)");
             Object obtained = runOrCatch(r.round(1000000000.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #89");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #89:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -977,22 +941,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #39
+            // math_logic/floor_ceil_round.yaml line #92
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.round(-1.1) */
-            System.out.println("About to run #39: r.round(-1.1)");
+            logger.info("About to run line #92: r.round(-1.1)");
             Object obtained = runOrCatch(r.round(-1.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #92");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #92:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1001,22 +964,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #40
+            // math_logic/floor_ceil_round.yaml line #94
             /* -10.0 */
             Double expected_ = -10.0;
             /* r.round(-10.1) */
-            System.out.println("About to run #40: r.round(-10.1)");
+            logger.info("About to run line #94: r.round(-10.1)");
             Object obtained = runOrCatch(r.round(-10.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #94");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #94:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1025,22 +987,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #41
+            // math_logic/floor_ceil_round.yaml line #96
             /* -1000000000.0 */
             Double expected_ = -1000000000.0;
             /* r.round(-1000000000.1) */
-            System.out.println("About to run #41: r.round(-1000000000.1)");
+            logger.info("About to run line #96: r.round(-1000000000.1)");
             Object obtained = runOrCatch(r.round(-1000000000.1),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #96");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #96:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1049,22 +1010,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #42
+            // math_logic/floor_ceil_round.yaml line #99
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.round(0.9) */
-            System.out.println("About to run #42: r.round(0.9)");
+            logger.info("About to run line #99: r.round(0.9)");
             Object obtained = runOrCatch(r.round(0.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1073,22 +1033,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #43
+            // math_logic/floor_ceil_round.yaml line #101
             /* 10.0 */
             Double expected_ = 10.0;
             /* r.round(9.9) */
-            System.out.println("About to run #43: r.round(9.9)");
+            logger.info("About to run line #101: r.round(9.9)");
             Object obtained = runOrCatch(r.round(9.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1097,22 +1056,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #44
+            // math_logic/floor_ceil_round.yaml line #103
             /* 1000000000.0 */
             Double expected_ = 1000000000.0;
             /* r.round(999999999.9) */
-            System.out.println("About to run #44: r.round(999999999.9)");
+            logger.info("About to run line #103: r.round(999999999.9)");
             Object obtained = runOrCatch(r.round(999999999.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1121,22 +1079,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #45
+            // math_logic/floor_ceil_round.yaml line #106
             /* -1.0 */
             Double expected_ = -1.0;
             /* r.round(-0.9) */
-            System.out.println("About to run #45: r.round(-0.9)");
+            logger.info("About to run line #106: r.round(-0.9)");
             Object obtained = runOrCatch(r.round(-0.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #106");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #106:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1145,22 +1102,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #46
+            // math_logic/floor_ceil_round.yaml line #108
             /* -10.0 */
             Double expected_ = -10.0;
             /* r.round(-9.9) */
-            System.out.println("About to run #46: r.round(-9.9)");
+            logger.info("About to run line #108: r.round(-9.9)");
             Object obtained = runOrCatch(r.round(-9.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #108");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #108:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1169,22 +1125,21 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #47
+            // math_logic/floor_ceil_round.yaml line #110
             /* -1000000000.0 */
             Double expected_ = -1000000000.0;
             /* r.round(-999999999.9) */
-            System.out.println("About to run #47: r.round(-999999999.9)");
+            logger.info("About to run line #110: r.round(-999999999.9)");
             Object obtained = runOrCatch(r.round(-999999999.9),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #110");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #110:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1193,20 +1148,19 @@ public class MathLogicFloorCeilRound {
         }
         
         {
-            // math_logic/floor_ceil_round.yaml #48
+            // math_logic/floor_ceil_round.yaml line #113
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* r.expr('X').round() */
-            System.out.println("About to run #48: r.expr('X').round()");
+            logger.info("About to run line #113: r.expr('X').round()");
             Object obtained = runOrCatch(r.expr("X").round(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

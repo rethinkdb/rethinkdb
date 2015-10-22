@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumArray {
+    // Tests conversion to and from the RQL array type
     Logger logger = LoggerFactory.getLogger(DatumArray.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumArray {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumArray {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumArray {
     public void test() throws Exception {
                 
         {
-            // datum/array.yaml #1
+            // datum/array.yaml line #6
             /* [] */
             List expected_ = r.array();
             /* r.expr([]) */
-            System.out.println("About to run #1: r.expr(r.array())");
+            logger.info("About to run line #6: r.expr(r.array())");
             Object obtained = runOrCatch(r.expr(r.array()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #2
+            // datum/array.yaml line #9
             /* [1] */
             List expected_ = r.array(1L);
             /* r.expr([1]) */
-            System.out.println("About to run #2: r.expr(r.array(1L))");
+            logger.info("About to run line #9: r.expr(r.array(1L))");
             Object obtained = runOrCatch(r.expr(r.array(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #3
-            /* [1, 2, 3, 4, 5] */
+            // datum/array.yaml line #14
+            /* [1,2,3,4,5] */
             List expected_ = r.array(1L, 2L, 3L, 4L, 5L);
             /* r.expr([1,2,3,4,5]) */
-            System.out.println("About to run #3: r.expr(r.array(1L, 2L, 3L, 4L, 5L))");
+            logger.info("About to run line #14: r.expr(r.array(1L, 2L, 3L, 4L, 5L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L, 5L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #4
+            // datum/array.yaml line #19
             /* 'ARRAY' */
             String expected_ = "ARRAY";
             /* r.expr([]).type_of() */
-            System.out.println("About to run #4: r.expr(r.array()).typeOf()");
+            logger.info("About to run line #19: r.expr(r.array()).typeOf()");
             Object obtained = runOrCatch(r.expr(r.array()).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #(5, 1)
+            // datum/array.yaml line #24
             /* '[1,2]' */
             String expected_ = "[1,2]";
             /* r.expr([1, 2]).coerce_to('string') */
-            System.out.println("About to run #(5, 1): r.expr(r.array(1L, 2L)).coerceTo('string')");
+            logger.info("About to run line #24: r.expr(r.array(1L, 2L)).coerceTo('string')");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 1)");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #(5, 2)
+            // datum/array.yaml line #25
             /* '[1,2]' */
             String expected_ = "[1,2]";
             /* r.expr([1, 2]).coerce_to('STRING') */
-            System.out.println("About to run #(5, 2): r.expr(r.array(1L, 2L)).coerceTo('STRING')");
+            logger.info("About to run line #25: r.expr(r.array(1L, 2L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 2)");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #6
+            // datum/array.yaml line #28
             /* [1, 2] */
             List expected_ = r.array(1L, 2L);
             /* r.expr([1, 2]).coerce_to('array') */
-            System.out.println("About to run #6: r.expr(r.array(1L, 2L)).coerceTo('array')");
+            logger.info("About to run line #28: r.expr(r.array(1L, 2L)).coerceTo('array')");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).coerceTo("array"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #7
+            // datum/array.yaml line #31
             /* err('ReqlQueryLogicError', 'Cannot coerce ARRAY to NUMBER.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce ARRAY to NUMBER.", r.array(0L));
             /* r.expr([1, 2]).coerce_to('number') */
-            System.out.println("About to run #7: r.expr(r.array(1L, 2L)).coerceTo('number')");
+            logger.info("About to run line #31: r.expr(r.array(1L, 2L)).coerceTo('number')");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).coerceTo("number"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #8
-            /* ({'a':1,'b':2}) */
+            // datum/array.yaml line #34
+            /* {'a':1,'b':2} */
             Map expected_ = r.hashMap("a", 1L).with("b", 2L);
             /* r.expr([['a', 1], ['b', 2]]).coerce_to('object') */
-            System.out.println("About to run #8: r.expr(r.array(r.array('a', 1L), r.array('b', 2L))).coerceTo('object')");
+            logger.info("About to run line #34: r.expr(r.array(r.array('a', 1L), r.array('b', 2L))).coerceTo('object')");
             Object obtained = runOrCatch(r.expr(r.array(r.array("a", 1L), r.array("b", 2L))).coerceTo("object"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #9
+            // datum/array.yaml line #37
             /* err('ReqlQueryLogicError', 'Expected array of size 2, but got size 0.') */
             Err expected_ = err("ReqlQueryLogicError", "Expected array of size 2, but got size 0.");
             /* r.expr([[]]).coerce_to('object') */
-            System.out.println("About to run #9: r.expr(r.array(r.array())).coerceTo('object')");
+            logger.info("About to run line #37: r.expr(r.array(r.array())).coerceTo('object')");
             Object obtained = runOrCatch(r.expr(r.array(r.array())).coerceTo("object"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #10
+            // datum/array.yaml line #40
             /* err('ReqlQueryLogicError', 'Expected array of size 2, but got size 3.') */
             Err expected_ = err("ReqlQueryLogicError", "Expected array of size 2, but got size 3.");
             /* r.expr([['1',2,3]]).coerce_to('object') */
-            System.out.println("About to run #10: r.expr(r.array(r.array('1', 2L, 3L))).coerceTo('object')");
+            logger.info("About to run line #40: r.expr(r.array(r.array('1', 2L, 3L))).coerceTo('object')");
             Object obtained = runOrCatch(r.expr(r.array(r.array("1", 2L, 3L))).coerceTo("object"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #11
+            // datum/array.yaml line #44
             /* [1] */
             List expected_ = r.array(1L);
             /* r.expr([r.expr(1)]) */
-            System.out.println("About to run #11: r.expr(r.array(r.expr(1L)))");
+            logger.info("About to run line #44: r.expr(r.array(r.expr(1L)))");
             Object obtained = runOrCatch(r.expr(r.array(r.expr(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #12
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #47
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,3,4]).insert_at(1, 2) */
-            System.out.println("About to run #12: r.expr(r.array(1L, 3L, 4L)).insertAt(1L, 2L)");
+            logger.info("About to run line #47: r.expr(r.array(1L, 3L, 4L)).insertAt(1L, 2L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 3L, 4L)).insertAt(1L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #13
-            /* [1, 2, 3] */
+            // datum/array.yaml line #49
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* r.expr([2,3]).insert_at(0, 1) */
-            System.out.println("About to run #13: r.expr(r.array(2L, 3L)).insertAt(0L, 1L)");
+            logger.info("About to run line #49: r.expr(r.array(2L, 3L)).insertAt(0L, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(2L, 3L)).insertAt(0L, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #14
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #51
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,2,3]).insert_at(-1, 4) */
-            System.out.println("About to run #14: r.expr(r.array(1L, 2L, 3L)).insertAt(-1L, 4L)");
+            logger.info("About to run line #51: r.expr(r.array(1L, 2L, 3L)).insertAt(-1L, 4L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt(-1L, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #15
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #53
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,2,3]).insert_at(3, 4) */
-            System.out.println("About to run #15: r.expr(r.array(1L, 2L, 3L)).insertAt(3L, 4L)");
+            logger.info("About to run line #53: r.expr(r.array(1L, 2L, 3L)).insertAt(3L, 4L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt(3L, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -427,20 +413,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #16
-            /* [1, 2, 3, 4] */
-            List expected_ = r.array(1L, 2L, 3L, 4L);
+            // datum/array.yaml line #55
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
             /* r.expr(3).do(lambda x: r.expr([1,2,3]).insert_at(x, 4)) */
-            System.out.println("About to run #16: r.expr(3L).do_(x -> r.expr(r.array(1L, 2L, 3L)).insertAt(x, 4L))");
+            logger.info("About to run line #55: r.expr(3L).do_(x -> r.expr(r.array(1L, 2L, 3L)).insertAt(x, 4L))");
             Object obtained = runOrCatch(r.expr(3L).do_(x -> r.expr(r.array(1L, 2L, 3L)).insertAt(x, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -449,20 +434,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #17
+            // datum/array.yaml line #59
             /* err('ReqlNonExistenceError', 'Index `4` out of bounds for array of size: `3`.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index `4` out of bounds for array of size: `3`.", r.array(0L));
             /* r.expr([1,2,3]).insert_at(4, 5) */
-            System.out.println("About to run #17: r.expr(r.array(1L, 2L, 3L)).insertAt(4L, 5L)");
+            logger.info("About to run line #59: r.expr(r.array(1L, 2L, 3L)).insertAt(4L, 5L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt(4L, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -471,20 +455,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #18
+            // datum/array.yaml line #61
             /* err('ReqlNonExistenceError', 'Index out of bounds: -5', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index out of bounds: -5", r.array(0L));
             /* r.expr([1,2,3]).insert_at(-5, -1) */
-            System.out.println("About to run #18: r.expr(r.array(1L, 2L, 3L)).insertAt(-5L, -1L)");
+            logger.info("About to run line #61: r.expr(r.array(1L, 2L, 3L)).insertAt(-5L, -1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt(-5L, -1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #61");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #61:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -493,20 +476,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #19
+            // datum/array.yaml line #63
             /* err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Number not an integer: 1.5", r.array(0L));
             /* r.expr([1,2,3]).insert_at(1.5, 1) */
-            System.out.println("About to run #19: r.expr(r.array(1L, 2L, 3L)).insertAt(1.5, 1L)");
+            logger.info("About to run line #63: r.expr(r.array(1L, 2L, 3L)).insertAt(1.5, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt(1.5, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #63");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #63:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,20 +497,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #20
+            // datum/array.yaml line #65
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).insert_at(null, 1) */
-            System.out.println("About to run #20: r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlExpr) null, 1L)");
+            logger.info("About to run line #65: r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlExpr) null, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlExpr) null, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -537,20 +518,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #21
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #68
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,4]).splice_at(1, [2,3]) */
-            System.out.println("About to run #21: r.expr(r.array(1L, 4L)).spliceAt(1L, r.array(2L, 3L))");
+            logger.info("About to run line #68: r.expr(r.array(1L, 4L)).spliceAt(1L, r.array(2L, 3L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 4L)).spliceAt(1L, r.array(2L, 3L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #68");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #68:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -559,20 +539,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #22
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #70
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([3,4]).splice_at(0, [1,2]) */
-            System.out.println("About to run #22: r.expr(r.array(3L, 4L)).spliceAt(0L, r.array(1L, 2L))");
+            logger.info("About to run line #70: r.expr(r.array(3L, 4L)).spliceAt(0L, r.array(1L, 2L))");
             Object obtained = runOrCatch(r.expr(r.array(3L, 4L)).spliceAt(0L, r.array(1L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #70");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -581,20 +560,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #23
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #72
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,2]).splice_at(2, [3,4]) */
-            System.out.println("About to run #23: r.expr(r.array(1L, 2L)).spliceAt(2L, r.array(3L, 4L))");
+            logger.info("About to run line #72: r.expr(r.array(1L, 2L)).spliceAt(2L, r.array(3L, 4L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).spliceAt(2L, r.array(3L, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -603,20 +581,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #24
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #74
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,2]).splice_at(-1, [3,4]) */
-            System.out.println("About to run #24: r.expr(r.array(1L, 2L)).spliceAt(-1L, r.array(3L, 4L))");
+            logger.info("About to run line #74: r.expr(r.array(1L, 2L)).spliceAt(-1L, r.array(3L, 4L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).spliceAt(-1L, r.array(3L, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #74");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #74:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -625,20 +602,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #25
-            /* [1, 2, 3, 4] */
-            List expected_ = r.array(1L, 2L, 3L, 4L);
+            // datum/array.yaml line #76
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
             /* r.expr(2).do(lambda x: r.expr([1,2]).splice_at(x, [3,4])) */
-            System.out.println("About to run #25: r.expr(2L).do_(x -> r.expr(r.array(1L, 2L)).spliceAt(x, r.array(3L, 4L)))");
+            logger.info("About to run line #76: r.expr(2L).do_(x -> r.expr(r.array(1L, 2L)).spliceAt(x, r.array(3L, 4L)))");
             Object obtained = runOrCatch(r.expr(2L).do_(x -> r.expr(r.array(1L, 2L)).spliceAt(x, r.array(3L, 4L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #76");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #76:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -647,20 +623,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #26
+            // datum/array.yaml line #80
             /* err('ReqlNonExistenceError', 'Index `3` out of bounds for array of size: `2`.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index `3` out of bounds for array of size: `2`.", r.array(0L));
             /* r.expr([1,2]).splice_at(3, [3,4]) */
-            System.out.println("About to run #26: r.expr(r.array(1L, 2L)).spliceAt(3L, r.array(3L, 4L))");
+            logger.info("About to run line #80: r.expr(r.array(1L, 2L)).spliceAt(3L, r.array(3L, 4L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).spliceAt(3L, r.array(3L, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #80");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #80:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -669,20 +644,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #27
+            // datum/array.yaml line #82
             /* err('ReqlNonExistenceError', 'Index out of bounds: -4', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index out of bounds: -4", r.array(0L));
             /* r.expr([1,2]).splice_at(-4, [3,4]) */
-            System.out.println("About to run #27: r.expr(r.array(1L, 2L)).spliceAt(-4L, r.array(3L, 4L))");
+            logger.info("About to run line #82: r.expr(r.array(1L, 2L)).spliceAt(-4L, r.array(3L, 4L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L)).spliceAt(-4L, r.array(3L, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -691,20 +665,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #28
+            // datum/array.yaml line #84
             /* err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Number not an integer: 1.5", r.array(0L));
             /* r.expr([1,2,3]).splice_at(1.5, [1]) */
-            System.out.println("About to run #28: r.expr(r.array(1L, 2L, 3L)).spliceAt(1.5, r.array(1L))");
+            logger.info("About to run line #84: r.expr(r.array(1L, 2L, 3L)).spliceAt(1.5, r.array(1L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).spliceAt(1.5, r.array(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -713,20 +686,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #29
+            // datum/array.yaml line #86
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).splice_at(null, [1]) */
-            System.out.println("About to run #29: r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlExpr) null, r.array(1L))");
+            logger.info("About to run line #86: r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlExpr) null, r.array(1L))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlExpr) null, r.array(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -735,20 +707,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #30
+            // datum/array.yaml line #88
             /* err('ReqlQueryLogicError', 'Expected type ARRAY but found NUMBER.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type ARRAY but found NUMBER.", r.array(0L));
             /* r.expr([1,4]).splice_at(1, 2) */
-            System.out.println("About to run #30: r.expr(r.array(1L, 4L)).spliceAt(1L, 2L)");
+            logger.info("About to run line #88: r.expr(r.array(1L, 4L)).spliceAt(1L, 2L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 4L)).spliceAt(1L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #88");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #88:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -757,20 +728,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #31
-            /* [2, 3, 4] */
+            // datum/array.yaml line #91
+            /* [2,3,4] */
             List expected_ = r.array(2L, 3L, 4L);
             /* r.expr([1,2,3,4]).delete_at(0) */
-            System.out.println("About to run #31: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(0L)");
+            logger.info("About to run line #91: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(0L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -779,20 +749,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #32
-            /* [2, 3, 4] */
-            List expected_ = r.array(2L, 3L, 4L);
+            // datum/array.yaml line #93
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
             /* r.expr(0).do(lambda x: r.expr([1,2,3,4]).delete_at(x)) */
-            System.out.println("About to run #32: r.expr(0L).do_(x -> r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(x))");
+            logger.info("About to run line #93: r.expr(0L).do_(x -> r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(x))");
             Object obtained = runOrCatch(r.expr(0L).do_(x -> r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(x)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -801,20 +770,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #33
-            /* [1, 2, 3] */
+            // datum/array.yaml line #97
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* r.expr([1,2,3,4]).delete_at(-1) */
-            System.out.println("About to run #33: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-1L)");
+            logger.info("About to run line #97: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #97");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #97:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -823,20 +791,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #34
-            /* [1, 4] */
+            // datum/array.yaml line #99
+            /* [1,4] */
             List expected_ = r.array(1L, 4L);
             /* r.expr([1,2,3,4]).delete_at(1,3) */
-            System.out.println("About to run #34: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, 3L)");
+            logger.info("About to run line #99: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, 3L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -845,20 +812,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #35
-            /* [1, 2, 3, 4] */
+            // datum/array.yaml line #101
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,2,3,4]).delete_at(4,4) */
-            System.out.println("About to run #35: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L, 4L)");
+            logger.info("About to run line #101: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L, 4L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -867,20 +833,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #36
+            // datum/array.yaml line #103
             /* [] */
             List expected_ = r.array();
             /* r.expr([]).delete_at(0,0) */
-            System.out.println("About to run #36: r.expr(r.array()).deleteAt(0L, 0L)");
+            logger.info("About to run line #103: r.expr(r.array()).deleteAt(0L, 0L)");
             Object obtained = runOrCatch(r.expr(r.array()).deleteAt(0L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -889,20 +854,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #37
-            /* [1, 4] */
+            // datum/array.yaml line #105
+            /* [1,4] */
             List expected_ = r.array(1L, 4L);
             /* r.expr([1,2,3,4]).delete_at(1,-1) */
-            System.out.println("About to run #37: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, -1L)");
+            logger.info("About to run line #105: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, -1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(1L, -1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #105");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #105:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -911,20 +875,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #38
+            // datum/array.yaml line #107
             /* err('ReqlNonExistenceError', 'Index `4` out of bounds for array of size: `4`.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index `4` out of bounds for array of size: `4`.", r.array(0L));
             /* r.expr([1,2,3,4]).delete_at(4) */
-            System.out.println("About to run #38: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L)");
+            logger.info("About to run line #107: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #107");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #107:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -933,20 +896,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #39
+            // datum/array.yaml line #109
             /* err('ReqlNonExistenceError', 'Index out of bounds: -5', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index out of bounds: -5", r.array(0L));
             /* r.expr([1,2,3,4]).delete_at(-5) */
-            System.out.println("About to run #39: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-5L)");
+            logger.info("About to run line #109: r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-5L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).deleteAt(-5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #109");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #109:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -955,20 +917,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #40
+            // datum/array.yaml line #111
             /* err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Number not an integer: 1.5", r.array(0L));
             /* r.expr([1,2,3]).delete_at(1.5) */
-            System.out.println("About to run #40: r.expr(r.array(1L, 2L, 3L)).deleteAt(1.5)");
+            logger.info("About to run line #111: r.expr(r.array(1L, 2L, 3L)).deleteAt(1.5)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).deleteAt(1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #111");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #111:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -977,20 +938,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #41
+            // datum/array.yaml line #113
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).delete_at(null) */
-            System.out.println("About to run #41: r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlExpr) null)");
+            logger.info("About to run line #113: r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlExpr) null)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -999,20 +959,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #42
-            /* [1, 2, 3] */
+            // datum/array.yaml line #116
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* r.expr([0,2,3]).change_at(0, 1) */
-            System.out.println("About to run #42: r.expr(r.array(0L, 2L, 3L)).changeAt(0L, 1L)");
+            logger.info("About to run line #116: r.expr(r.array(0L, 2L, 3L)).changeAt(0L, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(0L, 2L, 3L)).changeAt(0L, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #116");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #116:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1021,20 +980,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #43
-            /* [1, 2, 3] */
-            List expected_ = r.array(1L, 2L, 3L);
+            // datum/array.yaml line #118
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
             /* r.expr(1).do(lambda x: r.expr([0,2,3]).change_at(0,x)) */
-            System.out.println("About to run #43: r.expr(1L).do_(x -> r.expr(r.array(0L, 2L, 3L)).changeAt(0L, x))");
+            logger.info("About to run line #118: r.expr(1L).do_(x -> r.expr(r.array(0L, 2L, 3L)).changeAt(0L, x))");
             Object obtained = runOrCatch(r.expr(1L).do_(x -> r.expr(r.array(0L, 2L, 3L)).changeAt(0L, x)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1043,20 +1001,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #44
-            /* [1, 2, 3] */
+            // datum/array.yaml line #122
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* r.expr([1,0,3]).change_at(1, 2) */
-            System.out.println("About to run #44: r.expr(r.array(1L, 0L, 3L)).changeAt(1L, 2L)");
+            logger.info("About to run line #122: r.expr(r.array(1L, 0L, 3L)).changeAt(1L, 2L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 0L, 3L)).changeAt(1L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1065,20 +1022,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #45
-            /* [1, 2, 3] */
+            // datum/array.yaml line #124
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* r.expr([1,2,0]).change_at(2, 3) */
-            System.out.println("About to run #45: r.expr(r.array(1L, 2L, 0L)).changeAt(2L, 3L)");
+            logger.info("About to run line #124: r.expr(r.array(1L, 2L, 0L)).changeAt(2L, 3L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 0L)).changeAt(2L, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #124");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #124:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1087,20 +1043,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #46
+            // datum/array.yaml line #126
             /* err('ReqlNonExistenceError', 'Index `3` out of bounds for array of size: `3`.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index `3` out of bounds for array of size: `3`.", r.array(0L));
             /* r.expr([1,2,3]).change_at(3, 4) */
-            System.out.println("About to run #46: r.expr(r.array(1L, 2L, 3L)).changeAt(3L, 4L)");
+            logger.info("About to run line #126: r.expr(r.array(1L, 2L, 3L)).changeAt(3L, 4L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).changeAt(3L, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #126");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #126:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1109,20 +1064,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #47
+            // datum/array.yaml line #128
             /* err('ReqlNonExistenceError', 'Index out of bounds: -5', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Index out of bounds: -5", r.array(0L));
             /* r.expr([1,2,3,4]).change_at(-5, 1) */
-            System.out.println("About to run #47: r.expr(r.array(1L, 2L, 3L, 4L)).changeAt(-5L, 1L)");
+            logger.info("About to run line #128: r.expr(r.array(1L, 2L, 3L, 4L)).changeAt(-5L, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L)).changeAt(-5L, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #128");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #128:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1131,20 +1085,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #48
+            // datum/array.yaml line #130
             /* err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Number not an integer: 1.5", r.array(0L));
             /* r.expr([1,2,3]).change_at(1.5, 1) */
-            System.out.println("About to run #48: r.expr(r.array(1L, 2L, 3L)).changeAt(1.5, 1L)");
+            logger.info("About to run line #130: r.expr(r.array(1L, 2L, 3L)).changeAt(1.5, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).changeAt(1.5, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #130");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #130:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1153,20 +1106,19 @@ public class DatumArray {
         }
         
         {
-            // datum/array.yaml #49
+            // datum/array.yaml line #132
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).change_at(null, 1) */
-            System.out.println("About to run #49: r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlExpr) null, 1L)");
+            logger.info("About to run line #132: r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlExpr) null, 1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlExpr) null, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #132");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #132:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

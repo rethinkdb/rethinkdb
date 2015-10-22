@@ -30,7 +30,10 @@
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [[]],
+        "signatures": [
+            [],
+            ["T_EXPR"]
+        ],
         "id": 169
     },
     "HTTP": {
@@ -1255,7 +1258,8 @@
         "signatures": [["T_EXPR"]],
         "optargs": {
             "squash": "T_BOOL",
-            "include_states": "T_BOOL"
+            "include_states": "T_BOOL",
+            "include_initial": "T_BOOL"
         },
         "id": 152
     },

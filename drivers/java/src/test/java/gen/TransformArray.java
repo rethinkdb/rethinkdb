@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TransformArray {
+    // Tests manipulation operations on arrays
     Logger logger = LoggerFactory.getLogger(TransformArray.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class TransformArray {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class TransformArray {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,41 +76,40 @@ public class TransformArray {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // transform/array.yaml #1
+        // transform/array.yaml line #5
         // arr = r.expr([1, 2, 3])
-        System.out.println("Possibly executing: MakeArray arr = (MakeArray) (r.expr(r.array(1L, 2L, 3L)));");
+        logger.info("Possibly executing: MakeArray arr = (MakeArray) (r.expr(r.array(1L, 2L, 3L)));");
         MakeArray arr = (MakeArray) (r.expr(r.array(1L, 2L, 3L)));
                 
-        // transform/array.yaml #2
+        // transform/array.yaml line #6
         // dupe_arr = r.expr([1, 1, 2, 3])
-        System.out.println("Possibly executing: MakeArray dupe_arr = (MakeArray) (r.expr(r.array(1L, 1L, 2L, 3L)));");
+        logger.info("Possibly executing: MakeArray dupe_arr = (MakeArray) (r.expr(r.array(1L, 1L, 2L, 3L)));");
         MakeArray dupe_arr = (MakeArray) (r.expr(r.array(1L, 1L, 2L, 3L)));
                 
-        // transform/array.yaml #3
+        // transform/array.yaml line #7
         // objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
-        System.out.println("Possibly executing: MakeArray objArr = (MakeArray) (r.expr(r.array(r.hashMap('a', 1L).with('b', 'a'), r.hashMap('a', 2L).with('b', 'b'), r.hashMap('a', 3L).with('b', 'c'))));");
+        logger.info("Possibly executing: MakeArray objArr = (MakeArray) (r.expr(r.array(r.hashMap('a', 1L).with('b', 'a'), r.hashMap('a', 2L).with('b', 'b'), r.hashMap('a', 3L).with('b', 'c'))));");
         MakeArray objArr = (MakeArray) (r.expr(r.array(r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"))));
                 
-        // transform/array.yaml #4
+        // transform/array.yaml line #8
         // nestedObjArr = r.expr([{'a':1, 'b':{'c':1}}, {'a':2, 'b':{'c':2}}, {'a':3, 'b':{'c':3}}])
-        System.out.println("Possibly executing: MakeArray nestedObjArr = (MakeArray) (r.expr(r.array(r.hashMap('a', 1L).with('b', r.hashMap('c', 1L)), r.hashMap('a', 2L).with('b', r.hashMap('c', 2L)), r.hashMap('a', 3L).with('b', r.hashMap('c', 3L)))));");
+        logger.info("Possibly executing: MakeArray nestedObjArr = (MakeArray) (r.expr(r.array(r.hashMap('a', 1L).with('b', r.hashMap('c', 1L)), r.hashMap('a', 2L).with('b', r.hashMap('c', 2L)), r.hashMap('a', 3L).with('b', r.hashMap('c', 3L)))));");
         MakeArray nestedObjArr = (MakeArray) (r.expr(r.array(r.hashMap("a", 1L).with("b", r.hashMap("c", 1L)), r.hashMap("a", 2L).with("b", r.hashMap("c", 2L)), r.hashMap("a", 3L).with("b", r.hashMap("c", 3L)))));
                 
         {
-            // transform/array.yaml #5
-            /* [1, 2, 3, 4] */
+            // transform/array.yaml line #12
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* arr.append(4) */
-            System.out.println("About to run #5: arr.append(4L)");
+            logger.info("About to run line #12: arr.append(4L)");
             Object obtained = runOrCatch(arr.append(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -117,20 +118,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #6
-            /* [1, 2, 3, 'a'] */
+            // transform/array.yaml line #14
+            /* [1,2,3,'a'] */
             List expected_ = r.array(1L, 2L, 3L, "a");
             /* arr.append('a') */
-            System.out.println("About to run #6: arr.append('a')");
+            logger.info("About to run line #14: arr.append('a')");
             Object obtained = runOrCatch(arr.append("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -139,20 +139,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #7
-            /* [0, 1, 2, 3] */
+            // transform/array.yaml line #19
+            /* [0,1,2,3] */
             List expected_ = r.array(0L, 1L, 2L, 3L);
             /* arr.prepend(0) */
-            System.out.println("About to run #7: arr.prepend(0L)");
+            logger.info("About to run line #19: arr.prepend(0L)");
             Object obtained = runOrCatch(arr.prepend(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -161,20 +160,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #8
-            /* ['a', 1, 2, 3] */
+            // transform/array.yaml line #21
+            /* ['a',1,2,3] */
             List expected_ = r.array("a", 1L, 2L, 3L);
             /* arr.prepend('a') */
-            System.out.println("About to run #8: arr.prepend('a')");
+            logger.info("About to run line #21: arr.prepend('a')");
             Object obtained = runOrCatch(arr.prepend("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -183,20 +181,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #9
+            // transform/array.yaml line #26
             /* [3] */
             List expected_ = r.array(3L);
             /* arr.difference([1,2,2]) */
-            System.out.println("About to run #9: arr.difference(r.array(1L, 2L, 2L))");
+            logger.info("About to run line #26: arr.difference(r.array(1L, 2L, 2L))");
             Object obtained = runOrCatch(arr.difference(r.array(1L, 2L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -205,20 +202,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #10
-            /* [1, 2, 3] */
+            // transform/array.yaml line #28
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* arr.difference([]) */
-            System.out.println("About to run #10: arr.difference(r.array())");
+            logger.info("About to run line #28: arr.difference(r.array())");
             Object obtained = runOrCatch(arr.difference(r.array()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -227,20 +223,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #11
-            /* [1, 2, 3] */
+            // transform/array.yaml line #30
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* arr.difference(["foo", "bar"]) */
-            System.out.println("About to run #11: arr.difference(r.array('foo', 'bar'))");
+            logger.info("About to run line #30: arr.difference(r.array('foo', 'bar'))");
             Object obtained = runOrCatch(arr.difference(r.array("foo", "bar")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -249,20 +244,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #12
-            /* [1, 2, 3] */
+            // transform/array.yaml line #34
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* dupe_arr.set_insert(1) */
-            System.out.println("About to run #12: dupe_arr.setInsert(1L)");
+            logger.info("About to run line #34: dupe_arr.setInsert(1L)");
             Object obtained = runOrCatch(dupe_arr.setInsert(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -271,20 +265,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #13
-            /* [1, 2, 3, 4] */
+            // transform/array.yaml line #36
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* dupe_arr.set_insert(4) */
-            System.out.println("About to run #13: dupe_arr.setInsert(4L)");
+            logger.info("About to run line #36: dupe_arr.setInsert(4L)");
             Object obtained = runOrCatch(dupe_arr.setInsert(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #36");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #36:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -293,20 +286,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #14
-            /* [1, 2, 3, 4, 5] */
+            // transform/array.yaml line #39
+            /* [1,2,3,4,5] */
             List expected_ = r.array(1L, 2L, 3L, 4L, 5L);
             /* dupe_arr.set_union([3,4,5,5]) */
-            System.out.println("About to run #14: dupe_arr.setUnion(r.array(3L, 4L, 5L, 5L))");
+            logger.info("About to run line #39: dupe_arr.setUnion(r.array(3L, 4L, 5L, 5L))");
             Object obtained = runOrCatch(dupe_arr.setUnion(r.array(3L, 4L, 5L, 5L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -315,20 +307,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #15
-            /* [1, 2, 3, 5, 6] */
+            // transform/array.yaml line #41
+            /* [1,2,3,5,6] */
             List expected_ = r.array(1L, 2L, 3L, 5L, 6L);
             /* dupe_arr.set_union([5,6]) */
-            System.out.println("About to run #15: dupe_arr.setUnion(r.array(5L, 6L))");
+            logger.info("About to run line #41: dupe_arr.setUnion(r.array(5L, 6L))");
             Object obtained = runOrCatch(dupe_arr.setUnion(r.array(5L, 6L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -337,20 +328,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #16
-            /* [1, 2] */
+            // transform/array.yaml line #44
+            /* [1,2] */
             List expected_ = r.array(1L, 2L);
             /* dupe_arr.set_intersection([1,1,1,2,2]) */
-            System.out.println("About to run #16: dupe_arr.setIntersection(r.array(1L, 1L, 1L, 2L, 2L))");
+            logger.info("About to run line #44: dupe_arr.setIntersection(r.array(1L, 1L, 1L, 2L, 2L))");
             Object obtained = runOrCatch(dupe_arr.setIntersection(r.array(1L, 1L, 1L, 2L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -359,20 +349,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #17
+            // transform/array.yaml line #46
             /* [] */
             List expected_ = r.array();
             /* dupe_arr.set_intersection(["foo"]) */
-            System.out.println("About to run #17: dupe_arr.setIntersection(r.array('foo'))");
+            logger.info("About to run line #46: dupe_arr.setIntersection(r.array('foo'))");
             Object obtained = runOrCatch(dupe_arr.setIntersection(r.array("foo")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -381,20 +370,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #18
-            /* [2, 3] */
+            // transform/array.yaml line #49
+            /* [2,3] */
             List expected_ = r.array(2L, 3L);
             /* dupe_arr.set_difference([1,1,1,10]) */
-            System.out.println("About to run #18: dupe_arr.setDifference(r.array(1L, 1L, 1L, 10L))");
+            logger.info("About to run line #49: dupe_arr.setDifference(r.array(1L, 1L, 1L, 10L))");
             Object obtained = runOrCatch(dupe_arr.setDifference(r.array(1L, 1L, 1L, 10L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -403,20 +391,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #19
-            /* [1, 3] */
+            // transform/array.yaml line #51
+            /* [1,3] */
             List expected_ = r.array(1L, 3L);
             /* dupe_arr.set_difference([2]) */
-            System.out.println("About to run #19: dupe_arr.setDifference(r.array(2L))");
+            logger.info("About to run line #51: dupe_arr.setDifference(r.array(2L))");
             Object obtained = runOrCatch(dupe_arr.setDifference(r.array(2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -425,20 +412,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(20, 1)
+            // transform/array.yaml line #58
             /* [2, 3] */
             List expected_ = r.array(2L, 3L);
             /* arr[1:3] */
-            System.out.println("About to run #(20, 1): arr.slice(1, 3)");
+            logger.info("About to run line #58: arr.slice(1, 3)");
             Object obtained = runOrCatch(arr.slice(1, 3),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 1)");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -447,20 +433,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(20, 2)
+            // transform/array.yaml line #59
             /* [2, 3] */
             List expected_ = r.array(2L, 3L);
             /* arr.slice(1, 3) */
-            System.out.println("About to run #(20, 2): arr.slice(1L, 3L)");
+            logger.info("About to run line #59: arr.slice(1L, 3L)");
             Object obtained = runOrCatch(arr.slice(1L, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 2)");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -469,20 +454,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(20, 3)
+            // transform/array.yaml line #60
             /* [2, 3] */
             List expected_ = r.array(2L, 3L);
             /* arr.slice(1, 2, right_bound='closed') */
-            System.out.println("About to run #(20, 3): arr.slice(1L, 2L).optArg('right_bound', 'closed')");
+            logger.info("About to run line #60: arr.slice(1L, 2L).optArg('right_bound', 'closed')");
             Object obtained = runOrCatch(arr.slice(1L, 2L).optArg("right_bound", "closed"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 3)");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -491,20 +475,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(21, 1)
-            /* [1, 2] */
+            // transform/array.yaml line #72
+            /* [1,2] */
             List expected_ = r.array(1L, 2L);
             /* arr[:2] */
-            System.out.println("About to run #(21, 1): arr.slice(0, 2)");
+            logger.info("About to run line #72: arr.slice(0, 2)");
             Object obtained = runOrCatch(arr.slice(0, 2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(21, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(21, 1)");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(21, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -513,20 +496,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(21, 2)
-            /* [1, 2] */
+            // transform/array.yaml line #73
+            /* [1,2] */
             List expected_ = r.array(1L, 2L);
             /* arr.slice(0,2) */
-            System.out.println("About to run #(21, 2): arr.slice(0L, 2L)");
+            logger.info("About to run line #73: arr.slice(0L, 2L)");
             Object obtained = runOrCatch(arr.slice(0L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(21, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(21, 2)");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(21, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -535,20 +517,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(22, 1)
-            /* [2, 3] */
+            // transform/array.yaml line #81
+            /* [2,3] */
             List expected_ = r.array(2L, 3L);
             /* arr[1:] */
-            System.out.println("About to run #(22, 1): arr.slice(1, -1).optArg('right_bound', 'closed')");
+            logger.info("About to run line #81: arr.slice(1, -1).optArg('right_bound', 'closed')");
             Object obtained = runOrCatch(arr.slice(1, -1).optArg("right_bound", "closed"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(22, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(22, 1)");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(22, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -557,20 +538,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(22, 2)
-            /* [2, 3] */
+            // transform/array.yaml line #82
+            /* [2,3] */
             List expected_ = r.array(2L, 3L);
             /* arr.slice(1) */
-            System.out.println("About to run #(22, 2): arr.slice(1L)");
+            logger.info("About to run line #82: arr.slice(1L)");
             Object obtained = runOrCatch(arr.slice(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(22, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(22, 2)");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(22, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -579,20 +559,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #23
+            // transform/array.yaml line #89
             /* [2] */
             List expected_ = r.array(2L);
             /* arr.slice(-2, -1) */
-            System.out.println("About to run #23: arr.slice(-2L, -1L)");
+            logger.info("About to run line #89: arr.slice(-2L, -1L)");
             Object obtained = runOrCatch(arr.slice(-2L, -1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #89");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #89:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -601,20 +580,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #24
-            /* [2, 3] */
+            // transform/array.yaml line #95
+            /* [2,3] */
             List expected_ = r.array(2L, 3L);
             /* arr.skip(1) */
-            System.out.println("About to run #24: arr.skip(1L)");
+            logger.info("About to run line #95: arr.skip(1L)");
             Object obtained = runOrCatch(arr.skip(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #95");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #95:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -623,20 +601,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #25
+            // transform/array.yaml line #97
             /* [3] */
             List expected_ = r.array(3L);
             /* arr.skip(2) */
-            System.out.println("About to run #25: arr.skip(2L)");
+            logger.info("About to run line #97: arr.skip(2L)");
             Object obtained = runOrCatch(arr.skip(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #97");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #97:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -645,20 +622,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #26
+            // transform/array.yaml line #99
             /* [] */
             List expected_ = r.array();
             /* arr.skip(12) */
-            System.out.println("About to run #26: arr.skip(12L)");
+            logger.info("About to run line #99: arr.skip(12L)");
             Object obtained = runOrCatch(arr.skip(12L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -667,20 +643,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #27
-            /* [1, 2] */
+            // transform/array.yaml line #104
+            /* [1,2] */
             List expected_ = r.array(1L, 2L);
             /* arr.limit(2) */
-            System.out.println("About to run #27: arr.limit(2L)");
+            logger.info("About to run line #104: arr.limit(2L)");
             Object obtained = runOrCatch(arr.limit(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #104");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #104:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -689,20 +664,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #28
+            // transform/array.yaml line #106
             /* [] */
             List expected_ = r.array();
             /* arr.limit(0) */
-            System.out.println("About to run #28: arr.limit(0L)");
+            logger.info("About to run line #106: arr.limit(0L)");
             Object obtained = runOrCatch(arr.limit(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #106");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #106:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -711,20 +685,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #29
-            /* [1, 2, 3] */
+            // transform/array.yaml line #108
+            /* [1,2,3] */
             List expected_ = r.array(1L, 2L, 3L);
             /* arr.limit(12) */
-            System.out.println("About to run #29: arr.limit(12L)");
+            logger.info("About to run line #108: arr.limit(12L)");
             Object obtained = runOrCatch(arr.limit(12L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #108");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #108:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -733,20 +706,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #30
-            /* [{'b': 'a', 'a': 1}, {'b': 'b', 'a': 2}, {'b': 'c', 'a': 3}] */
-            List expected_ = r.array(r.hashMap("b", "a").with("a", 1L), r.hashMap("b", "b").with("a", 2L), r.hashMap("b", "c").with("a", 3L));
+            // transform/array.yaml line #113
+            /* [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}] */
+            List expected_ = r.array(r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"));
             /* objArr.pluck('a', 'b') */
-            System.out.println("About to run #30: objArr.pluck('a', 'b')");
+            logger.info("About to run line #113: objArr.pluck('a', 'b')");
             Object obtained = runOrCatch(objArr.pluck("a", "b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -755,20 +727,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #31
-            /* [{'a': 1}, {'a': 2}, {'a': 3}] */
+            // transform/array.yaml line #115
+            /* [{'a':1}, {'a':2}, {'a':3}] */
             List expected_ = r.array(r.hashMap("a", 1L), r.hashMap("a", 2L), r.hashMap("a", 3L));
             /* objArr.pluck('a') */
-            System.out.println("About to run #31: objArr.pluck('a')");
+            logger.info("About to run line #115: objArr.pluck('a')");
             Object obtained = runOrCatch(objArr.pluck("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #115");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #115:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -777,20 +748,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #32
+            // transform/array.yaml line #117
             /* [{}, {}, {}] */
             List expected_ = r.array(r.hashMap(), r.hashMap(), r.hashMap());
             /* objArr.pluck() */
-            System.out.println("About to run #32: objArr.pluck()");
+            logger.info("About to run line #117: objArr.pluck()");
             Object obtained = runOrCatch(objArr.pluck(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #117");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #117:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -798,26 +768,25 @@ public class TransformArray {
             }
         }
         
-        // transform/array.yaml #33
+        // transform/array.yaml line #121
         // wftst = objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union([{'a':null}])
-        System.out.println("Possibly executing: Union wftst = (Union) (objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union(r.array(r.hashMap('a', null))));");
+        logger.info("Possibly executing: Union wftst = (Union) (objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union(r.array(r.hashMap('a', null))));");
         Union wftst = (Union) (objArr.union(objArr.pluck("a")).union(objArr.pluck("b")).union(r.array(r.hashMap("a", null))));
                 
         {
-            // transform/array.yaml #34
+            // transform/array.yaml line #122
             /* ([{'a':1},{'a':2},{'a':3},{'a':1},{'a':2},{'a':3}]) */
             List expected_ = r.array(r.hashMap("a", 1L), r.hashMap("a", 2L), r.hashMap("a", 3L), r.hashMap("a", 1L), r.hashMap("a", 2L), r.hashMap("a", 3L));
             /* wftst.with_fields('a') */
-            System.out.println("About to run #34: wftst.withFields('a')");
+            logger.info("About to run line #122: wftst.withFields('a')");
             Object obtained = runOrCatch(wftst.withFields("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -826,20 +795,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #35
+            // transform/array.yaml line #124
             /* ([{'b':'a'},{'b':'b'},{'b':'c'},{'b':'a'},{'b':'b'},{'b':'c'}]) */
             List expected_ = r.array(r.hashMap("b", "a"), r.hashMap("b", "b"), r.hashMap("b", "c"), r.hashMap("b", "a"), r.hashMap("b", "b"), r.hashMap("b", "c"));
             /* wftst.with_fields('b') */
-            System.out.println("About to run #35: wftst.withFields('b')");
+            logger.info("About to run line #124: wftst.withFields('b')");
             Object obtained = runOrCatch(wftst.withFields("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #124");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #124:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -848,20 +816,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #36
+            // transform/array.yaml line #126
             /* ([{'a':1,'b':'a'},{'a':2,'b':'b'},{'a':3,'b':'c'}]) */
             List expected_ = r.array(r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"));
             /* wftst.with_fields('a', 'b') */
-            System.out.println("About to run #36: wftst.withFields('a', 'b')");
+            logger.info("About to run line #126: wftst.withFields('a', 'b')");
             Object obtained = runOrCatch(wftst.withFields("a", "b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #126");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #126:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -870,20 +837,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #37
+            // transform/array.yaml line #128
             /* [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}] */
             List expected_ = r.array(r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap(), r.hashMap());
             /* wftst.with_fields() */
-            System.out.println("About to run #37: wftst.withFields()");
+            logger.info("About to run line #128: wftst.withFields()");
             Object obtained = runOrCatch(wftst.withFields(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #128");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #128:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -891,26 +857,25 @@ public class TransformArray {
             }
         }
         
-        // transform/array.yaml #38
+        // transform/array.yaml line #131
         // wftst2 = nestedObjArr.union(objArr.pluck({'b':'missing'})).union(nestedObjArr.pluck({'b':'c'}))
-        System.out.println("Possibly executing: Union wftst2 = (Union) (nestedObjArr.union(objArr.pluck(r.hashMap('b', 'missing'))).union(nestedObjArr.pluck(r.hashMap('b', 'c'))));");
+        logger.info("Possibly executing: Union wftst2 = (Union) (nestedObjArr.union(objArr.pluck(r.hashMap('b', 'missing'))).union(nestedObjArr.pluck(r.hashMap('b', 'c'))));");
         Union wftst2 = (Union) (nestedObjArr.union(objArr.pluck(r.hashMap("b", "missing"))).union(nestedObjArr.pluck(r.hashMap("b", "c"))));
                 
         {
-            // transform/array.yaml #39
+            // transform/array.yaml line #132
             /* ([{'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}, {'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}]) */
             List expected_ = r.array(r.hashMap("b", r.hashMap("c", 1L)), r.hashMap("b", r.hashMap("c", 2L)), r.hashMap("b", r.hashMap("c", 3L)), r.hashMap("b", r.hashMap("c", 1L)), r.hashMap("b", r.hashMap("c", 2L)), r.hashMap("b", r.hashMap("c", 3L)));
             /* wftst2.with_fields({'b':'c'}) */
-            System.out.println("About to run #39: wftst2.withFields(r.hashMap('b', 'c'))");
+            logger.info("About to run line #132: wftst2.withFields(r.hashMap('b', 'c'))");
             Object obtained = runOrCatch(wftst2.withFields(r.hashMap("b", "c")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #132");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #132:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -919,20 +884,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #40
+            // transform/array.yaml line #135
             /* err("ReqlQueryLogicError", "Invalid path argument `1`.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid path argument `1`.", r.array());
             /* wftst.with_fields(1) */
-            System.out.println("About to run #40: wftst.withFields(1L)");
+            logger.info("About to run line #135: wftst.withFields(1L)");
             Object obtained = runOrCatch(wftst.withFields(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #135");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #135:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -941,20 +905,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #41
+            // transform/array.yaml line #137
             /* err("ReqlQueryLogicError", "Cannot perform has_fields on a non-object non-sequence `1`.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot perform has_fields on a non-object non-sequence `1`.", r.array());
             /* r.expr(1).with_fields() */
-            System.out.println("About to run #41: r.expr(1L).withFields()");
+            logger.info("About to run line #137: r.expr(1L).withFields()");
             Object obtained = runOrCatch(r.expr(1L).withFields(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #137");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #137:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -963,20 +926,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #42
+            // transform/array.yaml line #142
             /* [{}, {}, {}] */
             List expected_ = r.array(r.hashMap(), r.hashMap(), r.hashMap());
             /* objArr.without('a', 'b') */
-            System.out.println("About to run #42: objArr.without('a', 'b')");
+            logger.info("About to run line #142: objArr.without('a', 'b')");
             Object obtained = runOrCatch(objArr.without("a", "b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #142");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #142:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -985,20 +947,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #43
-            /* [{'b': 'a'}, {'b': 'b'}, {'b': 'c'}] */
+            // transform/array.yaml line #144
+            /* [{'b':'a'}, {'b':'b'}, {'b':'c'}] */
             List expected_ = r.array(r.hashMap("b", "a"), r.hashMap("b", "b"), r.hashMap("b", "c"));
             /* objArr.without('a') */
-            System.out.println("About to run #43: objArr.without('a')");
+            logger.info("About to run line #144: objArr.without('a')");
             Object obtained = runOrCatch(objArr.without("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #144");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #144:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1007,20 +968,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #44
-            /* [{'b': 'a', 'a': 1}, {'b': 'b', 'a': 2}, {'b': 'c', 'a': 3}] */
-            List expected_ = r.array(r.hashMap("b", "a").with("a", 1L), r.hashMap("b", "b").with("a", 2L), r.hashMap("b", "c").with("a", 3L));
+            // transform/array.yaml line #146
+            /* [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}] */
+            List expected_ = r.array(r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"));
             /* objArr.without() */
-            System.out.println("About to run #44: objArr.without()");
+            logger.info("About to run line #146: objArr.without()");
             Object obtained = runOrCatch(objArr.without(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #146");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #146:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1029,20 +989,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #45
-            /* [2, 3, 4] */
+            // transform/array.yaml line #151
+            /* [2,3,4] */
             List expected_ = r.array(2L, 3L, 4L);
             /* arr.map(lambda v: v + 1) */
-            System.out.println("About to run #45: arr.map(v -> r.add(v, 1L))");
+            logger.info("About to run line #151: arr.map(v -> r.add(v, 1L))");
             Object obtained = runOrCatch(arr.map(v -> r.add(v, 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #151");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #151:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1051,20 +1010,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #46
+            // transform/array.yaml line #161
             /* 6 */
             Long expected_ = 6L;
             /* arr.reduce(lambda a, b: a + b) */
-            System.out.println("About to run #46: arr.reduce((a, b) -> r.add(a, b))");
+            logger.info("About to run line #161: arr.reduce((a, b) -> r.add(a, b))");
             Object obtained = runOrCatch(arr.reduce((a, b) -> r.add(a, b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #161");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #161:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1073,20 +1031,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #47
+            // transform/array.yaml line #166
             /* 6 */
             Long expected_ = 6L;
             /* arr.reduce(lambda a, b:a + b) */
-            System.out.println("About to run #47: arr.reduce((a, b) -> r.add(a, b))");
+            logger.info("About to run line #166: arr.reduce((a, b) -> r.add(a, b))");
             Object obtained = runOrCatch(arr.reduce((a, b) -> r.add(a, b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #166");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #166:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1095,20 +1052,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #48
+            // transform/array.yaml line #171
             /* 12 */
             Long expected_ = 12L;
             /* arr.union(arr).reduce(lambda a, b: a + b) */
-            System.out.println("About to run #48: arr.union(arr).reduce((a, b) -> r.add(a, b))");
+            logger.info("About to run line #171: arr.union(arr).reduce((a, b) -> r.add(a, b))");
             Object obtained = runOrCatch(arr.union(arr).reduce((a, b) -> r.add(a, b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #171");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #171:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1117,20 +1073,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #49
+            // transform/array.yaml line #176
             /* 12 */
             Long expected_ = 12L;
             /* arr.union(arr).reduce(lambda a, b:a + b) */
-            System.out.println("About to run #49: arr.union(arr).reduce((a, b) -> r.add(a, b))");
+            logger.info("About to run line #176: arr.union(arr).reduce((a, b) -> r.add(a, b))");
             Object obtained = runOrCatch(arr.union(arr).reduce((a, b) -> r.add(a, b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #176");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #176:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1139,20 +1094,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #50
-            /* [{'b': 'b', 'a': 2}] */
-            List expected_ = r.array(r.hashMap("b", "b").with("a", 2L));
+            // transform/array.yaml line #183
+            /* [{'a':2, 'b':'b'}] */
+            List expected_ = r.array(r.hashMap("a", 2L).with("b", "b"));
             /* objArr.filter(lambda row: row['b'] == 'b') */
-            System.out.println("About to run #50: objArr.filter(row -> row.bracket('b').eq('b'))");
+            logger.info("About to run line #183: objArr.filter(row -> row.bracket('b').eq('b'))");
             Object obtained = runOrCatch(objArr.filter(row -> row.bracket("b").eq("b")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #183");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #183:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1161,20 +1115,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #51
-            /* [1, 2, 1, 2, 1, 2] */
+            // transform/array.yaml line #190
+            /* [1,2,1,2,1,2] */
             List expected_ = r.array(1L, 2L, 1L, 2L, 1L, 2L);
             /* arr.concat_map(lambda v: [1,2]) */
-            System.out.println("About to run #51: arr.concatMap(v -> r.array(1L, 2L))");
+            logger.info("About to run line #190: arr.concatMap(v -> r.array(1L, 2L))");
             Object obtained = runOrCatch(arr.concatMap(v -> r.array(1L, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #190");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #190:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1183,20 +1136,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #52
-            /* [{'v': 1}, {'v2': 2}, {'v': 2}, {'v2': 3}, {'v': 3}, {'v2': 4}] */
+            // transform/array.yaml line #194
+            /* [{'v':1}, {'v2':2}, {'v':2}, {'v2':3}, {'v':3}, {'v2':4}] */
             List expected_ = r.array(r.hashMap("v", 1L), r.hashMap("v2", 2L), r.hashMap("v", 2L), r.hashMap("v2", 3L), r.hashMap("v", 3L), r.hashMap("v2", 4L));
             /* arr.concat_map(lambda v: [{'v':v}, {'v2':v + 1}]) */
-            System.out.println("About to run #52: arr.concatMap(v -> r.array(r.hashMap('v', v), r.hashMap('v2', r.add(v, 1L))))");
+            logger.info("About to run line #194: arr.concatMap(v -> r.array(r.hashMap('v', v), r.hashMap('v2', r.add(v, 1L))))");
             Object obtained = runOrCatch(arr.concatMap(v -> r.array(r.hashMap("v", v), r.hashMap("v2", r.add(v, 1L)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #194");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #194:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1205,20 +1157,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #53
-            /* [{'b': 'a', 'a': 1}, {'b': 'b', 'a': 2}, {'b': 'c', 'a': 3}] */
-            List expected_ = r.array(r.hashMap("b", "a").with("a", 1L), r.hashMap("b", "b").with("a", 2L), r.hashMap("b", "c").with("a", 3L));
+            // transform/array.yaml line #201
+            /* [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}] */
+            List expected_ = r.array(r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"));
             /* objArr.order_by('b') */
-            System.out.println("About to run #53: objArr.orderBy('b')");
+            logger.info("About to run line #201: objArr.orderBy('b')");
             Object obtained = runOrCatch(objArr.orderBy("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #53");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #53");
+            logger.info("Finished running line #201");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #201:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1227,20 +1178,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #54
-            /* [{'b': 'c', 'a': 3}, {'b': 'b', 'a': 2}, {'b': 'a', 'a': 1}] */
-            List expected_ = r.array(r.hashMap("b", "c").with("a", 3L), r.hashMap("b", "b").with("a", 2L), r.hashMap("b", "a").with("a", 1L));
+            // transform/array.yaml line #205
+            /* [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}] */
+            List expected_ = r.array(r.hashMap("a", 3L).with("b", "c"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 1L).with("b", "a"));
             /* objArr.order_by(r.desc('b')) */
-            System.out.println("About to run #54: objArr.orderBy(r.desc('b'))");
+            logger.info("About to run line #205: objArr.orderBy(r.desc('b'))");
             Object obtained = runOrCatch(objArr.orderBy(r.desc("b")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #54");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #54");
+            logger.info("Finished running line #205");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #54:" + ae.toString());
+                logger.error("Whoops, got exception on line #205:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1249,20 +1199,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #55
-            /* [{'-a': 1}, {'-a': 2}] */
+            // transform/array.yaml line #208
+            /* [{'-a':1},{'-a':2}] */
             List expected_ = r.array(r.hashMap("-a", 1L), r.hashMap("-a", 2L));
             /* r.expr([{'-a':1},{'-a':2}]).order_by('-a') */
-            System.out.println("About to run #55: r.expr(r.array(r.hashMap('-a', 1L), r.hashMap('-a', 2L))).orderBy('-a')");
+            logger.info("About to run line #208: r.expr(r.array(r.hashMap('-a', 1L), r.hashMap('-a', 2L))).orderBy('-a')");
             Object obtained = runOrCatch(r.expr(r.array(r.hashMap("-a", 1L), r.hashMap("-a", 2L))).orderBy("-a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #55");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #55");
+            logger.info("Finished running line #208");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #55:" + ae.toString());
+                logger.error("Whoops, got exception on line #208:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1271,20 +1220,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #56
-            /* [1, 2, 3, 4] */
+            // transform/array.yaml line #216
+            /* [1,2,3,4] */
             List expected_ = r.array(1L, 2L, 3L, 4L);
             /* r.expr([1,1,2,2,2,3,4]).distinct() */
-            System.out.println("About to run #56: r.expr(r.array(1L, 1L, 2L, 2L, 2L, 3L, 4L)).distinct()");
+            logger.info("About to run line #216: r.expr(r.array(1L, 1L, 2L, 2L, 2L, 3L, 4L)).distinct()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 1L, 2L, 2L, 2L, 3L, 4L)).distinct(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #56");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #56");
+            logger.info("Finished running line #216");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #56:" + ae.toString());
+                logger.error("Whoops, got exception on line #216:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1293,20 +1241,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #57
+            // transform/array.yaml line #223
             /* 3 */
             Long expected_ = 3L;
             /* objArr.count() */
-            System.out.println("About to run #57: objArr.count()");
+            logger.info("About to run line #223: objArr.count()");
             Object obtained = runOrCatch(objArr.count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #57");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #57");
+            logger.info("Finished running line #223");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #57:" + ae.toString());
+                logger.error("Whoops, got exception on line #223:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1315,20 +1262,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #58
-            /* [1, 2, 3, {'b': 'a', 'a': 1}, {'b': 'b', 'a': 2}, {'b': 'c', 'a': 3}] */
-            List expected_ = r.array(1L, 2L, 3L, r.hashMap("b", "a").with("a", 1L), r.hashMap("b", "b").with("a", 2L), r.hashMap("b", "c").with("a", 3L));
+            // transform/array.yaml line #228
+            /* [1, 2, 3, {'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}] */
+            List expected_ = r.array(1L, 2L, 3L, r.hashMap("a", 1L).with("b", "a"), r.hashMap("a", 2L).with("b", "b"), r.hashMap("a", 3L).with("b", "c"));
             /* arr.union(objArr) */
-            System.out.println("About to run #58: arr.union(objArr)");
+            logger.info("About to run line #228: arr.union(objArr)");
             Object obtained = runOrCatch(arr.union(objArr),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #58");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #58");
+            logger.info("Finished running line #228");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #58:" + ae.toString());
+                logger.error("Whoops, got exception on line #228:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1337,20 +1283,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(59, 1)
+            // transform/array.yaml line #234
             /* 2 */
             Long expected_ = 2L;
             /* arr[1] */
-            System.out.println("About to run #(59, 1): arr.bracket(1L)");
+            logger.info("About to run line #234: arr.bracket(1L)");
             Object obtained = runOrCatch(arr.bracket(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(59, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(59, 1)");
+            logger.info("Finished running line #234");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(59, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #234:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1359,20 +1304,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #(59, 2)
+            // transform/array.yaml line #235
             /* 2 */
             Long expected_ = 2L;
             /* arr.nth(1) */
-            System.out.println("About to run #(59, 2): arr.nth(1L)");
+            logger.info("About to run line #235: arr.nth(1L)");
             Object obtained = runOrCatch(arr.nth(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(59, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(59, 2)");
+            logger.info("Finished running line #235");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(59, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #235:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1381,20 +1325,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #60
+            // transform/array.yaml line #238
             /* 1 */
             Long expected_ = 1L;
             /* arr[0] */
-            System.out.println("About to run #60: arr.bracket(0L)");
+            logger.info("About to run line #238: arr.bracket(0L)");
             Object obtained = runOrCatch(arr.bracket(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #60");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #60");
+            logger.info("Finished running line #238");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #60:" + ae.toString());
+                logger.error("Whoops, got exception on line #238:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1403,20 +1346,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #61
-            /* True */
+            // transform/array.yaml line #245
+            /* true */
             Boolean expected_ = true;
             /* r.expr([]).is_empty() */
-            System.out.println("About to run #61: r.expr(r.array()).isEmpty()");
+            logger.info("About to run line #245: r.expr(r.array()).isEmpty()");
             Object obtained = runOrCatch(r.expr(r.array()).isEmpty(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #61");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #61");
+            logger.info("Finished running line #245");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #61:" + ae.toString());
+                logger.error("Whoops, got exception on line #245:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1425,20 +1367,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #62
-            /* False */
+            // transform/array.yaml line #247
+            /* false */
             Boolean expected_ = false;
             /* arr.is_empty() */
-            System.out.println("About to run #62: arr.isEmpty()");
+            logger.info("About to run line #247: arr.isEmpty()");
             Object obtained = runOrCatch(arr.isEmpty(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #62");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #62");
+            logger.info("Finished running line #247");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #62:" + ae.toString());
+                logger.error("Whoops, got exception on line #247:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1447,20 +1388,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #63
-            /* True */
+            // transform/array.yaml line #251
+            /* true */
             Boolean expected_ = true;
             /* arr.contains(2) */
-            System.out.println("About to run #63: arr.contains(2L)");
+            logger.info("About to run line #251: arr.contains(2L)");
             Object obtained = runOrCatch(arr.contains(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #63");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #63");
+            logger.info("Finished running line #251");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #63:" + ae.toString());
+                logger.error("Whoops, got exception on line #251:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1469,20 +1409,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #64
-            /* True */
+            // transform/array.yaml line #253
+            /* true */
             Boolean expected_ = true;
             /* arr.contains(2, 3) */
-            System.out.println("About to run #64: arr.contains(2L, 3L)");
+            logger.info("About to run line #253: arr.contains(2L, 3L)");
             Object obtained = runOrCatch(arr.contains(2L, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #64");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #64");
+            logger.info("Finished running line #253");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #64:" + ae.toString());
+                logger.error("Whoops, got exception on line #253:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1491,20 +1430,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #65
-            /* False */
+            // transform/array.yaml line #255
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(4) */
-            System.out.println("About to run #65: arr.contains(4L)");
+            logger.info("About to run line #255: arr.contains(4L)");
             Object obtained = runOrCatch(arr.contains(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #65");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #65");
+            logger.info("Finished running line #255");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #65:" + ae.toString());
+                logger.error("Whoops, got exception on line #255:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1513,20 +1451,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #66
-            /* False */
+            // transform/array.yaml line #257
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(2, 4) */
-            System.out.println("About to run #66: arr.contains(2L, 4L)");
+            logger.info("About to run line #257: arr.contains(2L, 4L)");
             Object obtained = runOrCatch(arr.contains(2L, 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #66");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #66");
+            logger.info("Finished running line #257");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #66:" + ae.toString());
+                logger.error("Whoops, got exception on line #257:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1535,20 +1472,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #67
-            /* False */
+            // transform/array.yaml line #259
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(2, 2) */
-            System.out.println("About to run #67: arr.contains(2L, 2L)");
+            logger.info("About to run line #259: arr.contains(2L, 2L)");
             Object obtained = runOrCatch(arr.contains(2L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #67");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #67");
+            logger.info("Finished running line #259");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #67:" + ae.toString());
+                logger.error("Whoops, got exception on line #259:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1557,20 +1493,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #68
-            /* True */
+            // transform/array.yaml line #261
+            /* true */
             Boolean expected_ = true;
             /* arr.union(arr).contains(2, 2) */
-            System.out.println("About to run #68: arr.union(arr).contains(2L, 2L)");
+            logger.info("About to run line #261: arr.union(arr).contains(2L, 2L)");
             Object obtained = runOrCatch(arr.union(arr).contains(2L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #68");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #68");
+            logger.info("Finished running line #261");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #68:" + ae.toString());
+                logger.error("Whoops, got exception on line #261:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1579,20 +1514,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #69
-            /* True */
+            // transform/array.yaml line #265
+            /* true */
             Boolean expected_ = true;
             /* arr.contains(lambda x:x == 2) */
-            System.out.println("About to run #69: arr.contains(x -> r.eq(x, 2L))");
+            logger.info("About to run line #265: arr.contains(x -> r.eq(x, 2L))");
             Object obtained = runOrCatch(arr.contains(x -> r.eq(x, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #69");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #69");
+            logger.info("Finished running line #265");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #69:" + ae.toString());
+                logger.error("Whoops, got exception on line #265:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1601,20 +1535,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #70
-            /* True */
+            // transform/array.yaml line #269
+            /* true */
             Boolean expected_ = true;
             /* arr.contains(lambda x:x == 2, lambda x:x==3) */
-            System.out.println("About to run #70: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 3L))");
+            logger.info("About to run line #269: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 3L))");
             Object obtained = runOrCatch(arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 3L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #70");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #70");
+            logger.info("Finished running line #269");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #269:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1623,20 +1556,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #71
-            /* False */
+            // transform/array.yaml line #273
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(lambda x:x == 4) */
-            System.out.println("About to run #71: arr.contains(x -> r.eq(x, 4L))");
+            logger.info("About to run line #273: arr.contains(x -> r.eq(x, 4L))");
             Object obtained = runOrCatch(arr.contains(x -> r.eq(x, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #71");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #71");
+            logger.info("Finished running line #273");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #71:" + ae.toString());
+                logger.error("Whoops, got exception on line #273:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1645,20 +1577,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #72
-            /* False */
+            // transform/array.yaml line #277
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(lambda x:x == 2, lambda x:x==4) */
-            System.out.println("About to run #72: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 4L))");
+            logger.info("About to run line #277: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 4L))");
             Object obtained = runOrCatch(arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 4L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #72");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #72");
+            logger.info("Finished running line #277");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #72:" + ae.toString());
+                logger.error("Whoops, got exception on line #277:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1667,20 +1598,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #73
-            /* False */
+            // transform/array.yaml line #281
+            /* false */
             Boolean expected_ = false;
             /* arr.contains(lambda x:x == 2, lambda x:x==2) */
-            System.out.println("About to run #73: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L))");
+            logger.info("About to run line #281: arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L))");
             Object obtained = runOrCatch(arr.contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #73");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #73");
+            logger.info("Finished running line #281");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #73:" + ae.toString());
+                logger.error("Whoops, got exception on line #281:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1689,20 +1619,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #74
-            /* True */
+            // transform/array.yaml line #285
+            /* true */
             Boolean expected_ = true;
             /* arr.union(arr).contains(lambda x:x == 2, lambda x:x==2) */
-            System.out.println("About to run #74: arr.union(arr).contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L))");
+            logger.info("About to run line #285: arr.union(arr).contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L))");
             Object obtained = runOrCatch(arr.union(arr).contains(x -> r.eq(x, 2L), x -> r.eq(x, 2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #74");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #74");
+            logger.info("Finished running line #285");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #74:" + ae.toString());
+                logger.error("Whoops, got exception on line #285:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1711,20 +1640,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #75
+            // transform/array.yaml line #290
             /* [1, 3] */
             List expected_ = r.array(1L, 3L);
             /* r.expr([{'a':1},{'b':2},{'a':3,'c':4}])['a'] */
-            System.out.println("About to run #75: r.expr(r.array(r.hashMap('a', 1L), r.hashMap('b', 2L), r.hashMap('a', 3L).with('c', 4L))).bracket('a')");
+            logger.info("About to run line #290: r.expr(r.array(r.hashMap('a', 1L), r.hashMap('b', 2L), r.hashMap('a', 3L).with('c', 4L))).bracket('a')");
             Object obtained = runOrCatch(r.expr(r.array(r.hashMap("a", 1L), r.hashMap("b", 2L), r.hashMap("a", 3L).with("c", 4L))).bracket("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #75");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #75");
+            logger.info("Finished running line #290");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #75:" + ae.toString());
+                logger.error("Whoops, got exception on line #290:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1733,20 +1661,19 @@ public class TransformArray {
         }
         
         {
-            // transform/array.yaml #76
+            // transform/array.yaml line #293
             /* err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", r.array());
             /* r.expr([{'a':1},'a',{'b':2},{'a':3,'c':4}])['a'] */
-            System.out.println("About to run #76: r.expr(r.array(r.hashMap('a', 1L), 'a', r.hashMap('b', 2L), r.hashMap('a', 3L).with('c', 4L))).bracket('a')");
+            logger.info("About to run line #293: r.expr(r.array(r.hashMap('a', 1L), 'a', r.hashMap('b', 2L), r.hashMap('a', 3L).with('c', 4L))).bracket('a')");
             Object obtained = runOrCatch(r.expr(r.array(r.hashMap("a", 1L), "a", r.hashMap("b", 2L), r.hashMap("a", 3L).with("c", 4L))).bracket("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #76");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #76");
+            logger.info("Finished running line #293");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #76:" + ae.toString());
+                logger.error("Whoops, got exception on line #293:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

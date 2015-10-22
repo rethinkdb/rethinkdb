@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumBinary {
+    // Tests of converstion to and from the RQL binary type
     Logger logger = LoggerFactory.getLogger(DatumBinary.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumBinary {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumBinary {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,26 +76,25 @@ public class DatumBinary {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // datum/binary.yaml #1
+        // datum/binary.yaml line #8
         // s = b''
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{});");
         byte[] s = (byte[]) (new byte[]{});
                 
         {
-            // datum/binary.yaml #2
+            // datum/binary.yaml line #10
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #2: r.binary(s)");
+            logger.info("About to run line #10: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -102,20 +103,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #3
+            // datum/binary.yaml line #12
             /* 0 */
             Long expected_ = 0L;
             /* r.binary(s).count() */
-            System.out.println("About to run #3: r.binary(s).count()");
+            logger.info("About to run line #12: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -123,26 +123,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #4
+        // datum/binary.yaml line #17
         // s = b'\x00'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{0});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{0});");
         s = ((byte[]) (new byte[]{0}));
         
         {
-            // datum/binary.yaml #5
+            // datum/binary.yaml line #19
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #5: r.binary(s)");
+            logger.info("About to run line #19: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -151,20 +150,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #6
+            // datum/binary.yaml line #21
             /* 1 */
             Long expected_ = 1L;
             /* r.binary(s).count() */
-            System.out.println("About to run #6: r.binary(s).count()");
+            logger.info("About to run line #21: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -172,26 +170,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #7
+        // datum/binary.yaml line #26
         // s = b'\x00\x42'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{0, 66});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{0, 66});");
         s = ((byte[]) (new byte[]{0, 66}));
         
         {
-            // datum/binary.yaml #8
+            // datum/binary.yaml line #28
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #8: r.binary(s)");
+            logger.info("About to run line #28: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -200,20 +197,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #9
+            // datum/binary.yaml line #30
             /* 2 */
             Long expected_ = 2L;
             /* r.binary(s).count() */
-            System.out.println("About to run #9: r.binary(s).count()");
+            logger.info("About to run line #30: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -221,26 +217,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #10
+        // datum/binary.yaml line #35
         // s = b'\x00\xfe\x7a'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{0, -2, 122});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{0, -2, 122});");
         s = ((byte[]) (new byte[]{0, -2, 122}));
         
         {
-            // datum/binary.yaml #11
+            // datum/binary.yaml line #37
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #11: r.binary(s)");
+            logger.info("About to run line #37: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -249,20 +244,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #12
+            // datum/binary.yaml line #39
             /* 3 */
             Long expected_ = 3L;
             /* r.binary(s).count() */
-            System.out.println("About to run #12: r.binary(s).count()");
+            logger.info("About to run line #39: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -270,26 +264,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #13
+        // datum/binary.yaml line #44
         // s = b'\xed\xfe\x00\xba'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{-19, -2, 0, -70});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{-19, -2, 0, -70});");
         s = ((byte[]) (new byte[]{-19, -2, 0, -70}));
         
         {
-            // datum/binary.yaml #14
+            // datum/binary.yaml line #46
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #14: r.binary(s)");
+            logger.info("About to run line #46: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -298,20 +291,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #15
+            // datum/binary.yaml line #48
             /* 4 */
             Long expected_ = 4L;
             /* r.binary(s).count() */
-            System.out.println("About to run #15: r.binary(s).count()");
+            logger.info("About to run line #48: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #48");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #48:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -319,26 +311,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #16
+        // datum/binary.yaml line #53
         // s = b'\x50\xf9\x00\x77\xf9'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{80, -7, 0, 119, -7});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{80, -7, 0, 119, -7});");
         s = ((byte[]) (new byte[]{80, -7, 0, 119, -7}));
         
         {
-            // datum/binary.yaml #17
+            // datum/binary.yaml line #55
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #17: r.binary(s)");
+            logger.info("About to run line #55: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -347,20 +338,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #18
+            // datum/binary.yaml line #57
             /* 5 */
             Long expected_ = 5L;
             /* r.binary(s).count() */
-            System.out.println("About to run #18: r.binary(s).count()");
+            logger.info("About to run line #57: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -368,26 +358,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #19
+        // datum/binary.yaml line #62
         // s = b'\x2f\xe3\xb5\x57\x00\x92'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{47, -29, -75, 87, 0, -110});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{47, -29, -75, 87, 0, -110});");
         s = ((byte[]) (new byte[]{47, -29, -75, 87, 0, -110}));
         
         {
-            // datum/binary.yaml #20
+            // datum/binary.yaml line #64
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #20: r.binary(s)");
+            logger.info("About to run line #64: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -396,20 +385,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #21
+            // datum/binary.yaml line #66
             /* 6 */
             Long expected_ = 6L;
             /* r.binary(s).count() */
-            System.out.println("About to run #21: r.binary(s).count()");
+            logger.info("About to run line #66: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #66");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -417,26 +405,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #22
+        // datum/binary.yaml line #71
         // s = b'\xa9\x43\x54\xe9\x00\xf8\xfb'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{-87, 67, 84, -23, 0, -8, -5});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{-87, 67, 84, -23, 0, -8, -5});");
         s = ((byte[]) (new byte[]{-87, 67, 84, -23, 0, -8, -5}));
         
         {
-            // datum/binary.yaml #23
+            // datum/binary.yaml line #73
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #23: r.binary(s)");
+            logger.info("About to run line #73: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -445,20 +432,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #24
+            // datum/binary.yaml line #75
             /* 7 */
             Long expected_ = 7L;
             /* r.binary(s).count() */
-            System.out.println("About to run #24: r.binary(s).count()");
+            logger.info("About to run line #75: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #75");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #75:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -466,26 +452,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #25
+        // datum/binary.yaml line #80
         // s = b'\x57\xbb\xe5\x82\x8b\xd3\x00\xf9'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{87, -69, -27, -126, -117, -45, 0, -7});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{87, -69, -27, -126, -117, -45, 0, -7});");
         s = ((byte[]) (new byte[]{87, -69, -27, -126, -117, -45, 0, -7}));
         
         {
-            // datum/binary.yaml #26
+            // datum/binary.yaml line #82
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #26: r.binary(s)");
+            logger.info("About to run line #82: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -494,20 +479,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #27
+            // datum/binary.yaml line #84
             /* 8 */
             Long expected_ = 8L;
             /* r.binary(s).count() */
-            System.out.println("About to run #27: r.binary(s).count()");
+            logger.info("About to run line #84: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,26 +499,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #28
+        // datum/binary.yaml line #89
         // s = b'\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{68, 27, 62, 0, 19, 25, 41, 42, -65});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{68, 27, 62, 0, 19, 25, 41, 42, -65});");
         s = ((byte[]) (new byte[]{68, 27, 62, 0, 19, 25, 41, 42, -65}));
         
         {
-            // datum/binary.yaml #29
+            // datum/binary.yaml line #91
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #29: r.binary(s)");
+            logger.info("About to run line #91: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -543,20 +526,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #30
+            // datum/binary.yaml line #93
             /* 9 */
             Long expected_ = 9L;
             /* r.binary(s).count() */
-            System.out.println("About to run #30: r.binary(s).count()");
+            logger.info("About to run line #93: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -564,26 +546,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #31
+        // datum/binary.yaml line #98
         // s = b'\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{-118, 29, 9, 0, 93, 96, 107, 46, 112, -39});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{-118, 29, 9, 0, 93, 96, 107, 46, 112, -39});");
         s = ((byte[]) (new byte[]{-118, 29, 9, 0, 93, 96, 107, 46, 112, -39}));
         
         {
-            // datum/binary.yaml #32
+            // datum/binary.yaml line #100
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #32: r.binary(s)");
+            logger.info("About to run line #100: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -592,20 +573,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #33
+            // datum/binary.yaml line #102
             /* 10 */
             Long expected_ = 10L;
             /* r.binary(s).count() */
-            System.out.println("About to run #33: r.binary(s).count()");
+            logger.info("About to run line #102: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #102");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #102:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -613,26 +593,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #34
+        // datum/binary.yaml line #107
         // s = b'\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{0, -81, 71, 75, 56, -103, 20, -115, -113, 16, 81});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{0, -81, 71, 75, 56, -103, 20, -115, -113, 16, 81});");
         s = ((byte[]) (new byte[]{0, -81, 71, 75, 56, -103, 20, -115, -113, 16, 81}));
         
         {
-            // datum/binary.yaml #35
+            // datum/binary.yaml line #109
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #35: r.binary(s)");
+            logger.info("About to run line #109: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #109");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #109:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -641,20 +620,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #36
+            // datum/binary.yaml line #111
             /* 11 */
             Long expected_ = 11L;
             /* r.binary(s).count() */
-            System.out.println("About to run #36: r.binary(s).count()");
+            logger.info("About to run line #111: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #111");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #111:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -662,26 +640,25 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #37
+        // datum/binary.yaml line #116
         // s = b'\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9'
-        System.out.println("Possibly executing: byte[] s = (byte[]) (new byte[]{69, 57, 0, -9, -62, 55, -3, -32, 56, -126, 64, -87});");
+        logger.info("Possibly executing: byte[] s = (byte[]) (new byte[]{69, 57, 0, -9, -62, 55, -3, -32, 56, -126, 64, -87});");
         s = ((byte[]) (new byte[]{69, 57, 0, -9, -62, 55, -3, -32, 56, -126, 64, -87}));
         
         {
-            // datum/binary.yaml #38
+            // datum/binary.yaml line #118
             /* s */
             byte[] expected_ = s;
             /* r.binary(s) */
-            System.out.println("About to run #38: r.binary(s)");
+            logger.info("About to run line #118: r.binary(s)");
             Object obtained = runOrCatch(r.binary(s),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -690,20 +667,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #39
+            // datum/binary.yaml line #120
             /* 12 */
             Long expected_ = 12L;
             /* r.binary(s).count() */
-            System.out.println("About to run #39: r.binary(s).count()");
+            logger.info("About to run line #120: r.binary(s).count()");
             Object obtained = runOrCatch(r.binary(s).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #120");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #120:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -711,51 +687,50 @@ public class DatumBinary {
             }
         }
         
-        // datum/binary.yaml #40
+        // datum/binary.yaml line #128
         // a = b'\x00'
-        System.out.println("Possibly executing: byte[] a = (byte[]) (new byte[]{0});");
+        logger.info("Possibly executing: byte[] a = (byte[]) (new byte[]{0});");
         byte[] a = (byte[]) (new byte[]{0});
                 
-        // datum/binary.yaml #41
+        // datum/binary.yaml line #132
         // b = b'\x00\x01'
-        System.out.println("Possibly executing: byte[] b = (byte[]) (new byte[]{0, 1});");
+        logger.info("Possibly executing: byte[] b = (byte[]) (new byte[]{0, 1});");
         byte[] b = (byte[]) (new byte[]{0, 1});
                 
-        // datum/binary.yaml #42
+        // datum/binary.yaml line #136
         // c = b'\x01'
-        System.out.println("Possibly executing: byte[] c = (byte[]) (new byte[]{1});");
+        logger.info("Possibly executing: byte[] c = (byte[]) (new byte[]{1});");
         byte[] c = (byte[]) (new byte[]{1});
                 
-        // datum/binary.yaml #43
+        // datum/binary.yaml line #140
         // d = b'\x70\x22'
-        System.out.println("Possibly executing: byte[] d = (byte[]) (new byte[]{112, 34});");
+        logger.info("Possibly executing: byte[] d = (byte[]) (new byte[]{112, 34});");
         byte[] d = (byte[]) (new byte[]{112, 34});
                 
-        // datum/binary.yaml #44
+        // datum/binary.yaml line #144
         // e = b'\x80'
-        System.out.println("Possibly executing: byte[] e = (byte[]) (new byte[]{-128});");
+        logger.info("Possibly executing: byte[] e = (byte[]) (new byte[]{-128});");
         byte[] e = (byte[]) (new byte[]{-128});
                 
-        // datum/binary.yaml #45
+        // datum/binary.yaml line #148
         // f = b'\xFE'
-        System.out.println("Possibly executing: byte[] f = (byte[]) (new byte[]{-2});");
+        logger.info("Possibly executing: byte[] f = (byte[]) (new byte[]{-2});");
         byte[] f = (byte[]) (new byte[]{-2});
                 
         {
-            // datum/binary.yaml #46
-            /* True */
+            // datum/binary.yaml line #151
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).eq(r.binary(a)) */
-            System.out.println("About to run #46: r.binary(a).eq(r.binary(a))");
+            logger.info("About to run line #151: r.binary(a).eq(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).eq(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #151");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #151:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -764,20 +739,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #47
-            /* True */
+            // datum/binary.yaml line #153
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).le(r.binary(a)) */
-            System.out.println("About to run #47: r.binary(a).le(r.binary(a))");
+            logger.info("About to run line #153: r.binary(a).le(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).le(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #153");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #153:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -786,20 +760,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #48
-            /* True */
+            // datum/binary.yaml line #155
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).ge(r.binary(a)) */
-            System.out.println("About to run #48: r.binary(a).ge(r.binary(a))");
+            logger.info("About to run line #155: r.binary(a).ge(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).ge(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #155");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #155:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -808,20 +781,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #49
-            /* False */
+            // datum/binary.yaml line #157
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).ne(r.binary(a)) */
-            System.out.println("About to run #49: r.binary(a).ne(r.binary(a))");
+            logger.info("About to run line #157: r.binary(a).ne(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).ne(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #157");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #157:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -830,20 +802,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #50
-            /* False */
+            // datum/binary.yaml line #159
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).lt(r.binary(a)) */
-            System.out.println("About to run #50: r.binary(a).lt(r.binary(a))");
+            logger.info("About to run line #159: r.binary(a).lt(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).lt(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #159");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #159:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -852,20 +823,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #51
-            /* False */
+            // datum/binary.yaml line #161
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).gt(r.binary(a)) */
-            System.out.println("About to run #51: r.binary(a).gt(r.binary(a))");
+            logger.info("About to run line #161: r.binary(a).gt(r.binary(a))");
             Object obtained = runOrCatch(r.binary(a).gt(r.binary(a)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #161");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #161:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -874,20 +844,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #52
-            /* True */
+            // datum/binary.yaml line #165
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).ne(r.binary(b)) */
-            System.out.println("About to run #52: r.binary(a).ne(r.binary(b))");
+            logger.info("About to run line #165: r.binary(a).ne(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).ne(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #165");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #165:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -896,20 +865,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #53
-            /* True */
+            // datum/binary.yaml line #167
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).lt(r.binary(b)) */
-            System.out.println("About to run #53: r.binary(a).lt(r.binary(b))");
+            logger.info("About to run line #167: r.binary(a).lt(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).lt(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #53");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #53");
+            logger.info("Finished running line #167");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #167:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -918,20 +886,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #54
-            /* True */
+            // datum/binary.yaml line #169
+            /* true */
             Boolean expected_ = true;
             /* r.binary(a).le(r.binary(b)) */
-            System.out.println("About to run #54: r.binary(a).le(r.binary(b))");
+            logger.info("About to run line #169: r.binary(a).le(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).le(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #54");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #54");
+            logger.info("Finished running line #169");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #54:" + ae.toString());
+                logger.error("Whoops, got exception on line #169:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -940,20 +907,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #55
-            /* False */
+            // datum/binary.yaml line #171
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).ge(r.binary(b)) */
-            System.out.println("About to run #55: r.binary(a).ge(r.binary(b))");
+            logger.info("About to run line #171: r.binary(a).ge(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).ge(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #55");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #55");
+            logger.info("Finished running line #171");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #55:" + ae.toString());
+                logger.error("Whoops, got exception on line #171:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -962,20 +928,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #56
-            /* False */
+            // datum/binary.yaml line #173
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).gt(r.binary(b)) */
-            System.out.println("About to run #56: r.binary(a).gt(r.binary(b))");
+            logger.info("About to run line #173: r.binary(a).gt(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).gt(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #56");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #56");
+            logger.info("Finished running line #173");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #56:" + ae.toString());
+                logger.error("Whoops, got exception on line #173:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -984,20 +949,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #57
-            /* False */
+            // datum/binary.yaml line #175
+            /* false */
             Boolean expected_ = false;
             /* r.binary(a).eq(r.binary(b)) */
-            System.out.println("About to run #57: r.binary(a).eq(r.binary(b))");
+            logger.info("About to run line #175: r.binary(a).eq(r.binary(b))");
             Object obtained = runOrCatch(r.binary(a).eq(r.binary(b)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #57");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #57");
+            logger.info("Finished running line #175");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #57:" + ae.toString());
+                logger.error("Whoops, got exception on line #175:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1006,20 +970,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #58
-            /* True */
+            // datum/binary.yaml line #179
+            /* true */
             Boolean expected_ = true;
             /* r.binary(b).ne(r.binary(c)) */
-            System.out.println("About to run #58: r.binary(b).ne(r.binary(c))");
+            logger.info("About to run line #179: r.binary(b).ne(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).ne(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #58");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #58");
+            logger.info("Finished running line #179");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #58:" + ae.toString());
+                logger.error("Whoops, got exception on line #179:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1028,20 +991,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #59
-            /* True */
+            // datum/binary.yaml line #181
+            /* true */
             Boolean expected_ = true;
             /* r.binary(b).lt(r.binary(c)) */
-            System.out.println("About to run #59: r.binary(b).lt(r.binary(c))");
+            logger.info("About to run line #181: r.binary(b).lt(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).lt(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #59");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #59");
+            logger.info("Finished running line #181");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #59:" + ae.toString());
+                logger.error("Whoops, got exception on line #181:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1050,20 +1012,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #60
-            /* True */
+            // datum/binary.yaml line #183
+            /* true */
             Boolean expected_ = true;
             /* r.binary(b).le(r.binary(c)) */
-            System.out.println("About to run #60: r.binary(b).le(r.binary(c))");
+            logger.info("About to run line #183: r.binary(b).le(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).le(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #60");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #60");
+            logger.info("Finished running line #183");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #60:" + ae.toString());
+                logger.error("Whoops, got exception on line #183:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1072,20 +1033,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #61
-            /* False */
+            // datum/binary.yaml line #185
+            /* false */
             Boolean expected_ = false;
             /* r.binary(b).ge(r.binary(c)) */
-            System.out.println("About to run #61: r.binary(b).ge(r.binary(c))");
+            logger.info("About to run line #185: r.binary(b).ge(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).ge(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #61");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #61");
+            logger.info("Finished running line #185");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #61:" + ae.toString());
+                logger.error("Whoops, got exception on line #185:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1094,20 +1054,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #62
-            /* False */
+            // datum/binary.yaml line #187
+            /* false */
             Boolean expected_ = false;
             /* r.binary(b).gt(r.binary(c)) */
-            System.out.println("About to run #62: r.binary(b).gt(r.binary(c))");
+            logger.info("About to run line #187: r.binary(b).gt(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).gt(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #62");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #62");
+            logger.info("Finished running line #187");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #62:" + ae.toString());
+                logger.error("Whoops, got exception on line #187:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1116,20 +1075,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #63
-            /* False */
+            // datum/binary.yaml line #189
+            /* false */
             Boolean expected_ = false;
             /* r.binary(b).eq(r.binary(c)) */
-            System.out.println("About to run #63: r.binary(b).eq(r.binary(c))");
+            logger.info("About to run line #189: r.binary(b).eq(r.binary(c))");
             Object obtained = runOrCatch(r.binary(b).eq(r.binary(c)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #63");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #63");
+            logger.info("Finished running line #189");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #63:" + ae.toString());
+                logger.error("Whoops, got exception on line #189:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1138,20 +1096,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #64
-            /* True */
+            // datum/binary.yaml line #193
+            /* true */
             Boolean expected_ = true;
             /* r.binary(c).ne(r.binary(d)) */
-            System.out.println("About to run #64: r.binary(c).ne(r.binary(d))");
+            logger.info("About to run line #193: r.binary(c).ne(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).ne(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #64");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #64");
+            logger.info("Finished running line #193");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #64:" + ae.toString());
+                logger.error("Whoops, got exception on line #193:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1160,20 +1117,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #65
-            /* True */
+            // datum/binary.yaml line #195
+            /* true */
             Boolean expected_ = true;
             /* r.binary(c).lt(r.binary(d)) */
-            System.out.println("About to run #65: r.binary(c).lt(r.binary(d))");
+            logger.info("About to run line #195: r.binary(c).lt(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).lt(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #65");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #65");
+            logger.info("Finished running line #195");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #65:" + ae.toString());
+                logger.error("Whoops, got exception on line #195:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1182,20 +1138,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #66
-            /* True */
+            // datum/binary.yaml line #197
+            /* true */
             Boolean expected_ = true;
             /* r.binary(c).le(r.binary(d)) */
-            System.out.println("About to run #66: r.binary(c).le(r.binary(d))");
+            logger.info("About to run line #197: r.binary(c).le(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).le(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #66");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #66");
+            logger.info("Finished running line #197");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #66:" + ae.toString());
+                logger.error("Whoops, got exception on line #197:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1204,20 +1159,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #67
-            /* False */
+            // datum/binary.yaml line #199
+            /* false */
             Boolean expected_ = false;
             /* r.binary(c).ge(r.binary(d)) */
-            System.out.println("About to run #67: r.binary(c).ge(r.binary(d))");
+            logger.info("About to run line #199: r.binary(c).ge(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).ge(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #67");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #67");
+            logger.info("Finished running line #199");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #67:" + ae.toString());
+                logger.error("Whoops, got exception on line #199:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1226,20 +1180,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #68
-            /* False */
+            // datum/binary.yaml line #201
+            /* false */
             Boolean expected_ = false;
             /* r.binary(c).gt(r.binary(d)) */
-            System.out.println("About to run #68: r.binary(c).gt(r.binary(d))");
+            logger.info("About to run line #201: r.binary(c).gt(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).gt(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #68");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #68");
+            logger.info("Finished running line #201");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #68:" + ae.toString());
+                logger.error("Whoops, got exception on line #201:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1248,20 +1201,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #69
-            /* False */
+            // datum/binary.yaml line #203
+            /* false */
             Boolean expected_ = false;
             /* r.binary(c).eq(r.binary(d)) */
-            System.out.println("About to run #69: r.binary(c).eq(r.binary(d))");
+            logger.info("About to run line #203: r.binary(c).eq(r.binary(d))");
             Object obtained = runOrCatch(r.binary(c).eq(r.binary(d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #69");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #69");
+            logger.info("Finished running line #203");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #69:" + ae.toString());
+                logger.error("Whoops, got exception on line #203:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1270,20 +1222,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #70
-            /* True */
+            // datum/binary.yaml line #207
+            /* true */
             Boolean expected_ = true;
             /* r.binary(d).ne(r.binary(e)) */
-            System.out.println("About to run #70: r.binary(d).ne(r.binary(e))");
+            logger.info("About to run line #207: r.binary(d).ne(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).ne(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #70");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #70");
+            logger.info("Finished running line #207");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #207:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1292,20 +1243,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #71
-            /* True */
+            // datum/binary.yaml line #209
+            /* true */
             Boolean expected_ = true;
             /* r.binary(d).lt(r.binary(e)) */
-            System.out.println("About to run #71: r.binary(d).lt(r.binary(e))");
+            logger.info("About to run line #209: r.binary(d).lt(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).lt(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #71");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #71");
+            logger.info("Finished running line #209");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #71:" + ae.toString());
+                logger.error("Whoops, got exception on line #209:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1314,20 +1264,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #72
-            /* True */
+            // datum/binary.yaml line #211
+            /* true */
             Boolean expected_ = true;
             /* r.binary(d).le(r.binary(e)) */
-            System.out.println("About to run #72: r.binary(d).le(r.binary(e))");
+            logger.info("About to run line #211: r.binary(d).le(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).le(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #72");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #72");
+            logger.info("Finished running line #211");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #72:" + ae.toString());
+                logger.error("Whoops, got exception on line #211:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1336,20 +1285,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #73
-            /* False */
+            // datum/binary.yaml line #213
+            /* false */
             Boolean expected_ = false;
             /* r.binary(d).ge(r.binary(e)) */
-            System.out.println("About to run #73: r.binary(d).ge(r.binary(e))");
+            logger.info("About to run line #213: r.binary(d).ge(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).ge(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #73");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #73");
+            logger.info("Finished running line #213");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #73:" + ae.toString());
+                logger.error("Whoops, got exception on line #213:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1358,20 +1306,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #74
-            /* False */
+            // datum/binary.yaml line #215
+            /* false */
             Boolean expected_ = false;
             /* r.binary(d).gt(r.binary(e)) */
-            System.out.println("About to run #74: r.binary(d).gt(r.binary(e))");
+            logger.info("About to run line #215: r.binary(d).gt(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).gt(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #74");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #74");
+            logger.info("Finished running line #215");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #74:" + ae.toString());
+                logger.error("Whoops, got exception on line #215:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1380,20 +1327,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #75
-            /* False */
+            // datum/binary.yaml line #217
+            /* false */
             Boolean expected_ = false;
             /* r.binary(d).eq(r.binary(e)) */
-            System.out.println("About to run #75: r.binary(d).eq(r.binary(e))");
+            logger.info("About to run line #217: r.binary(d).eq(r.binary(e))");
             Object obtained = runOrCatch(r.binary(d).eq(r.binary(e)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #75");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #75");
+            logger.info("Finished running line #217");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #75:" + ae.toString());
+                logger.error("Whoops, got exception on line #217:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1402,20 +1348,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #76
-            /* True */
+            // datum/binary.yaml line #221
+            /* true */
             Boolean expected_ = true;
             /* r.binary(e).ne(r.binary(f)) */
-            System.out.println("About to run #76: r.binary(e).ne(r.binary(f))");
+            logger.info("About to run line #221: r.binary(e).ne(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).ne(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #76");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #76");
+            logger.info("Finished running line #221");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #76:" + ae.toString());
+                logger.error("Whoops, got exception on line #221:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1424,20 +1369,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #77
-            /* True */
+            // datum/binary.yaml line #223
+            /* true */
             Boolean expected_ = true;
             /* r.binary(e).lt(r.binary(f)) */
-            System.out.println("About to run #77: r.binary(e).lt(r.binary(f))");
+            logger.info("About to run line #223: r.binary(e).lt(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).lt(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #77");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #77");
+            logger.info("Finished running line #223");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #77:" + ae.toString());
+                logger.error("Whoops, got exception on line #223:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1446,20 +1390,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #78
-            /* True */
+            // datum/binary.yaml line #225
+            /* true */
             Boolean expected_ = true;
             /* r.binary(e).le(r.binary(f)) */
-            System.out.println("About to run #78: r.binary(e).le(r.binary(f))");
+            logger.info("About to run line #225: r.binary(e).le(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).le(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #78");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #78");
+            logger.info("Finished running line #225");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #78:" + ae.toString());
+                logger.error("Whoops, got exception on line #225:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1468,20 +1411,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #79
-            /* False */
+            // datum/binary.yaml line #227
+            /* false */
             Boolean expected_ = false;
             /* r.binary(e).ge(r.binary(f)) */
-            System.out.println("About to run #79: r.binary(e).ge(r.binary(f))");
+            logger.info("About to run line #227: r.binary(e).ge(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).ge(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #79");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #79");
+            logger.info("Finished running line #227");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #79:" + ae.toString());
+                logger.error("Whoops, got exception on line #227:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1490,20 +1432,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #80
-            /* False */
+            // datum/binary.yaml line #229
+            /* false */
             Boolean expected_ = false;
             /* r.binary(e).gt(r.binary(f)) */
-            System.out.println("About to run #80: r.binary(e).gt(r.binary(f))");
+            logger.info("About to run line #229: r.binary(e).gt(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).gt(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #80");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #80");
+            logger.info("Finished running line #229");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #80:" + ae.toString());
+                logger.error("Whoops, got exception on line #229:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1512,20 +1453,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #81
-            /* False */
+            // datum/binary.yaml line #231
+            /* false */
             Boolean expected_ = false;
             /* r.binary(e).eq(r.binary(f)) */
-            System.out.println("About to run #81: r.binary(e).eq(r.binary(f))");
+            logger.info("About to run line #231: r.binary(e).eq(r.binary(f))");
             Object obtained = runOrCatch(r.binary(e).eq(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #81");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #81");
+            logger.info("Finished running line #231");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #81:" + ae.toString());
+                logger.error("Whoops, got exception on line #231:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1534,20 +1474,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #82
-            /* True */
+            // datum/binary.yaml line #235
+            /* true */
             Boolean expected_ = true;
             /* r.binary(f).eq(r.binary(f)) */
-            System.out.println("About to run #82: r.binary(f).eq(r.binary(f))");
+            logger.info("About to run line #235: r.binary(f).eq(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).eq(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #82");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #82");
+            logger.info("Finished running line #235");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #82:" + ae.toString());
+                logger.error("Whoops, got exception on line #235:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1556,20 +1495,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #83
-            /* True */
+            // datum/binary.yaml line #237
+            /* true */
             Boolean expected_ = true;
             /* r.binary(f).le(r.binary(f)) */
-            System.out.println("About to run #83: r.binary(f).le(r.binary(f))");
+            logger.info("About to run line #237: r.binary(f).le(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).le(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #83");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #83");
+            logger.info("Finished running line #237");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #83:" + ae.toString());
+                logger.error("Whoops, got exception on line #237:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1578,20 +1516,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #84
-            /* True */
+            // datum/binary.yaml line #239
+            /* true */
             Boolean expected_ = true;
             /* r.binary(f).ge(r.binary(f)) */
-            System.out.println("About to run #84: r.binary(f).ge(r.binary(f))");
+            logger.info("About to run line #239: r.binary(f).ge(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).ge(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #84");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #84");
+            logger.info("Finished running line #239");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #84:" + ae.toString());
+                logger.error("Whoops, got exception on line #239:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1600,20 +1537,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #85
-            /* False */
+            // datum/binary.yaml line #241
+            /* false */
             Boolean expected_ = false;
             /* r.binary(f).ne(r.binary(f)) */
-            System.out.println("About to run #85: r.binary(f).ne(r.binary(f))");
+            logger.info("About to run line #241: r.binary(f).ne(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).ne(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #85");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #85");
+            logger.info("Finished running line #241");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #85:" + ae.toString());
+                logger.error("Whoops, got exception on line #241:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1622,20 +1558,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #86
-            /* False */
+            // datum/binary.yaml line #243
+            /* false */
             Boolean expected_ = false;
             /* r.binary(f).lt(r.binary(f)) */
-            System.out.println("About to run #86: r.binary(f).lt(r.binary(f))");
+            logger.info("About to run line #243: r.binary(f).lt(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).lt(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #86");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #86");
+            logger.info("Finished running line #243");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #86:" + ae.toString());
+                logger.error("Whoops, got exception on line #243:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1644,20 +1579,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #87
-            /* False */
+            // datum/binary.yaml line #245
+            /* false */
             Boolean expected_ = false;
             /* r.binary(f).gt(r.binary(f)) */
-            System.out.println("About to run #87: r.binary(f).gt(r.binary(f))");
+            logger.info("About to run line #245: r.binary(f).gt(r.binary(f))");
             Object obtained = runOrCatch(r.binary(f).gt(r.binary(f)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #87");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #87");
+            logger.info("Finished running line #245");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #87:" + ae.toString());
+                logger.error("Whoops, got exception on line #245:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1666,20 +1600,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #88
+            // datum/binary.yaml line #250
             /* u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8') */
             byte[] expected_ = "イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム".getBytes(StandardCharsets.UTF_8);
             /* r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')) */
-            System.out.println("About to run #88: r.binary('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.getBytes(StandardCharsets.UTF_8))");
+            logger.info("About to run line #250: r.binary('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.getBytes(StandardCharsets.UTF_8))");
             Object obtained = runOrCatch(r.binary("イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム".getBytes(StandardCharsets.UTF_8)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #88");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #88");
+            logger.info("Finished running line #250");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #88:" + ae.toString());
+                logger.error("Whoops, got exception on line #250:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1688,20 +1621,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #89
+            // datum/binary.yaml line #256
             /* u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16') */
             byte[] expected_ = "ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ".getBytes(StandardCharsets.UTF_16);
             /* r.binary(u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16')) */
-            System.out.println("About to run #89: r.binary('ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.getBytes(StandardCharsets.UTF_16))");
+            logger.info("About to run line #256: r.binary('ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.getBytes(StandardCharsets.UTF_16))");
             Object obtained = runOrCatch(r.binary("ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ".getBytes(StandardCharsets.UTF_16)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #89");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #89");
+            logger.info("Finished running line #256");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #89:" + ae.toString());
+                logger.error("Whoops, got exception on line #256:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1710,20 +1642,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #90
+            // datum/binary.yaml line #262
             /* u'lorem ipsum'.encode('ascii') */
             byte[] expected_ = "lorem ipsum".getBytes(StandardCharsets.US_ASCII);
             /* r.binary(u'lorem ipsum'.encode('ascii')) */
-            System.out.println("About to run #90: r.binary('lorem ipsum'.getBytes(StandardCharsets.US_ASCII))");
+            logger.info("About to run line #262: r.binary('lorem ipsum'.getBytes(StandardCharsets.US_ASCII))");
             Object obtained = runOrCatch(r.binary("lorem ipsum".getBytes(StandardCharsets.US_ASCII)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #90");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #90");
+            logger.info("Finished running line #262");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #90:" + ae.toString());
+                logger.error("Whoops, got exception on line #262:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1732,20 +1663,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #91
-            /* ('foo') */
+            // datum/binary.yaml line #269
+            /* 'foo' */
             String expected_ = "foo";
             /* r.binary(b'foo').coerce_to('string') */
-            System.out.println("About to run #91: r.binary(new byte[]{102, 111, 111}).coerceTo('string')");
+            logger.info("About to run line #269: r.binary(new byte[]{102, 111, 111}).coerceTo('string')");
             Object obtained = runOrCatch(r.binary(new byte[]{102, 111, 111}).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #91");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #91");
+            logger.info("Finished running line #269");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #91:" + ae.toString());
+                logger.error("Whoops, got exception on line #269:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1754,20 +1684,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #92
+            // datum/binary.yaml line #272
             /* u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム' */
             String expected_ = "イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム";
             /* r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')).coerce_to('string') */
-            System.out.println("About to run #92: r.binary('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.getBytes(StandardCharsets.UTF_8)).coerceTo('string')");
+            logger.info("About to run line #272: r.binary('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.getBytes(StandardCharsets.UTF_8)).coerceTo('string')");
             Object obtained = runOrCatch(r.binary("イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム".getBytes(StandardCharsets.UTF_8)).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #92");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #92");
+            logger.info("Finished running line #272");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #92:" + ae.toString());
+                logger.error("Whoops, got exception on line #272:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1776,20 +1705,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #93
+            // datum/binary.yaml line #278
             /* u'lorem ipsum' */
             String expected_ = "lorem ipsum";
             /* r.binary(u'lorem ipsum'.encode('ascii')).coerce_to('string') */
-            System.out.println("About to run #93: r.binary('lorem ipsum'.getBytes(StandardCharsets.US_ASCII)).coerceTo('string')");
+            logger.info("About to run line #278: r.binary('lorem ipsum'.getBytes(StandardCharsets.US_ASCII)).coerceTo('string')");
             Object obtained = runOrCatch(r.binary("lorem ipsum".getBytes(StandardCharsets.US_ASCII)).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #93");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #93");
+            logger.info("Finished running line #278");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #93:" + ae.toString());
+                logger.error("Whoops, got exception on line #278:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1798,20 +1726,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #94
+            // datum/binary.yaml line #284
             /* b'foo' */
             byte[] expected_ = new byte[]{102, 111, 111};
             /* r.expr('foo').coerce_to('binary') */
-            System.out.println("About to run #94: r.expr('foo').coerceTo('binary')");
+            logger.info("About to run line #284: r.expr('foo').coerceTo('binary')");
             Object obtained = runOrCatch(r.expr("foo").coerceTo("binary"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #94");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #94");
+            logger.info("Finished running line #284");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #94:" + ae.toString());
+                logger.error("Whoops, got exception on line #284:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1820,20 +1747,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #95
+            // datum/binary.yaml line #287
             /* b'foo' */
             byte[] expected_ = new byte[]{102, 111, 111};
             /* r.binary(b'foo').coerce_to('binary') */
-            System.out.println("About to run #95: r.binary(new byte[]{102, 111, 111}).coerceTo('binary')");
+            logger.info("About to run line #287: r.binary(new byte[]{102, 111, 111}).coerceTo('binary')");
             Object obtained = runOrCatch(r.binary(new byte[]{102, 111, 111}).coerceTo("binary"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #95");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #95");
+            logger.info("Finished running line #287");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #95:" + ae.toString());
+                logger.error("Whoops, got exception on line #287:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1842,20 +1768,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #96
+            // datum/binary.yaml line #291
             /* b'ef' */
             byte[] expected_ = new byte[]{101, 102};
             /* r.binary(b'abcdefg').slice(-3,-1) */
-            System.out.println("About to run #96: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-3L, -1L)");
+            logger.info("About to run line #291: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-3L, -1L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-3L, -1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #96");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #96");
+            logger.info("Finished running line #291");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #96:" + ae.toString());
+                logger.error("Whoops, got exception on line #291:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1864,20 +1789,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #97
+            // datum/binary.yaml line #293
             /* b'ab' */
             byte[] expected_ = new byte[]{97, 98};
             /* r.binary(b'abcdefg').slice(0, 2) */
-            System.out.println("About to run #97: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(0L, 2L)");
+            logger.info("About to run line #293: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(0L, 2L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(0L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #97");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #97");
+            logger.info("Finished running line #293");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #97:" + ae.toString());
+                logger.error("Whoops, got exception on line #293:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1886,20 +1810,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #98
+            // datum/binary.yaml line #295
             /* b'def' */
             byte[] expected_ = new byte[]{100, 101, 102};
             /* r.binary(b'abcdefg').slice(3, -1) */
-            System.out.println("About to run #98: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(3L, -1L)");
+            logger.info("About to run line #295: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(3L, -1L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(3L, -1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #98");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #98");
+            logger.info("Finished running line #295");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #98:" + ae.toString());
+                logger.error("Whoops, got exception on line #295:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1908,20 +1831,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #99
+            // datum/binary.yaml line #297
             /* b'cde' */
             byte[] expected_ = new byte[]{99, 100, 101};
             /* r.binary(b'abcdefg').slice(-5, 5) */
-            System.out.println("About to run #99: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-5L, 5L)");
+            logger.info("About to run line #297: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-5L, 5L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-5L, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #99");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #99");
+            logger.info("Finished running line #297");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #99:" + ae.toString());
+                logger.error("Whoops, got exception on line #297:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1930,20 +1852,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #100
+            // datum/binary.yaml line #299
             /* b'ab' */
             byte[] expected_ = new byte[]{97, 98};
             /* r.binary(b'abcdefg').slice(-8, 2) */
-            System.out.println("About to run #100: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-8L, 2L)");
+            logger.info("About to run line #299: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-8L, 2L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-8L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #100");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #100");
+            logger.info("Finished running line #299");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #100:" + ae.toString());
+                logger.error("Whoops, got exception on line #299:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1952,20 +1873,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #101
+            // datum/binary.yaml line #301
             /* b'fg' */
             byte[] expected_ = new byte[]{102, 103};
             /* r.binary(b'abcdefg').slice(5, 7) */
-            System.out.println("About to run #101: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 7L)");
+            logger.info("About to run line #301: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 7L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 7L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #101");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #101");
+            logger.info("Finished running line #301");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #101:" + ae.toString());
+                logger.error("Whoops, got exception on line #301:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1974,20 +1894,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #102
+            // datum/binary.yaml line #305
             /* b'ab' */
             byte[] expected_ = new byte[]{97, 98};
             /* r.binary(b'abcdefg').slice(-9, 2) */
-            System.out.println("About to run #102: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-9L, 2L)");
+            logger.info("About to run line #305: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-9L, 2L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(-9L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #102");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #102");
+            logger.info("Finished running line #305");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #102:" + ae.toString());
+                logger.error("Whoops, got exception on line #305:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1996,20 +1915,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #103
+            // datum/binary.yaml line #309
             /* b'fg' */
             byte[] expected_ = new byte[]{102, 103};
             /* r.binary(b'abcdefg').slice(5, 9) */
-            System.out.println("About to run #103: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 9L)");
+            logger.info("About to run line #309: r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 9L)");
             Object obtained = runOrCatch(r.binary(new byte[]{97, 98, 99, 100, 101, 102, 103}).slice(5L, 9L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #103");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #103");
+            logger.info("Finished running line #309");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #103:" + ae.toString());
+                logger.error("Whoops, got exception on line #309:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2018,21 +1936,20 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #104
+            // datum/binary.yaml line #313
             /* b */
             byte[] expected_ = b;
             /* r.binary(b) */
-            System.out.println("About to run #104: r.binary(b)");
+            logger.info("About to run line #313: r.binary(b)");
             Object obtained = runOrCatch(r.binary(b),
                                           new OptArgs()
                                           .with("binary_format", "native")
                                           ,conn);
-            System.out.println("Finished running #104");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #104");
+            logger.info("Finished running line #313");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #104:" + ae.toString());
+                logger.error("Whoops, got exception on line #313:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2041,21 +1958,20 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #105
-            /* ({'$reql_type$':'BINARY','data':'AAE='}) */
+            // datum/binary.yaml line #317
+            /* {'$reql_type$':'BINARY','data':'AAE='} */
             Map expected_ = r.hashMap("$reql_type$", "BINARY").with("data", "AAE=");
             /* r.binary(b) */
-            System.out.println("About to run #105: r.binary(b)");
+            logger.info("About to run line #317: r.binary(b)");
             Object obtained = runOrCatch(r.binary(b),
                                           new OptArgs()
                                           .with("binary_format", "raw")
                                           ,conn);
-            System.out.println("Finished running #105");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #105");
+            logger.info("Finished running line #317");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #105:" + ae.toString());
+                logger.error("Whoops, got exception on line #317:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2064,20 +1980,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #106
-            /* (b"data") */
+            // datum/binary.yaml line #323
+            /* b"data" */
             byte[] expected_ = new byte[]{100, 97, 116, 97};
             /* r.binary(r.expr("data")) */
-            System.out.println("About to run #106: r.binary(r.expr('data'))");
+            logger.info("About to run line #323: r.binary(r.expr('data'))");
             Object obtained = runOrCatch(r.binary(r.expr("data")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #106");
             try {
                 assertArrayEquals(expected_, (byte[]) obtained);
-            System.out.println("Finished asserting #106");
+            logger.info("Finished running line #323");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #106:" + ae.toString());
+                logger.error("Whoops, got exception on line #323:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2086,20 +2001,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #107
+            // datum/binary.yaml line #329
             /* err('ReqlQueryLogicError', 'Expected type STRING but found OBJECT.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type STRING but found OBJECT.", r.array());
             /* r.binary(r.expr({})) */
-            System.out.println("About to run #107: r.binary(r.expr(r.hashMap()))");
+            logger.info("About to run line #329: r.binary(r.expr(r.hashMap()))");
             Object obtained = runOrCatch(r.binary(r.expr(r.hashMap())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #107");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #107");
+            logger.info("Finished running line #329");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #107:" + ae.toString());
+                logger.error("Whoops, got exception on line #329:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2108,20 +2022,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #108
+            // datum/binary.yaml line #332
             /* err('ReqlQueryLogicError', 'Expected type STRING but found ARRAY.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type STRING but found ARRAY.", r.array());
             /* r.binary(r.expr([])) */
-            System.out.println("About to run #108: r.binary(r.expr(r.array()))");
+            logger.info("About to run line #332: r.binary(r.expr(r.array()))");
             Object obtained = runOrCatch(r.binary(r.expr(r.array())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #108");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #108");
+            logger.info("Finished running line #332");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #108:" + ae.toString());
+                logger.error("Whoops, got exception on line #332:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2130,20 +2043,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #109
+            // datum/binary.yaml line #338
             /* err('ReqlQueryLogicError','Invalid binary pseudotype:'+' lacking `data` key.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid binary pseudotype:" + " lacking `data` key.", r.array());
             /* r.expr({'$reql_type$':'BINARY'}) */
-            System.out.println("About to run #109: r.expr(r.hashMap('$reql_type$', 'BINARY'))");
+            logger.info("About to run line #338: r.expr(r.hashMap('$reql_type$', 'BINARY'))");
             Object obtained = runOrCatch(r.expr(r.hashMap("$reql_type$", "BINARY")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #109");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #109");
+            logger.info("Finished running line #338");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #109:" + ae.toString());
+                logger.error("Whoops, got exception on line #338:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2152,20 +2064,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #110
+            // datum/binary.yaml line #343
             /* err('ReqlQueryLogicError','Invalid base64 format, data found after padding character \'=\'.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid base64 format, data found after padding character '='.", r.array());
             /* r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'}) */
-            System.out.println("About to run #110: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDEFGH==AA'))");
+            logger.info("About to run line #343: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDEFGH==AA'))");
             Object obtained = runOrCatch(r.expr(r.hashMap("$reql_type$", "BINARY").with("data", "ABCDEFGH==AA")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #110");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #110");
+            logger.info("Finished running line #343");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #110:" + ae.toString());
+                logger.error("Whoops, got exception on line #343:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2174,20 +2085,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #111
+            // datum/binary.yaml line #345
             /* err('ReqlQueryLogicError','Invalid base64 format, data found after padding character \'=\'.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid base64 format, data found after padding character '='.", r.array());
             /* r.expr({'$reql_type$':'BINARY','data':'ABCDEF==$'}) */
-            System.out.println("About to run #111: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDEF==$'))");
+            logger.info("About to run line #345: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDEF==$'))");
             Object obtained = runOrCatch(r.expr(r.hashMap("$reql_type$", "BINARY").with("data", "ABCDEF==$")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #111");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #111");
+            logger.info("Finished running line #345");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #111:" + ae.toString());
+                logger.error("Whoops, got exception on line #345:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2196,20 +2106,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #112
+            // datum/binary.yaml line #347
             /* err('ReqlQueryLogicError','Invalid base64 character found:'+' \'^\'.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid base64 character found:" + " '^'.", r.array());
             /* r.expr({'$reql_type$':'BINARY','data':'A^CDEFGH'}) */
-            System.out.println("About to run #112: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'A^CDEFGH'))");
+            logger.info("About to run line #347: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'A^CDEFGH'))");
             Object obtained = runOrCatch(r.expr(r.hashMap("$reql_type$", "BINARY").with("data", "A^CDEFGH")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #112");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #112");
+            logger.info("Finished running line #347");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #112:" + ae.toString());
+                logger.error("Whoops, got exception on line #347:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2218,20 +2127,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #113
+            // datum/binary.yaml line #349
             /* err('ReqlQueryLogicError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Invalid base64 length:" + " 1 character remaining, cannot decode a full byte.", r.array());
             /* r.expr({'$reql_type$':'BINARY','data':'ABCDE'}) */
-            System.out.println("About to run #113: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDE'))");
+            logger.info("About to run line #349: r.expr(r.hashMap('$reql_type$', 'BINARY').with('data', 'ABCDE'))");
             Object obtained = runOrCatch(r.expr(r.hashMap("$reql_type$", "BINARY").with("data", "ABCDE")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #113");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #113");
+            logger.info("Finished running line #349");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #113:" + ae.toString());
+                logger.error("Whoops, got exception on line #349:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2240,20 +2148,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #114
+            // datum/binary.yaml line #353
             /* err('ReqlQueryLogicError','Cannot coerce BINARY to ARRAY.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce BINARY to ARRAY.", r.array());
             /* r.binary(a).coerce_to('array') */
-            System.out.println("About to run #114: r.binary(a).coerceTo('array')");
+            logger.info("About to run line #353: r.binary(a).coerceTo('array')");
             Object obtained = runOrCatch(r.binary(a).coerceTo("array"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #114");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #114");
+            logger.info("Finished running line #353");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #114:" + ae.toString());
+                logger.error("Whoops, got exception on line #353:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2262,20 +2169,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #115
+            // datum/binary.yaml line #355
             /* err('ReqlQueryLogicError','Cannot coerce BINARY to OBJECT.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce BINARY to OBJECT.", r.array());
             /* r.binary(a).coerce_to('object') */
-            System.out.println("About to run #115: r.binary(a).coerceTo('object')");
+            logger.info("About to run line #355: r.binary(a).coerceTo('object')");
             Object obtained = runOrCatch(r.binary(a).coerceTo("object"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #115");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #115");
+            logger.info("Finished running line #355");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #115:" + ae.toString());
+                logger.error("Whoops, got exception on line #355:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2284,20 +2190,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #116
+            // datum/binary.yaml line #357
             /* err('ReqlQueryLogicError','Cannot coerce BINARY to BOOL.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce BINARY to BOOL.", r.array());
             /* r.binary(a).coerce_to('bool') */
-            System.out.println("About to run #116: r.binary(a).coerceTo('bool')");
+            logger.info("About to run line #357: r.binary(a).coerceTo('bool')");
             Object obtained = runOrCatch(r.binary(a).coerceTo("bool"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #116");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #116");
+            logger.info("Finished running line #357");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #116:" + ae.toString());
+                logger.error("Whoops, got exception on line #357:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2306,20 +2211,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #117
+            // datum/binary.yaml line #359
             /* err('ReqlQueryLogicError','Cannot coerce BINARY to NUMBER.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce BINARY to NUMBER.", r.array());
             /* r.binary(a).coerce_to('number') */
-            System.out.println("About to run #117: r.binary(a).coerceTo('number')");
+            logger.info("About to run line #359: r.binary(a).coerceTo('number')");
             Object obtained = runOrCatch(r.binary(a).coerceTo("number"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #117");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #117");
+            logger.info("Finished running line #359");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #117:" + ae.toString());
+                logger.error("Whoops, got exception on line #359:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2328,20 +2232,19 @@ public class DatumBinary {
         }
         
         {
-            // datum/binary.yaml #118
+            // datum/binary.yaml line #361
             /* err('ReqlQueryLogicError','Cannot coerce BINARY to NULL.',[]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot coerce BINARY to NULL.", r.array());
             /* r.binary(a).coerce_to('nu'+'ll') */
-            System.out.println("About to run #118: r.binary(a).coerceTo(r.add('nu', 'll'))");
+            logger.info("About to run line #361: r.binary(a).coerceTo(r.add('nu', 'll'))");
             Object obtained = runOrCatch(r.binary(a).coerceTo(r.add("nu", "ll")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #118");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #118");
+            logger.info("Finished running line #361");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #118:" + ae.toString());
+                logger.error("Whoops, got exception on line #361:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

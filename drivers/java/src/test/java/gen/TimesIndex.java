@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TimesIndex {
+    // secondary indexes on times
     Logger logger = LoggerFactory.getLogger(TimesIndex.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class TimesIndex {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class TimesIndex {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -80,61 +82,60 @@ public class TimesIndex {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // times/index.yaml #1
+        // times/index.yaml line #7
         // ts={"timezone":"-07:00","epoch_time":1375445162.0872,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map ts = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445162.0872).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map ts = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445162.0872).with('$reql_type$', 'TIME'));");
         Map ts = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445162.0872).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #2
+        // times/index.yaml line #11
         // t1={"timezone":"-07:00","epoch_time":1375445163.0872,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map t1 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.0872).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map t1 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.0872).with('$reql_type$', 'TIME'));");
         Map t1 = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445163.0872).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #3
+        // times/index.yaml line #15
         // t2={"timezone":"-07:00","epoch_time":1375445163.08832,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map t2 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.08832).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map t2 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.08832).with('$reql_type$', 'TIME'));");
         Map t2 = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445163.08832).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #4
+        // times/index.yaml line #19
         // t3={"timezone":"-07:00","epoch_time":1375445163.08943,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map t3 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.08943).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map t3 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.08943).with('$reql_type$', 'TIME'));");
         Map t3 = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445163.08943).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #5
+        // times/index.yaml line #23
         // t4={"timezone":"-07:00","epoch_time":1375445163.09055,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map t4 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.09055).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map t4 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.09055).with('$reql_type$', 'TIME'));");
         Map t4 = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445163.09055).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #6
+        // times/index.yaml line #27
         // t5={"timezone":"-07:00","epoch_time":1375445163.09166,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map t5 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.09166).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map t5 = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445163.09166).with('$reql_type$', 'TIME'));");
         Map t5 = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445163.09166).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #7
+        // times/index.yaml line #31
         // te={"timezone":"-07:00","epoch_time":1375445164.0872,"$reql_type$":"TIME"}
-        System.out.println("Possibly executing: Map te = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445164.0872).with('$reql_type$', 'TIME'));");
+        logger.info("Possibly executing: Map te = (Map) (r.hashMap('timezone', '-07:00').with('epoch_time', 1375445164.0872).with('$reql_type$', 'TIME'));");
         Map te = (Map) (r.hashMap("timezone", "-07:00").with("epoch_time", 1375445164.0872).with("$reql_type$", "TIME"));
                 
-        // times/index.yaml #8
+        // times/index.yaml line #36
         // trows = [{'id':t1}, {'id':t2}, {'id':t3}, {'id':t4}, {'id':t5}]
-        System.out.println("Possibly executing: List trows = (List) (r.array(r.hashMap('id', t1), r.hashMap('id', t2), r.hashMap('id', t3), r.hashMap('id', t4), r.hashMap('id', t5)));");
+        logger.info("Possibly executing: List trows = (List) (r.array(r.hashMap('id', t1), r.hashMap('id', t2), r.hashMap('id', t3), r.hashMap('id', t4), r.hashMap('id', t5)));");
         List trows = (List) (r.array(r.hashMap("id", t1), r.hashMap("id", t2), r.hashMap("id", t3), r.hashMap("id", t4), r.hashMap("id", t5)));
                 
         {
-            // times/index.yaml #9
+            // times/index.yaml line #37
             /* 5 */
             Long expected_ = 5L;
             /* tbl.insert(trows)['inserted'] */
-            System.out.println("About to run #9: tbl.insert(trows).bracket('inserted')");
+            logger.info("About to run line #37: tbl.insert(trows).bracket('inserted')");
             Object obtained = runOrCatch(tbl.insert(trows).bracket("inserted"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -142,26 +143,25 @@ public class TimesIndex {
             }
         }
         
-        // times/index.yaml #10
+        // times/index.yaml line #41
         // bad_insert = [{'id':r.expr(t1).in_timezone("Z")}]
-        System.out.println("Possibly executing: List bad_insert = (List) (r.array(r.hashMap('id', r.expr(t1).inTimezone('Z'))));");
+        logger.info("Possibly executing: List bad_insert = (List) (r.array(r.hashMap('id', r.expr(t1).inTimezone('Z'))));");
         List bad_insert = (List) (r.array(r.hashMap("id", r.expr(t1).inTimezone("Z"))));
                 
         {
-            // times/index.yaml #11
+            // times/index.yaml line #42
             /* ("Duplicate primary key `id`:\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"-07:00\"\n\t}\n}\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"+00:00\"\n\t}\n}") */
             String expected_ = "Duplicate primary key `id`:\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"-07:00\"\n\t}\n}\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"+00:00\"\n\t}\n}";
             /* tbl.insert(bad_insert)['first_error'] */
-            System.out.println("About to run #11: tbl.insert(bad_insert).bracket('first_error')");
+            logger.info("About to run line #42: tbl.insert(bad_insert).bracket('first_error')");
             Object obtained = runOrCatch(tbl.insert(bad_insert).bracket("first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -170,20 +170,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #12
+            // times/index.yaml line #46
             /* 5 */
             Long expected_ = 5L;
             /* tbl.between(ts, te).count() */
-            System.out.println("About to run #12: tbl.between(ts, te).count()");
+            logger.info("About to run line #46: tbl.between(ts, te).count()");
             Object obtained = runOrCatch(tbl.between(ts, te).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -192,20 +191,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #13
+            // times/index.yaml line #48
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, t4).count() */
-            System.out.println("About to run #13: tbl.between(t1, t4).count()");
+            logger.info("About to run line #48: tbl.between(t1, t4).count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #48");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #48:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -214,20 +212,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #14
+            // times/index.yaml line #51
             /* 4 */
             Long expected_ = 4L;
             /* tbl.between(t1, t4, right_bound='closed').count() */
-            System.out.println("About to run #14: tbl.between(t1, t4).optArg('right_bound', 'closed').count()");
+            logger.info("About to run line #51: tbl.between(t1, t4).optArg('right_bound', 'closed').count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).optArg("right_bound", "closed").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -236,20 +233,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #15
+            // times/index.yaml line #54
             /* 5 */
             Long expected_ = 5L;
             /* tbl.between(r.expr(ts).in_timezone("+06:00"), te).count() */
-            System.out.println("About to run #15: tbl.between(r.expr(ts).inTimezone('+06:00'), te).count()");
+            logger.info("About to run line #54: tbl.between(r.expr(ts).inTimezone('+06:00'), te).count()");
             Object obtained = runOrCatch(tbl.between(r.expr(ts).inTimezone("+06:00"), te).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -258,20 +254,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #16
+            // times/index.yaml line #56
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, r.expr(t4).in_timezone("+08:00")).count() */
-            System.out.println("About to run #16: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).count()");
+            logger.info("About to run line #56: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).count()");
             Object obtained = runOrCatch(tbl.between(t1, r.expr(t4).inTimezone("+08:00")).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #56");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #56:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -280,20 +275,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #17
+            // times/index.yaml line #59
             /* 4 */
             Long expected_ = 4L;
             /* tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed').count() */
-            System.out.println("About to run #17: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').count()");
+            logger.info("About to run line #59: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').count()");
             Object obtained = runOrCatch(tbl.between(r.expr(t1).inTimezone("Z"), t4).optArg("right_bound", "closed").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -302,20 +296,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #18
+            // times/index.yaml line #64
             /* 5 */
             Long expected_ = 5L;
             /* tbl.update(lambda row:{'a':row['id']})['replaced'] */
-            System.out.println("About to run #18: tbl.update(row -> r.hashMap('a', row.bracket('id'))).bracket('replaced')");
+            logger.info("About to run line #64: tbl.update(row -> r.hashMap('a', row.bracket('id'))).bracket('replaced')");
             Object obtained = runOrCatch(tbl.update(row -> r.hashMap("a", row.bracket("id"))).bracket("replaced"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -324,20 +317,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #19
+            // times/index.yaml line #67
             /* ({'created':1}) */
             Map expected_ = r.hashMap("created", 1L);
             /* tbl.index_create('a') */
-            System.out.println("About to run #19: tbl.indexCreate('a')");
+            logger.info("About to run line #67: tbl.indexCreate('a')");
             Object obtained = runOrCatch(tbl.indexCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #67");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #67:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -346,20 +338,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #20
+            // times/index.yaml line #69
             /* 1 */
             Long expected_ = 1L;
             /* tbl.index_wait('a').count() */
-            System.out.println("About to run #20: tbl.indexWait('a').count()");
+            logger.info("About to run line #69: tbl.indexWait('a').count()");
             Object obtained = runOrCatch(tbl.indexWait("a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -368,20 +359,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #21
+            // times/index.yaml line #73
             /* 5 */
             Long expected_ = 5L;
             /* tbl.between(ts, te, index='a').count() */
-            System.out.println("About to run #21: tbl.between(ts, te).optArg('index', 'a').count()");
+            logger.info("About to run line #73: tbl.between(ts, te).optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(ts, te).optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -390,20 +380,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #22
+            // times/index.yaml line #77
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, t4, index='a').count() */
-            System.out.println("About to run #22: tbl.between(t1, t4).optArg('index', 'a').count()");
+            logger.info("About to run line #77: tbl.between(t1, t4).optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #77");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #77:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -412,20 +401,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #23
+            // times/index.yaml line #81
             /* 4 */
             Long expected_ = 4L;
             /* tbl.between(t1, t4, right_bound='closed', index='a').count() */
-            System.out.println("About to run #23: tbl.between(t1, t4).optArg('right_bound', 'closed').optArg('index', 'a').count()");
+            logger.info("About to run line #81: tbl.between(t1, t4).optArg('right_bound', 'closed').optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).optArg("right_bound", "closed").optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -434,20 +422,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #24
+            // times/index.yaml line #85
             /* 5 */
             Long expected_ = 5L;
             /* tbl.between(r.expr(ts).in_timezone("+06:00"), te, index='a').count() */
-            System.out.println("About to run #24: tbl.between(r.expr(ts).inTimezone('+06:00'), te).optArg('index', 'a').count()");
+            logger.info("About to run line #85: tbl.between(r.expr(ts).inTimezone('+06:00'), te).optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(r.expr(ts).inTimezone("+06:00"), te).optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -456,20 +443,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #25
+            // times/index.yaml line #89
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, r.expr(t4).in_timezone("+08:00"), index='a').count() */
-            System.out.println("About to run #25: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).optArg('index', 'a').count()");
+            logger.info("About to run line #89: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(t1, r.expr(t4).inTimezone("+08:00")).optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #89");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #89:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -478,20 +464,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #26
+            // times/index.yaml line #93
             /* 4 */
             Long expected_ = 4L;
             /* tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed', index='a').count() */
-            System.out.println("About to run #26: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').optArg('index', 'a').count()");
+            logger.info("About to run line #93: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').optArg('index', 'a').count()");
             Object obtained = runOrCatch(tbl.between(r.expr(t1).inTimezone("Z"), t4).optArg("right_bound", "closed").optArg("index", "a").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -500,20 +485,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #27
+            // times/index.yaml line #98
             /* ({'created':1}) */
             Map expected_ = r.hashMap("created", 1L);
             /* tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null)) */
-            System.out.println("About to run #27: tbl.indexCreate('b', row -> r.branch(row.bracket('id').lt(t4), row.bracket('a'), (ReqlExpr) null))");
+            logger.info("About to run line #98: tbl.indexCreate('b', row -> r.branch(row.bracket('id').lt(t4), row.bracket('a'), (ReqlExpr) null))");
             Object obtained = runOrCatch(tbl.indexCreate("b", row -> r.branch(row.bracket("id").lt(t4), row.bracket("a"), (ReqlExpr) null)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #98");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #98:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -522,20 +506,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #28
+            // times/index.yaml line #101
             /* 1 */
             Long expected_ = 1L;
             /* tbl.index_wait('b').count() */
-            System.out.println("About to run #28: tbl.indexWait('b').count()");
+            logger.info("About to run line #101: tbl.indexWait('b').count()");
             Object obtained = runOrCatch(tbl.indexWait("b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -544,20 +527,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #29
+            // times/index.yaml line #105
             /* 1 */
             Long expected_ = 1L;
             /* tbl.index_wait('b').count() */
-            System.out.println("About to run #29: tbl.indexWait('b').count()");
+            logger.info("About to run line #105: tbl.indexWait('b').count()");
             Object obtained = runOrCatch(tbl.indexWait("b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #105");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #105:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -566,20 +548,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #30
+            // times/index.yaml line #109
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(ts, te, index='b').count() */
-            System.out.println("About to run #30: tbl.between(ts, te).optArg('index', 'b').count()");
+            logger.info("About to run line #109: tbl.between(ts, te).optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(ts, te).optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #109");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #109:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -588,20 +569,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #31
+            // times/index.yaml line #113
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, t4, index='b').count() */
-            System.out.println("About to run #31: tbl.between(t1, t4).optArg('index', 'b').count()");
+            logger.info("About to run line #113: tbl.between(t1, t4).optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -610,20 +590,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #32
+            // times/index.yaml line #117
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, t4, right_bound='closed', index='b').count() */
-            System.out.println("About to run #32: tbl.between(t1, t4).optArg('right_bound', 'closed').optArg('index', 'b').count()");
+            logger.info("About to run line #117: tbl.between(t1, t4).optArg('right_bound', 'closed').optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(t1, t4).optArg("right_bound", "closed").optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #117");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #117:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -632,20 +611,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #33
+            // times/index.yaml line #121
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(r.expr(ts).in_timezone("+06:00"), te, index='b').count() */
-            System.out.println("About to run #33: tbl.between(r.expr(ts).inTimezone('+06:00'), te).optArg('index', 'b').count()");
+            logger.info("About to run line #121: tbl.between(r.expr(ts).inTimezone('+06:00'), te).optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(r.expr(ts).inTimezone("+06:00"), te).optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #121");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #121:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -654,20 +632,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #34
+            // times/index.yaml line #125
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(t1, r.expr(t4).in_timezone("+08:00"), index='b').count() */
-            System.out.println("About to run #34: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).optArg('index', 'b').count()");
+            logger.info("About to run line #125: tbl.between(t1, r.expr(t4).inTimezone('+08:00')).optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(t1, r.expr(t4).inTimezone("+08:00")).optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #125");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #125:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -676,20 +653,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #35
+            // times/index.yaml line #129
             /* 3 */
             Long expected_ = 3L;
             /* tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed', index='b').count() */
-            System.out.println("About to run #35: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').optArg('index', 'b').count()");
+            logger.info("About to run line #129: tbl.between(r.expr(t1).inTimezone('Z'), t4).optArg('right_bound', 'closed').optArg('index', 'b').count()");
             Object obtained = runOrCatch(tbl.between(r.expr(t1).inTimezone("Z"), t4).optArg("right_bound", "closed").optArg("index", "b").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #129");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #129:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -697,31 +673,30 @@ public class TimesIndex {
             }
         }
         
-        // times/index.yaml #36
+        // times/index.yaml line #135
         // oldtime = datetime.fromtimestamp(1375147296.681, PacificTimeZone())
-        System.out.println("Possibly executing: OffsetDateTime oldtime = (OffsetDateTime) (datetime.fromtimestamp(1375147296.681, PacificTimeZone()));");
+        logger.info("Possibly executing: OffsetDateTime oldtime = (OffsetDateTime) (datetime.fromtimestamp(1375147296.681, PacificTimeZone()));");
         OffsetDateTime oldtime = (OffsetDateTime) (datetime.fromtimestamp(1375147296.681, PacificTimeZone()));
                 
-        // times/index.yaml #37
+        // times/index.yaml line #139
         // curtime = datetime.now()
-        System.out.println("Possibly executing: OffsetDateTime curtime = (OffsetDateTime) (datetime.now());");
+        logger.info("Possibly executing: OffsetDateTime curtime = (OffsetDateTime) (datetime.now());");
         OffsetDateTime curtime = (OffsetDateTime) (datetime.now());
                 
         {
-            // times/index.yaml #38
+            // times/index.yaml line #142
             /* 1 */
             Long expected_ = 1L;
             /* tbl.insert([{'id':oldtime}])['inserted'] */
-            System.out.println("About to run #38: tbl.insert(r.array(r.hashMap('id', oldtime))).bracket('inserted')");
+            logger.info("About to run line #142: tbl.insert(r.array(r.hashMap('id', oldtime))).bracket('inserted')");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", oldtime))).bracket("inserted"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #142");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #142:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -730,20 +705,19 @@ public class TimesIndex {
         }
         
         {
-            // times/index.yaml #39
+            // times/index.yaml line #148
             /* ("PTYPE<TIME>") */
             String expected_ = "PTYPE<TIME>";
             /* tbl.get(oldtime)['id'].type_of() */
-            System.out.println("About to run #39: tbl.get(oldtime).bracket('id').typeOf()");
+            logger.info("About to run line #148: tbl.get(oldtime).bracket('id').typeOf()");
             Object obtained = runOrCatch(tbl.get(oldtime).bracket("id").typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #148");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #148:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

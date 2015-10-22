@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class Polymorphism {
+    // Tests that manipulation data in tables
     Logger logger = LoggerFactory.getLogger(Polymorphism.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class Polymorphism {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class Polymorphism {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -80,26 +82,25 @@ public class Polymorphism {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // polymorphism.yaml #1
+        // polymorphism.yaml line #5
         // obj = r.expr({'id':0,'a':0})
-        System.out.println("Possibly executing: MakeObj obj = (MakeObj) (r.expr(r.hashMap('id', 0L).with('a', 0L)));");
+        logger.info("Possibly executing: MakeObj obj = (MakeObj) (r.expr(r.hashMap('id', 0L).with('a', 0L)));");
         MakeObj obj = (MakeObj) (r.expr(r.hashMap("id", 0L).with("a", 0L)));
                 
         {
-            // polymorphism.yaml #2
+            // polymorphism.yaml line #7
             /* ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':3}) */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 3L);
             /* tbl.insert([{'id':i, 'a':i} for i in xrange(3)]) */
-            System.out.println("About to run #2: tbl.insert(LongStream.range(0, 3L).boxed().map(i -> r.hashMap('id', i).with('a', i)).collect(Collectors.toList()))");
+            logger.info("About to run line #7: tbl.insert(LongStream.range(0, 3L).boxed().map(i -> r.hashMap('id', i).with('a', i)).collect(Collectors.toList()))");
             Object obtained = runOrCatch(tbl.insert(LongStream.range(0, 3L).boxed().map(i -> r.hashMap("id", i).with("a", i)).collect(Collectors.toList())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -108,20 +109,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(3, 1)
+            // polymorphism.yaml line #21
             /* ({'id':0,'c':1,'a':0}) */
             Map expected_ = r.hashMap("id", 0L).with("c", 1L).with("a", 0L);
             /* tbl.merge({'c':1}).nth(0) */
-            System.out.println("About to run #(3, 1): tbl.merge(r.hashMap('c', 1L)).nth(0L)");
+            logger.info("About to run line #21: tbl.merge(r.hashMap('c', 1L)).nth(0L)");
             Object obtained = runOrCatch(tbl.merge(r.hashMap("c", 1L)).nth(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(3, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(3, 1)");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(3, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -130,20 +130,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(3, 2)
+            // polymorphism.yaml line #22
             /* ({'id':0,'c':1,'a':0}) */
             Map expected_ = r.hashMap("id", 0L).with("c", 1L).with("a", 0L);
             /* obj.merge({'c':1}) */
-            System.out.println("About to run #(3, 2): obj.merge(r.hashMap('c', 1L))");
+            logger.info("About to run line #22: obj.merge(r.hashMap('c', 1L))");
             Object obtained = runOrCatch(obj.merge(r.hashMap("c", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(3, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(3, 2)");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(3, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -152,20 +151,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(4, 1)
+            // polymorphism.yaml line #26
             /* ({'id':0}) */
             Map expected_ = r.hashMap("id", 0L);
             /* tbl.without('a').nth(0) */
-            System.out.println("About to run #(4, 1): tbl.without('a').nth(0L)");
+            logger.info("About to run line #26: tbl.without('a').nth(0L)");
             Object obtained = runOrCatch(tbl.without("a").nth(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(4, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(4, 1)");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(4, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -174,20 +172,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(4, 2)
+            // polymorphism.yaml line #27
             /* ({'id':0}) */
             Map expected_ = r.hashMap("id", 0L);
             /* obj.without('a') */
-            System.out.println("About to run #(4, 2): obj.without('a')");
+            logger.info("About to run line #27: obj.without('a')");
             Object obtained = runOrCatch(obj.without("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(4, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(4, 2)");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(4, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -196,20 +193,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(5, 1)
+            // polymorphism.yaml line #31
             /* ({'a':0}) */
             Map expected_ = r.hashMap("a", 0L);
             /* tbl.pluck('a').nth(0) */
-            System.out.println("About to run #(5, 1): tbl.pluck('a').nth(0L)");
+            logger.info("About to run line #31: tbl.pluck('a').nth(0L)");
             Object obtained = runOrCatch(tbl.pluck("a").nth(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 1)");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -218,20 +214,19 @@ public class Polymorphism {
         }
         
         {
-            // polymorphism.yaml #(5, 2)
+            // polymorphism.yaml line #32
             /* ({'a':0}) */
             Map expected_ = r.hashMap("a", 0L);
             /* obj.pluck('a') */
-            System.out.println("About to run #(5, 2): obj.pluck('a')");
+            logger.info("About to run line #32: obj.pluck('a')");
             Object obtained = runOrCatch(obj.pluck("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 2)");
+            logger.info("Finished running line #32");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #32:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

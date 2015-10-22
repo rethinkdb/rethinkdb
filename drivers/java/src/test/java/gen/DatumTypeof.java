@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumTypeof {
+    // These tests test the type of command
     Logger logger = LoggerFactory.getLogger(DatumTypeof.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumTypeof {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumTypeof {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumTypeof {
     public void test() throws Exception {
                 
         {
-            // datum/typeof.yaml #1
+            // datum/typeof.yaml line #5
             /* 'NULL' */
             String expected_ = "NULL";
             /* r.expr(null).type_of() */
-            System.out.println("About to run #1: r.expr((ReqlExpr) null).typeOf()");
+            logger.info("About to run line #5: r.expr((ReqlExpr) null).typeOf()");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumTypeof {
         }
         
         {
-            // datum/typeof.yaml #2
+            // datum/typeof.yaml line #9
             /* 'NULL' */
             String expected_ = "NULL";
             /* r.type_of(null) */
-            System.out.println("About to run #2: r.typeOf((ReqlExpr) null)");
+            logger.info("About to run line #9: r.typeOf((ReqlExpr) null)");
             Object obtained = runOrCatch(r.typeOf((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

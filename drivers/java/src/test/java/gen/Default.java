@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class Default {
+    // Tests r.default
     Logger logger = LoggerFactory.getLogger(Default.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class Default {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class Default {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class Default {
     public void test() throws Exception {
                 
         {
-            // default.yaml #1
+            // default.yaml line #3
             /* 1 */
             Long expected_ = 1L;
             /* r.expr(1).default(2) */
-            System.out.println("About to run #1: r.expr(1L).default_(2L)");
+            logger.info("About to run line #3: r.expr(1L).default_(2L)");
             Object obtained = runOrCatch(r.expr(1L).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #3");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #3:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class Default {
         }
         
         {
-            // default.yaml #2
+            // default.yaml line #5
             /* 2 */
             Long expected_ = 2L;
             /* r.expr(null).default(2) */
-            System.out.println("About to run #2: r.expr((ReqlExpr) null).default_(2L)");
+            logger.info("About to run line #5: r.expr((ReqlExpr) null).default_(2L)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class Default {
         }
         
         {
-            // default.yaml #3
+            // default.yaml line #7
             /* 2 */
             Long expected_ = 2L;
             /* r.expr({})['b'].default(2) */
-            System.out.println("About to run #3: r.expr(r.hashMap()).bracket('b').default_(2L)");
+            logger.info("About to run line #7: r.expr(r.hashMap()).bracket('b').default_(2L)");
             Object obtained = runOrCatch(r.expr(r.hashMap()).bracket("b").default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class Default {
         }
         
         {
-            // default.yaml #4
+            // default.yaml line #10
             /* err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", r.array());
             /* r.expr(r.expr('a')['b']).default(2) */
-            System.out.println("About to run #4: r.expr(r.expr('a').bracket('b')).default_(2L)");
+            logger.info("About to run line #10: r.expr(r.expr('a').bracket('b')).default_(2L)");
             Object obtained = runOrCatch(r.expr(r.expr("a").bracket("b")).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class Default {
         }
         
         {
-            // default.yaml #5
+            // default.yaml line #14
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([]).reduce(lambda a,b:a+b).default(2) */
-            System.out.println("About to run #5: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L)");
+            logger.info("About to run line #14: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L)");
             Object obtained = runOrCatch(r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class Default {
         }
         
         {
-            // default.yaml #6
+            // default.yaml line #18
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([]).union([]).reduce(lambda a,b:a+b).default(2) */
-            System.out.println("About to run #6: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L)");
+            logger.info("About to run line #18: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L)");
             Object obtained = runOrCatch(r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class Default {
         }
         
         {
-            // default.yaml #7
+            // default.yaml line #22
             /* err("ReqlQueryLogicError", "Cannot convert STRING to SEQUENCE", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot convert STRING to SEQUENCE", r.array());
             /* r.expr('a').reduce(lambda a,b:a+b).default(2) */
-            System.out.println("About to run #7: r.expr('a').reduce((a, b) -> r.add(a, b)).default_(2L)");
+            logger.info("About to run line #22: r.expr('a').reduce((a, b) -> r.add(a, b)).default_(2L)");
             Object obtained = runOrCatch(r.expr("a").reduce((a, b) -> r.add(a, b)).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class Default {
         }
         
         {
-            // default.yaml #8
+            // default.yaml line #25
             /* 2 */
             Long expected_ = 2L;
             /* (r.expr(null) + 5).default(2) */
-            System.out.println("About to run #8: r.expr((ReqlExpr) null).add(5L).default_(2L)");
+            logger.info("About to run line #25: r.expr((ReqlExpr) null).add(5L).default_(2L)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class Default {
         }
         
         {
-            // default.yaml #9
+            // default.yaml line #28
             /* 2 */
             Long expected_ = 2L;
             /* (5 + r.expr(null)).default(2) */
-            System.out.println("About to run #9: r.add(5L, r.expr((ReqlExpr) null)).default_(2L)");
+            logger.info("About to run line #28: r.add(5L, r.expr((ReqlExpr) null)).default_(2L)");
             Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class Default {
         }
         
         {
-            // default.yaml #10
+            // default.yaml line #31
             /* 2 */
             Long expected_ = 2L;
             /* (5 - r.expr(null)).default(2) */
-            System.out.println("About to run #10: r.sub(5L, r.expr((ReqlExpr) null)).default_(2L)");
+            logger.info("About to run line #31: r.sub(5L, r.expr((ReqlExpr) null)).default_(2L)");
             Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class Default {
         }
         
         {
-            // default.yaml #11
+            // default.yaml line #34
             /* 2 */
             Long expected_ = 2L;
             /* (r.expr(null) - 5).default(2) */
-            System.out.println("About to run #11: r.expr((ReqlExpr) null).sub(5L).default_(2L)");
+            logger.info("About to run line #34: r.expr((ReqlExpr) null).sub(5L).default_(2L)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class Default {
         }
         
         {
-            // default.yaml #12
+            // default.yaml line #37
             /* err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", r.array());
             /* (r.expr('a') + 5).default(2) */
-            System.out.println("About to run #12: r.expr('a').add(5L).default_(2L)");
+            logger.info("About to run line #37: r.expr('a').add(5L).default_(2L)");
             Object obtained = runOrCatch(r.expr("a").add(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class Default {
         }
         
         {
-            // default.yaml #13
+            // default.yaml line #40
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* (5 + r.expr('a')).default(2) */
-            System.out.println("About to run #13: r.add(5L, r.expr('a')).default_(2L)");
+            logger.info("About to run line #40: r.add(5L, r.expr('a')).default_(2L)");
             Object obtained = runOrCatch(r.add(5L, r.expr("a")).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class Default {
         }
         
         {
-            // default.yaml #14
+            // default.yaml line #43
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* (r.expr('a') - 5).default(2) */
-            System.out.println("About to run #14: r.expr('a').sub(5L).default_(2L)");
+            logger.info("About to run line #43: r.expr('a').sub(5L).default_(2L)");
             Object obtained = runOrCatch(r.expr("a").sub(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #43");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #43:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class Default {
         }
         
         {
-            // default.yaml #15
+            // default.yaml line #46
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* (5 - r.expr('a')).default(2) */
-            System.out.println("About to run #15: r.sub(5L, r.expr('a')).default_(2L)");
+            logger.info("About to run line #46: r.sub(5L, r.expr('a')).default_(2L)");
             Object obtained = runOrCatch(r.sub(5L, r.expr("a")).default_(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class Default {
         }
         
         {
-            // default.yaml #16
+            // default.yaml line #50
             /* 1 */
             Long expected_ = 1L;
             /* r.expr(1).default(r.error()) */
-            System.out.println("About to run #16: r.expr(1L).default_(r.error())");
+            logger.info("About to run line #50: r.expr(1L).default_(r.error())");
             Object obtained = runOrCatch(r.expr(1L).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -427,20 +413,19 @@ public class Default {
         }
         
         {
-            // default.yaml #17
+            // default.yaml line #52
             /* (null) */
             Object expected_ = null;
             /* r.expr(null).default(r.error()) */
-            System.out.println("About to run #17: r.expr((ReqlExpr) null).default_(r.error())");
+            logger.info("About to run line #52: r.expr((ReqlExpr) null).default_(r.error())");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -449,20 +434,19 @@ public class Default {
         }
         
         {
-            // default.yaml #18
+            // default.yaml line #54
             /* err("ReqlNonExistenceError", "No attribute `b` in object:", []) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `b` in object:", r.array());
             /* r.expr({})['b'].default(r.error()) */
-            System.out.println("About to run #18: r.expr(r.hashMap()).bracket('b').default_(r.error())");
+            logger.info("About to run line #54: r.expr(r.hashMap()).bracket('b').default_(r.error())");
             Object obtained = runOrCatch(r.expr(r.hashMap()).bracket("b").default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -471,20 +455,19 @@ public class Default {
         }
         
         {
-            // default.yaml #19
+            // default.yaml line #58
             /* err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", r.array());
             /* r.expr([]).reduce(lambda a,b:a+b).default(r.error) */
-            System.out.println("About to run #19: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error())");
+            logger.info("About to run line #58: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error())");
             Object obtained = runOrCatch(r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -493,20 +476,19 @@ public class Default {
         }
         
         {
-            // default.yaml #20
+            // default.yaml line #62
             /* err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", r.array());
             /* r.expr([]).union([]).reduce(lambda a,b:a+b).default(r.error) */
-            System.out.println("About to run #20: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error())");
+            logger.info("About to run line #62: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error())");
             Object obtained = runOrCatch(r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #62");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,20 +497,19 @@ public class Default {
         }
         
         {
-            // default.yaml #21
+            // default.yaml line #65
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (r.expr(null) + 5).default(r.error) */
-            System.out.println("About to run #21: r.expr((ReqlExpr) null).add(5L).default_(r.error())");
+            logger.info("About to run line #65: r.expr((ReqlExpr) null).add(5L).default_(r.error())");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -537,20 +518,19 @@ public class Default {
         }
         
         {
-            // default.yaml #22
+            // default.yaml line #68
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (5 + r.expr(null)).default(r.error) */
-            System.out.println("About to run #22: r.add(5L, r.expr((ReqlExpr) null)).default_(r.error())");
+            logger.info("About to run line #68: r.add(5L, r.expr((ReqlExpr) null)).default_(r.error())");
             Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #68");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #68:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -559,20 +539,19 @@ public class Default {
         }
         
         {
-            // default.yaml #23
+            // default.yaml line #71
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (5 - r.expr(null)).default(r.error) */
-            System.out.println("About to run #23: r.sub(5L, r.expr((ReqlExpr) null)).default_(r.error())");
+            logger.info("About to run line #71: r.sub(5L, r.expr((ReqlExpr) null)).default_(r.error())");
             Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #71");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #71:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -581,20 +560,19 @@ public class Default {
         }
         
         {
-            // default.yaml #24
+            // default.yaml line #74
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (r.expr(null) - 5).default(r.error) */
-            System.out.println("About to run #24: r.expr((ReqlExpr) null).sub(5L).default_(r.error())");
+            logger.info("About to run line #74: r.expr((ReqlExpr) null).sub(5L).default_(r.error())");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #74");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #74:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -603,20 +581,19 @@ public class Default {
         }
         
         {
-            // default.yaml #25
+            // default.yaml line #79
             /* 1 */
             Long expected_ = 1L;
             /* r.expr(1).default(lambda e:e) */
-            System.out.println("About to run #25: r.expr(1L).default_(e -> e)");
+            logger.info("About to run line #79: r.expr(1L).default_(e -> e)");
             Object obtained = runOrCatch(r.expr(1L).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #79");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #79:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -625,20 +602,19 @@ public class Default {
         }
         
         {
-            // default.yaml #26
+            // default.yaml line #83
             /* (null) */
             Object expected_ = null;
             /* r.expr(null).default(lambda e:e) */
-            System.out.println("About to run #26: r.expr((ReqlExpr) null).default_(e -> e)");
+            logger.info("About to run line #83: r.expr((ReqlExpr) null).default_(e -> e)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -647,20 +623,19 @@ public class Default {
         }
         
         {
-            // default.yaml #27
-            /* ("No attribute `b` in object:\n{}") */
+            // default.yaml line #87
+            /* "No attribute `b` in object:\n{}" */
             String expected_ = "No attribute `b` in object:\n{}";
             /* r.expr({})['b'].default(lambda e:e) */
-            System.out.println("About to run #27: r.expr(r.hashMap()).bracket('b').default_(e -> e)");
+            logger.info("About to run line #87: r.expr(r.hashMap()).bracket('b').default_(e -> e)");
             Object obtained = runOrCatch(r.expr(r.hashMap()).bracket("b").default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #87");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #87:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -669,20 +644,19 @@ public class Default {
         }
         
         {
-            // default.yaml #28
+            // default.yaml line #91
             /* ("Cannot reduce over an empty stream.") */
             String expected_ = "Cannot reduce over an empty stream.";
             /* r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e) */
-            System.out.println("About to run #28: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e)");
+            logger.info("About to run line #91: r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e)");
             Object obtained = runOrCatch(r.expr(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -691,20 +665,19 @@ public class Default {
         }
         
         {
-            // default.yaml #29
+            // default.yaml line #95
             /* ("Cannot reduce over an empty stream.") */
             String expected_ = "Cannot reduce over an empty stream.";
             /* r.expr([]).union([]).reduce(lambda a,b:a+b).default(lambda e:e) */
-            System.out.println("About to run #29: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e)");
+            logger.info("About to run line #95: r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e)");
             Object obtained = runOrCatch(r.expr(r.array()).union(r.array()).reduce((a, b) -> r.add(a, b)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #95");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #95:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -713,20 +686,19 @@ public class Default {
         }
         
         {
-            // default.yaml #30
+            // default.yaml line #99
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (r.expr(null) + 5).default(lambda e:e) */
-            System.out.println("About to run #30: r.expr((ReqlExpr) null).add(5L).default_(e -> e)");
+            logger.info("About to run line #99: r.expr((ReqlExpr) null).add(5L).default_(e -> e)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -735,20 +707,19 @@ public class Default {
         }
         
         {
-            // default.yaml #31
+            // default.yaml line #103
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (5 + r.expr(null)).default(lambda e:e) */
-            System.out.println("About to run #31: r.add(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
+            logger.info("About to run line #103: r.add(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
             Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -757,20 +728,19 @@ public class Default {
         }
         
         {
-            // default.yaml #32
+            // default.yaml line #107
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (5 - r.expr(null)).default(lambda e:e) */
-            System.out.println("About to run #32: r.sub(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
+            logger.info("About to run line #107: r.sub(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
             Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #107");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #107:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -779,20 +749,19 @@ public class Default {
         }
         
         {
-            // default.yaml #33
+            // default.yaml line #111
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (r.expr(null) - 5).default(lambda e:e) */
-            System.out.println("About to run #33: r.expr((ReqlExpr) null).sub(5L).default_(e -> e)");
+            logger.info("About to run line #111: r.expr((ReqlExpr) null).sub(5L).default_(e -> e)");
             Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #111");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #111:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -800,26 +769,25 @@ public class Default {
             }
         }
         
-        // default.yaml #34
+        // default.yaml line #115
         // arr = r.expr([{'a':1},{'a':null},{}]).order_by('a')
-        System.out.println("Possibly executing: OrderBy arr = (OrderBy) (r.expr(r.array(r.hashMap('a', 1L), r.hashMap('a', null), r.hashMap())).orderBy('a'));");
+        logger.info("Possibly executing: OrderBy arr = (OrderBy) (r.expr(r.array(r.hashMap('a', 1L), r.hashMap('a', null), r.hashMap())).orderBy('a'));");
         OrderBy arr = (OrderBy) (r.expr(r.array(r.hashMap("a", 1L), r.hashMap("a", null), r.hashMap())).orderBy("a"));
                 
         {
-            // default.yaml #35
-            /* [{'a': 1}] */
+            // default.yaml line #118
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].eq(1)) */
-            System.out.println("About to run #35: arr.filter(x -> x.bracket('a').eq(1L))");
+            logger.info("About to run line #118: arr.filter(x -> x.bracket('a').eq(1L))");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -828,20 +796,19 @@ public class Default {
         }
         
         {
-            // default.yaml #36
-            /* [{'a': 1}] */
+            // default.yaml line #122
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].eq(1), default=False) */
-            System.out.println("About to run #36: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', false)");
+            logger.info("About to run line #122: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', false)");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -850,20 +817,19 @@ public class Default {
         }
         
         {
-            // default.yaml #37
-            /* [{}, {'a': 1}] */
+            // default.yaml line #126
+            /* [{}, {'a':1}] */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].eq(1), default=True) */
-            System.out.println("About to run #37: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', true)");
+            logger.info("About to run line #126: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', true)");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #126");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #126:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -872,20 +838,19 @@ public class Default {
         }
         
         {
-            // default.yaml #38
-            /* [{}, {'a': 1}] */
+            // default.yaml line #131
+            /* [{}, {'a':1}] */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].eq(1), default=r.js('true')) */
-            System.out.println("About to run #38: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.js('true'))");
+            logger.info("About to run line #131: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.js('true'))");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", r.js("true")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #131");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #131:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -894,20 +859,19 @@ public class Default {
         }
         
         {
-            // default.yaml #39
-            /* [{'a': 1}] */
+            // default.yaml line #135
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].eq(1), default=r.js('false')) */
-            System.out.println("About to run #39: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.js('false'))");
+            logger.info("About to run line #135: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.js('false'))");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", r.js("false")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #135");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #135:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -916,20 +880,19 @@ public class Default {
         }
         
         {
-            // default.yaml #40
+            // default.yaml line #139
             /* err("ReqlNonExistenceError", "No attribute `a` in object:", []) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `a` in object:", r.array());
             /* arr.filter(lambda x:x['a'].eq(1), default=r.error()) */
-            System.out.println("About to run #40: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.error())");
+            logger.info("About to run line #139: arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.error())");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #139");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #139:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -938,20 +901,19 @@ public class Default {
         }
         
         {
-            // default.yaml #41
-            /* [{'a': 1}] */
+            // default.yaml line #144
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* r.expr(False).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d)) */
-            System.out.println("About to run #41: r.expr(false).do_(d -> arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', d))");
+            logger.info("About to run line #144: r.expr(false).do_(d -> arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', d))");
             Object obtained = runOrCatch(r.expr(false).do_(d -> arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #144");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #144:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -960,20 +922,19 @@ public class Default {
         }
         
         {
-            // default.yaml #42
-            /* [{}, {'a': 1}] */
+            // default.yaml line #148
+            /* [{}, {'a':1}] */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", 1L));
             /* r.expr(True).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d)).order_by('a') */
-            System.out.println("About to run #42: r.expr(true).do_(d -> arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', d)).orderBy('a')");
+            logger.info("About to run line #148: r.expr(true).do_(d -> arr.filter(x -> x.bracket('a').eq(1L)).optArg('default', d)).orderBy('a')");
             Object obtained = runOrCatch(r.expr(true).do_(d -> arr.filter(x -> x.bracket("a").eq(1L)).optArg("default", d)).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #148");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #148:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -982,20 +943,19 @@ public class Default {
         }
         
         {
-            // default.yaml #43
-            /* [{'a': 1}] */
+            // default.yaml line #154
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].default(0).eq(1)) */
-            System.out.println("About to run #43: arr.filter(x -> x.bracket('a').default_(0L).eq(1L))");
+            logger.info("About to run line #154: arr.filter(x -> x.bracket('a').default_(0L).eq(1L))");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").default_(0L).eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #154");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #154:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1004,20 +964,19 @@ public class Default {
         }
         
         {
-            // default.yaml #44
+            // default.yaml line #158
             /* ([{}, {'a':null}, {'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].default(1).eq(1)).order_by('a') */
-            System.out.println("About to run #44: arr.filter(x -> x.bracket('a').default_(1L).eq(1L)).orderBy('a')");
+            logger.info("About to run line #158: arr.filter(x -> x.bracket('a').default_(1L).eq(1L)).orderBy('a')");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").default_(1L).eq(1L)).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #158");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #158:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1026,20 +985,19 @@ public class Default {
         }
         
         {
-            // default.yaml #45
-            /* [{'a': 1}] */
+            // default.yaml line #162
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:x['a'].default(r.error()).eq(1)) */
-            System.out.println("About to run #45: arr.filter(x -> x.bracket('a').default_(r.error()).eq(1L))");
+            logger.info("About to run line #162: arr.filter(x -> x.bracket('a').default_(r.error()).eq(1L))");
             Object obtained = runOrCatch(arr.filter(x -> x.bracket("a").default_(r.error()).eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #162");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #162:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1048,20 +1006,19 @@ public class Default {
         }
         
         {
-            // default.yaml #46
-            /* [{'a': 1}] */
+            // default.yaml line #168
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* r.expr(0).do(lambda i:arr.filter(lambda x:x['a'].default(i).eq(1))) */
-            System.out.println("About to run #46: r.expr(0L).do_(i -> arr.filter(x -> x.bracket('a').default_(i).eq(1L)))");
+            logger.info("About to run line #168: r.expr(0L).do_(i -> arr.filter(x -> x.bracket('a').default_(i).eq(1L)))");
             Object obtained = runOrCatch(r.expr(0L).do_(i -> arr.filter(x -> x.bracket("a").default_(i).eq(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #168");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #168:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1070,20 +1027,19 @@ public class Default {
         }
         
         {
-            // default.yaml #47
+            // default.yaml line #172
             /* ([{},{'a':null},{'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* r.expr(1).do(lambda i:arr.filter(lambda x:x['a'].default(i).eq(1))).order_by('a') */
-            System.out.println("About to run #47: r.expr(1L).do_(i -> arr.filter(x -> x.bracket('a').default_(i).eq(1L))).orderBy('a')");
+            logger.info("About to run line #172: r.expr(1L).do_(i -> arr.filter(x -> x.bracket('a').default_(i).eq(1L))).orderBy('a')");
             Object obtained = runOrCatch(r.expr(1L).do_(i -> arr.filter(x -> x.bracket("a").default_(i).eq(1L))).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #172");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #172:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1092,20 +1048,19 @@ public class Default {
         }
         
         {
-            // default.yaml #48
-            /* [{'a': 1}] */
+            // default.yaml line #177
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2))) */
-            System.out.println("About to run #48: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L)))");
+            logger.info("About to run line #177: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L)))");
             Object obtained = runOrCatch(arr.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #177");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #177:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1114,20 +1069,19 @@ public class Default {
         }
         
         {
-            // default.yaml #49
-            /* [{'a': 1}] */
+            // default.yaml line #181
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=False) */
-            System.out.println("About to run #49: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', false)");
+            logger.info("About to run line #181: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', false)");
             Object obtained = runOrCatch(arr.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #181");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #181:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1136,20 +1090,19 @@ public class Default {
         }
         
         {
-            // default.yaml #50
+            // default.yaml line #185
             /* ([{}, {'a':null}, {'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a') */
-            System.out.println("About to run #50: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', true).orderBy('a')");
+            logger.info("About to run line #185: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', true).orderBy('a')");
             Object obtained = runOrCatch(arr.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", true).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #185");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #185:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1158,20 +1111,19 @@ public class Default {
         }
         
         {
-            // default.yaml #51
+            // default.yaml line #189
             /* err("ReqlNonExistenceError", "No attribute `a` in object:", []) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `a` in object:", r.array());
             /* arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error()) */
-            System.out.println("About to run #51: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', r.error())");
+            logger.info("About to run line #189: arr.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', r.error())");
             Object obtained = runOrCatch(arr.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #189");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #189:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1180,20 +1132,19 @@ public class Default {
         }
         
         {
-            // default.yaml #52
+            // default.yaml line #193
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* r.table_create('default_test') */
-            System.out.println("About to run #52: r.tableCreate('default_test')");
+            logger.info("About to run line #193: r.tableCreate('default_test')");
             Object obtained = runOrCatch(r.tableCreate("default_test"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #193");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #193:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1202,20 +1153,19 @@ public class Default {
         }
         
         {
-            // default.yaml #53
+            // default.yaml line #196
             /* ({'deleted':0,'replaced':0,'generated_keys':arrlen(3,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':3}) */
             Map expected_ = r.hashMap("deleted", 0L).with("replaced", 0L).with("generated_keys", arrlen(3L, uuid())).with("unchanged", 0L).with("errors", 0L).with("skipped", 0L).with("inserted", 3L);
             /* r.table('default_test').insert(arr) */
-            System.out.println("About to run #53: r.table('default_test').insert(arr)");
+            logger.info("About to run line #196: r.table('default_test').insert(arr)");
             Object obtained = runOrCatch(r.table("default_test").insert(arr),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #53");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #53");
+            logger.info("Finished running line #196");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #196:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1223,26 +1173,25 @@ public class Default {
             }
         }
         
-        // default.yaml #54
+        // default.yaml line #199
         // tbl = r.table('default_test').order_by('a').pluck('a')
-        System.out.println("Possibly executing: Pluck tbl = (Pluck) (r.table('default_test').orderBy('a').pluck('a'));");
+        logger.info("Possibly executing: Pluck tbl = (Pluck) (r.table('default_test').orderBy('a').pluck('a'));");
         Pluck tbl = (Pluck) (r.table("default_test").orderBy("a").pluck("a"));
                 
         {
-            // default.yaml #55
-            /* [{'a': 1}] */
+            // default.yaml line #202
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].eq(1)) */
-            System.out.println("About to run #55: tbl.filter(x -> x.bracket('a').eq(1L))");
+            logger.info("About to run line #202: tbl.filter(x -> x.bracket('a').eq(1L))");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #55");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #55");
+            logger.info("Finished running line #202");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #55:" + ae.toString());
+                logger.error("Whoops, got exception on line #202:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1251,20 +1200,19 @@ public class Default {
         }
         
         {
-            // default.yaml #56
-            /* [{'a': 1}] */
+            // default.yaml line #206
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].eq(1), default=False) */
-            System.out.println("About to run #56: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', false)");
+            logger.info("About to run line #206: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', false)");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").eq(1L)).optArg("default", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #56");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #56");
+            logger.info("Finished running line #206");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #56:" + ae.toString());
+                logger.error("Whoops, got exception on line #206:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1273,20 +1221,19 @@ public class Default {
         }
         
         {
-            // default.yaml #57
-            /* [{}, {'a': 1}] */
+            // default.yaml line #210
+            /* [{}, {'a':1}] */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].eq(1), default=True) */
-            System.out.println("About to run #57: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', true)");
+            logger.info("About to run line #210: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', true)");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").eq(1L)).optArg("default", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #57");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #57");
+            logger.info("Finished running line #210");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #57:" + ae.toString());
+                logger.error("Whoops, got exception on line #210:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1295,20 +1242,19 @@ public class Default {
         }
         
         {
-            // default.yaml #58
+            // default.yaml line #215
             /* err("ReqlNonExistenceError", "No attribute `a` in object:", []) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `a` in object:", r.array());
             /* tbl.filter(lambda x:x['a'].eq(1), default=r.error()) */
-            System.out.println("About to run #58: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.error())");
+            logger.info("About to run line #215: tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', r.error())");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").eq(1L)).optArg("default", r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #58");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #58");
+            logger.info("Finished running line #215");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #58:" + ae.toString());
+                logger.error("Whoops, got exception on line #215:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1317,20 +1263,19 @@ public class Default {
         }
         
         {
-            // default.yaml #59
-            /* [{'a': 1}] */
+            // default.yaml line #220
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* r.expr(False).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d)) */
-            System.out.println("About to run #59: r.expr(false).do_(d -> tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', d))");
+            logger.info("About to run line #220: r.expr(false).do_(d -> tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', d))");
             Object obtained = runOrCatch(r.expr(false).do_(d -> tbl.filter(x -> x.bracket("a").eq(1L)).optArg("default", d)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #59");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #59");
+            logger.info("Finished running line #220");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #59:" + ae.toString());
+                logger.error("Whoops, got exception on line #220:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1339,20 +1284,19 @@ public class Default {
         }
         
         {
-            // default.yaml #60
-            /* [{}, {'a': 1}] */
+            // default.yaml line #224
+            /* [{}, {'a':1}] */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", 1L));
             /* r.expr(True).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d)).order_by('a') */
-            System.out.println("About to run #60: r.expr(true).do_(d -> tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', d)).orderBy('a')");
+            logger.info("About to run line #224: r.expr(true).do_(d -> tbl.filter(x -> x.bracket('a').eq(1L)).optArg('default', d)).orderBy('a')");
             Object obtained = runOrCatch(r.expr(true).do_(d -> tbl.filter(x -> x.bracket("a").eq(1L)).optArg("default", d)).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #60");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #60");
+            logger.info("Finished running line #224");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #60:" + ae.toString());
+                logger.error("Whoops, got exception on line #224:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1361,20 +1305,19 @@ public class Default {
         }
         
         {
-            // default.yaml #61
-            /* [{'a': 1}] */
+            // default.yaml line #230
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].default(0).eq(1)) */
-            System.out.println("About to run #61: tbl.filter(x -> x.bracket('a').default_(0L).eq(1L))");
+            logger.info("About to run line #230: tbl.filter(x -> x.bracket('a').default_(0L).eq(1L))");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").default_(0L).eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #61");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #61");
+            logger.info("Finished running line #230");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #61:" + ae.toString());
+                logger.error("Whoops, got exception on line #230:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1383,20 +1326,19 @@ public class Default {
         }
         
         {
-            // default.yaml #62
+            // default.yaml line #234
             /* ([{}, {'a':null}, {'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].default(1).eq(1)).order_by('a') */
-            System.out.println("About to run #62: tbl.filter(x -> x.bracket('a').default_(1L).eq(1L)).orderBy('a')");
+            logger.info("About to run line #234: tbl.filter(x -> x.bracket('a').default_(1L).eq(1L)).orderBy('a')");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").default_(1L).eq(1L)).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #62");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #62");
+            logger.info("Finished running line #234");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #62:" + ae.toString());
+                logger.error("Whoops, got exception on line #234:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1405,20 +1347,19 @@ public class Default {
         }
         
         {
-            // default.yaml #63
-            /* [{'a': 1}] */
+            // default.yaml line #238
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:x['a'].default(r.error()).eq(1)) */
-            System.out.println("About to run #63: tbl.filter(x -> x.bracket('a').default_(r.error()).eq(1L))");
+            logger.info("About to run line #238: tbl.filter(x -> x.bracket('a').default_(r.error()).eq(1L))");
             Object obtained = runOrCatch(tbl.filter(x -> x.bracket("a").default_(r.error()).eq(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #63");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #63");
+            logger.info("Finished running line #238");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #63:" + ae.toString());
+                logger.error("Whoops, got exception on line #238:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1427,20 +1368,19 @@ public class Default {
         }
         
         {
-            // default.yaml #64
-            /* [{'a': 1}] */
+            // default.yaml line #244
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* r.expr(0).do(lambda i:tbl.filter(lambda x:x['a'].default(i).eq(1))) */
-            System.out.println("About to run #64: r.expr(0L).do_(i -> tbl.filter(x -> x.bracket('a').default_(i).eq(1L)))");
+            logger.info("About to run line #244: r.expr(0L).do_(i -> tbl.filter(x -> x.bracket('a').default_(i).eq(1L)))");
             Object obtained = runOrCatch(r.expr(0L).do_(i -> tbl.filter(x -> x.bracket("a").default_(i).eq(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #64");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #64");
+            logger.info("Finished running line #244");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #64:" + ae.toString());
+                logger.error("Whoops, got exception on line #244:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1449,20 +1389,19 @@ public class Default {
         }
         
         {
-            // default.yaml #65
+            // default.yaml line #248
             /* ([{},{'a':null},{'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* r.expr(1).do(lambda i:tbl.filter(lambda x:x['a'].default(i).eq(1))).order_by('a') */
-            System.out.println("About to run #65: r.expr(1L).do_(i -> tbl.filter(x -> x.bracket('a').default_(i).eq(1L))).orderBy('a')");
+            logger.info("About to run line #248: r.expr(1L).do_(i -> tbl.filter(x -> x.bracket('a').default_(i).eq(1L))).orderBy('a')");
             Object obtained = runOrCatch(r.expr(1L).do_(i -> tbl.filter(x -> x.bracket("a").default_(i).eq(1L))).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #65");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #65");
+            logger.info("Finished running line #248");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #65:" + ae.toString());
+                logger.error("Whoops, got exception on line #248:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1471,20 +1410,19 @@ public class Default {
         }
         
         {
-            // default.yaml #66
-            /* [{'a': 1}] */
+            // default.yaml line #253
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2))) */
-            System.out.println("About to run #66: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L)))");
+            logger.info("About to run line #253: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L)))");
             Object obtained = runOrCatch(tbl.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #66");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #66");
+            logger.info("Finished running line #253");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #66:" + ae.toString());
+                logger.error("Whoops, got exception on line #253:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1493,20 +1431,19 @@ public class Default {
         }
         
         {
-            // default.yaml #67
-            /* [{'a': 1}] */
+            // default.yaml line #257
+            /* [{'a':1}] */
             List expected_ = r.array(r.hashMap("a", 1L));
             /* tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=False) */
-            System.out.println("About to run #67: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', false)");
+            logger.info("About to run line #257: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', false)");
             Object obtained = runOrCatch(tbl.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #67");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #67");
+            logger.info("Finished running line #257");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #67:" + ae.toString());
+                logger.error("Whoops, got exception on line #257:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1515,20 +1452,19 @@ public class Default {
         }
         
         {
-            // default.yaml #68
+            // default.yaml line #261
             /* ([{}, {'a':null}, {'a':1}]) */
             List expected_ = r.array(r.hashMap(), r.hashMap("a", null), r.hashMap("a", 1L));
             /* tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=True).order_by('a') */
-            System.out.println("About to run #68: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', true).orderBy('a')");
+            logger.info("About to run line #261: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', true).orderBy('a')");
             Object obtained = runOrCatch(tbl.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", true).orderBy("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #68");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #68");
+            logger.info("Finished running line #261");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #68:" + ae.toString());
+                logger.error("Whoops, got exception on line #261:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1537,20 +1473,19 @@ public class Default {
         }
         
         {
-            // default.yaml #69
+            // default.yaml line #265
             /* err("ReqlNonExistenceError", "No attribute `a` in object:", []) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `a` in object:", r.array());
             /* tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error()) */
-            System.out.println("About to run #69: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', r.error())");
+            logger.info("About to run line #265: tbl.filter(x -> r.or(x.bracket('a').eq(1L), x.bracket('a').bracket('b').eq(2L))).optArg('default', r.error())");
             Object obtained = runOrCatch(tbl.filter(x -> r.or(x.bracket("a").eq(1L), x.bracket("a").bracket("b").eq(2L))).optArg("default", r.error()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #69");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #69");
+            logger.info("Finished running line #265");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #69:" + ae.toString());
+                logger.error("Whoops, got exception on line #265:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1559,20 +1494,19 @@ public class Default {
         }
         
         {
-            // default.yaml #70
+            // default.yaml line #269
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.table_drop('default_test') */
-            System.out.println("About to run #70: r.tableDrop('default_test')");
+            logger.info("About to run line #269: r.tableDrop('default_test')");
             Object obtained = runOrCatch(r.tableDrop("default_test"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #70");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #70");
+            logger.info("Finished running line #269");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #269:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

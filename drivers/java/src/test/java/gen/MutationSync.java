@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MutationSync {
+    // Tests syncing tables
     Logger logger = LoggerFactory.getLogger(MutationSync.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MutationSync {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MutationSync {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MutationSync {
     public void test() throws Exception {
                 
         {
-            // mutation/sync.yaml #1
+            // mutation/sync.yaml line #5
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* r.db('test').table_create('test1') */
-            System.out.println("About to run #1: r.db('test').tableCreate('test1')");
+            logger.info("About to run line #5: r.db('test').tableCreate('test1')");
             Object obtained = runOrCatch(r.db("test").tableCreate("test1"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #2
+            // mutation/sync.yaml line #7
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* r.db('test').table_create('test1soft') */
-            System.out.println("About to run #2: r.db('test').tableCreate('test1soft')");
+            logger.info("About to run line #7: r.db('test').tableCreate('test1soft')");
             Object obtained = runOrCatch(r.db("test").tableCreate("test1soft"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #3
-            /* ({'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':1, 'inserted':0}) */
+            // mutation/sync.yaml line #9
+            /* {'skipped':0, 'deleted':0, 'unchanged':0, 'errors':0, 'replaced':1, 'inserted':0} */
             Map expected_ = r.hashMap("skipped", 0L).with("deleted", 0L).with("unchanged", 0L).with("errors", 0L).with("replaced", 1L).with("inserted", 0L);
             /* r.db('test').table('test1soft').config().update({'durability':'soft'}) */
-            System.out.println("About to run #3: r.db('test').table('test1soft').config().update(r.hashMap('durability', 'soft'))");
+            logger.info("About to run line #9: r.db('test').table('test1soft').config().update(r.hashMap('durability', 'soft'))");
             Object obtained = runOrCatch(r.db("test").table("test1soft").config().update(r.hashMap("durability", "soft")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -140,31 +139,30 @@ public class MutationSync {
             }
         }
         
-        // mutation/sync.yaml #4
+        // mutation/sync.yaml line #11
         // tbl = r.db('test').table('test1')
-        System.out.println("Possibly executing: Table tbl = (Table) (r.db('test').table('test1'));");
+        logger.info("Possibly executing: Table tbl = (Table) (r.db('test').table('test1'));");
         Table tbl = (Table) (r.db("test").table("test1"));
                 
-        // mutation/sync.yaml #5
+        // mutation/sync.yaml line #12
         // tbl_soft = r.db('test').table('test1soft')
-        System.out.println("Possibly executing: Table tbl_soft = (Table) (r.db('test').table('test1soft'));");
+        logger.info("Possibly executing: Table tbl_soft = (Table) (r.db('test').table('test1soft'));");
         Table tbl_soft = (Table) (r.db("test").table("test1soft"));
                 
         {
-            // mutation/sync.yaml #6
+            // mutation/sync.yaml line #13
             /* partial({'created':1}) */
             Partial expected_ = partial(r.hashMap("created", 1L));
             /* tbl.index_create('x') */
-            System.out.println("About to run #6: tbl.indexCreate('x')");
+            logger.info("About to run line #13: tbl.indexCreate('x')");
             Object obtained = runOrCatch(tbl.indexCreate("x"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #13");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -173,20 +171,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #7
-            /* ([{'ready':True, 'index':'x'}]) */
+            // mutation/sync.yaml line #15
+            /* [{'ready':True, 'index':'x'}] */
             List expected_ = r.array(r.hashMap("ready", true).with("index", "x"));
             /* tbl.index_wait('x').pluck('index', 'ready') */
-            System.out.println("About to run #7: tbl.indexWait('x').pluck('index', 'ready')");
+            logger.info("About to run line #15: tbl.indexWait('x').pluck('index', 'ready')");
             Object obtained = runOrCatch(tbl.indexWait("x").pluck("index", "ready"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -195,20 +192,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #8
-            /* ({'synced':1}) */
+            // mutation/sync.yaml line #19
+            /* {'synced':1} */
             Map expected_ = r.hashMap("synced", 1L);
             /* tbl.sync() */
-            System.out.println("About to run #8: tbl.sync()");
+            logger.info("About to run line #19: tbl.sync()");
             Object obtained = runOrCatch(tbl.sync(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -217,20 +213,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #9
-            /* ({'synced':1}) */
+            // mutation/sync.yaml line #21
+            /* {'synced':1} */
             Map expected_ = r.hashMap("synced", 1L);
             /* tbl_soft.sync() */
-            System.out.println("About to run #9: tbl_soft.sync()");
+            logger.info("About to run line #21: tbl_soft.sync()");
             Object obtained = runOrCatch(tbl_soft.sync(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -239,21 +234,20 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #10
-            /* ({'synced':1}) */
+            // mutation/sync.yaml line #23
+            /* {'synced':1} */
             Map expected_ = r.hashMap("synced", 1L);
             /* tbl.sync() */
-            System.out.println("About to run #10: tbl.sync()");
+            logger.info("About to run line #23: tbl.sync()");
             Object obtained = runOrCatch(tbl.sync(),
                                           new OptArgs()
                                           .with("durability", "soft")
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -262,21 +256,20 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #11
-            /* ({'synced':1}) */
+            // mutation/sync.yaml line #27
+            /* {'synced':1} */
             Map expected_ = r.hashMap("synced", 1L);
             /* tbl.sync() */
-            System.out.println("About to run #11: tbl.sync()");
+            logger.info("About to run line #27: tbl.sync()");
             Object obtained = runOrCatch(tbl.sync(),
                                           new OptArgs()
                                           .with("durability", "hard")
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -285,20 +278,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #15
+            // mutation/sync.yaml line #48
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.db('test').table_drop('test1') */
-            System.out.println("About to run #15: r.db('test').tableDrop('test1')");
+            logger.info("About to run line #48: r.db('test').tableDrop('test1')");
             Object obtained = runOrCatch(r.db("test").tableDrop("test1"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #48");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #48:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -307,20 +299,19 @@ public class MutationSync {
         }
         
         {
-            // mutation/sync.yaml #16
+            // mutation/sync.yaml line #50
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.db('test').table_drop('test1soft') */
-            System.out.println("About to run #16: r.db('test').tableDrop('test1soft')");
+            logger.info("About to run line #50: r.db('test').tableDrop('test1soft')");
             Object obtained = runOrCatch(r.db("test").tableDrop("test1soft"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

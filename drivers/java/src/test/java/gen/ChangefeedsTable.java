@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class ChangefeedsTable {
+    // Test changefeeds on a table
     Logger logger = LoggerFactory.getLogger(ChangefeedsTable.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class ChangefeedsTable {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class ChangefeedsTable {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -80,26 +82,25 @@ public class ChangefeedsTable {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // changefeeds/table.yaml #1
+        // changefeeds/table.yaml line #9
         // all = tbl.changes()
-        System.out.println("Possibly executing: Changes all = (Changes) (tbl.changes());");
+        logger.info("Possibly executing: Changes all = (Changes) (tbl.changes());");
         Object all = maybeRun((Changes) (tbl.changes()), conn);
                 
         {
-            // changefeeds/table.yaml #2
+            // changefeeds/table.yaml line #15
             /* partial({'errors':0, 'inserted':2}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("inserted", 2L));
             /* tbl.insert([{'id':1}, {'id':2}]) */
-            System.out.println("About to run #2: tbl.insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L)))");
+            logger.info("About to run line #15: tbl.insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L)))");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 1L), r.hashMap("id", 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -108,20 +109,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #3
+            // changefeeds/table.yaml line #17
             /* bag([{'old_val':null, 'new_val':{'id':1}}, {'old_val':null, 'new_val':{'id':2}}]) */
             Bag expected_ = bag(r.array(r.hashMap("old_val", null).with("new_val", r.hashMap("id", 1L)), r.hashMap("old_val", null).with("new_val", r.hashMap("id", 2L))));
             /* fetch(all, 2) */
-            System.out.println("About to run #3: fetch(all, 2L)");
+            logger.info("About to run line #17: fetch(all, 2L)");
             Object obtained = runOrCatch(fetch(all, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -130,20 +130,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #4
+            // changefeeds/table.yaml line #22
             /* partial({'errors':0, 'replaced':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("replaced", 1L));
             /* tbl.get(1).update({'version':1}) */
-            System.out.println("About to run #4: tbl.get(1L).update(r.hashMap('version', 1L))");
+            logger.info("About to run line #22: tbl.get(1L).update(r.hashMap('version', 1L))");
             Object obtained = runOrCatch(tbl.get(1L).update(r.hashMap("version", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -152,20 +151,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #5
-            /* [{'new_val': {'version': 1, 'id': 1}, 'old_val': {'id': 1}}] */
-            List expected_ = r.array(r.hashMap("new_val", r.hashMap("version", 1L).with("id", 1L)).with("old_val", r.hashMap("id", 1L)));
+            // changefeeds/table.yaml line #24
+            /* [{'old_val':{'id':1}, 'new_val':{'id':1, 'version':1}}] */
+            List expected_ = r.array(r.hashMap("old_val", r.hashMap("id", 1L)).with("new_val", r.hashMap("id", 1L).with("version", 1L)));
             /* fetch(all, 1) */
-            System.out.println("About to run #5: fetch(all, 1L)");
+            logger.info("About to run line #24: fetch(all, 1L)");
             Object obtained = runOrCatch(fetch(all, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -174,20 +172,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #6
+            // changefeeds/table.yaml line #29
             /* partial({'errors':0, 'deleted':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("deleted", 1L));
             /* tbl.get(1).delete() */
-            System.out.println("About to run #6: tbl.get(1L).delete()");
+            logger.info("About to run line #29: tbl.get(1L).delete()");
             Object obtained = runOrCatch(tbl.get(1L).delete(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -196,20 +193,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #7
-            /* [{'new_val': None, 'old_val': {'version': 1, 'id': 1}}] */
-            List expected_ = r.array(r.hashMap("new_val", null).with("old_val", r.hashMap("version", 1L).with("id", 1L)));
+            // changefeeds/table.yaml line #31
+            /* [{'old_val':{'id':1, 'version':1}, 'new_val':null}] */
+            List expected_ = r.array(r.hashMap("old_val", r.hashMap("id", 1L).with("version", 1L)).with("new_val", null));
             /* fetch(all, 1) */
-            System.out.println("About to run #7: fetch(all, 1L)");
+            logger.info("About to run line #31: fetch(all, 1L)");
             Object obtained = runOrCatch(fetch(all, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -217,26 +213,25 @@ public class ChangefeedsTable {
             }
         }
         
-        // changefeeds/table.yaml #8
+        // changefeeds/table.yaml line #36
         // pluck = tbl.changes().pluck({'new_val':['version']})
-        System.out.println("Possibly executing: Pluck pluck = (Pluck) (tbl.changes().pluck(r.hashMap('new_val', r.array('version'))));");
+        logger.info("Possibly executing: Pluck pluck = (Pluck) (tbl.changes().pluck(r.hashMap('new_val', r.array('version'))));");
         Object pluck = maybeRun((Pluck) (tbl.changes().pluck(r.hashMap("new_val", r.array("version")))), conn);
                 
         {
-            // changefeeds/table.yaml #9
+            // changefeeds/table.yaml line #37
             /* partial({'errors':0, 'inserted':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("inserted", 1L));
             /* tbl.insert([{'id':5, 'version':5}]) */
-            System.out.println("About to run #9: tbl.insert(r.array(r.hashMap('id', 5L).with('version', 5L)))");
+            logger.info("About to run line #37: tbl.insert(r.array(r.hashMap('id', 5L).with('version', 5L)))");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 5L).with("version", 5L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -245,20 +240,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #10
-            /* [{'new_val': {'version': 5}}] */
+            // changefeeds/table.yaml line #39
+            /* [{'new_val':{'version':5}}] */
             List expected_ = r.array(r.hashMap("new_val", r.hashMap("version", 5L)));
             /* fetch(pluck, 1) */
-            System.out.println("About to run #10: fetch(pluck, 1L)");
+            logger.info("About to run line #39: fetch(pluck, 1L)");
             Object obtained = runOrCatch(fetch(pluck, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -267,20 +261,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #11
+            // changefeeds/table.yaml line #44
             /* err('ReqlQueryLogicError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).") */
             Err expected_ = err("ReqlQueryLogicError", "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).");
             /* tbl.changes().order_by('id') */
-            System.out.println("About to run #11: tbl.changes().orderBy('id')");
+            logger.info("About to run line #44: tbl.changes().orderBy('id')");
             Object obtained = runOrCatch(tbl.changes().orderBy("id"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -288,31 +281,30 @@ public class ChangefeedsTable {
             }
         }
         
-        // changefeeds/table.yaml #12
+        // changefeeds/table.yaml line #71
         // vtbl = r.db('rethinkdb').table('_debug_scratch')
-        System.out.println("Possibly executing: Table vtbl = (Table) (r.db('rethinkdb').table('_debug_scratch'));");
+        logger.info("Possibly executing: Table vtbl = (Table) (r.db('rethinkdb').table('_debug_scratch'));");
         Table vtbl = (Table) (r.db("rethinkdb").table("_debug_scratch"));
                 
-        // changefeeds/table.yaml #13
+        // changefeeds/table.yaml line #72
         // allVirtual = vtbl.changes()
-        System.out.println("Possibly executing: Changes allVirtual = (Changes) (vtbl.changes());");
+        logger.info("Possibly executing: Changes allVirtual = (Changes) (vtbl.changes());");
         Object allVirtual = maybeRun((Changes) (vtbl.changes()), conn);
                 
         {
-            // changefeeds/table.yaml #14
+            // changefeeds/table.yaml line #76
             /* partial({'errors':0, 'inserted':2}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("inserted", 2L));
             /* vtbl.insert([{'id':1}, {'id':2}]) */
-            System.out.println("About to run #14: vtbl.insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L)))");
+            logger.info("About to run line #76: vtbl.insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L)))");
             Object obtained = runOrCatch(vtbl.insert(r.array(r.hashMap("id", 1L), r.hashMap("id", 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #76");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #76:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -321,20 +313,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #15
+            // changefeeds/table.yaml line #78
             /* bag([{'old_val':null, 'new_val':{'id':1}}, {'old_val':null, 'new_val':{'id':2}}]) */
             Bag expected_ = bag(r.array(r.hashMap("old_val", null).with("new_val", r.hashMap("id", 1L)), r.hashMap("old_val", null).with("new_val", r.hashMap("id", 2L))));
             /* fetch(allVirtual, 2) */
-            System.out.println("About to run #15: fetch(allVirtual, 2L)");
+            logger.info("About to run line #78: fetch(allVirtual, 2L)");
             Object obtained = runOrCatch(fetch(allVirtual, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -343,20 +334,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #16
+            // changefeeds/table.yaml line #83
             /* partial({'errors':0, 'replaced':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("replaced", 1L));
             /* vtbl.get(1).update({'version':1}) */
-            System.out.println("About to run #16: vtbl.get(1L).update(r.hashMap('version', 1L))");
+            logger.info("About to run line #83: vtbl.get(1L).update(r.hashMap('version', 1L))");
             Object obtained = runOrCatch(vtbl.get(1L).update(r.hashMap("version", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -365,20 +355,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #17
-            /* [{'new_val': {'version': 1, 'id': 1}, 'old_val': {'id': 1}}] */
-            List expected_ = r.array(r.hashMap("new_val", r.hashMap("version", 1L).with("id", 1L)).with("old_val", r.hashMap("id", 1L)));
+            // changefeeds/table.yaml line #85
+            /* [{'old_val':{'id':1}, 'new_val':{'id':1, 'version':1}}] */
+            List expected_ = r.array(r.hashMap("old_val", r.hashMap("id", 1L)).with("new_val", r.hashMap("id", 1L).with("version", 1L)));
             /* fetch(allVirtual, 1) */
-            System.out.println("About to run #17: fetch(allVirtual, 1L)");
+            logger.info("About to run line #85: fetch(allVirtual, 1L)");
             Object obtained = runOrCatch(fetch(allVirtual, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -387,20 +376,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #18
+            // changefeeds/table.yaml line #90
             /* partial({'errors':0, 'deleted':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("deleted", 1L));
             /* vtbl.get(1).delete() */
-            System.out.println("About to run #18: vtbl.get(1L).delete()");
+            logger.info("About to run line #90: vtbl.get(1L).delete()");
             Object obtained = runOrCatch(vtbl.get(1L).delete(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #90");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #90:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -409,20 +397,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #19
-            /* [{'new_val': None, 'old_val': {'version': 1, 'id': 1}}] */
-            List expected_ = r.array(r.hashMap("new_val", null).with("old_val", r.hashMap("version", 1L).with("id", 1L)));
+            // changefeeds/table.yaml line #92
+            /* [{'old_val':{'id':1, 'version':1}, 'new_val':null}] */
+            List expected_ = r.array(r.hashMap("old_val", r.hashMap("id", 1L).with("version", 1L)).with("new_val", null));
             /* fetch(allVirtual, 1) */
-            System.out.println("About to run #19: fetch(allVirtual, 1L)");
+            logger.info("About to run line #92: fetch(allVirtual, 1L)");
             Object obtained = runOrCatch(fetch(allVirtual, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #92");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #92:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -430,26 +417,25 @@ public class ChangefeedsTable {
             }
         }
         
-        // changefeeds/table.yaml #20
+        // changefeeds/table.yaml line #97
         // vpluck = vtbl.changes().pluck({'new_val':['version']})
-        System.out.println("Possibly executing: Pluck vpluck = (Pluck) (vtbl.changes().pluck(r.hashMap('new_val', r.array('version'))));");
+        logger.info("Possibly executing: Pluck vpluck = (Pluck) (vtbl.changes().pluck(r.hashMap('new_val', r.array('version'))));");
         Object vpluck = maybeRun((Pluck) (vtbl.changes().pluck(r.hashMap("new_val", r.array("version")))), conn);
                 
         {
-            // changefeeds/table.yaml #21
+            // changefeeds/table.yaml line #98
             /* partial({'errors':0, 'inserted':1}) */
             Partial expected_ = partial(r.hashMap("errors", 0L).with("inserted", 1L));
             /* vtbl.insert([{'id':5, 'version':5}]) */
-            System.out.println("About to run #21: vtbl.insert(r.array(r.hashMap('id', 5L).with('version', 5L)))");
+            logger.info("About to run line #98: vtbl.insert(r.array(r.hashMap('id', 5L).with('version', 5L)))");
             Object obtained = runOrCatch(vtbl.insert(r.array(r.hashMap("id", 5L).with("version", 5L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #98");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #98:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -458,20 +444,19 @@ public class ChangefeedsTable {
         }
         
         {
-            // changefeeds/table.yaml #22
-            /* [{'new_val': {'version': 5}}] */
+            // changefeeds/table.yaml line #100
+            /* [{'new_val':{'version':5}}] */
             List expected_ = r.array(r.hashMap("new_val", r.hashMap("version", 5L)));
             /* fetch(vpluck, 1) */
-            System.out.println("About to run #22: fetch(vpluck, 1L)");
+            logger.info("About to run line #100: fetch(vpluck, 1L)");
             Object obtained = runOrCatch(fetch(vpluck, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

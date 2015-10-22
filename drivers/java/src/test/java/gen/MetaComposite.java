@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MetaComposite {
+    // Tests meta operations in composite queries
     Logger logger = LoggerFactory.getLogger(MetaComposite.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MetaComposite {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MetaComposite {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MetaComposite {
     public void test() throws Exception {
                 
         {
-            // meta/composite.yaml #1
+            // meta/composite.yaml line #5
             /* partial({'dbs_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L));
             /* r.db_drop('test') */
-            System.out.println("About to run #1: r.dbDrop('test')");
+            logger.info("About to run line #5: r.dbDrop('test')");
             Object obtained = runOrCatch(r.dbDrop("test"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,22 +98,20 @@ public class MetaComposite {
         }
         
         {
-            // meta/composite.yaml #2
+            // meta/composite.yaml line #9
             /* ({'dbs_created':3,'config_changes':arrlen(3)}) */
             Map expected_ = r.hashMap("dbs_created", 3L).with("config_changes", arrlen(3L));
             /* r.expr([1,2,3]).for_each(lambda row:
-    r.db_create('db_' + row.coerce_to('string')))
- */
-            System.out.println("About to run #2: r.expr(r.array(1L, 2L, 3L)).forEach(row -> r.dbCreate(r.add('db_', row.coerceTo('string'))))");
+r.db_create('db_' + row.coerce_to('string'))) */
+            logger.info("About to run line #9: r.expr(r.array(1L, 2L, 3L)).forEach(row -> r.dbCreate(r.add('db_', row.coerceTo('string'))))");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).forEach(row -> r.dbCreate(r.add("db_", row.coerceTo("string")))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -121,23 +120,21 @@ public class MetaComposite {
         }
         
         {
-            // meta/composite.yaml #3
+            // meta/composite.yaml line #14
             /* partial({'tables_created':9}) */
             Partial expected_ = partial(r.hashMap("tables_created", 9L));
             /* r.db_list().set_difference(["rethinkdb"]).for_each(lambda db_name:
-    r.expr([1,2,3]).for_each(lambda i:
-        r.db(db_name).table_create('tbl_' + i.coerce_to('string'))))
- */
-            System.out.println("About to run #3: r.dbList().setDifference(r.array('rethinkdb')).forEach(db_name -> r.expr(r.array(1L, 2L, 3L)).forEach(i -> r.db(db_name).tableCreate(r.add('tbl_', i.coerceTo('string')))))");
+r.expr([1,2,3]).for_each(lambda i:
+r.db(db_name).table_create('tbl_' + i.coerce_to('string')))) */
+            logger.info("About to run line #14: r.dbList().setDifference(r.array('rethinkdb')).forEach(db_name -> r.expr(r.array(1L, 2L, 3L)).forEach(i -> r.db(db_name).tableCreate(r.add('tbl_', i.coerceTo('string')))))");
             Object obtained = runOrCatch(r.dbList().setDifference(r.array("rethinkdb")).forEach(db_name -> r.expr(r.array(1L, 2L, 3L)).forEach(i -> r.db(db_name).tableCreate(r.add("tbl_", i.coerceTo("string"))))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -146,22 +143,20 @@ public class MetaComposite {
         }
         
         {
-            // meta/composite.yaml #4
+            // meta/composite.yaml line #20
             /* partial({'dbs_dropped':3,'tables_dropped':9}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 3L).with("tables_dropped", 9L));
             /* r.db_list().set_difference(["rethinkdb"]).for_each(lambda row:
-    r.db_drop(row))
- */
-            System.out.println("About to run #4: r.dbList().setDifference(r.array('rethinkdb')).forEach(row -> r.dbDrop(row))");
+r.db_drop(row)) */
+            logger.info("About to run line #20: r.dbList().setDifference(r.array('rethinkdb')).forEach(row -> r.dbDrop(row))");
             Object obtained = runOrCatch(r.dbList().setDifference(r.array("rethinkdb")).forEach(row -> r.dbDrop(row)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -170,20 +165,19 @@ public class MetaComposite {
         }
         
         {
-            // meta/composite.yaml #5
+            // meta/composite.yaml line #25
             /* partial({'dbs_created':1}) */
             Partial expected_ = partial(r.hashMap("dbs_created", 1L));
             /* r.db_create('test') */
-            System.out.println("About to run #5: r.dbCreate('test')");
+            logger.info("About to run line #25: r.dbCreate('test')");
             Object obtained = runOrCatch(r.dbCreate("test"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

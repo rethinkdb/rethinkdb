@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class GeoGeojson {
+    // Test geoJSON conversion
     Logger logger = LoggerFactory.getLogger(GeoGeojson.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class GeoGeojson {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class GeoGeojson {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class GeoGeojson {
     public void test() throws Exception {
                 
         {
-            // geo/geojson.yaml #1
+            // geo/geojson.yaml line #4
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[0, 0], 'type':'Point'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(0L, 0L)).with("type", "Point");
             /* r.geojson({'coordinates':[0, 0], 'type':'Point'}) */
-            System.out.println("About to run #1: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point'))");
+            logger.info("About to run line #4: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L)).with("type", "Point")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #4");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #2
+            // geo/geojson.yaml line #6
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[0,0], [0,1]], 'type':'LineString'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(0L, 0L), r.array(0L, 1L))).with("type", "LineString");
             /* r.geojson({'coordinates':[[0,0], [0,1]], 'type':'LineString'}) */
-            System.out.println("About to run #2: r.geojson(r.hashMap('coordinates', r.array(r.array(0L, 0L), r.array(0L, 1L))).with('type', 'LineString'))");
+            logger.info("About to run line #6: r.geojson(r.hashMap('coordinates', r.array(r.array(0L, 0L), r.array(0L, 1L))).with('type', 'LineString'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(r.array(0L, 0L), r.array(0L, 1L))).with("type", "LineString")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #3
+            // geo/geojson.yaml line #8
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0,0], [0,1], [1,0], [0,0]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with("type", "Polygon");
             /* r.geojson({'coordinates':[[[0,0], [0,1], [1,0], [0,0]]], 'type':'Polygon'}) */
-            System.out.println("About to run #3: r.geojson(r.hashMap('coordinates', r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with('type', 'Polygon'))");
+            logger.info("About to run line #8: r.geojson(r.hashMap('coordinates', r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with('type', 'Polygon'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(r.array(r.array(0L, 0L), r.array(0L, 1L), r.array(1L, 0L), r.array(0L, 0L)))).with("type", "Polygon")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #4
+            // geo/geojson.yaml line #12
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found ARRAY.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found ARRAY.", r.array(0L));
             /* r.geojson({'coordinates':[[], 0], 'type':'Point'}) */
-            System.out.println("About to run #4: r.geojson(r.hashMap('coordinates', r.array(r.array(), 0L)).with('type', 'Point'))");
+            logger.info("About to run line #12: r.geojson(r.hashMap('coordinates', r.array(r.array(), 0L)).with('type', 'Point'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(r.array(), 0L)).with("type", "Point")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #5
+            // geo/geojson.yaml line #14
             /* err('ReqlQueryLogicError', 'Expected type ARRAY but found BOOL.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type ARRAY but found BOOL.", r.array(0L));
             /* r.geojson({'coordinates':true, 'type':'Point'}) */
-            System.out.println("About to run #5: r.geojson(r.hashMap('coordinates', true).with('type', 'Point'))");
+            logger.info("About to run line #14: r.geojson(r.hashMap('coordinates', true).with('type', 'Point'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", true).with("type", "Point")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #14");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #14:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #6
+            // geo/geojson.yaml line #16
             /* err('ReqlNonExistenceError', 'No attribute `coordinates` in object:', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `coordinates` in object:", r.array(0L));
             /* r.geojson({'type':'Point'}) */
-            System.out.println("About to run #6: r.geojson(r.hashMap('type', 'Point'))");
+            logger.info("About to run line #16: r.geojson(r.hashMap('type', 'Point'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("type", "Point")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #7
+            // geo/geojson.yaml line #18
             /* err('ReqlNonExistenceError', 'No attribute `type` in object:', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "No attribute `type` in object:", r.array(0L));
             /* r.geojson({'coordinates':[0, 0]}) */
-            System.out.println("About to run #7: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)))");
+            logger.info("About to run line #18: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #8
+            // geo/geojson.yaml line #20
             /* err('ReqlQueryLogicError', 'Unrecognized GeoJSON type `foo`.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Unrecognized GeoJSON type `foo`.", r.array(0L));
             /* r.geojson({'coordinates':[0, 0], 'type':'foo'}) */
-            System.out.println("About to run #8: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'foo'))");
+            logger.info("About to run line #20: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'foo'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L)).with("type", "foo")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #9
+            // geo/geojson.yaml line #22
             /* err('ReqlQueryLogicError', 'Unrecognized field `foo` found in geometry object.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Unrecognized field `foo` found in geometry object.", r.array(0L));
             /* r.geojson({'coordinates':[0, 0], 'type':'Point', 'foo':'wrong'}) */
-            System.out.println("About to run #9: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point').with('foo', 'wrong'))");
+            logger.info("About to run line #22: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point').with('foo', 'wrong'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L)).with("type", "Point").with("foo", "wrong")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #10
+            // geo/geojson.yaml line #26
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[0, 0], 'type':'Point', 'crs':null}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(0L, 0L)).with("type", "Point").with("crs", null);
             /* r.geojson({'coordinates':[0, 0], 'type':'Point', 'crs':null}) */
-            System.out.println("About to run #10: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point').with('crs', null))");
+            logger.info("About to run line #26: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'Point').with('crs', null))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L)).with("type", "Point").with("crs", null)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class GeoGeojson {
         }
         
         {
-            // geo/geojson.yaml #12
+            // geo/geojson.yaml line #30
             /* err('ReqlQueryLogicError', 'GeoJSON type `MultiPoint` is not supported.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "GeoJSON type `MultiPoint` is not supported.", r.array(0L));
             /* r.geojson({'coordinates':[0, 0], 'type':'MultiPoint'}) */
-            System.out.println("About to run #12: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'MultiPoint'))");
+            logger.info("About to run line #30: r.geojson(r.hashMap('coordinates', r.array(0L, 0L)).with('type', 'MultiPoint'))");
             Object obtained = runOrCatch(r.geojson(r.hashMap("coordinates", r.array(0L, 0L)).with("type", "MultiPoint")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

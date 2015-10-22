@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MetaDbs {
+    // Tests meta queries for databases
     Logger logger = LoggerFactory.getLogger(MetaDbs.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MetaDbs {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MetaDbs {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MetaDbs {
     public void test() throws Exception {
                 
         {
-            // meta/dbs.yaml #1
+            // meta/dbs.yaml line #6
             /* bag(['rethinkdb', 'test']) */
             Bag expected_ = bag(r.array("rethinkdb", "test"));
             /* r.db_list() */
-            System.out.println("About to run #1: r.dbList()");
+            logger.info("About to run line #6: r.dbList()");
             Object obtained = runOrCatch(r.dbList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #2
+            // meta/dbs.yaml line #11
             /* partial({'dbs_created':1}) */
             Partial expected_ = partial(r.hashMap("dbs_created", 1L));
             /* r.db_create('a') */
-            System.out.println("About to run #2: r.dbCreate('a')");
+            logger.info("About to run line #11: r.dbCreate('a')");
             Object obtained = runOrCatch(r.dbCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #3
+            // meta/dbs.yaml line #13
             /* partial({'dbs_created':1}) */
             Partial expected_ = partial(r.hashMap("dbs_created", 1L));
             /* r.db_create('b') */
-            System.out.println("About to run #3: r.dbCreate('b')");
+            logger.info("About to run line #13: r.dbCreate('b')");
             Object obtained = runOrCatch(r.dbCreate("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #13");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #4
+            // meta/dbs.yaml line #18
             /* bag(['rethinkdb', 'a', 'b', 'test']) */
             Bag expected_ = bag(r.array("rethinkdb", "a", "b", "test"));
             /* r.db_list() */
-            System.out.println("About to run #4: r.dbList()");
+            logger.info("About to run line #18: r.dbList()");
             Object obtained = runOrCatch(r.dbList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #5
-            /* {'name': 'a', 'id': uuid()} */
+            // meta/dbs.yaml line #23
+            /* {'name':'a','id':uuid()} */
             Map expected_ = r.hashMap("name", "a").with("id", uuid());
             /* r.db('a').config() */
-            System.out.println("About to run #5: r.db('a').config()");
+            logger.info("About to run line #23: r.db('a').config()");
             Object obtained = runOrCatch(r.db("a").config(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #6
+            // meta/dbs.yaml line #28
             /* partial({'dbs_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L));
             /* r.db_drop('b') */
-            System.out.println("About to run #6: r.dbDrop('b')");
+            logger.info("About to run line #28: r.dbDrop('b')");
             Object obtained = runOrCatch(r.dbDrop("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #7
+            // meta/dbs.yaml line #31
             /* bag(['rethinkdb', 'a', 'test']) */
             Bag expected_ = bag(r.array("rethinkdb", "a", "test"));
             /* r.db_list() */
-            System.out.println("About to run #7: r.dbList()");
+            logger.info("About to run line #31: r.dbList()");
             Object obtained = runOrCatch(r.dbList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #8
+            // meta/dbs.yaml line #34
             /* partial({'dbs_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L));
             /* r.db_drop('a') */
-            System.out.println("About to run #8: r.dbDrop('a')");
+            logger.info("About to run line #34: r.dbDrop('a')");
             Object obtained = runOrCatch(r.dbDrop("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #9
+            // meta/dbs.yaml line #37
             /* bag(['rethinkdb', 'test']) */
             Bag expected_ = bag(r.array("rethinkdb", "test"));
             /* r.db_list() */
-            System.out.println("About to run #9: r.dbList()");
+            logger.info("About to run line #37: r.dbList()");
             Object obtained = runOrCatch(r.dbList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #10
+            // meta/dbs.yaml line #41
             /* partial({'dbs_created':1}) */
             Partial expected_ = partial(r.hashMap("dbs_created", 1L));
             /* r.db_create('bar') */
-            System.out.println("About to run #10: r.dbCreate('bar')");
+            logger.info("About to run line #41: r.dbCreate('bar')");
             Object obtained = runOrCatch(r.dbCreate("bar"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #11
+            // meta/dbs.yaml line #44
             /* err('ReqlOpFailedError', 'Database `bar` already exists.', [0]) */
             Err expected_ = err("ReqlOpFailedError", "Database `bar` already exists.", r.array(0L));
             /* r.db_create('bar') */
-            System.out.println("About to run #11: r.dbCreate('bar')");
+            logger.info("About to run line #44: r.dbCreate('bar')");
             Object obtained = runOrCatch(r.dbCreate("bar"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #12
+            // meta/dbs.yaml line #47
             /* partial({'dbs_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L));
             /* r.db_drop('bar') */
-            System.out.println("About to run #12: r.dbDrop('bar')");
+            logger.info("About to run line #47: r.dbDrop('bar')");
             Object obtained = runOrCatch(r.dbDrop("bar"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class MetaDbs {
         }
         
         {
-            // meta/dbs.yaml #13
+            // meta/dbs.yaml line #50
             /* err('ReqlOpFailedError', 'Database `bar` does not exist.', [0]) */
             Err expected_ = err("ReqlOpFailedError", "Database `bar` does not exist.", r.array(0L));
             /* r.db_drop('bar') */
-            System.out.println("About to run #13: r.dbDrop('bar')");
+            logger.info("About to run line #50: r.dbDrop('bar')");
             Object obtained = runOrCatch(r.dbDrop("bar"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class GeoPrimitives {
+    // Test geometric primitive constructors
     Logger logger = LoggerFactory.getLogger(GeoPrimitives.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class GeoPrimitives {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class GeoPrimitives {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class GeoPrimitives {
     public void test() throws Exception {
                 
         {
-            // geo/primitives.yaml #1
+            // geo/primitives.yaml line #5
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06)))).with("type", "Polygon");
             /* r.circle([0,0], 1, num_vertices=3) */
-            System.out.println("About to run #1: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L)");
+            logger.info("About to run line #5: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L)");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 1L).optArg("num_vertices", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #2
+            // geo/primitives.yaml line #10
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06)))).with("type", "Polygon");
             /* r.circle(r.point(0,0), 1, num_vertices=3) */
-            System.out.println("About to run #2: r.circle(r.point(0L, 0L), 1L).optArg('num_vertices', 3L)");
+            logger.info("About to run line #10: r.circle(r.point(0L, 0L), 1L).optArg('num_vertices', 3L)");
             Object obtained = runOrCatch(r.circle(r.point(0L, 0L), 1L).optArg("num_vertices", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #3
+            // geo/primitives.yaml line #15
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]], 'type':'LineString'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06))).with("type", "LineString");
             /* r.circle([0,0], 1, num_vertices=3, fill=false) */
-            System.out.println("About to run #3: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L).optArg('fill', false)");
+            logger.info("About to run line #15: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L).optArg('fill', false)");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 1L).optArg("num_vertices", 3L).optArg("fill", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #4
+            // geo/primitives.yaml line #20
             /* err('ReqlQueryLogicError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 14000000m, but must be smaller than 9985163.1855612862855m.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 14000000m, but must be smaller than 9985163.1855612862855m.", r.array(0L));
             /* r.circle([0,0], 14000000, num_vertices=3) */
-            System.out.println("About to run #4: r.circle(r.array(0L, 0L), 14000000L).optArg('num_vertices', 3L)");
+            logger.info("About to run line #20: r.circle(r.array(0L, 0L), 14000000L).optArg('num_vertices', 3L)");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 14000000L).optArg("num_vertices", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #5
+            // geo/primitives.yaml line #25
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06)))).with("type", "Polygon");
             /* r.circle([0,0], 1, num_vertices=3, geo_system='WGS84') */
-            System.out.println("About to run #5: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L).optArg('geo_system', 'WGS84')");
+            logger.info("About to run line #25: r.circle(r.array(0L, 0L), 1L).optArg('num_vertices', 3L).optArg('geo_system', 'WGS84')");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 1L).optArg("num_vertices", 3L).optArg("geo_system", "WGS84"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #6
+            // geo/primitives.yaml line #30
             /* err('ReqlQueryLogicError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 2m, but must be smaller than 1.570796326794896558m.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 2m, but must be smaller than 1.570796326794896558m.", r.array(0L));
             /* r.circle([0,0], 2, num_vertices=3, geo_system='unit_sphere') */
-            System.out.println("About to run #6: r.circle(r.array(0L, 0L), 2L).optArg('num_vertices', 3L).optArg('geo_system', 'unit_sphere')");
+            logger.info("About to run line #30: r.circle(r.array(0L, 0L), 2L).optArg('num_vertices', 3L).optArg('geo_system', 'unit_sphere')");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 2L).optArg("num_vertices", 3L).optArg("geo_system", "unit_sphere"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #7
+            // geo/primitives.yaml line #35
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -5.729577951308232], [-4.966092947444857, 2.861205754495701], [4.966092947444857, 2.861205754495701], [0, -5.729577951308232]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -5.729577951308232), r.array(-4.966092947444857, 2.861205754495701), r.array(4.966092947444857, 2.861205754495701), r.array(0L, -5.729577951308232)))).with("type", "Polygon");
             /* r.circle([0,0], 0.1, num_vertices=3, geo_system='unit_sphere') */
-            System.out.println("About to run #7: r.circle(r.array(0L, 0L), 0.1).optArg('num_vertices', 3L).optArg('geo_system', 'unit_sphere')");
+            logger.info("About to run line #35: r.circle(r.array(0L, 0L), 0.1).optArg('num_vertices', 3L).optArg('geo_system', 'unit_sphere')");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 0.1).optArg("num_vertices", 3L).optArg("geo_system", "unit_sphere"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #8
+            // geo/primitives.yaml line #42
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06)))).with("type", "Polygon");
             /* r.circle([0,0], 1.0/1000.0, num_vertices=3, unit='km') */
-            System.out.println("About to run #8: r.circle(r.array(0L, 0L), r.div(1.0, 1000.0)).optArg('num_vertices', 3L).optArg('unit', 'km')");
+            logger.info("About to run line #42: r.circle(r.array(0L, 0L), r.div(1.0, 1000.0)).optArg('num_vertices', 3L).optArg('unit', 'km')");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), r.div(1.0, 1000.0)).optArg("num_vertices", 3L).optArg("unit", "km"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class GeoPrimitives {
         }
         
         {
-            // geo/primitives.yaml #9
+            // geo/primitives.yaml line #47
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0, -9.04369477050382e-06], [-7.779638566553426e-06, 4.5218473852518965e-06], [7.779638566553426e-06, 4.5218473852518965e-06], [0, -9.04369477050382e-06]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, -9.04369477050382e-06), r.array(-7.779638566553426e-06, 4.5218473852518965e-06), r.array(7.779638566553426e-06, 4.5218473852518965e-06), r.array(0L, -9.04369477050382e-06)))).with("type", "Polygon");
             /* r.circle([0,0], 1.0/1609.344, num_vertices=3, unit='mi') */
-            System.out.println("About to run #9: r.circle(r.array(0L, 0L), r.div(1.0, 1609.344)).optArg('num_vertices', 3L).optArg('unit', 'mi')");
+            logger.info("About to run line #47: r.circle(r.array(0L, 0L), r.div(1.0, 1609.344)).optArg('num_vertices', 3L).optArg('unit', 'mi')");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), r.div(1.0, 1609.344)).optArg("num_vertices", 3L).optArg("unit", "mi"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

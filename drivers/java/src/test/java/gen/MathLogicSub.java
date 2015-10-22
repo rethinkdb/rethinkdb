@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MathLogicSub {
+    // Tests for basic usage of the subtraction operation
     Logger logger = LoggerFactory.getLogger(MathLogicSub.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MathLogicSub {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MathLogicSub {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MathLogicSub {
     public void test() throws Exception {
                 
         {
-            // math_logic/sub.yaml #(1, 1)
+            // math_logic/sub.yaml line #6
             /* 0 */
             Long expected_ = 0L;
-            /* (r.expr(1) - 1) */
-            System.out.println("About to run #(1, 1): r.expr(1L).sub(1L)");
+            /* r.expr(1) - 1 */
+            logger.info("About to run line #6: r.expr(1L).sub(1L)");
             Object obtained = runOrCatch(r.expr(1L).sub(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 1)");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #(1, 2)
+            // math_logic/sub.yaml line #7
             /* 0 */
             Long expected_ = 0L;
-            /* (1 - r.expr(1)) */
-            System.out.println("About to run #(1, 2): r.sub(1L, r.expr(1L))");
+            /* 1 - r.expr(1) */
+            logger.info("About to run line #7: r.sub(1L, r.expr(1L))");
             Object obtained = runOrCatch(r.sub(1L, r.expr(1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 2)");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #(1, 3)
+            // math_logic/sub.yaml line #8
             /* 0 */
             Long expected_ = 0L;
-            /* (r.expr(1).sub(1)) */
-            System.out.println("About to run #(1, 3): r.expr(1L).sub(1L)");
+            /* r.expr(1).sub(1) */
+            logger.info("About to run line #8: r.expr(1L).sub(1L)");
             Object obtained = runOrCatch(r.expr(1L).sub(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 3)");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #2
+            // math_logic/sub.yaml line #17
             /* -2 */
             Long expected_ = -2L;
             /* r.expr(-1) - 1 */
-            System.out.println("About to run #2: r.expr(-1L).sub(1L)");
+            logger.info("About to run line #17: r.expr(-1L).sub(1L)");
             Object obtained = runOrCatch(r.expr(-1L).sub(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,22 +161,21 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #3
+            // math_logic/sub.yaml line #22
             /* -6.75 */
             Double expected_ = -6.75;
             /* r.expr(1.75) - 8.5 */
-            System.out.println("About to run #3: r.expr(1.75).sub(8.5)");
+            logger.info("About to run line #22: r.expr(1.75).sub(8.5)");
             Object obtained = runOrCatch(r.expr(1.75).sub(8.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #22");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #22:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -187,20 +184,40 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #5
+            // math_logic/sub.yaml line #26
+            /* -13 */
+            Long expected_ = -13L;
+            /* r.expr(1).sub(2,3,4,5) */
+            logger.info("About to run line #26: r.expr(1L).sub(2L, 3L, 4L, 5L)");
+            Object obtained = runOrCatch(r.expr(1L).sub(2L, 3L, 4L, 5L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #26");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // math_logic/sub.yaml line #30
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array(0L));
-            /* r.expr('a') - 0.8 */
-            System.out.println("About to run #5: r.expr('a').sub(0.8)");
+            /* r.expr('a').sub(0.8) */
+            logger.info("About to run line #30: r.expr('a').sub(0.8)");
             Object obtained = runOrCatch(r.expr("a").sub(0.8),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -209,20 +226,19 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #6
+            // math_logic/sub.yaml line #33
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array(1L));
-            /* r.expr(1) - 'a' */
-            System.out.println("About to run #6: r.expr(1L).sub('a')");
+            /* r.expr(1).sub('a') */
+            logger.info("About to run line #33: r.expr(1L).sub('a')");
             Object obtained = runOrCatch(r.expr(1L).sub("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #33");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #33:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -231,20 +247,19 @@ public class MathLogicSub {
         }
         
         {
-            // math_logic/sub.yaml #7
+            // math_logic/sub.yaml line #36
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array(0L));
-            /* r.expr('b') - 'a' */
-            System.out.println("About to run #7: r.expr('b').sub('a')");
+            /* r.expr('b').sub('a') */
+            logger.info("About to run line #36: r.expr('b').sub('a')");
             Object obtained = runOrCatch(r.expr("b").sub("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #36");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #36:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

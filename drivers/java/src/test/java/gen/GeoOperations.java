@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class GeoOperations {
+    // Test basic geometry operators
     Logger logger = LoggerFactory.getLogger(GeoOperations.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class GeoOperations {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class GeoOperations {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class GeoOperations {
     public void test() throws Exception {
                 
         {
-            // geo/operations.yaml #1
+            // geo/operations.yaml line #5
             /* ("89011.26253835332") */
             String expected_ = "89011.26253835332";
             /* r.distance(r.point(-122, 37), r.point(-123, 37)).coerce_to('STRING') */
-            System.out.println("About to run #1: r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).coerceTo('STRING')");
+            logger.info("About to run line #5: r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #2
+            // geo/operations.yaml line #7
             /* ("110968.30443995494") */
             String expected_ = "110968.30443995494";
             /* r.distance(r.point(-122, 37), r.point(-122, 36)).coerce_to('STRING') */
-            System.out.println("About to run #2: r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).coerceTo('STRING')");
+            logger.info("About to run line #7: r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #3
-            /* True */
+            // geo/operations.yaml line #9
+            /* true */
             Boolean expected_ = true;
             /* r.distance(r.point(-122, 37), r.point(-122, 36)).eq(r.distance(r.point(-122, 36), r.point(-122, 37))) */
-            System.out.println("About to run #3: r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).eq(r.distance(r.point(-122L, 36L), r.point(-122L, 37L)))");
+            logger.info("About to run line #9: r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).eq(r.distance(r.point(-122L, 36L), r.point(-122L, 37L)))");
             Object obtained = runOrCatch(r.distance(r.point(-122L, 37L), r.point(-122L, 36L)).eq(r.distance(r.point(-122L, 36L), r.point(-122L, 37L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #4
+            // geo/operations.yaml line #11
             /* ("89011.26253835332") */
             String expected_ = "89011.26253835332";
             /* r.point(-122, 37).distance(r.point(-123, 37)).coerce_to('STRING') */
-            System.out.println("About to run #4: r.point(-122L, 37L).distance(r.point(-123L, 37L)).coerceTo('STRING')");
+            logger.info("About to run line #11: r.point(-122L, 37L).distance(r.point(-123L, 37L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.point(-122L, 37L).distance(r.point(-123L, 37L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -162,26 +160,25 @@ public class GeoOperations {
             }
         }
         
-        // geo/operations.yaml #5
+        // geo/operations.yaml line #13
         // someDist = r.distance(r.point(-122, 37), r.point(-123, 37))
-        System.out.println("Possibly executing: Distance someDist = (Distance) (r.distance(r.point(-122L, 37L), r.point(-123L, 37L)));");
+        logger.info("Possibly executing: Distance someDist = (Distance) (r.distance(r.point(-122L, 37L), r.point(-123L, 37L)));");
         Distance someDist = (Distance) (r.distance(r.point(-122L, 37L), r.point(-123L, 37L)));
                 
         {
-            // geo/operations.yaml #5
-            /* True */
+            // geo/operations.yaml line #15
+            /* true */
             Boolean expected_ = true;
             /* someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='m')) */
-            System.out.println("About to run #5: someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'm'))");
+            logger.info("About to run line #15: someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'm'))");
             Object obtained = runOrCatch(someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("unit", "m")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -190,20 +187,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #6
-            /* True */
+            // geo/operations.yaml line #19
+            /* true */
             Boolean expected_ = true;
             /* someDist.mul(1.0/1000.0).eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='km')) */
-            System.out.println("About to run #6: someDist.mul(r.div(1.0, 1000.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'km'))");
+            logger.info("About to run line #19: someDist.mul(r.div(1.0, 1000.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'km'))");
             Object obtained = runOrCatch(someDist.mul(r.div(1.0, 1000.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("unit", "km")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -212,20 +208,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #7
-            /* True */
+            // geo/operations.yaml line #23
+            /* true */
             Boolean expected_ = true;
             /* someDist.mul(1.0/1609.344).eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='mi')) */
-            System.out.println("About to run #7: someDist.mul(r.div(1.0, 1609.344)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'mi'))");
+            logger.info("About to run line #23: someDist.mul(r.div(1.0, 1609.344)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'mi'))");
             Object obtained = runOrCatch(someDist.mul(r.div(1.0, 1609.344)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("unit", "mi")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -234,20 +229,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #8
-            /* True */
+            // geo/operations.yaml line #27
+            /* true */
             Boolean expected_ = true;
             /* someDist.mul(1.0/0.3048).eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='ft')) */
-            System.out.println("About to run #8: someDist.mul(r.div(1.0, 0.3048)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'ft'))");
+            logger.info("About to run line #27: someDist.mul(r.div(1.0, 0.3048)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'ft'))");
             Object obtained = runOrCatch(someDist.mul(r.div(1.0, 0.3048)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("unit", "ft")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -256,20 +250,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #9
-            /* True */
+            // geo/operations.yaml line #31
+            /* true */
             Boolean expected_ = true;
             /* someDist.mul(1.0/1852.0).eq(r.distance(r.point(-122, 37), r.point(-123, 37), unit='nm')) */
-            System.out.println("About to run #9: someDist.mul(r.div(1.0, 1852.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'nm'))");
+            logger.info("About to run line #31: someDist.mul(r.div(1.0, 1852.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('unit', 'nm'))");
             Object obtained = runOrCatch(someDist.mul(r.div(1.0, 1852.0)).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("unit", "nm")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -278,20 +271,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #10
-            /* True */
+            // geo/operations.yaml line #35
+            /* true */
             Boolean expected_ = true;
             /* someDist.eq(r.distance(r.point(-122, 37), r.point(-123, 37), geo_system='WGS84')) */
-            System.out.println("About to run #10: someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', 'WGS84'))");
+            logger.info("About to run line #35: someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', 'WGS84'))");
             Object obtained = runOrCatch(someDist.eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("geo_system", "WGS84")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -300,20 +292,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #11
-            /* True */
+            // geo/operations.yaml line #40
+            /* true */
             Boolean expected_ = true;
             /* someDist.div(10).eq(r.distance(r.point(-122, 37), r.point(-123, 37), geo_system={'a':637813.7, 'f':(1.0/298.257223563)})) */
-            System.out.println("About to run #11: someDist.div(10L).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', r.hashMap('a', 637813.7).with('f', r.div(1.0, 298.257223563))))");
+            logger.info("About to run line #40: someDist.div(10L).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', r.hashMap('a', 637813.7).with('f', r.div(1.0, 298.257223563))))");
             Object obtained = runOrCatch(someDist.div(10L).eq(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("geo_system", r.hashMap("a", 637813.7).with("f", r.div(1.0, 298.257223563)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -322,20 +313,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #12
+            // geo/operations.yaml line #43
             /* ("0.01393875509649327") */
             String expected_ = "0.01393875509649327";
             /* r.distance(r.point(-122, 37), r.point(-123, 37), geo_system='unit_sphere').coerce_to('STRING') */
-            System.out.println("About to run #12: r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', 'unit_sphere').coerceTo('STRING')");
+            logger.info("About to run line #43: r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg('geo_system', 'unit_sphere').coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(-122L, 37L), r.point(-123L, 37L)).optArg("geo_system", "unit_sphere").coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #43");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #43:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -344,20 +334,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #13
+            // geo/operations.yaml line #47
             /* ("0") */
             String expected_ = "0";
             /* r.distance(r.point(0, 0), r.point(0, 0)).coerce_to('STRING') */
-            System.out.println("About to run #13: r.distance(r.point(0L, 0L), r.point(0L, 0L)).coerceTo('STRING')");
+            logger.info("About to run line #47: r.distance(r.point(0L, 0L), r.point(0L, 0L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.point(0L, 0L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -366,20 +355,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #14
+            // geo/operations.yaml line #50
             /* ("40007862.917250897") */
             String expected_ = "40007862.917250897";
             /* r.distance(r.point(0, 0), r.point(180, 0)).mul(2).coerce_to('STRING') */
-            System.out.println("About to run #14: r.distance(r.point(0L, 0L), r.point(180L, 0L)).mul(2L).coerceTo('STRING')");
+            logger.info("About to run line #50: r.distance(r.point(0L, 0L), r.point(180L, 0L)).mul(2L).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.point(180L, 0L)).mul(2L).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -388,20 +376,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #15
+            // geo/operations.yaml line #52
             /* ("40007862.917250897") */
             String expected_ = "40007862.917250897";
             /* r.distance(r.point(0, -90), r.point(0, 90)).mul(2).coerce_to('STRING') */
-            System.out.println("About to run #15: r.distance(r.point(0L, -90L), r.point(0L, 90L)).mul(2L).coerceTo('STRING')");
+            logger.info("About to run line #52: r.distance(r.point(0L, -90L), r.point(0L, 90L)).mul(2L).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, -90L), r.point(0L, 90L)).mul(2L).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -410,20 +397,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #16
+            // geo/operations.yaml line #54
             /* ("0") */
             String expected_ = "0";
             /* r.distance(r.point(0, 0), r.line([0,0], [0,1])).coerce_to('STRING') */
-            System.out.println("About to run #16: r.distance(r.point(0L, 0L), r.line(r.array(0L, 0L), r.array(0L, 1L))).coerceTo('STRING')");
+            logger.info("About to run line #54: r.distance(r.point(0L, 0L), r.line(r.array(0L, 0L), r.array(0L, 1L))).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.line(r.array(0L, 0L), r.array(0L, 1L))).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -432,20 +418,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #17
+            // geo/operations.yaml line #56
             /* ("0") */
             String expected_ = "0";
             /* r.distance(r.line([0,0], [0,1]), r.point(0, 0)).coerce_to('STRING') */
-            System.out.println("About to run #17: r.distance(r.line(r.array(0L, 0L), r.array(0L, 1L)), r.point(0L, 0L)).coerceTo('STRING')");
+            logger.info("About to run line #56: r.distance(r.line(r.array(0L, 0L), r.array(0L, 1L)), r.point(0L, 0L)).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.line(r.array(0L, 0L), r.array(0L, 1L)), r.point(0L, 0L)).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #56");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #56:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -454,20 +439,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #18
-            /* True */
+            // geo/operations.yaml line #58
+            /* true */
             Boolean expected_ = true;
             /* r.distance(r.point(0, 0), r.line([0.1,0], [1,0])).eq(r.distance(r.point(0, 0), r.point(0.1, 0))) */
-            System.out.println("About to run #18: r.distance(r.point(0L, 0L), r.line(r.array(0.1, 0L), r.array(1L, 0L))).eq(r.distance(r.point(0L, 0L), r.point(0.1, 0L)))");
+            logger.info("About to run line #58: r.distance(r.point(0L, 0L), r.line(r.array(0.1, 0L), r.array(1L, 0L))).eq(r.distance(r.point(0L, 0L), r.point(0.1, 0L)))");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.line(r.array(0.1, 0L), r.array(1L, 0L))).eq(r.distance(r.point(0L, 0L), r.point(0.1, 0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -476,20 +460,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #19
+            // geo/operations.yaml line #60
             /* ("492471.4990055255") */
             String expected_ = "492471.4990055255";
             /* r.distance(r.point(0, 0), r.line([5,-1], [4,2])).coerce_to('STRING') */
-            System.out.println("About to run #19: r.distance(r.point(0L, 0L), r.line(r.array(5L, -1L), r.array(4L, 2L))).coerceTo('STRING')");
+            logger.info("About to run line #60: r.distance(r.point(0L, 0L), r.line(r.array(5L, -1L), r.array(4L, 2L))).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.line(r.array(5L, -1L), r.array(4L, 2L))).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -498,20 +481,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #20
+            // geo/operations.yaml line #62
             /* ("492471.4990055255") */
             String expected_ = "492471.4990055255";
             /* r.distance(r.point(0, 0), r.polygon([5,-1], [4,2], [10,10])).coerce_to('STRING') */
-            System.out.println("About to run #20: r.distance(r.point(0L, 0L), r.polygon(r.array(5L, -1L), r.array(4L, 2L), r.array(10L, 10L))).coerceTo('STRING')");
+            logger.info("About to run line #62: r.distance(r.point(0L, 0L), r.polygon(r.array(5L, -1L), r.array(4L, 2L), r.array(10L, 10L))).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.polygon(r.array(5L, -1L), r.array(4L, 2L), r.array(10L, 10L))).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #62");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -520,20 +502,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #21
+            // geo/operations.yaml line #64
             /* ("0") */
             String expected_ = "0";
             /* r.distance(r.point(0, 0), r.polygon([0,-1], [0,1], [10,10])).coerce_to('STRING') */
-            System.out.println("About to run #21: r.distance(r.point(0L, 0L), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo('STRING')");
+            logger.info("About to run line #64: r.distance(r.point(0L, 0L), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0L, 0L), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #64");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -542,20 +523,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #22
+            // geo/operations.yaml line #66
             /* ("0") */
             String expected_ = "0";
             /* r.distance(r.point(0.5, 0.5), r.polygon([0,-1], [0,1], [10,10])).coerce_to('STRING') */
-            System.out.println("About to run #22: r.distance(r.point(0.5, 0.5), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo('STRING')");
+            logger.info("About to run line #66: r.distance(r.point(0.5, 0.5), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo('STRING')");
             Object obtained = runOrCatch(r.distance(r.point(0.5, 0.5), r.polygon(r.array(0L, -1L), r.array(0L, 1L), r.array(10L, 10L))).coerceTo("STRING"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #66");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -564,20 +544,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #23
-            /* False */
+            // geo/operations.yaml line #71
+            /* false */
             Boolean expected_ = false;
             /* r.circle([0,0], 1, fill=false).eq(r.circle([0,0], 1, fill=true)) */
-            System.out.println("About to run #23: r.circle(r.array(0L, 0L), 1L).optArg('fill', false).eq(r.circle(r.array(0L, 0L), 1L).optArg('fill', true))");
+            logger.info("About to run line #71: r.circle(r.array(0L, 0L), 1L).optArg('fill', false).eq(r.circle(r.array(0L, 0L), 1L).optArg('fill', true))");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 1L).optArg("fill", false).eq(r.circle(r.array(0L, 0L), 1L).optArg("fill", true)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #71");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #71:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -586,20 +565,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #24
-            /* True */
+            // geo/operations.yaml line #75
+            /* true */
             Boolean expected_ = true;
             /* r.circle([0,0], 1, fill=false).fill().eq(r.circle([0,0], 1, fill=true)) */
-            System.out.println("About to run #24: r.circle(r.array(0L, 0L), 1L).optArg('fill', false).fill().eq(r.circle(r.array(0L, 0L), 1L).optArg('fill', true))");
+            logger.info("About to run line #75: r.circle(r.array(0L, 0L), 1L).optArg('fill', false).fill().eq(r.circle(r.array(0L, 0L), 1L).optArg('fill', true))");
             Object obtained = runOrCatch(r.circle(r.array(0L, 0L), 1L).optArg("fill", false).fill().eq(r.circle(r.array(0L, 0L), 1L).optArg("fill", true)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #75");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #75:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -608,20 +586,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #25
+            // geo/operations.yaml line #80
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0,0],[1,0],[1,1],[0,1],[0,0]],[[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9],[0.1,0.1]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L), r.array(0L, 0L)), r.array(r.array(0.1, 0.1), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9), r.array(0.1, 0.1)))).with("type", "Polygon");
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0.1,0.1], [0.9,0.1], [0.9,0.9], [0.1,0.9])) */
-            System.out.println("About to run #25: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.1), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
+            logger.info("About to run line #80: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.1), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.1), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #80");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #80:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -630,20 +607,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #26
+            // geo/operations.yaml line #82
             /* err('ReqlQueryLogicError', 'The second argument to `polygon_sub` is not contained in the first one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "The second argument to `polygon_sub` is not contained in the first one.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0.1,0.9], [0.9,0.0], [0.9,0.9], [0.1,0.9])) */
-            System.out.println("About to run #26: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.9), r.array(0.9, 0.0), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
+            logger.info("About to run line #82: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.9), r.array(0.9, 0.0), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, 0.9), r.array(0.9, 0.0), r.array(0.9, 0.9), r.array(0.1, 0.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -652,20 +628,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #27
+            // geo/operations.yaml line #84
             /* err('ReqlQueryLogicError', 'The second argument to `polygon_sub` is not contained in the first one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "The second argument to `polygon_sub` is not contained in the first one.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0,0], [2,0], [2,2], [0,2])) */
-            System.out.println("About to run #27: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(2L, 0L), r.array(2L, 2L), r.array(0L, 2L)))");
+            logger.info("About to run line #84: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(2L, 0L), r.array(2L, 2L), r.array(0L, 2L)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(2L, 0L), r.array(2L, 2L), r.array(0L, 2L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -674,20 +649,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #28
+            // geo/operations.yaml line #86
             /* err('ReqlQueryLogicError', 'The second argument to `polygon_sub` is not contained in the first one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "The second argument to `polygon_sub` is not contained in the first one.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0,-2], [1,-2], [-1,1], [0,-1])) */
-            System.out.println("About to run #28: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -2L), r.array(1L, -2L), r.array(-1L, 1L), r.array(0L, -1L)))");
+            logger.info("About to run line #86: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -2L), r.array(1L, -2L), r.array(-1L, 1L), r.array(0L, -1L)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -2L), r.array(1L, -2L), r.array(-1L, 1L), r.array(0L, -1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -696,20 +670,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #29
+            // geo/operations.yaml line #88
             /* err('ReqlQueryLogicError', 'The second argument to `polygon_sub` is not contained in the first one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "The second argument to `polygon_sub` is not contained in the first one.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0,-1], [1,-1], [1,0], [0,0])) */
-            System.out.println("About to run #29: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -1L), r.array(1L, -1L), r.array(1L, 0L), r.array(0L, 0L)))");
+            logger.info("About to run line #88: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -1L), r.array(1L, -1L), r.array(1L, 0L), r.array(0L, 0L)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, -1L), r.array(1L, -1L), r.array(1L, 0L), r.array(0L, 0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #88");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #88:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -718,20 +691,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #30
+            // geo/operations.yaml line #90
             /* err('ReqlQueryLogicError', 'The second argument to `polygon_sub` is not contained in the first one.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "The second argument to `polygon_sub` is not contained in the first one.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0.1,-1], [0.9,-1], [0.9,0.5], [0.1,0.5])) */
-            System.out.println("About to run #30: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, -1L), r.array(0.9, -1L), r.array(0.9, 0.5), r.array(0.1, 0.5)))");
+            logger.info("About to run line #90: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, -1L), r.array(0.9, -1L), r.array(0.9, 0.5), r.array(0.1, 0.5)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0.1, -1L), r.array(0.9, -1L), r.array(0.9, 0.5), r.array(0.1, 0.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #90");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #90:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -740,20 +712,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #31
+            // geo/operations.yaml line #92
             /* ({'$reql_type$':'GEOMETRY', 'coordinates':[[[0,0],[1,0],[1,1],[0,1],[0,0]],[[0,0],[0.1,0.9],[0.9,0.9],[0.9,0.1],[0,0]]], 'type':'Polygon'}) */
             Map expected_ = r.hashMap("$reql_type$", "GEOMETRY").with("coordinates", r.array(r.array(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L), r.array(0L, 0L)), r.array(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1), r.array(0L, 0L)))).with("type", "Polygon");
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0,0],[0.1,0.9],[0.9,0.9],[0.9,0.1])) */
-            System.out.println("About to run #31: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1)))");
+            logger.info("About to run line #92: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #92");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #92:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -762,20 +733,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #32
+            // geo/operations.yaml line #94
             /* err('ReqlQueryLogicError', 'Expected a Polygon with only an outer shell.  This one has holes.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected a Polygon with only an outer shell.  This one has holes.", r.array(0L));
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.polygon([0,0],[0.1,0.9],[0.9,0.9],[0.9,0.1]).polygon_sub(r.polygon([0.2,0.2],[0.5,0.8],[0.8,0.2]))) */
-            System.out.println("About to run #32: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1)).polygonSub(r.polygon(r.array(0.2, 0.2), r.array(0.5, 0.8), r.array(0.8, 0.2))))");
+            logger.info("About to run line #94: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1)).polygonSub(r.polygon(r.array(0.2, 0.2), r.array(0.5, 0.8), r.array(0.8, 0.2))))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.polygon(r.array(0L, 0L), r.array(0.1, 0.9), r.array(0.9, 0.9), r.array(0.9, 0.1)).polygonSub(r.polygon(r.array(0.2, 0.2), r.array(0.5, 0.8), r.array(0.8, 0.2)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #94");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #94:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -784,20 +754,19 @@ public class GeoOperations {
         }
         
         {
-            // geo/operations.yaml #33
+            // geo/operations.yaml line #96
             /* err('ReqlQueryLogicError', 'Expected a Polygon but found a LineString.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected a Polygon but found a LineString.", r.array());
             /* r.polygon([0,0], [1,0], [1,1], [0,1]).polygon_sub(r.line([0,0],[0.9,0.1],[0.9,0.9],[0.1,0.9])) */
-            System.out.println("About to run #33: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.line(r.array(0L, 0L), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
+            logger.info("About to run line #96: r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.line(r.array(0L, 0L), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9)))");
             Object obtained = runOrCatch(r.polygon(r.array(0L, 0L), r.array(1L, 0L), r.array(1L, 1L), r.array(0L, 1L)).polygonSub(r.line(r.array(0L, 0L), r.array(0.9, 0.1), r.array(0.9, 0.9), r.array(0.1, 0.9))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #96");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #96:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumNumber {
+    // Tests of conversion to and from the RQL number type
     Logger logger = LoggerFactory.getLogger(DatumNumber.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumNumber {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumNumber {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumNumber {
     public void test() throws Exception {
                 
         {
-            // datum/number.yaml #1
+            // datum/number.yaml line #6
             /* 1 */
             Long expected_ = 1L;
             /* r.expr(1) */
-            System.out.println("About to run #1: r.expr(1L)");
+            logger.info("About to run line #6: r.expr(1L)");
             Object obtained = runOrCatch(r.expr(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #2
+            // datum/number.yaml line #15
             /* -1 */
             Long expected_ = -1L;
             /* r.expr(-1) */
-            System.out.println("About to run #2: r.expr(-1L)");
+            logger.info("About to run line #15: r.expr(-1L)");
             Object obtained = runOrCatch(r.expr(-1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #3
+            // datum/number.yaml line #24
             /* 0 */
             Long expected_ = 0L;
             /* r.expr(0) */
-            System.out.println("About to run #3: r.expr(0L)");
+            logger.info("About to run line #24: r.expr(0L)");
             Object obtained = runOrCatch(r.expr(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,22 +140,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #4
+            // datum/number.yaml line #35
             /* 1.0 */
             Double expected_ = 1.0;
             /* r.expr(1.0) */
-            System.out.println("About to run #4: r.expr(1.0)");
+            logger.info("About to run line #35: r.expr(1.0)");
             Object obtained = runOrCatch(r.expr(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -165,22 +163,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #5
+            // datum/number.yaml line #44
             /* 1.5 */
             Double expected_ = 1.5;
             /* r.expr(1.5) */
-            System.out.println("About to run #5: r.expr(1.5)");
+            logger.info("About to run line #44: r.expr(1.5)");
             Object obtained = runOrCatch(r.expr(1.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -189,22 +186,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #6
+            // datum/number.yaml line #53
             /* -0.5 */
             Double expected_ = -0.5;
             /* r.expr(-0.5) */
-            System.out.println("About to run #6: r.expr(-0.5)");
+            logger.info("About to run line #53: r.expr(-0.5)");
             Object obtained = runOrCatch(r.expr(-0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -213,22 +209,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #7
+            // datum/number.yaml line #62
             /* 67498.89278 */
             Double expected_ = 67498.89278;
             /* r.expr(67498.89278) */
-            System.out.println("About to run #7: r.expr(67498.89278)");
+            logger.info("About to run line #62: r.expr(67498.89278)");
             Object obtained = runOrCatch(r.expr(67498.89278),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #62");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -237,20 +232,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #8
+            // datum/number.yaml line #73
             /* 1234567890 */
             Long expected_ = 1234567890L;
             /* r.expr(1234567890) */
-            System.out.println("About to run #8: r.expr(1234567890L)");
+            logger.info("About to run line #73: r.expr(1234567890L)");
             Object obtained = runOrCatch(r.expr(1234567890L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -259,20 +253,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #9
+            // datum/number.yaml line #83
             /* -73850380122423 */
             Long expected_ = -73850380122423L;
             /* r.expr(-73850380122423) */
-            System.out.println("About to run #9: r.expr(-73850380122423L)");
+            logger.info("About to run line #83: r.expr(-73850380122423L)");
             Object obtained = runOrCatch(r.expr(-73850380122423L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -281,22 +274,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #10
+            // datum/number.yaml line #95
             /* float(1234567890123456789012345678901234567890) */
             Double expected_ = float_(1234567890123456789012345678901234567890.0);
             /* r.expr(1234567890123456789012345678901234567890) */
-            System.out.println("About to run #10: r.expr(1234567890123456789012345678901234567890.0)");
+            logger.info("About to run line #95: r.expr(1234567890123456789012345678901234567890.0)");
             Object obtained = runOrCatch(r.expr(1234567890123456789012345678901234567890.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #95");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #95:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -305,22 +297,21 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #11
-            /* (123.4567890123456789012345678901234567890) */
+            // datum/number.yaml line #100
+            /* 123.4567890123456789012345678901234567890 */
             Double expected_ = 123.45678901234568;
             /* r.expr(123.4567890123456789012345678901234567890) */
-            System.out.println("About to run #11: r.expr(123.45678901234568)");
+            logger.info("About to run line #100: r.expr(123.45678901234568)");
             Object obtained = runOrCatch(r.expr(123.45678901234568),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -329,20 +320,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #12
+            // datum/number.yaml line #103
             /* 'NUMBER' */
             String expected_ = "NUMBER";
             /* r.expr(1).type_of() */
-            System.out.println("About to run #12: r.expr(1L).typeOf()");
+            logger.info("About to run line #103: r.expr(1L).typeOf()");
             Object obtained = runOrCatch(r.expr(1L).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -351,20 +341,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #13
+            // datum/number.yaml line #107
             /* '1' */
             String expected_ = "1";
             /* r.expr(1).coerce_to('string') */
-            System.out.println("About to run #13: r.expr(1L).coerceTo('string')");
+            logger.info("About to run line #107: r.expr(1L).coerceTo('string')");
             Object obtained = runOrCatch(r.expr(1L).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #107");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #107:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -373,20 +362,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #14
+            // datum/number.yaml line #110
             /* 1 */
             Long expected_ = 1L;
             /* r.expr(1).coerce_to('number') */
-            System.out.println("About to run #14: r.expr(1L).coerceTo('number')");
+            logger.info("About to run line #110: r.expr(1L).coerceTo('number')");
             Object obtained = runOrCatch(r.expr(1L).coerceTo("number"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #110");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #110:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -395,20 +383,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #15
+            // datum/number.yaml line #115
             /* int_cmp(1) */
             IntCmp expected_ = int_cmp(1L);
             /* r.expr(1.0) */
-            System.out.println("About to run #15: r.expr(1.0)");
+            logger.info("About to run line #115: r.expr(1.0)");
             Object obtained = runOrCatch(r.expr(1.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #115");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #115:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -417,20 +404,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #16
+            // datum/number.yaml line #119
             /* int_cmp(45) */
             IntCmp expected_ = int_cmp(45L);
             /* r.expr(45) */
-            System.out.println("About to run #16: r.expr(45L)");
+            logger.info("About to run line #119: r.expr(45L)");
             Object obtained = runOrCatch(r.expr(45L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #119");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #119:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -439,20 +425,19 @@ public class DatumNumber {
         }
         
         {
-            // datum/number.yaml #17
+            // datum/number.yaml line #123
             /* float_cmp(1.2) */
             FloatCmp expected_ = float_cmp(1.2);
             /* r.expr(1.2) */
-            System.out.println("About to run #17: r.expr(1.2)");
+            logger.info("About to run line #123: r.expr(1.2)");
             Object obtained = runOrCatch(r.expr(1.2),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #123");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #123:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

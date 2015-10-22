@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class Random {
+    // Tests randomization functions
     Logger logger = LoggerFactory.getLogger(Random.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class Random {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class Random {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class Random {
     public void test() throws Exception {
                 
         {
-            // random.yaml #1
+            // random.yaml line #5
             /* 3 */
             Long expected_ = 3L;
             /* r.expr([1,2,3]).sample(3).distinct().count() */
-            System.out.println("About to run #1: r.expr(r.array(1L, 2L, 3L)).sample(3L).distinct().count()");
+            logger.info("About to run line #5: r.expr(r.array(1L, 2L, 3L)).sample(3L).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).sample(3L).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class Random {
         }
         
         {
-            // random.yaml #2
+            // random.yaml line #7
             /* 3 */
             Long expected_ = 3L;
             /* r.expr([1,2,3]).sample(3).count() */
-            System.out.println("About to run #2: r.expr(r.array(1L, 2L, 3L)).sample(3L).count()");
+            logger.info("About to run line #7: r.expr(r.array(1L, 2L, 3L)).sample(3L).count()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).sample(3L).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class Random {
         }
         
         {
-            // random.yaml #3
+            // random.yaml line #9
             /* 3 */
             Long expected_ = 3L;
             /* r.expr([1,2,3,4,5,6]).sample(3).distinct().count() */
-            System.out.println("About to run #3: r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L)).sample(3L).distinct().count()");
+            logger.info("About to run line #9: r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L)).sample(3L).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L)).sample(3L).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class Random {
         }
         
         {
-            // random.yaml #4
+            // random.yaml line #11
             /* 3 */
             Long expected_ = 3L;
             /* r.expr([1,2,3]).sample(4).distinct().count() */
-            System.out.println("About to run #4: r.expr(r.array(1L, 2L, 3L)).sample(4L).distinct().count()");
+            logger.info("About to run line #11: r.expr(r.array(1L, 2L, 3L)).sample(4L).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).sample(4L).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class Random {
         }
         
         {
-            // random.yaml #6
+            // random.yaml line #15
             /* err('ReqlQueryLogicError', 'Number of items to sample must be non-negative, got `-1`.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Number of items to sample must be non-negative, got `-1`.", r.array(0L));
             /* r.expr([1,2,3]).sample(-1) */
-            System.out.println("About to run #6: r.expr(r.array(1L, 2L, 3L)).sample(-1L)");
+            logger.info("About to run line #15: r.expr(r.array(1L, 2L, 3L)).sample(-1L)");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).sample(-1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class Random {
         }
         
         {
-            // random.yaml #7
+            // random.yaml line #17
             /* err('ReqlQueryLogicError', 'Cannot convert NUMBER to SEQUENCE', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot convert NUMBER to SEQUENCE", r.array(0L));
             /* r.expr(1).sample(1) */
-            System.out.println("About to run #7: r.expr(1L).sample(1L)");
+            logger.info("About to run line #17: r.expr(1L).sample(1L)");
             Object obtained = runOrCatch(r.expr(1L).sample(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class Random {
         }
         
         {
-            // random.yaml #8
+            // random.yaml line #19
             /* err('ReqlQueryLogicError', 'Cannot convert OBJECT to SEQUENCE', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot convert OBJECT to SEQUENCE", r.array(0L));
             /* r.expr({}).sample(1) */
-            System.out.println("About to run #8: r.expr(r.hashMap()).sample(1L)");
+            logger.info("About to run line #19: r.expr(r.hashMap()).sample(1L)");
             Object obtained = runOrCatch(r.expr(r.hashMap()).sample(1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #19");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #19:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 1)
+            // random.yaml line #25
             /* True */
             Boolean expected_ = true;
             /* r.random().do(lambda x:r.and_(x.ge(0), x.lt(1))) */
-            System.out.println("About to run #(9, 1): r.random().do_(x -> r.and(x.ge(0L), x.lt(1L)))");
+            logger.info("About to run line #25: r.random().do_(x -> r.and(x.ge(0L), x.lt(1L)))");
             Object obtained = runOrCatch(r.random().do_(x -> r.and(x.ge(0L), x.lt(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 1)");
+            logger.info("Finished running line #25");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 2)
+            // random.yaml line #26
             /* True */
             Boolean expected_ = true;
             /* r.random(1, float=True).do(lambda x:r.and_(x.ge(0), x.lt(1))) */
-            System.out.println("About to run #(9, 2): r.random(1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
+            logger.info("About to run line #26: r.random(1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
             Object obtained = runOrCatch(r.random(1L).optArg("float", true).do_(x -> r.and(x.ge(0L), x.lt(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 2)");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 3)
+            // random.yaml line #27
             /* True */
             Boolean expected_ = true;
             /* r.random(0, 1, float=True).do(lambda x:r.and_(x.ge(0), x.lt(1))) */
-            System.out.println("About to run #(9, 3): r.random(0L, 1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
+            logger.info("About to run line #27: r.random(0L, 1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
             Object obtained = runOrCatch(r.random(0L, 1L).optArg("float", true).do_(x -> r.and(x.ge(0L), x.lt(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 3)");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 4)
+            // random.yaml line #28
             /* True */
             Boolean expected_ = true;
             /* r.random(1, 0, float=True).do(lambda x:r.and_(x.le(1), x.gt(0))) */
-            System.out.println("About to run #(9, 4): r.random(1L, 0L).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
+            logger.info("About to run line #28: r.random(1L, 0L).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
             Object obtained = runOrCatch(r.random(1L, 0L).optArg("float", true).do_(x -> r.and(x.le(1L), x.gt(0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 4)");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 5)
+            // random.yaml line #29
             /* True */
             Boolean expected_ = true;
             /* r.random(r.expr(0), 1, float=True).do(lambda x:r.and_(x.ge(0), x.lt(1))) */
-            System.out.println("About to run #(9, 5): r.random(r.expr(0L), 1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
+            logger.info("About to run line #29: r.random(r.expr(0L), 1L).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1L)))");
             Object obtained = runOrCatch(r.random(r.expr(0L), 1L).optArg("float", true).do_(x -> r.and(x.ge(0L), x.lt(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 5)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 5)");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 5):" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 6)
+            // random.yaml line #30
             /* True */
             Boolean expected_ = true;
             /* r.random(1, r.expr(0), float=True).do(lambda x:r.and_(x.le(1), x.gt(0))) */
-            System.out.println("About to run #(9, 6): r.random(1L, r.expr(0L)).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
+            logger.info("About to run line #30: r.random(1L, r.expr(0L)).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
             Object obtained = runOrCatch(r.random(1L, r.expr(0L)).optArg("float", true).do_(x -> r.and(x.le(1L), x.gt(0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 6)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 6)");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 6):" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(9, 7)
+            // random.yaml line #31
             /* True */
             Boolean expected_ = true;
             /* r.random(r.expr(1), r.expr(0), float=True).do(lambda x:r.and_(x.le(1), x.gt(0))) */
-            System.out.println("About to run #(9, 7): r.random(r.expr(1L), r.expr(0L)).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
+            logger.info("About to run line #31: r.random(r.expr(1L), r.expr(0L)).optArg('float', true).do_(x -> r.and(x.le(1L), x.gt(0L)))");
             Object obtained = runOrCatch(r.random(r.expr(1L), r.expr(0L)).optArg("float", true).do_(x -> r.and(x.le(1L), x.gt(0L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(9, 7)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(9, 7)");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(9, 7):" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(10, 1)
+            // random.yaml line #36
             /* True */
             Boolean expected_ = true;
             /* r.random(0.495, float=True).do(lambda x:r.and_(x.ge(0), x.lt(0.495))) */
-            System.out.println("About to run #(10, 1): r.random(0.495).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(0.495)))");
+            logger.info("About to run line #36: r.random(0.495).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(0.495)))");
             Object obtained = runOrCatch(r.random(0.495).optArg("float", true).do_(x -> r.and(x.ge(0L), x.lt(0.495))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(10, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(10, 1)");
+            logger.info("Finished running line #36");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(10, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #36:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(10, 2)
+            // random.yaml line #37
             /* True */
             Boolean expected_ = true;
             /* r.random(-0.495, float=True).do(lambda x:r.and_(x.le(0), x.gt(-0.495))) */
-            System.out.println("About to run #(10, 2): r.random(-0.495).optArg('float', true).do_(x -> r.and(x.le(0L), x.gt(-0.495)))");
+            logger.info("About to run line #37: r.random(-0.495).optArg('float', true).do_(x -> r.and(x.le(0L), x.gt(-0.495)))");
             Object obtained = runOrCatch(r.random(-0.495).optArg("float", true).do_(x -> r.and(x.le(0L), x.gt(-0.495))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(10, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(10, 2)");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(10, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -427,20 +413,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(10, 3)
+            // random.yaml line #38
             /* True */
             Boolean expected_ = true;
             /* r.random(1823756.24, float=True).do(lambda x:r.and_(x.ge(0), x.lt(1823756.24))) */
-            System.out.println("About to run #(10, 3): r.random(1823756.24).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1823756.24)))");
+            logger.info("About to run line #38: r.random(1823756.24).optArg('float', true).do_(x -> r.and(x.ge(0L), x.lt(1823756.24)))");
             Object obtained = runOrCatch(r.random(1823756.24).optArg("float", true).do_(x -> r.and(x.ge(0L), x.lt(1823756.24))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(10, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(10, 3)");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(10, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -449,20 +434,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(10, 4)
+            // random.yaml line #39
             /* True */
             Boolean expected_ = true;
             /* r.random(-1823756.24, float=True).do(lambda x:r.and_(x.le(0), x.gt(-1823756.24))) */
-            System.out.println("About to run #(10, 4): r.random(-1823756.24).optArg('float', true).do_(x -> r.and(x.le(0L), x.gt(-1823756.24)))");
+            logger.info("About to run line #39: r.random(-1823756.24).optArg('float', true).do_(x -> r.and(x.le(0L), x.gt(-1823756.24)))");
             Object obtained = runOrCatch(r.random(-1823756.24).optArg("float", true).do_(x -> r.and(x.le(0L), x.gt(-1823756.24))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(10, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(10, 4)");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(10, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -471,20 +455,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(11, 1)
+            // random.yaml line #44
             /* True */
             Boolean expected_ = true;
             /* r.random(10.5, 20.153, float=True).do(lambda x:r.and_(x.ge(10.5), x.lt(20.153))) */
-            System.out.println("About to run #(11, 1): r.random(10.5, 20.153).optArg('float', true).do_(x -> r.and(x.ge(10.5), x.lt(20.153)))");
+            logger.info("About to run line #44: r.random(10.5, 20.153).optArg('float', true).do_(x -> r.and(x.ge(10.5), x.lt(20.153)))");
             Object obtained = runOrCatch(r.random(10.5, 20.153).optArg("float", true).do_(x -> r.and(x.ge(10.5), x.lt(20.153))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(11, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(11, 1)");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(11, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -493,20 +476,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(11, 2)
+            // random.yaml line #45
             /* True */
             Boolean expected_ = true;
             /* r.random(20.153, 10.5, float=True).do(lambda x:r.and_(x.le(20.153), x.gt(10.5))) */
-            System.out.println("About to run #(11, 2): r.random(20.153, 10.5).optArg('float', true).do_(x -> r.and(x.le(20.153), x.gt(10.5)))");
+            logger.info("About to run line #45: r.random(20.153, 10.5).optArg('float', true).do_(x -> r.and(x.le(20.153), x.gt(10.5)))");
             Object obtained = runOrCatch(r.random(20.153, 10.5).optArg("float", true).do_(x -> r.and(x.le(20.153), x.gt(10.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(11, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(11, 2)");
+            logger.info("Finished running line #45");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(11, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #45:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -515,20 +497,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(11, 3)
+            // random.yaml line #46
             /* True */
             Boolean expected_ = true;
             /* r.random(31415926.1, 31415926, float=True).do(lambda x:r.and_(x.le(31415926.1), x.gt(31415926))) */
-            System.out.println("About to run #(11, 3): r.random(31415926.1, 31415926L).optArg('float', true).do_(x -> r.and(x.le(31415926.1), x.gt(31415926L)))");
+            logger.info("About to run line #46: r.random(31415926.1, 31415926L).optArg('float', true).do_(x -> r.and(x.le(31415926.1), x.gt(31415926L)))");
             Object obtained = runOrCatch(r.random(31415926.1, 31415926L).optArg("float", true).do_(x -> r.and(x.le(31415926.1), x.gt(31415926L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(11, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(11, 3)");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(11, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -537,20 +518,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(12, 1)
+            // random.yaml line #51
             /* True */
             Boolean expected_ = true;
             /* r.random(-10.5, 20.153, float=True).do(lambda x:r.and_(x.ge(-10.5), x.lt(20.153))) */
-            System.out.println("About to run #(12, 1): r.random(-10.5, 20.153).optArg('float', true).do_(x -> r.and(x.ge(-10.5), x.lt(20.153)))");
+            logger.info("About to run line #51: r.random(-10.5, 20.153).optArg('float', true).do_(x -> r.and(x.ge(-10.5), x.lt(20.153)))");
             Object obtained = runOrCatch(r.random(-10.5, 20.153).optArg("float", true).do_(x -> r.and(x.ge(-10.5), x.lt(20.153))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(12, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(12, 1)");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(12, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -559,20 +539,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(12, 2)
+            // random.yaml line #52
             /* True */
             Boolean expected_ = true;
             /* r.random(-20.153, -10.5, float=True).do(lambda x:r.and_(x.ge(-20.153), x.lt(-10.5))) */
-            System.out.println("About to run #(12, 2): r.random(-20.153, -10.5).optArg('float', true).do_(x -> r.and(x.ge(-20.153), x.lt(-10.5)))");
+            logger.info("About to run line #52: r.random(-20.153, -10.5).optArg('float', true).do_(x -> r.and(x.ge(-20.153), x.lt(-10.5)))");
             Object obtained = runOrCatch(r.random(-20.153, -10.5).optArg("float", true).do_(x -> r.and(x.ge(-20.153), x.lt(-10.5))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(12, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(12, 2)");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(12, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -581,20 +560,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(12, 3)
+            // random.yaml line #53
             /* True */
             Boolean expected_ = true;
             /* r.random(-31415926, -31415926.1, float=True).do(lambda x:r.and_(x.le(-31415926), x.gt(-31415926.1))) */
-            System.out.println("About to run #(12, 3): r.random(-31415926L, -31415926.1).optArg('float', true).do_(x -> r.and(x.le(-31415926L), x.gt(-31415926.1)))");
+            logger.info("About to run line #53: r.random(-31415926L, -31415926.1).optArg('float', true).do_(x -> r.and(x.le(-31415926L), x.gt(-31415926.1)))");
             Object obtained = runOrCatch(r.random(-31415926L, -31415926.1).optArg("float", true).do_(x -> r.and(x.le(-31415926L), x.gt(-31415926.1))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(12, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(12, 3)");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(12, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -603,20 +581,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(13, 1)
+            // random.yaml line #58
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([r.random(), r.random()]).distinct().count() */
-            System.out.println("About to run #(13, 1): r.expr(r.array(r.random(), r.random())).distinct().count()");
+            logger.info("About to run line #58: r.expr(r.array(r.random(), r.random())).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(r.random(), r.random())).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(13, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(13, 1)");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(13, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -625,20 +602,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(13, 2)
+            // random.yaml line #59
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([r.random(1, float=True), r.random(1, float=True)]).distinct().count() */
-            System.out.println("About to run #(13, 2): r.expr(r.array(r.random(1L).optArg('float', true), r.random(1L).optArg('float', true))).distinct().count()");
+            logger.info("About to run line #59: r.expr(r.array(r.random(1L).optArg('float', true), r.random(1L).optArg('float', true))).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(r.random(1L).optArg("float", true), r.random(1L).optArg("float", true))).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(13, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(13, 2)");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(13, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -647,20 +623,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(13, 3)
+            // random.yaml line #60
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([r.random(0, 1, float=True), r.random(0, 1, float=True)]).distinct().count() */
-            System.out.println("About to run #(13, 3): r.expr(r.array(r.random(0L, 1L).optArg('float', true), r.random(0L, 1L).optArg('float', true))).distinct().count()");
+            logger.info("About to run line #60: r.expr(r.array(r.random(0L, 1L).optArg('float', true), r.random(0L, 1L).optArg('float', true))).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(r.random(0L, 1L).optArg("float", true), r.random(0L, 1L).optArg("float", true))).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(13, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(13, 3)");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(13, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -669,20 +644,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(14, 1)
+            // random.yaml line #65
             /* True */
             Boolean expected_ = true;
             /* r.random(0, float=True).eq(0) */
-            System.out.println("About to run #(14, 1): r.random(0L).optArg('float', true).eq(0L)");
+            logger.info("About to run line #65: r.random(0L).optArg('float', true).eq(0L)");
             Object obtained = runOrCatch(r.random(0L).optArg("float", true).eq(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(14, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(14, 1)");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(14, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -691,20 +665,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(14, 2)
+            // random.yaml line #66
             /* True */
             Boolean expected_ = true;
             /* r.random(5, 5, float=True).eq(5) */
-            System.out.println("About to run #(14, 2): r.random(5L, 5L).optArg('float', true).eq(5L)");
+            logger.info("About to run line #66: r.random(5L, 5L).optArg('float', true).eq(5L)");
             Object obtained = runOrCatch(r.random(5L, 5L).optArg("float", true).eq(5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(14, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(14, 2)");
+            logger.info("Finished running line #66");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(14, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -713,20 +686,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(14, 3)
+            // random.yaml line #67
             /* True */
             Boolean expected_ = true;
             /* r.random(-499384756758, -499384756758, float=True).eq(-499384756758) */
-            System.out.println("About to run #(14, 3): r.random(-499384756758L, -499384756758L).optArg('float', true).eq(-499384756758L)");
+            logger.info("About to run line #67: r.random(-499384756758L, -499384756758L).optArg('float', true).eq(-499384756758L)");
             Object obtained = runOrCatch(r.random(-499384756758L, -499384756758L).optArg("float", true).eq(-499384756758L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(14, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(14, 3)");
+            logger.info("Finished running line #67");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(14, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #67:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -735,20 +707,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(14, 4)
+            // random.yaml line #68
             /* True */
             Boolean expected_ = true;
             /* r.random(-93.94757, -93.94757, float=True).eq(-93.94757) */
-            System.out.println("About to run #(14, 4): r.random(-93.94757, -93.94757).optArg('float', true).eq(-93.94757)");
+            logger.info("About to run line #68: r.random(-93.94757, -93.94757).optArg('float', true).eq(-93.94757)");
             Object obtained = runOrCatch(r.random(-93.94757, -93.94757).optArg("float", true).eq(-93.94757),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(14, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(14, 4)");
+            logger.info("Finished running line #68");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(14, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #68:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -757,20 +728,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(14, 5)
+            // random.yaml line #69
             /* True */
             Boolean expected_ = true;
             /* r.random(294.69148, 294.69148, float=True).eq(294.69148) */
-            System.out.println("About to run #(14, 5): r.random(294.69148, 294.69148).optArg('float', true).eq(294.69148)");
+            logger.info("About to run line #69: r.random(294.69148, 294.69148).optArg('float', true).eq(294.69148)");
             Object obtained = runOrCatch(r.random(294.69148, 294.69148).optArg("float", true).eq(294.69148),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(14, 5)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(14, 5)");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(14, 5):" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -778,31 +748,30 @@ public class Random {
             }
         }
         
-        // random.yaml #15
+        // random.yaml line #74
         // float_max = sys.float_info.max
-        System.out.println("Possibly executing: Double float_max = (Double) (sys.floatInfo.max);");
+        logger.info("Possibly executing: Double float_max = (Double) (sys.floatInfo.max);");
         Double float_max = (Double) (sys.floatInfo.max);
                 
-        // random.yaml #16
+        // random.yaml line #78
         // float_min = sys.float_info.min
-        System.out.println("Possibly executing: Double float_min = (Double) (sys.floatInfo.min);");
+        logger.info("Possibly executing: Double float_min = (Double) (sys.floatInfo.min);");
         Double float_min = (Double) (sys.floatInfo.min);
                 
         {
-            // random.yaml #(17, 1)
+            // random.yaml line #82
             /* True */
             Boolean expected_ = true;
             /* r.random(-float_max, float_max, float=True).do(lambda x:r.and_(x.ge(-float_max), x.lt(float_max))) */
-            System.out.println("About to run #(17, 1): r.random(-float_max, float_max).optArg('float', true).do_(x -> r.and(x.ge(-float_max), x.lt(float_max)))");
+            logger.info("About to run line #82: r.random(-float_max, float_max).optArg('float', true).do_(x -> r.and(x.ge(-float_max), x.lt(float_max)))");
             Object obtained = runOrCatch(r.random(-float_max, float_max).optArg("float", true).do_(x -> r.and(x.ge(-float_max), x.lt(float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 1)");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -811,20 +780,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(17, 2)
+            // random.yaml line #83
             /* True */
             Boolean expected_ = true;
             /* r.random(float_max, -float_max, float=True).do(lambda x:r.and_(x.le(float_max), x.gt(-float_max))) */
-            System.out.println("About to run #(17, 2): r.random(float_max, -float_max).optArg('float', true).do_(x -> r.and(x.le(float_max), x.gt(-float_max)))");
+            logger.info("About to run line #83: r.random(float_max, -float_max).optArg('float', true).do_(x -> r.and(x.le(float_max), x.gt(-float_max)))");
             Object obtained = runOrCatch(r.random(float_max, -float_max).optArg("float", true).do_(x -> r.and(x.le(float_max), x.gt(-float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 2)");
+            logger.info("Finished running line #83");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #83:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -833,20 +801,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(17, 3)
+            // random.yaml line #84
             /* True */
             Boolean expected_ = true;
             /* r.random(float_min, float_max, float=True).do(lambda x:r.and_(x.ge(float_min), x.lt(float_max))) */
-            System.out.println("About to run #(17, 3): r.random(float_min, float_max).optArg('float', true).do_(x -> r.and(x.ge(float_min), x.lt(float_max)))");
+            logger.info("About to run line #84: r.random(float_min, float_max).optArg('float', true).do_(x -> r.and(x.ge(float_min), x.lt(float_max)))");
             Object obtained = runOrCatch(r.random(float_min, float_max).optArg("float", true).do_(x -> r.and(x.ge(float_min), x.lt(float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 3)");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -855,20 +822,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(17, 4)
+            // random.yaml line #85
             /* True */
             Boolean expected_ = true;
             /* r.random(float_min, -float_max, float=True).do(lambda x:r.and_(x.le(float_min), x.gt(-float_max))) */
-            System.out.println("About to run #(17, 4): r.random(float_min, -float_max).optArg('float', true).do_(x -> r.and(x.le(float_min), x.gt(-float_max)))");
+            logger.info("About to run line #85: r.random(float_min, -float_max).optArg('float', true).do_(x -> r.and(x.le(float_min), x.gt(-float_max)))");
             Object obtained = runOrCatch(r.random(float_min, -float_max).optArg("float", true).do_(x -> r.and(x.le(float_min), x.gt(-float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 4)");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -877,20 +843,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(17, 5)
+            // random.yaml line #86
             /* True */
             Boolean expected_ = true;
             /* r.random(-float_min, float_max, float=True).do(lambda x:r.and_(x.ge(-float_min), x.lt(float_max))) */
-            System.out.println("About to run #(17, 5): r.random(-float_min, float_max).optArg('float', true).do_(x -> r.and(x.ge(-float_min), x.lt(float_max)))");
+            logger.info("About to run line #86: r.random(-float_min, float_max).optArg('float', true).do_(x -> r.and(x.ge(-float_min), x.lt(float_max)))");
             Object obtained = runOrCatch(r.random(-float_min, float_max).optArg("float", true).do_(x -> r.and(x.ge(-float_min), x.lt(float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 5)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 5)");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 5):" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -899,20 +864,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(17, 6)
+            // random.yaml line #87
             /* True */
             Boolean expected_ = true;
             /* r.random(-float_min, -float_max, float=True).do(lambda x:r.and_(x.le(-float_min), x.gt(-float_max))) */
-            System.out.println("About to run #(17, 6): r.random(-float_min, -float_max).optArg('float', true).do_(x -> r.and(x.le(-float_min), x.gt(-float_max)))");
+            logger.info("About to run line #87: r.random(-float_min, -float_max).optArg('float', true).do_(x -> r.and(x.le(-float_min), x.gt(-float_max)))");
             Object obtained = runOrCatch(r.random(-float_min, -float_max).optArg("float", true).do_(x -> r.and(x.le(-float_min), x.gt(-float_max))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(17, 6)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(17, 6)");
+            logger.info("Finished running line #87");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(17, 6):" + ae.toString());
+                logger.error("Whoops, got exception on line #87:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -920,31 +884,30 @@ public class Random {
             }
         }
         
-        // random.yaml #18
+        // random.yaml line #92
         // upper_limit = 2**53 - 1
-        System.out.println("Possibly executing: Long upper_limit = (Long) (2L << 53L - 1L);");
+        logger.info("Possibly executing: Long upper_limit = (Long) (2L << 53L - 1L);");
         Long upper_limit = (Long) (2L << 53L - 1L);
                 
-        // random.yaml #19
+        // random.yaml line #96
         // lower_limit = 1 - (2**53)
-        System.out.println("Possibly executing: Long lower_limit = (Long) (1L - 2L << 53L);");
+        logger.info("Possibly executing: Long lower_limit = (Long) (1L - 2L << 53L);");
         Long lower_limit = (Long) (1L - 2L << 53L);
                 
         {
-            // random.yaml #(20, 1)
+            // random.yaml line #101
             /* True */
             Boolean expected_ = true;
             /* r.random(256).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 1): r.random(256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #101: r.random(256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(256L).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 1)");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -953,20 +916,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(20, 2)
+            // random.yaml line #102
             /* True */
             Boolean expected_ = true;
             /* r.random(0, 256).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 2): r.random(0L, 256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #102: r.random(0L, 256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(0L, 256L).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 2)");
+            logger.info("Finished running line #102");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #102:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -975,20 +937,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(20, 3)
+            // random.yaml line #103
             /* True */
             Boolean expected_ = true;
             /* r.random(r.expr(256)).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 3): r.random(r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #103: r.random(r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 3)");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -997,20 +958,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(20, 4)
+            // random.yaml line #104
             /* True */
             Boolean expected_ = true;
             /* r.random(r.expr(0), 256).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 4): r.random(r.expr(0L), 256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #104: r.random(r.expr(0L), 256L).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(r.expr(0L), 256L).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 4)");
+            logger.info("Finished running line #104");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #104:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1019,20 +979,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(20, 5)
+            // random.yaml line #105
             /* True */
             Boolean expected_ = true;
             /* r.random(0, r.expr(256)).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 5): r.random(0L, r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #105: r.random(0L, r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(0L, r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 5)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 5)");
+            logger.info("Finished running line #105");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 5):" + ae.toString());
+                logger.error("Whoops, got exception on line #105:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1041,20 +1000,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(20, 6)
+            // random.yaml line #106
             /* True */
             Boolean expected_ = true;
             /* r.random(r.expr(0), r.expr(256)).do(lambda x:r.and_(x.ge(0), x.lt(256))) */
-            System.out.println("About to run #(20, 6): r.random(r.expr(0L), r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
+            logger.info("About to run line #106: r.random(r.expr(0L), r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L)))");
             Object obtained = runOrCatch(r.random(r.expr(0L), r.expr(256L)).do_(x -> r.and(x.ge(0L), x.lt(256L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(20, 6)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(20, 6)");
+            logger.info("Finished running line #106");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(20, 6):" + ae.toString());
+                logger.error("Whoops, got exception on line #106:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1063,20 +1021,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(21, 1)
+            // random.yaml line #111
             /* True */
             Boolean expected_ = true;
             /* r.random(10, 20).do(lambda x:r.and_(x.ge(10), x.lt(20))) */
-            System.out.println("About to run #(21, 1): r.random(10L, 20L).do_(x -> r.and(x.ge(10L), x.lt(20L)))");
+            logger.info("About to run line #111: r.random(10L, 20L).do_(x -> r.and(x.ge(10L), x.lt(20L)))");
             Object obtained = runOrCatch(r.random(10L, 20L).do_(x -> r.and(x.ge(10L), x.lt(20L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(21, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(21, 1)");
+            logger.info("Finished running line #111");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(21, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #111:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1085,20 +1042,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(21, 2)
+            // random.yaml line #112
             /* True */
             Boolean expected_ = true;
             /* r.random(9347849, 120937493).do(lambda x:r.and_(x.ge(9347849), x.lt(120937493))) */
-            System.out.println("About to run #(21, 2): r.random(9347849L, 120937493L).do_(x -> r.and(x.ge(9347849L), x.lt(120937493L)))");
+            logger.info("About to run line #112: r.random(9347849L, 120937493L).do_(x -> r.and(x.ge(9347849L), x.lt(120937493L)))");
             Object obtained = runOrCatch(r.random(9347849L, 120937493L).do_(x -> r.and(x.ge(9347849L), x.lt(120937493L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(21, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(21, 2)");
+            logger.info("Finished running line #112");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(21, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #112:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1107,20 +1063,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(22, 1)
+            // random.yaml line #123
             /* True */
             Boolean expected_ = true;
             /* r.random(-10, 20).do(lambda x:r.and_(x.ge(-10), x.lt(20))) */
-            System.out.println("About to run #(22, 1): r.random(-10L, 20L).do_(x -> r.and(x.ge(-10L), x.lt(20L)))");
+            logger.info("About to run line #123: r.random(-10L, 20L).do_(x -> r.and(x.ge(-10L), x.lt(20L)))");
             Object obtained = runOrCatch(r.random(-10L, 20L).do_(x -> r.and(x.ge(-10L), x.lt(20L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(22, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(22, 1)");
+            logger.info("Finished running line #123");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(22, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #123:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1129,20 +1084,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(22, 2)
+            // random.yaml line #124
             /* True */
             Boolean expected_ = true;
             /* r.random(-20, -10).do(lambda x:r.and_(x.ge(-20), x.lt(-10))) */
-            System.out.println("About to run #(22, 2): r.random(-20L, -10L).do_(x -> r.and(x.ge(-20L), x.lt(-10L)))");
+            logger.info("About to run line #124: r.random(-20L, -10L).do_(x -> r.and(x.ge(-20L), x.lt(-10L)))");
             Object obtained = runOrCatch(r.random(-20L, -10L).do_(x -> r.and(x.ge(-20L), x.lt(-10L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(22, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(22, 2)");
+            logger.info("Finished running line #124");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(22, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #124:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1151,20 +1105,19 @@ public class Random {
         }
         
         {
-            // random.yaml #(22, 3)
+            // random.yaml line #125
             /* True */
             Boolean expected_ = true;
             /* r.random(-120937493, -9347849).do(lambda x:r.and_(x.ge(-120937493), x.lt(-9347849))) */
-            System.out.println("About to run #(22, 3): r.random(-120937493L, -9347849L).do_(x -> r.and(x.ge(-120937493L), x.lt(-9347849L)))");
+            logger.info("About to run line #125: r.random(-120937493L, -9347849L).do_(x -> r.and(x.ge(-120937493L), x.lt(-9347849L)))");
             Object obtained = runOrCatch(r.random(-120937493L, -9347849L).do_(x -> r.and(x.ge(-120937493L), x.lt(-9347849L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(22, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(22, 3)");
+            logger.info("Finished running line #125");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(22, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #125:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1173,20 +1126,19 @@ public class Random {
         }
         
         {
-            // random.yaml #23
+            // random.yaml line #137
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([r.random(upper_limit), r.random(upper_limit)]).distinct().count() */
-            System.out.println("About to run #23: r.expr(r.array(r.random(upper_limit), r.random(upper_limit))).distinct().count()");
+            logger.info("About to run line #137: r.expr(r.array(r.random(upper_limit), r.random(upper_limit))).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(r.random(upper_limit), r.random(upper_limit))).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #137");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #137:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1195,20 +1147,19 @@ public class Random {
         }
         
         {
-            // random.yaml #24
+            // random.yaml line #139
             /* 2 */
             Long expected_ = 2L;
             /* r.expr([upper_limit,upper_limit]).map(lambda x:r.random(x)).distinct().count() */
-            System.out.println("About to run #24: r.expr(r.array(upper_limit, upper_limit)).map(x -> r.random(x)).distinct().count()");
+            logger.info("About to run line #139: r.expr(r.array(upper_limit, upper_limit)).map(x -> r.random(x)).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(upper_limit, upper_limit)).map(x -> r.random(x)).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #139");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #139:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1217,20 +1168,19 @@ public class Random {
         }
         
         {
-            // random.yaml #25
+            // random.yaml line #147
             /* err("ReqlQueryLogicError", "Upper bound (-0.5) could not be safely converted to an integer.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Upper bound (-0.5) could not be safely converted to an integer.", r.array());
             /* r.random(-0.5) */
-            System.out.println("About to run #25: r.random(-0.5)");
+            logger.info("About to run line #147: r.random(-0.5)");
             Object obtained = runOrCatch(r.random(-0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #147");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #147:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1239,20 +1189,19 @@ public class Random {
         }
         
         {
-            // random.yaml #26
+            // random.yaml line #149
             /* err("ReqlQueryLogicError", "Upper bound (0.25) could not be safely converted to an integer.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Upper bound (0.25) could not be safely converted to an integer.", r.array());
             /* r.random(0.25) */
-            System.out.println("About to run #26: r.random(0.25)");
+            logger.info("About to run line #149: r.random(0.25)");
             Object obtained = runOrCatch(r.random(0.25),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #149");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #149:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1261,20 +1210,19 @@ public class Random {
         }
         
         {
-            // random.yaml #27
+            // random.yaml line #151
             /* err("ReqlQueryLogicError", "Upper bound (0.75) could not be safely converted to an integer.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Upper bound (0.75) could not be safely converted to an integer.", r.array());
             /* r.random(-10, 0.75) */
-            System.out.println("About to run #27: r.random(-10L, 0.75)");
+            logger.info("About to run line #151: r.random(-10L, 0.75)");
             Object obtained = runOrCatch(r.random(-10L, 0.75),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #151");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #151:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1283,20 +1231,19 @@ public class Random {
         }
         
         {
-            // random.yaml #28
+            // random.yaml line #153
             /* err("ReqlQueryLogicError", "Lower bound (-120549.25) could not be safely converted to an integer.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (-120549.25) could not be safely converted to an integer.", r.array());
             /* r.random(-120549.25, 39458) */
-            System.out.println("About to run #28: r.random(-120549.25, 39458L)");
+            logger.info("About to run line #153: r.random(-120549.25, 39458L)");
             Object obtained = runOrCatch(r.random(-120549.25, 39458L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #153");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #153:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1305,20 +1252,19 @@ public class Random {
         }
         
         {
-            // random.yaml #29
+            // random.yaml line #155
             /* err("ReqlQueryLogicError", "Lower bound (-6.5) could not be safely converted to an integer.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (-6.5) could not be safely converted to an integer.", r.array());
             /* r.random(-6.5, 8.125) */
-            System.out.println("About to run #29: r.random(-6.5, 8.125)");
+            logger.info("About to run line #155: r.random(-6.5, 8.125)");
             Object obtained = runOrCatch(r.random(-6.5, 8.125),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #155");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #155:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1327,20 +1273,19 @@ public class Random {
         }
         
         {
-            // random.yaml #30
+            // random.yaml line #159
             /* err("ReqlQueryLogicError", "Generating a random integer requires one or two bounds.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Generating a random integer requires one or two bounds.", r.array());
             /* r.random(float=False) */
-            System.out.println("About to run #30: r.random().optArg('float', false)");
+            logger.info("About to run line #159: r.random().optArg('float', false)");
             Object obtained = runOrCatch(r.random().optArg("float", false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #159");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #159:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1349,20 +1294,19 @@ public class Random {
         }
         
         {
-            // random.yaml #31
+            // random.yaml line #165
             /* err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (0).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (0).", r.array());
             /* r.random(0) */
-            System.out.println("About to run #31: r.random(0L)");
+            logger.info("About to run line #165: r.random(0L)");
             Object obtained = runOrCatch(r.random(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #165");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #165:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1371,20 +1315,19 @@ public class Random {
         }
         
         {
-            // random.yaml #32
+            // random.yaml line #167
             /* err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (0).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (0).", r.array());
             /* r.random(0, 0) */
-            System.out.println("About to run #32: r.random(0L, 0L)");
+            logger.info("About to run line #167: r.random(0L, 0L)");
             Object obtained = runOrCatch(r.random(0L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #167");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #167:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1393,20 +1336,19 @@ public class Random {
         }
         
         {
-            // random.yaml #33
+            // random.yaml line #169
             /* err("ReqlQueryLogicError", "Lower bound (515) is not less than upper bound (515).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (515) is not less than upper bound (515).", r.array());
             /* r.random(515, 515) */
-            System.out.println("About to run #33: r.random(515L, 515L)");
+            logger.info("About to run line #169: r.random(515L, 515L)");
             Object obtained = runOrCatch(r.random(515L, 515L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #169");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #169:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1415,20 +1357,19 @@ public class Random {
         }
         
         {
-            // random.yaml #34
+            // random.yaml line #171
             /* err("ReqlQueryLogicError", "Lower bound (-956) is not less than upper bound (-956).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (-956) is not less than upper bound (-956).", r.array());
             /* r.random(-956, -956) */
-            System.out.println("About to run #34: r.random(-956L, -956L)");
+            logger.info("About to run line #171: r.random(-956L, -956L)");
             Object obtained = runOrCatch(r.random(-956L, -956L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #171");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #171:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1437,20 +1378,19 @@ public class Random {
         }
         
         {
-            // random.yaml #35
+            // random.yaml line #173
             /* err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (-10).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (0) is not less than upper bound (-10).", r.array());
             /* r.random(-10) */
-            System.out.println("About to run #35: r.random(-10L)");
+            logger.info("About to run line #173: r.random(-10L)");
             Object obtained = runOrCatch(r.random(-10L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #173");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #173:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1459,20 +1399,19 @@ public class Random {
         }
         
         {
-            // random.yaml #36
+            // random.yaml line #175
             /* err("ReqlQueryLogicError", "Lower bound (20) is not less than upper bound (2).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (20) is not less than upper bound (2).", r.array());
             /* r.random(20, 2) */
-            System.out.println("About to run #36: r.random(20L, 2L)");
+            logger.info("About to run line #175: r.random(20L, 2L)");
             Object obtained = runOrCatch(r.random(20L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #175");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #175:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1481,20 +1420,19 @@ public class Random {
         }
         
         {
-            // random.yaml #37
+            // random.yaml line #177
             /* err("ReqlQueryLogicError", "Lower bound (2) is not less than upper bound (-20).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (2) is not less than upper bound (-20).", r.array());
             /* r.random(2, -20) */
-            System.out.println("About to run #37: r.random(2L, -20L)");
+            logger.info("About to run line #177: r.random(2L, -20L)");
             Object obtained = runOrCatch(r.random(2L, -20L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #177");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #177:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1503,20 +1441,19 @@ public class Random {
         }
         
         {
-            // random.yaml #38
+            // random.yaml line #179
             /* err("ReqlQueryLogicError", "Lower bound (1456) is not less than upper bound (0).", []) */
             Err expected_ = err("ReqlQueryLogicError", "Lower bound (1456) is not less than upper bound (0).", r.array());
             /* r.random(1456, 0) */
-            System.out.println("About to run #38: r.random(1456L, 0L)");
+            logger.info("About to run line #179: r.random(1456L, 0L)");
             Object obtained = runOrCatch(r.random(1456L, 0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #179");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #179:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

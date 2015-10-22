@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TimesShim {
+    // Test the native shims.
     Logger logger = LoggerFactory.getLogger(TimesShim.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class TimesShim {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class TimesShim {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,26 +76,25 @@ public class TimesShim {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // times/shim.yaml #1
+        // times/shim.yaml line #4
         // t = 1375147296.68
-        System.out.println("Possibly executing: Double t = (Double) (1375147296.68);");
+        logger.info("Possibly executing: Double t = (Double) (1375147296.68);");
         Double t = (Double) (1375147296.68);
                 
         {
-            // times/shim.yaml #2
+            // times/shim.yaml line #8
             /* ("2013-07-29T18:21:36.680-07:00") */
             String expected_ = "2013-07-29T18:21:36.680-07:00";
             /* r.expr(datetime.fromtimestamp(t, PacificTimeZone())).to_iso8601() */
-            System.out.println("About to run #2: r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toIso8601()");
+            logger.info("About to run line #8: r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toIso8601()");
             Object obtained = runOrCatch(r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -102,20 +103,19 @@ public class TimesShim {
         }
         
         {
-            // times/shim.yaml #3
+            // times/shim.yaml line #12
             /* ("2013-07-30T01:21:36.680+00:00") */
             String expected_ = "2013-07-30T01:21:36.680+00:00";
             /* r.expr(datetime.fromtimestamp(t, UTCTimeZone())).to_iso8601() */
-            System.out.println("About to run #3: r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toIso8601()");
+            logger.info("About to run line #12: r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toIso8601()");
             Object obtained = runOrCatch(r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -124,22 +124,21 @@ public class TimesShim {
         }
         
         {
-            // times/shim.yaml #4
+            // times/shim.yaml line #16
             /* (1375147296.68) */
             Double expected_ = 1375147296.68;
             /* r.expr(datetime.fromtimestamp(t, PacificTimeZone())).to_epoch_time() */
-            System.out.println("About to run #4: r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toEpochTime()");
+            logger.info("About to run line #16: r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toEpochTime()");
             Object obtained = runOrCatch(r.expr(datetime.fromtimestamp(t, PacificTimeZone())).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -148,22 +147,21 @@ public class TimesShim {
         }
         
         {
-            // times/shim.yaml #5
+            // times/shim.yaml line #20
             /* (1375147296.68) */
             Double expected_ = 1375147296.68;
             /* r.expr(datetime.fromtimestamp(t, UTCTimeZone())).to_epoch_time() */
-            System.out.println("About to run #5: r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toEpochTime()");
+            logger.info("About to run line #20: r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toEpochTime()");
             Object obtained = runOrCatch(r.expr(datetime.fromtimestamp(t, UTCTimeZone())).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

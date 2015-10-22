@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MutationAtomicGetSet {
+    // Tests replacement of selections
     Logger logger = LoggerFactory.getLogger(MutationAtomicGetSet.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
@@ -51,6 +52,7 @@ public class MutationAtomicGetSet {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -64,7 +66,7 @@ public class MutationAtomicGetSet {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -81,20 +83,19 @@ public class MutationAtomicGetSet {
     public void test() throws Exception {
                 
         {
-            // mutation/atomic_get_set.yaml #1
+            // mutation/atomic_get_set.yaml line #7
             /* err("ReqlQueryLogicError", "Error:"+" encountered obsolete optarg `return_vals`.  Use `return_changes` instead.", [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Error:" + " encountered obsolete optarg `return_vals`.  Use `return_changes` instead.", r.array(0L));
             /* tbl.insert({'id':0}, return_vals=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #1: tbl.insert(r.hashMap('id', 0L)).optArg('return_vals', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #7: tbl.insert(r.hashMap('id', 0L)).optArg('return_vals', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L)).optArg("return_vals", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -103,20 +104,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #2
+            // mutation/atomic_get_set.yaml line #12
             /* ({'changes':[{'old_val':null,'new_val':{'id':0}}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("old_val", null).with("new_val", r.hashMap("id", 0L))));
             /* tbl.insert({'id':0}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #2: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #12: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L)).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -125,20 +125,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #3
+            // mutation/atomic_get_set.yaml line #16
             /* ({'changes':[], 'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}"}) */
             Map expected_ = r.hashMap("changes", r.array()).with("first_error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}");
             /* tbl.insert({'id':0}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #3: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #16: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L)).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -147,20 +146,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #4
+            // mutation/atomic_get_set.yaml line #20
             /* ({'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}",'changes':[{'old_val':{'id':0},'new_val':{'id':0}}]}) */
             Map expected_ = r.hashMap("first_error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L)).with("new_val", r.hashMap("id", 0L))));
             /* tbl.insert({'id':0}, return_changes='always').pluck('changes', 'first_error') */
-            System.out.println("About to run #4: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', 'always').pluck('changes', 'first_error')");
+            logger.info("About to run line #20: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', 'always').pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L)).optArg("return_changes", "always").pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -169,20 +167,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #5
+            // mutation/atomic_get_set.yaml line #24
             /* ({'changes':[{'new_val':{'id':1},'old_val':null}], 'errors':0, 'deleted':0, 'unchanged':0, 'skipped':0, 'replaced':0, 'inserted':1}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("new_val", r.hashMap("id", 1L)).with("old_val", null))).with("errors", 0L).with("deleted", 0L).with("unchanged", 0L).with("skipped", 0L).with("replaced", 0L).with("inserted", 1L);
             /* tbl.insert([{'id':1}], return_changes=True) */
-            System.out.println("About to run #5: tbl.insert(r.array(r.hashMap('id', 1L))).optArg('return_changes', true)");
+            logger.info("About to run line #24: tbl.insert(r.array(r.hashMap('id', 1L))).optArg('return_changes', true)");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 1L))).optArg("return_changes", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -191,20 +188,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #6
+            // mutation/atomic_get_set.yaml line #28
             /* ({'changes':[],'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}"}) */
             Map expected_ = r.hashMap("changes", r.array()).with("first_error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}");
             /* tbl.insert([{'id':0}], return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #6: tbl.insert(r.array(r.hashMap('id', 0L))).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #28: tbl.insert(r.array(r.hashMap('id', 0L))).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 0L))).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #28");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -213,20 +209,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #7
+            // mutation/atomic_get_set.yaml line #33
             /* ({'changes':[{'old_val':{'id':0},'new_val':{'id':0,'x':1}}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L)).with("new_val", r.hashMap("id", 0L).with("x", 1L))));
             /* tbl.get(0).update({'x':1}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #7: tbl.get(0L).update(r.hashMap('x', 1L)).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #33: tbl.get(0L).update(r.hashMap('x', 1L)).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).update(r.hashMap("x", 1L)).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #33");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #33:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -235,20 +230,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #8
+            // mutation/atomic_get_set.yaml line #37
             /* ({'changes':[],'first_error':'a'}) */
             Map expected_ = r.hashMap("changes", r.array()).with("first_error", "a");
             /* tbl.get(0).update({'x':r.error("a")}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #8: tbl.get(0L).update(r.hashMap('x', r.error('a'))).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #37: tbl.get(0L).update(r.hashMap('x', r.error('a'))).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).update(r.hashMap("x", r.error("a"))).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -257,20 +251,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #9
+            // mutation/atomic_get_set.yaml line #41
             /* ({'changes':[{'old_val':{'id':0, 'x':1},'new_val':{'id':0, 'x':3}}, {'old_val':{'id':1},'new_val':{'id':1, 'x':3}}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L).with("x", 1L)).with("new_val", r.hashMap("id", 0L).with("x", 3L)), r.hashMap("old_val", r.hashMap("id", 1L)).with("new_val", r.hashMap("id", 1L).with("x", 3L))));
             /* tbl.update({'x':3}, return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])})) */
-            System.out.println("About to run #9: tbl.update(r.hashMap('x', 3L)).optArg('return_changes', true).pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
+            logger.info("About to run line #41: tbl.update(r.hashMap('x', 3L)).optArg('return_changes', true).pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
             Object obtained = runOrCatch(tbl.update(r.hashMap("x", 3L)).optArg("return_changes", true).pluck("changes", "first_error").do_(d -> d.merge(r.hashMap("changes", d.bracket("changes").orderBy(a -> a.bracket("old_val").bracket("id"))))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -279,20 +272,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #10
+            // mutation/atomic_get_set.yaml line #46
             /* ({'changes':[{'old_val':{'id':0,'x':3},'new_val':{'id':0,'x':2}}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L).with("x", 3L)).with("new_val", r.hashMap("id", 0L).with("x", 2L))));
             /* tbl.get(0).replace({'id':0,'x':2}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #10: tbl.get(0L).replace(r.hashMap('id', 0L).with('x', 2L)).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #46: tbl.get(0L).replace(r.hashMap('id', 0L).with('x', 2L)).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).replace(r.hashMap("id", 0L).with("x", 2L)).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -301,20 +293,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #11
+            // mutation/atomic_get_set.yaml line #50
             /* ({'changes':[],'first_error':'a'}) */
             Map expected_ = r.hashMap("changes", r.array()).with("first_error", "a");
             /* tbl.get(0).replace(lambda y:{'x':r.error('a')}, return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #11: tbl.get(0L).replace(y -> r.hashMap('x', r.error('a'))).optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #50: tbl.get(0L).replace(y -> r.hashMap('x', r.error('a'))).optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).replace(y -> r.hashMap("x", r.error("a"))).optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -323,20 +314,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #12
+            // mutation/atomic_get_set.yaml line #54
             /* ({'first_error':'a','changes':[{'old_val':{'id':0,'x':2},'new_val':{'id':0,'x':2}}]}) */
             Map expected_ = r.hashMap("first_error", "a").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L).with("x", 2L)).with("new_val", r.hashMap("id", 0L).with("x", 2L))));
             /* tbl.get(0).replace(lambda y:{'x':r.error('a')}, return_changes='always').pluck('changes', 'first_error') */
-            System.out.println("About to run #12: tbl.get(0L).replace(y -> r.hashMap('x', r.error('a'))).optArg('return_changes', 'always').pluck('changes', 'first_error')");
+            logger.info("About to run line #54: tbl.get(0L).replace(y -> r.hashMap('x', r.error('a'))).optArg('return_changes', 'always').pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).replace(y -> r.hashMap("x", r.error("a"))).optArg("return_changes", "always").pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #54");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #54:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -345,20 +335,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #13
+            // mutation/atomic_get_set.yaml line #58
             /* ({'changes':[{'new_val':{'id':0},'old_val':{'id':0, 'x':2}}, {'new_val':{'id':1},'old_val':{'id':1,'x':3}}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("new_val", r.hashMap("id", 0L)).with("old_val", r.hashMap("id", 0L).with("x", 2L)), r.hashMap("new_val", r.hashMap("id", 1L)).with("old_val", r.hashMap("id", 1L).with("x", 3L))));
             /* tbl.replace(lambda y:y.without('x'), return_changes=True).pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])})) */
-            System.out.println("About to run #13: tbl.replace(y -> y.without('x')).optArg('return_changes', true).pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
+            logger.info("About to run line #58: tbl.replace(y -> y.without('x')).optArg('return_changes', true).pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
             Object obtained = runOrCatch(tbl.replace(y -> y.without("x")).optArg("return_changes", true).pluck("changes", "first_error").do_(d -> d.merge(r.hashMap("changes", d.bracket("changes").orderBy(a -> a.bracket("old_val").bracket("id"))))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #58");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #58:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -367,20 +356,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #14
+            // mutation/atomic_get_set.yaml line #62
             /* ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'id':0},'old_val':{'id':0}}, {'new_val':{'id':1},'old_val':{'id':1}}]}) */
             Map expected_ = r.hashMap("first_error", "Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}").with("changes", r.array(r.hashMap("new_val", r.hashMap("id", 0L)).with("old_val", r.hashMap("id", 0L)), r.hashMap("new_val", r.hashMap("id", 1L)).with("old_val", r.hashMap("id", 1L))));
             /* tbl.replace({'x':1}, return_changes='always').pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])})) */
-            System.out.println("About to run #14: tbl.replace(r.hashMap('x', 1L)).optArg('return_changes', 'always').pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
+            logger.info("About to run line #62: tbl.replace(r.hashMap('x', 1L)).optArg('return_changes', 'always').pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
             Object obtained = runOrCatch(tbl.replace(r.hashMap("x", 1L)).optArg("return_changes", "always").pluck("changes", "first_error").do_(d -> d.merge(r.hashMap("changes", d.bracket("changes").orderBy(a -> a.bracket("old_val").bracket("id"))))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #62");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -389,20 +377,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #23
+            // mutation/atomic_get_set.yaml line #86
             /* ({'changes':[{'old_val':{'id':0},'new_val':null}]}) */
             Map expected_ = r.hashMap("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L)).with("new_val", null)));
             /* tbl.get(0).delete(return_changes=True).pluck('changes', 'first_error') */
-            System.out.println("About to run #23: tbl.get(0L).delete().optArg('return_changes', true).pluck('changes', 'first_error')");
+            logger.info("About to run line #86: tbl.get(0L).delete().optArg('return_changes', true).pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).delete().optArg("return_changes", true).pluck("changes", "first_error"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -411,20 +398,19 @@ public class MutationAtomicGetSet {
         }
         
         {
-            // mutation/atomic_get_set.yaml #24
+            // mutation/atomic_get_set.yaml line #90
             /* ({'deleted':1,'errors':0,'inserted':0,'replaced':0,'skipped':0,'unchanged':0,'changes':[{'new_val':null, 'old_val':{'id':1}}]}) */
             Map expected_ = r.hashMap("deleted", 1L).with("errors", 0L).with("inserted", 0L).with("replaced", 0L).with("skipped", 0L).with("unchanged", 0L).with("changes", r.array(r.hashMap("new_val", null).with("old_val", r.hashMap("id", 1L))));
             /* tbl.delete(return_changes=True) */
-            System.out.println("About to run #24: tbl.delete().optArg('return_changes', true)");
+            logger.info("About to run line #90: tbl.delete().optArg('return_changes', true)");
             Object obtained = runOrCatch(tbl.delete().optArg("return_changes", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #90");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #90:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

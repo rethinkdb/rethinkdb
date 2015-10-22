@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumBool {
+    // Tests of conversion to and from the RQL bool type
     Logger logger = LoggerFactory.getLogger(DatumBool.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumBool {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumBool {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumBool {
     public void test() throws Exception {
                 
         {
-            // datum/bool.yaml #1
-            /* True */
+            // datum/bool.yaml line #3
+            /* true */
             Boolean expected_ = true;
             /* r.expr(True) */
-            System.out.println("About to run #1: r.expr(true)");
+            logger.info("About to run line #3: r.expr(true)");
             Object obtained = runOrCatch(r.expr(true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #3");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #3:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumBool {
         }
         
         {
-            // datum/bool.yaml #2
-            /* False */
+            // datum/bool.yaml line #10
+            /* false */
             Boolean expected_ = false;
             /* r.expr(False) */
-            System.out.println("About to run #2: r.expr(false)");
+            logger.info("About to run line #10: r.expr(false)");
             Object obtained = runOrCatch(r.expr(false),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumBool {
         }
         
         {
-            // datum/bool.yaml #3
+            // datum/bool.yaml line #17
             /* 'BOOL' */
             String expected_ = "BOOL";
             /* r.expr(False).type_of() */
-            System.out.println("About to run #3: r.expr(false).typeOf()");
+            logger.info("About to run line #17: r.expr(false).typeOf()");
             Object obtained = runOrCatch(r.expr(false).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class DatumBool {
         }
         
         {
-            // datum/bool.yaml #4
+            // datum/bool.yaml line #21
             /* 'true' */
             String expected_ = "true";
             /* r.expr(True).coerce_to('string') */
-            System.out.println("About to run #4: r.expr(true).coerceTo('string')");
+            logger.info("About to run line #21: r.expr(true).coerceTo('string')");
             Object obtained = runOrCatch(r.expr(true).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class DatumBool {
         }
         
         {
-            // datum/bool.yaml #5
+            // datum/bool.yaml line #24
             /* True */
             Boolean expected_ = true;
             /* r.expr(True).coerce_to('bool') */
-            System.out.println("About to run #5: r.expr(true).coerceTo('bool')");
+            logger.info("About to run line #24: r.expr(true).coerceTo('bool')");
             Object obtained = runOrCatch(r.expr(true).coerceTo("bool"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

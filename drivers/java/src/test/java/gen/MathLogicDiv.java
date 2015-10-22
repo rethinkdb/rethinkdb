@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MathLogicDiv {
+    // Tests for the basic usage of the division operation
     Logger logger = LoggerFactory.getLogger(MathLogicDiv.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MathLogicDiv {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MathLogicDiv {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MathLogicDiv {
     public void test() throws Exception {
                 
         {
-            // math_logic/div.yaml #(1, 1)
+            // math_logic/div.yaml line #6
             /* 2 */
             Long expected_ = 2L;
-            /* (r.expr(4) / 2) */
-            System.out.println("About to run #(1, 1): r.expr(4L).div(2L)");
+            /* r.expr(4) / 2 */
+            logger.info("About to run line #6: r.expr(4L).div(2L)");
             Object obtained = runOrCatch(r.expr(4L).div(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 1)");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(1, 2)
+            // math_logic/div.yaml line #7
             /* 2 */
             Long expected_ = 2L;
-            /* (4 / r.expr(2)) */
-            System.out.println("About to run #(1, 2): r.div(4L, r.expr(2L))");
+            /* 4 / r.expr(2) */
+            logger.info("About to run line #7: r.div(4L, r.expr(2L))");
             Object obtained = runOrCatch(r.div(4L, r.expr(2L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 2)");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(1, 3)
+            // math_logic/div.yaml line #8
             /* 2 */
             Long expected_ = 2L;
             /* r.expr(4).div(2) */
-            System.out.println("About to run #(1, 3): r.expr(4L).div(2L)");
+            logger.info("About to run line #8: r.expr(4L).div(2L)");
             Object obtained = runOrCatch(r.expr(4L).div(2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(1, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(1, 3)");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(1, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,22 +140,21 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #2
+            // math_logic/div.yaml line #15
             /* 0.5 */
             Double expected_ = 0.5;
             /* r.expr(-1) / -2 */
-            System.out.println("About to run #2: r.expr(-1L).div(-2L)");
+            logger.info("About to run line #15: r.expr(-1L).div(-2L)");
             Object obtained = runOrCatch(r.expr(-1L).div(-2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -165,22 +163,21 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #3
+            // math_logic/div.yaml line #20
             /* 4.9 / 0.7 */
             Double expected_ = 4.9 / 0.7;
             /* r.expr(4.9) / 0.7 */
-            System.out.println("About to run #3: r.expr(4.9).div(0.7)");
+            logger.info("About to run line #20: r.expr(4.9).div(0.7)");
             Object obtained = runOrCatch(r.expr(4.9).div(0.7),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -189,20 +186,42 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 1)
+            // math_logic/div.yaml line #25
+            /* 1.0/120 */
+            Double expected_ = 1.0 / 120L;
+            /* r.expr(1).div(2,3,4,5) */
+            logger.info("About to run line #25: r.expr(1L).div(2L, 3L, 4L, 5L)");
+            Object obtained = runOrCatch(r.expr(1L).div(2L, 3L, 4L, 5L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals((double) expected_,
+                             ((Number) obtained).doubleValue(),
+                             0.00000000001);
+            logger.info("Finished running line #25");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #25:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // math_logic/div.yaml line #37
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(1) / 0 */
-            System.out.println("About to run #(5, 1): r.expr(1L).div(0L)");
+            logger.info("About to run line #37: r.expr(1L).div(0L)");
             Object obtained = runOrCatch(r.expr(1L).div(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 1)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 1)");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 1):" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -211,20 +230,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 2)
+            // math_logic/div.yaml line #38
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(2.0) / 0 */
-            System.out.println("About to run #(5, 2): r.expr(2.0).div(0L)");
+            logger.info("About to run line #38: r.expr(2.0).div(0L)");
             Object obtained = runOrCatch(r.expr(2.0).div(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 2)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 2)");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 2):" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -233,20 +251,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 3)
+            // math_logic/div.yaml line #39
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(3) / 0.0 */
-            System.out.println("About to run #(5, 3): r.expr(3L).div(0.0)");
+            logger.info("About to run line #39: r.expr(3L).div(0.0)");
             Object obtained = runOrCatch(r.expr(3L).div(0.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 3)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 3)");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 3):" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -255,20 +272,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 4)
+            // math_logic/div.yaml line #40
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(4.0) / 0.0 */
-            System.out.println("About to run #(5, 4): r.expr(4.0).div(0.0)");
+            logger.info("About to run line #40: r.expr(4.0).div(0.0)");
             Object obtained = runOrCatch(r.expr(4.0).div(0.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 4)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 4)");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 4):" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -277,20 +293,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 5)
+            // math_logic/div.yaml line #41
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(0) / 0 */
-            System.out.println("About to run #(5, 5): r.expr(0L).div(0L)");
+            logger.info("About to run line #41: r.expr(0L).div(0L)");
             Object obtained = runOrCatch(r.expr(0L).div(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 5)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 5)");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 5):" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -299,20 +314,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #(5, 6)
+            // math_logic/div.yaml line #42
             /* err('ReqlQueryLogicError', 'Cannot divide by zero.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot divide by zero.", r.array(1L));
             /* r.expr(0.0) / 0.0 */
-            System.out.println("About to run #(5, 6): r.expr(0.0).div(0.0)");
+            logger.info("About to run line #42: r.expr(0.0).div(0.0)");
             Object obtained = runOrCatch(r.expr(0.0).div(0.0),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #(5, 6)");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #(5, 6)");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #(5, 6):" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -321,20 +335,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #6
+            // math_logic/div.yaml line #46
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array(0L));
             /* r.expr('a') / 0.8 */
-            System.out.println("About to run #6: r.expr('a').div(0.8)");
+            logger.info("About to run line #46: r.expr('a').div(0.8)");
             Object obtained = runOrCatch(r.expr("a").div(0.8),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -343,20 +356,19 @@ public class MathLogicDiv {
         }
         
         {
-            // math_logic/div.yaml #7
+            // math_logic/div.yaml line #50
             /* err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array(1L));
             /* r.expr(1) / 'a' */
-            System.out.println("About to run #7: r.expr(1L).div('a')");
+            logger.info("About to run line #50: r.expr(1L).div('a')");
             Object obtained = runOrCatch(r.expr(1L).div("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

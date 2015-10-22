@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TimesConstructors {
+    // Test basic time arithmetic
     Logger logger = LoggerFactory.getLogger(TimesConstructors.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class TimesConstructors {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class TimesConstructors {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class TimesConstructors {
     public void test() throws Exception {
                 
         {
-            // times/constructors.yaml #1
+            // times/constructors.yaml line #5
             /* datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')) */
             OffsetDateTime expected_ = datetime.fromtimestamp(896571240L, ast.rqlTzinfo("00:00"));
             /* r.expr(r.epoch_time(896571240)) */
-            System.out.println("About to run #1: r.expr(r.epochTime(896571240L))");
+            logger.info("About to run line #5: r.expr(r.epochTime(896571240L))");
             Object obtained = runOrCatch(r.expr(r.epochTime(896571240L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #2
-            /* ({'stuff':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))]}) */
+            // times/constructors.yaml line #11
+            /* {'stuff':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))]} */
             Map expected_ = r.hashMap("stuff", datetime.fromtimestamp(896571240L, ast.rqlTzinfo("00:00"))).with("more", r.array(datetime.fromtimestamp(996571240L, ast.rqlTzinfo("00:00"))));
             /* r.expr({'stuff':r.epoch_time(896571240), 'more':[r.epoch_time(996571240)]}) */
-            System.out.println("About to run #2: r.expr(r.hashMap('stuff', r.epochTime(896571240L)).with('more', r.array(r.epochTime(996571240L))))");
+            logger.info("About to run line #11: r.expr(r.hashMap('stuff', r.epochTime(896571240L)).with('more', r.array(r.epochTime(996571240L))))");
             Object obtained = runOrCatch(r.expr(r.hashMap("stuff", r.epochTime(896571240L)).with("more", r.array(r.epochTime(996571240L)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #3
-            /* ([datetime.fromtimestamp(796571240, r.ast.RqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))}]) */
+            // times/constructors.yaml line #17
+            /* [datetime.fromtimestamp(796571240, r.ast.RqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))}] */
             List expected_ = r.array(datetime.fromtimestamp(796571240L, ast.rqlTzinfo("00:00")), datetime.fromtimestamp(896571240L, ast.rqlTzinfo("00:00")), r.hashMap("stuff", datetime.fromtimestamp(996571240L, ast.rqlTzinfo("00:00"))));
             /* r.expr([r.epoch_time(796571240), r.epoch_time(896571240), {'stuff':r.epoch_time(996571240)}]) */
-            System.out.println("About to run #3: r.expr(r.array(r.epochTime(796571240L), r.epochTime(896571240L), r.hashMap('stuff', r.epochTime(996571240L))))");
+            logger.info("About to run line #17: r.expr(r.array(r.epochTime(796571240L), r.epochTime(896571240L), r.hashMap('stuff', r.epochTime(996571240L))))");
             Object obtained = runOrCatch(r.expr(r.array(r.epochTime(796571240L), r.epochTime(896571240L), r.hashMap("stuff", r.epochTime(996571240L)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #4
-            /* ({'nested':{'time':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))}}) */
+            // times/constructors.yaml line #23
+            /* {'nested':{'time':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))}} */
             Map expected_ = r.hashMap("nested", r.hashMap("time", datetime.fromtimestamp(896571240L, ast.rqlTzinfo("00:00"))));
             /* r.expr({'nested':{'time':r.epoch_time(896571240)}}) */
-            System.out.println("About to run #4: r.expr(r.hashMap('nested', r.hashMap('time', r.epochTime(896571240L))))");
+            logger.info("About to run line #23: r.expr(r.hashMap('nested', r.hashMap('time', r.epochTime(896571240L))))");
             Object obtained = runOrCatch(r.expr(r.hashMap("nested", r.hashMap("time", r.epochTime(896571240L)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #5
-            /* ([1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 3]]) */
+            // times/constructors.yaml line #29
+            /* [1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 3]] */
             List expected_ = r.array(1L, "two", r.array("a", datetime.fromtimestamp(896571240L, ast.rqlTzinfo("00:00")), 3L));
             /* r.expr([1, "two", ["a", r.epoch_time(896571240), 3]]) */
-            System.out.println("About to run #5: r.expr(r.array(1L, 'two', r.array('a', r.epochTime(896571240L), 3L)))");
+            logger.info("About to run line #29: r.expr(r.array(1L, 'two', r.array('a', r.epochTime(896571240L), 3L)))");
             Object obtained = runOrCatch(r.expr(r.array(1L, "two", r.array("a", r.epochTime(896571240L), 3L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #29");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #29:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #6
+            // times/constructors.yaml line #35
             /* 1 */
             Long expected_ = 1L;
             /* r.epoch_time(1).to_epoch_time() */
-            System.out.println("About to run #6: r.epochTime(1L).toEpochTime()");
+            logger.info("About to run line #35: r.epochTime(1L).toEpochTime()");
             Object obtained = runOrCatch(r.epochTime(1L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #7
+            // times/constructors.yaml line #37
             /* -1 */
             Long expected_ = -1L;
             /* r.epoch_time(-1).to_epoch_time() */
-            System.out.println("About to run #7: r.epochTime(-1L).toEpochTime()");
+            logger.info("About to run line #37: r.epochTime(-1L).toEpochTime()");
             Object obtained = runOrCatch(r.epochTime(-1L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,22 +224,21 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #8
-            /* (1.444) */
+            // times/constructors.yaml line #39
+            /* 1.444 */
             Double expected_ = 1.444;
             /* r.epoch_time(1.4444445).to_epoch_time() */
-            System.out.println("About to run #8: r.epochTime(1.4444445).toEpochTime()");
+            logger.info("About to run line #39: r.epochTime(1.4444445).toEpochTime()");
             Object obtained = runOrCatch(r.epochTime(1.4444445).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #39");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #39:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -253,20 +247,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #9
-            /* ("1970-01-01T00:00:01.444+00:00") */
+            // times/constructors.yaml line #42
+            /* "1970-01-01T00:00:01.444+00:00" */
             String expected_ = "1970-01-01T00:00:01.444+00:00";
             /* r.epoch_time(1.4444445).to_iso8601() */
-            System.out.println("About to run #9: r.epochTime(1.4444445).toIso8601()");
+            logger.info("About to run line #42: r.epochTime(1.4444445).toIso8601()");
             Object obtained = runOrCatch(r.epochTime(1.4444445).toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #42");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #42:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -275,22 +268,21 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #10
-            /* (1.444          ) */
+            // times/constructors.yaml line #45
+            /* 1.444 */
             Double expected_ = 1.444;
             /* r.epoch_time(1.4444445).seconds() */
-            System.out.println("About to run #10: r.epochTime(1.4444445).seconds()");
+            logger.info("About to run line #45: r.epochTime(1.4444445).seconds()");
             Object obtained = runOrCatch(r.epochTime(1.4444445).seconds(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #45");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #45:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -299,20 +291,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #11
-            /* (10000) */
+            // times/constructors.yaml line #48
+            /* 10000 */
             Long expected_ = 10000L;
             /* r.epoch_time(253430000000).year() */
-            System.out.println("About to run #11: r.epochTime(253430000000L).year()");
+            logger.info("About to run line #48: r.epochTime(253430000000L).year()");
             Object obtained = runOrCatch(r.epochTime(253430000000L).year(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #48");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #48:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -321,20 +312,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #12
+            // times/constructors.yaml line #50
             /* err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", []) */
             Err expected_ = err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", r.array());
             /* r.epoch_time(253430000000).to_iso8601() */
-            System.out.println("About to run #12: r.epochTime(253430000000L).toIso8601()");
+            logger.info("About to run line #50: r.epochTime(253430000000L).toIso8601()");
             Object obtained = runOrCatch(r.epochTime(253430000000L).toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -343,20 +333,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #13
+            // times/constructors.yaml line #53
             /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
             /* r.epoch_time(253440000000).year() */
-            System.out.println("About to run #13: r.epochTime(253440000000L).year()");
+            logger.info("About to run line #53: r.epochTime(253440000000L).year()");
             Object obtained = runOrCatch(r.epochTime(253440000000L).year(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -365,20 +354,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #14
-            /* (253440000000) */
+            // times/constructors.yaml line #55
+            /* 253440000000 */
             Long expected_ = 253440000000L;
             /* r.epoch_time(253440000000).to_epoch_time() */
-            System.out.println("About to run #14: r.epochTime(253440000000L).toEpochTime()");
+            logger.info("About to run line #55: r.epochTime(253440000000L).toEpochTime()");
             Object obtained = runOrCatch(r.epochTime(253440000000L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -387,20 +375,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #15
-            /* (1400) */
+            // times/constructors.yaml line #57
+            /* 1400 */
             Long expected_ = 1400L;
             /* r.epoch_time(-17980000000).year() */
-            System.out.println("About to run #15: r.epochTime(-17980000000L).year()");
+            logger.info("About to run line #57: r.epochTime(-17980000000L).year()");
             Object obtained = runOrCatch(r.epochTime(-17980000000L).year(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -409,20 +396,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #16
+            // times/constructors.yaml line #59
             /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
             /* r.epoch_time(-17990000000).year() */
-            System.out.println("About to run #16: r.epochTime(-17990000000L).year()");
+            logger.info("About to run line #59: r.epochTime(-17990000000L).year()");
             Object obtained = runOrCatch(r.epochTime(-17990000000L).year(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -431,20 +417,19 @@ public class TimesConstructors {
         }
         
         {
-            // times/constructors.yaml #17
-            /* (-17990000000) */
+            // times/constructors.yaml line #61
+            /* -17990000000 */
             Long expected_ = -17990000000L;
             /* r.epoch_time(-17990000000).to_epoch_time() */
-            System.out.println("About to run #17: r.epochTime(-17990000000L).toEpochTime()");
+            logger.info("About to run line #61: r.epochTime(-17990000000L).toEpochTime()");
             Object obtained = runOrCatch(r.epochTime(-17990000000L).toEpochTime(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #61");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #61:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -452,54 +437,54 @@ public class TimesConstructors {
             }
         }
         
-        // times/constructors.yaml #18
+        // times/constructors.yaml line #65
         // cdate = "2013-01-01"
-        System.out.println("Possibly executing: String cdate = (String) ('2013-01-01');");
+        logger.info("Possibly executing: String cdate = (String) ('2013-01-01');");
         String cdate = (String) ("2013-01-01");
                 
-        // times/constructors.yaml #19
+        // times/constructors.yaml line #66
         // dates = ["2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"]
-        System.out.println("Possibly executing: List dates = (List) (r.array('2013', '2013-01', '2013-01-01', '20130101', '2013-001', '2013001'));");
+        logger.info("Possibly executing: List dates = (List) (r.array('2013', '2013-01', '2013-01-01', '20130101', '2013-001', '2013001'));");
         List dates = (List) (r.array("2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"));
                 
-        // times/constructors.yaml #20
+        // times/constructors.yaml line #67
         // ctime = "13:00:00"
-        System.out.println("Possibly executing: String ctime = (String) ('13:00:00');");
+        logger.info("Possibly executing: String ctime = (String) ('13:00:00');");
         String ctime = (String) ("13:00:00");
                 
-        // times/constructors.yaml #21
+        // times/constructors.yaml line #68
         // times = ["13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"]
-        System.out.println("Possibly executing: List times = (List) (r.array('13', '13:00', '1300', '13:00:00', '13:00:00.000000', '130000.000000'));");
+        logger.info("Possibly executing: List times = (List) (r.array('13', '13:00', '1300', '13:00:00', '13:00:00.000000', '130000.000000'));");
         List times = (List) (r.array("13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"));
                 
-        // times/constructors.yaml #22
+        // times/constructors.yaml line #69
         // ctz = "+00:00"
-        System.out.println("Possibly executing: String ctz = (String) ('+00:00');");
+        logger.info("Possibly executing: String ctz = (String) ('+00:00');");
         String ctz = (String) ("+00:00");
                 
-        // times/constructors.yaml #23
+        // times/constructors.yaml line #70
         // tzs = ["Z", "+00", "+0000", "+00:00"]
-        System.out.println("Possibly executing: List tzs = (List) (r.array('Z', '+00', '+0000', '+00:00'));");
+        logger.info("Possibly executing: List tzs = (List) (r.array('Z', '+00', '+0000', '+00:00'));");
         List tzs = (List) (r.array("Z", "+00", "+0000", "+00:00"));
                 
-        // times/constructors.yaml #24
+        // times/constructors.yaml line #71
         // cdt = [cdate+"T"+ctime+ctz]
-        System.out.println("Possibly executing: List cdt = (List) (r.array(cdate + 'T' + ctime + ctz));");
+        logger.info("Possibly executing: List cdt = (List) (r.array(cdate + 'T' + ctime + ctz));");
         List cdt = (List) (r.array(cdate + "T" + ctime + ctz));
                 
-        // times/constructors.yaml #28
+        // times/constructors.yaml line #81
         // bad_dates = ["201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"]
-        System.out.println("Possibly executing: List bad_dates = (List) (r.array('201301', '2013-0101', '2a13', '2013+01', '2013-01-01.1'));");
+        logger.info("Possibly executing: List bad_dates = (List) (r.array('201301', '2013-0101', '2a13', '2013+01', '2013-01-01.1'));");
         List bad_dates = (List) (r.array("201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"));
                 
-        // times/constructors.yaml #29
+        // times/constructors.yaml line #82
         // bad_times = ["a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"]
-        System.out.println("Possibly executing: List bad_times = (List) (r.array('a3', '13:0000', '13:000', '13:00.00', '130000.00000000a'));");
+        logger.info("Possibly executing: List bad_times = (List) (r.array('a3', '13:0000', '13:000', '13:00.00', '130000.00000000a'));");
         List bad_times = (List) (r.array("a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"));
                 
-        // times/constructors.yaml #30
+        // times/constructors.yaml line #83
         // bad_tzs = ["X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"]
-        System.out.println("Possibly executing: List bad_tzs = (List) (r.array('X', '-7', '-07:-1', '+07+01', 'PST', 'UTC', 'Z+00'));");
+        logger.info("Possibly executing: List bad_tzs = (List) (r.array('X', '-7', '-07:-1', '+07+01', 'PST', 'UTC', 'Z+00'));");
         List bad_tzs = (List) (r.array("X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"));
             }
 }

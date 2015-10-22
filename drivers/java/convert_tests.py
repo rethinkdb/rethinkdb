@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8
+# -*- encoding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
 
@@ -9,7 +9,6 @@ import os.path
 import re
 import time
 import ast
-import yaml
 import argparse
 import metajava
 import process_polyglot
@@ -20,6 +19,10 @@ try:
 except ImportError:
     from io import StringIO
 from collections import namedtuple
+
+sys.path.append(
+    os.path.abspath(os.path.join(__file__, "../../../test/common")))
+import parsePolyglot
 
 logger = logging.getLogger("convert_tests")
 
@@ -38,6 +41,7 @@ TEST_EXCLUSIONS = [
     'changefeeds/squash',
     # arity checked at compile time
     'arity',
+    '.rb.yaml',
 ]
 
 
@@ -46,9 +50,13 @@ def main():
     start = time.clock()
     args = parse_args()
     if args.debug:
-        logging.root.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+        logging.getLogger('process_polyglot').setLevel(logging.DEBUG)
     elif args.info:
-        logging.root.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
+        logging.getLogger('process_polyglot').setLevel(logging.INFO)
+    else:
+        logger.root.setLevel(logging.WARNING)
     if args.e:
         evaluate_snippet(args.e)
         exit(0)
@@ -63,7 +71,7 @@ def main():
     for testfile in process_polyglot.all_yaml_tests(
             args.test_dir,
             TEST_EXCLUSIONS):
-        logger.debug("Working on %s", testfile)
+        logger.info("Working on %s", testfile)
         TestFile(
             test_dir=args.test_dir,
             filename=testfile,
@@ -133,7 +141,7 @@ JavaQuery = namedtuple(
      'expected_type',
      'expected_line',
      'testfile',
-     'test_num',
+     'line_num',
      'runopts')
 )
 JavaDef = namedtuple(
@@ -144,7 +152,7 @@ JavaDef = namedtuple(
      'value',
      'run_if_query',
      'testfile',
-     'test_num')
+     'line_num')
 )
 Version = namedtuple("Version", "original java")
 
@@ -178,7 +186,7 @@ class TestFile(object):
     def load(self):
         '''Load the test file, yaml parse it, extract file-level metadata'''
         with open(self.full_path) as f:
-            parsed_yaml = yaml.load(f)
+            parsed_yaml = parsePolyglot.parse_yaml(f)
         self.description = parsed_yaml.get('desc', 'No description')
         self.table_var_names = self.get_varnames(parsed_yaml)
         self.reql_vars.update(self.table_var_names)
@@ -212,6 +220,7 @@ class TestFile(object):
             module_name=self.module_name,
             JavaQuery=JavaQuery,
             JavaDef=JavaDef,
+            description=self.description,
         )
 
 
@@ -321,7 +330,7 @@ def def_to_java(item, reql_vars):
         value=java_decl['value'],
         run_if_query=item.run_if_query,
         testfile=item.testfile,
-        test_num=item.test_num,
+        line_num=item.line_num,
     )
 
 
@@ -357,7 +366,7 @@ def query_to_java(item, reql_vars):
             java=java_expected_line,
         ),
         testfile=item.testfile,
-        test_num=item.test_num,
+        line_num=item.line_num,
         runopts=converted_runopts,
     )
 
@@ -372,7 +381,7 @@ def ast_to_java(sequence, reql_vars):
         elif type(item) == process_polyglot.CustomDef:
             yield JavaDef(line=Version(item.line, item.line),
                           testfile=item.testfile,
-                          test_num=item.test_num)
+                          line_num=item.line_num)
         elif type(item) == process_polyglot.Query:
             yield query_to_java(item, reql_vars)
         elif type(item) == SkippedTest:

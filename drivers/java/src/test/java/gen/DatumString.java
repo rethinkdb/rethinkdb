@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumString {
+    // Tests of converstion to and from the RQL string type
     Logger logger = LoggerFactory.getLogger(DatumString.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumString {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumString {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumString {
     public void test() throws Exception {
                 
         {
-            // datum/string.yaml #1
-            /* 'str' */
+            // datum/string.yaml line #8
+            /* "str" */
             String expected_ = "str";
             /* r.expr('str') */
-            System.out.println("About to run #1: r.expr('str')");
+            logger.info("About to run line #8: r.expr('str')");
             Object obtained = runOrCatch(r.expr("str"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #8");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #8:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #2
+            // datum/string.yaml line #13
             /* "str" */
             String expected_ = "str";
             /* r.expr("str") */
-            System.out.println("About to run #2: r.expr('str')");
+            logger.info("About to run line #13: r.expr('str')");
             Object obtained = runOrCatch(r.expr("str"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #13");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #3
+            // datum/string.yaml line #21
             /* 'str' */
             String expected_ = "str";
             /* r.expr(u'str') */
-            System.out.println("About to run #3: r.expr('str')");
+            logger.info("About to run line #21: r.expr('str')");
             Object obtained = runOrCatch(r.expr("str"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #4
+            // datum/string.yaml line #30
             /* 'こんにちは' */
             String expected_ = "こんにちは";
             /* r.expr(u'こんにちは') */
-            System.out.println("About to run #4: r.expr('こんにちは')");
+            logger.info("About to run line #30: r.expr('こんにちは')");
             Object obtained = runOrCatch(r.expr("こんにちは"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #5
+            // datum/string.yaml line #37
             /* 'STRING' */
             String expected_ = "STRING";
             /* r.expr('foo').type_of() */
-            System.out.println("About to run #5: r.expr('foo').typeOf()");
+            logger.info("About to run line #37: r.expr('foo').typeOf()");
             Object obtained = runOrCatch(r.expr("foo").typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #6
-            /* ('foo') */
+            // datum/string.yaml line #41
+            /* 'foo' */
             String expected_ = "foo";
             /* r.expr('foo').coerce_to('string') */
-            System.out.println("About to run #6: r.expr('foo').coerceTo('string')");
+            logger.info("About to run line #41: r.expr('foo').coerceTo('string')");
             Object obtained = runOrCatch(r.expr("foo").coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #41");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,22 +203,21 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #7
+            // datum/string.yaml line #43
             /* -1.2 */
             Double expected_ = -1.2;
             /* r.expr('-1.2').coerce_to('NUMBER') */
-            System.out.println("About to run #7: r.expr('-1.2').coerceTo('NUMBER')");
+            logger.info("About to run line #43: r.expr('-1.2').coerceTo('NUMBER')");
             Object obtained = runOrCatch(r.expr("-1.2").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals((double) expected_,
                              ((Number) obtained).doubleValue(),
                              0.00000000001);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #43");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #43:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -231,20 +226,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #8
+            // datum/string.yaml line #45
             /* err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", r.array());
             /* r.expr('--1.2').coerce_to('NUMBER') */
-            System.out.println("About to run #8: r.expr('--1.2').coerceTo('NUMBER')");
+            logger.info("About to run line #45: r.expr('--1.2').coerceTo('NUMBER')");
             Object obtained = runOrCatch(r.expr("--1.2").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #45");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #45:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -253,20 +247,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #9
+            // datum/string.yaml line #47
             /* err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", r.array());
             /* r.expr('-1.2-').coerce_to('NUMBER') */
-            System.out.println("About to run #9: r.expr('-1.2-').coerceTo('NUMBER')");
+            logger.info("About to run line #47: r.expr('-1.2-').coerceTo('NUMBER')");
             Object obtained = runOrCatch(r.expr("-1.2-").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -275,20 +268,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #10
+            // datum/string.yaml line #49
             /* 10 */
             Long expected_ = 10L;
             /* r.expr('0xa').coerce_to('NUMBER') */
-            System.out.println("About to run #10: r.expr('0xa').coerceTo('NUMBER')");
+            logger.info("About to run line #49: r.expr('0xa').coerceTo('NUMBER')");
             Object obtained = runOrCatch(r.expr("0xa").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -297,21 +289,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #11
-            /* err("ReqlQueryLogicError", "Non-finite number: inf", [])
- */
+            // datum/string.yaml line #51
+            /* err("ReqlQueryLogicError", "Non-finite number: inf", []) */
             Err expected_ = err("ReqlQueryLogicError", "Non-finite number: inf", r.array());
             /* r.expr('inf').coerce_to('NUMBER') */
-            System.out.println("About to run #11: r.expr('inf').coerceTo('NUMBER')");
+            logger.info("About to run line #51: r.expr('inf').coerceTo('NUMBER')");
             Object obtained = runOrCatch(r.expr("inf").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #51");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #51:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -320,20 +310,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #12
-            /* ([]) */
+            // datum/string.yaml line #55
+            /* [] */
             List expected_ = r.array();
             /* r.expr('').split() */
-            System.out.println("About to run #12: r.expr('').split()");
+            logger.info("About to run line #55: r.expr('').split()");
             Object obtained = runOrCatch(r.expr("").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #55");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #55:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -342,20 +331,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #13
-            /* ([]) */
+            // datum/string.yaml line #57
+            /* [] */
             List expected_ = r.array();
             /* r.expr('').split(null) */
-            System.out.println("About to run #13: r.expr('').split((ReqlExpr) null)");
+            logger.info("About to run line #57: r.expr('').split((ReqlExpr) null)");
             Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -364,20 +352,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #14
-            /* (['']) */
+            // datum/string.yaml line #59
+            /* [''] */
             List expected_ = r.array("");
             /* r.expr('').split(' ') */
-            System.out.println("About to run #14: r.expr('').split(' ')");
+            logger.info("About to run line #59: r.expr('').split(' ')");
             Object obtained = runOrCatch(r.expr("").split(" "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -386,20 +373,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #15
-            /* ([]) */
+            // datum/string.yaml line #61
+            /* [] */
             List expected_ = r.array();
             /* r.expr('').split('') */
-            System.out.println("About to run #15: r.expr('').split('')");
+            logger.info("About to run line #61: r.expr('').split('')");
             Object obtained = runOrCatch(r.expr("").split(""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #61");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #61:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -408,20 +394,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #16
-            /* ([]) */
+            // datum/string.yaml line #63
+            /* [] */
             List expected_ = r.array();
             /* r.expr('').split(null, 5) */
-            System.out.println("About to run #16: r.expr('').split((ReqlExpr) null, 5L)");
+            logger.info("About to run line #63: r.expr('').split((ReqlExpr) null, 5L)");
             Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #63");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #63:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -430,20 +415,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #17
-            /* (['']) */
+            // datum/string.yaml line #65
+            /* [''] */
             List expected_ = r.array("");
             /* r.expr('').split(' ', 5) */
-            System.out.println("About to run #17: r.expr('').split(' ', 5L)");
+            logger.info("About to run line #65: r.expr('').split(' ', 5L)");
             Object obtained = runOrCatch(r.expr("").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -452,20 +436,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #18
-            /* ([]) */
+            // datum/string.yaml line #67
+            /* [] */
             List expected_ = r.array();
             /* r.expr('').split('', 5) */
-            System.out.println("About to run #18: r.expr('').split('', 5L)");
+            logger.info("About to run line #67: r.expr('').split('', 5L)");
             Object obtained = runOrCatch(r.expr("").split("", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #67");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #67:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -474,20 +457,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #19
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #70
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('aaaa bbbb  cccc ').split() */
-            System.out.println("About to run #19: r.expr('aaaa bbbb  cccc ').split()");
+            logger.info("About to run line #70: r.expr('aaaa bbbb  cccc ').split()");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #70");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -496,20 +478,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #20
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #72
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('aaaa bbbb  cccc ').split(null) */
-            System.out.println("About to run #20: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null)");
+            logger.info("About to run line #72: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -518,20 +499,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #21
-            /* (['aaaa', 'bbbb', '', 'cccc', '']) */
+            // datum/string.yaml line #74
+            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
             List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
             /* r.expr('aaaa bbbb  cccc ').split(' ') */
-            System.out.println("About to run #21: r.expr('aaaa bbbb  cccc ').split(' ')");
+            logger.info("About to run line #74: r.expr('aaaa bbbb  cccc ').split(' ')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #74");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #74:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -540,20 +520,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #22
-            /* (['a', 'a', 'a', 'a', ' ', 'b', 'b', 'b', 'b', ' ', ' ', 'c', 'c', 'c', 'c', ' ']) */
+            // datum/string.yaml line #76
+            /* ['a', 'a', 'a', 'a', ' ', 'b', 'b', 'b', 'b', ' ', ' ', 'c', 'c', 'c', 'c', ' '] */
             List expected_ = r.array("a", "a", "a", "a", " ", "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " ");
             /* r.expr('aaaa bbbb  cccc ').split('') */
-            System.out.println("About to run #22: r.expr('aaaa bbbb  cccc ').split('')");
+            logger.info("About to run line #76: r.expr('aaaa bbbb  cccc ').split('')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #76");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #76:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -562,20 +541,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #23
-            /* (['aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #78
+            /* ['aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('b') */
-            System.out.println("About to run #23: r.expr('aaaa bbbb  cccc ').split('b')");
+            logger.info("About to run line #78: r.expr('aaaa bbbb  cccc ').split('b')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -584,20 +562,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #24
-            /* (['aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #80
+            /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('bb') */
-            System.out.println("About to run #24: r.expr('aaaa bbbb  cccc ').split('bb')");
+            logger.info("About to run line #80: r.expr('aaaa bbbb  cccc ').split('bb')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #80");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #80:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -606,20 +583,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #25
-            /* (['aaaa', 'cccc ']) */
+            // datum/string.yaml line #82
+            /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ') */
-            System.out.println("About to run #25: r.expr('aaaa bbbb  cccc ').split(' bbbb  ')");
+            logger.info("About to run line #82: r.expr('aaaa bbbb  cccc ').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #82");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #82:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -628,20 +604,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #26
-            /* (['aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #84
+            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
-            System.out.println("About to run #26: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
+            logger.info("About to run line #84: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -650,20 +625,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #27
-            /* (['aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #86
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
-            System.out.println("About to run #27: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
+            logger.info("About to run line #86: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -672,20 +646,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #28
-            /* (['aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #88
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e", "f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
-            System.out.println("About to run #28: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
+            logger.info("About to run line #88: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #88");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #88:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -694,20 +667,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #29
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #91
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('aaaa bbbb  cccc ').split(null, 3) */
-            System.out.println("About to run #29: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
+            logger.info("About to run line #91: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #91");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #91:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -716,20 +688,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #30
-            /* (['aaaa', 'bbbb', '', 'cccc', '']) */
+            // datum/string.yaml line #93
+            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
             List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
             /* r.expr('aaaa bbbb  cccc ').split(' ', 5) */
-            System.out.println("About to run #30: r.expr('aaaa bbbb  cccc ').split(' ', 5L)");
+            logger.info("About to run line #93: r.expr('aaaa bbbb  cccc ').split(' ', 5L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -738,20 +709,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #31
-            /* (['a', 'a', 'a', 'a', ' ', 'bbbb  cccc ']) */
+            // datum/string.yaml line #95
+            /* ['a', 'a', 'a', 'a', ' ', 'bbbb  cccc '] */
             List expected_ = r.array("a", "a", "a", "a", " ", "bbbb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('', 5) */
-            System.out.println("About to run #31: r.expr('aaaa bbbb  cccc ').split('', 5L)");
+            logger.info("About to run line #95: r.expr('aaaa bbbb  cccc ').split('', 5L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #95");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #95:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -760,20 +730,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #32
-            /* (['aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #97
+            /* ['aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('b', 5) */
-            System.out.println("About to run #32: r.expr('aaaa bbbb  cccc ').split('b', 5L)");
+            logger.info("About to run line #97: r.expr('aaaa bbbb  cccc ').split('b', 5L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #97");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #97:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -782,20 +751,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #33
-            /* (['aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #99
+            /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('bb', 3) */
-            System.out.println("About to run #33: r.expr('aaaa bbbb  cccc ').split('bb', 3L)");
+            logger.info("About to run line #99: r.expr('aaaa bbbb  cccc ').split('bb', 3L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #99");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #99:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -804,20 +772,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #34
-            /* (['aaaa', 'cccc ']) */
+            // datum/string.yaml line #101
+            /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            System.out.println("About to run #34: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            logger.info("About to run line #101: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #101");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #101:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -826,20 +793,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #35
-            /* (['aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #103
+            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
-            System.out.println("About to run #35: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
+            logger.info("About to run line #103: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -848,20 +814,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #36
-            /* (['aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #105
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            System.out.println("About to run #36: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #105: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #105");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #105:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -870,20 +835,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #37
-            /* (['aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #107
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e", "f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
-            System.out.println("About to run #37: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
+            logger.info("About to run line #107: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #37");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #37");
+            logger.info("Finished running line #107");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #37:" + ae.toString());
+                logger.error("Whoops, got exception on line #107:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -892,20 +856,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #38
-            /* (['aaaa', 'bbbb', 'cccc ']) */
+            // datum/string.yaml line #110
+            /* ['aaaa', 'bbbb', 'cccc '] */
             List expected_ = r.array("aaaa", "bbbb", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(null, 2) */
-            System.out.println("About to run #38: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
+            logger.info("About to run line #110: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #110");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #110:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -914,20 +877,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #39
-            /* (["a", "b"]) */
+            // datum/string.yaml line #112
+            /* ["a", "b"] */
             List expected_ = r.array("a", "b");
             /* r.expr("a  b  ").split(null, 2) */
-            System.out.println("About to run #39: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
+            logger.info("About to run line #112: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
             Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #112");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #112:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -936,20 +898,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #40
-            /* (['aaaa', 'bbbb', '', 'cccc', '']) */
+            // datum/string.yaml line #114
+            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
             List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
             /* r.expr('aaaa bbbb  cccc ').split(' ', 4) */
-            System.out.println("About to run #40: r.expr('aaaa bbbb  cccc ').split(' ', 4L)");
+            logger.info("About to run line #114: r.expr('aaaa bbbb  cccc ').split(' ', 4L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #114");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #114:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -958,20 +919,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #41
-            /* (['a', 'a', 'a', 'a', ' bbbb  cccc ']) */
+            // datum/string.yaml line #116
+            /* ['a', 'a', 'a', 'a', ' bbbb  cccc '] */
             List expected_ = r.array("a", "a", "a", "a", " bbbb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('', 4) */
-            System.out.println("About to run #41: r.expr('aaaa bbbb  cccc ').split('', 4L)");
+            logger.info("About to run line #116: r.expr('aaaa bbbb  cccc ').split('', 4L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #116");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #116:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -980,20 +940,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #42
-            /* (['aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #118
+            /* ['aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('b', 4) */
-            System.out.println("About to run #42: r.expr('aaaa bbbb  cccc ').split('b', 4L)");
+            logger.info("About to run line #118: r.expr('aaaa bbbb  cccc ').split('b', 4L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1002,20 +961,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #43
-            /* (['aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #120
+            /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
-            System.out.println("About to run #43: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
+            logger.info("About to run line #120: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #120");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #120:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1024,20 +982,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #44
-            /* (['aaaa', 'cccc ']) */
+            // datum/string.yaml line #122
+            /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1) */
-            System.out.println("About to run #44: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
+            logger.info("About to run line #122: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #122");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #122:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1046,20 +1003,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #45
-            /* (['aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #124
+            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
-            System.out.println("About to run #45: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
+            logger.info("About to run line #124: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #124");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #124:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1068,20 +1024,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #46
-            /* (['aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #126
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
-            System.out.println("About to run #46: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
+            logger.info("About to run line #126: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #126");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #126:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1090,20 +1045,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #47
-            /* (['aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #128
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e", "f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            System.out.println("About to run #47: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #128: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #128");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #128:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1112,20 +1066,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #48
-            /* (['aaaa', 'bbbb  cccc ']) */
+            // datum/string.yaml line #131
+            /* ['aaaa', 'bbbb  cccc '] */
             List expected_ = r.array("aaaa", "bbbb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(null, 1) */
-            System.out.println("About to run #48: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
+            logger.info("About to run line #131: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #131");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #131:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1134,20 +1087,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #49
-            /* (['aaaa', 'bbbb', ' cccc ']) */
+            // datum/string.yaml line #133
+            /* ['aaaa', 'bbbb', ' cccc '] */
             List expected_ = r.array("aaaa", "bbbb", " cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' ', 2) */
-            System.out.println("About to run #49: r.expr('aaaa bbbb  cccc ').split(' ', 2L)");
+            logger.info("About to run line #133: r.expr('aaaa bbbb  cccc ').split(' ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #133");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #133:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1156,20 +1108,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #50
-            /* (['a', 'a', 'aa bbbb  cccc ']) */
+            // datum/string.yaml line #135
+            /* ['a', 'a', 'aa bbbb  cccc '] */
             List expected_ = r.array("a", "a", "aa bbbb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('', 2) */
-            System.out.println("About to run #50: r.expr('aaaa bbbb  cccc ').split('', 2L)");
+            logger.info("About to run line #135: r.expr('aaaa bbbb  cccc ').split('', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #135");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #135:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1178,20 +1129,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #51
-            /* (['aaaa ', '', 'bb  cccc ']) */
+            // datum/string.yaml line #137
+            /* ['aaaa ', '', 'bb  cccc '] */
             List expected_ = r.array("aaaa ", "", "bb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('b', 2) */
-            System.out.println("About to run #51: r.expr('aaaa bbbb  cccc ').split('b', 2L)");
+            logger.info("About to run line #137: r.expr('aaaa bbbb  cccc ').split('b', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #137");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #137:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1200,20 +1150,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #52
-            /* (['aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #139
+            /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
-            System.out.println("About to run #52: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
+            logger.info("About to run line #139: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #139");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #139:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1222,20 +1171,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #53
-            /* (['aaaa', 'cccc ']) */
+            // datum/string.yaml line #141
+            /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            System.out.println("About to run #53: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            logger.info("About to run line #141: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #53");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #53");
+            logger.info("Finished running line #141");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #141:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1244,20 +1192,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #54
-            /* (['aaaa ', '', '  cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #143
+            /* ['aaaa ', '', '  cccc b d bb e bbbb f'] */
             List expected_ = r.array("aaaa ", "", "  cccc b d bb e bbbb f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
-            System.out.println("About to run #54: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
+            logger.info("About to run line #143: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #54");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #54");
+            logger.info("Finished running line #143");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #54:" + ae.toString());
+                logger.error("Whoops, got exception on line #143:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1266,20 +1213,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #55
-            /* (['aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #145
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            System.out.println("About to run #55: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #145: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #55");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #55");
+            logger.info("Finished running line #145");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #55:" + ae.toString());
+                logger.error("Whoops, got exception on line #145:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1288,20 +1234,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #56
-            /* (['aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #147
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("aaaa", "cccc b d bb e", "f");
             /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            System.out.println("About to run #56: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #147: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #56");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #56");
+            logger.info("Finished running line #147");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #56:" + ae.toString());
+                logger.error("Whoops, got exception on line #147:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1310,20 +1255,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #57
-            /* ([]) */
+            // datum/string.yaml line #150
+            /* [] */
             List expected_ = r.array();
             /* r.expr('  ').split() */
-            System.out.println("About to run #57: r.expr('  ').split()");
+            logger.info("About to run line #150: r.expr('  ').split()");
             Object obtained = runOrCatch(r.expr("  ").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #57");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #57");
+            logger.info("Finished running line #150");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #57:" + ae.toString());
+                logger.error("Whoops, got exception on line #150:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1332,20 +1276,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #58
-            /* ([]) */
+            // datum/string.yaml line #152
+            /* [] */
             List expected_ = r.array();
             /* r.expr('  ').split(null) */
-            System.out.println("About to run #58: r.expr('  ').split((ReqlExpr) null)");
+            logger.info("About to run line #152: r.expr('  ').split((ReqlExpr) null)");
             Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #58");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #58");
+            logger.info("Finished running line #152");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #58:" + ae.toString());
+                logger.error("Whoops, got exception on line #152:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1354,20 +1297,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #59
-            /* (['', '', '']) */
+            // datum/string.yaml line #154
+            /* ['', '', ''] */
             List expected_ = r.array("", "", "");
             /* r.expr('  ').split(' ') */
-            System.out.println("About to run #59: r.expr('  ').split(' ')");
+            logger.info("About to run line #154: r.expr('  ').split(' ')");
             Object obtained = runOrCatch(r.expr("  ").split(" "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #59");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #59");
+            logger.info("Finished running line #154");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #59:" + ae.toString());
+                logger.error("Whoops, got exception on line #154:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1376,20 +1318,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #60
-            /* ([]) */
+            // datum/string.yaml line #156
+            /* [] */
             List expected_ = r.array();
             /* r.expr('  ').split(null, 5) */
-            System.out.println("About to run #60: r.expr('  ').split((ReqlExpr) null, 5L)");
+            logger.info("About to run line #156: r.expr('  ').split((ReqlExpr) null, 5L)");
             Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #60");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #60");
+            logger.info("Finished running line #156");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #60:" + ae.toString());
+                logger.error("Whoops, got exception on line #156:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1398,20 +1339,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #61
-            /* (['', '', '']) */
+            // datum/string.yaml line #158
+            /* ['', '', ''] */
             List expected_ = r.array("", "", "");
             /* r.expr('  ').split(' ', 5) */
-            System.out.println("About to run #61: r.expr('  ').split(' ', 5L)");
+            logger.info("About to run line #158: r.expr('  ').split(' ', 5L)");
             Object obtained = runOrCatch(r.expr("  ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #61");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #61");
+            logger.info("Finished running line #158");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #61:" + ae.toString());
+                logger.error("Whoops, got exception on line #158:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1420,20 +1360,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #62
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #161
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('  aaaa bbbb  cccc ').split() */
-            System.out.println("About to run #62: r.expr('  aaaa bbbb  cccc ').split()");
+            logger.info("About to run line #161: r.expr('  aaaa bbbb  cccc ').split()");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #62");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #62");
+            logger.info("Finished running line #161");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #62:" + ae.toString());
+                logger.error("Whoops, got exception on line #161:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1442,20 +1381,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #63
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #163
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('  aaaa bbbb  cccc ').split(null) */
-            System.out.println("About to run #63: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null)");
+            logger.info("About to run line #163: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #63");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #63");
+            logger.info("Finished running line #163");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #63:" + ae.toString());
+                logger.error("Whoops, got exception on line #163:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1464,20 +1402,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #64
-            /* (['', '', 'aaaa', 'bbbb', '', 'cccc', '']) */
+            // datum/string.yaml line #165
+            /* ['', '', 'aaaa', 'bbbb', '', 'cccc', ''] */
             List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc", "");
             /* r.expr('  aaaa bbbb  cccc ').split(' ') */
-            System.out.println("About to run #64: r.expr('  aaaa bbbb  cccc ').split(' ')");
+            logger.info("About to run line #165: r.expr('  aaaa bbbb  cccc ').split(' ')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #64");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #64");
+            logger.info("Finished running line #165");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #64:" + ae.toString());
+                logger.error("Whoops, got exception on line #165:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1486,20 +1423,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #65
-            /* (['  aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #167
+            /* ['  aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('b') */
-            System.out.println("About to run #65: r.expr('  aaaa bbbb  cccc ').split('b')");
+            logger.info("About to run line #167: r.expr('  aaaa bbbb  cccc ').split('b')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #65");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #65");
+            logger.info("Finished running line #167");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #65:" + ae.toString());
+                logger.error("Whoops, got exception on line #167:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1508,20 +1444,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #66
-            /* (['  aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #169
+            /* ['  aaaa ', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('bb') */
-            System.out.println("About to run #66: r.expr('  aaaa bbbb  cccc ').split('bb')");
+            logger.info("About to run line #169: r.expr('  aaaa bbbb  cccc ').split('bb')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #66");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #66");
+            logger.info("Finished running line #169");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #66:" + ae.toString());
+                logger.error("Whoops, got exception on line #169:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1530,20 +1465,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #67
-            /* (['  aaaa', 'cccc ']) */
+            // datum/string.yaml line #171
+            /* ['  aaaa', 'cccc '] */
             List expected_ = r.array("  aaaa", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ') */
-            System.out.println("About to run #67: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ')");
+            logger.info("About to run line #171: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #67");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #67");
+            logger.info("Finished running line #171");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #67:" + ae.toString());
+                logger.error("Whoops, got exception on line #171:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1552,20 +1486,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #68
-            /* (['  aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #173
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
-            System.out.println("About to run #68: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
+            logger.info("About to run line #173: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #68");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #68");
+            logger.info("Finished running line #173");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #68:" + ae.toString());
+                logger.error("Whoops, got exception on line #173:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1574,20 +1507,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #69
-            /* (['  aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #175
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
-            System.out.println("About to run #69: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
+            logger.info("About to run line #175: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #69");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #69");
+            logger.info("Finished running line #175");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #69:" + ae.toString());
+                logger.error("Whoops, got exception on line #175:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1596,20 +1528,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #70
-            /* (['  aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #177
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
-            System.out.println("About to run #70: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
+            logger.info("About to run line #177: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #70");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #70");
+            logger.info("Finished running line #177");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #177:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1618,20 +1549,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #71
-            /* (['aaaa', 'bbbb', 'cccc']) */
+            // datum/string.yaml line #180
+            /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 3) */
-            System.out.println("About to run #71: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
+            logger.info("About to run line #180: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #71");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #71");
+            logger.info("Finished running line #180");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #71:" + ae.toString());
+                logger.error("Whoops, got exception on line #180:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1640,20 +1570,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #72
-            /* (['', '', 'aaaa', 'bbbb', '', 'cccc ']) */
+            // datum/string.yaml line #182
+            /* ['', '', 'aaaa', 'bbbb', '', 'cccc '] */
             List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' ', 5) */
-            System.out.println("About to run #72: r.expr('  aaaa bbbb  cccc ').split(' ', 5L)");
+            logger.info("About to run line #182: r.expr('  aaaa bbbb  cccc ').split(' ', 5L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #72");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #72");
+            logger.info("Finished running line #182");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #72:" + ae.toString());
+                logger.error("Whoops, got exception on line #182:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1662,20 +1591,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #73
-            /* (['  aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #184
+            /* ['  aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('b', 5) */
-            System.out.println("About to run #73: r.expr('  aaaa bbbb  cccc ').split('b', 5L)");
+            logger.info("About to run line #184: r.expr('  aaaa bbbb  cccc ').split('b', 5L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #73");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #73");
+            logger.info("Finished running line #184");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #73:" + ae.toString());
+                logger.error("Whoops, got exception on line #184:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1684,20 +1612,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #74
-            /* (['  aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #186
+            /* ['  aaaa ', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('bb', 3) */
-            System.out.println("About to run #74: r.expr('  aaaa bbbb  cccc ').split('bb', 3L)");
+            logger.info("About to run line #186: r.expr('  aaaa bbbb  cccc ').split('bb', 3L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #74");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #74");
+            logger.info("Finished running line #186");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #74:" + ae.toString());
+                logger.error("Whoops, got exception on line #186:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1706,20 +1633,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #75
-            /* (['  aaaa', 'cccc ']) */
+            // datum/string.yaml line #188
+            /* ['  aaaa', 'cccc '] */
             List expected_ = r.array("  aaaa", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            System.out.println("About to run #75: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            logger.info("About to run line #188: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #75");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #75");
+            logger.info("Finished running line #188");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #75:" + ae.toString());
+                logger.error("Whoops, got exception on line #188:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1728,20 +1654,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #76
-            /* (['  aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #190
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
-            System.out.println("About to run #76: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
+            logger.info("About to run line #190: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #76");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #76");
+            logger.info("Finished running line #190");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #76:" + ae.toString());
+                logger.error("Whoops, got exception on line #190:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1750,20 +1675,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #77
-            /* (['  aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #192
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            System.out.println("About to run #77: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #192: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #77");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #77");
+            logger.info("Finished running line #192");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #77:" + ae.toString());
+                logger.error("Whoops, got exception on line #192:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1772,20 +1696,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #78
-            /* (['  aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #194
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
-            System.out.println("About to run #78: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
+            logger.info("About to run line #194: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #78");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #78");
+            logger.info("Finished running line #194");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #78:" + ae.toString());
+                logger.error("Whoops, got exception on line #194:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1794,20 +1717,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #79
-            /* (['aaaa', 'bbbb', 'cccc ']) */
+            // datum/string.yaml line #197
+            /* ['aaaa', 'bbbb', 'cccc '] */
             List expected_ = r.array("aaaa", "bbbb", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 2) */
-            System.out.println("About to run #79: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
+            logger.info("About to run line #197: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #79");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #79");
+            logger.info("Finished running line #197");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #79:" + ae.toString());
+                logger.error("Whoops, got exception on line #197:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1816,20 +1738,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #80
-            /* (["a", "b"]) */
+            // datum/string.yaml line #199
+            /* ["a", "b"] */
             List expected_ = r.array("a", "b");
             /* r.expr("a  b  ").split(null, 2) */
-            System.out.println("About to run #80: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
+            logger.info("About to run line #199: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
             Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #80");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #80");
+            logger.info("Finished running line #199");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #80:" + ae.toString());
+                logger.error("Whoops, got exception on line #199:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1838,20 +1759,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #81
-            /* (['', '', 'aaaa', 'bbbb', ' cccc ']) */
+            // datum/string.yaml line #201
+            /* ['', '', 'aaaa', 'bbbb', ' cccc '] */
             List expected_ = r.array("", "", "aaaa", "bbbb", " cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' ', 4) */
-            System.out.println("About to run #81: r.expr('  aaaa bbbb  cccc ').split(' ', 4L)");
+            logger.info("About to run line #201: r.expr('  aaaa bbbb  cccc ').split(' ', 4L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #81");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #81");
+            logger.info("Finished running line #201");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #81:" + ae.toString());
+                logger.error("Whoops, got exception on line #201:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1860,20 +1780,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #82
-            /* (['  aaaa ', '', '', '', '  cccc ']) */
+            // datum/string.yaml line #203
+            /* ['  aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('b', 4) */
-            System.out.println("About to run #82: r.expr('  aaaa bbbb  cccc ').split('b', 4L)");
+            logger.info("About to run line #203: r.expr('  aaaa bbbb  cccc ').split('b', 4L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #82");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #82");
+            logger.info("Finished running line #203");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #82:" + ae.toString());
+                logger.error("Whoops, got exception on line #203:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1882,20 +1801,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #83
-            /* (['  aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #205
+            /* ['  aaaa ', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
-            System.out.println("About to run #83: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
+            logger.info("About to run line #205: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #83");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #83");
+            logger.info("Finished running line #205");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #83:" + ae.toString());
+                logger.error("Whoops, got exception on line #205:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1904,20 +1822,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #84
-            /* (['  aaaa', 'cccc ']) */
+            // datum/string.yaml line #207
+            /* ['  aaaa', 'cccc '] */
             List expected_ = r.array("  aaaa", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1) */
-            System.out.println("About to run #84: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
+            logger.info("About to run line #207: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #84");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #84");
+            logger.info("Finished running line #207");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #84:" + ae.toString());
+                logger.error("Whoops, got exception on line #207:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1926,20 +1843,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #85
-            /* (['  aaaa ', '', '  cccc b d ', ' e ', '', ' f']) */
+            // datum/string.yaml line #209
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
-            System.out.println("About to run #85: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
+            logger.info("About to run line #209: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #85");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #85");
+            logger.info("Finished running line #209");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #85:" + ae.toString());
+                logger.error("Whoops, got exception on line #209:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1948,20 +1864,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #86
-            /* (['  aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #211
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
-            System.out.println("About to run #86: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
+            logger.info("About to run line #211: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #86");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #86");
+            logger.info("Finished running line #211");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #86:" + ae.toString());
+                logger.error("Whoops, got exception on line #211:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1970,20 +1885,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #87
-            /* (['  aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #213
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            System.out.println("About to run #87: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #213: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #87");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #87");
+            logger.info("Finished running line #213");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #87:" + ae.toString());
+                logger.error("Whoops, got exception on line #213:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1992,20 +1906,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #88
-            /* (['aaaa', 'bbbb  cccc ']) */
+            // datum/string.yaml line #216
+            /* ['aaaa', 'bbbb  cccc '] */
             List expected_ = r.array("aaaa", "bbbb  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 1) */
-            System.out.println("About to run #88: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
+            logger.info("About to run line #216: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #88");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #88");
+            logger.info("Finished running line #216");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #88:" + ae.toString());
+                logger.error("Whoops, got exception on line #216:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2014,20 +1927,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #89
-            /* (['', '', 'aaaa bbbb  cccc ']) */
+            // datum/string.yaml line #218
+            /* ['', '', 'aaaa bbbb  cccc '] */
             List expected_ = r.array("", "", "aaaa bbbb  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' ', 2) */
-            System.out.println("About to run #89: r.expr('  aaaa bbbb  cccc ').split(' ', 2L)");
+            logger.info("About to run line #218: r.expr('  aaaa bbbb  cccc ').split(' ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #89");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #89");
+            logger.info("Finished running line #218");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #89:" + ae.toString());
+                logger.error("Whoops, got exception on line #218:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2036,20 +1948,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #90
-            /* (['  aaaa ', '', 'bb  cccc ']) */
+            // datum/string.yaml line #220
+            /* ['  aaaa ', '', 'bb  cccc '] */
             List expected_ = r.array("  aaaa ", "", "bb  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('b', 2) */
-            System.out.println("About to run #90: r.expr('  aaaa bbbb  cccc ').split('b', 2L)");
+            logger.info("About to run line #220: r.expr('  aaaa bbbb  cccc ').split('b', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #90");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #90");
+            logger.info("Finished running line #220");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #90:" + ae.toString());
+                logger.error("Whoops, got exception on line #220:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2058,20 +1969,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #91
-            /* (['  aaaa ', '', '  cccc ']) */
+            // datum/string.yaml line #222
+            /* ['  aaaa ', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
-            System.out.println("About to run #91: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
+            logger.info("About to run line #222: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #91");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #91");
+            logger.info("Finished running line #222");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #91:" + ae.toString());
+                logger.error("Whoops, got exception on line #222:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2080,20 +1990,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #92
-            /* (['  aaaa', 'cccc ']) */
+            // datum/string.yaml line #224
+            /* ['  aaaa', 'cccc '] */
             List expected_ = r.array("  aaaa", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            System.out.println("About to run #92: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            logger.info("About to run line #224: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #92");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #92");
+            logger.info("Finished running line #224");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #92:" + ae.toString());
+                logger.error("Whoops, got exception on line #224:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2102,20 +2011,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #93
-            /* (['  aaaa ', '', '  cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #226
+            /* ['  aaaa ', '', '  cccc b d bb e bbbb f'] */
             List expected_ = r.array("  aaaa ", "", "  cccc b d bb e bbbb f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
-            System.out.println("About to run #93: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
+            logger.info("About to run line #226: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #93");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #93");
+            logger.info("Finished running line #226");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #93:" + ae.toString());
+                logger.error("Whoops, got exception on line #226:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2124,20 +2032,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #94
-            /* (['  aaaa', 'cccc b d bb e bbbb f']) */
+            // datum/string.yaml line #228
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            System.out.println("About to run #94: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #228: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #94");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #94");
+            logger.info("Finished running line #228");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #94:" + ae.toString());
+                logger.error("Whoops, got exception on line #228:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2146,20 +2053,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #95
-            /* (['  aaaa', 'cccc b d bb e', 'f']) */
+            // datum/string.yaml line #230
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
             List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
             /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            System.out.println("About to run #95: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            logger.info("About to run line #230: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #95");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #95");
+            logger.info("Finished running line #230");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #95:" + ae.toString());
+                logger.error("Whoops, got exception on line #230:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2168,20 +2074,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #96
-            /* ("ABC-DEF-GHJ") */
+            // datum/string.yaml line #233
+            /* "ABC-DEF-GHJ" */
             String expected_ = "ABC-DEF-GHJ";
             /* r.expr("abc-dEf-GHJ").upcase() */
-            System.out.println("About to run #96: r.expr('abc-dEf-GHJ').upcase()");
+            logger.info("About to run line #233: r.expr('abc-dEf-GHJ').upcase()");
             Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").upcase(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #96");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #96");
+            logger.info("Finished running line #233");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #96:" + ae.toString());
+                logger.error("Whoops, got exception on line #233:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2190,20 +2095,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #97
-            /* ("abc-def-ghj") */
+            // datum/string.yaml line #235
+            /* "abc-def-ghj" */
             String expected_ = "abc-def-ghj";
             /* r.expr("abc-dEf-GHJ").downcase() */
-            System.out.println("About to run #97: r.expr('abc-dEf-GHJ').downcase()");
+            logger.info("About to run line #235: r.expr('abc-dEf-GHJ').downcase()");
             Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").downcase(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #97");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #97");
+            logger.info("Finished running line #235");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #97:" + ae.toString());
+                logger.error("Whoops, got exception on line #235:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2212,20 +2116,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #98
-            /* (["f", "\u00e9", "o", "o"]) */
+            // datum/string.yaml line #240
+            /* ["f", "\u00e9", "o", "o"] */
             List expected_ = r.array("f", "é", "o", "o");
             /* r.expr(u"f\u00e9oo").split("") */
-            System.out.println("About to run #98: r.expr('féoo').split('')");
+            logger.info("About to run line #240: r.expr('féoo').split('')");
             Object obtained = runOrCatch(r.expr("féoo").split(""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #98");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #98");
+            logger.info("Finished running line #240");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #98:" + ae.toString());
+                logger.error("Whoops, got exception on line #240:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2234,20 +2137,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #99
-            /* (["f", "e\u0301", "o", "o"]) */
+            // datum/string.yaml line #249
+            /* ["f", "e\u0301", "o", "o"] */
             List expected_ = r.array("f", "é", "o", "o");
             /* r.expr(u"fe\u0301oo").split("") */
-            System.out.println("About to run #99: r.expr('féoo').split('')");
+            logger.info("About to run line #249: r.expr('féoo').split('')");
             Object obtained = runOrCatch(r.expr("féoo").split(""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #99");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #99");
+            logger.info("Finished running line #249");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #99:" + ae.toString());
+                logger.error("Whoops, got exception on line #249:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2256,20 +2158,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #100
-            /* (["foo", "bar", "baz", "quux", "fred", "barney", "wilma"]) */
+            // datum/string.yaml line #262
+            /* ["foo", "bar", "baz", "quux", "fred", "barney", "wilma"] */
             List expected_ = r.array("foo", "bar", "baz", "quux", "fred", "barney", "wilma");
             /* r.expr(u"foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split() */
-            System.out.println("About to run #100: r.expr('foo bar\\tbaz\\nquux\\rfred\\u000bbarney\\u000cwilma').split()");
+            logger.info("About to run line #262: r.expr('foo bar\\tbaz\\nquux\\rfred\\u000bbarney\\u000cwilma').split()");
             Object obtained = runOrCatch(r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #100");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #100");
+            logger.info("Finished running line #262");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #100:" + ae.toString());
+                logger.error("Whoops, got exception on line #262:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2278,20 +2179,19 @@ public class DatumString {
         }
         
         {
-            // datum/string.yaml #101
-            /* (["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"]) */
+            // datum/string.yaml line #278
+            /* ["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"] */
             List expected_ = r.array("foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b");
             /* r.expr(u"foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split() */
-            System.out.println("About to run #101: r.expr('foo\\u00a0bar\\u2001baz\\u2060quux\\u2028fred\\u2028barney\\u2029wilma\\u0085betty\\u200b').split()");
+            logger.info("About to run line #278: r.expr('foo\\u00a0bar\\u2001baz\\u2060quux\\u2028fred\\u2028barney\\u2029wilma\\u0085betty\\u200b').split()");
             Object obtained = runOrCatch(r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #101");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #101");
+            logger.info("Finished running line #278");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #101:" + ae.toString());
+                logger.error("Whoops, got exception on line #278:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

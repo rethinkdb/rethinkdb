@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class TimesTimezones {
+    // Test basic timezone manipulation
     Logger logger = LoggerFactory.getLogger(TimesTimezones.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class TimesTimezones {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class TimesTimezones {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,91 +76,90 @@ public class TimesTimezones {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // times/timezones.yaml #1
+        // times/timezones.yaml line #3
         // t1 = r.time(2013, r.july, 29, 23, 30, 0, "+00:00")
-        System.out.println("Possibly executing: Time t1 = (Time) (r.time(2013L, r.july(), 29L, 23L, 30L, 0L, '+00:00'));");
+        logger.info("Possibly executing: Time t1 = (Time) (r.time(2013L, r.july(), 29L, 23L, 30L, 0L, '+00:00'));");
         Time t1 = (Time) (r.time(2013L, r.july(), 29L, 23L, 30L, 0L, "+00:00"));
                 
-        // times/timezones.yaml #2
+        // times/timezones.yaml line #5
         // tutc1 = t1.in_timezone("Z")
-        System.out.println("Possibly executing: InTimezone tutc1 = (InTimezone) (t1.inTimezone('Z'));");
+        logger.info("Possibly executing: InTimezone tutc1 = (InTimezone) (t1.inTimezone('Z'));");
         InTimezone tutc1 = (InTimezone) (t1.inTimezone("Z"));
                 
-        // times/timezones.yaml #3
+        // times/timezones.yaml line #6
         // tutc2 = t1.in_timezone("+00:00")
-        System.out.println("Possibly executing: InTimezone tutc2 = (InTimezone) (t1.inTimezone('+00:00'));");
+        logger.info("Possibly executing: InTimezone tutc2 = (InTimezone) (t1.inTimezone('+00:00'));");
         InTimezone tutc2 = (InTimezone) (t1.inTimezone("+00:00"));
                 
-        // times/timezones.yaml #4
+        // times/timezones.yaml line #7
         // tutc3 = t1.in_timezone("+00")
-        System.out.println("Possibly executing: InTimezone tutc3 = (InTimezone) (t1.inTimezone('+00'));");
+        logger.info("Possibly executing: InTimezone tutc3 = (InTimezone) (t1.inTimezone('+00'));");
         InTimezone tutc3 = (InTimezone) (t1.inTimezone("+00"));
                 
-        // times/timezones.yaml #5
+        // times/timezones.yaml line #8
         // tutcs = r.expr([tutc1, tutc2, tutc3])
-        System.out.println("Possibly executing: MakeArray tutcs = (MakeArray) (r.expr(r.array(tutc1, tutc2, tutc3)));");
+        logger.info("Possibly executing: MakeArray tutcs = (MakeArray) (r.expr(r.array(tutc1, tutc2, tutc3)));");
         MakeArray tutcs = (MakeArray) (r.expr(r.array(tutc1, tutc2, tutc3)));
                 
-        // times/timezones.yaml #6
+        // times/timezones.yaml line #10
         // tm1 = t1.in_timezone("-00:59")
-        System.out.println("Possibly executing: InTimezone tm1 = (InTimezone) (t1.inTimezone('-00:59'));");
+        logger.info("Possibly executing: InTimezone tm1 = (InTimezone) (t1.inTimezone('-00:59'));");
         InTimezone tm1 = (InTimezone) (t1.inTimezone("-00:59"));
                 
-        // times/timezones.yaml #7
+        // times/timezones.yaml line #11
         // tm2 = t1.in_timezone("-01:00")
-        System.out.println("Possibly executing: InTimezone tm2 = (InTimezone) (t1.inTimezone('-01:00'));");
+        logger.info("Possibly executing: InTimezone tm2 = (InTimezone) (t1.inTimezone('-01:00'));");
         InTimezone tm2 = (InTimezone) (t1.inTimezone("-01:00"));
                 
-        // times/timezones.yaml #8
+        // times/timezones.yaml line #12
         // tm3 = t1.in_timezone("-01:01")
-        System.out.println("Possibly executing: InTimezone tm3 = (InTimezone) (t1.inTimezone('-01:01'));");
+        logger.info("Possibly executing: InTimezone tm3 = (InTimezone) (t1.inTimezone('-01:01'));");
         InTimezone tm3 = (InTimezone) (t1.inTimezone("-01:01"));
                 
-        // times/timezones.yaml #9
+        // times/timezones.yaml line #13
         // tms = r.expr([tm1, tm2, tm3])
-        System.out.println("Possibly executing: MakeArray tms = (MakeArray) (r.expr(r.array(tm1, tm2, tm3)));");
+        logger.info("Possibly executing: MakeArray tms = (MakeArray) (r.expr(r.array(tm1, tm2, tm3)));");
         MakeArray tms = (MakeArray) (r.expr(r.array(tm1, tm2, tm3)));
                 
-        // times/timezones.yaml #10
+        // times/timezones.yaml line #15
         // tp1 = t1.in_timezone("+00:59")
-        System.out.println("Possibly executing: InTimezone tp1 = (InTimezone) (t1.inTimezone('+00:59'));");
+        logger.info("Possibly executing: InTimezone tp1 = (InTimezone) (t1.inTimezone('+00:59'));");
         InTimezone tp1 = (InTimezone) (t1.inTimezone("+00:59"));
                 
-        // times/timezones.yaml #11
+        // times/timezones.yaml line #16
         // tp2 = t1.in_timezone("+01:00")
-        System.out.println("Possibly executing: InTimezone tp2 = (InTimezone) (t1.inTimezone('+01:00'));");
+        logger.info("Possibly executing: InTimezone tp2 = (InTimezone) (t1.inTimezone('+01:00'));");
         InTimezone tp2 = (InTimezone) (t1.inTimezone("+01:00"));
                 
-        // times/timezones.yaml #12
+        // times/timezones.yaml line #17
         // tp3 = t1.in_timezone("+01:01")
-        System.out.println("Possibly executing: InTimezone tp3 = (InTimezone) (t1.inTimezone('+01:01'));");
+        logger.info("Possibly executing: InTimezone tp3 = (InTimezone) (t1.inTimezone('+01:01'));");
         InTimezone tp3 = (InTimezone) (t1.inTimezone("+01:01"));
                 
-        // times/timezones.yaml #13
+        // times/timezones.yaml line #18
         // tps = r.expr([tp1, tp2, tp3])
-        System.out.println("Possibly executing: MakeArray tps = (MakeArray) (r.expr(r.array(tp1, tp2, tp3)));");
+        logger.info("Possibly executing: MakeArray tps = (MakeArray) (r.expr(r.array(tp1, tp2, tp3)));");
         MakeArray tps = (MakeArray) (r.expr(r.array(tp1, tp2, tp3)));
                 
-        // times/timezones.yaml #14
+        // times/timezones.yaml line #20
         // ts = tutcs.union(tms).union(tps).union([t1])
-        System.out.println("Possibly executing: Union ts = (Union) (tutcs.union(tms).union(tps).union(r.array(t1)));");
+        logger.info("Possibly executing: Union ts = (Union) (tutcs.union(tms).union(tps).union(r.array(t1)));");
         Union ts = (Union) (tutcs.union(tms).union(tps).union(r.array(t1)));
                 
         {
-            // times/timezones.yaml #15
+            // times/timezones.yaml line #23
             /* ([["+00:00", 29], ["+00:00", 29], ["+00:00", 29]]) */
             List expected_ = r.array(r.array("+00:00", 29L), r.array("+00:00", 29L), r.array("+00:00", 29L));
             /* tutcs.map(lambda x:[x.timezone(), x.day()]) */
-            System.out.println("About to run #15: tutcs.map(x -> r.array(x.timezone(), x.day()))");
+            logger.info("About to run line #23: tutcs.map(x -> r.array(x.timezone(), x.day()))");
             Object obtained = runOrCatch(tutcs.map(x -> r.array(x.timezone(), x.day())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -167,20 +168,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #16
+            // times/timezones.yaml line #27
             /* ([["-00:59", 29], ["-01:00", 29], ["-01:01", 29]]) */
             List expected_ = r.array(r.array("-00:59", 29L), r.array("-01:00", 29L), r.array("-01:01", 29L));
             /* tms.map(lambda x:[x.timezone(), x.day()]) */
-            System.out.println("About to run #16: tms.map(x -> r.array(x.timezone(), x.day()))");
+            logger.info("About to run line #27: tms.map(x -> r.array(x.timezone(), x.day()))");
             Object obtained = runOrCatch(tms.map(x -> r.array(x.timezone(), x.day())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -189,20 +189,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #17
+            // times/timezones.yaml line #31
             /* ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]]) */
             List expected_ = r.array(r.array("+00:59", 30L), r.array("+01:00", 30L), r.array("+01:01", 30L));
             /* tps.map(lambda x:[x.timezone(), x.day()]) */
-            System.out.println("About to run #17: tps.map(x -> r.array(x.timezone(), x.day()))");
+            logger.info("About to run line #31: tps.map(x -> r.array(x.timezone(), x.day()))");
             Object obtained = runOrCatch(tps.map(x -> r.array(x.timezone(), x.day())),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -211,20 +210,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #18
+            // times/timezones.yaml line #38
             /* ([0]) */
             List expected_ = r.array(0L);
             /* ts.concat_map(lambda x:ts.map(lambda y:x - y)).distinct() */
-            System.out.println("About to run #18: ts.concatMap(x -> ts.map(y -> r.sub(x, y))).distinct()");
+            logger.info("About to run line #38: ts.concatMap(x -> ts.map(y -> r.sub(x, y))).distinct()");
             Object obtained = runOrCatch(ts.concatMap(x -> ts.map(y -> r.sub(x, y))).distinct(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #38");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #38:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -233,20 +231,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #19
+            // times/timezones.yaml line #44
             /* err('ReqlQueryLogicError', 'Timezone `` does not start with `-` or `+`.') */
             Err expected_ = err("ReqlQueryLogicError", "Timezone `` does not start with `-` or `+`.");
             /* r.now().in_timezone("") */
-            System.out.println("About to run #19: r.now().inTimezone('')");
+            logger.info("About to run line #44: r.now().inTimezone('')");
             Object obtained = runOrCatch(r.now().inTimezone(""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -255,20 +252,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #20
+            // times/timezones.yaml line #47
             /* err('ReqlQueryLogicError', '`-00` is not a valid time offset.') */
             Err expected_ = err("ReqlQueryLogicError", "`-00` is not a valid time offset.");
             /* r.now().in_timezone("-00") */
-            System.out.println("About to run #20: r.now().inTimezone('-00')");
+            logger.info("About to run line #47: r.now().inTimezone('-00')");
             Object obtained = runOrCatch(r.now().inTimezone("-00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #47");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #47:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -277,20 +273,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #21
+            // times/timezones.yaml line #50
             /* err('ReqlQueryLogicError', '`-00:00` is not a valid time offset.') */
             Err expected_ = err("ReqlQueryLogicError", "`-00:00` is not a valid time offset.");
             /* r.now().in_timezone("-00:00") */
-            System.out.println("About to run #21: r.now().inTimezone('-00:00')");
+            logger.info("About to run line #50: r.now().inTimezone('-00:00')");
             Object obtained = runOrCatch(r.now().inTimezone("-00:00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #50");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #50:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -299,20 +294,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #22
+            // times/timezones.yaml line #53
             /* err('ReqlQueryLogicError', 'Timezone `UTC+00` does not start with `-` or `+`.') */
             Err expected_ = err("ReqlQueryLogicError", "Timezone `UTC+00` does not start with `-` or `+`.");
             /* r.now().in_timezone("UTC+00") */
-            System.out.println("About to run #22: r.now().inTimezone('UTC+00')");
+            logger.info("About to run line #53: r.now().inTimezone('UTC+00')");
             Object obtained = runOrCatch(r.now().inTimezone("UTC+00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #53");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -321,20 +315,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #23
+            // times/timezones.yaml line #56
             /* err('ReqlQueryLogicError', 'Minutes out of range in `+00:60`.') */
             Err expected_ = err("ReqlQueryLogicError", "Minutes out of range in `+00:60`.");
             /* r.now().in_timezone("+00:60") */
-            System.out.println("About to run #23: r.now().inTimezone('+00:60')");
+            logger.info("About to run line #56: r.now().inTimezone('+00:60')");
             Object obtained = runOrCatch(r.now().inTimezone("+00:60"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #56");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #56:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -343,20 +336,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #24
+            // times/timezones.yaml line #59
             /* err('ReqlQueryLogicError', 'Hours out of range in `+25:00`.') */
             Err expected_ = err("ReqlQueryLogicError", "Hours out of range in `+25:00`.");
             /* r.now().in_timezone("+25:00") */
-            System.out.println("About to run #24: r.now().inTimezone('+25:00')");
+            logger.info("About to run line #59: r.now().inTimezone('+25:00')");
             Object obtained = runOrCatch(r.now().inTimezone("+25:00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #59");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #59:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -365,20 +357,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #25
+            // times/timezones.yaml line #63
             /* err('ReqlQueryLogicError', 'Timezone `` does not start with `-` or `+`.') */
             Err expected_ = err("ReqlQueryLogicError", "Timezone `` does not start with `-` or `+`.");
             /* r.time(2013, 1, 1, "") */
-            System.out.println("About to run #25: r.time(2013L, 1L, 1L, '')");
+            logger.info("About to run line #63: r.time(2013L, 1L, 1L, '')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, ""),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #63");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #63:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -387,20 +378,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #26
+            // times/timezones.yaml line #66
             /* err('ReqlQueryLogicError', '`-00` is not a valid time offset.') */
             Err expected_ = err("ReqlQueryLogicError", "`-00` is not a valid time offset.");
             /* r.time(2013, 1, 1, "-00") */
-            System.out.println("About to run #26: r.time(2013L, 1L, 1L, '-00')");
+            logger.info("About to run line #66: r.time(2013L, 1L, 1L, '-00')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, "-00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #66");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -409,20 +399,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #27
+            // times/timezones.yaml line #69
             /* err('ReqlQueryLogicError', '`-00:00` is not a valid time offset.') */
             Err expected_ = err("ReqlQueryLogicError", "`-00:00` is not a valid time offset.");
             /* r.time(2013, 1, 1, "-00:00") */
-            System.out.println("About to run #27: r.time(2013L, 1L, 1L, '-00:00')");
+            logger.info("About to run line #69: r.time(2013L, 1L, 1L, '-00:00')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, "-00:00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -431,20 +420,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #28
+            // times/timezones.yaml line #72
             /* err('ReqlQueryLogicError', 'Timezone `UTC+00` does not start with `-` or `+`.') */
             Err expected_ = err("ReqlQueryLogicError", "Timezone `UTC+00` does not start with `-` or `+`.");
             /* r.time(2013, 1, 1, "UTC+00") */
-            System.out.println("About to run #28: r.time(2013L, 1L, 1L, 'UTC+00')");
+            logger.info("About to run line #72: r.time(2013L, 1L, 1L, 'UTC+00')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, "UTC+00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -453,20 +441,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #29
+            // times/timezones.yaml line #75
             /* err('ReqlQueryLogicError', 'Minutes out of range in `+00:60`.') */
             Err expected_ = err("ReqlQueryLogicError", "Minutes out of range in `+00:60`.");
             /* r.time(2013, 1, 1, "+00:60") */
-            System.out.println("About to run #29: r.time(2013L, 1L, 1L, '+00:60')");
+            logger.info("About to run line #75: r.time(2013L, 1L, 1L, '+00:60')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, "+00:60"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #75");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #75:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -475,20 +462,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #30
+            // times/timezones.yaml line #78
             /* err('ReqlQueryLogicError', 'Hours out of range in `+25:00`.') */
             Err expected_ = err("ReqlQueryLogicError", "Hours out of range in `+25:00`.");
             /* r.time(2013, 1, 1, "+25:00") */
-            System.out.println("About to run #30: r.time(2013L, 1L, 1L, '+25:00')");
+            logger.info("About to run line #78: r.time(2013L, 1L, 1L, '+25:00')");
             Object obtained = runOrCatch(r.time(2013L, 1L, 1L, "+25:00"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -497,20 +483,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #31
+            // times/timezones.yaml line #81
             /* ("2015-07-08T00:00:00-08:00") */
             String expected_ = "2015-07-08T00:00:00-08:00";
             /* r.epoch_time(1436428422.339).in_timezone('-08:00').date().to_iso8601() */
-            System.out.println("About to run #31: r.epochTime(1436428422.339).inTimezone('-08:00').date().toIso8601()");
+            logger.info("About to run line #81: r.epochTime(1436428422.339).inTimezone('-08:00').date().toIso8601()");
             Object obtained = runOrCatch(r.epochTime(1436428422.339).inTimezone("-08:00").date().toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -519,20 +504,19 @@ public class TimesTimezones {
         }
         
         {
-            // times/timezones.yaml #32
+            // times/timezones.yaml line #85
             /* ("2015-07-09T00:00:00-07:00") */
             String expected_ = "2015-07-09T00:00:00-07:00";
             /* r.epoch_time(1436428422.339).in_timezone('-07:00').date().to_iso8601() */
-            System.out.println("About to run #32: r.epochTime(1436428422.339).inTimezone('-07:00').date().toIso8601()");
+            logger.info("About to run line #85: r.epochTime(1436428422.339).inTimezone('-07:00').date().toIso8601()");
             Object obtained = runOrCatch(r.epochTime(1436428422.339).inTimezone("-07:00").date().toIso8601(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #85");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #85:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

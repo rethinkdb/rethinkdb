@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MathLogicMath {
+    // Tests of nested arithmetic expressions
     Logger logger = LoggerFactory.getLogger(MathLogicMath.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MathLogicMath {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MathLogicMath {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class MathLogicMath {
     public void test() throws Exception {
                 
         {
-            // math_logic/math.yaml #1
+            // math_logic/math.yaml line #4
             /* 1 */
             Long expected_ = 1L;
             /* (((4 + 2 * (r.expr(26) % 18)) / 5) - 3) */
-            System.out.println("About to run #1: r.add(4L, r.mul(2L, r.expr(26L).mod(18L))).div(5L).sub(3L)");
+            logger.info("About to run line #4: r.add(4L, r.mul(2L, r.expr(26L).mod(18L))).div(5L).sub(3L)");
             Object obtained = runOrCatch(r.add(4L, r.mul(2L, r.expr(26L).mod(18L))).div(5L).sub(3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #4");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

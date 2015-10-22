@@ -37,6 +37,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class ${module_name} {
+    // ${description}
     Logger logger = LoggerFactory.getLogger(${module_name}.class);
     public static final RethinkDB r = RethinkDB.r;
     %for var_name in table_var_names:
@@ -65,7 +66,7 @@ public class ${module_name} {
 
     @After
     public void tearDown() throws Exception {
-        loggerinfo("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -88,7 +89,7 @@ public class ${module_name} {
         %if type(item) == JavaDef:
         <%rendered_something = True %>\
 
-        // ${item.testfile} #${item.test_num}
+        // ${item.testfile} line #${item.line_num}
         // ${item.line.original}
         logger.info("Possibly executing: ${item.line.java.replace('\\', '\\\\').replace('"', "'")}");
         %if item.varname in rendered_vars:
@@ -103,11 +104,11 @@ public class ${module_name} {
         %elif type(item) == JavaQuery:
         <%rendered_something = True %>
         {
-            // ${item.testfile} #${item.test_num}
+            // ${item.testfile} line #${item.line_num}
             /* ${item.expected_line.original} */
             ${item.expected_type} expected_ = ${item.expected_line.java};
             /* ${item.line.original} */
-            logger.info("About to run #${item.test_num}: ${item.line.java.replace('"', "'").replace('\\', '\\\\').replace('\n', '\\n')}");
+            logger.info("About to run line #${item.line_num}: ${item.line.java.replace('"', "'").replace('\\', '\\\\').replace('\n', '\\n')}");
             Object obtained = runOrCatch(${item.line.java},
                                           new OptArgs()
             %if item.runopts:
@@ -116,7 +117,6 @@ public class ${module_name} {
               %endfor
             %endif
                                           ,conn);
-            logger.info("Finished running #${item.test_num}");
             try {
             %if item.expected_type.endswith('[]'):
                 assertArrayEquals(expected_, (${item.expected_type}) obtained);
@@ -126,10 +126,10 @@ public class ${module_name} {
                              0.00000000001);
             %else:
                 assertEquals(expected_, obtained);
-                logger.info("Finished running #${item.test_num}");
             %endif
+            logger.info("Finished running line #${item.line_num}");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on #${item.test_num}:" + ae.toString());
+                logger.error("Whoops, got exception on line #${item.line_num}:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

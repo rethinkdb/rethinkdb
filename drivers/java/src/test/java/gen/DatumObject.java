@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumObject {
+    // Tests conversion to and from the RQL object type
     Logger logger = LoggerFactory.getLogger(DatumObject.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumObject {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumObject {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumObject {
     public void test() throws Exception {
                 
         {
-            // datum/object.yaml #1
-            /* ({}) */
+            // datum/object.yaml line #6
+            /* {} */
             Map expected_ = r.hashMap();
             /* r.expr({}) */
-            System.out.println("About to run #1: r.expr(r.hashMap())");
+            logger.info("About to run line #6: r.expr(r.hashMap())");
             Object obtained = runOrCatch(r.expr(r.hashMap()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #2
+            // datum/object.yaml line #11
             /* {'a':1} */
             Map expected_ = r.hashMap("a", 1L);
             /* r.expr({'a':1}) */
-            System.out.println("About to run #2: r.expr(r.hashMap('a', 1L))");
+            logger.info("About to run line #11: r.expr(r.hashMap('a', 1L))");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #11");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #3
+            // datum/object.yaml line #16
             /* {'a':1, 'b':'two', 'c':True} */
             Map expected_ = r.hashMap("a", 1L).with("b", "two").with("c", true);
             /* r.expr({'a':1, 'b':'two', 'c':True}) */
-            System.out.println("About to run #3: r.expr(r.hashMap('a', 1L).with('b', 'two').with('c', true))");
+            logger.info("About to run line #16: r.expr(r.hashMap('a', 1L).with('b', 'two').with('c', true))");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L).with("b", "two").with("c", true)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #4
-            /* ({'a':1}) */
+            // datum/object.yaml line #20
+            /* {'a':1} */
             Map expected_ = r.hashMap("a", 1L);
             /* r.expr({'a':r.expr(1)}) */
-            System.out.println("About to run #4: r.expr(r.hashMap('a', r.expr(1L)))");
+            logger.info("About to run line #20: r.expr(r.hashMap('a', r.expr(1L)))");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", r.expr(1L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #20");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #20:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #5
-            /* ({'a':{'b':[{'c':2}, 'a', 4]}}) */
+            // datum/object.yaml line #23
+            /* {'a':{'b':[{'c':2}, 'a', 4]}} */
             Map expected_ = r.hashMap("a", r.hashMap("b", r.array(r.hashMap("c", 2L), "a", 4L)));
             /* r.expr({'a':{'b':[{'c':2}, 'a', 4]}}) */
-            System.out.println("About to run #5: r.expr(r.hashMap('a', r.hashMap('b', r.array(r.hashMap('c', 2L), 'a', 4L))))");
+            logger.info("About to run line #23: r.expr(r.hashMap('a', r.hashMap('b', r.array(r.hashMap('c', 2L), 'a', 4L))))");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", r.hashMap("b", r.array(r.hashMap("c", 2L), "a", 4L)))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #23");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #23:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #6
+            // datum/object.yaml line #26
             /* 'OBJECT' */
             String expected_ = "OBJECT";
             /* r.expr({'a':1}).type_of() */
-            System.out.println("About to run #6: r.expr(r.hashMap('a', 1L)).typeOf()");
+            logger.info("About to run line #26: r.expr(r.hashMap('a', 1L)).typeOf()");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L)).typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #26");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #26:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #7
-            /* ('{"a":1}') */
+            // datum/object.yaml line #30
+            /* '{"a":1}' */
             String expected_ = "{\"a\":1}";
             /* r.expr({'a':1}).coerce_to('string') */
-            System.out.println("About to run #7: r.expr(r.hashMap('a', 1L)).coerceTo('string')");
+            logger.info("About to run line #30: r.expr(r.hashMap('a', 1L)).coerceTo('string')");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L)).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #8
-            /* ({'a':1}) */
+            // datum/object.yaml line #34
+            /* {'a':1} */
             Map expected_ = r.hashMap("a", 1L);
             /* r.expr({'a':1}).coerce_to('object') */
-            System.out.println("About to run #8: r.expr(r.hashMap('a', 1L)).coerceTo('object')");
+            logger.info("About to run line #34: r.expr(r.hashMap('a', 1L)).coerceTo('object')");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L)).coerceTo("object"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #9
-            /* [['a', 1]] */
+            // datum/object.yaml line #37
+            /* [['a',1]] */
             List expected_ = r.array(r.array("a", 1L));
             /* r.expr({'a':1}).coerce_to('array') */
-            System.out.println("About to run #9: r.expr(r.hashMap('a', 1L)).coerceTo('array')");
+            logger.info("About to run line #37: r.expr(r.hashMap('a', 1L)).coerceTo('array')");
             Object obtained = runOrCatch(r.expr(r.hashMap("a", 1L)).coerceTo("array"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #16
-            /* ({}) */
+            // datum/object.yaml line #66
+            /* {} */
             Map expected_ = r.hashMap();
             /* r.object() */
-            System.out.println("About to run #16: r.object()");
+            logger.info("About to run line #66: r.object()");
             Object obtained = runOrCatch(r.object(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #66");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #17
-            /* ({'a':1,'b':2}) */
+            // datum/object.yaml line #69
+            /* {'a':1,'b':2} */
             Map expected_ = r.hashMap("a", 1L).with("b", 2L);
             /* r.object('a', 1, 'b', 2) */
-            System.out.println("About to run #17: r.object('a', 1L, 'b', 2L)");
+            logger.info("About to run line #69: r.object('a', 1L, 'b', 2L)");
             Object obtained = runOrCatch(r.object("a", 1L, "b", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #18
-            /* ({'cd':3}) */
+            // datum/object.yaml line #72
+            /* {'cd':3} */
             Map expected_ = r.hashMap("cd", 3L);
             /* r.object('c'+'d', 3) */
-            System.out.println("About to run #18: r.object(r.add('c', 'd'), 3L)");
+            logger.info("About to run line #72: r.object(r.add('c', 'd'), 3L)");
             Object obtained = runOrCatch(r.object(r.add("c", "d"), 3L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #72");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #20
+            // datum/object.yaml line #78
             /* err("ReqlQueryLogicError","Expected type STRING but found NUMBER.",[]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", r.array());
             /* r.object(1, 1) */
-            System.out.println("About to run #20: r.object(1L, 1L)");
+            logger.info("About to run line #78: r.object(1L, 1L)");
             Object obtained = runOrCatch(r.object(1L, 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #21
+            // datum/object.yaml line #81
             /* err("ReqlQueryLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[]) */
             Err expected_ = err("ReqlQueryLogicError", "Duplicate key `e` in object.  (got `4` and `5` as values)", r.array());
             /* r.object('e', 4, 'e', 5) */
-            System.out.println("About to run #21: r.object('e', 4L, 'e', 5L)");
+            logger.info("About to run line #81: r.object('e', 4L, 'e', 5L)");
             Object obtained = runOrCatch(r.object("e", 4L, "e", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class DatumObject {
         }
         
         {
-            // datum/object.yaml #22
+            // datum/object.yaml line #84
             /* err("ReqlQueryLogicError","Expected type DATUM but found DATABASE:",[]) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", r.array());
             /* r.object('g', r.db('test')) */
-            System.out.println("About to run #22: r.object('g', r.db('test'))");
+            logger.info("About to run line #84: r.object('g', r.db('test'))");
             Object obtained = runOrCatch(r.object("g", r.db("test")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #84");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #84:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

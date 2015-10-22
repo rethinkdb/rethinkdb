@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class DatumUuid {
+    // Test that UUIDs work
     Logger logger = LoggerFactory.getLogger(DatumUuid.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class DatumUuid {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class DatumUuid {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class DatumUuid {
     public void test() throws Exception {
                 
         {
-            // datum/uuid.yaml #1
+            // datum/uuid.yaml line #3
             /* uuid() */
             UUIDMatch expected_ = uuid();
             /* r.uuid() */
-            System.out.println("About to run #1: r.uuid()");
+            logger.info("About to run line #3: r.uuid()");
             Object obtained = runOrCatch(r.uuid(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #3");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #3:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class DatumUuid {
         }
         
         {
-            // datum/uuid.yaml #2
+            // datum/uuid.yaml line #5
             /* uuid() */
             UUIDMatch expected_ = uuid();
             /* r.expr(r.uuid()) */
-            System.out.println("About to run #2: r.expr(r.uuid())");
+            logger.info("About to run line #5: r.expr(r.uuid())");
             Object obtained = runOrCatch(r.expr(r.uuid()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #5");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #5:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class DatumUuid {
         }
         
         {
-            // datum/uuid.yaml #3
-            /* ('STRING') */
+            // datum/uuid.yaml line #7
+            /* 'STRING' */
             String expected_ = "STRING";
             /* r.type_of(r.uuid()) */
-            System.out.println("About to run #3: r.typeOf(r.uuid())");
+            logger.info("About to run line #7: r.typeOf(r.uuid())");
             Object obtained = runOrCatch(r.typeOf(r.uuid()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #7");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #7:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class DatumUuid {
         }
         
         {
-            // datum/uuid.yaml #4
-            /* (true) */
+            // datum/uuid.yaml line #9
+            /* true */
             Boolean expected_ = true;
             /* r.uuid().ne(r.uuid()) */
-            System.out.println("About to run #4: r.uuid().ne(r.uuid())");
+            logger.info("About to run line #9: r.uuid().ne(r.uuid())");
             Object obtained = runOrCatch(r.uuid().ne(r.uuid()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,82 @@ public class DatumUuid {
         }
         
         {
-            // datum/uuid.yaml #5
-            /* (10) */
+            // datum/uuid.yaml line #11
+            /* ('97dd10a5-4fc4-554f-86c5-0d2c2e3d5330') */
+            String expected_ = "97dd10a5-4fc4-554f-86c5-0d2c2e3d5330";
+            /* r.uuid('magic') */
+            logger.info("About to run line #11: r.uuid('magic')");
+            Object obtained = runOrCatch(r.uuid("magic"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #11");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #11:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // datum/uuid.yaml line #13
+            /* true */
+            Boolean expected_ = true;
+            /* r.uuid('magic').eq(r.uuid('magic')) */
+            logger.info("About to run line #13: r.uuid('magic').eq(r.uuid('magic'))");
+            Object obtained = runOrCatch(r.uuid("magic").eq(r.uuid("magic")),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #13");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // datum/uuid.yaml line #15
+            /* true */
+            Boolean expected_ = true;
+            /* r.uuid('magic').ne(r.uuid('beans')) */
+            logger.info("About to run line #15: r.uuid('magic').ne(r.uuid('beans'))");
+            Object obtained = runOrCatch(r.uuid("magic").ne(r.uuid("beans")),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #15");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // datum/uuid.yaml line #17
+            /* 10 */
             Long expected_ = 10L;
             /* r.expr([1,2,3,4,5,6,7,8,9,10]).map(lambda u:r.uuid()).distinct().count() */
-            System.out.println("About to run #5: r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L)).map(u -> r.uuid()).distinct().count()");
+            logger.info("About to run line #17: r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L)).map(u -> r.uuid()).distinct().count()");
             Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L)).map(u -> r.uuid()).distinct().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #17");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #17:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

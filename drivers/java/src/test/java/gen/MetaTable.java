@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class MetaTable {
+    // Tests meta queries for creating and deleting tables
     Logger logger = LoggerFactory.getLogger(MetaTable.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class MetaTable {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class MetaTable {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -74,26 +76,25 @@ public class MetaTable {
         @Test(timeout=120000)
     public void test() throws Exception {
                 
-        // meta/table.yaml #1
+        // meta/table.yaml line #4
         // db = r.db('test')
-        System.out.println("Possibly executing: Db db = (Db) (r.db('test'));");
+        logger.info("Possibly executing: Db db = (Db) (r.db('test'));");
         Db db = (Db) (r.db("test"));
                 
         {
-            // meta/table.yaml #2
+            // meta/table.yaml line #6
             /* [] */
             List expected_ = r.array();
             /* db.table_list() */
-            System.out.println("About to run #2: db.tableList()");
+            logger.info("About to run line #6: db.tableList()");
             Object obtained = runOrCatch(db.tableList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -102,20 +103,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #3
+            // meta/table.yaml line #9
             /* ({'type':'DB','name':'rethinkdb','id':null}) */
             Map expected_ = r.hashMap("type", "DB").with("name", "rethinkdb").with("id", null);
             /* r.db('rethinkdb').info() */
-            System.out.println("About to run #3: r.db('rethinkdb').info()");
+            logger.info("About to run line #9: r.db('rethinkdb').info()");
             Object obtained = runOrCatch(r.db("rethinkdb").info(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -124,20 +124,21 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #4
-            /* partial({'db':{'type':'DB','name':'rethinkdb','id':null}, 'type':'TABLE','id':null,'name':'stats', 'indexes':[],'primary_key':'id'}) */
+            // meta/table.yaml line #12
+            /* partial({'db':{'type':'DB','name':'rethinkdb','id':null},
+'type':'TABLE','id':null,'name':'stats',
+'indexes':[],'primary_key':'id'}) */
             Partial expected_ = partial(r.hashMap("db", r.hashMap("type", "DB").with("name", "rethinkdb").with("id", null)).with("type", "TABLE").with("id", null).with("name", "stats").with("indexes", r.array()).with("primary_key", "id"));
             /* r.db('rethinkdb').table('stats').info() */
-            System.out.println("About to run #4: r.db('rethinkdb').table('stats').info()");
+            logger.info("About to run line #12: r.db('rethinkdb').table('stats').info()");
             Object obtained = runOrCatch(r.db("rethinkdb").table("stats").info(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -146,20 +147,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #5
+            // meta/table.yaml line #18
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('a') */
-            System.out.println("About to run #5: db.tableCreate('a')");
+            logger.info("About to run line #18: db.tableCreate('a')");
             Object obtained = runOrCatch(db.tableCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -168,20 +168,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #6
+            // meta/table.yaml line #21
             /* ['a'] */
             List expected_ = r.array("a");
             /* db.table_list() */
-            System.out.println("About to run #6: db.tableList()");
+            logger.info("About to run line #21: db.tableList()");
             Object obtained = runOrCatch(db.tableList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -190,20 +189,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #7
+            // meta/table.yaml line #24
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('b') */
-            System.out.println("About to run #7: db.tableCreate('b')");
+            logger.info("About to run line #24: db.tableCreate('b')");
             Object obtained = runOrCatch(db.tableCreate("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -212,20 +210,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #8
+            // meta/table.yaml line #27
             /* bag(['a', 'b']) */
             Bag expected_ = bag(r.array("a", "b"));
             /* db.table_list() */
-            System.out.println("About to run #8: db.tableList()");
+            logger.info("About to run line #27: db.tableList()");
             Object obtained = runOrCatch(db.tableList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #27");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #27:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -234,20 +231,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #9
+            // meta/table.yaml line #31
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            System.out.println("About to run #9: db.tableDrop('a')");
+            logger.info("About to run line #31: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #9");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #9");
+            logger.info("Finished running line #31");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #31:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -256,20 +252,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #10
+            // meta/table.yaml line #34
             /* ['b'] */
             List expected_ = r.array("b");
             /* db.table_list() */
-            System.out.println("About to run #10: db.tableList()");
+            logger.info("About to run line #34: db.tableList()");
             Object obtained = runOrCatch(db.tableList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -278,20 +273,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #11
+            // meta/table.yaml line #37
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('b') */
-            System.out.println("About to run #11: db.tableDrop('b')");
+            logger.info("About to run line #37: db.tableDrop('b')");
             Object obtained = runOrCatch(db.tableDrop("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -300,20 +294,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #12
+            // meta/table.yaml line #40
             /* [] */
             List expected_ = r.array();
             /* db.table_list() */
-            System.out.println("About to run #12: db.tableList()");
+            logger.info("About to run line #40: db.tableList()");
             Object obtained = runOrCatch(db.tableList(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -322,20 +315,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #13
+            // meta/table.yaml line #44
             /* partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'soft'})})]}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L).with("config_changes", r.array(partial(r.hashMap("new_val", partial(r.hashMap("durability", "soft")))))));
             /* db.table_create('ab', durability='soft') */
-            System.out.println("About to run #13: db.tableCreate('ab').optArg('durability', 'soft')");
+            logger.info("About to run line #44: db.tableCreate('ab').optArg('durability', 'soft')");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("durability", "soft"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #44");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #44:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -344,20 +336,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #14
+            // meta/table.yaml line #49
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('ab') */
-            System.out.println("About to run #14: db.tableDrop('ab')");
+            logger.info("About to run line #49: db.tableDrop('ab')");
             Object obtained = runOrCatch(db.tableDrop("ab"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -366,20 +357,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #15
+            // meta/table.yaml line #52
             /* partial({'tables_created':1,'config_changes':[partial({'new_val':partial({'durability':'hard'})})]}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L).with("config_changes", r.array(partial(r.hashMap("new_val", partial(r.hashMap("durability", "hard")))))));
             /* db.table_create('ab', durability='hard') */
-            System.out.println("About to run #15: db.tableCreate('ab').optArg('durability', 'hard')");
+            logger.info("About to run line #52: db.tableCreate('ab').optArg('durability', 'hard')");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("durability", "hard"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -388,20 +378,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #16
+            // meta/table.yaml line #57
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('ab') */
-            System.out.println("About to run #16: db.tableDrop('ab')");
+            logger.info("About to run line #57: db.tableDrop('ab')");
             Object obtained = runOrCatch(db.tableDrop("ab"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #57");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #57:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -410,20 +399,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #17
+            // meta/table.yaml line #60
             /* err('ReqlQueryLogicError', 'Durability option `fake` unrecognized (options are "hard" and "soft").') */
             Err expected_ = err("ReqlQueryLogicError", "Durability option `fake` unrecognized (options are \"hard\" and \"soft\").");
             /* db.table_create('ab', durability='fake') */
-            System.out.println("About to run #17: db.tableCreate('ab').optArg('durability', 'fake')");
+            logger.info("About to run line #60: db.tableCreate('ab').optArg('durability', 'fake')");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("durability", "fake"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #60");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #60:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -432,20 +420,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #18
+            // meta/table.yaml line #65
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('ab', primary_key='bar', shards=2, replicas=1) */
-            System.out.println("About to run #18: db.tableCreate('ab').optArg('primary_key', 'bar').optArg('shards', 2L).optArg('replicas', 1L)");
+            logger.info("About to run line #65: db.tableCreate('ab').optArg('primary_key', 'bar').optArg('shards', 2L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("primary_key", "bar").optArg("shards", 2L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #18");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #18");
+            logger.info("Finished running line #65");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #18:" + ae.toString());
+                logger.error("Whoops, got exception on line #65:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -454,20 +441,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #19
+            // meta/table.yaml line #70
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('ab') */
-            System.out.println("About to run #19: db.tableDrop('ab')");
+            logger.info("About to run line #70: db.tableDrop('ab')");
             Object obtained = runOrCatch(db.tableDrop("ab"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #19");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #19");
+            logger.info("Finished running line #70");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #19:" + ae.toString());
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -476,20 +462,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #20
+            // meta/table.yaml line #73
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('ab', primary_key='bar', primary_replica_tag='default') */
-            System.out.println("About to run #20: db.tableCreate('ab').optArg('primary_key', 'bar').optArg('primary_replica_tag', 'default')");
+            logger.info("About to run line #73: db.tableCreate('ab').optArg('primary_key', 'bar').optArg('primary_replica_tag', 'default')");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("primary_key", "bar").optArg("primary_replica_tag", "default"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #20");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #20");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #20:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -498,20 +483,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #21
+            // meta/table.yaml line #78
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('ab') */
-            System.out.println("About to run #21: db.tableDrop('ab')");
+            logger.info("About to run line #78: db.tableDrop('ab')");
             Object obtained = runOrCatch(db.tableDrop("ab"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #21");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #21");
+            logger.info("Finished running line #78");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #21:" + ae.toString());
+                logger.error("Whoops, got exception on line #78:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -520,20 +504,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #22
+            // meta/table.yaml line #81
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('ab', nonvoting_replica_tags=['default']) */
-            System.out.println("About to run #22: db.tableCreate('ab').optArg('nonvoting_replica_tags', r.array('default'))");
+            logger.info("About to run line #81: db.tableCreate('ab').optArg('nonvoting_replica_tags', r.array('default'))");
             Object obtained = runOrCatch(db.tableCreate("ab").optArg("nonvoting_replica_tags", r.array("default")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #22");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #22");
+            logger.info("Finished running line #81");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #22:" + ae.toString());
+                logger.error("Whoops, got exception on line #81:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -542,20 +525,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #23
+            // meta/table.yaml line #86
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('ab') */
-            System.out.println("About to run #23: db.tableDrop('ab')");
+            logger.info("About to run line #86: db.tableDrop('ab')");
             Object obtained = runOrCatch(db.tableDrop("ab"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #23");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #23");
+            logger.info("Finished running line #86");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #23:" + ae.toString());
+                logger.error("Whoops, got exception on line #86:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -564,20 +546,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #24
+            // meta/table.yaml line #90
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('a') */
-            System.out.println("About to run #24: db.tableCreate('a')");
+            logger.info("About to run line #90: db.tableCreate('a')");
             Object obtained = runOrCatch(db.tableCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #24");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #24");
+            logger.info("Finished running line #90");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #24:" + ae.toString());
+                logger.error("Whoops, got exception on line #90:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -586,20 +567,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #25
+            // meta/table.yaml line #93
             /* partial({'reconfigured':1}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 1L));
             /* db.table('a').reconfigure(shards=1, replicas=1) */
-            System.out.println("About to run #25: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 1L)");
+            logger.info("About to run line #93: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #25");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #25");
+            logger.info("Finished running line #93");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #25:" + ae.toString());
+                logger.error("Whoops, got exception on line #93:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -608,20 +588,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #26
+            // meta/table.yaml line #98
             /* partial({'reconfigured':1}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 1L));
             /* db.table('a').reconfigure(shards=1, replicas={"default":1}, nonvoting_replica_tags=['default'], primary_replica_tag='default') */
-            System.out.println("About to run #26: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('nonvoting_replica_tags', r.array('default')).optArg('primary_replica_tag', 'default')");
+            logger.info("About to run line #98: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('nonvoting_replica_tags', r.array('default')).optArg('primary_replica_tag', 'default')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 1L)).optArg("nonvoting_replica_tags", r.array("default")).optArg("primary_replica_tag", "default"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #26");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #26");
+            logger.info("Finished running line #98");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #26:" + ae.toString());
+                logger.error("Whoops, got exception on line #98:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -630,20 +609,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #27
+            // meta/table.yaml line #103
             /* partial({'reconfigured':0}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 0L));
             /* db.table('a').reconfigure(shards=1, replicas=1, dry_run=True) */
-            System.out.println("About to run #27: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
+            logger.info("About to run line #103: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", 1L).optArg("dry_run", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #27");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #27");
+            logger.info("Finished running line #103");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #27:" + ae.toString());
+                logger.error("Whoops, got exception on line #103:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -652,20 +630,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #28
+            // meta/table.yaml line #108
             /* err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', []) */
             Err expected_ = err("ReqlOpFailedError", "This table doesn't need to be repaired.", r.array());
             /* db.table('a').reconfigure(emergency_repair="unsafe_rollback") */
-            System.out.println("About to run #28: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback')");
+            logger.info("About to run line #108: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", "unsafe_rollback"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #28");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #28");
+            logger.info("Finished running line #108");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #28:" + ae.toString());
+                logger.error("Whoops, got exception on line #108:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -674,20 +651,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #29
+            // meta/table.yaml line #113
             /* err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', []) */
             Err expected_ = err("ReqlOpFailedError", "This table doesn't need to be repaired.", r.array());
             /* db.table('a').reconfigure(emergency_repair="unsafe_rollback", dry_run=True) */
-            System.out.println("About to run #29: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback').optArg('dry_run', true)");
+            logger.info("About to run line #113: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback').optArg('dry_run', true)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", "unsafe_rollback").optArg("dry_run", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #29");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #29");
+            logger.info("Finished running line #113");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #29:" + ae.toString());
+                logger.error("Whoops, got exception on line #113:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -696,20 +672,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #30
+            // meta/table.yaml line #118
             /* err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', []) */
             Err expected_ = err("ReqlOpFailedError", "This table doesn't need to be repaired.", r.array());
             /* db.table('a').reconfigure(emergency_repair="unsafe_rollback_or_erase") */
-            System.out.println("About to run #30: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback_or_erase')");
+            logger.info("About to run line #118: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback_or_erase')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", "unsafe_rollback_or_erase"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #30");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #30");
+            logger.info("Finished running line #118");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #30:" + ae.toString());
+                logger.error("Whoops, got exception on line #118:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -718,20 +693,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #31
+            // meta/table.yaml line #123
             /* partial({'reconfigured':0}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 0L));
             /* db.table('a').reconfigure(emergency_repair=None, shards=1, replicas=1, dry_run=True) */
-            System.out.println("About to run #31: db.table('a').reconfigure().optArg('emergency_repair', null).optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
+            logger.info("About to run line #123: db.table('a').reconfigure().optArg('emergency_repair', null).optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", null).optArg("shards", 1L).optArg("replicas", 1L).optArg("dry_run", true),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #31");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #31");
+            logger.info("Finished running line #123");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #31:" + ae.toString());
+                logger.error("Whoops, got exception on line #123:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -740,20 +714,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #32
+            // meta/table.yaml line #128
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            System.out.println("About to run #32: db.tableDrop('a')");
+            logger.info("About to run line #128: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #32");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #32");
+            logger.info("Finished running line #128");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #32:" + ae.toString());
+                logger.error("Whoops, got exception on line #128:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -762,20 +735,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #33
+            // meta/table.yaml line #132
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('foo') */
-            System.out.println("About to run #33: db.tableCreate('foo')");
+            logger.info("About to run line #132: db.tableCreate('foo')");
             Object obtained = runOrCatch(db.tableCreate("foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #33");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #33");
+            logger.info("Finished running line #132");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #33:" + ae.toString());
+                logger.error("Whoops, got exception on line #132:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -784,20 +756,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #34
+            // meta/table.yaml line #135
             /* err('ReqlOpFailedError', 'Table `test.foo` already exists.', [0]) */
             Err expected_ = err("ReqlOpFailedError", "Table `test.foo` already exists.", r.array(0L));
             /* db.table_create('foo') */
-            System.out.println("About to run #34: db.tableCreate('foo')");
+            logger.info("About to run line #135: db.tableCreate('foo')");
             Object obtained = runOrCatch(db.tableCreate("foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #34");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #34");
+            logger.info("Finished running line #135");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #34:" + ae.toString());
+                logger.error("Whoops, got exception on line #135:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -806,20 +777,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #35
+            // meta/table.yaml line #138
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('foo') */
-            System.out.println("About to run #35: db.tableDrop('foo')");
+            logger.info("About to run line #138: db.tableDrop('foo')");
             Object obtained = runOrCatch(db.tableDrop("foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #35");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #35");
+            logger.info("Finished running line #138");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #35:" + ae.toString());
+                logger.error("Whoops, got exception on line #138:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -828,20 +798,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #36
+            // meta/table.yaml line #141
             /* err('ReqlOpFailedError', 'Table `test.foo` does not exist.', [0]) */
             Err expected_ = err("ReqlOpFailedError", "Table `test.foo` does not exist.", r.array(0L));
             /* db.table_drop('foo') */
-            System.out.println("About to run #36: db.tableDrop('foo')");
+            logger.info("About to run line #141: db.tableDrop('foo')");
             Object obtained = runOrCatch(db.tableDrop("foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #36");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #36");
+            logger.info("Finished running line #141");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #36:" + ae.toString());
+                logger.error("Whoops, got exception on line #141:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -850,20 +819,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #38
+            // meta/table.yaml line #151
             /* err('ReqlCompileError', "Unrecognized optional argument `foo`.", []) */
             Err expected_ = err("ReqlCompileError", "Unrecognized optional argument `foo`.", r.array());
             /* db.table_create('nonsense', foo='bar') */
-            System.out.println("About to run #38: db.tableCreate('nonsense').optArg('foo', 'bar')");
+            logger.info("About to run line #151: db.tableCreate('nonsense').optArg('foo', 'bar')");
             Object obtained = runOrCatch(db.tableCreate("nonsense").optArg("foo", "bar"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #38");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #38");
+            logger.info("Finished running line #151");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #38:" + ae.toString());
+                logger.error("Whoops, got exception on line #151:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -872,20 +840,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #39
+            // meta/table.yaml line #158
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create('a') */
-            System.out.println("About to run #39: db.tableCreate('a')");
+            logger.info("About to run line #158: db.tableCreate('a')");
             Object obtained = runOrCatch(db.tableCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #39");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #39");
+            logger.info("Finished running line #158");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #39:" + ae.toString());
+                logger.error("Whoops, got exception on line #158:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -894,20 +861,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #40
+            // meta/table.yaml line #161
             /* err('ReqlQueryLogicError', 'Every table must have at least one shard.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Every table must have at least one shard.", r.array());
             /* db.table('a').reconfigure(shards=0, replicas=1) */
-            System.out.println("About to run #40: db.table('a').reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
+            logger.info("About to run line #161: db.table('a').reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 0L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #40");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #40");
+            logger.info("Finished running line #161");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #40:" + ae.toString());
+                logger.error("Whoops, got exception on line #161:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -916,21 +882,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #41
-            /* err('ReqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because you specified no replicas in server tag `foo`.', [])
- */
+            // meta/table.yaml line #166
+            /* err('ReqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because you specified no replicas in server tag `foo`.', []) */
             Err expected_ = err("ReqlOpFailedError", "Can't use server tag `foo` for primary replicas because you specified no replicas in server tag `foo`.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="foo") */
-            System.out.println("About to run #41: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('primary_replica_tag', 'foo')");
+            logger.info("About to run line #166: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('primary_replica_tag', 'foo')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 1L)).optArg("primary_replica_tag", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #41");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #41");
+            logger.info("Finished running line #166");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #166:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -939,21 +903,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #42
-            /* err('ReqlOpFailedError', 'You specified that the replicas in server tag `foo` should be non-voting, but you didn\'t specify a number of replicas in server tag `foo`.', [])
- */
+            // meta/table.yaml line #171
+            /* err('ReqlOpFailedError', 'You specified that the replicas in server tag `foo` should be non-voting, but you didn\'t specify a number of replicas in server tag `foo`.', []) */
             Err expected_ = err("ReqlOpFailedError", "You specified that the replicas in server tag `foo` should be non-voting, but you didn't specify a number of replicas in server tag `foo`.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="default", nonvoting_replica_tags=["foo"]) */
-            System.out.println("About to run #42: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('primary_replica_tag', 'default').optArg('nonvoting_replica_tags', r.array('foo'))");
+            logger.info("About to run line #171: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 1L)).optArg('primary_replica_tag', 'default').optArg('nonvoting_replica_tags', r.array('foo'))");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 1L)).optArg("primary_replica_tag", "default").optArg("nonvoting_replica_tags", r.array("foo")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #42");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #42");
+            logger.info("Finished running line #171");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #42:" + ae.toString());
+                logger.error("Whoops, got exception on line #171:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -962,21 +924,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #43
-            /* err('ReqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
- */
+            // meta/table.yaml line #176
+            /* err('ReqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes the primary replica; if there are zero replicas, there is nowhere to put the data.', []) */
             Err expected_ = err("ReqlOpFailedError", "You must set `replicas` to at least one. `replicas` includes the primary replica; if there are zero replicas, there is nowhere to put the data.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas={"foo":0}, primary_replica_tag="foo") */
-            System.out.println("About to run #43: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('foo', 0L)).optArg('primary_replica_tag', 'foo')");
+            logger.info("About to run line #176: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('foo', 0L)).optArg('primary_replica_tag', 'foo')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("foo", 0L)).optArg("primary_replica_tag", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #43");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #43");
+            logger.info("Finished running line #176");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #43:" + ae.toString());
+                logger.error("Whoops, got exception on line #176:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -985,20 +945,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #44
+            // meta/table.yaml line #181
             /* err('ReqlQueryLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`primary_replica_tag` must be specified when `replicas` is an OBJECT.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas={"default":0}) */
-            System.out.println("About to run #44: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
+            logger.info("About to run line #181: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #44");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #44");
+            logger.info("Finished running line #181");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #44:" + ae.toString());
+                logger.error("Whoops, got exception on line #181:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1007,20 +966,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #45
+            // meta/table.yaml line #186
             /* err('ReqlQueryLogicError', 'Can\'t have a negative number of replicas', []) */
             Err expected_ = err("ReqlQueryLogicError", "Can't have a negative number of replicas", r.array());
             /* db.table('a').reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default') */
-            System.out.println("About to run #45: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
+            logger.info("About to run line #186: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", -3L)).optArg("primary_replica_tag", "default"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #45");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #45");
+            logger.info("Finished running line #186");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #45:" + ae.toString());
+                logger.error("Whoops, got exception on line #186:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1029,20 +987,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #46
+            // meta/table.yaml line #191
             /* err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`replicas` must be an OBJECT if `primary_replica_tag` is specified.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas=3, primary_replica_tag='foo') */
-            System.out.println("About to run #46: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
+            logger.info("About to run line #191: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", 3L).optArg("primary_replica_tag", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #46");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #46");
+            logger.info("Finished running line #191");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #46:" + ae.toString());
+                logger.error("Whoops, got exception on line #191:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1051,21 +1008,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #47
-            /* err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `nonvoting_replica_tags` is specified.', [])
- */
+            // meta/table.yaml line #196
+            /* err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `nonvoting_replica_tags` is specified.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`replicas` must be an OBJECT if `nonvoting_replica_tags` is specified.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas=3, nonvoting_replica_tags=['foo']) */
-            System.out.println("About to run #47: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('nonvoting_replica_tags', r.array('foo'))");
+            logger.info("About to run line #196: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('nonvoting_replica_tags', r.array('foo'))");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", 3L).optArg("nonvoting_replica_tags", r.array("foo")),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #47");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #47");
+            logger.info("Finished running line #196");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #47:" + ae.toString());
+                logger.error("Whoops, got exception on line #196:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1074,21 +1029,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #48
-            /* err('ReqlQueryLogicError', 'Can\'t emergency repair an entire database at once; instead you should run `reconfigure()` on each table individually.')
- */
+            // meta/table.yaml line #201
+            /* err('ReqlQueryLogicError', 'Can\'t emergency repair an entire database at once; instead you should run `reconfigure()` on each table individually.') */
             Err expected_ = err("ReqlQueryLogicError", "Can't emergency repair an entire database at once; instead you should run `reconfigure()` on each table individually.");
             /* db.reconfigure(emergency_repair="unsafe_rollback") */
-            System.out.println("About to run #48: db.reconfigure().optArg('emergency_repair', 'unsafe_rollback')");
+            logger.info("About to run line #201: db.reconfigure().optArg('emergency_repair', 'unsafe_rollback')");
             Object obtained = runOrCatch(db.reconfigure().optArg("emergency_repair", "unsafe_rollback"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #48");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #48");
+            logger.info("Finished running line #201");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #201:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1097,20 +1050,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #49
+            // meta/table.yaml line #206
             /* err('ReqlQueryLogicError', '`emergency_repair` should be "unsafe_rollback" or "unsafe_rollback_or_erase"', []) */
             Err expected_ = err("ReqlQueryLogicError", "`emergency_repair` should be \"unsafe_rollback\" or \"unsafe_rollback_or_erase\"", r.array());
             /* db.table('a').reconfigure(emergency_repair="foo") */
-            System.out.println("About to run #49: db.table('a').reconfigure().optArg('emergency_repair', 'foo')");
+            logger.info("About to run line #206: db.table('a').reconfigure().optArg('emergency_repair', 'foo')");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #49");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #49");
+            logger.info("Finished running line #206");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #49:" + ae.toString());
+                logger.error("Whoops, got exception on line #206:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1119,20 +1071,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #50
+            // meta/table.yaml line #211
             /* err('ReqlQueryLogicError', 'In emergency repair mode, you can\'t specify shards, replicas, etc.') */
             Err expected_ = err("ReqlQueryLogicError", "In emergency repair mode, you can't specify shards, replicas, etc.");
             /* db.table('a').reconfigure(emergency_repair="unsafe_rollback", shards=1, replicas=1) */
-            System.out.println("About to run #50: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback').optArg('shards', 1L).optArg('replicas', 1L)");
+            logger.info("About to run line #211: db.table('a').reconfigure().optArg('emergency_repair', 'unsafe_rollback').optArg('shards', 1L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", "unsafe_rollback").optArg("shards", 1L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #50");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #50");
+            logger.info("Finished running line #211");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #50:" + ae.toString());
+                logger.error("Whoops, got exception on line #211:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1141,20 +1092,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #51
+            // meta/table.yaml line #217
             /* partial({'reconfigured':1}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 1L));
             /* db.table('a').reconfigure(shards=2, replicas=1) */
-            System.out.println("About to run #51: db.table('a').reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
+            logger.info("About to run line #217: db.table('a').reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 2L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #51");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #51");
+            logger.info("Finished running line #217");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #51:" + ae.toString());
+                logger.error("Whoops, got exception on line #217:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1163,20 +1113,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #52
+            // meta/table.yaml line #222
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* db.table('a').wait() */
-            System.out.println("About to run #52: db.table('a').wait_()");
+            logger.info("About to run line #222: db.table('a').wait_()");
             Object obtained = runOrCatch(db.table("a").wait_(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #52");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #52");
+            logger.info("Finished running line #222");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #52:" + ae.toString());
+                logger.error("Whoops, got exception on line #222:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1185,20 +1134,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #53
+            // meta/table.yaml line #225
             /* partial({"inserted":4}) */
             Partial expected_ = partial(r.hashMap("inserted", 4L));
             /* db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}]) */
-            System.out.println("About to run #53: db.table('a').insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L), r.hashMap('id', 3L), r.hashMap('id', 4L)))");
+            logger.info("About to run line #225: db.table('a').insert(r.array(r.hashMap('id', 1L), r.hashMap('id', 2L), r.hashMap('id', 3L), r.hashMap('id', 4L)))");
             Object obtained = runOrCatch(db.table("a").insert(r.array(r.hashMap("id", 1L), r.hashMap("id", 2L), r.hashMap("id", 3L), r.hashMap("id", 4L))),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #53");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #53");
+            logger.info("Finished running line #225");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #225:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1207,20 +1155,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #54
+            // meta/table.yaml line #230
             /* partial({'reconfigured':1}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 1L));
             /* db.table('a').reconfigure(shards=2, replicas=1) */
-            System.out.println("About to run #54: db.table('a').reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
+            logger.info("About to run line #230: db.table('a').reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 2L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #54");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #54");
+            logger.info("Finished running line #230");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #54:" + ae.toString());
+                logger.error("Whoops, got exception on line #230:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1229,21 +1176,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #55
-            /* err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It\'s impossible to have more replicas of the data than there are servers.', [])
- */
+            // meta/table.yaml line #235
+            /* err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It\'s impossible to have more replicas of the data than there are servers.', []) */
             Err expected_ = err("ReqlOpFailedError", "Can't put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It's impossible to have more replicas of the data than there are servers.", r.array());
             /* db.table('a').reconfigure(shards=1, replicas=2) */
-            System.out.println("About to run #55: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 2L)");
+            logger.info("About to run line #235: db.table('a').reconfigure().optArg('shards', 1L).optArg('replicas', 2L)");
             Object obtained = runOrCatch(db.table("a").reconfigure().optArg("shards", 1L).optArg("replicas", 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #55");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #55");
+            logger.info("Finished running line #235");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #55:" + ae.toString());
+                logger.error("Whoops, got exception on line #235:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1252,20 +1197,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #56
+            // meta/table.yaml line #241
             /* partial({'ready':1}) */
             Partial expected_ = partial(r.hashMap("ready", 1L));
             /* db.table('a').wait() */
-            System.out.println("About to run #56: db.table('a').wait_()");
+            logger.info("About to run line #241: db.table('a').wait_()");
             Object obtained = runOrCatch(db.table("a").wait_(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #56");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #56");
+            logger.info("Finished running line #241");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #56:" + ae.toString());
+                logger.error("Whoops, got exception on line #241:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1274,20 +1218,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #57
+            // meta/table.yaml line #243
             /* partial({'rebalanced':1}) */
             Partial expected_ = partial(r.hashMap("rebalanced", 1L));
             /* db.table('a').rebalance() */
-            System.out.println("About to run #57: db.table('a').rebalance()");
+            logger.info("About to run line #243: db.table('a').rebalance()");
             Object obtained = runOrCatch(db.table("a").rebalance(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #57");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #57");
+            logger.info("Finished running line #243");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #57:" + ae.toString());
+                logger.error("Whoops, got exception on line #243:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1296,20 +1239,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #58
+            // meta/table.yaml line #246
             /* partial({'ready':1}) */
             Partial expected_ = partial(r.hashMap("ready", 1L));
             /* db.wait() */
-            System.out.println("About to run #58: db.wait_()");
+            logger.info("About to run line #246: db.wait_()");
             Object obtained = runOrCatch(db.wait_(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #58");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #58");
+            logger.info("Finished running line #246");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #58:" + ae.toString());
+                logger.error("Whoops, got exception on line #246:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1318,20 +1260,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #59
+            // meta/table.yaml line #248
             /* partial({'rebalanced':1}) */
             Partial expected_ = partial(r.hashMap("rebalanced", 1L));
             /* db.rebalance() */
-            System.out.println("About to run #59: db.rebalance()");
+            logger.info("About to run line #248: db.rebalance()");
             Object obtained = runOrCatch(db.rebalance(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #59");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #59");
+            logger.info("Finished running line #248");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #59:" + ae.toString());
+                logger.error("Whoops, got exception on line #248:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1340,20 +1281,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #60
+            // meta/table.yaml line #251
             /* partial({'ready':1}) */
             Partial expected_ = partial(r.hashMap("ready", 1L));
             /* r.wait() */
-            System.out.println("About to run #60: r.wait_()");
+            logger.info("About to run line #251: r.wait_()");
             Object obtained = runOrCatch(r.wait_(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #60");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #60");
+            logger.info("Finished running line #251");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #60:" + ae.toString());
+                logger.error("Whoops, got exception on line #251:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1362,20 +1302,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #61
+            // meta/table.yaml line #253
             /* partial({'rebalanced':1}) */
             Partial expected_ = partial(r.hashMap("rebalanced", 1L));
             /* r.rebalance() */
-            System.out.println("About to run #61: r.rebalance()");
+            logger.info("About to run line #253: r.rebalance()");
             Object obtained = runOrCatch(r.rebalance(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #61");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #61");
+            logger.info("Finished running line #253");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #61:" + ae.toString());
+                logger.error("Whoops, got exception on line #253:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1384,20 +1323,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #62
+            // meta/table.yaml line #256
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            System.out.println("About to run #62: db.tableDrop('a')");
+            logger.info("About to run line #256: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #62");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #62");
+            logger.info("Finished running line #256");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #62:" + ae.toString());
+                logger.error("Whoops, got exception on line #256:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1406,20 +1344,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #63
+            // meta/table.yaml line #260
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* db.table_create('a') */
-            System.out.println("About to run #63: db.tableCreate('a')");
+            logger.info("About to run line #260: db.tableCreate('a')");
             Object obtained = runOrCatch(db.tableCreate("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #63");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #63");
+            logger.info("Finished running line #260");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #63:" + ae.toString());
+                logger.error("Whoops, got exception on line #260:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1428,20 +1365,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #64
+            // meta/table.yaml line #261
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* db.table_create('b') */
-            System.out.println("About to run #64: db.tableCreate('b')");
+            logger.info("About to run line #261: db.tableCreate('b')");
             Object obtained = runOrCatch(db.tableCreate("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #64");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #64");
+            logger.info("Finished running line #261");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #64:" + ae.toString());
+                logger.error("Whoops, got exception on line #261:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1450,20 +1386,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #65
+            // meta/table.yaml line #262
             /* AnythingIsFine */
             Object expected_ = AnythingIsFine;
             /* db.table_create('c') */
-            System.out.println("About to run #65: db.tableCreate('c')");
+            logger.info("About to run line #262: db.tableCreate('c')");
             Object obtained = runOrCatch(db.tableCreate("c"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #65");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #65");
+            logger.info("Finished running line #262");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #65:" + ae.toString());
+                logger.error("Whoops, got exception on line #262:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1472,20 +1407,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #66
+            // meta/table.yaml line #264
             /* err('ReqlQueryLogicError', 'Every table must have at least one shard.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Every table must have at least one shard.", r.array());
             /* db.reconfigure(shards=0, replicas=1) */
-            System.out.println("About to run #66: db.reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
+            logger.info("About to run line #264: db.reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 0L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #66");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #66");
+            logger.info("Finished running line #264");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #66:" + ae.toString());
+                logger.error("Whoops, got exception on line #264:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1494,20 +1428,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #67
+            // meta/table.yaml line #269
             /* err('ReqlQueryLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`primary_replica_tag` must be specified when `replicas` is an OBJECT.", r.array());
             /* db.reconfigure(shards=1, replicas={"default":0}) */
-            System.out.println("About to run #67: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
+            logger.info("About to run line #269: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 0L)),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #67");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #67");
+            logger.info("Finished running line #269");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #67:" + ae.toString());
+                logger.error("Whoops, got exception on line #269:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1516,20 +1449,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #68
+            // meta/table.yaml line #274
             /* err('ReqlQueryLogicError', 'Can\'t have a negative number of replicas', []) */
             Err expected_ = err("ReqlQueryLogicError", "Can't have a negative number of replicas", r.array());
             /* db.reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default') */
-            System.out.println("About to run #68: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
+            logger.info("About to run line #274: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", -3L)).optArg("primary_replica_tag", "default"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #68");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #68");
+            logger.info("Finished running line #274");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #68:" + ae.toString());
+                logger.error("Whoops, got exception on line #274:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1538,20 +1470,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #69
+            // meta/table.yaml line #279
             /* err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`replicas` must be an OBJECT if `primary_replica_tag` is specified.", r.array());
             /* db.reconfigure(shards=1, replicas=3, primary_replica_tag='foo') */
-            System.out.println("About to run #69: db.reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
+            logger.info("About to run line #279: db.reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", 3L).optArg("primary_replica_tag", "foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #69");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #69");
+            logger.info("Finished running line #279");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #69:" + ae.toString());
+                logger.error("Whoops, got exception on line #279:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1560,20 +1491,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #70
+            // meta/table.yaml line #284
             /* partial({'reconfigured':3}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 3L));
             /* db.reconfigure(shards=2, replicas=1) */
-            System.out.println("About to run #70: db.reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
+            logger.info("About to run line #284: db.reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 2L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #70");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #70");
+            logger.info("Finished running line #284");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #284:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1582,20 +1512,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #71
+            // meta/table.yaml line #289
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            System.out.println("About to run #71: db.tableDrop('a')");
+            logger.info("About to run line #289: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #71");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #71");
+            logger.info("Finished running line #289");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #71:" + ae.toString());
+                logger.error("Whoops, got exception on line #289:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1604,20 +1533,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #72
+            // meta/table.yaml line #291
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('b') */
-            System.out.println("About to run #72: db.tableDrop('b')");
+            logger.info("About to run line #291: db.tableDrop('b')");
             Object obtained = runOrCatch(db.tableDrop("b"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #72");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #72");
+            logger.info("Finished running line #291");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #72:" + ae.toString());
+                logger.error("Whoops, got exception on line #291:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1626,20 +1554,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #73
+            // meta/table.yaml line #293
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('c') */
-            System.out.println("About to run #73: db.tableDrop('c')");
+            logger.info("About to run line #293: db.tableDrop('c')");
             Object obtained = runOrCatch(db.tableDrop("c"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #73");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #73");
+            logger.info("Finished running line #293");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #73:" + ae.toString());
+                logger.error("Whoops, got exception on line #293:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1648,20 +1575,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #74
+            // meta/table.yaml line #297
             /* partial({'dbs_created':1}) */
             Partial expected_ = partial(r.hashMap("dbs_created", 1L));
             /* r.db_create("test2") */
-            System.out.println("About to run #74: r.dbCreate('test2')");
+            logger.info("About to run line #297: r.dbCreate('test2')");
             Object obtained = runOrCatch(r.dbCreate("test2"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #74");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #74");
+            logger.info("Finished running line #297");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #74:" + ae.toString());
+                logger.error("Whoops, got exception on line #297:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1669,26 +1595,25 @@ public class MetaTable {
             }
         }
         
-        // meta/table.yaml #75
+        // meta/table.yaml line #300
         // db2 = r.db("test2")
-        System.out.println("Possibly executing: Db db2 = (Db) (r.db('test2'));");
+        logger.info("Possibly executing: Db db2 = (Db) (r.db('test2'));");
         Db db2 = (Db) (r.db("test2"));
                 
         {
-            // meta/table.yaml #76
+            // meta/table.yaml line #302
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create("testA") */
-            System.out.println("About to run #76: db.tableCreate('testA')");
+            logger.info("About to run line #302: db.tableCreate('testA')");
             Object obtained = runOrCatch(db.tableCreate("testA"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #76");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #76");
+            logger.info("Finished running line #302");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #76:" + ae.toString());
+                logger.error("Whoops, got exception on line #302:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1697,20 +1622,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #77
+            // meta/table.yaml line #304
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create("testB") */
-            System.out.println("About to run #77: db.tableCreate('testB')");
+            logger.info("About to run line #304: db.tableCreate('testB')");
             Object obtained = runOrCatch(db.tableCreate("testB"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #77");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #77");
+            logger.info("Finished running line #304");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #77:" + ae.toString());
+                logger.error("Whoops, got exception on line #304:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1719,20 +1643,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #78
+            // meta/table.yaml line #306
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db2.table_create("test2B") */
-            System.out.println("About to run #78: db2.tableCreate('test2B')");
+            logger.info("About to run line #306: db2.tableCreate('test2B')");
             Object obtained = runOrCatch(db2.tableCreate("test2B"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #78");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #78");
+            logger.info("Finished running line #306");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #78:" + ae.toString());
+                logger.error("Whoops, got exception on line #306:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1741,20 +1664,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #79
-            /* {'db': 'test', 'name': 'testA'} */
+            // meta/table.yaml line #309
+            /* {'db':'test','name':'testA'} */
             Map expected_ = r.hashMap("db", "test").with("name", "testA");
             /* r.table('testA').config().pluck('db','name') */
-            System.out.println("About to run #79: r.table('testA').config().pluck('db', 'name')");
+            logger.info("About to run line #309: r.table('testA').config().pluck('db', 'name')");
             Object obtained = runOrCatch(r.table("testA").config().pluck("db", "name"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #79");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #79");
+            logger.info("Finished running line #309");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #79:" + ae.toString());
+                logger.error("Whoops, got exception on line #309:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1763,20 +1685,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #80
+            // meta/table.yaml line #312
             /* err('ReqlOpFailedError', 'Table `test.doesntexist` does not exist.', []) */
             Err expected_ = err("ReqlOpFailedError", "Table `test.doesntexist` does not exist.", r.array());
             /* r.table('doesntexist').config() */
-            System.out.println("About to run #80: r.table('doesntexist').config()");
+            logger.info("About to run line #312: r.table('doesntexist').config()");
             Object obtained = runOrCatch(r.table("doesntexist").config(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #80");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #80");
+            logger.info("Finished running line #312");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #80:" + ae.toString());
+                logger.error("Whoops, got exception on line #312:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1785,20 +1706,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #81
+            // meta/table.yaml line #315
             /* err('ReqlOpFailedError', 'Table `test.test2B` does not exist.', []) */
             Err expected_ = err("ReqlOpFailedError", "Table `test.test2B` does not exist.", r.array());
             /* r.table('test2B').config() */
-            System.out.println("About to run #81: r.table('test2B').config()");
+            logger.info("About to run line #315: r.table('test2B').config()");
             Object obtained = runOrCatch(r.table("test2B").config(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #81");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #81");
+            logger.info("Finished running line #315");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #81:" + ae.toString());
+                logger.error("Whoops, got exception on line #315:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1807,20 +1727,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #82
+            // meta/table.yaml line #318
             /* True */
             Boolean expected_ = true;
             /* r.db('rethinkdb').table('table_config').filter({'name':'testA'}).nth(0).eq(r.table('testA').config()) */
-            System.out.println("About to run #82: r.db('rethinkdb').table('table_config').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').config())");
+            logger.info("About to run line #318: r.db('rethinkdb').table('table_config').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').config())");
             Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").config()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #82");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #82");
+            logger.info("Finished running line #318");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #82:" + ae.toString());
+                logger.error("Whoops, got exception on line #318:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1829,20 +1748,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #83
+            // meta/table.yaml line #321
             /* True */
             Boolean expected_ = true;
             /* r.db('rethinkdb').table('table_status').filter({'name':'testA'}).nth(0).eq(r.table('testA').status()) */
-            System.out.println("About to run #83: r.db('rethinkdb').table('table_status').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').status())");
+            logger.info("About to run line #321: r.db('rethinkdb').table('table_status').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').status())");
             Object obtained = runOrCatch(r.db("rethinkdb").table("table_status").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").status()),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #83");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #83");
+            logger.info("Finished running line #321");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #83:" + ae.toString());
+                logger.error("Whoops, got exception on line #321:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1851,20 +1769,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #84
+            // meta/table.yaml line #324
             /* uuid() */
             UUIDMatch expected_ = uuid();
             /* r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"] */
-            System.out.println("About to run #84: r.db('rethinkdb').table('table_config').optArg('identifier_format', 'uuid').nth(0L).bracket('db')");
+            logger.info("About to run line #324: r.db('rethinkdb').table('table_config').optArg('identifier_format', 'uuid').nth(0L).bracket('db')");
             Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").optArg("identifier_format", "uuid").nth(0L).bracket("db"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #84");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #84");
+            logger.info("Finished running line #324");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #84:" + ae.toString());
+                logger.error("Whoops, got exception on line #324:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1873,20 +1790,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #85
+            // meta/table.yaml line #329
             /* 0 */
             Long expected_ = 0L;
             /* r.table('testA', identifier_format='uuid').count() */
-            System.out.println("About to run #85: r.table('testA').optArg('identifier_format', 'uuid').count()");
+            logger.info("About to run line #329: r.table('testA').optArg('identifier_format', 'uuid').count()");
             Object obtained = runOrCatch(r.table("testA").optArg("identifier_format", "uuid").count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #85");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #85");
+            logger.info("Finished running line #329");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #85:" + ae.toString());
+                logger.error("Whoops, got exception on line #329:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1895,20 +1811,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #86
+            // meta/table.yaml line #334
             /* partial({'ready':2}) */
             Partial expected_ = partial(r.hashMap("ready", 2L));
             /* r.wait(wait_for='all_replicas_ready', timeout=5) */
-            System.out.println("About to run #86: r.wait_().optArg('wait_for', 'all_replicas_ready').optArg('timeout', 5L)");
+            logger.info("About to run line #334: r.wait_().optArg('wait_for', 'all_replicas_ready').optArg('timeout', 5L)");
             Object obtained = runOrCatch(r.wait_().optArg("wait_for", "all_replicas_ready").optArg("timeout", 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #86");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #86");
+            logger.info("Finished running line #334");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #86:" + ae.toString());
+                logger.error("Whoops, got exception on line #334:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1917,20 +1832,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #87
+            // meta/table.yaml line #339
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('testA') */
-            System.out.println("About to run #87: db.tableDrop('testA')");
+            logger.info("About to run line #339: db.tableDrop('testA')");
             Object obtained = runOrCatch(db.tableDrop("testA"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #87");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #87");
+            logger.info("Finished running line #339");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #87:" + ae.toString());
+                logger.error("Whoops, got exception on line #339:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1939,20 +1853,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #88
+            // meta/table.yaml line #342
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('testB') */
-            System.out.println("About to run #88: db.tableDrop('testB')");
+            logger.info("About to run line #342: db.tableDrop('testB')");
             Object obtained = runOrCatch(db.tableDrop("testB"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #88");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #88");
+            logger.info("Finished running line #342");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #88:" + ae.toString());
+                logger.error("Whoops, got exception on line #342:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1961,20 +1874,19 @@ public class MetaTable {
         }
         
         {
-            // meta/table.yaml #89
+            // meta/table.yaml line #345
             /* partial({'dbs_dropped':1,'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L).with("tables_dropped", 1L));
             /* r.db_drop('test2') */
-            System.out.println("About to run #89: r.dbDrop('test2')");
+            logger.info("About to run line #345: r.dbDrop('test2')");
             Object obtained = runOrCatch(r.dbDrop("test2"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #89");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #89");
+            logger.info("Finished running line #345");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #89:" + ae.toString());
+                logger.error("Whoops, got exception on line #345:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

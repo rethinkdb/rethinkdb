@@ -41,6 +41,7 @@ import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
 public class Range {
+    // Tests RQL range generation
     Logger logger = LoggerFactory.getLogger(Range.class);
     public static final RethinkDB r = RethinkDB.r;
 
@@ -50,6 +51,7 @@ public class Range {
 
     @Before
     public void setUp() throws Exception {
+        logger.info("Setting up.");
         conn = TestingFramework.createConnection();
         try {
             r.dbCreate("test").run(conn);
@@ -59,7 +61,7 @@ public class Range {
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("Tearing down.");
+        logger.info("Tearing down.");
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
@@ -75,20 +77,19 @@ public class Range {
     public void test() throws Exception {
                 
         {
-            // range.yaml #1
+            // range.yaml line #3
             /* 'STREAM' */
             String expected_ = "STREAM";
             /* r.range().type_of() */
-            System.out.println("About to run #1: r.range().typeOf()");
+            logger.info("About to run line #3: r.range().typeOf()");
             Object obtained = runOrCatch(r.range().typeOf(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #1");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #1");
+            logger.info("Finished running line #3");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #1:" + ae.toString());
+                logger.error("Whoops, got exception on line #3:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -97,20 +98,19 @@ public class Range {
         }
         
         {
-            // range.yaml #2
+            // range.yaml line #6
             /* [0, 1, 2, 3] */
             List expected_ = r.array(0L, 1L, 2L, 3L);
             /* r.range().limit(4) */
-            System.out.println("About to run #2: r.range().limit(4L)");
+            logger.info("About to run line #6: r.range().limit(4L)");
             Object obtained = runOrCatch(r.range().limit(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #2");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #2");
+            logger.info("Finished running line #6");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #2:" + ae.toString());
+                logger.error("Whoops, got exception on line #6:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,20 +119,19 @@ public class Range {
         }
         
         {
-            // range.yaml #3
+            // range.yaml line #9
             /* [0, 1, 2, 3] */
             List expected_ = r.array(0L, 1L, 2L, 3L);
             /* r.range(4) */
-            System.out.println("About to run #3: r.range(4L)");
+            logger.info("About to run line #9: r.range(4L)");
             Object obtained = runOrCatch(r.range(4L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #3");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #3");
+            logger.info("Finished running line #9");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #3:" + ae.toString());
+                logger.error("Whoops, got exception on line #9:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -141,20 +140,19 @@ public class Range {
         }
         
         {
-            // range.yaml #4
+            // range.yaml line #12
             /* [2, 3, 4] */
             List expected_ = r.array(2L, 3L, 4L);
             /* r.range(2, 5) */
-            System.out.println("About to run #4: r.range(2L, 5L)");
+            logger.info("About to run line #12: r.range(2L, 5L)");
             Object obtained = runOrCatch(r.range(2L, 5L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #4");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #4");
+            logger.info("Finished running line #12");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #4:" + ae.toString());
+                logger.error("Whoops, got exception on line #12:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -163,20 +161,19 @@ public class Range {
         }
         
         {
-            // range.yaml #5
+            // range.yaml line #15
             /* [] */
             List expected_ = r.array();
             /* r.range(0) */
-            System.out.println("About to run #5: r.range(0L)");
+            logger.info("About to run line #15: r.range(0L)");
             Object obtained = runOrCatch(r.range(0L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #5");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #5");
+            logger.info("Finished running line #15");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #5:" + ae.toString());
+                logger.error("Whoops, got exception on line #15:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -185,20 +182,19 @@ public class Range {
         }
         
         {
-            // range.yaml #6
+            // range.yaml line #18
             /* [] */
             List expected_ = r.array();
             /* r.range(5, 2) */
-            System.out.println("About to run #6: r.range(5L, 2L)");
+            logger.info("About to run line #18: r.range(5L, 2L)");
             Object obtained = runOrCatch(r.range(5L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #6");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #6");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #6:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -207,20 +203,19 @@ public class Range {
         }
         
         {
-            // range.yaml #7
+            // range.yaml line #21
             /* [-5, -4, -3] */
             List expected_ = r.array(-5L, -4L, -3L);
             /* r.range(-5, -2) */
-            System.out.println("About to run #7: r.range(-5L, -2L)");
+            logger.info("About to run line #21: r.range(-5L, -2L)");
             Object obtained = runOrCatch(r.range(-5L, -2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #7");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #7");
+            logger.info("Finished running line #21");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #7:" + ae.toString());
+                logger.error("Whoops, got exception on line #21:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -229,20 +224,19 @@ public class Range {
         }
         
         {
-            // range.yaml #8
+            // range.yaml line #24
             /* [-5, -4, -3, -2, -1, 0, 1] */
             List expected_ = r.array(-5L, -4L, -3L, -2L, -1L, 0L, 1L);
             /* r.range(-5, 2) */
-            System.out.println("About to run #8: r.range(-5L, 2L)");
+            logger.info("About to run line #24: r.range(-5L, 2L)");
             Object obtained = runOrCatch(r.range(-5L, 2L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #8");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #8");
+            logger.info("Finished running line #24");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #8:" + ae.toString());
+                logger.error("Whoops, got exception on line #24:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -251,20 +245,19 @@ public class Range {
         }
         
         {
-            // range.yaml #10
+            // range.yaml line #30
             /* err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", r.array());
             /* r.range("foo") */
-            System.out.println("About to run #10: r.range('foo')");
+            logger.info("About to run line #30: r.range('foo')");
             Object obtained = runOrCatch(r.range("foo"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #10");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #10");
+            logger.info("Finished running line #30");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #10:" + ae.toString());
+                logger.error("Whoops, got exception on line #30:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -273,20 +266,19 @@ public class Range {
         }
         
         {
-            // range.yaml #11
+            // range.yaml line #34
             /* err_regex("ReqlQueryLogicError", "Number not an integer \\(>2\\^53\\). 9007199254740994", []) */
             ErrRegex expected_ = err_regex("ReqlQueryLogicError", "Number not an integer \\(>2\\^53\\). 9007199254740994", r.array());
             /* r.range(9007199254740994) */
-            System.out.println("About to run #11: r.range(9007199254740994L)");
+            logger.info("About to run line #34: r.range(9007199254740994L)");
             Object obtained = runOrCatch(r.range(9007199254740994L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #11");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #11");
+            logger.info("Finished running line #34");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #11:" + ae.toString());
+                logger.error("Whoops, got exception on line #34:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -295,20 +287,19 @@ public class Range {
         }
         
         {
-            // range.yaml #12
+            // range.yaml line #37
             /* err_regex("ReqlQueryLogicError", "Number not an integer \\(<-2\\^53\\). -9007199254740994", []) */
             ErrRegex expected_ = err_regex("ReqlQueryLogicError", "Number not an integer \\(<-2\\^53\\). -9007199254740994", r.array());
             /* r.range(-9007199254740994) */
-            System.out.println("About to run #12: r.range(-9007199254740994L)");
+            logger.info("About to run line #37: r.range(-9007199254740994L)");
             Object obtained = runOrCatch(r.range(-9007199254740994L),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #12");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #12");
+            logger.info("Finished running line #37");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #12:" + ae.toString());
+                logger.error("Whoops, got exception on line #37:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -317,20 +308,19 @@ public class Range {
         }
         
         {
-            // range.yaml #13
+            // range.yaml line #40
             /* err_regex("ReqlQueryLogicError", "Number not an integer. 0\\.5", []) */
             ErrRegex expected_ = err_regex("ReqlQueryLogicError", "Number not an integer. 0\\.5", r.array());
             /* r.range(0.5) */
-            System.out.println("About to run #13: r.range(0.5)");
+            logger.info("About to run line #40: r.range(0.5)");
             Object obtained = runOrCatch(r.range(0.5),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #13");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #13");
+            logger.info("Finished running line #40");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #40:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -339,20 +329,19 @@ public class Range {
         }
         
         {
-            // range.yaml #14
+            // range.yaml line #43
             /* err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", r.array());
             /* r.range().count() */
-            System.out.println("About to run #14: r.range().count()");
+            logger.info("About to run line #43: r.range().count()");
             Object obtained = runOrCatch(r.range().count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #14");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #14");
+            logger.info("Finished running line #43");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #43:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -361,20 +350,19 @@ public class Range {
         }
         
         {
-            // range.yaml #15
+            // range.yaml line #46
             /* err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", r.array());
             /* r.range().coerce_to("ARRAY") */
-            System.out.println("About to run #15: r.range().coerceTo('ARRAY')");
+            logger.info("About to run line #46: r.range().coerceTo('ARRAY')");
             Object obtained = runOrCatch(r.range().coerceTo("ARRAY"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #15");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #15");
+            logger.info("Finished running line #46");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #15:" + ae.toString());
+                logger.error("Whoops, got exception on line #46:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -383,20 +371,19 @@ public class Range {
         }
         
         {
-            // range.yaml #16
+            // range.yaml line #49
             /* err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", []) */
             Err expected_ = err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", r.array());
             /* r.range().coerce_to("OBJECT") */
-            System.out.println("About to run #16: r.range().coerceTo('OBJECT')");
+            logger.info("About to run line #49: r.range().coerceTo('OBJECT')");
             Object obtained = runOrCatch(r.range().coerceTo("OBJECT"),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #16");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #16");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #16:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -405,20 +392,19 @@ public class Range {
         }
         
         {
-            // range.yaml #17
+            // range.yaml line #52
             /* 4 */
             Long expected_ = 4L;
             /* r.range(4).count() */
-            System.out.println("About to run #17: r.range(4L).count()");
+            logger.info("About to run line #52: r.range(4L).count()");
             Object obtained = runOrCatch(r.range(4L).count(),
                                           new OptArgs()
                                           ,conn);
-            System.out.println("Finished running #17");
             try {
                 assertEquals(expected_, obtained);
-            System.out.println("Finished asserting #17");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                System.out.println("Whoops, got exception on #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

@@ -48,6 +48,11 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new Uuid(args);
     }
+    public Uuid uuid(Object expr){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        return new Uuid(args);
+    }
     public Http http(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);

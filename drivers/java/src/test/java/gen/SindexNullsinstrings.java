@@ -40,10 +40,11 @@ import java.nio.charset.StandardCharsets;
 import static gen.TestingCommon.*;
 import gen.TestingFramework;
 
-public class DatumNull {
-    // Tests of conversion to and from the RQL null type
-    Logger logger = LoggerFactory.getLogger(DatumNull.class);
+public class SindexNullsinstrings {
+    // sindex nulls in strings
+    Logger logger = LoggerFactory.getLogger(SindexNullsinstrings.class);
     public static final RethinkDB r = RethinkDB.r;
+    public static final Table tbl = r.db("test").table("tbl");
 
     Connection<?> conn;
     public String hostname = TestingFramework.getConfig().getHostName();
@@ -57,6 +58,10 @@ public class DatumNull {
             r.dbCreate("test").run(conn);
             r.db("test").wait_().run(conn);
         }catch (Exception e){}
+        try {
+            r.db("test").tableCreate("tbl").run(conn);
+            r.db("test").table(tbl).wait_().run(conn);
+        }catch (Exception e){}
     }
 
     @After
@@ -66,6 +71,7 @@ public class DatumNull {
             conn.close();
             conn = TestingFramework.createConnection();
         }
+        r.db("test").tableDrop("tbl").run(conn);
         r.dbDrop("test").run(conn);
         r.db("rethinkdb").table("_debug_scratch").delete();
         conn.close(false);
@@ -77,12 +83,33 @@ public class DatumNull {
     public void test() throws Exception {
                 
         {
-            // datum/null.yaml line #6
-            /* (null) */
-            Object expected_ = null;
-            /* r.expr(null) */
-            logger.info("About to run line #6: r.expr((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null),
+            // sindex/nullsinstrings.yaml line #4
+            /* ({"created":1}) */
+            Map expected_ = r.hashMap("created", 1L);
+            /* tbl.index_create("key") */
+            logger.info("About to run line #4: tbl.indexCreate('key')");
+            Object obtained = runOrCatch(tbl.indexCreate("key"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #4");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #4:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+        
+        {
+            // sindex/nullsinstrings.yaml line #6
+            /* ([{"ready":true}]) */
+            List expected_ = r.array(r.hashMap("ready", true));
+            /* tbl.index_wait().pluck("ready") */
+            logger.info("About to run line #6: tbl.indexWait().pluck('ready')");
+            Object obtained = runOrCatch(tbl.indexWait().pluck("ready"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -98,19 +125,19 @@ public class DatumNull {
         }
         
         {
-            // datum/null.yaml line #9
-            /* 'NULL' */
-            String expected_ = "NULL";
-            /* r.expr(null).type_of() */
-            logger.info("About to run line #9: r.expr((ReqlExpr) null).typeOf()");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).typeOf(),
+            // sindex/nullsinstrings.yaml line #10
+            /* ({"inserted":2}) */
+            Map expected_ = r.hashMap("inserted", 2L);
+            /* tbl.insert([{"id":1,"key":["a","b"]},{"id":2,"key":["a\u0000Sb"]}]).pluck("inserted") */
+            logger.info("About to run line #10: tbl.insert(r.array(r.hashMap('id', 1L).with('key', r.array('a', 'b')), r.hashMap('id', 2L).with('key', r.array('a\\u0000Sb')))).pluck('inserted')");
+            Object obtained = runOrCatch(tbl.insert(r.array(r.hashMap("id", 1L).with("key", r.array("a", "b")), r.hashMap("id", 2L).with("key", r.array("a\u0000Sb")))).pluck("inserted"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #9");
+            logger.info("Finished running line #10");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #9:" + ae.toString());
+                logger.error("Whoops, got exception on line #10:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -119,19 +146,19 @@ public class DatumNull {
         }
         
         {
-            // datum/null.yaml line #14
-            /* 'null' */
-            String expected_ = "null";
-            /* r.expr(null).coerce_to('string') */
-            logger.info("About to run line #14: r.expr((ReqlExpr) null).coerceTo('string')");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).coerceTo("string"),
+            // sindex/nullsinstrings.yaml line #13
+            /* ([{"id":2}]) */
+            List expected_ = r.array(r.hashMap("id", 2L));
+            /* tbl.get_all(["a\u0000Sb"], index="key").pluck("id") */
+            logger.info("About to run line #13: tbl.getAll(r.array('a\\u0000Sb')).optArg('index', 'key').pluck('id')");
+            Object obtained = runOrCatch(tbl.getAll(r.array("a\u0000Sb")).optArg("index", "key").pluck("id"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #14");
+            logger.info("Finished running line #13");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #14:" + ae.toString());
+                logger.error("Whoops, got exception on line #13:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -140,19 +167,19 @@ public class DatumNull {
         }
         
         {
-            // datum/null.yaml line #17
-            /* null */
-            Object expected_ = null;
-            /* r.expr(null).coerce_to('null') */
-            logger.info("About to run line #17: r.expr((ReqlExpr) null).coerceTo('null')");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).coerceTo("null"),
+            // sindex/nullsinstrings.yaml line #18
+            /* ([{"id":1}]) */
+            List expected_ = r.array(r.hashMap("id", 1L));
+            /* tbl.get_all(["a","b"], index="key").pluck("id") */
+            logger.info("About to run line #18: tbl.getAll(r.array('a', 'b')).optArg('index', 'key').pluck('id')");
+            Object obtained = runOrCatch(tbl.getAll(r.array("a", "b")).optArg("index", "key").pluck("id"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #17");
+            logger.info("Finished running line #18");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #17:" + ae.toString());
+                logger.error("Whoops, got exception on line #18:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
