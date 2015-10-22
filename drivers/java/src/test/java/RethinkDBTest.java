@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
+import gen.TestingFramework;
 
 public class RethinkDBTest{
 

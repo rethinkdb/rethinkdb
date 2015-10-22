@@ -247,7 +247,9 @@ def py_to_java_type(py_type):
     elif py_type.__module__ == 'rethinkdb.errors':
         return py_type.__name__
     elif py_type.__module__ == '?test?':
-        return metajava.camel(py_type.__name__)
+        return {
+            'uuid': 'UUIDMatch',  # clashes with ast.Uuid
+        }.get(py_type.__name__, metajava.camel(py_type.__name__))
     elif py_type.__module__ == 'rethinkdb.query':
         # All of the constants like minval maxval etc are defined in
         # query.py, but no type name is provided to `type`, so we have
