@@ -63,13 +63,14 @@ public class ${module_name} {
     public void tearDown() throws Exception {
         System.out.println("Tearing down.");
         if(!conn.isOpen()){
-            return;
-            //conn.reconnect();
+            conn.close();
+            conn = TestingFramework.createConnection();
         }
         %for var_name in table_var_names:
         r.db("test").tableDrop("${var_name}").run(conn);
         %endfor
         r.dbDrop("test").run(conn);
+        r.db("rethinkdb").table("_debug_scratch").delete();
         conn.close(false);
     }
 
