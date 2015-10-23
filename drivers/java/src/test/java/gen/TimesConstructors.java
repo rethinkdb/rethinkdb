@@ -62,7 +62,7 @@ public class TimesConstructors {
     @After
     public void tearDown() throws Exception {
         logger.info("Tearing down.");
-        r.db("rethinkdb").table("_debug_scratch").delete();
+        r.db("rethinkdb").table("_debug_scratch").delete().run(conn);
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
