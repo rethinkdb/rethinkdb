@@ -1,13 +1,16 @@
 apply plugin: 'java'
+apply plugin: 'maven'
 
-version = '0.5-b1'
+version = '0.6-b1'
+group = "rethinkdb"
+archivesBaseName = "rethinkdb-driver"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 //create a single Jar with all dependencies baked in
 task fatJar(type: Jar) {
-    archiveName = "rethinkdb-"+version+".jar"
+    archiveName = "rethinkdb-driver-"+version+".jar"
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
