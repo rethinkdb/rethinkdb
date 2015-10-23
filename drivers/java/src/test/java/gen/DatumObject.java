@@ -62,12 +62,12 @@ public class DatumObject {
     @After
     public void tearDown() throws Exception {
         logger.info("Tearing down.");
+        r.db("rethinkdb").table("_debug_scratch").delete();
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
         }
         r.dbDrop("test").run(conn);
-        r.db("rethinkdb").table("_debug_scratch").delete();
         conn.close(false);
     }
 
@@ -351,8 +351,8 @@ public class DatumObject {
         
         {
             // datum/object.yaml line #81
-            /* err("ReqlQueryLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[]) */
-            Err expected_ = err("ReqlQueryLogicError", "Duplicate key `e` in object.  (got `4` and `5` as values)", r.array());
+            /* err("ReqlQueryLogicError","Duplicate key \"e\" in object.  (got 4 and 5 as values)",[]) */
+            Err expected_ = err("ReqlQueryLogicError", "Duplicate key \"e\" in object.  (got 4 and 5 as values)", r.array());
             /* r.object('e', 4, 'e', 5) */
             logger.info("About to run line #81: r.object('e', 4L, 'e', 5L)");
             Object obtained = runOrCatch(r.object("e", 4L, "e", 5L),

@@ -62,12 +62,12 @@ public class MathLogicDiv {
     @After
     public void tearDown() throws Exception {
         logger.info("Tearing down.");
+        r.db("rethinkdb").table("_debug_scratch").delete();
         if(!conn.isOpen()){
             conn.close();
             conn = TestingFramework.createConnection();
         }
         r.dbDrop("test").run(conn);
-        r.db("rethinkdb").table("_debug_scratch").delete();
         conn.close(false);
     }
 
