@@ -2,9 +2,7 @@
 
 from __future__ import print_function
 
-import os
-import re
-import sys
+import os,re,sys
 import logging
 
 # == globals
@@ -27,7 +25,7 @@ class YamlValue(unicode):
     linenumber = None
 
     def __new__(cls, value, linenumber=None):
-        if type(value) == unicode:
+        if isinstance(value, unicode):
             real = unicode.__new__(cls, value)
         else:
             real = unicode.__new__(cls, value, "utf-8")
