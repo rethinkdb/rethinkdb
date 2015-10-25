@@ -457,7 +457,7 @@ intsp = (seq) ->
     return res
 
 kved = (optargs) ->
-    ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
+    ['{', intsp([JSON.stringify(k), ': ', v] for own k,v of optargs), '}']
 
 intspallargs = (args, optargs) ->
     argrepr = []
