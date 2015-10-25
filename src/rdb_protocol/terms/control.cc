@@ -16,7 +16,7 @@ namespace ql {
 class and_term_t : public op_term_t {
 public:
     and_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
@@ -25,7 +25,7 @@ private:
                 return v;
             }
         }
-        unreachable();
+        return new_val_bool(true);
     }
     virtual const char *name() const { return "and"; }
 };
@@ -33,7 +33,7 @@ private:
 class or_term_t : public op_term_t {
 public:
     or_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
