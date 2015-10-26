@@ -5,7 +5,7 @@
 and optionally changefeeds across any number of client threads and any number of servers
 in a cluster.'''
 
-import pprint, os, sys, time, random, threading, itertools, bisect, string
+import bisect, os, random, resource, string, sys, time, threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -14,6 +14,9 @@ try:
     xrange
 except NameError:
     xrange = range
+
+# Don't allow someone to run this without unlimited size core files - which are really useful for debugging
+assert resource.getrlimit(resource.RLIMIT_CORE)[0] == resource.RLIM_INFINITY
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
@@ -389,62 +392,55 @@ def do_fuzz(cluster, cluster_lock, stop_event, random_seed):
         weighted_ops.append((changefeed, 10))
         weighted_ops.append((system_changefeed, 10))
 
-    try:
-        while not stop_event.is_set():
-            server = None
-            with cluster_lock:
-                try:
-                    server = random.choice([p for p in cluster if p.ready])
-                except IndexError:
-                    pass
+    while not stop_event.is_set():
+        server = None
+        with cluster_lock:
+            try:
+                server = random.choice([p for p in cluster if p.ready])
+            except IndexError:
+                pass
 
-            if server is not None:
-                server.wait_until_ready()
+        if server is not None:
+            try:
+                conn = r.connect(server.host, server.driver_port)
+            except r.ReqlError as ex:
+                check_error("Connection creation", ex)
 
-                try:
-                    conn = r.connect(server.host, server.driver_port)
-                except r.ReqlError as ex:
-                    check_error("Connection creation", ex)
-
-                while conn.is_open() and not stop_event.is_set():
-                    run_random_query(conn, weighted_ops)
-            else:
-                time.sleep(1) # No ready servers - try again later
-    finally:
-        stop_event.set()
+            while conn.is_open() and not stop_event.is_set():
+                run_random_query(conn, weighted_ops)
+        else:
+            time.sleep(1) # No ready servers - try again later
 
 def kill_random_servers(cluster):
     alive_procs = [p for p in cluster if p.running]
     chosen_procs = random.sample(alive_procs, random.randint(1, len(alive_procs)))
-    remaining = len(alive_procs) - len(chosen_procs)
+    remaining = len(alive_procs) - len(chosen_procs) + 1
     utils.print_with_time("\nKilling %d servers, %d remain" % (len(chosen_procs), remaining))
     [p.kill() for p in chosen_procs]
 
 def revive_random_servers(cluster):
     dead_procs = [p for p in cluster if not p.running]
     chosen_procs = random.sample(dead_procs, random.randint(1, len(dead_procs)))
-    remaining = len(cluster) - len(dead_procs) + len(chosen_procs)
+    remaining = len(cluster) - len(dead_procs) + len(chosen_procs) + 1
     utils.print_with_time("\nReviving %d servers, %d remain" % (len(chosen_procs), remaining))
     [p.start(wait_until_ready=False) for p in chosen_procs]
 
 def server_kill_thread(cluster, cluster_lock, stop_event):
     # Every period we kill or revive a random set of servers
-    try:
-        while not stop_event.is_set():
-            with cluster_lock:
-                if all([p.running for p in cluster]):
-                    kill_random_servers(cluster)
-                elif all([not p.running for p in cluster]):
-                    revive_random_servers(cluster)
-                elif random.random() < 0.5:
-                    kill_random_servers(cluster)
-                else:
-                    revive_random_servers(cluster)
+    while not stop_event.is_set():
+        with cluster_lock:
+            usable = cluster[1:]
+            if all([p.running for p in usable]):
+                kill_random_servers(usable)
+            elif all([not p.running for p in usable]):
+                revive_random_servers(usable)
+            elif random.random() < 0.5:
+                kill_random_servers(usable)
+            else:
+                revive_random_servers(usable)
 
-                if any([p.running for p in cluster]) and random.random() < 80:
-                    time.sleep(random.random() * 15)
-    finally:
-        stop_event.set()
+            if any([p.running for p in usable]) and random.random() < 80:
+                time.sleep(random.random() * 10)
 
 utils.print_with_time("Spinning up %d servers" % (len(server_names)))
 with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix,
@@ -458,6 +454,7 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     stop_event = threading.Event()
     cluster_lock = threading.Lock()
     fuzz_threads = []
+
     for i in xrange(parsed_opts['threads']):
         fuzz_threads.append(threading.Thread(target=do_fuzz, args=(cluster, cluster_lock, stop_event, random.random())))
         fuzz_threads[-1].start()
@@ -469,14 +466,12 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     last_time = time.time()
     end_time = last_time + parsed_opts['duration']
     try:
-        while (time.time() < end_time) and not stop_event.is_set():
+        while (time.time() < end_time) and all([x.is_alive() for x in fuzz_threads]) and not stop_event.is_set():
             time.sleep(0.2)
             current_time = time.time()
             if parsed_opts['progress'] and int((end_time - current_time) / 10) < int((end_time - last_time) / 10):
                 utils.print_with_time("\n%ds remaining" % (int(end_time - current_time) + 1))
             last_time = current_time
-            if not all([x.is_alive() for x in fuzz_threads]):
-                stop_event.set()
     finally:
         utils.print_with_time("\nStopping fuzzing (%d of %d threads remain)" %
               (len(fuzz_threads), parsed_opts['threads']))

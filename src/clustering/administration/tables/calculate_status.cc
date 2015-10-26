@@ -143,6 +143,8 @@ void get_table_status(
             } else {
                 /* If we can't find the name for one of the servers in the response, then
                 act as though it was disconnected */
+                status_out->server_names.names.insert(std::make_pair(it->first,
+                    std::make_pair(0, name_string_t::guarantee_valid("__disconnected_server__"))));
                 status_out->disconnected.insert(it->first);
                 status_out->server_shards.erase(it++);
             }
