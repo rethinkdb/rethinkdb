@@ -35,7 +35,7 @@ Or, get started right away with our ten-minute guide in these languages:
 * [**JavaScript**](http://rethinkdb.com/docs/guide/javascript/)
 * [**Python**](http://rethinkdb.com/docs/guide/python/)
 * [**Ruby**](http://rethinkdb.com/docs/guide/ruby/)
-* **Java** [(Coming Soon!)](https://github.com/rethinkdb/rethinkdb/issues/3930)
+* **Java** [(coming soon!)](https://github.com/rethinkdb/rethinkdb/issues/3930)
 
 Besides our three official drivers, we also have many [third-party drivers](http://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
