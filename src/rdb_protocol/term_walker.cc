@@ -81,7 +81,7 @@ public:
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
             const frame_t *prev_frame = frames.prev(this_frame);
-            if (prev_frame != nullptr && prev_frame->term_type != Term::ORDER_BY) {
+            if (prev_frame == nullptr || prev_frame->term_type != Term::ORDER_BY) {
                 throw bt_exc_t(
                     Response::COMPILE_ERROR,
                     Response::QUERY_LOGIC,
