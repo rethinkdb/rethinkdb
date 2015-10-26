@@ -1,8 +1,10 @@
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'signing'
 
-version = '0.6-b1'
-group = "rethinkdb"
+version = '2.2-b1'
+ext.isReleaseVersion = !version.endsWith("b1")
+group = "com.rethinkdb"
 archivesBaseName = "rethinkdb-driver"
 
 sourceCompatibility = 1.8
@@ -15,8 +17,22 @@ task fatJar(type: Jar) {
     with jar
 }
 
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
 repositories {
     mavenCentral()
+}
+
+artifacts {
+    archives sourcesJar, fatJar
+}
+
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
 }
 
 dependencies {
@@ -32,3 +48,48 @@ test {
 }
 
 buildDir = '../../build/drivers/java/gradle'
+
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
+      }
+
+      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
+      }
+
+      pom.project {
+        name 'RethinkDB Java driver'
+        packaging 'jar'
+        // optionally artifactId can be defined here
+        description 'Official java driver for RethinkDB'
+        url 'http://rethinkdb.com'
+
+        scm {
+          connection 'scm:git:https://github.com/rethinkdb/rethinkdb'
+          developerConnection 'scm:git:https://github.com/rethinkdb/rethinkdb'
+          url 'https://github.com/rethinkdb/rethinkdb'
+        }
+
+        licenses {
+          license {
+            name 'The Apache License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            id 'josh-rethinkdb'
+            name 'Josh Kuhn'
+            email 'josh@rethinkdb.com'
+          }
+        }
+      }
+    }
+  }
+}
