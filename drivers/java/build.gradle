@@ -22,16 +22,20 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
 repositories {
     mavenCentral()
 }
 
 artifacts {
-    archives sourcesJar, fatJar
+    archives sourcesJar, fatJar, javadocJar
 }
 
 signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
