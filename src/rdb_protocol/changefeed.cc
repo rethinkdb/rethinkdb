@@ -1401,7 +1401,13 @@ private:
                             const std::vector<int> &sub_threads,
                             int i);
     void each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i);
+    void each_point_sub_with_lock(
+        rwlock_in_line_t *spot,
+        const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i);
+    void each_limit_sub_with_lock(
+        rwlock_in_line_t *spot,
+        const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
 
     std::map<store_key_t, std::vector<std::set<point_sub_t *> > > point_subs;
     rwlock_t point_subs_lock;
@@ -1528,14 +1534,45 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
 // because otherwise there could be a race condition where a new sub is added in
 // the middle.
 void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
+    assert_thread();
     const char *msg = "Changefeed aborted (unavailable).";
-    each_sub(lock,
-             std::bind(&subscription_t::stop,
+    auto f = std::bind(&subscription_t::stop,
                        ph::_1,
                        std::make_exception_ptr(
                            datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                       detach_t::YES));
-    num_subs = 0;
+                       detach_t::YES);
+    {
+        rwlock_in_line_t spot(&range_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_sub_in_vec<range_sub_t>(range_subs, &spot, lock, f);
+        for (auto &&set : range_subs) {
+            num_subs -= set.size();
+            set.clear();
+        }
+    }
+    {
+        rwlock_in_line_t spot(&point_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_point_sub_with_lock(&spot, f);
+        for (auto &&pair : point_subs) {
+            for (auto &&set : pair.second) {
+                num_subs -= set.size();
+            }
+        }
+        point_subs.clear();
+    }
+    {
+        rwlock_in_line_t spot(&limit_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_limit_sub_with_lock(&spot, f);
+        for (auto &&pair : limit_subs) {
+            for (auto &&set : pair.second) {
+                num_subs -= set.size();
+            }
+        }
+        limit_subs.clear();
+    }
+    r_sanity_check(num_subs == 0);
 }
 
 real_feed_t::~real_feed_t() {
@@ -2433,6 +2470,7 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
         // We wait for the write to complete and the queues to be ready.
         wait_any_t wait_any(&queues_ready, lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
+        if (detached) return;
         if (!lock.get_drain_signal()->is_pulsed()) {
             // We don't need a lock for this because the set of `uuid_u`s never
             // changes after it's initialized.
@@ -2443,6 +2481,7 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
 
             rwlock_in_line_t spot(&queue->lock, access_t::write);
             spot.write_signal()->wait_lazily_unordered();
+            if (detached) return;
 
             // Add us to the queue.
             guarantee(msg.stamp >= queue->next);
@@ -2450,6 +2489,7 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
 
             // Read as much as we can from the queue (this enforces ordering.)
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
+                if (detached) return;
                 const stamped_msg_t &curmsg = queue->map.top();
                 msg_visitor_t visitor(this, &lock, curmsg.server_uuid, curmsg.stamp);
                 boost::apply_visitor(visitor, curmsg.submsg.op);
@@ -2815,6 +2855,10 @@ RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
 void feed_t::add_sub_with_lock(
     rwlock_t *rwlock, const std::function<void()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
+    // This check should be true because `add_sub_with_lock` is only called by
+    // the `X_sub_t` constructors, which should only be called by `new_sub`,
+    // which is called while holding `feeds_lock`, which prevents the feed from
+    // being detached.
     guarantee(!detached);
     num_subs += 1;
     auto_drainer_t::lock_t lock = get_drainer_lock();
@@ -2834,14 +2878,20 @@ void map_add_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
     (it->second)[sub->home_thread().threadnum].insert(sub);
 }
 
-
 void feed_t::del_sub_with_lock(
     rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
+        // We need to check this because when our caller checked that their
+        // `feed_t` pointer was non-NULL, they were doing that on a different
+        // thread.
+        if (detached) return;
         auto_drainer_t::lock_t lock = get_drainer_lock();
         rwlock_in_line_t spot(rwlock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
+        // We need to check this because we might have detached while blocking
+        // in which case we don't want to do anything here.
+        if (detached) return;
         size_t erased = f();
         guarantee(erased == 1);
     }
@@ -2959,17 +3009,6 @@ void feed_t::each_range_sub(
     each_sub_in_vec(range_subs, &spot, lock, f);
 }
 
-void feed_t::each_point_sub(
-    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    pmap(get_num_threads(),
-         std::bind(&feed_t::each_point_sub_cb,
-                   this,
-                   std::cref(f),
-                   ph::_1));
-}
 
 void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
@@ -2979,17 +3018,21 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
         }
     }
 }
-
-void feed_t::each_limit_sub(
-    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
+void feed_t::each_point_sub_with_lock(
+    rwlock_in_line_t *spot,
+    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
+    spot->read_signal()->wait_lazily_unordered();
     pmap(get_num_threads(),
-         std::bind(&feed_t::each_limit_sub_cb,
+         std::bind(&feed_t::each_point_sub_cb,
                    this,
                    std::cref(f),
                    ph::_1));
+}
+void feed_t::each_point_sub(
+    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
+    each_point_sub_with_lock(&spot, f);
 }
 
 void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
@@ -2999,6 +3042,23 @@ void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int 
             f(sub);
         }
     }
+}
+void feed_t::each_limit_sub_with_lock(
+    rwlock_in_line_t *spot,
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    spot->read_signal()->wait_lazily_unordered();
+    pmap(get_num_threads(),
+         std::bind(&feed_t::each_limit_sub_cb,
+                   this,
+                   std::cref(f),
+                   ph::_1));
+
+}
+void feed_t::each_limit_sub(
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    each_limit_sub_with_lock(&spot, f);
 }
 
 void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
