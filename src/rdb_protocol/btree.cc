@@ -567,11 +567,11 @@ public:
                const boost::optional<terminal_variant_t> &_terminal,
                sorting_t _sorting)
         : env(_env),
-          batcher(batchspec.to_batcher()),
+          batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
           sorting(_sorting),
           accumulator(_terminal
                       ? ql::make_terminal(*_terminal)
-                      : ql::make_append(sorting, &batcher)) {
+                      : ql::make_append(sorting, batcher.get())) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
             transformers.push_back(ql::make_op(_transforms[i]));
         }
@@ -593,7 +593,7 @@ public:
 private:
     friend class rget_cb_t;
     ql::env_t *const env;
-    ql::batcher_t batcher;
+    scoped_ptr_t<ql::batcher_t> batcher;
     std::vector<scoped_ptr_t<ql::op_t> > transformers;
     sorting_t sorting;
     scoped_ptr_t<ql::accumulator_t> accumulator;

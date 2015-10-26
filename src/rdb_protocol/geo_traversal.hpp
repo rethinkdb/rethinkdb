@@ -49,7 +49,7 @@ public:
 private:
     friend class collect_all_geo_intersecting_cb_t;
     ql::env_t *const env;
-    ql::batcher_t batcher;
+    scoped_ptr_t<ql::batcher_t> batcher;
     std::vector<scoped_ptr_t<ql::op_t> > transformers;
     scoped_ptr_t<ql::accumulator_t> accumulator;
 };

@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 #define CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -87,7 +89,7 @@ private:
 
         logs_artificial_table_backend_t *parent;
         std::set<peer_id_t> peers_handled;
-        std::map<server_id_t, timespec> last_timestamps;
+        std::map<peer_id_t, timespec> last_timestamps;
 
         /* `all_starters_done` is pulsed when we've fetched logs from every peer that was
         connected to the `cfeed_machinery_t` when it was first created. When the
@@ -109,9 +111,10 @@ private:
 
     bool read_all_rows_raw(
         const std::function<void(
-            const log_message_t &msg,
+            const log_message_t &message,
+            const peer_id_t &peer_id,
             const server_id_t &server_id,
-            const ql::datum_t &server_datum)> &callback,
+            const ql::datum_t &server_name_datum)> &callback,
         signal_t *interruptor,
         admin_err_t *error_out);
 

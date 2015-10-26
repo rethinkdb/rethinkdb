@@ -1,2 +1,0 @@
-# These are the build arguments for a Mac release GN build:
-is_debug=false symbol_level=0

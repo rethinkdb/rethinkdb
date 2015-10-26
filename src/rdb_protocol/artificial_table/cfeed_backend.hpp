@@ -34,6 +34,7 @@ public:
 protected:
     class machinery_t : private ql::changefeed::artificial_t {
     public:
+        machinery_t() : last_subscriber_time(current_microtime()) { }
         virtual ~machinery_t() { }
 
     protected:

@@ -77,38 +77,42 @@ void outdated_index_issue_tracker_t::log_outdated_indexes(
         multi_table_manager_t *multi_table_manager,
         const cluster_semilattice_metadata_t &metadata,
         signal_t *interruptor) {
-    multi_table_manager->visit_tables(interruptor, access_t::read,
-        [&] (const namespace_id_t &table_id,
-             multistore_ptr_t *,
-             table_manager_t *table_manager) {
-            table_config_and_shards_t config =
-                table_manager->get_raft()->get_committed_state()->get().state.config;
+    try {
+        multi_table_manager->visit_tables(interruptor, access_t::read,
+            [&] (const namespace_id_t &table_id,
+                 multistore_ptr_t *,
+                 table_manager_t *table_manager) {
+                table_config_and_shards_t config =
+                    table_manager->get_raft()->get_committed_state()->get().state.config;
 
-            std::string indexes;
-            for (auto const &sindex_pair : config.config.sindexes) {
-                if (sindex_pair.second.func_version != reql_version_t::LATEST) {
-                    indexes += (indexes.empty() ? "'" : ", '") + sindex_pair.first + "'";
-                }
-            }
-
-            if (!indexes.empty()) {
-                name_string_t db_name;
-                if (!convert_database_id_to_datum(config.config.basic.database,
-                                                  admin_identifier_format_t::name,
-                                                  metadata,
-                                                  nullptr,
-                                                  &db_name)) {
-                    db_name = name_string_t::guarantee_valid("__deleted_database__");
+                std::string indexes;
+                for (auto const &sindex_pair : config.config.sindexes) {
+                    if (sindex_pair.second.func_version != reql_version_t::LATEST) {
+                        indexes += (indexes.empty() ? "'" : ", '") + sindex_pair.first + "'";
+                    }
                 }
 
-                logWRN("Table %s.%s (%s) contains these outdated indexes which should be "
-                       "recreated: %s",
-                       db_name.c_str(),
-                       config.config.basic.name.c_str(),
-                       uuid_to_str(table_id).c_str(),
-                       indexes.c_str());
-            }
-        });
+                if (!indexes.empty()) {
+                    name_string_t db_name;
+                    if (!convert_database_id_to_datum(config.config.basic.database,
+                                                      admin_identifier_format_t::name,
+                                                      metadata,
+                                                      nullptr,
+                                                      &db_name)) {
+                        db_name = name_string_t::guarantee_valid("__deleted_database__");
+                    }
+
+                    logWRN("Table %s.%s (%s) contains these outdated indexes which should be "
+                           "recreated: %s",
+                           db_name.c_str(),
+                           config.config.basic.name.c_str(),
+                           uuid_to_str(table_id).c_str(),
+                           indexes.c_str());
+                }
+            });
+    } catch (const interrupted_exc_t &) {
+        // Do nothing
+    }
 }
 
 std::vector<scoped_ptr_t<issue_t> > outdated_index_issue_tracker_t::get_issues(

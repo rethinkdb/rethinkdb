@@ -1,8 +1,61 @@
+# Release 2.1.5-2 (Forbidden Planet)
+
+Released on 2015-10-08
+
+Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.5 servers cannot be mixed with servers running RethinkDB 2.1.4 or earlier
+  in the same cluster
+
+### Bug fixes ###
+
+* Fixed a memory corruption bug that caused segmentation faults on some systems
+  (#4917)
+* Made the build system compatible with OS X El Capitan (#4602)
+* Fixed spurious "Query terminated by `rethinkdb.jobs` table" errors (#4819)
+* Fixed an issue that caused changefeeds to keep failing after a table finished
+  reconfiguring (#4838)
+* Fixed a race condition that resulted in a crash with the message
+  `std::terminate() called without any exception.` when losing a cluster connection
+  (#4878)
+* Fixed a segmentation fault in the `mark_ready()` function that could occur when
+  reconfiguring a table (#4875)
+* Fixed a segmentation fault when using changefeeds on `orderBy.limit` queries (#4850)
+* Made the Data Explorer handle changefeeds on `orderBy.limit` queries correctly (#4852)
+* Fixed a "Branch history is incomplete" crash when reconfiguring a table repeatedly in
+  quick succession (#4866)
+* Fixed a problem that caused `indexStatus` to report results for additional indexes that
+  were not specified in its arguments (#4868)
+* Fixed a segmentation fault when running RethinkDB on certain ARM systems (#4839)
+* Fixed a compilation issue in the UTF-8 unit test with recent versions of Xcode (#4861)
+* Fixed an `Assertion failed: [ptr_]` error when reconfiguring tables quickly with a
+  debug-mode binary (#4871)
+* Improved the detection of unsupported values in `r.js` functions to avoid a
+  `Guarantee failed: [!key.IsEmpty() && !val.IsEmpty()]` crash in the worker process
+  (#4879)
+* Fixed an unitialized data access issue on shutdown (#4918)
+
+### Performance improvements ###
+
+* Improved the performance of `getAll` queries that fetch multiple keys at once (#1526)
+* Optimized the distribution of tasks across threads on multi-core servers (#4905)
+
+--
+
 # Release 2.1.4 (Forbidden Planet)
 
 Released on 2015-09-16
 
 Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.4 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
+  in the same cluster
+
+### Bug fixes ###
 
 * Fixed a data corruption bug that could occur when deleting documents (#4769)
 * The web UI no longer ignores errors during table configuration (#4811)
@@ -20,7 +73,7 @@ Released on 2015-09-04
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.3 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
   in the same cluster
@@ -71,7 +124,7 @@ Released on 2015-08-25
 
 Bug fix release
 
-### Compatiblity ###
+### Compatibility ###
 
 * RethinkDB 2.1.2 servers cannot be mixed with servers running earlier versions in the
   same cluster
@@ -234,7 +287,7 @@ separately in your application if you need to. You can find the
 
 As part of this change, ReQL error types now use the `Reql` name prefix instead of `Rql`
 (for example `ReqlRuntimeError` instead of `RqlRuntimeError`).
-The old type names are still supported in our drivers for backwards compatiblity.
+The old type names are still supported in our drivers for backwards compatibility.
 
 [error-types]: http://rethinkdb.com/docs/error-types/
 
