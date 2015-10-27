@@ -23,10 +23,7 @@ public class Limit extends ReqlExpr {
         this(args, null);
     }
     public Limit(Arguments args, OptArgs optargs) {
-        this(TermType.LIMIT, args, optargs);
-    }
-    protected Limit(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.LIMIT, args, optargs);
     }
 
 }

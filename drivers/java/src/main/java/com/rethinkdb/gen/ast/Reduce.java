@@ -23,10 +23,7 @@ public class Reduce extends ReqlExpr {
         this(args, null);
     }
     public Reduce(Arguments args, OptArgs optargs) {
-        this(TermType.REDUCE, args, optargs);
-    }
-    protected Reduce(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.REDUCE, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class CoerceTo extends ReqlExpr {
         this(args, null);
     }
     public CoerceTo(Arguments args, OptArgs optargs) {
-        this(TermType.COERCE_TO, args, optargs);
-    }
-    protected CoerceTo(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.COERCE_TO, args, optargs);
     }
 
 }

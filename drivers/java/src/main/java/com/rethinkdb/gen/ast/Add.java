@@ -23,10 +23,7 @@ public class Add extends ReqlExpr {
         this(args, null);
     }
     public Add(Arguments args, OptArgs optargs) {
-        this(TermType.ADD, args, optargs);
-    }
-    protected Add(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ADD, args, optargs);
     }
 
 }

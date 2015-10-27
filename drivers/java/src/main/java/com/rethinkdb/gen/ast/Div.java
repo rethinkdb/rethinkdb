@@ -23,10 +23,7 @@ public class Div extends ReqlExpr {
         this(args, null);
     }
     public Div(Arguments args, OptArgs optargs) {
-        this(TermType.DIV, args, optargs);
-    }
-    protected Div(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DIV, args, optargs);
     }
 
 }

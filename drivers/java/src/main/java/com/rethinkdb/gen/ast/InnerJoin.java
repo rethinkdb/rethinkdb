@@ -23,10 +23,7 @@ public class InnerJoin extends ReqlExpr {
         this(args, null);
     }
     public InnerJoin(Arguments args, OptArgs optargs) {
-        this(TermType.INNER_JOIN, args, optargs);
-    }
-    protected InnerJoin(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INNER_JOIN, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Json extends ReqlExpr {
         this(args, null);
     }
     public Json(Arguments args, OptArgs optargs) {
-        this(TermType.JSON, args, optargs);
-    }
-    protected Json(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.JSON, args, optargs);
     }
 
 }

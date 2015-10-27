@@ -23,10 +23,7 @@ public class IndexDrop extends ReqlExpr {
         this(args, null);
     }
     public IndexDrop(Arguments args, OptArgs optargs) {
-        this(TermType.INDEX_DROP, args, optargs);
-    }
-    protected IndexDrop(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INDEX_DROP, args, optargs);
     }
 
 }

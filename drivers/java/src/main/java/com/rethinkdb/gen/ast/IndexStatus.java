@@ -23,10 +23,7 @@ public class IndexStatus extends ReqlExpr {
         this(args, null);
     }
     public IndexStatus(Arguments args, OptArgs optargs) {
-        this(TermType.INDEX_STATUS, args, optargs);
-    }
-    protected IndexStatus(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INDEX_STATUS, args, optargs);
     }
 
 }

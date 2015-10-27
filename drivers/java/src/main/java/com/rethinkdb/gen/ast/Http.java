@@ -23,10 +23,7 @@ public class Http extends ReqlExpr {
         this(args, null);
     }
     public Http(Arguments args, OptArgs optargs) {
-        this(TermType.HTTP, args, optargs);
-    }
-    protected Http(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.HTTP, args, optargs);
     }
 public Http optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

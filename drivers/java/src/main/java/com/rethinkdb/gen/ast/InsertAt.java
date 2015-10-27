@@ -23,10 +23,7 @@ public class InsertAt extends ReqlExpr {
         this(args, null);
     }
     public InsertAt(Arguments args, OptArgs optargs) {
-        this(TermType.INSERT_AT, args, optargs);
-    }
-    protected InsertAt(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INSERT_AT, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class IndexList extends ReqlExpr {
         this(args, null);
     }
     public IndexList(Arguments args, OptArgs optargs) {
-        this(TermType.INDEX_LIST, args, optargs);
-    }
-    protected IndexList(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INDEX_LIST, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Line extends ReqlExpr {
         this(args, null);
     }
     public Line(Arguments args, OptArgs optargs) {
-        this(TermType.LINE, args, optargs);
-    }
-    protected Line(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.LINE, args, optargs);
     }
 
 }

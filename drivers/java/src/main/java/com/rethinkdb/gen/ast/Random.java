@@ -23,10 +23,7 @@ public class Random extends ReqlExpr {
         this(args, null);
     }
     public Random(Arguments args, OptArgs optargs) {
-        this(TermType.RANDOM, args, optargs);
-    }
-    protected Random(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.RANDOM, args, optargs);
     }
 public Random optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

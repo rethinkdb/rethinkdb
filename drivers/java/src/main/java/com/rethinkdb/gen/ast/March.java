@@ -23,10 +23,7 @@ public class March extends ReqlExpr {
         this(args, null);
     }
     public March(Arguments args, OptArgs optargs) {
-        this(TermType.MARCH, args, optargs);
-    }
-    protected March(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MARCH, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Update extends ReqlExpr {
         this(args, null);
     }
     public Update(Arguments args, OptArgs optargs) {
-        this(TermType.UPDATE, args, optargs);
-    }
-    protected Update(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.UPDATE, args, optargs);
     }
 public Update optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

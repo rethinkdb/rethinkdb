@@ -23,10 +23,7 @@ public class WithFields extends ReqlExpr {
         this(args, null);
     }
     public WithFields(Arguments args, OptArgs optargs) {
-        this(TermType.WITH_FIELDS, args, optargs);
-    }
-    protected WithFields(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.WITH_FIELDS, args, optargs);
     }
 
 }

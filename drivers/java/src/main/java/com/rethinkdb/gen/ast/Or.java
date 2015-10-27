@@ -23,10 +23,7 @@ public class Or extends ReqlExpr {
         this(args, null);
     }
     public Or(Arguments args, OptArgs optargs) {
-        this(TermType.OR, args, optargs);
-    }
-    protected Or(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.OR, args, optargs);
     }
 
 }

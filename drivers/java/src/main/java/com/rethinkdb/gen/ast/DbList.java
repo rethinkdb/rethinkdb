@@ -23,10 +23,7 @@ public class DbList extends ReqlExpr {
         this(args, null);
     }
     public DbList(Arguments args, OptArgs optargs) {
-        this(TermType.DB_LIST, args, optargs);
-    }
-    protected DbList(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DB_LIST, args, optargs);
     }
 
 }

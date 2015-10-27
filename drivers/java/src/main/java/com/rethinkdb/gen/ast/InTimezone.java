@@ -23,10 +23,7 @@ public class InTimezone extends ReqlExpr {
         this(args, null);
     }
     public InTimezone(Arguments args, OptArgs optargs) {
-        this(TermType.IN_TIMEZONE, args, optargs);
-    }
-    protected InTimezone(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.IN_TIMEZONE, args, optargs);
     }
 
 }

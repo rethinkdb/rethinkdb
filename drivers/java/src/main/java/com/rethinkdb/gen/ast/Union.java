@@ -23,10 +23,7 @@ public class Union extends ReqlExpr {
         this(args, null);
     }
     public Union(Arguments args, OptArgs optargs) {
-        this(TermType.UNION, args, optargs);
-    }
-    protected Union(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.UNION, args, optargs);
     }
 
 }

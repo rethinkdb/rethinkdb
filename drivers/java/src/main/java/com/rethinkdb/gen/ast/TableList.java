@@ -23,10 +23,7 @@ public class TableList extends ReqlExpr {
         this(args, null);
     }
     public TableList(Arguments args, OptArgs optargs) {
-        this(TermType.TABLE_LIST, args, optargs);
-    }
-    protected TableList(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TABLE_LIST, args, optargs);
     }
 
 }

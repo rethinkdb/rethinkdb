@@ -23,10 +23,7 @@ public class HasFields extends ReqlExpr {
         this(args, null);
     }
     public HasFields(Arguments args, OptArgs optargs) {
-        this(TermType.HAS_FIELDS, args, optargs);
-    }
-    protected HasFields(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.HAS_FIELDS, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class And extends ReqlExpr {
         this(args, null);
     }
     public And(Arguments args, OptArgs optargs) {
-        this(TermType.AND, args, optargs);
-    }
-    protected And(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.AND, args, optargs);
     }
 
 }

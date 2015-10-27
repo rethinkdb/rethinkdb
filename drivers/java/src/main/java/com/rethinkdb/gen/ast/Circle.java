@@ -23,10 +23,7 @@ public class Circle extends ReqlExpr {
         this(args, null);
     }
     public Circle(Arguments args, OptArgs optargs) {
-        this(TermType.CIRCLE, args, optargs);
-    }
-    protected Circle(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CIRCLE, args, optargs);
     }
 public Circle optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

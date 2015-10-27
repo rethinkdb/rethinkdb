@@ -23,10 +23,7 @@ public class Point extends ReqlExpr {
         this(args, null);
     }
     public Point(Arguments args, OptArgs optargs) {
-        this(TermType.POINT, args, optargs);
-    }
-    protected Point(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.POINT, args, optargs);
     }
 
 }

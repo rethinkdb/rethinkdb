@@ -23,10 +23,7 @@ public class Distinct extends ReqlExpr {
         this(args, null);
     }
     public Distinct(Arguments args, OptArgs optargs) {
-        this(TermType.DISTINCT, args, optargs);
-    }
-    protected Distinct(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DISTINCT, args, optargs);
     }
 public Distinct optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

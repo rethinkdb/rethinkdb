@@ -23,10 +23,7 @@ public class Error extends ReqlExpr {
         this(args, null);
     }
     public Error(Arguments args, OptArgs optargs) {
-        this(TermType.ERROR, args, optargs);
-    }
-    protected Error(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ERROR, args, optargs);
     }
 
 }

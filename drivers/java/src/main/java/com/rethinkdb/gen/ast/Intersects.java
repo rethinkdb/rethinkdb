@@ -23,10 +23,7 @@ public class Intersects extends ReqlExpr {
         this(args, null);
     }
     public Intersects(Arguments args, OptArgs optargs) {
-        this(TermType.INTERSECTS, args, optargs);
-    }
-    protected Intersects(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INTERSECTS, args, optargs);
     }
 
 }

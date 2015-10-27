@@ -23,10 +23,7 @@ public class TableDrop extends ReqlExpr {
         this(args, null);
     }
     public TableDrop(Arguments args, OptArgs optargs) {
-        this(TermType.TABLE_DROP, args, optargs);
-    }
-    protected TableDrop(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TABLE_DROP, args, optargs);
     }
 
 }

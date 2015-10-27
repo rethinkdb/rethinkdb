@@ -23,10 +23,7 @@ public class Db extends ReqlAst {
         this(args, null);
     }
     public Db(Arguments args, OptArgs optargs) {
-        this(TermType.DB, args, optargs);
-    }
-    protected Db(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DB, args, optargs);
     }
 
     public Table table(Object expr) {

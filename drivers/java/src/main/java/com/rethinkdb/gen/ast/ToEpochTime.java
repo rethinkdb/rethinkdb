@@ -23,10 +23,7 @@ public class ToEpochTime extends ReqlExpr {
         this(args, null);
     }
     public ToEpochTime(Arguments args, OptArgs optargs) {
-        this(TermType.TO_EPOCH_TIME, args, optargs);
-    }
-    protected ToEpochTime(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TO_EPOCH_TIME, args, optargs);
     }
 
 }

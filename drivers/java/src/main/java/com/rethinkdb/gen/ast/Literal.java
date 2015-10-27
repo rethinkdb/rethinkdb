@@ -23,10 +23,7 @@ public class Literal extends ReqlExpr {
         this(args, null);
     }
     public Literal(Arguments args, OptArgs optargs) {
-        this(TermType.LITERAL, args, optargs);
-    }
-    protected Literal(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.LITERAL, args, optargs);
     }
 
 }

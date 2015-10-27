@@ -23,10 +23,7 @@ public class Distance extends ReqlExpr {
         this(args, null);
     }
     public Distance(Arguments args, OptArgs optargs) {
-        this(TermType.DISTANCE, args, optargs);
-    }
-    protected Distance(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DISTANCE, args, optargs);
     }
 public Distance optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

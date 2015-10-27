@@ -23,10 +23,7 @@ public class Gt extends ReqlExpr {
         this(args, null);
     }
     public Gt(Arguments args, OptArgs optargs) {
-        this(TermType.GT, args, optargs);
-    }
-    protected Gt(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GT, args, optargs);
     }
 
 }

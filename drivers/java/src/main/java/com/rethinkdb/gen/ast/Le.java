@@ -23,10 +23,7 @@ public class Le extends ReqlExpr {
         this(args, null);
     }
     public Le(Arguments args, OptArgs optargs) {
-        this(TermType.LE, args, optargs);
-    }
-    protected Le(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.LE, args, optargs);
     }
 
 }

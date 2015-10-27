@@ -23,10 +23,7 @@ public class Branch extends ReqlExpr {
         this(args, null);
     }
     public Branch(Arguments args, OptArgs optargs) {
-        this(TermType.BRANCH, args, optargs);
-    }
-    protected Branch(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.BRANCH, args, optargs);
     }
 
 }

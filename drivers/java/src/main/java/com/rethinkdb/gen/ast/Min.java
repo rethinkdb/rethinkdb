@@ -23,10 +23,7 @@ public class Min extends ReqlExpr {
         this(args, null);
     }
     public Min(Arguments args, OptArgs optargs) {
-        this(TermType.MIN, args, optargs);
-    }
-    protected Min(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MIN, args, optargs);
     }
 public Min optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

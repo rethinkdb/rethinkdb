@@ -23,10 +23,7 @@ public class TimeOfDay extends ReqlExpr {
         this(args, null);
     }
     public TimeOfDay(Arguments args, OptArgs optargs) {
-        this(TermType.TIME_OF_DAY, args, optargs);
-    }
-    protected TimeOfDay(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TIME_OF_DAY, args, optargs);
     }
 
 }

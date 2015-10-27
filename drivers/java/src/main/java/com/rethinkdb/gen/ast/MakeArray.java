@@ -23,10 +23,7 @@ public class MakeArray extends ReqlExpr {
         this(args, null);
     }
     public MakeArray(Arguments args, OptArgs optargs) {
-        this(TermType.MAKE_ARRAY, args, optargs);
-    }
-    protected MakeArray(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MAKE_ARRAY, args, optargs);
     }
 
 }

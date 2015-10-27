@@ -23,10 +23,7 @@ public class OuterJoin extends ReqlExpr {
         this(args, null);
     }
     public OuterJoin(Arguments args, OptArgs optargs) {
-        this(TermType.OUTER_JOIN, args, optargs);
-    }
-    protected OuterJoin(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.OUTER_JOIN, args, optargs);
     }
 
 }

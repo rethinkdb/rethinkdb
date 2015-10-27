@@ -23,10 +23,7 @@ public class Sample extends ReqlExpr {
         this(args, null);
     }
     public Sample(Arguments args, OptArgs optargs) {
-        this(TermType.SAMPLE, args, optargs);
-    }
-    protected Sample(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SAMPLE, args, optargs);
     }
 
 }

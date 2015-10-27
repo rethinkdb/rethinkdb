@@ -23,10 +23,7 @@ public class Funcall extends ReqlExpr {
         this(args, null);
     }
     public Funcall(Arguments args, OptArgs optargs) {
-        this(TermType.FUNCALL, args, optargs);
-    }
-    protected Funcall(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.FUNCALL, args, optargs);
     }
 
 

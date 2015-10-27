@@ -23,10 +23,7 @@ public class Sync extends ReqlExpr {
         this(args, null);
     }
     public Sync(Arguments args, OptArgs optargs) {
-        this(TermType.SYNC, args, optargs);
-    }
-    protected Sync(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SYNC, args, optargs);
     }
 
 }

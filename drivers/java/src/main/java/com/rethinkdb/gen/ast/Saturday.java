@@ -23,10 +23,7 @@ public class Saturday extends ReqlExpr {
         this(args, null);
     }
     public Saturday(Arguments args, OptArgs optargs) {
-        this(TermType.SATURDAY, args, optargs);
-    }
-    protected Saturday(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SATURDAY, args, optargs);
     }
 
 }

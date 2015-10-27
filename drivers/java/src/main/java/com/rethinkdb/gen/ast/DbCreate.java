@@ -23,10 +23,7 @@ public class DbCreate extends ReqlExpr {
         this(args, null);
     }
     public DbCreate(Arguments args, OptArgs optargs) {
-        this(TermType.DB_CREATE, args, optargs);
-    }
-    protected DbCreate(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DB_CREATE, args, optargs);
     }
 
 }

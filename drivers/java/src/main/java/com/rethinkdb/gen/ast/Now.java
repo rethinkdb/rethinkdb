@@ -23,10 +23,7 @@ public class Now extends ReqlExpr {
         this(args, null);
     }
     public Now(Arguments args, OptArgs optargs) {
-        this(TermType.NOW, args, optargs);
-    }
-    protected Now(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.NOW, args, optargs);
     }
 
 }

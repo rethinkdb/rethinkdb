@@ -23,10 +23,7 @@ public class Bracket extends ReqlExpr {
         this(args, null);
     }
     public Bracket(Arguments args, OptArgs optargs) {
-        this(TermType.BRACKET, args, optargs);
-    }
-    protected Bracket(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.BRACKET, args, optargs);
     }
 
 }

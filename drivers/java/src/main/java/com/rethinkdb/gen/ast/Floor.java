@@ -23,10 +23,7 @@ public class Floor extends ReqlExpr {
         this(args, null);
     }
     public Floor(Arguments args, OptArgs optargs) {
-        this(TermType.FLOOR, args, optargs);
-    }
-    protected Floor(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.FLOOR, args, optargs);
     }
 
 }

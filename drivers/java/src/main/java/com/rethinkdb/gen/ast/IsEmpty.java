@@ -23,10 +23,7 @@ public class IsEmpty extends ReqlExpr {
         this(args, null);
     }
     public IsEmpty(Arguments args, OptArgs optargs) {
-        this(TermType.IS_EMPTY, args, optargs);
-    }
-    protected IsEmpty(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.IS_EMPTY, args, optargs);
     }
 
 }

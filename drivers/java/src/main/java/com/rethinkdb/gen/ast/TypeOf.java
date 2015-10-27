@@ -23,10 +23,7 @@ public class TypeOf extends ReqlExpr {
         this(args, null);
     }
     public TypeOf(Arguments args, OptArgs optargs) {
-        this(TermType.TYPE_OF, args, optargs);
-    }
-    protected TypeOf(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TYPE_OF, args, optargs);
     }
 
 }

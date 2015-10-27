@@ -23,10 +23,7 @@ public class Default extends ReqlExpr {
         this(args, null);
     }
     public Default(Arguments args, OptArgs optargs) {
-        this(TermType.DEFAULT, args, optargs);
-    }
-    protected Default(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DEFAULT, args, optargs);
     }
 
 }

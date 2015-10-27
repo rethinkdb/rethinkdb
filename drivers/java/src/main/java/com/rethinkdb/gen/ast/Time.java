@@ -23,10 +23,7 @@ public class Time extends ReqlExpr {
         this(args, null);
     }
     public Time(Arguments args, OptArgs optargs) {
-        this(TermType.TIME, args, optargs);
-    }
-    protected Time(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TIME, args, optargs);
     }
 
 }

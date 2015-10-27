@@ -23,10 +23,7 @@ public class Rebalance extends ReqlExpr {
         this(args, null);
     }
     public Rebalance(Arguments args, OptArgs optargs) {
-        this(TermType.REBALANCE, args, optargs);
-    }
-    protected Rebalance(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.REBALANCE, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Changes extends ReqlExpr {
         this(args, null);
     }
     public Changes(Arguments args, OptArgs optargs) {
-        this(TermType.CHANGES, args, optargs);
-    }
-    protected Changes(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CHANGES, args, optargs);
     }
 public Changes optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

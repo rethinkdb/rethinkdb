@@ -23,10 +23,7 @@ public class Asc extends ReqlExpr {
         this(args, null);
     }
     public Asc(Arguments args, OptArgs optargs) {
-        this(TermType.ASC, args, optargs);
-    }
-    protected Asc(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ASC, args, optargs);
     }
 
 }

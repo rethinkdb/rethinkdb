@@ -23,10 +23,7 @@ public class DeleteAt extends ReqlExpr {
         this(args, null);
     }
     public DeleteAt(Arguments args, OptArgs optargs) {
-        this(TermType.DELETE_AT, args, optargs);
-    }
-    protected DeleteAt(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DELETE_AT, args, optargs);
     }
 
 }

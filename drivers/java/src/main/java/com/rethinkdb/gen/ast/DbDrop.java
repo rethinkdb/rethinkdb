@@ -23,10 +23,7 @@ public class DbDrop extends ReqlExpr {
         this(args, null);
     }
     public DbDrop(Arguments args, OptArgs optargs) {
-        this(TermType.DB_DROP, args, optargs);
-    }
-    protected DbDrop(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DB_DROP, args, optargs);
     }
 
 }

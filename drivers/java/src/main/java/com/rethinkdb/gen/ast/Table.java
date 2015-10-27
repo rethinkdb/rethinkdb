@@ -23,10 +23,7 @@ public class Table extends ReqlExpr {
         this(args, null);
     }
     public Table(Arguments args, OptArgs optargs) {
-        this(TermType.TABLE, args, optargs);
-    }
-    protected Table(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TABLE, args, optargs);
     }
 public Table optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

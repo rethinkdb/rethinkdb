@@ -23,10 +23,7 @@ public class Get extends ReqlExpr {
         this(args, null);
     }
     public Get(Arguments args, OptArgs optargs) {
-        this(TermType.GET, args, optargs);
-    }
-    protected Get(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GET, args, optargs);
     }
 
 }

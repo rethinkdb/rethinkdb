@@ -23,10 +23,7 @@ public class Nth extends ReqlExpr {
         this(args, null);
     }
     public Nth(Arguments args, OptArgs optargs) {
-        this(TermType.NTH, args, optargs);
-    }
-    protected Nth(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.NTH, args, optargs);
     }
 
 }

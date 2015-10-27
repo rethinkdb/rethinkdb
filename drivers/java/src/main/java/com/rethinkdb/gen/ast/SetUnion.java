@@ -23,10 +23,7 @@ public class SetUnion extends ReqlExpr {
         this(args, null);
     }
     public SetUnion(Arguments args, OptArgs optargs) {
-        this(TermType.SET_UNION, args, optargs);
-    }
-    protected SetUnion(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SET_UNION, args, optargs);
     }
 
 }

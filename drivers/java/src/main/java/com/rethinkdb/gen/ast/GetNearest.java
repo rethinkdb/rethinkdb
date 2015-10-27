@@ -23,10 +23,7 @@ public class GetNearest extends ReqlExpr {
         this(args, null);
     }
     public GetNearest(Arguments args, OptArgs optargs) {
-        this(TermType.GET_NEAREST, args, optargs);
-    }
-    protected GetNearest(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GET_NEAREST, args, optargs);
     }
 public GetNearest optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

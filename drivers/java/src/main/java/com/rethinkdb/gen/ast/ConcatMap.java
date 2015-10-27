@@ -23,10 +23,7 @@ public class ConcatMap extends ReqlExpr {
         this(args, null);
     }
     public ConcatMap(Arguments args, OptArgs optargs) {
-        this(TermType.CONCAT_MAP, args, optargs);
-    }
-    protected ConcatMap(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CONCAT_MAP, args, optargs);
     }
 
 }

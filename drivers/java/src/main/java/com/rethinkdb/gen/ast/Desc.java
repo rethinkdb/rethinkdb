@@ -23,10 +23,7 @@ public class Desc extends ReqlExpr {
         this(args, null);
     }
     public Desc(Arguments args, OptArgs optargs) {
-        this(TermType.DESC, args, optargs);
-    }
-    protected Desc(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DESC, args, optargs);
     }
 
 }

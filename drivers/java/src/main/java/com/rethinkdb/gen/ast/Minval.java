@@ -23,10 +23,7 @@ public class Minval extends ReqlExpr {
         this(args, null);
     }
     public Minval(Arguments args, OptArgs optargs) {
-        this(TermType.MINVAL, args, optargs);
-    }
-    protected Minval(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MINVAL, args, optargs);
     }
 
 }

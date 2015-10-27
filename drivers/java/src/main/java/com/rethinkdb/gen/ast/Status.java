@@ -23,10 +23,7 @@ public class Status extends ReqlExpr {
         this(args, null);
     }
     public Status(Arguments args, OptArgs optargs) {
-        this(TermType.STATUS, args, optargs);
-    }
-    protected Status(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.STATUS, args, optargs);
     }
 
 }

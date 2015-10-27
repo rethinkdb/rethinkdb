@@ -23,10 +23,7 @@ public class ToGeojson extends ReqlExpr {
         this(args, null);
     }
     public ToGeojson(Arguments args, OptArgs optargs) {
-        this(TermType.TO_GEOJSON, args, optargs);
-    }
-    protected ToGeojson(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TO_GEOJSON, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class ForEach extends ReqlExpr {
         this(args, null);
     }
     public ForEach(Arguments args, OptArgs optargs) {
-        this(TermType.FOR_EACH, args, optargs);
-    }
-    protected ForEach(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.FOR_EACH, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Prepend extends ReqlExpr {
         this(args, null);
     }
     public Prepend(Arguments args, OptArgs optargs) {
-        this(TermType.PREPEND, args, optargs);
-    }
-    protected Prepend(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.PREPEND, args, optargs);
     }
 
 }

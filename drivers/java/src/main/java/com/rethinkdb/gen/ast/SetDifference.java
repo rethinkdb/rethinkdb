@@ -23,10 +23,7 @@ public class SetDifference extends ReqlExpr {
         this(args, null);
     }
     public SetDifference(Arguments args, OptArgs optargs) {
-        this(TermType.SET_DIFFERENCE, args, optargs);
-    }
-    protected SetDifference(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SET_DIFFERENCE, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Merge extends ReqlExpr {
         this(args, null);
     }
     public Merge(Arguments args, OptArgs optargs) {
-        this(TermType.MERGE, args, optargs);
-    }
-    protected Merge(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MERGE, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Year extends ReqlExpr {
         this(args, null);
     }
     public Year(Arguments args, OptArgs optargs) {
-        this(TermType.YEAR, args, optargs);
-    }
-    protected Year(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.YEAR, args, optargs);
     }
 
 }

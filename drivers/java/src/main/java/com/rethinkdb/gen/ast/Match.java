@@ -23,10 +23,7 @@ public class Match extends ReqlExpr {
         this(args, null);
     }
     public Match(Arguments args, OptArgs optargs) {
-        this(TermType.MATCH, args, optargs);
-    }
-    protected Match(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MATCH, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Reconfigure extends ReqlExpr {
         this(args, null);
     }
     public Reconfigure(Arguments args, OptArgs optargs) {
-        this(TermType.RECONFIGURE, args, optargs);
-    }
-    protected Reconfigure(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.RECONFIGURE, args, optargs);
     }
 public Reconfigure optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

@@ -23,10 +23,7 @@ public class Count extends ReqlExpr {
         this(args, null);
     }
     public Count(Arguments args, OptArgs optargs) {
-        this(TermType.COUNT, args, optargs);
-    }
-    protected Count(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.COUNT, args, optargs);
     }
 
 }

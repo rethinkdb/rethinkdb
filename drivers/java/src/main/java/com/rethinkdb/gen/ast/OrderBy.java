@@ -23,10 +23,7 @@ public class OrderBy extends ReqlExpr {
         this(args, null);
     }
     public OrderBy(Arguments args, OptArgs optargs) {
-        this(TermType.ORDER_BY, args, optargs);
-    }
-    protected OrderBy(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ORDER_BY, args, optargs);
     }
 public OrderBy optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

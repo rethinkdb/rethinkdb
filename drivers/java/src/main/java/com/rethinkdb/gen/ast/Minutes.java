@@ -23,10 +23,7 @@ public class Minutes extends ReqlExpr {
         this(args, null);
     }
     public Minutes(Arguments args, OptArgs optargs) {
-        this(TermType.MINUTES, args, optargs);
-    }
-    protected Minutes(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MINUTES, args, optargs);
     }
 
 }

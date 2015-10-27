@@ -23,10 +23,7 @@ public class Includes extends ReqlExpr {
         this(args, null);
     }
     public Includes(Arguments args, OptArgs optargs) {
-        this(TermType.INCLUDES, args, optargs);
-    }
-    protected Includes(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INCLUDES, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Keys extends ReqlExpr {
         this(args, null);
     }
     public Keys(Arguments args, OptArgs optargs) {
-        this(TermType.KEYS, args, optargs);
-    }
-    protected Keys(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.KEYS, args, optargs);
     }
 
 }

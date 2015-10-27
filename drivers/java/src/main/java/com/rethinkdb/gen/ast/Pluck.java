@@ -23,10 +23,7 @@ public class Pluck extends ReqlExpr {
         this(args, null);
     }
     public Pluck(Arguments args, OptArgs optargs) {
-        this(TermType.PLUCK, args, optargs);
-    }
-    protected Pluck(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.PLUCK, args, optargs);
     }
 
 }

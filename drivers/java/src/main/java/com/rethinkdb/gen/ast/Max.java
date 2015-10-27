@@ -23,10 +23,7 @@ public class Max extends ReqlExpr {
         this(args, null);
     }
     public Max(Arguments args, OptArgs optargs) {
-        this(TermType.MAX, args, optargs);
-    }
-    protected Max(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MAX, args, optargs);
     }
 public Max optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

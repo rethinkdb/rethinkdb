@@ -23,10 +23,7 @@ public class Zip extends ReqlExpr {
         this(args, null);
     }
     public Zip(Arguments args, OptArgs optargs) {
-        this(TermType.ZIP, args, optargs);
-    }
-    protected Zip(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ZIP, args, optargs);
     }
 
 }

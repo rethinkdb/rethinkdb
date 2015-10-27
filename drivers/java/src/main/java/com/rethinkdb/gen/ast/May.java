@@ -23,10 +23,7 @@ public class May extends ReqlExpr {
         this(args, null);
     }
     public May(Arguments args, OptArgs optargs) {
-        this(TermType.MAY, args, optargs);
-    }
-    protected May(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MAY, args, optargs);
     }
 
 }

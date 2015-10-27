@@ -23,10 +23,7 @@ public class ReqlObject extends ReqlExpr {
         this(args, null);
     }
     public ReqlObject(Arguments args, OptArgs optargs) {
-        this(TermType.OBJECT, args, optargs);
-    }
-    protected ReqlObject(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.OBJECT, args, optargs);
     }
 
 }

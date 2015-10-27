@@ -23,10 +23,7 @@ public class Map extends ReqlExpr {
         this(args, null);
     }
     public Map(Arguments args, OptArgs optargs) {
-        this(TermType.MAP, args, optargs);
-    }
-    protected Map(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MAP, args, optargs);
     }
 
 }

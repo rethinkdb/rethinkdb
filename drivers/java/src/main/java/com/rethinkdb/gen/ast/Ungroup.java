@@ -23,10 +23,7 @@ public class Ungroup extends ReqlExpr {
         this(args, null);
     }
     public Ungroup(Arguments args, OptArgs optargs) {
-        this(TermType.UNGROUP, args, optargs);
-    }
-    protected Ungroup(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.UNGROUP, args, optargs);
     }
 
 }

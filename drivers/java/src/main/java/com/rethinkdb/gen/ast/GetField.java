@@ -23,10 +23,7 @@ public class GetField extends ReqlExpr {
         this(args, null);
     }
     public GetField(Arguments args, OptArgs optargs) {
-        this(TermType.GET_FIELD, args, optargs);
-    }
-    protected GetField(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GET_FIELD, args, optargs);
     }
 
 }

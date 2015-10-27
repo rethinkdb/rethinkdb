@@ -23,10 +23,7 @@ public class GetAll extends ReqlExpr {
         this(args, null);
     }
     public GetAll(Arguments args, OptArgs optargs) {
-        this(TermType.GET_ALL, args, optargs);
-    }
-    protected GetAll(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GET_ALL, args, optargs);
     }
 public GetAll optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

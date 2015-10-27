@@ -23,10 +23,7 @@ public class Slice extends ReqlExpr {
         this(args, null);
     }
     public Slice(Arguments args, OptArgs optargs) {
-        this(TermType.SLICE, args, optargs);
-    }
-    protected Slice(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SLICE, args, optargs);
     }
 public Slice optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

@@ -23,10 +23,7 @@ public class Mod extends ReqlExpr {
         this(args, null);
     }
     public Mod(Arguments args, OptArgs optargs) {
-        this(TermType.MOD, args, optargs);
-    }
-    protected Mod(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MOD, args, optargs);
     }
 
 }

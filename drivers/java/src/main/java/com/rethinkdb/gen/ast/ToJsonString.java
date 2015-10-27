@@ -23,10 +23,7 @@ public class ToJsonString extends ReqlExpr {
         this(args, null);
     }
     public ToJsonString(Arguments args, OptArgs optargs) {
-        this(TermType.TO_JSON_STRING, args, optargs);
-    }
-    protected ToJsonString(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TO_JSON_STRING, args, optargs);
     }
 
 }

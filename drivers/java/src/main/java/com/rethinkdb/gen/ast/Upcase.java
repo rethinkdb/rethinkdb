@@ -23,10 +23,7 @@ public class Upcase extends ReqlExpr {
         this(args, null);
     }
     public Upcase(Arguments args, OptArgs optargs) {
-        this(TermType.UPCASE, args, optargs);
-    }
-    protected Upcase(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.UPCASE, args, optargs);
     }
 
 }

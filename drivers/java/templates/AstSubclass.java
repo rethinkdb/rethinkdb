@@ -20,12 +20,13 @@ public class ${classname} extends ${superclass} {
         this(args, null);
     }
     public ${classname}(Arguments args, OptArgs optargs) {
-        this(TermType.${term_name}, args, optargs);
+        super(TermType.${term_name}, args, optargs);
     }
-    %endif
+    %else:
     protected ${classname}(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+    %endif
 </%block>\
 <%block name="static_factories"></%block>\
 <%block name="optArgs">\

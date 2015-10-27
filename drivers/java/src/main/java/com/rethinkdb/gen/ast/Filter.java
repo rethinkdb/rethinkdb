@@ -23,10 +23,7 @@ public class Filter extends ReqlExpr {
         this(args, null);
     }
     public Filter(Arguments args, OptArgs optargs) {
-        this(TermType.FILTER, args, optargs);
-    }
-    protected Filter(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.FILTER, args, optargs);
     }
 public Filter optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

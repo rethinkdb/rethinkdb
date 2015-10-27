@@ -23,10 +23,7 @@ public class Javascript extends ReqlExpr {
         this(args, null);
     }
     public Javascript(Arguments args, OptArgs optargs) {
-        this(TermType.JAVASCRIPT, args, optargs);
-    }
-    protected Javascript(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.JAVASCRIPT, args, optargs);
     }
 public Javascript optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

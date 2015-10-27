@@ -23,10 +23,7 @@ public class PolygonSub extends ReqlExpr {
         this(args, null);
     }
     public PolygonSub(Arguments args, OptArgs optargs) {
-        this(TermType.POLYGON_SUB, args, optargs);
-    }
-    protected PolygonSub(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.POLYGON_SUB, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class SpliceAt extends ReqlExpr {
         this(args, null);
     }
     public SpliceAt(Arguments args, OptArgs optargs) {
-        this(TermType.SPLICE_AT, args, optargs);
-    }
-    protected SpliceAt(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SPLICE_AT, args, optargs);
     }
 
 }

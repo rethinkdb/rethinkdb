@@ -23,10 +23,7 @@ public class Sum extends ReqlExpr {
         this(args, null);
     }
     public Sum(Arguments args, OptArgs optargs) {
-        this(TermType.SUM, args, optargs);
-    }
-    protected Sum(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SUM, args, optargs);
     }
 
 }

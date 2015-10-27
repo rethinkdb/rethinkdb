@@ -23,10 +23,7 @@ public class Append extends ReqlExpr {
         this(args, null);
     }
     public Append(Arguments args, OptArgs optargs) {
-        this(TermType.APPEND, args, optargs);
-    }
-    protected Append(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.APPEND, args, optargs);
     }
 
 }

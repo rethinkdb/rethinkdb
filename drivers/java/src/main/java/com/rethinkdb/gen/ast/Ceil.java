@@ -23,10 +23,7 @@ public class Ceil extends ReqlExpr {
         this(args, null);
     }
     public Ceil(Arguments args, OptArgs optargs) {
-        this(TermType.CEIL, args, optargs);
-    }
-    protected Ceil(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CEIL, args, optargs);
     }
 
 }

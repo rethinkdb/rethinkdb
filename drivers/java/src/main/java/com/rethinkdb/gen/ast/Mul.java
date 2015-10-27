@@ -23,10 +23,7 @@ public class Mul extends ReqlExpr {
         this(args, null);
     }
     public Mul(Arguments args, OptArgs optargs) {
-        this(TermType.MUL, args, optargs);
-    }
-    protected Mul(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MUL, args, optargs);
     }
 
 }

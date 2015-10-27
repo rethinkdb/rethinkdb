@@ -23,10 +23,7 @@ public class Uuid extends ReqlExpr {
         this(args, null);
     }
     public Uuid(Arguments args, OptArgs optargs) {
-        this(TermType.UUID, args, optargs);
-    }
-    protected Uuid(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.UUID, args, optargs);
     }
 
 }

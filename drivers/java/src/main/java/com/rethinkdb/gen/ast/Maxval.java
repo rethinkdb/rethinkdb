@@ -23,10 +23,7 @@ public class Maxval extends ReqlExpr {
         this(args, null);
     }
     public Maxval(Arguments args, OptArgs optargs) {
-        this(TermType.MAXVAL, args, optargs);
-    }
-    protected Maxval(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.MAXVAL, args, optargs);
     }
 
 }

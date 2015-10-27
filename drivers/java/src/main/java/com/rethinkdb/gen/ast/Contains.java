@@ -23,10 +23,7 @@ public class Contains extends ReqlExpr {
         this(args, null);
     }
     public Contains(Arguments args, OptArgs optargs) {
-        this(TermType.CONTAINS, args, optargs);
-    }
-    protected Contains(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CONTAINS, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Seconds extends ReqlExpr {
         this(args, null);
     }
     public Seconds(Arguments args, OptArgs optargs) {
-        this(TermType.SECONDS, args, optargs);
-    }
-    protected Seconds(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SECONDS, args, optargs);
     }
 
 }

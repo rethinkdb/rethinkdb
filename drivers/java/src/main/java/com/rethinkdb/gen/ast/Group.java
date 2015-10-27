@@ -23,10 +23,7 @@ public class Group extends ReqlExpr {
         this(args, null);
     }
     public Group(Arguments args, OptArgs optargs) {
-        this(TermType.GROUP, args, optargs);
-    }
-    protected Group(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GROUP, args, optargs);
     }
 public Group optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

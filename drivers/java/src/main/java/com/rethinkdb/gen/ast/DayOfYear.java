@@ -23,10 +23,7 @@ public class DayOfYear extends ReqlExpr {
         this(args, null);
     }
     public DayOfYear(Arguments args, OptArgs optargs) {
-        this(TermType.DAY_OF_YEAR, args, optargs);
-    }
-    protected DayOfYear(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DAY_OF_YEAR, args, optargs);
     }
 
 }

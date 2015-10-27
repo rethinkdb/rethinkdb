@@ -23,10 +23,7 @@ public class Difference extends ReqlExpr {
         this(args, null);
     }
     public Difference(Arguments args, OptArgs optargs) {
-        this(TermType.DIFFERENCE, args, optargs);
-    }
-    protected Difference(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DIFFERENCE, args, optargs);
     }
 
 }

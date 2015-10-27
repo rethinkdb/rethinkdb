@@ -23,10 +23,7 @@ public class Range extends ReqlExpr {
         this(args, null);
     }
     public Range(Arguments args, OptArgs optargs) {
-        this(TermType.RANGE, args, optargs);
-    }
-    protected Range(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.RANGE, args, optargs);
     }
 
 }

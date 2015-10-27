@@ -23,10 +23,7 @@ public class Timezone extends ReqlExpr {
         this(args, null);
     }
     public Timezone(Arguments args, OptArgs optargs) {
-        this(TermType.TIMEZONE, args, optargs);
-    }
-    protected Timezone(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TIMEZONE, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class EpochTime extends ReqlExpr {
         this(args, null);
     }
     public EpochTime(Arguments args, OptArgs optargs) {
-        this(TermType.EPOCH_TIME, args, optargs);
-    }
-    protected EpochTime(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.EPOCH_TIME, args, optargs);
     }
 
 }

@@ -23,10 +23,7 @@ public class Skip extends ReqlExpr {
         this(args, null);
     }
     public Skip(Arguments args, OptArgs optargs) {
-        this(TermType.SKIP, args, optargs);
-    }
-    protected Skip(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SKIP, args, optargs);
     }
 
 }

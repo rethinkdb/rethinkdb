@@ -23,10 +23,7 @@ public class Avg extends ReqlExpr {
         this(args, null);
     }
     public Avg(Arguments args, OptArgs optargs) {
-        this(TermType.AVG, args, optargs);
-    }
-    protected Avg(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.AVG, args, optargs);
     }
 
 }

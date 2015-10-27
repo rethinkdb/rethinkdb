@@ -23,10 +23,7 @@ public class Eq extends ReqlExpr {
         this(args, null);
     }
     public Eq(Arguments args, OptArgs optargs) {
-        this(TermType.EQ, args, optargs);
-    }
-    protected Eq(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.EQ, args, optargs);
     }
 
 }

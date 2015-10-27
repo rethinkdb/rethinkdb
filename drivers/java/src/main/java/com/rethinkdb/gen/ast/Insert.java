@@ -23,10 +23,7 @@ public class Insert extends ReqlExpr {
         this(args, null);
     }
     public Insert(Arguments args, OptArgs optargs) {
-        this(TermType.INSERT, args, optargs);
-    }
-    protected Insert(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INSERT, args, optargs);
     }
 public Insert optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

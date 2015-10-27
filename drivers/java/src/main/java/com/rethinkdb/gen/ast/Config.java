@@ -23,10 +23,7 @@ public class Config extends ReqlExpr {
         this(args, null);
     }
     public Config(Arguments args, OptArgs optargs) {
-        this(TermType.CONFIG, args, optargs);
-    }
-    protected Config(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CONFIG, args, optargs);
     }
 
 }

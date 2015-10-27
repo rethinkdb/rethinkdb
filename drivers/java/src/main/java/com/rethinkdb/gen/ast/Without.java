@@ -23,10 +23,7 @@ public class Without extends ReqlExpr {
         this(args, null);
     }
     public Without(Arguments args, OptArgs optargs) {
-        this(TermType.WITHOUT, args, optargs);
-    }
-    protected Without(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.WITHOUT, args, optargs);
     }
 
 }

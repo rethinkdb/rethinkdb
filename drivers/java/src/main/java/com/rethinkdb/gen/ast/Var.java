@@ -23,10 +23,7 @@ public class Var extends ReqlExpr {
         this(args, null);
     }
     public Var(Arguments args, OptArgs optargs) {
-        this(TermType.VAR, args, optargs);
-    }
-    protected Var(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.VAR, args, optargs);
     }
 
 }

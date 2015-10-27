@@ -23,10 +23,7 @@ public class Replace extends ReqlExpr {
         this(args, null);
     }
     public Replace(Arguments args, OptArgs optargs) {
-        this(TermType.REPLACE, args, optargs);
-    }
-    protected Replace(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.REPLACE, args, optargs);
     }
 public Replace optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

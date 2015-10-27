@@ -23,10 +23,7 @@ public class Delete extends ReqlExpr {
         this(args, null);
     }
     public Delete(Arguments args, OptArgs optargs) {
-        this(TermType.DELETE, args, optargs);
-    }
-    protected Delete(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DELETE, args, optargs);
     }
 public Delete optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

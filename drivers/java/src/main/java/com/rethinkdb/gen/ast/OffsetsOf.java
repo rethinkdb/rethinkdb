@@ -23,10 +23,7 @@ public class OffsetsOf extends ReqlExpr {
         this(args, null);
     }
     public OffsetsOf(Arguments args, OptArgs optargs) {
-        this(TermType.OFFSETS_OF, args, optargs);
-    }
-    protected OffsetsOf(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.OFFSETS_OF, args, optargs);
     }
 
 }

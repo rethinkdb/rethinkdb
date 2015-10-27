@@ -23,10 +23,7 @@ public class Iso8601 extends ReqlExpr {
         this(args, null);
     }
     public Iso8601(Arguments args, OptArgs optargs) {
-        this(TermType.ISO8601, args, optargs);
-    }
-    protected Iso8601(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.ISO8601, args, optargs);
     }
 public Iso8601 optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

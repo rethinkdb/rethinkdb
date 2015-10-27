@@ -23,10 +23,7 @@ public class Not extends ReqlExpr {
         this(args, null);
     }
     public Not(Arguments args, OptArgs optargs) {
-        this(TermType.NOT, args, optargs);
-    }
-    protected Not(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.NOT, args, optargs);
     }
 
 }

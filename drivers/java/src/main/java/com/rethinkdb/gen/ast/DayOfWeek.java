@@ -23,10 +23,7 @@ public class DayOfWeek extends ReqlExpr {
         this(args, null);
     }
     public DayOfWeek(Arguments args, OptArgs optargs) {
-        this(TermType.DAY_OF_WEEK, args, optargs);
-    }
-    protected DayOfWeek(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DAY_OF_WEEK, args, optargs);
     }
 
 }

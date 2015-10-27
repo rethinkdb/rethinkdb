@@ -23,10 +23,7 @@ public class SetInsert extends ReqlExpr {
         this(args, null);
     }
     public SetInsert(Arguments args, OptArgs optargs) {
-        this(TermType.SET_INSERT, args, optargs);
-    }
-    protected SetInsert(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SET_INSERT, args, optargs);
     }
 
 }

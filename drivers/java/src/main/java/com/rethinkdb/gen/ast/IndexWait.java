@@ -23,10 +23,7 @@ public class IndexWait extends ReqlExpr {
         this(args, null);
     }
     public IndexWait(Arguments args, OptArgs optargs) {
-        this(TermType.INDEX_WAIT, args, optargs);
-    }
-    protected IndexWait(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.INDEX_WAIT, args, optargs);
     }
 
 }

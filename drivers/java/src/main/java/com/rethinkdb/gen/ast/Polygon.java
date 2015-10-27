@@ -23,10 +23,7 @@ public class Polygon extends ReqlExpr {
         this(args, null);
     }
     public Polygon(Arguments args, OptArgs optargs) {
-        this(TermType.POLYGON, args, optargs);
-    }
-    protected Polygon(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.POLYGON, args, optargs);
     }
 
 }

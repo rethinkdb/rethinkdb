@@ -23,10 +23,7 @@ public class Sub extends ReqlExpr {
         this(args, null);
     }
     public Sub(Arguments args, OptArgs optargs) {
-        this(TermType.SUB, args, optargs);
-    }
-    protected Sub(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SUB, args, optargs);
     }
 
 }

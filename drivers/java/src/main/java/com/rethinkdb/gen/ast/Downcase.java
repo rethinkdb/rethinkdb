@@ -23,10 +23,7 @@ public class Downcase extends ReqlExpr {
         this(args, null);
     }
     public Downcase(Arguments args, OptArgs optargs) {
-        this(TermType.DOWNCASE, args, optargs);
-    }
-    protected Downcase(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.DOWNCASE, args, optargs);
     }
 
 }

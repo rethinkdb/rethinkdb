@@ -23,10 +23,7 @@ public class GetIntersecting extends ReqlExpr {
         this(args, null);
     }
     public GetIntersecting(Arguments args, OptArgs optargs) {
-        this(TermType.GET_INTERSECTING, args, optargs);
-    }
-    protected GetIntersecting(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.GET_INTERSECTING, args, optargs);
     }
 public GetIntersecting optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);

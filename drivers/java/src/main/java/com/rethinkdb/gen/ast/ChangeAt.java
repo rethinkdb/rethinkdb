@@ -23,10 +23,7 @@ public class ChangeAt extends ReqlExpr {
         this(args, null);
     }
     public ChangeAt(Arguments args, OptArgs optargs) {
-        this(TermType.CHANGE_AT, args, optargs);
-    }
-    protected ChangeAt(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.CHANGE_AT, args, optargs);
     }
 
 }

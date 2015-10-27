@@ -23,10 +23,7 @@ public class ToIso8601 extends ReqlExpr {
         this(args, null);
     }
     public ToIso8601(Arguments args, OptArgs optargs) {
-        this(TermType.TO_ISO8601, args, optargs);
-    }
-    protected ToIso8601(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.TO_ISO8601, args, optargs);
     }
 
 }

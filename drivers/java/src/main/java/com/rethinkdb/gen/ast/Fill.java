@@ -23,10 +23,7 @@ public class Fill extends ReqlExpr {
         this(args, null);
     }
     public Fill(Arguments args, OptArgs optargs) {
-        this(TermType.FILL, args, optargs);
-    }
-    protected Fill(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.FILL, args, optargs);
     }
 
 }

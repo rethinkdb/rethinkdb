@@ -23,10 +23,7 @@ public class SetIntersection extends ReqlExpr {
         this(args, null);
     }
     public SetIntersection(Arguments args, OptArgs optargs) {
-        this(TermType.SET_INTERSECTION, args, optargs);
-    }
-    protected SetIntersection(TermType termType, Arguments args, OptArgs optargs){
-        super(termType, args, optargs);
+        super(TermType.SET_INTERSECTION, args, optargs);
     }
 
 }
