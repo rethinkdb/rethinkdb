@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
+'''This is a helper script. It takes in python statements on the
+command line and dumps out a json-like representation of the AST
+returned by ast.parse(expression, mode='eval').body
+
+It is useful if you're making changes to the convert_java.py script
+and want to know what the ast of some python expression looks like.
+'''
 
 import ast
 import json
+
 
 def convert_to_dict(node):
     if isinstance(node, list):
