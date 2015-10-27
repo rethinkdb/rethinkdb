@@ -15,7 +15,7 @@ public class Profile {
     public static Optional<Profile> fromJSONArray(JSONArray profileObj) {
         if(profileObj == null || profileObj.size() == 0){
             return Optional.empty();
-        }else {
+        } else {
             return Optional.of(new Profile(profileObj));
         }
     }

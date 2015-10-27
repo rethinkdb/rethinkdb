@@ -14,7 +14,7 @@ public class Arguments extends ArrayList<ReqlAst> {
     public Arguments(Object arg){
         if(arg instanceof List){
             coerceAndAddAll((List) arg);
-        }else{
+        } else {
             coerceAndAdd(arg);
         }
     }
