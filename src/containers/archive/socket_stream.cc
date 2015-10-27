@@ -66,7 +66,7 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
       event_watcher_(fd, this)
 {
 #ifdef _WIN32
-	rassert(false, "ATN TODO");
+    crash("ATN TODO");
 #else
     int res = fcntl(fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make fd non-blocking.");

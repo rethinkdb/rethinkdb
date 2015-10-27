@@ -31,7 +31,6 @@ BOOL unittest_ctrl_c(DWORD type) {
 
 #endif
 
-/* ATN TODO
 int main(int argc, char **argv) {
     startup_shutdown_t startup_shutdown;
 #ifdef _WIN32
@@ -41,4 +40,3 @@ int main(int argc, char **argv) {
     int ret = RUN_ALL_TESTS();
     return ret;
 }
-//*/// ATN TODO

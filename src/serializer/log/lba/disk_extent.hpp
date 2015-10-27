@@ -39,7 +39,7 @@ public:
     in_memory_index_t to be filled with data. */
 
     struct read_info_t {
-		scoped_aligned_malloc_t<lba_disk_extent_t> buffer;
+		scoped_aligned_malloc_t<lba_extent_t> buffer;
 		int count;
     };
 

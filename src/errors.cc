@@ -154,7 +154,7 @@ NORETURN void terminate_handler() {
             name = t->name();
         }
 #else
-		std::string name = "unknown";
+        std::string name = "unknown";
 #endif
         try {
             /* This will rethrow whatever unexpected exception was thrown. */
@@ -174,6 +174,19 @@ NORETURN void terminate_handler() {
 LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     std::string message;
     switch (exception->ExceptionRecord->ExceptionCode) {
+    case 0xe06d7363:
+        if (std::uncaught_exception()) {
+            try {
+                throw;
+            } catch (const std::exception& e) {
+                message = strprintf("Uncaught C++ exception: %s", + e.what());
+            } catch (...) {
+                message = "Uncaught C++ exception of unknown type";
+            }
+        } else {
+            message = "Uncaught C++ exception";
+        }
+        break;
     case EXCEPTION_BREAKPOINT:
         return EXCEPTION_EXECUTE_HANDLER;
     case EXCEPTION_ACCESS_VIOLATION:

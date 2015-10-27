@@ -13,14 +13,14 @@ class socket_stream_t :
     public read_stream_t,
     public write_stream_t {
 public:
-    socket_stream_t(fd_t, bool) { rassert(false, "ATN TODO: socket_stream"); }
-    socket_stream_t(fd_t) { rassert(false, "ATN TODO: socket_stream"); }
+    socket_stream_t(fd_t, bool) { crash("ATN TODO: socket_stream"); }
+    socket_stream_t(fd_t) { crash("ATN TODO: socket_stream"); }
     socket_stream_t(const socket_stream_t &) = default;
-    int64_t read(void*, int64_t) { rassert(false, "ATN TODO: socket_stream"); return 0; }
-    int64_t write(const void*, int64_t) { rassert(false, "ATN TODO: socket_stream"); return 0; }
-    void set_interruptor(signal_t*) { rassert(false, "ATN TODO: socket_stream"); }
-    bool is_read_open() { rassert(false, "ATN TODO: socket_stream"); return false; }
-    bool is_write_open() { rassert(false, "ATN TODO: socket_stream"); return false; }
+    int64_t read(void*, int64_t) { crash("ATN TODO: socket_stream"); return 0; }
+    int64_t write(const void*, int64_t) { crash("ATN TODO: socket_stream"); return 0; }
+    void set_interruptor(signal_t*) { crash("ATN TODO: socket_stream"); }
+    bool is_read_open() { crash("ATN TODO: socket_stream"); return false; }
+    bool is_write_open() { crash("ATN TODO: socket_stream"); return false; }
 };
 
 class blocking_fd_watcher_t {

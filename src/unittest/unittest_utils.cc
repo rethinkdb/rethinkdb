@@ -154,6 +154,9 @@ base_path_t temp_directory_t::path() const {
 void let_stuff_happen() {
 #ifdef VALGRIND
     nap(2000);
+#elif defined(_WIN32)
+    // TODO ATN
+    nap(1000);
 #else
     nap(100);
 #endif

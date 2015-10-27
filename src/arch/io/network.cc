@@ -1,6 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
+// ATN TODO: when using an overlapped_operation_t, the overlapped
+// operation must complete before it goes out of scope, such as when
+// using wait_any_t
+
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -537,7 +541,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         wait_any_t waiter(&op.completed, &write_closed);
         waiter.wait_lazily_unordered();
         if (write_closed.is_pulsed()) {
-            throw tcp_conn_write_closed_exc_t();
+            return;
         }
         error = op.error;
     }
@@ -550,7 +554,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         logERR("Could not write to socket %x: %s", sock.get(), winerr_string(error).c_str());
         on_shutdown_write();
     } else if (op.nb_bytes == 0) {
-        logERR("Didn't expect to write 0 bytes.");
+        // TODO ATN: does 0 bytes written mean eof?
         on_shutdown_write();
     } else {
         if (write_perfmon) write_perfmon->record(op.nb_bytes);
