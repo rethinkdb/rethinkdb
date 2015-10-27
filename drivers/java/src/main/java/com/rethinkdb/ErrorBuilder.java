@@ -46,7 +46,7 @@ public class ErrorBuilder {
                 con = ReqlClientError::new;
                 break;
             case COMPILE_ERROR:
-                con = ReqlCompileError::new;
+                con = ReqlServerCompileError::new;
                 break;
             case RUNTIME_ERROR: {
                 con = errorType.<Function<String,ReqlError>>map(et -> {

@@ -48,7 +48,10 @@
     },
     "exception_hierarchy": {
         "reql_error": {
-            "reql_compile_error": {},
+            "reql_compile_error": {
+                "reql_driver_compile_error": {},
+                "reql_server_compile_error": {}
+            },
             "reql_client_error": {},
             "reql_runtime_error": {
                 "reql_query_logic_error": {

@@ -1,6 +1,7 @@
 package com.rethinkdb.ast;
 
 import com.rethinkdb.gen.ast.*;
+import com.rethinkdb.gen.exc.ReqlDriverCompileError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
@@ -18,7 +19,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +33,7 @@ public class Util {
      * @return ReqlAst
      */
     public static ReqlAst toReqlAst(Object val) {
-        return toReqlAst(val, 1000);
+        return toReqlAst(val, 100);
     }
 
     public static ReqlExpr toReqlExpr(Object val){
@@ -46,6 +46,9 @@ public class Util {
     }
 
     private static ReqlAst toReqlAst(Object val, int remainingDepth) {
+        if (remainingDepth <= 0) {
+            throw new ReqlDriverCompileError("Recursion limit reached converting to ReqlAst");
+        }
         if (val instanceof ReqlAst) {
             return (ReqlAst) val;
         }
@@ -70,7 +73,7 @@ public class Util {
             Map<String, ReqlAst> obj = new MapObject();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
-                    throw new ReqlDriverError("Object key can only be strings");
+                    throw new ReqlDriverCompileError("Object key can only be strings");
                 }
 
                 obj.put((String) entry.getKey(), toReqlAst(entry.getValue()));

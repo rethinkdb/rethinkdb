@@ -82,7 +82,7 @@ def main():
         java_term_info(args.term_info.json, args.output_file)
     elif args.command == 'generate-java-classes':
         JavaRenderer(
-            global_info=args.global_info.json,
+            global_info=args.global_info,
             proto=args.proto_json.json,
             java_term_info=args.java_term_info.json,
             template_dir=args.template_dir,
@@ -548,7 +548,7 @@ class JavaRenderer(object):
             self, hierarchy=None, superclass='runtime_exception'):
         '''Renders the exception hierarchy'''
         if hierarchy is None:
-            hierarchy = self.global_info['exception_hierarchy']
+            hierarchy = self.global_info.json['exception_hierarchy']
         for classname, subclasses in hierarchy.items():
             self.render_exception(classname, superclass)
             self.render_exceptions(subclasses, superclass=classname)
@@ -561,6 +561,7 @@ class JavaRenderer(object):
             output_name=camel(classname)+'.java',
             classname=classname,
             superclass=superclass,
+            dependencies=[self.global_info.filename],
         )
 
     def render_ast_subclasses(self):
