@@ -29,7 +29,6 @@ class Response {
 
 
     public static Response parseFrom(long token, ByteBuffer buf) {
-        //System.out.println("Received: "+Util.bufferToString(buf)); //RSI
         InputStreamReader codepointReader =
             new InputStreamReader(new ByteArrayInputStream(buf.array()));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);

@@ -22,6 +22,7 @@ from collections import namedtuple
 
 sys.path.append(
     os.path.abspath(os.path.join(__file__, "../../../test/common")))
+
 import parsePolyglot
 
 logger = logging.getLogger("convert_tests")
