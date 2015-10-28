@@ -16,7 +16,6 @@ import java.util.concurrent.TimeoutException;
 public class SocketWrapper {
     private SocketChannel socketChannel;
     private Optional<Long> timeout = Optional.empty();
-    private Optional<ByteBuffer> readBuffer = Optional.empty();
 
     public final String hostname;
     public final int port;
@@ -97,56 +96,6 @@ public class SocketWrapper {
         }
     }
 
-    private ByteBuffer readBytes(int i, boolean strict) {
-        ByteBuffer buffer = Util.leByteBuffer(i);
-        try {
-            int totalRead = 0;
-            int read = socketChannel.read(buffer);
-            totalRead += read;
-
-            while (strict && read != 0 && read != i) {
-                read = socketChannel.read(buffer);
-                totalRead+=read;
-            }
-
-            if (totalRead != i && strict) {
-                throw new ReqlDriverError("Error receiving data, expected " + i + " bytes but received " + totalRead);
-            }
-
-            buffer.flip();
-            return buffer;
-        } catch (IOException e) {
-            throw new ReqlDriverError(e);
-        }
-    }
-
-    public void writeLEInt(int i) {
-        ByteBuffer buffer = Util.leByteBuffer(4);
-        buffer.putInt(i);
-        write(buffer);
-    }
-
-    public void writeStringWithLength(String s) {
-        writeLEInt(s.length());
-
-        ByteBuffer buffer = Util.leByteBuffer(s.length());
-        buffer.put(s.getBytes());
-        write(buffer);
-    }
-
-    public void write(byte[] bytes) {
-        writeLEInt(bytes.length);
-        write(ByteBuffer.wrap(bytes));
-    }
-
-    public ByteBuffer recvall(int bufsize) {
-        try {
-            return recvall(bufsize, Optional.empty());
-        }catch(TimeoutException toe) {
-            throw new RuntimeException("Timeout can't happen here.");
-        }
-    }
-
     public ByteBuffer recvall(int bufsize, Optional<Long> deadline) throws TimeoutException {
         ByteBuffer buf = Util.leByteBuffer(bufsize);
         int bytesRead = 0;
@@ -169,17 +118,6 @@ public class SocketWrapper {
         }
         buf.flip();
         return buf;
-    }
-
-    public Response read() {
-        long token = recvall(8).getLong();
-        int responseLength = recvall(4).getInt();
-        ByteBuffer responseBytes = recvall(responseLength);
-        return Response.parseFrom(token, responseBytes);
-    }
-
-    public boolean isClosed(){
-        return !socketChannel.isOpen();
     }
 
     public boolean isOpen() {
