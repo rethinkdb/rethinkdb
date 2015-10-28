@@ -3,9 +3,11 @@ package com.rethinkdb.net;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
+import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.proto.Protocol;
 import com.rethinkdb.gen.proto.Version;
+import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 
 import java.nio.ByteBuffer;
@@ -65,7 +67,7 @@ public class Connection<C extends ConnectionInstance> {
     }
 
     public void use(String db) {
-        dbname = Optional.of(db);
+        dbname = Optional.ofNullable(db);
     }
 
     public Optional<Long> timeout() {
@@ -174,7 +176,13 @@ public class Connection<C extends ConnectionInstance> {
 
     private void setDefaultDB(OptArgs globalOpts){
         if (!globalOpts.containsKey("db") && dbname.isPresent()) {
+            // Only override the db global arg if the user hasn't
+            // specified one already and one is specified on the connection
             globalOpts.with("db", dbname.get());
+        }
+        if (globalOpts.containsKey("db")) {
+            // The db arg must be wrapped in a db ast object
+            globalOpts.with("db", new Db(Arguments.make(globalOpts.get("db"))));
         }
     }
 

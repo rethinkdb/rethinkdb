@@ -2,6 +2,7 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import junit.framework.Assert;
 import org.junit.*;
@@ -31,12 +32,12 @@ public class RethinkDBTest{
         Connection<?> conn = TestingFramework.createConnection();
         try{
             r.dbCreate(dbName).run(conn);
-        }catch(ReqlError e){}
+        } catch(ReqlError e){}
         try {
             r.db(dbName).wait_().run(conn);
             r.db(dbName).tableCreate(tableName).run(conn);
             r.db(dbName).table(tableName).wait_().run(conn);
-        }catch(ReqlError e){}
+        } catch(ReqlError e){}
         conn.close();
     }
 
@@ -46,7 +47,7 @@ public class RethinkDBTest{
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
             r.dbDrop(dbName).run(conn);
-        }catch(ReqlError e){}
+        } catch(ReqlError e){}
         conn.close();
     }
 
@@ -199,4 +200,46 @@ public class RethinkDBTest{
         assertEquals(result.get("inserted"), 1L);
     }
 
+    @Test
+    public void testDbGlobalArgInserted() {
+        final String tblName = "test_global_optargs";
+
+        try {
+            r.dbCreate("test").run(conn);
+        } catch (Exception e) {}
+
+        r.expr(r.array("optargs", "conn_default")).forEach(r::dbCreate).run(conn);
+        r.expr(r.array("test", "optargs", "conn_default")).forEach(dbName ->
+                        r.db(dbName).tableCreate(tblName).do_((unused) ->
+                                        r.db(dbName).table(tblName).insert(r.hashMap("dbName", dbName).with("id", 1))
+                        )
+        ).run(conn);
+
+        try {
+            // no optarg set, no default db
+            conn.use(null);
+            Map x1 = r.table(tblName).get(1).run(conn);
+            assertEquals("test", x1.get("dbName"));
+
+            // no optarg set, default db set
+            conn.use("conn_default");
+            Map x2 = r.table(tblName).get(1).run(conn);
+            assertEquals("conn_default", x2.get("dbName"));
+
+            // optarg set, no default db
+            conn.use(null);
+            Map x3 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"));
+            assertEquals("optargs", x3.get("dbName"));
+
+            // optarg set, default db
+            conn.use("conn_default");
+            Map x4 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"));
+            assertEquals("optargs", x4.get("dbName"));
+
+        } finally {
+            conn.use(null);
+            r.expr(r.array("optargs", "conn_default")).forEach(r::dbDrop).run(conn);
+            r.db("test").tableDrop(tblName).run(conn);
+        }
+    }
 }

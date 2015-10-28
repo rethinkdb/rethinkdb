@@ -30,4 +30,10 @@ public class OptArgs extends HashMap<String, ReqlAst> {
         return oa;
     }
 
+    public static OptArgs of(String key, Object val) {
+        OptArgs oa = new OptArgs();
+        oa.with(key, val);
+        return oa;
+    }
+
 }
