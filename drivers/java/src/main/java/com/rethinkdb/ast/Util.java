@@ -8,23 +8,18 @@ import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.net.Cursor;
 
-import java.lang.*;
-import java.lang.reflect.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.*;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 
 
@@ -176,6 +171,7 @@ public class Util {
      * either by names and value types. Names of parameters are only available since Java 8
      * and only in case <code>javac</code> is run with <code>-parameters</code> argument.<br>
      * If the POJO's class doesn't satisfy the conditions, a ReqlDriverError is thrown.
+     * @param <T> POJO's type
      * @param pojoClass POJO's class to be instantiated
      * @param map Map to be converted
      * @return Instantiated POJO
@@ -275,6 +271,7 @@ public class Util {
 
     /**
      * Converts a cursor of String-to-Object maps to a list of POJOs using {@link #toPojo(Class, Map) toPojo}.
+     * @param <T> POJO's type
      * @param cursor Cursor to be iterated
      * @param pojoClass POJO's class
      * @return List of POJOs

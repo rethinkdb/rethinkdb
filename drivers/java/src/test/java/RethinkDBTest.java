@@ -4,19 +4,18 @@ import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import gen.TestingFramework;
 import junit.framework.Assert;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import gen.TestingFramework;
 
 public class RethinkDBTest{
 
@@ -242,7 +241,6 @@ public class RethinkDBTest{
             r.expr(r.array("optargs", "conn_default")).forEach(r::dbDrop).run(conn);
             r.db("test").tableDrop(tblName).run(conn);
         }
-    }
     }
 
     @Test
