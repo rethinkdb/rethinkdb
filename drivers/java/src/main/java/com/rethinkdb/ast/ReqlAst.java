@@ -9,8 +9,8 @@ import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Base class for all reql queries.
@@ -53,29 +53,60 @@ public class ReqlAst {
         return result;
     }
 
-    public <T> T run(Connection<? extends ConnectionInstance> conn,
-                     OptArgs runOpts) {
-        return conn.run(this, runOpts);
-    }
-
+    /**
+     * Runs this query via connection {@code conn} with default options and returns an atom result
+     * or a sequence result as a cursor. The atom result either has a primitive type (e.g., {@code Integer})
+     * or represents a JSON object as a {@code Map<String, Object>}. The cursor is a {@code com.rethinkdb.net.Cursor}
+     * which may be iterated to get a sequence of atom results
+     * @param conn The connection to run this query
+     * @param <T> The type of result
+     * @return The result of this query
+     */
     public <T> T run(Connection<? extends ConnectionInstance> conn) {
-        return conn.run(this, new OptArgs());
+        return conn.run(this, new OptArgs(), Optional.empty());
     }
 
-    public <T> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {
-        return Util.toPojo(pojoClass, conn.run(this, runOpts));
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
+     * or a sequence result as a cursor. The atom result either has a primitive type (e.g., {@code Integer})
+     * or represents a JSON object as a {@code Map<String, Object>}. The cursor is a {@code com.rethinkdb.net.Cursor}
+     * which may be iterated to get a sequence of atom results
+     * @param conn The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param <T> The type of result
+     * @return The result of this query
+     */
+    public <T> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts) {
+        return conn.run(this, runOpts, Optional.empty());
     }
 
-    public <T> T run(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
-        return Util.toPojo(pojoClass, conn.run(this, new OptArgs()));
+    /**
+     * Runs this query via connection {@code conn} with default options and returns an atom result
+     * or a sequence result as a cursor. The atom result representing a JSON object is converted
+     * to an object of type {@code Class<P>}. The cursor is a {@code com.rethinkdb.net.Cursor}
+     * which may be iterated to get a sequence of atom results of type {@code Class<P>}
+     * @param conn The connection to run this query
+     * @param <T> The type of result
+     * @param <P> The type of POJO to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <T, P> T run(Connection<? extends ConnectionInstance> conn, Class<P> pojoClass) {
+        return conn.run(this, new OptArgs(), Optional.of(pojoClass));
     }
 
-    public <T> List<T> runList(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {
-        return Util.toPojoList(conn.run(this, runOpts), pojoClass);
-    }
-
-    public <T> List<T> runList(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
-        return Util.toPojoList(conn.run(this, new OptArgs()), pojoClass);
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
+     * or a sequence result as a cursor. The atom result representing a JSON object is converted
+     * to an object of type {@code Class<P>}. The cursor is a {@code com.rethinkdb.net.Cursor}
+     * which may be iterated to get a sequence of atom results of type {@code Class<P>}
+     * @param conn The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param <T> The type of result
+     * @param <P> The type of POJO to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <T, P> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<P> pojoClass) {
+        return conn.run(this, runOpts, Optional.of(pojoClass));
     }
 
     public void runNoReply(Connection conn){
