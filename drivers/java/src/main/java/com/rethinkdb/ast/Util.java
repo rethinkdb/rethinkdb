@@ -56,7 +56,7 @@ public class Util {
         if (val instanceof Object[]){
             Arguments innerValues = new Arguments();
             for (Object innerValue : Arrays.asList((Object[])val)){
-                innerValues.add(toReqlAst(innerValue, remainingDepth -1));
+                innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
             }
             return new MakeArray(innerValues, null);
         }
@@ -73,7 +73,7 @@ public class Util {
             Map<String, ReqlAst> obj = new MapObject();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
-                    throw new ReqlDriverCompileError("Object key can only be strings");
+                    throw new ReqlDriverCompileError("Object keys can only be strings");
                 }
 
                 obj.put((String) entry.getKey(), toReqlAst(entry.getValue()));
