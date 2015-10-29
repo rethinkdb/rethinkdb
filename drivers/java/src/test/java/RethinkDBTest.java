@@ -4,18 +4,19 @@ import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Cursor;
+import gen.TestingFramework;
 import junit.framework.Assert;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
-import gen.TestingFramework;
+import static org.junit.Assert.assertTrue;
 
 public class RethinkDBTest{
 
@@ -242,4 +243,69 @@ public class RethinkDBTest{
             r.db("test").tableDrop(tblName).run(conn);
         }
     }
+
+    @Test
+    public void testTableSelectOfPojo() {
+        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
+        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
+        assertEquals(1L, pojoResult.get("inserted"));
+
+        String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
+        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn, TestPojo.class);
+
+        assertEquals("foo", result.getStringProperty());
+        assertTrue(42L == result.getPojoProperty().getLongProperty());
+        assertEquals(true, result.getPojoProperty().getBooleanProperty());
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void testTableSelectOfPojo_withNoPojoClass_throwsException() {
+        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
+        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
+        assertEquals(1L, pojoResult.get("inserted"));
+
+        String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
+        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn /* TestPojo.class is not specified */);
+    }
+
+    @Test
+    public void testTableSelectOfPojoCursor() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+        assertEquals(1L, pojoTwoResult.get("inserted"));
+
+        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        List<TestPojo> result = cursor.toList();
+        assertEquals(2, result.size());
+
+        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+        TestPojo pojoTwoSelected = "bar".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+
+        assertEquals("foo", pojoOneSelected.getStringProperty());
+        assertTrue(42L == pojoOneSelected.getPojoProperty().getLongProperty());
+        assertEquals(true, pojoOneSelected.getPojoProperty().getBooleanProperty());
+
+        assertEquals("bar", pojoTwoSelected.getStringProperty());
+        assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
+        assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void testTableSelectOfPojoCursor_withNoPojoClass_throwsException() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+        assertEquals(1L, pojoTwoResult.get("inserted"));
+
+        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn /* TestPojo.class is not specified */);
+        List<TestPojo> result = cursor.toList();
+
+        TestPojo pojoSelected = result.get(0);
+    }
 }
+

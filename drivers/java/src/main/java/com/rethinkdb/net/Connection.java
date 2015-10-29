@@ -1,10 +1,9 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
-import com.rethinkdb.gen.ast.Datum;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.Protocol;
 import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.model.Arguments;
@@ -143,29 +142,37 @@ public class Connection<C extends ConnectionInstance> {
                 .write(serialized_query);
     }
 
-    @SuppressWarnings("unchecked")
     <T> T runQuery(Query query) {
+        return runQuery(query, Optional.empty());
+    }
+
+    @SuppressWarnings("unchecked")
+    <T, P> T runQuery(Query query, Optional<Class<P>> pojoClass) {
         ConnectionInstance inst = checkOpen();
         inst.socket
                 .orElseThrow(() -> new ReqlDriverError("No socket open."))
                 .write(query.serialize());
 
         Response res = inst.readResponse(query).get();
-        if(res.isAtom()) {
+
+        if (res.isAtom()) {
             try {
-                Converter.FormatOptions fmt =
-                        new Converter.FormatOptions(query.globalOptions);
-                return (T) ((List)
-                        Converter.convertPseudotypes(res.data,fmt)).get(0);
-            } catch (IndexOutOfBoundsException ex){
+                Converter.FormatOptions fmt = new Converter.FormatOptions(query.globalOptions);
+                Object value = ((List) Converter.convertPseudotypes(res.data,fmt)).get(0);
+                return Util.convertToPojo(value, pojoClass);
+            }
+            catch (IndexOutOfBoundsException ex) {
                 throw new ReqlDriverError("Atom response was empty!", ex);
             }
-        } else if(res.isPartial() || res.isSequence()) {
-            Cursor cursor = Cursor.create(this, query, res);
+        }
+        else if (res.isPartial() || res.isSequence()) {
+            Cursor cursor = Cursor.create(this, query, res, pojoClass);
             return (T) cursor;
-        } else if(res.isWaitComplete()) {
+        }
+        else if(res.isWaitComplete()) {
             return null;
-        } else {
+        }
+        else {
             throw res.makeError(query);
         }
     }
@@ -186,7 +193,7 @@ public class Connection<C extends ConnectionInstance> {
         }
     }
 
-    public <T> T run(ReqlAst term, OptArgs globalOpts) {
+    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass) {
         setDefaultDB(globalOpts);
         Query q = Query.start(newToken(), term, globalOpts);
         if(globalOpts.containsKey("noreply")) {
@@ -194,7 +201,7 @@ public class Connection<C extends ConnectionInstance> {
                     "Don't provide the noreply option as an optarg. "+
                             "Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q);
+        return runQuery(q, pojoClass);
     }
 
     public void runNoReply(ReqlAst term, OptArgs globalOpts){

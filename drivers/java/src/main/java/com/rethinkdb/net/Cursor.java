@@ -1,8 +1,8 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
+import com.rethinkdb.gen.proto.ResponseType;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -100,8 +100,8 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         }
     }
 
-    public static Cursor create(Connection connection, Query query, Response firstResponse) {
-        return new DefaultCursor(connection, query, firstResponse);
+    public static <T> Cursor<T> create(Connection connection, Query query, Response firstResponse, Optional<Class<T>> pojoClass) {
+        return new DefaultCursor<T>(connection, query, firstResponse, pojoClass);
     }
 
 
@@ -121,13 +121,27 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         return this;
     }
 
+    /**
+     * Iterates over all elements of this cursor and returns them as a list
+     * @return The list of this cursor's elements
+     */
+    public List<T> toList() {
+        List<T> list = new ArrayList<T>();
+        forEachRemaining(list::add);
+        return list;
+    }
+
     // Abstract methods
     abstract T getNext(Optional<Long> timeout) throws TimeoutException;
 
     private static class DefaultCursor<T> extends Cursor<T> {
+        private final Optional<Class<T>> pojoClass;
         public final Converter.FormatOptions fmt;
-        public DefaultCursor(Connection connection, Query query, Response firstResponse){
+
+        public DefaultCursor(Connection connection, Query query, Response firstResponse, Optional<Class<T>> pojoClass) {
             super(connection, query, firstResponse);
+
+            this.pojoClass = pojoClass;
             fmt = new Converter.FormatOptions(query.globalOptions);
         }
 
@@ -157,8 +171,9 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                 });
                 connection.readResponse(query, timeout.map(Util::deadline));
             }
-            Object element = items.pop();
-            return (T) Converter.convertPseudotypes(element, fmt);
+
+            Object value = Converter.convertPseudotypes(items.pop(), fmt);
+            return Util.convertToPojo(value, pojoClass);
         }
     }
 }

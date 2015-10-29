@@ -2,6 +2,10 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-parameters"
+}
+
 version = '2.2-b1'
 ext.isReleaseVersion = !version.endsWith("b1")
 group = "com.rethinkdb"
