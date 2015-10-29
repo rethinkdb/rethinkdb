@@ -53,14 +53,12 @@ public:
         metadata_file_t *file,
         metadata_file_t::write_txn_t *txn,
         const namespace_id_t &table_id,
-        const raft_persistent_state_t<table_raft_state_t> &state,
-        signal_t *interruptor);
+        const raft_persistent_state_t<table_raft_state_t> &state);
 
     /* This method erases an existing Raft state in the metadata file. */
     static void erase(
         metadata_file_t::write_txn_t *txn,
-        const namespace_id_t &table_id,
-        signal_t *interruptor);
+        const namespace_id_t &table_id);
 
     /* `raft_storage_interface_t` methods */
     const raft_persistent_state_t<table_raft_state_t> *get();
