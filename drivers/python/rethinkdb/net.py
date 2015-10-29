@@ -149,7 +149,7 @@ class Cursor(object):
         self.outstanding_requests = 0
         self.threshold = 1
         self.error = None
-        self._json_decoder = self.conn._get_json_decoder(self.query)
+        self._json_decoder = self.conn._parent._get_json_decoder(self.query)
 
         self.conn._cursor_cache[self.query.token] = self
 
@@ -403,14 +403,12 @@ class SocketWrapper(object):
 
 
 class ConnectionInstance(object):
-    def __init__(self, parent, json_encoder=None, json_decoder=None):
+    def __init__(self, parent):
         self._parent = parent
         self._cursor_cache = {}
         self._header_in_progress = None
         self._socket = None
         self._closing = False
-        self._json_encoder = json_encoder
-        self._json_decoder = json_decoder
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -493,18 +491,11 @@ class ConnectionInstance(object):
                 self.close(False, None)
                 raise ReqlDriverError("Unexpected response received.")
 
-    def _get_json_decoder(self, query):
-        return (
-            query._json_decoder or self._json_decoder or
-            self._parent._get_json_decoder)(query.global_optargs)
-
-    def _get_json_encoder(self, query):
-        return (
-            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
-
 
 class Connection(object):
     _r = None
+    _json_decoder = ReQLDecoder
+    _json_encoder = ReQLEncoder
 
     def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
@@ -524,6 +515,11 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
+
+        if 'json_encoder' in kwargs:
+            self._json_encoder = kwargs.pop('json_encoder')
+        if 'json_decoder' in kwargs:
+            self._json_decoder = kwargs.pop('json_decoder')
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -599,11 +595,11 @@ class Connection(object):
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return self._instance.run_query(q, True)
 
-    def _get_json_decoder(self, format_opts):
-        return ReQLDecoder(format_opts)
+    def _get_json_decoder(self, query):
+        return (query._json_decoder or self._json_decoder)(query.global_optargs)
 
-    def _get_json_encoder(self):
-        return ReQLEncoder()
+    def _get_json_encoder(self, query):
+        return (query._json_encoder or self._json_encoder)()
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):

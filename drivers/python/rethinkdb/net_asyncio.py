@@ -119,15 +119,13 @@ class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
 
-    def __init__(self, parent, io_loop=None, json_encoder=None, json_decoder=None):
+    def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
         self._user_queries = { }
         self._cursor_cache = { }
         self._ready = asyncio.Future()
         self._io_loop = io_loop
-        self._json_encoder = json_encoder
-        self._json_decoder = json_decoder
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
@@ -200,7 +198,7 @@ class ConnectionInstance(object):
 
     @asyncio.coroutine
     def run_query(self, query, noreply):
-        self._streamwriter.write(query.serialize(self._get_json_encoder(query)))
+        self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -229,7 +227,7 @@ class ConnectionInstance(object):
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
                     res = Response(token, buf,
-                                   self._get_json_decoder(query))
+                                   self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
@@ -246,15 +244,6 @@ class ConnectionInstance(object):
         except Exception as ex:
             if not self._closing:
                 yield from self.close(False, None, ex)
-
-    def _get_json_decoder(self, query):
-        return (
-            query._json_decoder or self._json_decoder or
-            self._parent._get_json_decoder)(query.global_optargs)
-
-    def _get_json_encoder(self, query):
-        return (
-            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
 
 
 class Connection(ConnectionBase):
