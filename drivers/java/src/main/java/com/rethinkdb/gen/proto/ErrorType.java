@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum ErrorType {
 
     INTERNAL(1000000),
@@ -33,6 +35,14 @@ public enum ErrorType {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for ErrorType", value));
+        }
+    }
+
+    public static Optional<ErrorType> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

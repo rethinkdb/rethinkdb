@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum DatumType {
 
     R_NULL(1),
@@ -33,6 +35,14 @@ public enum DatumType {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for DatumType", value));
+        }
+    }
+
+    public static Optional<DatumType> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

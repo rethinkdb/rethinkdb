@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum TermType {
 
     DATUM(1),
@@ -371,6 +373,14 @@ public enum TermType {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for TermType", value));
+        }
+    }
+
+    public static Optional<TermType> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum ResponseType {
 
     SUCCESS_ATOM(1),
@@ -33,6 +35,14 @@ public enum ResponseType {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for ResponseType", value));
+        }
+    }
+
+    public static Optional<ResponseType> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

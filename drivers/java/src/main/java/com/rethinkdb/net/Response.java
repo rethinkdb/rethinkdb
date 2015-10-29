@@ -40,7 +40,9 @@ class Response {
         ArrayList<ResponseNote> responseNotes = responseNoteVals
             .stream()
                 .map(Long::intValue)
-                .map(ResponseNote::fromValue)
+                .map(ResponseNote::maybeFromValue)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toCollection(ArrayList::new));
         Builder res = new Builder(token, responseType);
         if(jsonResp.containsKey("e")){

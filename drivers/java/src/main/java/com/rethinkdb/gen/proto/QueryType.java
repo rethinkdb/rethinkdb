@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum QueryType {
 
     START(1),
@@ -27,6 +29,14 @@ public enum QueryType {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for QueryType", value));
+        }
+    }
+
+    public static Optional<QueryType> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum Version {
 
     V0_1(1063369270),
@@ -27,6 +29,14 @@ public enum Version {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for Version", value));
+        }
+    }
+
+    public static Optional<Version> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 

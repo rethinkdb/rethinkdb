@@ -5,6 +5,8 @@
 
 package com.rethinkdb.gen.proto;
 
+import java.util.Optional;
+
 public enum Protocol {
 
     PROTOBUF(656407617),
@@ -23,6 +25,14 @@ public enum Protocol {
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for Protocol", value));
+        }
+    }
+
+    public static Optional<Protocol> maybeFromValue(int value) {
+        try {
+            return Optional.of(fromValue(value));
+        } catch (IllegalArgumentException iae) {
+            return Optional.empty();
         }
     }
 
