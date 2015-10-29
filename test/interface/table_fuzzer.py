@@ -5,11 +5,7 @@
 and optionally changefeeds across any number of client threads and any number of servers
 in a cluster.'''
 
-from __future__ import print_function
-
-import pprint, os, sys, time, random, threading, itertools, bisect, string
-
-startTime = time.time()
+import bisect, os, random, resource, string, sys, time, threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -19,6 +15,9 @@ try:
 except NameError:
     xrange = range
 
+# Don't allow someone to run this without unlimited size core files - which are really useful for debugging
+assert resource.getrlimit(resource.RLIMIT_CORE)[0] == resource.RLIM_INFINITY
+
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
 opts['random-seed'] = vcoptparse.FloatFlag('--random-seed', random.random())
@@ -27,6 +26,7 @@ opts['duration'] = vcoptparse.IntFlag('--duration', 900) # Time to perform fuzzi
 opts['progress'] = vcoptparse.BoolFlag('--progress', False) # Write messages every 10 seconds with the time remaining
 opts['threads'] = vcoptparse.IntFlag('--threads', 16) # Number of client threads to run (not counting changefeeds)
 opts['changefeeds'] = vcoptparse.BoolFlag('--changefeeds', False) # Whether or not to use changefeeds
+opts['kill'] = vcoptparse.BoolFlag('--kill', False) # Randomly kill and revive servers during fuzzing - will produce a lot of noise
 parsed_opts = opts.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(parsed_opts)
 
@@ -147,6 +147,12 @@ def weighted_random(weighted_ops):
     chosen_weight = random.random() * distribution[-1]
     return ops[bisect.bisect(distribution, chosen_weight)]
 
+def check_error(context, reql_error):
+    if parsed_opts['kill'] and reql_error.message == 'Connection is closed.':
+        pass
+    else:
+        utils.print_with_time('\n%s resulted in Exception: %s' % (str(context), repr(reql_error)))
+
 # Performs a single operation chosen from the operations in `weighted_ops` which report
 # themselves to be valid based on the current state of `dbs`, `tables`, and `indexes`.
 # These global sets may be changed each before and after the operation is performed.
@@ -173,7 +179,7 @@ def run_random_query(conn, weighted_ops):
     except r.ReqlAvailabilityError as ex:
         pass # These are perfectly normal during fuzzing due to concurrent queries
     except r.ReqlError as ex:
-        print('Query %s resulted in Exception: %s' % (str(q), repr(ex)))
+        check_error("Query " + str(q), ex)
 
 # Query, DbQuery, TableQuery, IndexQuery
 # ---------------------------------------------------------------------------------------
@@ -345,7 +351,7 @@ def run_changefeed(query, host, port):
         except r.ReqlAvailabilityError as ex:
             pass # These are perfectly normal during fuzzing due to concurrent queries
         except r.ReqlError as ex:
-            print('Feed resulted in Exception: %s' % repr(ex))
+            check_error("Feed", ex)
     feed_thread = threading.Thread(target=thread_fn, args=(query, host, port))
     feed_thread.daemon = True
     feed_thread.start()
@@ -364,7 +370,7 @@ class system_changefeed(Query):
                        self.conn.host, self.conn.port)
         return r.expr(0) # dummy query for silly reasons
 
-def do_fuzz(cluster, stop_event, random_seed):
+def do_fuzz(cluster, cluster_lock, stop_event, random_seed):
     random.seed(random_seed)
     weighted_ops = [(db_create, 4),
                     # (db_rename, 3), # Renames are racy and so currently omitted
@@ -386,49 +392,93 @@ def do_fuzz(cluster, stop_event, random_seed):
         weighted_ops.append((changefeed, 10))
         weighted_ops.append((system_changefeed, 10))
 
-    try:
-        server = random.choice(list(cluster.processes))
-        conn = r.connect(server.host, server.driver_port)
+    while not stop_event.is_set():
+        server = None
+        with cluster_lock:
+            try:
+                server = random.choice([p for p in cluster if p.ready])
+            except IndexError:
+                pass
 
-        while not stop_event.is_set():
-            run_random_query(conn, weighted_ops)
+        if server is not None:
+            try:
+                conn = r.connect(server.host, server.driver_port)
+            except r.ReqlError as ex:
+                check_error("Connection creation", ex)
 
-    finally:
-        stop_event.set()
+            while conn.is_open() and not stop_event.is_set():
+                run_random_query(conn, weighted_ops)
+        else:
+            time.sleep(1) # No ready servers - try again later
 
-print("Spinning up %d servers (%.2fs)" % (len(server_names), time.time() - startTime))
+def kill_random_servers(cluster):
+    alive_procs = [p for p in cluster if p.running]
+    chosen_procs = random.sample(alive_procs, random.randint(1, len(alive_procs)))
+    remaining = len(alive_procs) - len(chosen_procs) + 1
+    utils.print_with_time("\nKilling %d servers, %d remain" % (len(chosen_procs), remaining))
+    [p.kill() for p in chosen_procs]
+
+def revive_random_servers(cluster):
+    dead_procs = [p for p in cluster if not p.running]
+    chosen_procs = random.sample(dead_procs, random.randint(1, len(dead_procs)))
+    remaining = len(cluster) - len(dead_procs) + len(chosen_procs) + 1
+    utils.print_with_time("\nReviving %d servers, %d remain" % (len(chosen_procs), remaining))
+    [p.start(wait_until_ready=False) for p in chosen_procs]
+
+def server_kill_thread(cluster, cluster_lock, stop_event):
+    # Every period we kill or revive a random set of servers
+    while not stop_event.is_set():
+        with cluster_lock:
+            usable = cluster[1:]
+            if all([p.running for p in usable]):
+                kill_random_servers(usable)
+            elif all([not p.running for p in usable]):
+                revive_random_servers(usable)
+            elif random.random() < 0.5:
+                kill_random_servers(usable)
+            else:
+                revive_random_servers(usable)
+
+            if any([p.running for p in usable]) and random.random() < 80:
+                time.sleep(random.random() * 10)
+
+utils.print_with_time("Spinning up %d servers" % (len(server_names)))
 with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix,
                     extra_options=serve_options, wait_until_ready=True) as cluster:
     cluster.check()
     random.seed(parsed_opts['random-seed'])
 
-    print("Server driver ports: %s" % (str([x.driver_port for x in cluster])))
-    print("Fuzzing for %ds, random seed: %s (%.2fs)" %
-          (parsed_opts['duration'], repr(parsed_opts['random-seed']), time.time() - startTime))
+    utils.print_with_time("Server driver ports: %s" % (str([x.driver_port for x in cluster])))
+    utils.print_with_time("Fuzzing for %ds, random seed: %s" %
+          (parsed_opts['duration'], repr(parsed_opts['random-seed'])))
     stop_event = threading.Event()
+    cluster_lock = threading.Lock()
     fuzz_threads = []
+
     for i in xrange(parsed_opts['threads']):
-        fuzz_threads.append(threading.Thread(target=do_fuzz, args=(cluster, stop_event, random.random())))
+        fuzz_threads.append(threading.Thread(target=do_fuzz, args=(cluster, cluster_lock, stop_event, random.random())))
+        fuzz_threads[-1].start()
+
+    if parsed_opts['kill']:
+        fuzz_threads.append(threading.Thread(target=server_kill_thread, args=(cluster, cluster_lock, stop_event)))
         fuzz_threads[-1].start()
 
     last_time = time.time()
     end_time = last_time + parsed_opts['duration']
     try:
-        while (time.time() < end_time) and not stop_event.is_set():
+        while (time.time() < end_time) and all([x.is_alive() for x in fuzz_threads]) and not stop_event.is_set():
             time.sleep(0.2)
             current_time = time.time()
             if parsed_opts['progress'] and int((end_time - current_time) / 10) < int((end_time - last_time) / 10):
-                print("%ds remaining (%.2fs)" % (int(end_time - current_time) + 1, time.time() - startTime))
+                utils.print_with_time("\n%ds remaining" % (int(end_time - current_time) + 1))
             last_time = current_time
-            if not all([x.is_alive() for x in fuzz_threads]):
-                stop_event.set()
     finally:
-        print("\nStopping fuzzing (%d of %d threads remain) (%.2fs)" %
-              (len(fuzz_threads), parsed_opts['threads'], time.time() - startTime))
+        utils.print_with_time("\nStopping fuzzing (%d of %d threads remain)" %
+              (len(fuzz_threads), parsed_opts['threads']))
         stop_event.set()
         for thread in fuzz_threads:
             thread.join()
 
-    print("\nCleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("\nCleaning up")
+utils.print_with_time("Done")
 

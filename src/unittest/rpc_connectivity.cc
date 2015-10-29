@@ -735,61 +735,6 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     check_tcp_closed(&stream);
 }
 
-TPTEST(RPCConnectivityTest, DifferentBuildMode) {
-    // Initialize a dummy semilattice for the heartbeat metadata
-    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
-    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
-        heartbeat_manager(heartbeat_semilattice_metadata);
-
-    // Set up a cluster node.
-    connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-
-    // Manually connect to the cluster.
-    peer_address_t addr = get_cluster_local_address(&c1);
-    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
-    socket_stream_t stream(sock.get());
-
-    // Read & check its header.
-    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
-    {
-        scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&stream, data.data(), len);
-        ASSERT_GE(read, 0);
-        data[read] = 0;         // null-terminate
-        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
-    }
-
-    // Send the base header
-    ASSERT_EQ(len,
-              stream.write(connectivity_cluster_t::cluster_proto_header.c_str(),
-                           connectivity_cluster_t::cluster_proto_header.length()));
-    let_stuff_happen();
-    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
-
-    // Send the expected version but bad arch bitsize
-    std::string bad_build_mode_str("build mode activated");
-    write_message_t bad_build_mode_msg;
-    serialize<cluster_version_t::CLUSTER>(
-            &bad_build_mode_msg,
-            connectivity_cluster_t::cluster_version_string.length());
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version_string.data(),
-                              connectivity_cluster_t::cluster_version_string.length());
-    serialize<cluster_version_t::CLUSTER>(
-            &bad_build_mode_msg,
-            connectivity_cluster_t::cluster_arch_bitsize.length());
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
-                              connectivity_cluster_t::cluster_arch_bitsize.length());
-    serialize<cluster_version_t::CLUSTER>(&bad_build_mode_msg,
-                                         bad_build_mode_str.length());
-    bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
-    ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
-    let_stuff_happen();
-
-    check_tcp_closed(&stream);
-}
-
 std::set<host_and_port_t> convert_from_any_port(const std::set<host_and_port_t> &addresses,
                                                 port_t actual_port) {
     std::set<host_and_port_t> result;

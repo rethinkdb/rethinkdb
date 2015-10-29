@@ -114,65 +114,69 @@ void jobs_manager_t::on_get_job_reports(
             server_id);
     }
 
-    multi_table_manager->visit_tables(interruptor, access_t::read,
-    [&](const namespace_id_t &table_id,
-            UNUSED multistore_ptr_t *multistore_ptr,
-            table_manager_t *table_manager) {
-        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > statuses =
-            table_manager->get_sindex_manager().get_status(interruptor);
-        for (const auto &status : statuses) {
-            uuid_u id = uuid_u::from_hash(
-                base_sindex_id, uuid_to_str(table_id) + status.first);
+    try {
+        multi_table_manager->visit_tables(interruptor, access_t::read,
+        [&](const namespace_id_t &table_id,
+                UNUSED multistore_ptr_t *multistore_ptr,
+                table_manager_t *table_manager) {
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > statuses =
+                table_manager->get_sindex_manager().get_status(interruptor);
+            for (const auto &status : statuses) {
+                uuid_u id = uuid_u::from_hash(
+                    base_sindex_id, uuid_to_str(table_id) + status.first);
 
-            /* Note that we only calculate the duration if the index construction is
-               still in progress. */
-            double duration = status.second.second.ready
-                ? 0.0
-                : time - std::min<double>(status.second.second.start_time, time);
+                /* Note that we only calculate the duration if the index construction is
+                   still in progress. */
+                double duration = status.second.second.ready
+                    ? 0.0
+                    : time - std::min<double>(status.second.second.start_time, time);
 
-            index_construction_job_reports.emplace_back(
-                id,
-                duration,
-                server_id,
-                table_id,
-                status.first,
-                status.second.second.ready,
-                status.second.second.blocks_processed,
-                status.second.second.blocks_total);
-        }
+                index_construction_job_reports.emplace_back(
+                    id,
+                    duration,
+                    server_id,
+                    table_id,
+                    status.first,
+                    status.second.second.ready,
+                    status.second.second.blocks_processed,
+                    status.second.second.blocks_total);
+            }
 
-        std::map<region_t, backfill_progress_tracker_t::progress_tracker_t> backfills =
-            table_manager->get_backfill_progress_tracker().get_progress_trackers();
-        std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
-        for (const auto &backfill : backfills) {
-            uuid_u id = uuid_u::from_hash(
-                base_backfill_id,
-                base_str + uuid_to_str(backfill.second.source_server_id));
+            std::map<region_t, backfill_progress_tracker_t::progress_tracker_t> backfills =
+                table_manager->get_backfill_progress_tracker().get_progress_trackers();
+            std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
+            for (const auto &backfill : backfills) {
+                uuid_u id = uuid_u::from_hash(
+                    base_backfill_id,
+                    base_str + uuid_to_str(backfill.second.source_server_id));
 
-            /* As above we only calculate the duration if the backfill is still in
-               progress. */
-            double duration = backfill.second.is_ready
-                ? 0.0
-                : time - std::min<double>(backfill.second.start_time, time);
+                /* As above we only calculate the duration if the backfill is still in
+                   progress. */
+                double duration = backfill.second.is_ready
+                    ? 0.0
+                    : time - std::min<double>(backfill.second.start_time, time);
 
-            backfill_job_reports.emplace_back(
-                id,
-                duration,
-                server_id,
-                table_id,
-                backfill.second.is_ready,
-                backfill.second.progress,
-                backfill.second.source_server_id,
-                server_id);
-        }
-    });
+                backfill_job_reports.emplace_back(
+                    id,
+                    duration,
+                    server_id,
+                    table_id,
+                    backfill.second.is_ready,
+                    backfill.second.progress,
+                    backfill.second.source_server_id,
+                    server_id);
+            }
+        });
 
-    send(mailbox_manager,
-         reply_address,
-         query_job_reports,
-         disk_compaction_job_reports,
-         index_construction_job_reports,
-         backfill_job_reports);
+        send(mailbox_manager,
+             reply_address,
+             query_job_reports,
+             disk_compaction_job_reports,
+             index_construction_job_reports,
+             backfill_job_reports);
+    } catch (const interrupted_exc_t &) {
+        // Do nothing
+    }
 }
 
 void jobs_manager_t::on_job_interrupt(

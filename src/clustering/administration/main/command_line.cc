@@ -891,7 +891,8 @@ options::help_section_t get_server_options(std::vector<options::option_t> *optio
                                              options::OPTIONAL));
     help.add("-n [ --server-name ] arg",
              "the name for this server (as will appear in the metadata).  If not"
-             " specified, it will be randomly chosen from a short list of names.");
+             " specified, one will be generated from the hostname and a random "
+             "alphanumeric string.");
     options_out->push_back(options::option_t(options::names_t("--server-tag", "-t"),
                                              options::OPTIONAL_REPEAT));
     help.add("-t [ --server-tag ] arg",
