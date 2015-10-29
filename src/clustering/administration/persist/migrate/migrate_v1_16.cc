@@ -388,8 +388,8 @@ void migrate_table(const server_id_t &this_server_id,
         out->write(mdprefix_table_active().suffix(uuid_to_str(table_id)), active_state, interruptor);
 
         // The `table_raft_storage_interface_t` constructor will persist the header, snapshot, and logs
-        table_raft_storage_interface_t storage_interface(nullptr, out, table_id,
-                                                         persistent_state, interruptor);
+        table_raft_storage_interface_t storage_interface(
+            nullptr, out, table_id, persistent_state);
     }
 }
 
