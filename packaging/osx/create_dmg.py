@@ -133,11 +133,11 @@ def buildPackage(versionString, serverRootPath, installPath=None, signingName=No
 	distributionPath = os.path.join(scratchFolder, 'rethinkdb-%s.pkg' % versionString)
 	
 	productBuildCommand = [
-	   '/usr/bin/productbuild',
-	   '--distribution', os.path.join(thisFolder, 'Distribution.xml'),
-	   '--package-path', packageFolder,
-	   '--resources', installerResourcesPath,
-	   distributionPath
+		'/usr/bin/productbuild',
+		'--distribution', os.path.join(thisFolder, 'Distribution.xml'),
+		'--package-path', packageFolder,
+		'--resources', installerResourcesPath,
+		distributionPath
 	]
 	if signingName is not None:
 		productBuildCommand += ['--sign', signingName]
