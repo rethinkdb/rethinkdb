@@ -284,6 +284,9 @@ tests:
     - py: r.expr('foo').coerce_to('binary')
       ot: b'foo'
 
+    - cd: r.binary(a).coerce_to('bool')
+      ot: True
+
     - py: r.binary(b'foo').coerce_to('binary')
       ot: b'foo'
 
@@ -354,8 +357,6 @@ tests:
       ot: err('ReqlQueryLogicError','Cannot coerce BINARY to ARRAY.',[])
     - cd: r.binary(a).coerce_to('object')
       ot: err('ReqlQueryLogicError','Cannot coerce BINARY to OBJECT.',[])
-    - cd: r.binary(a).coerce_to('bool')
-      ot: err('ReqlQueryLogicError','Cannot coerce BINARY to BOOL.',[])
     - cd: r.binary(a).coerce_to('number')
       ot: err('ReqlQueryLogicError','Cannot coerce BINARY to NUMBER.',[])
     - cd: r.binary(a).coerce_to('nu'+'ll')
