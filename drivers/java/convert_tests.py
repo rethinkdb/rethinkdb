@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
 
@@ -24,6 +24,7 @@ sys.path.append(
     os.path.abspath(os.path.join(__file__, "../../../test/common")))
 
 import parsePolyglot
+parsePolyglot.printDebug = False
 
 logger = logging.getLogger("convert_tests")
 
@@ -187,7 +188,7 @@ class TestFile(object):
     def load(self):
         '''Load the test file, yaml parse it, extract file-level metadata'''
         with open(self.full_path) as f:
-            parsed_yaml = parsePolyglot.parse_yaml(f)
+            parsed_yaml = parsePolyglot.parseYAML(f)
         self.description = parsed_yaml.get('desc', 'No description')
         self.table_var_names = self.get_varnames(parsed_yaml)
         self.reql_vars.update(self.table_var_names)
