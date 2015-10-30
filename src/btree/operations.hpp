@@ -232,7 +232,8 @@ enum class delete_mode_t {
 void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
-        const btree_key_t *key, repli_timestamp_t tstamp,
+        const btree_key_t *key,
+        repli_timestamp_t tstamp,
         const value_deleter_t *balancing_detacher,
         key_modification_callback_t *km_callback,
         delete_mode_t delete_mode);

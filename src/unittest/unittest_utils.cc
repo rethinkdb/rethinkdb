@@ -158,4 +158,13 @@ state_timestamp_t make_state_timestamp(int n) {
     return t;
 }
 
+std::string random_letter_string(rng_t *rng, int min_length, int max_length) {
+    std::string ret;
+    int size = min_length + rng->randint(max_length - min_length + 1);
+    for (int i = 0; i < size; i++) {
+        ret.push_back('a' + rng->randint(26));
+    }
+    return ret;
+}
+
 }  // namespace unittest
