@@ -326,20 +326,17 @@ public:
         const namespace_id_t &table_id,
         const table_active_persistent_state_t &state,
         const raft_persistent_state_t<table_raft_state_t> &raft_state,
-        signal_t *interruptor,
         raft_storage_interface_t<table_raft_state_t> **raft_storage_out) = 0;
 
     /* `write_metadata_inactive()` sets the stored metadata for the table to be the given
     `state`, which is inactive. */
     virtual void write_metadata_inactive(
         const namespace_id_t &table_id,
-        const table_inactive_persistent_state_t &state,
-        signal_t *interruptor) = 0;
+        const table_inactive_persistent_state_t &state) = 0;
 
     /* `delete_metadata()` deletes all metadata for the table. */
     virtual void delete_metadata(
-        const namespace_id_t &table_id,
-        signal_t *interruptor) = 0;
+        const namespace_id_t &table_id) = 0;
 
     virtual void load_multistore(
         const namespace_id_t &table_id,

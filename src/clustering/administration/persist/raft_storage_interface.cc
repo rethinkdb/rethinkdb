@@ -71,13 +71,14 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
         metadata_file_t *_file,
         metadata_file_t::write_txn_t *txn,
         const namespace_id_t &_table_id,
-        const raft_persistent_state_t<table_raft_state_t> &_state,
-        signal_t *interruptor) :
+        const raft_persistent_state_t<table_raft_state_t> &_state) :
         file(_file), table_id(_table_id), state(_state) {
+    cond_t non_interruptor;
+
     txn->write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         table_raft_stored_header_t::from_state(state),
-        interruptor);
+        &non_interruptor);
 
     /* To avoid expensive copies of `state`, we move `state` into the snapshot and then
     back out after we're done */
@@ -89,7 +90,7 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
     txn->write(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
         snapshot,
-        interruptor);
+        &non_interruptor);
     state.snapshot_state = std::move(snapshot.snapshot_state);
     state.snapshot_config = std::move(snapshot.snapshot_config);
 
@@ -99,31 +100,31 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i)),
             state.log.get_entry_ref(i),
-            interruptor);
+            &non_interruptor);
     }
 }
 
 void table_raft_storage_interface_t::erase(
         metadata_file_t::write_txn_t *txn,
-        const namespace_id_t &table_id,
-        signal_t *interruptor) {
+        const namespace_id_t &table_id) {
+    cond_t non_interruptor;
     txn->erase(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        interruptor);
+        &non_interruptor);
     txn->erase(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
-        interruptor);
+        &non_interruptor);
     std::vector<std::string> log_keys;
     txn->read_many<raft_log_entry_t<table_raft_state_t> >(
         mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &index_str, const raft_log_entry_t<table_raft_state_t> &) {
             log_keys.push_back(index_str);
         },
-        interruptor);
+        &non_interruptor);
     for (const std::string &key : log_keys) {
         txn->erase(
             mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/" + key),
-            interruptor);
+            &non_interruptor);
     }
 }
 

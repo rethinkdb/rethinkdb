@@ -94,7 +94,8 @@ ql::datum_t convert_raft_leader_to_datum(
     if (static_cast<bool>(status.raft_leader)) {
       return convert_name_or_uuid_to_datum(
           status.server_names.get(*status.raft_leader),
-          *status.raft_leader, identifier_format);
+          *status.raft_leader,
+          identifier_format);
     }
 
     return ql::datum_t::null();

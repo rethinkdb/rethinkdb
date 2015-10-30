@@ -388,11 +388,8 @@ backfillee_t::backfillee_t(
 
     /* Record the branch history we got from the backfiller */
     {
-        cross_thread_signal_t interruptor_on_bhm_thread(
-            interruptor, branch_history_manager->home_thread());
         on_thread_t thread_switcher(branch_history_manager->home_thread());
-        branch_history_manager->import_branch_history(
-            intro.final_version_history, &interruptor_on_bhm_thread);
+        branch_history_manager->import_branch_history(intro.final_version_history);
     }
 
     /* Spawn the coroutine that will stream pre-items to the backfiller. */

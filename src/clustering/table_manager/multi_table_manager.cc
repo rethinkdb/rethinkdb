@@ -366,7 +366,6 @@ void multi_table_manager_t::on_action(
                 table_id,
                 table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
                 *initial_raft_state,
-                interruptor,
                 &raft_storage);
 
             /* Open files for the new table. We do this after writing the record, because
@@ -401,7 +400,6 @@ void multi_table_manager_t::on_action(
                 table_id,
                 table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
                 *initial_raft_state,
-                interruptor,
                 &raft_storage);
 
             table->active = make_scoped<active_table_t>(
@@ -449,8 +447,7 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->write_metadata_inactive(
                 table_id,
-                table_inactive_persistent_state_t { *basic_config, timestamp },
-                interruptor);
+                table_inactive_persistent_state_t { *basic_config, timestamp });
         }
 
     } else if (action_status == action_status_t::DELETED) {
@@ -473,7 +470,7 @@ void multi_table_manager_t::on_action(
 
         /* Remove the record on disk */
         if (!is_proxy_server) {
-            persistence_interface->delete_metadata(table_id, interruptor);
+            persistence_interface->delete_metadata(table_id);
         }
 
         should_resync = true;

@@ -75,8 +75,7 @@ TPTEST(ClusteringRaft, StorageRoundtrip) {
             &metadata_file,
             &write_txn,
             table_id,
-            raft_persistent_state,
-            &non_interruptor);
+            raft_persistent_state);
     }
 
     EXPECT_EQ(
@@ -111,10 +110,9 @@ TPTEST(ClusteringRaft, StorageErase) {
             &metadata_file,
             &write_txn,
             table_id,
-            raft_persistent_state,
-            &non_interruptor);
+            raft_persistent_state);
 
-        table_raft_storage_interface.erase(&write_txn, table_id, &non_interruptor);
+        table_raft_storage_interface.erase(&write_txn, table_id);
     }
 
     {
@@ -165,8 +163,7 @@ TPTEST(ClusteringRaft, StorageWriteCurrentTermAndVotedFor) {
                 &metadata_file,
                 &write_txn,
                 table_id,
-                raft_persistent_state,
-                &non_interruptor));
+                raft_persistent_state));
         }
 
         table_raft_storage_interface->write_current_term_and_voted_for(
@@ -210,8 +207,7 @@ TPTEST(ClusteringRaft, StorageWriteCommitIndex) {
                 &metadata_file,
                 &write_txn,
                 table_id,
-                raft_persistent_state,
-                &non_interruptor));
+                raft_persistent_state));
         }
 
         table_raft_storage_interface->write_commit_index(1);
@@ -265,8 +261,7 @@ TPTEST(ClusteringRaft, StorageWriteLogReplaceTail) {
                 &metadata_file,
                 &write_txn,
                 table_id,
-                raft_persistent_state,
-                &non_interruptor));
+                raft_persistent_state));
         }
 
         table_raft_storage_interface->write_log_replace_tail(raft_log, 1);
@@ -315,8 +310,7 @@ TPTEST(ClusteringRaft, StorageWriteLogAppendOne) {
                 &metadata_file,
                 &write_txn,
                 table_id,
-                raft_persistent_state,
-                &non_interruptor));
+                raft_persistent_state));
         }
 
         table_raft_storage_interface->write_log_append_one(raft_log_entry);
@@ -361,8 +355,7 @@ TPTEST(ClusteringRaft, StorageWriteSnapshot) {
                 &metadata_file,
                 &write_txn,
                 table_id,
-                raft_persistent_state,
-                &non_interruptor));
+                raft_persistent_state));
         }
 
         table_raft_storage_interface->write_snapshot(

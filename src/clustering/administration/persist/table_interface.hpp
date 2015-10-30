@@ -48,15 +48,12 @@ public:
         const namespace_id_t &table_id,
         const table_active_persistent_state_t &state,
         const raft_persistent_state_t<table_raft_state_t> &raft_state,
-        signal_t *interruptor,
         raft_storage_interface_t<table_raft_state_t> **raft_storage_out);
     void write_metadata_inactive(
         const namespace_id_t &table_id,
-        const table_inactive_persistent_state_t &state,
-        signal_t *interruptor);
+        const table_inactive_persistent_state_t &state);
     void delete_metadata(
-        const namespace_id_t &table_id,
-        signal_t *interruptor);
+        const namespace_id_t &table_id);
 
     void load_multistore(
         const namespace_id_t &table_id,
