@@ -434,7 +434,7 @@ class ConnectionInstance(object):
             self._header_in_progress = None
 
     def run_query(self, query, noreply):
-        self._socket.sendall(query.serialize(self._get_json_encoder(query)))
+        self._socket.sendall(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -485,7 +485,7 @@ class ConnectionInstance(object):
             elif res_token == token:
                 return Response(
                     res_token, res_buf,
-                    self._get_json_decoder(query))
+                    self._parent._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
