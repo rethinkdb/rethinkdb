@@ -35,8 +35,8 @@ private:
     virtual const char *name() const { return "uuid"; }
 
     // UUID generation is nondeterministic.
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::no;
     }
 };
 

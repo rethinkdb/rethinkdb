@@ -58,7 +58,7 @@ public:
         std::vector<datum_t > keys{key};
         // We don't need to fetch the value for deterministic replacements.
         std::vector<datum_t > vals{
-            f->is_deterministic() ? datum_t() : get()};
+            f->is_deterministic() == deterministic_t::always ? datum_t() : get()};
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }

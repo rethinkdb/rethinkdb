@@ -26,6 +26,13 @@ tests:
 
   - cd: tbl.index_wait()
 
+  # r.line (and friends) are non-deterministic across servers and should be disallowed
+  # in index functions
+  - rb: tbl.index_create('point_det'){ |x| r.line(x, x) }
+    py: tbl.index_create('point_det', lambda x: r.line(x, x) )
+    js: tbl.indexCreate('point_det', function(x) {return r.line(x, x);} )
+    ot: err('ReqlQueryLogicError', 'Could not prove function deterministic.  Index functions must be deterministic.')
+
   - js: tbl.get_intersecting(r.point(0,0), {'index':'other'}).count()
     py: tbl.get_intersecting(r.point(0,0), index='other').count()
     rb: tbl.get_intersecting(r.point(0,0), :index=>'other').count()

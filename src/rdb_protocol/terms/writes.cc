@@ -244,7 +244,8 @@ private:
             = parse_durability_optarg(args->optarg(env, "durability"));
 
         if (!nondet_ok) {
-            rcheck(args->arg_is_deterministic(1), base_exc_t::LOGIC,
+            rcheck(args->arg_is_deterministic(1) == deterministic_t::always,
+                   base_exc_t::LOGIC,
                    "Could not prove argument deterministic.  "
                    "Maybe you want to use the non_atomic flag?");
         }
@@ -252,7 +253,7 @@ private:
             args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             // If this isn't true we should have caught it in the `rcheck` above.
-            rassert(f->is_deterministic());
+            rassert(f->is_deterministic() == deterministic_t::always);
         }
 
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
@@ -269,7 +270,7 @@ private:
             counted_t<table_t> tbl = tblrows->table;
             counted_t<datum_stream_t> ds = tblrows->seq;
 
-            if (f->is_deterministic()) {
+            if (f->is_deterministic() == deterministic_t::always) {
                 // Attach a transformation to `ds` to pull out the primary key.
                 minidriver_t r(backtrace());
                 auto x = minidriver_t::dummy_var_t::REPLACE_HELPER_ROW;
@@ -289,7 +290,7 @@ private:
                 }
 
                 scoped_ptr_t<std::vector<datum_t> > keys;
-                if (!f->is_deterministic()) {
+                if (f->is_deterministic() != deterministic_t::always) {
                     keys = make_scoped<std::vector<datum_t> >();
                     keys->reserve(vals.size());
                     for (const auto &val : vals) {

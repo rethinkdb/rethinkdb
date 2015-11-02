@@ -1,0 +1,9 @@
+desc: Changefeeds on geo intersection filter
+table_variable_name: tbl
+tests:
+    - js: changefeed = tbl.filter(function(d){ return d("l").intersects(r.polygon([1,2],[2,2],[2,1],[1,1])) }).changes()
+
+    - js: tbl.insert([{"l":r.point(1.5,1.5), "id":1}])
+      ot: partial({'errors':0, 'inserted':1})
+    - js: fetch(changefeed, 1)
+      ot: [{"new_val":{"l":{"$reql_type$":"GEOMETRY","coordinates":[1.5,1.5],"type":"Point"}, "id":1}, "old_val":null}]

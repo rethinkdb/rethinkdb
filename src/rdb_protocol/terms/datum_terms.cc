@@ -16,7 +16,7 @@ public:
     }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
-    virtual bool is_deterministic() const { return true; }
+    virtual deterministic_t is_deterministic() const { return deterministic_t::always; }
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
         return new_val(datum);
     }
@@ -93,7 +93,7 @@ public:
         return new_val(std::move(acc).to_datum());
     }
 
-    bool is_deterministic() const {
+    deterministic_t is_deterministic() const {
         return all_are_deterministic(optargs);
     }
 
