@@ -1530,51 +1530,6 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
     }
 }
 
-// This should only be called after the feed has been removed from the client,
-// because otherwise there could be a race condition where a new sub is added in
-// the middle.
-void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
-    assert_thread();
-    const char *msg = "Changefeed aborted (unavailable).";
-    auto f = std::bind(&subscription_t::stop,
-                       ph::_1,
-                       std::make_exception_ptr(
-                           datum_exc_t(base_exc_t::OP_FAILED, msg)),
-                       detach_t::YES);
-    {
-        rwlock_in_line_t spot(&range_subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        each_sub_in_vec<range_sub_t>(range_subs, &spot, lock, f);
-        for (auto &&set : range_subs) {
-            num_subs -= set.size();
-            set.clear();
-        }
-    }
-    {
-        rwlock_in_line_t spot(&point_subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        each_point_sub_with_lock(&spot, f);
-        for (auto &&pair : point_subs) {
-            for (auto &&set : pair.second) {
-                num_subs -= set.size();
-            }
-        }
-        point_subs.clear();
-    }
-    {
-        rwlock_in_line_t spot(&limit_subs_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
-        each_limit_sub_with_lock(&spot, f);
-        for (auto &&pair : limit_subs) {
-            for (auto &&set : pair.second) {
-                num_subs -= set.size();
-            }
-        }
-        limit_subs.clear();
-    }
-    r_sanity_check(num_subs == 0);
-}
-
 real_feed_t::~real_feed_t() {
     guarantee(num_subs == 0);
     detached = true;
@@ -3101,6 +3056,51 @@ void feed_t::on_limit_sub(
 bool feed_t::can_be_removed() {
     assert_thread();
     return num_subs == 0;
+}
+
+// This should only be called after the feed has been removed from the client,
+// because otherwise there could be a race condition where a new sub is added in
+// the middle.
+void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
+    assert_thread();
+    const char *msg = "Changefeed aborted (unavailable).";
+    auto f = std::bind(&subscription_t::stop,
+                       ph::_1,
+                       std::make_exception_ptr(
+                           datum_exc_t(base_exc_t::OP_FAILED, msg)),
+                       detach_t::YES);
+    {
+        rwlock_in_line_t spot(&range_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_sub_in_vec<range_sub_t>(range_subs, &spot, lock, f);
+        for (auto &&set : range_subs) {
+            num_subs -= set.size();
+            set.clear();
+        }
+    }
+    {
+        rwlock_in_line_t spot(&point_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_point_sub_with_lock(&spot, f);
+        for (auto &&pair : point_subs) {
+            for (auto &&set : pair.second) {
+                num_subs -= set.size();
+            }
+        }
+        point_subs.clear();
+    }
+    {
+        rwlock_in_line_t spot(&limit_subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        each_limit_sub_with_lock(&spot, f);
+        for (auto &&pair : limit_subs) {
+            for (auto &&set : pair.second) {
+                num_subs -= set.size();
+            }
+        }
+        limit_subs.clear();
+    }
+    r_sanity_check(num_subs == 0);
 }
 
 feed_t::feed_t() : detached(false), num_subs(0), range_subs(get_num_threads()) { }
