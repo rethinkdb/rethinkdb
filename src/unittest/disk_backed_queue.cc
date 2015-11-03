@@ -83,7 +83,13 @@ void run_concurrent_test() {
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_wrapper_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
+    // Make half of the entries fit into RAM.
+    const int64_t max_memory_queue_bytes = sizeof(int) * 500;
+    disk_backed_queue_wrapper_t<int> queue(
+        &io_backender,
+        serializer_path,
+        &get_global_perfmon_collection(),
+        max_memory_queue_bytes);
     std_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {

@@ -127,6 +127,9 @@ void sindex_manager_t::update_blocking(signal_t *interruptor) {
         }
         store->sindex_rename_multi(to_rename, &ct_interruptor);
         for (const auto &pair : to_create) {
+            /* Note that this crashes if the index already exists. Luckily we are running
+            in a `pump_coro_t`, and we should be the only thing that's creating indexes
+            on the store so this shouldn't be an issue. */
             store->sindex_create(pair.first, pair.second, &ct_interruptor);
         }
     }

@@ -90,64 +90,49 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
     superblock.reset();
 
-    struct sindex_clearer_t {
-        static void clear(store_t *store,
-                          secondary_index_t sindex,
-                          auto_drainer_t::lock_t store_keepalive) {
-            try {
-                // Note that we can safely use a noop deleter here, since the
-                // secondary index cannot be in use at this point and we therefore
-                // don't have to detach anything.
-                rdb_noop_deletion_context_t noop_deletion_context;
-                rdb_value_sizer_t sizer(store->cache->max_block_size());
+    auto clear_sindex = [this](uuid_u sindex_id,
+                               auto_drainer_t::lock_t store_keepalive) {
+        try {
+            // Note that we can safely use a noop deleter here, since the
+            // secondary index cannot be in use at this point and we therefore
+            // don't have to detach anything.
+            // This is in contrast to `delayed_clear_and_drop_sindex()`, where we
+            // have to deal with some parts of the index still potentially being live.
+            rdb_noop_deletion_context_t noop_deletion_context;
+            rdb_value_sizer_t sizer(cache->max_block_size());
 
-                /* Clear the sindex. */
-                store->clear_sindex(
-                    sindex,
-                    &sizer,
-                    &noop_deletion_context,
-                    store_keepalive.get_drain_signal());
-            } catch (const interrupted_exc_t &e) {
-                /* Ignore */
-            }
+            /* Clear the sindex. */
+            clear_sindex_data(
+                sindex_id,
+                &sizer,
+                &noop_deletion_context,
+                key_range_t::universe(),
+                store_keepalive.get_drain_signal());
+
+            /* Drop the sindex, now that it's empty. */
+            drop_sindex(sindex_id);
+        } catch (const interrupted_exc_t &e) {
+            /* Ignore */
         }
     };
 
-    // Get the map of indexes and check if any were postconstructing
-    // Drop these and recreate them (see github issue #2925)
-    std::set<sindex_name_t> sindexes_to_update;
-    {
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(&sindex_block, &sindexes);
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (!it->second.being_deleted && !it->second.post_construction_complete) {
-                bool success = mark_secondary_index_deleted(&sindex_block, it->first);
-                guarantee(success);
-
-                success = add_sindex_internal(
-                    it->first, it->second.opaque_definition, &sindex_block);
-                guarantee(success);
-                sindexes_to_update.insert(it->first);
-            }
-        }
-    }
-
-    // Get the new map of indexes, now that we're deleting the old postconstructing ones
-    // Kick off coroutines to finish deleting all indexes that are being deleted
+    // Get the map of indexes and check if any were postconstructing or being deleted.
+    // Kick off coroutines to finish the respective operations
     {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (it->second.being_deleted) {
-                coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
-                                                 this, it->second, drainer.lock()));
+                coro_t::spawn_sometime(std::bind(clear_sindex,
+                                                 it->second.id, drainer.lock()));
+            } else if (!it->second.post_construction_complete()) {
+                coro_t::spawn_sometime(std::bind(&rdb_protocol::resume_construct_sindex,
+                                                 it->second.id,
+                                                 it->second.needs_post_construction_range,
+                                                 this,
+                                                 drainer.lock()));
             }
         }
-    }
-
-    if (!sindexes_to_update.empty()) {
-        rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                &sindex_block);
     }
 }
 
@@ -822,11 +807,10 @@ void store_t::protocol_write(const write_t &write,
     response->event_log.push_back(profile::stop_t());
 }
 
-void store_t::delayed_clear_sindex(
+void store_t::delayed_clear_and_drop_sindex(
         secondary_index_t sindex,
         auto_drainer_t::lock_t store_keepalive)
-        THROWS_NOTHING
-{
+        THROWS_NOTHING {
     try {
         rdb_value_sizer_t sizer(cache->max_block_size());
         /* If the index had been completely constructed, we must
@@ -840,15 +824,19 @@ void store_t::delayed_clear_sindex(
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_con_deletion_context;
         deletion_context_t *actual_deletion_context =
-            sindex.post_construction_complete
+            sindex.post_construction_complete()
             ? static_cast<deletion_context_t *>(&live_deletion_context)
             : static_cast<deletion_context_t *>(&post_con_deletion_context);
 
-        /* Clear the sindex. */
-        clear_sindex(sindex,
-                     &sizer,
-                     actual_deletion_context,
-                     store_keepalive.get_drain_signal());
+        /* Clear the sindex */
+        clear_sindex_data(sindex.id,
+                          &sizer,
+                          actual_deletion_context,
+                          key_range_t::universe(),
+                          store_keepalive.get_drain_signal());
+
+        /* Drop the sindex, now that it's empty. */
+        drop_sindex(sindex.id);
     } catch (const interrupted_exc_t &e) {
         /* Ignore. The sindex deletion will continue when the store
         is next started up. */

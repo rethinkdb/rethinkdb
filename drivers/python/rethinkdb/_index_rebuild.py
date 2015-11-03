@@ -130,12 +130,7 @@ def get_index_progress(progress, conn, index):
     if status['ready']:
         return None
     else:
-        processed = float(status.get('blocks_processed', 0))
-        total = float(status.get('blocks_total', 1))
-        if total != 0:
-            return processed / total
-        else:
-            return 0.0
+        return float(status.get('progress'))
 
 def rename_index(progress, conn, index):
     r.db(index['db']).table(index['table']).index_rename(index['temp_name'], index['name'], overwrite=True).run(conn)

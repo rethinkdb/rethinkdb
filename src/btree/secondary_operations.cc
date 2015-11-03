@@ -8,9 +8,56 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_2(
         secondary_index_t, superblock, opaque_definition,
-        post_construction_complete, being_deleted, id);
+        needs_post_construction_range, being_deleted, id);
+
+// Pre 2.2 we didn't have the `needs_post_construction_range` field, but instead had
+// a boolean `post_construction_complete`.
+// We need to specify a custom deserialization function for that:
+template <cluster_version_t W>
+archive_result_t pre_2_2_deserialize(
+        read_stream_t *s, secondary_index_t *sindex) {
+    archive_result_t res = archive_result_t::SUCCESS;
+    res = deserialize<W>(s, deserialize_deref(sindex->superblock));
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, deserialize_deref(sindex->opaque_definition));
+    if (bad(res)) { return res; }
+
+    bool post_construction_complete = false;
+    res = deserialize<W>(s, &post_construction_complete);
+    if (bad(res)) { return res; }
+    sindex->needs_post_construction_range =
+        post_construction_complete
+        ? key_range_t::empty()
+        : key_range_t::universe();
+
+    res = deserialize<W>(s, deserialize_deref(sindex->being_deleted));
+    if (bad(res)) { return res; }
+    res = deserialize<W>(s, deserialize_deref(sindex->id));
+    if (bad(res)) { return res; }
+    return res;
+}
+template <> archive_result_t deserialize<cluster_version_t::v1_14>(
+        read_stream_t *s, secondary_index_t *sindex) {
+    return pre_2_2_deserialize<cluster_version_t::v1_14>(s, sindex);
+}
+template <> archive_result_t deserialize<cluster_version_t::v1_15>(
+        read_stream_t *s, secondary_index_t *sindex) {
+    return pre_2_2_deserialize<cluster_version_t::v1_15>(s, sindex);
+}
+template <> archive_result_t deserialize<cluster_version_t::v1_16>(
+        read_stream_t *s, secondary_index_t *sindex) {
+    return pre_2_2_deserialize<cluster_version_t::v1_16>(s, sindex);
+}
+template <> archive_result_t deserialize<cluster_version_t::v2_0>(
+        read_stream_t *s, secondary_index_t *sindex) {
+    return pre_2_2_deserialize<cluster_version_t::v2_0>(s, sindex);
+}
+template <> archive_result_t deserialize<cluster_version_t::v2_1>(
+        read_stream_t *s, secondary_index_t *sindex) {
+    return pre_2_2_deserialize<cluster_version_t::v2_1>(s, sindex);
+}
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
 

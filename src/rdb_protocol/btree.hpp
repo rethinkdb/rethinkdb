@@ -18,13 +18,11 @@ class btree_slice_t;
 enum class delete_mode_t;
 class deletion_context_t;
 class key_tester_t;
-class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
 class refcount_superblock_t;
 struct sindex_disk_info_t;
 
-class parallel_traversal_progress_t;
 
 bool btree_value_fits(max_block_size_t bs, int data_length, const rdb_value_t *value);
 
@@ -326,11 +324,12 @@ void rdb_update_sindexes(
     index_vals_t *old_keys_out,
     index_vals_t *new_keys_out);
 
-void post_construct_secondary_indexes(
+void post_construct_secondary_index_range(
         store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
-        signal_t *interruptor,
-        parallel_traversal_progress_t *progress_tracker)
+        key_range_t *construction_range_inout,
+        const std::function<bool(int64_t)> &check_should_abort,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
 /* This deleter actually deletes the value and all associated blocks. */

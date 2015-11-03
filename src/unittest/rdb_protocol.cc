@@ -19,6 +19,7 @@
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "serializer/config.hpp"
+#include "serializer/merger.hpp"
 #include "serializer/translator.hpp"
 #include "stl_utils.hpp"
 #include "store_subview.hpp"
@@ -65,9 +66,11 @@ void run_with_namespace_interface(
         filepath_file_opener_t file_opener(temp_files[i]->name(), &io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
-        serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                      &file_opener,
-                                                      &get_global_perfmon_collection()));
+        scoped_ptr_t<standard_serializer_t> standard_ser(
+            new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                      &file_opener,
+                                      &get_global_perfmon_collection()));
+        serializers[i].init(new merger_serializer_t(std::move(standard_ser), 1));
     }
 
     extproc_pool_t extproc_pool(2);
@@ -215,7 +218,7 @@ void wait_for_sindex(
         const std::vector<scoped_ptr_t<store_t> > *stores,
         const std::string &id) {
     cond_t non_interruptor;
-    for (int attempts = 0; attempts < 35; ++attempts) {
+    for (int attempts = 0; attempts < 50; ++attempts) {
         bool all_ok = true;
         for (const auto &store : *stores) {
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > res =
@@ -380,6 +383,102 @@ void populate_sindex(namespace_interface_t *nsi,
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
+}
+
+/* Randomly inserts and drops documents */
+void fuzz_sindex(namespace_interface_t *nsi,
+                 order_source_t *osource,
+                 int goal_size,
+                 auto_drainer_t::lock_t drainer_lock) {
+    // We assume that about half of the ids up to goal_size * 2 will be deleted at any
+    // time.
+    std::vector<bool> doc_exists(goal_size * 2, false);
+    while (!drainer_lock.get_drain_signal()->is_pulsed()) {
+        int id = randint(goal_size * 2);
+        write_t write;
+        ql::configured_limits_t limits;
+        if (randint(2) == 0) {
+            // Insert
+            if (doc_exists[id]) {
+                continue;
+            }
+
+            std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}",
+                                             id, randint(goal_size));
+            rapidjson::Document data;
+            data.Parse(json_doc.c_str());
+            ASSERT_FALSE(data.HasParseError());
+            ql::datum_t d(static_cast<double>(id));
+            store_key_t pk = store_key_t(d.print_primary());
+
+            write = write_t(point_write_t(pk, ql::to_datum(data, limits,
+                                                         reql_version_t::LATEST)),
+                            DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
+            doc_exists[id] = true;
+        } else {
+            // Delete
+            if (!doc_exists[id]) {
+                continue;
+            }
+
+            ql::datum_t d(static_cast<double>(id));
+            store_key_t pk = store_key_t(d.print_primary());
+
+            write = write_t(point_delete_t(pk),
+                            DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
+            doc_exists[id] = false;
+        }
+        write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write,
+                   &response,
+                   osource->check_in(
+                       "unittest::fuzz_sindex(rdb_protocol.cc"),
+                   &interruptor);
+
+        /* The result can be either STORED or DUPLICATE (in case this
+         * test has been run before on the same store). Either is fine.*/
+        if (!boost::get<point_write_response_t>(&response.response)
+            && !boost::get<point_delete_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+
+        nap(2);
+    }
+}
+
+void run_fuzz_create_drop_sindex(
+        namespace_interface_t *nsi,
+        order_source_t *osource,
+        const std::vector<scoped_ptr_t<store_t> > *stores) {
+    const int num_docs = 500;
+
+    /* Start fuzzing the table. */
+
+    auto_drainer_t fuzzing_drainer;
+    /* spawn_dangerously_now so that we can capture the fuzzing_drainer inside the
+    lambda.*/
+    coro_t::spawn_now_dangerously([&]() {
+        fuzz_sindex(nsi, osource, num_docs, fuzzing_drainer.lock());
+    });
+
+    /* Let some time pass to allow `fuzz_sindex` to populate the table. */
+    nap(2 * num_docs);
+
+    /* Create a secondary index (this will post construct the index while under load). */
+    std::string id = create_sindex(stores);
+    wait_for_sindex(stores, id);
+
+    /* Drop the index in the middle of fuzzing to test proper interruption under load. */
+    drop_sindex(stores, id);
+
+    /* Fuzzing is stopped here by draining `fuzzing_drainer`. */
+}
+
+TEST(RDBProtocol, SindexFuzzCreateDrop) {
+    // Run the test 3 times (on the same data file)
+    run_in_thread_pool_with_namespace_interface(&run_fuzz_create_drop_sindex, false, 3);
 }
 
 void run_create_drop_sindex_with_data_test(

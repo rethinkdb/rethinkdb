@@ -60,9 +60,7 @@ void insert_rows(int start, int finish, store_t *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         store_t::sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                 &sindex_block,
-                 &sindexes);
+        store->acquire_all_sindex_superblocks_for_write(&sindex_block, &sindexes);
         rdb_update_sindexes(store,
                             sindexes,
                             &mod_report,

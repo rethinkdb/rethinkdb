@@ -86,10 +86,11 @@ class intersecting_readgen_t;
 
 namespace rdb_protocol {
 
-void bring_sindexes_up_to_date(
-        const std::set<sindex_name_t> &sindexes_to_bring_up_to_date,
+void resume_construct_sindex(
+        const uuid_u &sindex_to_construct,
+        const key_range_t &construct_range,
         store_t *store,
-        buf_lock_t *sindex_block)
+        auto_drainer_t::lock_t store_keepalive)
     THROWS_NOTHING;
 
 } // namespace rdb_protocol
