@@ -70,6 +70,11 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
+enum class update_sindexes_t {
+    UPDATE,
+    LEAVE_ALONE
+};
+
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -83,7 +88,8 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            namespace_id_t table_id);
+            namespace_id_t table_id,
+            update_sindexes_t update_sindexes);
     ~store_t();
 
     void note_reshard();
@@ -341,6 +347,8 @@ private:
     // through `clear_sindex_data()`.
     void drop_sindex(uuid_u sindex_id) THROWS_NOTHING;
 
+    // Resumes post construction for partially constructed indexes.  Resumes deleting
+    // deleted indexes.  Also migrates the secondary index block to the current version.
     void help_construct_bring_sindexes_up_to_date();
 
     MUST_USE bool mark_secondary_index_deleted(

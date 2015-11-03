@@ -6,7 +6,7 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "repli_timestamp.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 #include "unittest/btree_utils.hpp"
 #include "unittest/gtest.hpp"
@@ -43,10 +43,10 @@ public:
           file_opener(temp_file.name(), &io_backender),
           balancer(GIGABYTE) {
 
-        standard_serializer_t::create(&file_opener, standard_serializer_t::static_config_t());
+        log_serializer_t::create(&file_opener, log_serializer_t::static_config_t());
 
-        auto inner_serializer = make_scoped<standard_serializer_t>(
-            standard_serializer_t::dynamic_config_t(),
+        auto inner_serializer = make_scoped<log_serializer_t>(
+            log_serializer_t::dynamic_config_t(),
             &file_opener,
             &get_global_perfmon_collection());
 

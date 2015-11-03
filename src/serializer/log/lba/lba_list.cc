@@ -101,11 +101,15 @@ public:
             // the metablock into the index:
             for (int32_t i = 0; i < owner->inline_lba_entries_count; ++i) {
                 lba_entry_t *e = &owner->inline_lba_entries[i];
+                // The on-disk format still stores 32 bit block sizes.
+                // We've never actually used them, and we now use 16 bit block sizes
+                // for the in-memory index to save a few bytes.
+                guarantee(e->ser_block_size <= std::numeric_limits<uint16_t>::max());
                 owner->in_memory_index.set_block_info(
                         e->block_id,
                         e->recency,
                         e->offset,
-                        e->ser_block_size);
+                        static_cast<uint16_t>(e->ser_block_size));
             }
 
             owner->state = lba_list_t::state_ready;
@@ -137,6 +141,12 @@ block_id_t lba_list_t::end_block_id() {
     return in_memory_index.end_block_id();
 }
 
+block_id_t lba_list_t::end_aux_block_id() {
+    rassert(state == state_ready || state == state_gc_shutting_down);
+
+    return in_memory_index.end_aux_block_id();
+}
+
 index_block_info_t lba_list_t::get_block_info(block_id_t block) {
     rassert(state == state_ready || state == state_gc_shutting_down);
     return in_memory_index.get_block_info(block);
@@ -163,6 +173,8 @@ segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t
     guarantee(coro_t::self() != NULL);
     rassert(state == state_ready);
     segmented_vector_t<repli_timestamp_t> ret;
+    // Note that we deliberately don't report recencies for aux blocks.
+    // (those don't have valid recency values anyway)
     block_id_t end = in_memory_index.end_block_id();
     block_id_t count = 0;
     for (block_id_t i = first; i < end; i += step) {
@@ -183,7 +195,10 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
                                 file_account_t *io_account, extent_transaction_t *txn) {
     rassert(state == state_ready || state == state_gc_shutting_down);
 
-    in_memory_index.set_block_info(block, recency, offset, ser_block_size);
+    guarantee(ser_block_size <= std::numeric_limits<uint16_t>::max());
+    uint16_t ser_block_size_16 = static_cast<uint16_t>(ser_block_size);
+
+    in_memory_index.set_block_info(block, recency, offset, ser_block_size_16);
 
     // If the inline LBA is full, free it up first by moving its entries to
     // the LBA extents
@@ -192,7 +207,7 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
         rassert(!check_inline_lba_full());
     }
     // Then store the entry inline
-    add_inline_entry(block, recency, offset, ser_block_size);
+    add_inline_entry(block, recency, offset, ser_block_size_16);
 }
 
 bool lba_list_t::check_inline_lba_full() const {
@@ -238,7 +253,7 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
 }
 
 void lba_list_t::add_inline_entry(block_id_t block, repli_timestamp_t recency,
-                                flagged_off64_t offset, uint32_t ser_block_size) {
+                                flagged_off64_t offset, uint16_t ser_block_size) {
 
     rassert(!check_inline_lba_full());
     inline_lba_entries[inline_lba_entries_count++] =
@@ -315,7 +330,22 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     int num_written_in_batch = 0;
     bool aborted = false;
     const block_id_t end_id = end_block_id();
-    for (block_id_t id = lba_shard; id < end_id; id += LBA_SHARD_FACTOR) {
+    const block_id_t aux_end_id = end_aux_block_id();
+    guarantee(aux_end_id >= end_id);
+    for (block_id_t id = lba_shard; ; id += LBA_SHARD_FACTOR) {
+        // Once we are done with the regular block IDs, continue with the aux
+        // block IDs.
+        // This assertion makes sure that we can simply restart at
+        // `lba_shard + FIRST_AUX_BLOCK_ID` and still be on the correct shard.
+        CT_ASSERT(FIRST_AUX_BLOCK_ID % LBA_SHARD_FACTOR == 0);
+        if (!is_aux_block_id(id) && id >= end_id) {
+            id = lba_shard + FIRST_AUX_BLOCK_ID;
+        }
+
+        if (id >= aux_end_id) {
+            break;
+        }
+
         flagged_off64_t off = get_block_offset(id);
         if (off.has_value()) {
             uint32_t ser_block_size = get_ser_block_size(id);
@@ -426,7 +456,8 @@ bool lba_list_t::we_want_to_gc(int i) {
     // If we are not using more than N times the amount of space that we need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
-    int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR;
+    int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR
+                            + make_aux_block_id_relative(end_aux_block_id()) / LBA_SHARD_FACTOR;
     if ((entries_live / static_cast<double>(entries_total)) > LBA_MIN_UNGARBAGE_FRACTION) {  // TODO: multiply both sides by common denominator
         return false;
     }

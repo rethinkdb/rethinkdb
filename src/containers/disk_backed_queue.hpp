@@ -74,7 +74,7 @@ private:
     block_id_t tail_block_id;
 
     scoped_ptr_t<serializer_file_opener_t> file_opener;
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<log_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<cache_conn_t> cache_conn;

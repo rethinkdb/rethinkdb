@@ -21,7 +21,6 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
 // The maximal number of writes that can be in line for a superblock acquisition
@@ -85,7 +84,8 @@ store_t::store_t(const region_t &region,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 namespace_id_t _table_id)
+                 namespace_id_t _table_id,
+                 update_sindexes_t update_sindexes)
     : store_view_t(region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -127,25 +127,24 @@ store_t::store_t(const region_t &region,
         // things yet, so this should work fairly quickly and does not need a real
         // interruptor.
         cond_t dummy_interruptor;
-        write_token_t token;
-        new_write_token(&token);
+        read_token_t token;
+        new_read_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        acquire_superblock_for_write(1,
-                                     write_durability_t::SOFT,
-                                     &token,
-                                     &txn,
-                                     &superblock,
-                                     &dummy_interruptor);
+        acquire_superblock_for_read(&token,
+                                    &txn,
+                                    &superblock,
+                                    &dummy_interruptor,
+                                    false /* don't use snapshot */ );
 
         metainfo.init(new store_metainfo_manager_t(superblock.get()));
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
-                                access_t::write);
+                                access_t::read);
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
-        migrate_secondary_index_block(&sindex_block, &sindexes);
+        get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             // Deleted secondary indexes should not be added to the perfmons
@@ -162,7 +161,15 @@ store_t::store_t(const region_t &region,
         }
     }
 
-    help_construct_bring_sindexes_up_to_date();
+    switch (update_sindexes) {
+    case update_sindexes_t::UPDATE:
+        help_construct_bring_sindexes_up_to_date();
+        break;
+    case update_sindexes_t::LEAVE_ALONE:
+        break;
+    default:
+        unreachable();
+    }
 }
 
 store_t::~store_t() {

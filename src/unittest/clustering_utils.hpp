@@ -22,7 +22,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 
 namespace unittest {
@@ -47,10 +47,10 @@ public:
 
 inline merger_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
     filepath_file_opener_t file_opener(temp_file->name(), io_backender);
-    standard_serializer_t::create(&file_opener,
-                                  standard_serializer_t::static_config_t());
-    auto inner_serializer = make_scoped<standard_serializer_t>(
-            standard_serializer_t::dynamic_config_t(),
+    log_serializer_t::create(&file_opener,
+                                  log_serializer_t::static_config_t());
+    auto inner_serializer = make_scoped<log_serializer_t>(
+            log_serializer_t::dynamic_config_t(),
             &file_opener,
             &get_global_perfmon_collection());
     return new merger_serializer_t(std::move(inner_serializer),
@@ -65,7 +65,7 @@ public:
             store(region_t::universe(), serializer.get(), balancer.get(),
                 temp_file.name().permanent_path(), true,
                 &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                generate_uuid()) {
+                generate_uuid(), update_sindexes_t::UPDATE) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;

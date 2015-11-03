@@ -126,12 +126,8 @@ public:
 
     bool is_gc_active() const;
 
-    // Returns the first never-used block id.  Every block with id
-    // less than this has been created, and possibly deleted.  Every
-    // block with id greater than or equal to this has never been
-    // created.  As long as you don't skip ahead past max_block_id,
-    // block id contiguity will be ensured.
-    block_id_t max_block_id();
+    block_id_t end_block_id();
+    block_id_t end_aux_block_id();
 
     segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
                                                             block_id_t step);
@@ -145,6 +141,12 @@ public:
     void offer_read_ahead_buf(block_id_t block_id,
                               buf_ptr_t *buf,
                               const counted_t<standard_block_token_t> &token);
+
+private:
+    // Helper function for `end_block_id` and `end_aux_block_id`
+    block_id_t compute_end_block_id(
+        block_id_t first_block_id,
+        block_id_t relative_inner_end_block_id);
 };
 
 #endif /* SERIALIZER_TRANSLATOR_HPP_ */

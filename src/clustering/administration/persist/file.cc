@@ -353,9 +353,9 @@ metadata_file_t::metadata_file_t(
     btree_stats(perfmon_parent, "metadata")
 {
     filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
@@ -378,9 +378,9 @@ metadata_file_t::metadata_file_t(
 void metadata_file_t::init_serializer(
         filepath_file_opener_t *file_opener,
         perfmon_collection_t *perfmon_parent) {
-    scoped_ptr_t<standard_serializer_t> standard_ser(
-        new standard_serializer_t(
-            standard_serializer_t::dynamic_config_t(),
+    scoped_ptr_t<log_serializer_t> standard_ser(
+        new log_serializer_t(
+            log_serializer_t::dynamic_config_t(),
             file_opener,
             perfmon_parent));
     if (!standard_ser->coop_lock_and_check()) {

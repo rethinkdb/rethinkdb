@@ -8,7 +8,6 @@
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"
 #include "serializer/buf_ptr.hpp"
-#include "serializer/config.hpp"
 #include "serializer/types.hpp"
 
 /* serializer_multiplexer_t */
@@ -191,21 +190,34 @@ serializer_multiplexer_t::~serializer_multiplexer_t() {
 /* translator_serializer_t */
 
 block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
-    return id * mod_count + mod_id + cfgid.subsequent_ser_id();
+    if (is_aux_block_id(id)) {
+        return FIRST_AUX_BLOCK_ID + translate_block_id(make_aux_block_id_relative(id), mod_count, mod_id, cfgid);
+    } else {
+        return id * mod_count + mod_id + cfgid.subsequent_ser_id();
+    }
 }
 
 int translator_serializer_t::untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
-    // We know that inner_id == id * mod_count + mod_id + min.
-    // Thus inner_id - min == id * mod_count + mod_id.
-    // It follows that inner_id - min === mod_id (modulo mod_count).
-    // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
-    // (And inner_id - min >= 0, so '%' works as expected.)
-    return (inner_id - cfgid.subsequent_ser_id()) % mod_count;
+    if (is_aux_block_id(inner_id)) {
+        return untranslate_block_id_to_mod_id(make_aux_block_id_relative(inner_id), mod_count, cfgid);
+    } else {
+        // We know that inner_id == id * mod_count + mod_id + min.
+        // Thus inner_id - min == id * mod_count + mod_id.
+        // It follows that inner_id - min === mod_id (modulo mod_count).
+        // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
+        // (And inner_id - min >= 0, so '%' works as expected.)
+        return (inner_id - cfgid.subsequent_ser_id()) % mod_count;
+    }
 }
 
 block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
-    // (simply dividing by mod_count should be sufficient, but this is cleaner)
-    return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
+    if (is_aux_block_id(inner_id)) {
+        return FIRST_AUX_BLOCK_ID + untranslate_block_id_to_id(
+            make_aux_block_id_relative(inner_id), mod_count, mod_id, cfgid);
+    } else {
+        // (simply dividing by mod_count should be sufficient, but this is cleaner)
+        return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
+    }
 }
 
 block_id_t translator_serializer_t::translate_block_id(block_id_t id) const {
@@ -271,24 +283,41 @@ bool translator_serializer_t::is_gc_active() const {
     return inner->is_gc_active();
 }
 
-block_id_t translator_serializer_t::max_block_id() {
-    int64_t x = inner->max_block_id() - cfgid.subsequent_ser_id();
+// A helper function for `end_block_id` and `end_aux_block_id`
+// `first_block_id` is the lowest block ID in the range, either 0 for regular block
+// IDs or FIRST_AUX_BLOCK_ID for aux blocks.
+// `relative_inner_end_block_id` is the end block ID from the inner serializer,
+// minus `first_block_id`.
+block_id_t translator_serializer_t::compute_end_block_id(
+        block_id_t first_block_id,
+        block_id_t relative_inner_end_block_id) {
+    int64_t x = relative_inner_end_block_id - cfgid.subsequent_ser_id();
     if (x <= 0) {
         x = 0;
     } else {
         while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
-    rassert(translate_block_id(x) >= inner->max_block_id());
 
-    while (x > 0) {
-        --x;
-        if (!get_delete_bit(x)) {
-            ++x;
+    block_id_t id = static_cast<block_id_t>(x) + first_block_id;
+    rassert(translate_block_id(id) >= first_block_id + relative_inner_end_block_id);
+    while (id > first_block_id) {
+        --id;
+        if (!get_delete_bit(id)) {
+            ++id;
             break;
         }
     }
-    return x;
+    return id;
+}
+
+block_id_t translator_serializer_t::end_block_id() {
+    return compute_end_block_id(0, inner->end_block_id());
+}
+
+block_id_t translator_serializer_t::end_aux_block_id() {
+    return compute_end_block_id(FIRST_AUX_BLOCK_ID,
+                                make_aux_block_id_relative(inner->end_aux_block_id()));
 }
 
 segmented_vector_t<repli_timestamp_t>

@@ -110,8 +110,7 @@ void get_secondary_indexes(buf_lock_t *sindex_block,
                            std::map<sindex_name_t, secondary_index_t> *sindexes_out);
 
 /* Rewrites the secondary index block with up-to-date serialization */
-void migrate_secondary_index_block(buf_lock_t *sindex_block,
-                                   std::map<sindex_name_t, secondary_index_t> *sindexes_out);
+void migrate_secondary_index_block(buf_lock_t *sindex_block);
 
 /* Overwrites existing values with the same id. */
 void set_secondary_index(buf_lock_t *sindex_block,

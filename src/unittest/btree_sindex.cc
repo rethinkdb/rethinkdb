@@ -13,7 +13,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/store.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 namespace unittest {
 
@@ -24,12 +24,12 @@ TPTEST(BTreeSindex, LowLevelOps) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -127,12 +127,12 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -146,7 +146,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             NULL,
             &io_backender,
             base_path_t("."),
-            generate_uuid());
+            generate_uuid(),
+            update_sindexes_t::UPDATE);
 
     cond_t dummy_interruptor;
 
