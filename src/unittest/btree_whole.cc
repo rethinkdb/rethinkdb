@@ -16,7 +16,7 @@ namespace unittest {
 
 class map_filler_callback_t : public depth_first_traversal_callback_t {
 public:
-    map_filler_callback_t(std::map<store_key_t, std::string> *m_out) : m_out_(m_out) { }
+    explicit map_filler_callback_t(std::map<store_key_t, std::string> *m_out) : m_out_(m_out) { }
 
     continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, UNUSED signal_t *interruptor) {
         store_key_t store_key(keyvalue.key());
@@ -498,4 +498,4 @@ TPTEST(BTree, RemoveRandomOrder) {
     ctx.verify();
 }
 
-}
+} // namespace unittest
