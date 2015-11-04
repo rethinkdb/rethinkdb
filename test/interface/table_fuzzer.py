@@ -15,8 +15,9 @@ try:
 except NameError:
     xrange = range
 
-# Don't allow someone to run this without unlimited size core files - which are really useful for debugging
-assert resource.getrlimit(resource.RLIMIT_CORE)[0] == resource.RLIM_INFINITY
+# Warn if this is run without unlimited size core files - which are really useful for debugging
+if resource.getrlimit(resource.RLIMIT_CORE)[0] != resource.RLIM_INFINITY:
+    utils.print_with_time("Warning, running without unlimited size core files")
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
