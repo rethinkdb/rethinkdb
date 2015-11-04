@@ -246,7 +246,7 @@ class ConnectionInstance(object):
             elif token in self._user_queries:
                 query, deferred = self._user_queries[token]
                 res = Response(token, data,
-                               self._parent._get_json_decoder(query.global_optargs))
+                               self._parent._get_json_decoder(query))
                 if res.type == pResponse.SUCCESS_ATOM:
                     deferred.callback(maybe_profile(res.data[0], res))
                 elif res.type in (pResponse.SUCCESS_SEQUENCE,
@@ -334,13 +334,14 @@ class ConnectionInstance(object):
         if not noreply:
             self._user_queries[query.token] = (query, response_defer)
         # Send the query
-        self._connection.transport.write(query.serialize(self._parent._get_json_encoder()))
+        self._connection.transport.write(query.serialize(self._parent._get_json_encoder(query)))
 
         if noreply:
             returnValue(None)
         else:
             res = yield response_defer
             returnValue(res)
+
 
 class Connection(ConnectionBase):
 

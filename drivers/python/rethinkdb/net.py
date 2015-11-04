@@ -63,6 +63,8 @@ class Query(object):
         self.type = type
         self.token = token
         self.term = term
+        self._json_encoder = global_optargs.pop('json_encoder', None)
+        self._json_decoder = global_optargs.pop('json_decoder', None)
         self.global_optargs = global_optargs
 
     def serialize(self, reql_encoder=ReQLEncoder()):
@@ -147,6 +149,7 @@ class Cursor(object):
         self.outstanding_requests = 0
         self.threshold = 1
         self.error = None
+        self._json_decoder = self.conn._parent._get_json_decoder(self.query)
 
         self.conn._cursor_cache[self.query.token] = self
 
@@ -176,8 +179,7 @@ class Cursor(object):
         self.outstanding_requests -= 1
         self._maybe_fetch_batch()
 
-        res = Response(self.query.token, res_buf,
-                       self.conn._parent._get_json_decoder(self.query.global_optargs))
+        res = Response(self.query.token, res_buf, self._json_decoder)
         self._extend_internal(res)
 
     def _extend_internal(self, res):
@@ -432,7 +434,7 @@ class ConnectionInstance(object):
             self._header_in_progress = None
 
     def run_query(self, query, noreply):
-        self._socket.sendall(query.serialize(self._parent._get_json_encoder()))
+        self._socket.sendall(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -483,7 +485,7 @@ class ConnectionInstance(object):
             elif res_token == token:
                 return Response(
                     res_token, res_buf,
-                    self._parent._get_json_decoder(query.global_optargs))
+                    self._parent._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
@@ -492,6 +494,8 @@ class ConnectionInstance(object):
 
 class Connection(object):
     _r = None
+    _json_decoder = ReQLDecoder
+    _json_encoder = ReQLEncoder
 
     def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
@@ -511,6 +515,11 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
+
+        if 'json_encoder' in kwargs:
+            self._json_encoder = kwargs.pop('json_encoder')
+        if 'json_decoder' in kwargs:
+            self._json_decoder = kwargs.pop('json_decoder')
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -586,11 +595,11 @@ class Connection(object):
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return self._instance.run_query(q, True)
 
-    def _get_json_decoder(self, format_opts):
-        return ReQLDecoder(format_opts)
+    def _get_json_decoder(self, query):
+        return (query._json_decoder or self._json_decoder)(query.global_optargs)
 
-    def _get_json_encoder(self):
-        return ReQLEncoder()
+    def _get_json_encoder(self, query):
+        return (query._json_encoder or self._json_encoder)()
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
