@@ -63,9 +63,11 @@ class Query(object):
         self.type = type
         self.token = token
         self.term = term
+        self.global_optargs = global_optargs
+
+        global_optargs = global_optargs or { }
         self._json_encoder = global_optargs.pop('json_encoder', None)
         self._json_decoder = global_optargs.pop('json_decoder', None)
-        self.global_optargs = global_optargs
 
     def serialize(self, reql_encoder=ReQLEncoder()):
         message = [self.type]
