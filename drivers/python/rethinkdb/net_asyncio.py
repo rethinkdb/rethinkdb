@@ -198,7 +198,7 @@ class ConnectionInstance(object):
 
     @asyncio.coroutine
     def run_query(self, query, noreply):
-        self._streamwriter.write(query.serialize(self._parent._get_json_encoder()))
+        self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -227,7 +227,7 @@ class ConnectionInstance(object):
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
                     res = Response(token, buf,
-                                   self._parent._get_json_decoder(query.global_optargs))
+                                   self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
