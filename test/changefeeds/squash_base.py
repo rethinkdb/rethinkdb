@@ -96,7 +96,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .table(self.tableName) \
                       .order_by(index=self.r.desc(self.field)) \
                       .limit(self.limit) \
-                      .changes(squash=self.squash)
+                      .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
@@ -165,7 +165,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .table(self.tableName) \
                       .order_by(index=self.r.desc(self.field)) \
                       .limit(self.limit) \
-                      .changes(squash=self.squash)
+                      .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
@@ -215,7 +215,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .table(self.tableName) \
                       .order_by(index=self.r.desc(self.field)) \
                       .limit(self.limit) \
-                      .changes(squash=self.squash) 
+                      .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
@@ -290,7 +290,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .table(self.tableName) \
                       .order_by(index=self.r.desc(self.field)) \
                       .limit(self.limit) \
-                      .changes(squash=self.squash)
+                      .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
@@ -385,7 +385,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     .table(self.tableName) \
                     .order_by(index=self.r.desc(self.field)) \
                     .limit(self.limit) \
-                    .changes(squash=self.squash)
+                    .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
@@ -425,7 +425,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     .table(self.tableName) \
                     .order_by(index=self.r.desc(self.field)) \
                     .limit(self.limit) \
-                    .changes(squash=self.squash)
+                    .changes(squash=self.squash, include_initial=True)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
