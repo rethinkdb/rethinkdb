@@ -255,6 +255,8 @@ class ConnectionInstance(object):
                     deferred.callback(maybe_profile(cursor, res))
                 elif res.type == pResponse.WAIT_COMPLETE:
                     deferred.callback(None)
+                elif res.type == pResponse.SERVER_INFO:
+                    deferred.callback(res.data[0])
                 else:
                     deferred.errback(res.make_error(query))
                 del self._user_queries[token]
@@ -362,6 +364,11 @@ class Connection(ConnectionBase):
     @inlineCallbacks
     def noreply_wait(self, *args, **kwargs):
         res = yield super(Connection, self).noreply_wait(*args, **kwargs)
+        returnValue(res)
+
+    @inlineCallbacks
+    def server(self, *args, **kwargs):
+        res = yield super(Connection, self).server(*args, **kwargs)
         returnValue(res)
 
     @inlineCallbacks
