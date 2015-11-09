@@ -355,6 +355,7 @@ class PyTestDriver:
         print('Creating default connection to server on port %d\n' % DRIVER_PORT)
         self.cpp_conn = self.connect()
         self.scope = globals()
+        self.scope['conn'] = self.cpp_conn # allow access to connection
     
     def connect(self):
         return r.connect(host='localhost', port=DRIVER_PORT)

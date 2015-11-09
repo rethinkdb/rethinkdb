@@ -52,6 +52,7 @@ end
 # --
 
 $defines = binding
+$defines.eval('conn = $reql_conn') # allow access to connection
 
 NoError = "<no error>"
 AnyUUID = "<any uuid>"

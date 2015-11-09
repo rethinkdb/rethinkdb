@@ -1,10 +1,10 @@
 var path = require('path');
 var assert = require('assert');
-var promise = require(path.resolve(__dirname, '..', '..', '..', 'build', 'packages', 'js', 'node_modules', 'bluebird'));
 
 // -- load rethinkdb from the proper location
 
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var promise = r._bluebird
 
 // -- global variables
 
@@ -270,6 +270,7 @@ r.connect({port:DRIVER_PORT}, function(error, conn) {
         process.exit(1);
     }
     reqlConn = conn;
+    defines['conn'] = conn // allow access to connection
 
     // Start the chain of tests
     runTest();
@@ -550,7 +551,7 @@ function stringValue(value) {
 	    return errStr;
     } else if (value && value.hasDesc) {
         return value.toString()
-	} else if (value && value.name) {
+	} else if (value && value.name && value.prototype) {
         return value.name;
     } else {
 		try {
