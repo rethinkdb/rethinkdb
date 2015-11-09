@@ -158,6 +158,7 @@ function eq(exp, compOpts) {
     fun.toString = function() {
         return JSON.stringify(exp);
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -169,6 +170,7 @@ function returnTrue() {
     fun.toString = function() {
         return 'Always true';
     }
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -328,15 +330,18 @@ function runTest() {
                 
                 // - convert expected value into a function for comparison
                 var exp_fun = null;
-                try {
-                    with (defines) {
-                        exp_fun = eval(test.expectedSrc);
+                if (test.expectedSrc !== undefined) {
+                    try {
+                        with (defines) {
+                            regexEscaped = test.expectedSrc.replace(/(regex\((['"])(.*?)\1\))/g, function(match) {return match.replace('\\', '\\\\');})
+                            exp_fun = eval(regexEscaped);
+                        }
+                    } catch (err) {
+                        // Oops, this shouldn't have happened
+                        console.error(test.name);
+                        console.error(test.expectedSrc);
+                        throw err;
                     }
-                } catch (err) {
-                    // Oops, this shouldn't have happened
-                    console.error(test.name);
-                    console.error(test.expectedSrc);
-                    throw err;
                 }
                 if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
@@ -659,6 +664,7 @@ function fetch(cursor, limit) {
     fun.toString = function() {
         return 'fetch_inner() limit = ' + limit;
     };
+    fun.toJSON = fun.toString;
     fun.autoRunTest = true;
     return fun;
 }
@@ -673,6 +679,7 @@ function wait(seconds) {
     fun.toString = function() {
         return 'wait_inner() seconds = ' + seconds;
     };
+    fun.toJSON = fun.toString;
     fun.autoRunTest = true;
     return fun;
 }
@@ -782,6 +789,7 @@ function bag(expected, compOpts, partial) {
     fun.toString = function() {
         return "bag(" + stringValue(expected) + ")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -797,10 +805,29 @@ function partial(expected, compOpts) {
         fun.toString = function() {
             return "partial(" + stringValue(expected) + ")";
         };
+        fun.toJSON = fun.toString;
         return fun;
     } else {
         unexpectedException("partial can only handle Arrays and Objects, got: " + typeof(expected));
     }
+}
+
+function regex(pattern) {
+    regex = new RegExp(pattern)
+    var fun = function regexReturn(other) {
+        console.error('a', pattern, regex.test(other), '---', other)
+        if (regex.exec(other) === null) {
+            return false;
+        }
+        return true;
+    }
+    fun.isErr = true;
+    fun.hasDesc = true;
+    fun.toString = function() {
+        return 'regex: ' + pattern.toString();
+    };
+    fun.toJSON = fun.toString;
+    return fun;
 }
 
 // Invoked by generated code to demonstrate expected error output
@@ -853,6 +880,7 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
     fun.toString = function() {
         return desc;
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -867,6 +895,7 @@ function builtin_err(err_name, err_msg) {
     fun.toString = function() {
         return err_name+"(\""+err_msg+"\")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -877,8 +906,9 @@ function arrlen(length, eq_fun) {
     };
     fun.hasDesc = true;
     fun.toString = function() {
-        return "arrlen("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
+        return "arrlen(" + length + (eq_fun ? ", " + eq_fun.toString() : '') + ")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -889,6 +919,7 @@ function uuid() {
     fun.toString = function() {
         return "uuid()";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 

@@ -69,6 +69,7 @@ DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
 def print_debug(message):
     if DEBUG_ENABLED:
         print('DEBUG (%.2f):\t %s' % (time.time() - start_time, message.rstrip()))
+        sys.stdout.flush()
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
 print_debug('Using driver port: %d' % DRIVER_PORT)
@@ -314,6 +315,23 @@ class Number:
     def __repr__(self):
         return "%s: %s" % (type(self.value).__name__, str(self.value))
 
+class Regex:
+    value = None
+
+    def __init__ (self, value, **kwargs):
+        try:
+            self.value = re.compile(value)
+        except Exception as e:
+            raise ValueError('Regex got a bad value: %r' % value)
+    
+    def __eq__(self, other):
+        if not isinstance(other, (str, unicode)):
+            return False
+        return not self.value.match(other) is None
+    
+    def __repr__(self):
+        return "Regex: %s" % (self.value.pattern if self.value else '<none>')
+
 # -- Curried output test functions --
 
 def eq(exp, **kwargs):
@@ -550,6 +568,9 @@ def arrlen(length, thing=None):
 
 def uuid():
     return Uuid()
+
+def regex(value):
+    return Regex(value)
 
 def int_cmp(expected_value):
     return Number(expected_value, explicit_type=(int, long))

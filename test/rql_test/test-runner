@@ -453,7 +453,7 @@ class RbLang(SrcLang):
             
             # skip everything not in a level
             elif len(stateStack) == 0:
-                continue
+                pass
             
             # end of non-dict level
             elif char in levelChars.keys() and stateStack[-1] == levelChars[char]:
@@ -468,9 +468,8 @@ class RbLang(SrcLang):
                 try:
                     # look at the preceding characters to see if this looks valid
                     startedWord = False
-                    for i in xrange(1, pos):
-                        checkChar = source[pos - i]
-                        
+                    for i in xrange(pos - 1, -1, -1):
+                        checkChar = source[i]
                         if checkChar in string.whitespace:
                             if startedWord:
                                 break
@@ -478,18 +477,29 @@ class RbLang(SrcLang):
                         elif checkChar in string.digits: # {a0:4} is valid, {5:4} is not
                             startedWord = True
                             continue
-                        elif checkChar in ('"', "'"):
-                            break # this we need to translate
+                        elif checkChar in levelChars.keys():
+                            if startedWord:
+                                raise AssertionError() # too complicated, probably not a dict key
+                            break # either a quotes string, a dict, or an array, all are valid
+                        elif i >= len('nil') and ''.join(source[pos - len('nil'): pos]) == 'nil':
+                            if i > len('nil') + 1:
+                                if source[pos - len('nil') - 1] in tuple(string.letters) + tuple(string.digits) + tuple('_'):
+                                    startedWord = True
+                                    continue
+                                else:
+                                    break # we need the => to keep it from auto-translateing {nil:1} to {:nil:1}
+                            break
                         elif checkChar in validPreChars:
-                            raise Exception() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
+                            raise AssertionError() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
                         else:
                             if startedWord:
                                 break
-                            raise Exception()
+                            raise AssertionError()
                     else:
-                        raise Exception()
+                        if not(startedWord) and i != 0:
+                            raise AssertionError()
                     
-                    # look at the following characters to make sure that looks good too
+                    # look at the following characters to make sure that looks good as well
                     for i in xrange(pos + 1, length):
                         checkChar = source[i]
                         if checkChar in string.whitespace:
@@ -497,14 +507,14 @@ class RbLang(SrcLang):
                         elif checkChar in validPostChars:
                             break
                         else:
-                            raise Exception()
+                            raise AssertionError()
                     else:
-                        raise Exception()
+                        raise AssertionError()
                     
                     # passed both tests, replace it
                     source[pos] = '=>'
                     
-                except Exception: pass
+                except AssertionError: pass
         
         # - return the string, with extraneous newlines striped out
         

@@ -56,8 +56,7 @@ $defines = binding
 NoError = "<no error>"
 AnyUUID = "<any uuid>"
 Err = Struct.new(:class, :message, :backtrace)
-Bag = Struct.new(:items, :partial)
-PartialHash = Struct.new(:hash)
+Bag = Struct.new(:value, :ordered, :partial)
 
 # --
 
@@ -76,19 +75,37 @@ def show(x)
   return (PP.pp x, "").chomp
 end
 
-def bag(list, partial=false)
-  Bag.new(list, partial)
+def bag(expected, ordered=nil, partial=nil)
+  if ordered.nil?
+    ordered = false
+  end
+  if partial.nil?
+    partial = false
+  end
+  
+  if expected.kind_of?(Array) or expected.kind_of?(Hash)
+    Bag.new(expected, ordered, partial)
+  elsif expected.kind_of?(Bag)
+    Bag.new(expected.items, ordered, partial)
+  else
+    raise("bag() can only handle items ot type Hash, Array, or Bag. Got: #{expected.class}")
+  end
 end
 
-def partial(expected)
-  if expected.kind_of?(Array)
-    bag(expected, true)
+def partial(expected, ordered=nil, partial=nil)
+  if ordered.nil?
+    ordered = false
+  end
+  if partial.nil?
+    partial = true
+  end
+  
+  if expected.kind_of?(Array) or expected.kind_of?(Hash)
+    Bag.new(expected, ordered, partial)
   elsif expected.kind_of?(Bag)
-    bag(expected.items, true)
-  elsif expected.kind_of?(Hash)
-    PartialHash.new(expected)
+    Bag.new(expected.items, ordered, partial)
   else
-    raise("partial can only handle Hashs, Arrays, or Bags. Got: #{expected.class}")
+    raise("partial() can only handle items ot type Hash, Array, or Bag. Got: #{expected.class}")
   end
 end
 
@@ -115,6 +132,10 @@ end
 
 def uuid
   AnyUUID
+end
+
+def regex(pattern)
+  Regexp.new(pattern)
 end
 
 def shard
@@ -160,18 +181,20 @@ def float_cmp(value)
   return Number.new(value)
 end
 
-def cmp_test(expected, result, testopts={}, partial=false)
-  print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>>")
+def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
+  print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>> (#{result.class})")
   
+  # - NoError
   if expected.object_id == NoError.object_id
-    if result.is_a?(Err)
+    if result.is_a?(Err) || result.is_a?(Exception) || result.is_a?(RethinkDB::ReqlError)
       puts result
       puts result.backtrace
       return -1
     end
     return 0
   end
-
+  
+  # - nils in expected or result
   if expected.nil? and result.nil?
     return 0
   elsif result.nil?
@@ -179,16 +202,27 @@ def cmp_test(expected, result, testopts={}, partial=false)
   elsif expected.nil?
     return -1
   end
-
+  
+  # - AnyUUID
   if expected.object_id == AnyUUID.object_id
     return -1 if not result.kind_of? String
     return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
     return 1
   end
-
+  
+  # - unpack Bags
+  if expected.is_a?(Bag)
+    ordered = expected.ordered
+    partial = expected.partial
+    expected = expected.value
+  end
+  
+  # - strip assertion messages from any strings
   if result.is_a?(String) then
     result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
+  
+  # -
   
   case
   when expected.is_a?(Err) || expected.is_a?(Exception)
@@ -202,67 +236,130 @@ def cmp_test(expected, result, testopts={}, partial=false)
     else
       return result.class.name <=> expected.class.name
     end
-
-  when expected.is_a?(Array)
-    if result.respond_to? :to_a
-      result = result.to_a
+  
+  when expected.is_a?(Regexp)
+    # short circuit if result is not a String
+    if not result.is_a?(String)
+      return -1
     end
-    cmp = result.class.name <=> expected.class.name
-    return cmp if cmp != 0
-    if partial
-      resultKeys = result.sort.each
-      expected.sort.each { |expectedKey|
-        cmp = -1
-        for resultKey in resultKeys
-          cmp = cmp_test(expectedKey, resultKey, testopts)
-          if cmp == 0
-            break
+    return expected.match(result) ? 0 : 1
+  
+  when expected.is_a?(Array)
+    # short circuit if result is not an array
+    if not result.is_a?(Array)
+      return -1
+    end
+    
+    # short circut on lengths
+    if expected.length == 0
+      if partial or result.length == 0
+        return 0
+      else
+        return -1
+      end
+    end
+    if not(partial) && expected.length != result.length
+      return -1
+    end
+    
+    if ordered
+      haystack = result.each
+      for needle in expected
+        begin
+          straw = haystack.next
+        rescue StopIteration
+          return -1 # ran out of straw before finding all the needles
+        end
+        while cmp_test(needle, straw, testopts=testopts, ordered=ordered, partial=partial) != 0
+          if not partial
+            return -1
+          end
+          begin
+            straw = haystack.next
+          rescue StopIteration
+            return -1 # ran out of straw before finding all the needles
           end
         end
-        if cmp != 0
-          return cmp
+      end
+      if not partial
+        begin
+          haystack.next
+        rescue StopIteration
+          # looks good
+        else
+          return -1 # ran out of needles before straw
         end
-      }
+      end
     else
-      cmp = result.length <=> expected.length
-      return cmp if cmp != 0
-      expected.zip(result) { |pair|
-        cmp = cmp_test(pair[0], pair[1], testopts)
-        return cmp if cmp != 0
-      }
+      # non-ordered
+      needles = expected.dup
+      for straw in result
+        if needles.length == 0
+          if partial
+            return 0
+          else
+            return -1 # ran out of needles before straw
+          end
+        end
+        if needles.each do |needle|
+          if cmp_test(needle, straw, testopts=testopts, ordered=ordered, partial=partial) == 0
+            needles.delete_at(needles.find_index(needle))
+            break needle # bypass the `end.nil?` below
+          end
+        end.nil?
+          if not partial
+            return -1 # no match for this straw
+          end
+        end
+      end
+      if needles.length != 0
+        return -1
+      end
     end
     return 0
-
-  when expected.is_a?(PartialHash)
-    return cmp_test(expected.hash, result, testopts, true)
 
   when expected.is_a?(Hash)
-    cmp = result.class.name <=> expected.class.name
-    return cmp if cmp != 0
-    result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
-    expected = Hash[ expected.map{ |k,v| [k.to_s, v] } ]
-    if partial
-        if not Set.new(expected.keys).subset?(Set.new(result.keys))
+    if not result.is_a?(Hash)
+      return -1 # short circuit if not a hash
+    end
+    
+    # short circut on lengths
+    if expected.length == 0
+      if partial or result.length == 0
+        return 0
+      else
+        return -1
+      end
+    end
+    if not(partial) && expected.length != result.length
+      return expected.length, result.length
+    end
+    
+    # compare the items
+    needles = expected.dup
+    result.each{ |strawKey, strawValue|
+      if needles.length == 0
+        if partial
+          return 0
+        else
           return -1
         end
-    else
-        cmp = result.keys.sort <=> expected.keys.sort
-        return cmp if cmp != 0
-    end
-    expected.each_key { |key|
-      cmp = cmp_test(expected[key], result[key], testopts)
-      return cmp if cmp != 0
+      end
+      if needles.has_key?(strawKey)
+        if cmp_test(needles[strawKey], strawValue, testopts=testopts, ordered=ordered, partial=partial) != 0
+          return -1
+        else
+          needles.delete(strawKey)
+        end
+      elsif not partial
+        return -1 # not everything in the hastack is a needle
+      end
     }
+    if needles.length != 0
+      return -1
+    end
     return 0
-
-  when expected.is_a?(Bag)
-    return cmp_test(
-      expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
-      result.sort{ |a, b| cmp_test(a, b, testopts) },
-      testopts,
-      expected.partial
-    )
-
+  
   when expected.is_a?(Float) || expected.is_a?(Fixnum) || expected.is_a?(Number)
     if not (result.kind_of? Float or result.kind_of? Fixnum)
       cmp = result.class.name <=> expected.class.name
@@ -437,7 +534,8 @@ def setup_table(table_variable_name, table_name, db_name="test")
     end
     res = r.db(db_name).table_create(table_name).run($reql_conn)
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
-
+    r.db(db_name).table(table_name).wait().run($reql_conn)
+    
     print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush
 
@@ -468,7 +566,7 @@ end
 
 def check_result(name, src, result, expected, testopts={})
   begin
-    successfulTest = true
+    # - process expected
     begin
       if expected && expected != ''
         expected = $defines.eval(expected.to_s)
@@ -476,43 +574,42 @@ def check_result(name, src, result, expected, testopts={})
         expected = NoError
       end
     rescue Exception => err
-      fail_test(name, src, err, expected, type="SETUP ERROR")
-      successfulTest = false
-    end
-    if successfulTest
-      # - read out cursors
-
-      if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && expected != NoError
-        begin
-          result = result.to_a
-        rescue RethinkDB::ReqlError => err
-          result = err
-        end
-      end
-
-      begin
-        if cmp_test(expected, result, testopts) != 0
-          fail_test(name, src, result, expected)
-          successfulTest = false
-        end
-      rescue Exception => err
-        successfulTest = false
-        fail_test(name, src, err, expected, type="TEST COMPARISON ERROR")
-      end
-    end
-    if successfulTest
-      $success_count += 1
-      return true
-    else
+      fail_test(name, src, err, expected, type="COMPARE SETUP ERROR")
       return false
     end
+    
+    # - read out cursors
+    if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && not(expected == NoError || testopts.has_key?('variable'))
+      begin
+        result = result.to_a
+      rescue Exception => err
+        result = err
+      end
+    end
+    
+    # - compare the result
+    begin
+      if cmp_test(expected, result, testopts) != 0
+        fail_test(name, src, result, expected)
+        return false
+      end
+    rescue Exception => err
+      fail_test(name, src, err, expected, type="COMPARE ERROR")
+      return false
+    end
+    
+    # - declare victory
+    $success_count += 1
+    return true
+    
   rescue StandardError, SyntaxError => err
-    fail_test(name, src, err, expected, type="UNEXPECTED ERROR")
+    fail_test(name, src, err, expected, type="UNEXPECTED COMPARE ERROR")
+    return false
   end
 end
 
-def fail_test(name, src, result, expected, type="TEST")
-  $stderr.puts "TEST FAILURE: #{name}"
+def fail_test(name, src, result, expected, type="TEST FAILURE")
+  $stderr.puts "#{type}: #{name}"
   $stderr.puts "     SOURCE:     #{src}"
   $stderr.puts "     EXPECTED:   #{show expected}"
   $stderr.puts "     RESULT:     #{show result}"
