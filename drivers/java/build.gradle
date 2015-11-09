@@ -64,8 +64,8 @@ repositories {
     ivy {
         url "${System.properties['user.home']}/.ivy2/local"
         layout 'pattern', {
-            artifact "[organisation]/[module]/[revision]/[artifact](-[classifier])-[revision](.[ext])"
-            ivy "[organisation]/[module]/[revision]/[artifact](-[classifier])-[revision](.[ext])"
+            artifact "[organisation]/[module]/jars/[artifact](-[classifier])-[revision](.[ext])"
+            ivy "[organisation]/[module]/[artifact](-[classifier])-[revision](.[ext])"
             }
     } 
 }
