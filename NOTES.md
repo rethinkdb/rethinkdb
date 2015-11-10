@@ -1,3 +1,198 @@
+# Release 2.1.5-2 (Forbidden Planet)
+
+Released on 2015-10-08
+
+Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.5 servers cannot be mixed with servers running RethinkDB 2.1.4 or earlier
+  in the same cluster
+
+### Bug fixes ###
+
+* Fixed a memory corruption bug that caused segmentation faults on some systems
+  (#4917)
+* Made the build system compatible with OS X El Capitan (#4602)
+* Fixed spurious "Query terminated by `rethinkdb.jobs` table" errors (#4819)
+* Fixed an issue that caused changefeeds to keep failing after a table finished
+  reconfiguring (#4838)
+* Fixed a race condition that resulted in a crash with the message
+  `std::terminate() called without any exception.` when losing a cluster connection
+  (#4878)
+* Fixed a segmentation fault in the `mark_ready()` function that could occur when
+  reconfiguring a table (#4875)
+* Fixed a segmentation fault when using changefeeds on `orderBy.limit` queries (#4850)
+* Made the Data Explorer handle changefeeds on `orderBy.limit` queries correctly (#4852)
+* Fixed a "Branch history is incomplete" crash when reconfiguring a table repeatedly in
+  quick succession (#4866)
+* Fixed a problem that caused `indexStatus` to report results for additional indexes that
+  were not specified in its arguments (#4868)
+* Fixed a segmentation fault when running RethinkDB on certain ARM systems (#4839)
+* Fixed a compilation issue in the UTF-8 unit test with recent versions of Xcode (#4861)
+* Fixed an `Assertion failed: [ptr_]` error when reconfiguring tables quickly with a
+  debug-mode binary (#4871)
+* Improved the detection of unsupported values in `r.js` functions to avoid a
+  `Guarantee failed: [!key.IsEmpty() && !val.IsEmpty()]` crash in the worker process
+  (#4879)
+* Fixed an unitialized data access issue on shutdown (#4918)
+
+### Performance improvements ###
+
+* Improved the performance of `getAll` queries that fetch multiple keys at once (#1526)
+* Optimized the distribution of tasks across threads on multi-core servers (#4905)
+
+--
+
+# Release 2.1.4 (Forbidden Planet)
+
+Released on 2015-09-16
+
+Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.4 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
+  in the same cluster
+
+### Bug fixes ###
+
+* Fixed a data corruption bug that could occur when deleting documents (#4769)
+* The web UI no longer ignores errors during table configuration (#4811)
+* Added a check in case `reconfigure` is called with a non-existent server tag (#4840)
+* Removed a spurious debug-mode assertion that caused a server crash when trying
+  to write to the `stats` system table (#4837)
+* The `rethinkdb restore` and `rethinkdb import` commands now wait for secondary
+  indexes to become ready before beginning the data import (#4832)
+
+--
+
+# Release 2.1.3 (Forbidden Planet)
+
+Released on 2015-09-04
+
+Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.3 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
+  in the same cluster
+
+### Bug fixes ###
+
+* Fixed a data corruption bug in the b-tree implementation (#4769)
+* Fixed the `ssl` option in the JavaScript driver (#4786)
+* Made the Ruby driver compatible with Ruby on Rails 3.2 (#4753)
+* Added the `backports.ssl_match_hostname` library to the Python driver package (#4683)
+* Changed the update check to use an encrypted https connection (#3988, #4643)
+* Fixed access to `https` sources in `r.http` on OS X (#3112)
+* Fixed an `Unexpected exception` error (#4758)
+* Fixed a `Guarantee failed: [pair.second]` crash that could occur during resharding
+  (#4774)
+* Fixed a bug that caused some queries to not report an error when interrupted (#4762)
+* Added a new `"_debug_recommit"` recovery option to `emergency_repair` (#4720)
+* Made error reporting in the Python driver compatible with `celery` and `nose` (#4764)
+* Changed the handling of outdated indexes from RethinkDB 1.13 during an import to no
+  longer terminate the server (#4766)
+
+### Performance improvements ###
+
+* Improved the latency when reading from a system table in `r.db('rethinkdb')` while the
+  server is under load (#4773)
+* Improved the parallelism of JSON encoding on the server to utilize multiple CPU cores
+* Refactored JSON decoding in the Python driver to allow the use of custom JSON parsers
+  and to speed up pseudo type conversion (#4585)
+* Improved the prefetching logic in the Python driver to increase the throughput of
+  cursors
+* Changed the Python driver to use a more efficient data structure to store cursor
+  results (#4782)
+
+### Contributors ###
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.1.3. In no particular order:
+
+* Adam Grandquist (@grandquista)
+* ajose01 (@ajose01)
+* Paulius Uza (@pauliusuza)
+
+--
+
+# Release 2.1.2 (Forbidden Planet)
+
+Released on 2015-08-25
+
+Bug fix release
+
+### Compatibility ###
+
+* RethinkDB 2.1.2 servers cannot be mixed with servers running earlier versions in the
+  same cluster
+* Changefeeds on a `get_all` query no longer return initial values. This restores the
+  behavior from RethinkDB 2.0
+
+### Bug fixes ###
+
+* Fixed an issue where writes could be acknowledged before all necessary data was written
+  to disk
+* Restored the 2.0 behavior for changefeeds on `get_all` queries to avoid various
+  issues and incompatibilities
+* Fixed an issue that caused previously migrated tables to be shown as unavailable (#4723)
+* Made outdated secondary index warnings disappear once the problem is resolved (#4664)
+* Made `index_create` atomic to avoid race conditions when multiple indexes were created
+  in quick succession (#4694)
+* Improved how query execution times are reported in the Data Explorer (#4752)
+* Fixed a memory leak in `r.js` (#4663)
+* Fixed the `Branch history is missing pieces` error (#4721)
+* Fixed a race condition causing a crash with
+  `Guarantee failed: [!send_mutex.is_locked()]` (#4710)
+* Fixed a bug in the changefeed code that could cause crashes with the message
+  `Guarantee failed: [active()]` (#4678)
+* Fixed various race conditions that could cause crashes if changefeeds were present
+  during resharding (#4735, #4734, #4678)
+* Fixed a race condition causing a crash with `Guarantee failed: [val.has()]` (#4736)
+* Fixed an `Assertion failed` issue when running a debug-mode binary (#4685)
+* Added a workaround for an `eglibc` bug that caused an `unexpected address family`
+  error on startup (#4470)
+* Added precautions to avoid secondary index migration issues in subsequent releases
+* Out-of-memory errors in the server's JSON parser are now correctly reported (#4751)
+
+--
+
+# Release 2.0.5 (Yojimbo)
+
+Released on 2015-08-25
+
+Bug fix release
+
+* Added precautions to avoid secondary index migration issues in subsequent releases
+* Fixed a memory leak in `r.js` (#4663)
+* Added a workaround for an `eglibc` bug that caused an `unexpected address family`
+  error on startup (#4470)
+* Fixed a bug in the changefeed code that could cause crashes with the message
+  `Guarantee failed: [active()]` (#4678)
+* Fixed a bug that caused intermittent server crashes with the message
+  `Guarantee failed: [fn_id != __null]` in combination with the `r.js` command (#4611)
+* Improved the performance of the `is_empty` term (#4592)
+
+--
+
+# Release 2.1.1 (Forbidden Planet)
+
+Released on 2015-08-12
+
+Bug fix release
+
+* Fixed a problem where after migration, some replicas remained unavailable when
+  reconfiguring a table (#4668)
+* Removed the defunct `--migrate-inconsistent-data` command line argument (#4665)
+* Fixed the slider for setting write durability during table creation in the web UI
+  (#4660)
+* Fixed a race condition in the clustering subsystem (#4670)
+* Improved the handling of error messages in the testing system (#4657)
+
+--
+
 # Release 2.1.0 (Forbidden Planet)
 
 Released on 2015-08-11
@@ -92,7 +287,7 @@ separately in your application if you need to. You can find the
 
 As part of this change, ReQL error types now use the `Reql` name prefix instead of `Rql`
 (for example `ReqlRuntimeError` instead of `RqlRuntimeError`).
-The old type names are still supported in our drivers for backwards compatiblity.
+The old type names are still supported in our drivers for backwards compatibility.
 
 [error-types]: http://rethinkdb.com/docs/error-types/
 
@@ -2431,4 +2626,5 @@ pressure. They will be resolved in subsequent releases.
 * The clustering system has a bottleneck in cluster metadata
   propagation. Cluster management slows down significantly when more
   than sixteen shards are used.
+
 
