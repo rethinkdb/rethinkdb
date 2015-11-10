@@ -188,10 +188,12 @@ void do_read(ql::env_t *env,
              const rget_read_t &rget,
              rget_read_response_t *res,
              release_superblock_t release_superblock) {
+    guarantee(rget.current_shard);
     if (!rget.sindex) {
         // Normal rget
         rdb_rget_slice(
             btree,
+            *rget.current_shard,
             rget.region.inner,
             rget.primary_keys,
             superblock,
@@ -249,6 +251,7 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
+            *rget.current_shard,
             rget.sindex->datumspec,
             sindex_range,
             sindex_sb.get(),
@@ -280,7 +283,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_limit_subscribe_t &s) {
         ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
                       interruptor, s.optargs, trace);
-        ql::stream_t stream;
+        ql::raw_stream_t stream;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
@@ -288,12 +291,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             }
             rget_read_t rget;
             rget.region = s.region;
+            rget.current_shard = s.current_shard;
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             if (s.spec.range.sindex) {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::NO,
                     s.spec.limit,
+                    s.region,
+                    !reversed(s.spec.range.sorting)
+                        ? store_key_t::min()
+                        : store_key_t::max(),
                     s.spec.range.sorting,
                     &ops};
                 rget.sindex = sindex_rangespec_t(
@@ -304,6 +312,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES,
                     s.spec.limit,
+                    s.region,
+                    !reversed(s.spec.range.sorting)
+                        ? store_key_t::min()
+                        : store_key_t::max(),
                     s.spec.range.sorting,
                     &ops};
             }
@@ -320,7 +332,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 response->response = resp;
                 return;
             }
-            stream = groups_to_batch(gs->get_underlying_map());
+            ql::stream_t read_stream = groups_to_batch(gs->get_underlying_map());
+            guarantee(read_stream.substreams.size() <= 1);
+            if (read_stream.substreams.size() == 1) {
+                stream = std::move(read_stream.substreams.begin()->second.stream);
+            } else {
+                guarantee(stream.size() == 0);
+            }
         }
         auto lvec = ql::changefeed::mangle_sort_truncate_stream(
             std::move(stream),
@@ -417,6 +435,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             res->result = e;
             return;
         }
+        res->reql_version =
+            sindex_info.mapping_version_info.latest_compatible_reql_version;
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
@@ -432,8 +452,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         guarantee(geo_read.sindex.region);
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
+            geo_read.region, // This happens to always be the shard for geo reads.
             geo_read.query_geometry,
-            *geo_read.sindex.region,
+            geo_read.sindex.region->inner,
             sindex_sb.get(),
             &ql_env,
             geo_read.batchspec,

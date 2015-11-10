@@ -741,6 +741,9 @@ private:
                       base_exc_t::LOGIC,
                       "Cannot use a geospatial index with `get_all`. "
                       "Use `get_intersecting` instead.");
+        rcheck_target(arg, datum_arg.get_type() != datum_t::R_NULL,
+                      base_exc_t::NON_EXISTENCE,
+                      "Keys cannot be NULL.");
         return datum_arg;
     }
 

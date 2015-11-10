@@ -38,6 +38,7 @@ struct make_sindex_read_t {
                 boost::optional<changefeed_stamp_t>(),
                 region_t::universe(),
                 boost::none,
+                boost::none,
                 ql::global_optargs_t(),
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),

@@ -18,6 +18,8 @@
 #include "rdb_protocol/datum_utils.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/wire_func.hpp"
+#include "region/region.hpp"
+#include "stl_utils.hpp"
 
 enum class is_primary_t { NO, YES };
 
@@ -49,12 +51,49 @@ struct rget_item_t {
     store_key_t key;
     ql::datum_t sindex_key, data;
 };
-
 RDB_DECLARE_SERIALIZABLE(rget_item_t);
+
+class sindex_compare_t {
+public:
+    explicit sindex_compare_t(sorting_t _sorting)
+        : sorting(_sorting) { }
+    bool operator()(const rget_item_t &l, const rget_item_t &r) {
+        r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
+
+        if (l.sindex_key == r.sindex_key) {
+            return reversed(sorting)
+                ? datum_t::extract_primary(l.key) > datum_t::extract_primary(r.key)
+                : datum_t::extract_primary(l.key) < datum_t::extract_primary(r.key);
+        } else {
+            return reversed(sorting)
+                ? l.sindex_key > r.sindex_key
+                : l.sindex_key < r.sindex_key;
+        }
+    }
+private:
+    sorting_t sorting;
+};
 
 void debug_print(printf_buffer_t *, const rget_item_t &);
 
-typedef std::vector<rget_item_t> stream_t;
+typedef std::vector<rget_item_t> raw_stream_t;
+struct keyed_stream_t {
+    raw_stream_t stream;
+    store_key_t last_key;
+};
+RDB_DECLARE_SERIALIZABLE(keyed_stream_t);
+struct stream_t {
+    // When we first construct a `stream_t`, it's always for a single shard.
+    stream_t(region_t region, store_key_t last_key)
+        : substreams{{
+            std::move(region),
+                keyed_stream_t{raw_stream_t(), std::move(last_key)}}} { }
+    stream_t(std::map<region_t, keyed_stream_t> &&_substreams)
+        : substreams(std::move(_substreams)) { }
+    stream_t() { }
+    std::map<region_t, keyed_stream_t> substreams;
+};
+RDB_DECLARE_SERIALIZABLE(stream_t);
 
 class optimizer_t {
 public:
@@ -244,10 +283,14 @@ private:
     std::map<datum_t, T, optional_datum_less_t> m;
 };
 
+void debug_print(printf_buffer_t *buf, const keyed_stream_t &stream);
+void debug_print(printf_buffer_t *buf, const stream_t &stream);
+
 template <class T>
 void debug_print(printf_buffer_t *buf, const grouped_t<T> &value) {
-    buf->appendf("grouped_t");
+    buf->appendf("grouped_t(");
     debug_print(buf, *value.get_underlying_map());
+    buf->appendf(")");
 }
 
 namespace grouped_details {
@@ -308,6 +351,8 @@ public:
 struct limit_read_t {
     is_primary_t is_primary;
     size_t n;
+    region_t shard;
+    store_key_t last_key;
     sorting_t sorting;
     std::vector<scoped_ptr_t<op_t> > *ops;
 };
@@ -330,6 +375,7 @@ public:
     virtual ~accumulator_t();
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
+    virtual void stop_at_boundary(store_key_t &&) { }
     virtual bool should_send_batch() = 0;
     virtual continue_bool_t operator()(
             env_t *env,
@@ -337,14 +383,12 @@ public:
             const store_key_t &key,
             // Returns a datum that might be null
             const std::function<datum_t()> &lazy_sindex_val) = 0;
-    virtual void finish(result_t *out);
-    virtual void unshard(env_t *env,
-                         const store_key_t &last_key,
-                         const std::vector<result_t *> &results) = 0;
+    virtual void finish(continue_bool_t last_cb, result_t *out);
+    virtual void unshard(env_t *env, const std::vector<result_t *> &results) = 0;
 protected:
     void mark_finished();
 private:
-    virtual void finish_impl(result_t *out) = 0;
+    virtual void finish_impl(continue_bool_t last_cb, result_t *out) = 0;
     bool finished;
 };
 
@@ -353,14 +397,17 @@ public:
     eager_acc_t() { }
     virtual ~eager_acc_t() { }
     virtual void operator()(env_t *env, groups_t *groups) = 0;
-    virtual void add_res(env_t *env, result_t *res) = 0;
+    virtual void add_res(env_t *env, result_t *res, sorting_t sorting) = 0;
     virtual scoped_ptr_t<val_t> finish_eager(
         backtrace_id_t bt, bool is_grouped,
         const ql::configured_limits_t &limits) = 0;
 };
 
-scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);
-//                                                        NULL if unsharding ^^^^^^^
+scoped_ptr_t<accumulator_t> make_append(region_t region,
+                                        store_key_t last_key,
+                                        sorting_t sorting,
+                                        batcher_t *batcher);
+scoped_ptr_t<accumulator_t> make_unsharding_append();
 scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting);
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 scoped_ptr_t<eager_acc_t> make_to_array();

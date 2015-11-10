@@ -117,13 +117,11 @@ struct rget_read_response_t {
     boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
     reql_version_t reql_version;
-    bool truncated;
-    store_key_t last_key;
 
     rget_read_response_t()
-        : reql_version(reql_version_t::EARLIEST), truncated(false) { }
+        : reql_version(reql_version_t::EARLIEST) { }
     explicit rget_read_response_t(const ql::exc_t &ex)
-        : result(ex), reql_version(reql_version_t::EARLIEST), truncated(false) { }
+        : result(ex), reql_version(reql_version_t::EARLIEST) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
@@ -282,6 +280,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
+                boost::optional<std::map<region_t, store_key_t> > _hints,
                 boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 ql::global_optargs_t _optargs,
                 std::string _table_name,
@@ -292,6 +291,7 @@ public:
                 sorting_t _sorting)
     : stamp(std::move(_stamp)),
       region(std::move(_region)),
+      hints(std::move(_hints)),
       primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
       table_name(std::move(_table_name)),
@@ -304,6 +304,8 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
+    boost::optional<region_t> current_shard;
+    boost::optional<std::map<region_t, store_key_t> > hints;
 
     // The `uint64_t`s here are counts.  This map is used to make `get_all` more
     // efficient, and it's legal to pass duplicate keys to `get_all`.
@@ -443,6 +445,7 @@ struct changefeed_limit_subscribe_t {
     std::string table;
     ql::global_optargs_t optargs;
     region_t region;
+    boost::optional<region_t> current_shard;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 

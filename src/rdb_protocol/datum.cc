@@ -1215,10 +1215,11 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary(
-        reql_version_t reql_version,
-        extrema_ok_t extrema_ok) const {
+    reql_version_t reql_version,
+    extrema_ok_t extrema_ok) const {
 
-    escape_nulls_t escape_nulls = escape_nulls_from_reql_version_for_sindex(reql_version);
+    escape_nulls_t escape_nulls =
+        escape_nulls_from_reql_version_for_sindex(reql_version);
 
     std::string s;
     if (get_type() == R_NUM) {
