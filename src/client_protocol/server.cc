@@ -498,6 +498,16 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
+    // Copy the body into a mutable buffer so we can move it into parse_json_pb.
+    scoped_array_t<char> body_buf(req.body.size() + 1);
+    memcpy(body_buf.data(), req.body.data(), req.body.size());
+    body_buf[req.body.size()] = '\0';
+
+    // Parse the token out from the start of the request
+    char *data = body_buf.data();
+    token = *reinterpret_cast<const int64_t *>(data);
+    data += sizeof(token);
+
     ql::response_t response;
     counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
     if (!conn.has()) {
@@ -505,16 +515,6 @@ void query_server_t::handle(const http_req_t &req,
                             "This HTTP connection is not open.",
                             ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
-        // Copy the body into a mutable buffer so we can move it into parse_json_pb.
-        scoped_array_t<char> body_buf(req.body.size() + 1);
-        memcpy(body_buf.data(), req.body.data(), req.body.size());
-        body_buf[req.body.size()] = '\0';
-
-        // Parse the token out from the start of the request
-        char *data = body_buf.data();
-        token = *reinterpret_cast<const int64_t *>(data);
-        data += sizeof(token);
-
         scoped_ptr_t<ql::query_params_t> query =
             json_protocol_t::parse_query_from_buffer(std::move(body_buf),
                                                      sizeof(token),
