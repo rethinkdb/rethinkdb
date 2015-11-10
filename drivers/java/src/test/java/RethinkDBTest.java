@@ -11,9 +11,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -242,6 +240,22 @@ public class RethinkDBTest{
             r.expr(r.array("optargs", "conn_default")).forEach(r::dbDrop).run(conn);
             r.db("test").tableDrop(tblName).run(conn);
         }
+    }
+
+    @Test
+    public void testFilter() {
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "123")).run(conn);
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "456")).run(conn);
+
+        Cursor<Map<String, String>> allEntries = r.db(dbName).table(tableName).run(conn);
+        assertEquals(2, allEntries.toList().size());
+
+        // The following won't work, because r.row is not implemented in the Java driver. Use lambda syntax instead
+        // Cursor<Map<String, String>> oneEntryRow = r.db(dbName).table(tableName).filter(r.row("field").eq("456")).run(conn);
+        // assertEquals(1, oneEntryRow.toList().size());
+
+        Cursor<Map<String, String>> oneEntryLambda = r.db(dbName).table(tableName).filter(table -> table.getField("field").eq("456")).run(conn);
+        assertEquals(1, oneEntryLambda.toList().size());
     }
 
     @Test
