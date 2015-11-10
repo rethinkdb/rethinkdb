@@ -134,7 +134,7 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t(keyspec_t &&other) = default;
+    keyspec_t(keyspec_t &&) = default;
     ~keyspec_t();
 
     // Accursed reference collapsing!

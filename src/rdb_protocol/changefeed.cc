@@ -1392,10 +1392,6 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
-    void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
-    void each_sub(const auto_drainer_t::lock_t &lock,
-                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -2880,18 +2876,19 @@ void feed_t::del_sub_with_lock(
     rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
-        // We need to check this because when our caller checked that their
-        // `feed_t` pointer was non-NULL, they were doing that on a different
-        // thread.
-        if (detached) return;
+        // Note that we proceed deleting the subscription, even if the `feed_t` has been
+        // detached. This is important because the destructor of a subscription might
+        // call `del_sub` in order to remove itself from the map, and not going
+        // through with it would leave an invalid pointer in the map. `stop_subs` might
+        // then try to use that pointer and cause memory corruption or crash.
         auto_drainer_t::lock_t lock = get_drainer_lock();
         rwlock_in_line_t spot(rwlock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
-        // We need to check this because we might have detached while blocking
-        // in which case we don't want to do anything here.
-        if (detached) return;
         size_t erased = f();
-        guarantee(erased == 1);
+        if (erased == 0) {
+            guarantee(detached);
+            return;
+        }
     }
     guarantee(num_subs > 0);
     num_subs -= 1;
@@ -3026,12 +3023,6 @@ void feed_t::each_point_sub_with_lock(
                    std::cref(f),
                    ph::_1));
 }
-void feed_t::each_point_sub(
-    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
-    each_point_sub_with_lock(&spot, f);
-}
 
 void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
@@ -3051,19 +3042,6 @@ void feed_t::each_limit_sub_with_lock(
                    std::cref(f),
                    ph::_1));
 
-}
-void feed_t::each_limit_sub(
-    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
-    each_limit_sub_with_lock(&spot, f);
-}
-
-void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
-                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
-    each_range_sub(lock, f);
-    each_point_sub(f);
-    each_limit_sub(f);
 }
 
 void feed_t::on_point_sub(
@@ -3242,6 +3220,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                         // presumably in a broken state and needs to be replaced).
                         // We want to destroy the feed after the lock is released,
                         // because it may be expensive.
+                        spot.write_signal()->wait_lazily_unordered();
                         destroy.swap(feed_it->second);
                         destroy->mark_detached();
                         feeds.erase(feed_it);

@@ -492,6 +492,10 @@ class Connection extends events.EventEmitter
                         # data is returned, so the callback is just provided `null`
                         @_delQuery(token)
                         cb null, null
+                    when protoResponseType.SERVER_INFO
+                        @_delQuery(token)
+                        response = mkAtom response, opts
+                        cb null, response
                     else
                         cb new err.ReqlDriverError "Unknown response type"
         else
@@ -647,6 +651,32 @@ class Connection extends events.EventEmitter
             @_sendQuery(query)
         # After the promise is resolved, the callback passed to
         # `noreplyWait` can be invoked.
+        ).nodeify callback
+
+    # #### Connection server method
+    #
+    #  Public, retrieves the remote server id and name. See [API docs
+    #  for server](http://rethinkdb.com/api/javascript/server/).
+    server: varar 0, 1, (callback) ->
+        unless @open
+            return new Promise( (resolve, reject) ->
+                reject(new err.ReqlDriverError "Connection is closed.")
+            ).nodeify callback
+
+        token = @nextToken++
+
+        query = {}
+        query.type = protoQueryType.SERVER_INFO
+        query.token = token
+
+        new Promise( (resolve, reject) =>
+            wrappedCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            @outstandingCallbacks[token] = {cb:wrappedCb, root:null, opts:null}
+            @_sendQuery(query)
         ).nodeify callback
 
     # #### Connection cancel method

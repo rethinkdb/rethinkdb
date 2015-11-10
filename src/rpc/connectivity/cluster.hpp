@@ -131,8 +131,11 @@ public:
 
         /* The constructor registers us in every thread's `connections` map, thereby
         notifying event subscribers. */
-        connection_t(run_t *, peer_id_t, keepalive_tcp_conn_stream_t *,
-                const peer_address_t &peer) THROWS_NOTHING;
+        connection_t(
+            run_t *,
+            const peer_id_t &peer_id,
+            keepalive_tcp_conn_stream_t *,
+            const peer_address_t &peer_address) THROWS_NOTHING;
         ~connection_t() THROWS_NOTHING;
 
         /* NULL for the loopback connection (i.e. our "connection" to ourself) */
@@ -170,6 +173,7 @@ public:
     class run_t {
     public:
         run_t(connectivity_cluster_t *parent,
+              const server_id_t &server_id,
               const std::set<ip_address_t> &local_addresses,
               const peer_address_t &canonical_addresses,
               int port,
@@ -250,6 +254,11 @@ public:
             bool *successful_join) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
+
+        /* The server's own id and the set of servers we are connected to, we only allow
+        a single connection per server. */
+        server_id_t server_id;
+        std::set<server_id_t> servers;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to

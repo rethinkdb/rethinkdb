@@ -110,8 +110,8 @@ class Response(object):
                 pErrorType.USER: ReqlUserError
             }.get(self.error_type, ReqlRuntimeError)(
                 self.data[0], query.term, self.backtrace)
-        return ReqlDriverError("Unknown Response type %d encountered" +
-                               " in a response." % self.type)
+        return ReqlDriverError(("Unknown Response type %d encountered" +
+                                " in a response.") % self.type)
 
 
 # This class encapsulates all shared behavior between cursor implementations.
@@ -451,6 +451,8 @@ class ConnectionInstance(object):
             return maybe_profile(cursor, res)
         elif res.type == pResponse.WAIT_COMPLETE:
             return None
+        elif res.type == pResponse.SERVER_INFO:
+            return res.data[0]
         else:
             raise res.make_error(query)
 
@@ -573,6 +575,11 @@ class Connection(object):
     def noreply_wait(self):
         self.check_open()
         q = Query(pQuery.NOREPLY_WAIT, self._new_token(), None, None)
+        return self._instance.run_query(q, False)
+
+    def server(self):
+        self.check_open()
+        q = Query(pQuery.SERVER_INFO, self._new_token(), None, None)
         return self._instance.run_query(q, False)
 
     def _new_token(self):
