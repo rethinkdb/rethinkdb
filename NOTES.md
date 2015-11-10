@@ -29,11 +29,23 @@ upgrade using `rethinkdb dump`.
 
 ### API-breaking changes ###
 
-* TODO: include_initial
-* TODO: Protobuf
+* Changefeeds on `.orderBy().limit()` as well as `.get()` queries previously provided
+  initial results by default. You now need to pass the `includeInitial: true` optarg to
+  `changes()` to achieve the same behavior.
+* The protocol buffer driver protocol is no longer supported. The JSON-based protocol is
+  now the only supported driver protocol. Certain older drivers (e.g. the Java drivers by
+  @dkhenry and by @npiv) no longer work with RethinkDB 2.2.0. See the [drivers][drivers]
+  list for up-to-date drivers.
 * TODO?
 
 [drivers]: http://rethinkdb.com/docs/install-drivers/
+
+### Supported distributions ###
+
+RethinkDB 2.2.0 now comes with official packages for Ubuntu 15.10 (Wily Werewolf) and
+CentOS 7.
+
+We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
 
 ## New features ##
 
