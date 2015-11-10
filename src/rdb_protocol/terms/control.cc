@@ -38,7 +38,7 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         for (size_t i = 0; i < args->num_args(); ++i) {
             scoped_ptr_t<val_t> v = args->arg(env, i);
-            if (v->as_bool()) {
+            if (v->as_bool() || i == args->num_args() - 1) {
                 return v;
             }
         }
