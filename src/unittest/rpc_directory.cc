@@ -23,8 +23,8 @@ TPTEST(RPCDirectoryTest, OneNode) {
     directory_read_manager_t<int> read_manager(&c, 'D');
     watchable_variable_t<int> watchable(5);
     directory_write_manager_t<int> write_manager(&c, 'D', watchable.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr(&c, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     let_stuff_happen();
 }
 
@@ -41,12 +41,12 @@ TPTEST(RPCDirectoryTest, ThreeNodes) {
     directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -64,12 +64,12 @@ TPTEST(RPCDirectoryTest, Exchange) {
     directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -93,12 +93,12 @@ TPTEST(RPCDirectoryTest, Update) {
     directory_write_manager_t<int> wm1(&c1, 'D', w1.get_watchable()),
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -125,12 +125,12 @@ TPTEST(RPCDirectoryTest, MapUpdate) {
     w1.set_key(101, 1);
     directory_map_write_manager_t<int, int>
         wm1(&c1, 'D', &w1), wm2(&c2, 'D', &w2), wm3(&c3, 'D', &w3);
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -163,8 +163,8 @@ TPTEST(RPCDirectoryTest, DestructorRace) {
     directory_read_manager_t<int> rm(&c, 'D');
     watchable_variable_t<int> w(5);
     directory_write_manager_t<int> wm(&c, 'D', w.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr(&c, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     w.set_value(6);
 }

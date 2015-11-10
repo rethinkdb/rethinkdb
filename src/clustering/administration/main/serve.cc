@@ -204,6 +204,7 @@ bool do_serve(io_backender_t *io_backender,
         try {
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
+                server_id,
                 serve_info.ports.local_addresses,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
