@@ -1,3 +1,83 @@
+# Release 2.2.0 (Modern Times)
+
+Released on 2015-11-XX
+
+Release highlights:
+
+* Atomic changefeeds
+* Performance & Scalability improvements
+
+Read the [blog post][2.2-release] for more details.
+
+[2.2-release]: http://rethinkdb.com/blog/2.2-release/
+
+## Compatibility ##
+
+Data files from RethinkDB versions 1.16.0 onward will be automatically migrated.
+As with any major release, back up your data files before performing the upgrade.
+
+If you're upgrading from RethinkDB 1.14.x or 1.15.x, you need to migrate your secondary
+indexes first. You can do this by following the following steps:
+* install RethinkDB 2.0.5
+* update the RethinkDB Python driver (`sudo pip install 'rethinkdb<2.1.0'`)
+* run `rethinkdb index-rebuild`
+
+Afterwards, you can install RethinkDB 2.2 and start it on the existing data files.
+
+If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
+upgrade using `rethinkdb dump`.
+
+### API-breaking changes ###
+
+* TODO: include_initial
+* TODO: Protobuf
+* TODO?
+
+[drivers]: http://rethinkdb.com/docs/install-drivers/
+
+## New features ##
+
+* Server
+ * TODO
+* ReQL
+ * TODO
+* All drivers
+ * TODO
+* Python driver
+ * TODO
+
+## Improvements ##
+
+* Server
+ * TODO
+* ReQL
+ * TODO
+* JavaScript driver
+ * TODO
+* Python driver
+ * TODO
+* Ruby driver
+ * TODO
+
+## Bug fixes ##
+
+* TODO
+* Python driver
+ * TODO
+* JavaScript driver
+ * TODO
+* Ruby driver
+ * TODO
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.2. In no particular order:
+
+* TODO
+
+--
+
 # Release 2.1.5-2 (Forbidden Planet)
 
 Released on 2015-10-08
