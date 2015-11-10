@@ -593,7 +593,7 @@ public:
         }
         guarantee(transformers.size() == _transforms.size());
     }
-    job_data_t(job_data_t &&jd) = default;
+    job_data_t(job_data_t &&) = default;
 
     bool should_send_batch() const {
         return accumulator->should_send_batch();
