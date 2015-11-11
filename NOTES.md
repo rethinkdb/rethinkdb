@@ -29,16 +29,18 @@ upgrade using `rethinkdb dump`.
 
 ### API-breaking changes ###
 
-* Changefeeds on `.orderBy().limit()` as well as `.get()` queries previously provided
+* Changefeeds on `.orderBy.limit` as well as `.get` queries previously provided
   initial results by default. You now need to pass the `includeInitial: true` optarg to
-  `changes()` to achieve the same behavior.
+  `.changes` to achieve the same behavior.
 * The protocol buffer driver protocol is no longer supported. The JSON-based protocol is
   now the only supported driver protocol. Certain older drivers (e.g. the Java drivers by
   @dkhenry and by @npiv) no longer work with RethinkDB 2.2.0. See the [drivers][drivers]
   list for up-to-date drivers.
-* TODO?
+* Certain argument errors that used to throw `ReqlDriverError` exceptions now throw
+  `ReqlCompileError` exceptions. See [#4669][issue-4669] for a full list of changes.
 
 [drivers]: http://rethinkdb.com/docs/install-drivers/
+[issue-4669]: https://github.com/rethinkdb/rethinkdb/issues/4669#issue-100428248
 
 ### Supported distributions ###
 
@@ -49,44 +51,91 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
 
 ## New features ##
 
-* Server
- * TODO
-* ReQL
- * TODO
-* All drivers
- * TODO
-* Python driver
- * TODO
+* Added full support for atomic changefeeds through the `include_initial` optarg (#3579)
+* Added a `values` command to obtain the values of an object as an array (#2945)
+* Added a `conn.server` command to identify the server for a given connection (#3934)
+* Extended `r.uuid` to accept a string and work as a hash function (#4636)
 
 ## Improvements ##
 
 * Server
- * TODO
+ * TODO: Change the style of these?
+ * Improved the scalability of many range queries on sharded tables (#4343)
+ * Improved the performance of secondary-index-based `between` queries (#4862)
+ * Avoid performance reduction in some edge cases when using `getAll` with a secondary
+   index (#4948)
+ * Reduced the memory overhead for large data sets (#1951)
+ * Redesigned the internal representation of queries to improve efficiency (#4601)
+ * Removed the protocol buffer driver protocol (#4601)
+ * Improved the construction of secondary indexes to make them resumable and more
+   performant (#4959)
+ * Allow more than 1024 changefeeds on a single connection (#4732)
+ * Grow coroutine stacks automatically to avoid stack overflows (#4462)
+ * Avoid a copy during the deserialization of network messages (#3734)
+ * The table status now includes a `raft_leader` field to expose its current Raft leader
+   (#4902)
+ * The `'logs'` system table now remains readable if the log file contains invalid lines
+   (#4929)
 * ReQL
- * TODO
+ * Expose secondary index functions in the output of `indexStatus` (#3231)
+ * Added an optarg called `changefeed_queue_size` to specify how many changes the server
+   should buffer on a changefeed before generating an error (#3607)
+ * `branch` now accepts an arbitrary number of conditions and values (#3199)
+ * Strings can now contain null characters (except in the primary key) (#3163)
+ * Streams can now be coerced directly to an object (#2802)
+ * Made `coerceTo('BOOL')` consistent with `branch` (#3133)
+ * Now allow changefeeds on `filter` and `map` queries involving geospatial terms (#4063)
+ * `or` and `and` can now be called with zero arguments (#4132)
+* Web UI
+ * Execute only highlighted portion of a query in the Data Explorer (#4814)
+* All drivers
+ * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
+   than `ReqlDriverError` for certain errors (#4669)
 * JavaScript driver
- * TODO
+ * Added an `eachAsync` method on cursors that behaves like `each` but also returns a
+   promise (#4874)
 * Python driver
- * TODO
-* Ruby driver
- * TODO
+ * Implemented an API to override the default JSON encoder and decoder (#4825, #4818)
 
 ## Bug fixes ##
 
-* TODO
-* Python driver
- * TODO
+* Server
+ * Fixed a segmentation fault that could happen when disconnecting a server while
+   having open changefeeds (#4972)
+ * Disallow writing `r.minval` and `r.maxval` to the `'_debug_scratch'` system table
+   (#4032)
+ * Updated the description of the `--server-name` parameter in `rethinkdb --help` (#4739)
+ * Fixed a crash with the message "Guarantee failed: [ts->tv_nsec >= 0 &&
+   ts->tv_nsec < (1000LL * (1000LL * 1000LL))] " (#4931)
+ * Fixed a problem where backfill jobs didn't get removed from the `'jobs'` table (#4923)
+ * Fixed a memory corruption that could trigger a segmentation fault during
+   `getIntersecting` queries (#4937)
+ * Fixed an issue that could stop data files from RethinkDB 1.13 to be migrated properly
+   (#4991) 
+ * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
+   rapidly reconnecting servers (#4968)
+ * Fixed an "Uncaught exception of type interrupted_exc_t" crash (#4977)
+* ReQL
+ * Fixed the error message that's generated when passing in a function with the wrong
+   arity (#4189)
+ * Fixed a regression that caused `r.asc("test")` to not fail as it should (#4951)
 * JavaScript driver
- * TODO
-* Ruby driver
- * TODO
+ * Properly quote object keys in `toString` (#4997)
 
 ## Contributors ##
 
 Many thanks to external contributors from the RethinkDB community for helping
 us ship RethinkDB 2.2. In no particular order:
 
-* TODO
+* Peter Hollows (@captainpete)
+* Zhenchao Li (@fantasticsid)
+* Marshall Cottrell (@marshall007)
+* Adam Grandquist (@grandquista)
+* Ville Immonen (@fson)
+* Matt Broadstone (@mbroadst)
+* Pritam Baral (@pritambaral)
+* Elian Gidoni (@eliangidoni)
+* Mike Mintz (@mikemintz)
 
 --
 
