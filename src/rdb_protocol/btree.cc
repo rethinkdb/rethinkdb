@@ -707,17 +707,37 @@ continue_bool_t rget_cb_t::handle_pair(
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
 
+    //////////////////////////////////////////////////
+    // STUFF THAT CAN HAPPEN OUT OF ORDER GOES HERE //
+    //////////////////////////////////////////////////
     sampler->new_sample();
-
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
         return continue_bool_t::ABORT;
     }
-
     // Load the key and value.
     store_key_t key(keyvalue.key());
     if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
         return continue_bool_t::CONTINUE;
     }
+    lazy_btree_val_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                         keyvalue.expose_buf());
+    ql::datum_t val;
+    // Count stats whether or not we deserialize the value
+    io.slice->stats.pm_keys_read.record();
+    io.slice->stats.pm_total_keys_read += 1;
+    // We only load the value if we actually use it (`count` does not).
+    if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
+        val = row.get();
+    } else {
+        row.reset();
+    }
+    guarantee(!row.references_parent());
+    keyvalue.reset();
+    waiter.wait_interruptible(); // This enforces ordering.
+
+    ///////////////////////////////////////////////////////
+    // STUFF THAT HAS TO HAPPEN IN ORDER GOES BELOW HERE //
+    ///////////////////////////////////////////////////////
 
     // If the sindex portion of the key is long enough that it might be >= the
     // length of a truncated sindex, we need to rember the key so we can make
@@ -747,23 +767,6 @@ continue_bool_t rget_cb_t::handle_pair(
             return continue_bool_t::ABORT;
         }
     }
-
-    lazy_btree_val_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
-                         keyvalue.expose_buf());
-    ql::datum_t val;
-
-    // Count stats whether or not we deserialize the value
-    io.slice->stats.pm_keys_read.record();
-    io.slice->stats.pm_total_keys_read += 1;
-    // We only load the value if we actually use it (`count` does not).
-    if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
-        val = row.get();
-    } else {
-        row.reset();
-    }
-    guarantee(!row.references_parent());
-    keyvalue.reset();
-    waiter.wait_interruptible();
 
     try {
         // Update the active region range.
