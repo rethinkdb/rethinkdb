@@ -1,10 +1,84 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-// TODO ATN #include "containers/archive/socket_stream.hpp"
 
 #ifdef _WIN32
 
 #include "containers/archive/socket_stream.hpp"
 #include "errors.hpp"
+#include "logger.hpp"
+#include "concurrency/wait_any.hpp"
+#include "concurrency/interruptor.hpp"
+
+// TODO ATN: read and write don't use hte interruptor correctly
+// TODO ATN: when interrupted they should also cancel the overlapped
+
+int64_t socket_stream_t::read(void *buf, int64_t count) {
+    DWORD ret;
+    DWORD error;
+    if (!event_watcher.has()) {
+        BOOL res = ReadFile(fd, buf, count, &ret, nullptr);
+        error = GetLastError();
+    } else {
+        overlapped_operation_t op(event_watcher.get());
+        BOOL res = ReadFile(fd, buf, count, nullptr, &op.overlapped);
+        error = GetLastError();
+        if (res || error == ERROR_IO_PENDING) {
+            op.wait_interruptible(interruptor);
+            error = op.error;
+        }
+        ret = op.nb_bytes;
+    }
+    if (error == ERROR_BROKEN_PIPE) {
+        return 0;
+    }
+    if (error != NO_ERROR) {
+        logWRN("ReadFile failed: %s", winerr_string(error).c_str()); // TODO ATN
+        set_errno(EIO); // TODO ATN
+        return -1;
+    }
+    return ret;
+}
+
+int64_t socket_stream_t::write(const void *buf, int64_t count) {
+    DWORD ret;
+    DWORD error;
+    if (!event_watcher.has()) {
+        BOOL res = WriteFile(fd, buf, count, &ret, nullptr);
+        error = GetLastError();
+    } else {
+        overlapped_operation_t op(event_watcher.get());
+        BOOL res = WriteFile(fd, buf, count, nullptr, &op.overlapped);
+        error = GetLastError();
+        if (res || error == ERROR_IO_PENDING) {
+            op.wait_interruptible(interruptor);
+            error = op.error;
+        }
+        ret = op.nb_bytes;
+    }
+    if (error != NO_ERROR) {
+        logWRN("WriteFile failed: %s", winerr_string(error).c_str()); // TODO ATN
+        set_errno(EIO); // TODO ATN
+        return -1;
+    }
+    return ret;
+}
+
+void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
+    rassert(event_watcher.has());
+    overlapped_operation_t op(event_watcher.get());
+    // TODO ATN: the docs claim that the overlapped must contain a valid event handle
+    BOOL res = ConnectNamedPipe(fd, &op.overlapped);
+    DWORD error = GetLastError();
+    if (res || error == ERROR_PIPE_CONNECTED) {
+        return;
+    }
+    if (error == ERROR_IO_PENDING) {
+        op.wait_interruptible(interruptor);
+        error = op.error;
+    }
+    if (error) {
+        crash("ConnectNamedPipe failed: %s", winerr_string(error).c_str());
+    }
+}
 
 #else
 
@@ -153,7 +227,7 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
 // -------------------- socket_stream_t --------------------
 socket_stream_t::socket_stream_t(fd_t fd, fd_watcher_t *watcher)
     : fd_(fd),
-      fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd)),
+      fd_watcher_(watcher ? watcher : make_scoped<linux_event_fd_watcher_t>(fd)),
       interruptor(NULL)
 {
     guarantee(fd != INVALID_FD);

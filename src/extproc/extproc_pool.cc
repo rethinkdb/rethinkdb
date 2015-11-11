@@ -55,7 +55,7 @@ void extproc_pool_t::on_worker_acquired()
 
 void extproc_pool_t::on_worker_released()
 {
-	--worker_cnt;
+    --worker_cnt;
 }
 
 extproc_pool_t::ct_interruptors_t::ct_interruptors_t(signal_t *shutdown_signal) :

@@ -10,6 +10,7 @@
 #include "clustering/administration/main/command_line.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
+#include "extproc/extproc_spawner.hpp"
 
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
@@ -22,6 +23,10 @@ int main(int argc, char *argv[]) {
 #endif
 
     startup_shutdown_t startup_shutdown;
+
+#ifdef _WIN32
+    extproc_maybe_run_worker(argc, argv);
+#endif
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");

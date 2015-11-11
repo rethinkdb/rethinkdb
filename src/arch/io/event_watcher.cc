@@ -3,6 +3,7 @@
 
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "concurrency/wait_any.hpp"
 
 overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
     rassert(event_watcher != nullptr);
@@ -20,15 +21,18 @@ void overlapped_operation_t::set_cancel() {
 }
 
 void overlapped_operation_t::abort() {
-    rassert(!completed.is_pulsed());
-    BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
-    if (!res && GetLastError() == ERROR_NOT_FOUND) {
-        // TODO ATN: possible race condition?
-        set_result(0, ERROR_OPERATION_ABORTED);
-    } else if (!res) {
-        guarantee_winerr(res, "CancelIoEx failed");
+    if (completed.is_pulsed()) {
+        error = ERROR_OPERATION_ABORTED;
     } else {
-        completed.wait_lazily_unordered(); // TODO ATN: does completed get pulsed after being canceled?
+        BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
+        if (!res && GetLastError() == ERROR_NOT_FOUND) {
+            // TODO ATN: possible race condition?
+            set_result(0, ERROR_OPERATION_ABORTED);
+        } else if (!res) {
+            guarantee_winerr(res, "CancelIoEx failed");
+        } else {
+            completed.wait_lazily_unordered(); // TODO ATN: does completed always get pulsed after being canceled?
+        }
     }
 }
 
@@ -58,7 +62,7 @@ void windows_event_watcher_t::stop_watching_for_errors() {
 void windows_event_watcher_t::on_error(DWORD error) {
     if (error_handler != nullptr) {
         event_callback_t *eh = error_handler;
-        error_handler = NULL;
+        error_handler = nullptr;
         // TODO ATN: what is the expected value of the argument to on_event?
         eh->on_event(error);
     }
@@ -67,6 +71,23 @@ void windows_event_watcher_t::on_error(DWORD error) {
 windows_event_watcher_t::~windows_event_watcher_t() {
     // ATN TODO: windows re-uses handles, so checking that a handle is closed or
     // double-closing is impossible.
+}
+
+void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {
+    try {
+        ::wait_interruptible(&completed, interruptor);
+    } catch (interrupted_exc_t) {
+        abort();
+        throw;
+    }
+}
+
+void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
+    wait_any_t waiter(&completed, aborter);
+    waiter.wait_lazily_unordered();
+    if (aborter->is_pulsed()) {
+        abort();
+    }
 }
 
 #else

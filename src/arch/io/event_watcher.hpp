@@ -6,9 +6,11 @@
 
 #include "windows.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/interruptor.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/io/event_watcher.hpp"
+#include "errors.hpp"
 
 #include "backtrace.hpp" // TODO ATN: for debugging
 
@@ -17,6 +19,8 @@ class windows_event_watcher_t;
 // An asynchronous operation
 struct overlapped_operation_t {
     overlapped_operation_t(windows_event_watcher_t *);
+
+    ~overlapped_operation_t();
 
     void reset() {
         completed.reset();
@@ -30,15 +34,19 @@ struct overlapped_operation_t {
     // Cancel an operation that is not pending
     void set_cancel();
 
+    void wait_interruptible(const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void wait_abortable(const signal_t *aborter);
+
     OVERLAPPED overlapped;           // Used by Windows to track the queued operation
     windows_event_watcher_t *event_watcher; // event_watcher for the associated handle
-    cond_t completed;                // Signaled when the operation completes or fails
     size_t nb_bytes;                 // Number of bytes read or written
     DWORD error;                     // Success indicator
 
-    ~overlapped_operation_t();
+    signal_t *get_completed_signal() { return &completed; }
 
 private:
+    cond_t completed;                // Signaled when the operation completes or fails
+
     DISABLE_COPYING(overlapped_operation_t);
 };
 

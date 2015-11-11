@@ -6,29 +6,35 @@
 
 #include "concurrency/signal.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
+#include "arch/io/event_watcher.hpp"
 
 // TODO ATN
+
+class blocking_fd_watcher_t { };
 
 class socket_stream_t :
     public read_stream_t,
     public write_stream_t {
 public:
-    socket_stream_t(fd_t, bool) { crash("ATN TODO: socket_stream"); }
-    socket_stream_t(fd_t) { crash("ATN TODO: socket_stream"); }
+    socket_stream_t(fd_t fd_, blocking_fd_watcher_t *) : fd(fd_), interruptor(nullptr) { }
+    socket_stream_t(fd_t fd_, std::nullptr_t)
+        : fd(fd_),
+          event_watcher(make_scoped<windows_event_watcher_t>(fd, nullptr)),
+          interruptor(nullptr) { }
+
     socket_stream_t(const socket_stream_t &) = default;
-    int64_t read(void*, int64_t) { crash("ATN TODO: socket_stream"); return 0; }
-    int64_t write(const void*, int64_t) { crash("ATN TODO: socket_stream"); return 0; }
-    void set_interruptor(signal_t*) { crash("ATN TODO: socket_stream"); }
-    bool is_read_open() { crash("ATN TODO: socket_stream"); return false; }
-    bool is_write_open() { crash("ATN TODO: socket_stream"); return false; }
-};
 
-class blocking_fd_watcher_t {
+    int64_t read(void *buf, int64_t count);
+    int64_t write(const void *buf, int64_t count);
+    void wait_for_pipe_client(signal_t *interruptor);
 
-};
+    void set_interruptor(signal_t *_interruptor) { interruptor = _interruptor; }
 
-class fd_watcher_t
-/* TODO: : public home_thread_mixin_debug_only_t */ {
+private:
+    fd_t fd;
+    signal_t *interruptor;
+    scoped_ptr_t<windows_event_watcher_t> event_watcher;
 
 };
 

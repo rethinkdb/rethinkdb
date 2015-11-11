@@ -29,7 +29,7 @@ extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != process_ref_t::invalid) {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+        socket_stream.create(socket.get(), nullptr);
 
         try {
             run_job(&worker_exit_fn);
@@ -59,16 +59,22 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 
     // We create the streams here, since they are thread-dependant
     if (worker_pid == process_ref_t::invalid) {
-        socket.reset(spawner->spawn(&socket_stream, &worker_pid));
-    } else {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+        socket.reset(spawner->spawn(&worker_pid));
+        debugf("Spawned worker process %x\n", worker_pid);
     }
+
+    socket_stream.create(socket.get(), nullptr);
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
     guarantee(interruptor == NULL);
     interruptor = _interruptor;
     guarantee(interruptor != NULL);
     socket_stream.get()->set_interruptor(interruptor);
+
+#ifdef _WIN32
+    socket_stream->wait_for_pipe_client(_interruptor);
+#endif
+    debugf("Connected to worker %x\n", worker_pid);
 }
 
 void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
@@ -123,13 +129,15 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 }
 
 void extproc_worker_t::kill_process() {
+    // TODO ATN: this guarantee is violated when certain exception occur before worker_pid is set
     guarantee(worker_pid != process_ref_t::invalid);
 
 #ifdef _WIN32
-	rassert(false, "ATN TODO");
+    BOOL res = TerminateProcess(worker_pid, EXIT_FAILURE);
+    guarantee_winerr(res, "TerminateProcess failed");
 #else
     ::kill(worker_pid, SIGKILL);
-    worker_pid = -1;
+    worker_pid = process_ref_t::invalid;
 
     // Clean up our socket fd
     socket.reset();

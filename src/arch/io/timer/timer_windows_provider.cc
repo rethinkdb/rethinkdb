@@ -10,7 +10,7 @@
 
 // TODO ATN
 
-/*
+//*
 #define debugf_timer debugf /*/
 #define debugf_timer(...) ((void)0) //*/
 

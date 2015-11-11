@@ -7,23 +7,36 @@
 
 #include "windows.hpp"
 
+// TODO ATN: this should maybe be renamedto scoped_process_ref_t
+// TODO ATN: or maybe use process ids on windows instead of handles
 class process_ref_t {
 public:
     static constexpr HANDLE invalid = nullptr;
 
     process_ref_t() : handle(nullptr) { }
     explicit process_ref_t(HANDLE handle_) : handle(handle_) { }
-    operator HANDLE() { return handle;  }
+    operator HANDLE() { return handle; }
 
-    // ATN TODO: make sure all users of process_id_t destroy it promptly
+    // ATN TODO: make sure all users of process_ref_t destroy it promptly
     ~process_ref_t() {
+        reset();
+    }
+
+    void reset(HANDLE h = nullptr) {
         if (handle != nullptr) {
             CloseHandle(handle);
         }
+        handle = h;
     }
 
     process_ref_t(process_ref_t &&other) : handle(other.handle) {
         other.handle = nullptr;
+    }
+
+    process_ref_t &operator=(process_ref_t &&other) {
+        reset(other.handle);
+        other.handle = nullptr;
+        return *this;
     }
 
 private:

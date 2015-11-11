@@ -30,7 +30,8 @@ public:
     };
 
     object_buffer_t() : state(EMPTY) { }
-~object_buffer_t() {
+
+    ~object_buffer_t() {
         // The buffer cannot be destroyed while an object is in the middle of
         //  constructing or destructing
         if (state == INSTANTIATED) {
@@ -89,7 +90,7 @@ public:
 private:
     // Force alignment of the data to the alignment of the templatized type,
     // this avoids some optimization errors, see github issue #3300 for an example.
-	ATTR_ALIGNED(alignof(T)) char object_data[sizeof(T)];
+    ATTR_ALIGNED(alignof(T)) char object_data[sizeof(T)];
 
     enum buffer_state_t {
         EMPTY,

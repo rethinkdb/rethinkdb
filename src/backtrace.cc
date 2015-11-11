@@ -8,6 +8,7 @@
 #define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
 #pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
 #include <DbgHelp.h>
+#include <atomic>
 #endif
 
 #include <stdio.h>
@@ -319,14 +320,17 @@ std::string lazy_backtrace_formatter_t::lines() {
 
 #ifdef _WIN32
 void initialize_dbghelp() {
-    DWORD options = SymGetOptions();
-    options |= SYMOPT_LOAD_LINES; // Load line information
-    // TODO ATN: SYMOPT for lazy loading
-    SymSetOptions(options);
+    static std::atomic<bool> initialised = false;
+    if (!initialised.exchange(true)) {
+        DWORD options = SymGetOptions();
+        options |= SYMOPT_LOAD_LINES; // Load line information
+        // TODO ATN: SYMOPT for lazy loading
+        SymSetOptions(options);
 
-    // Initialize and load the symbol tables
-    UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
-    // TODO ATN: test return value
+        // Initialize and load the symbol tables
+        UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+        // TODO ATN: test return value 
+    }
 }
 #endif
 

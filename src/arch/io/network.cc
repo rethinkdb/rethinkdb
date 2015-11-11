@@ -35,6 +35,7 @@
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
+#include "errors.hpp"
 
 /* TODO ATN
 #define winsock_debugf debugf /*/
@@ -82,7 +83,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
     winsock_debugf("ATN: waiting for connection on %x\n",socket);
-    wait_interruptible(&op.completed, interuptor);
+    op.wait_interruptible(interuptor);
     if (op.error != NO_ERROR) {
         logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
@@ -318,8 +319,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     BOOL res = ReadFile(sock.get(), buffer, size, nullptr, &op.overlapped);
     DWORD error = GetLastError();
     if (res || error == ERROR_IO_PENDING) {
-        wait_any_t waiter(&op.completed, &read_closed);
-        waiter.wait_lazily_unordered();
+        op.wait_abortable(&read_closed);
         if (read_closed.is_pulsed()) {
             throw tcp_conn_read_closed_exc_t();
         }
@@ -538,8 +538,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     int res = WSASend(sock.get(), &wsabuf, 1, nullptr, flags, &op.overlapped, nullptr);
     DWORD error = GetLastError();
     if (res == 0 || error == ERROR_IO_PENDING) {
-        wait_any_t waiter(&op.completed, &write_closed);
-        waiter.wait_lazily_unordered();
+        op.wait_abortable(&write_closed);
         if (write_closed.is_pulsed()) {
             return;
         }
@@ -1117,8 +1116,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             winsock_debugf("ATN: accepting on socket %x\n", listening_sock);
             BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
             if (res) {
-                op.error = NO_ERROR;
-                op.completed.pulse();
+                op.set_result(0, NO_ERROR);
             } else {
                 DWORD error = GetLastError();
                 if (error != ERROR_IO_PENDING) {
@@ -1144,7 +1142,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         {
             wait_any_t waiter(lock.get_drain_signal());
             for (size_t i = 0; i < accept_ops.size(); i++) {
-                waiter.add(&accept_ops[i]->op.completed);
+                waiter.add(accept_ops[i]->op.get_completed_signal());
             }
             waiter.wait_lazily_unordered();
         }
@@ -1155,7 +1153,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
         for (size_t i = 0; i < accept_ops.size(); i++) {
             accept_op_t *accepted = &*accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
-            if (accepted->op.completed.is_pulsed()) {
+            if (accepted->op.get_completed_signal()->is_pulsed()) {
                 if (accepted->op.error != NO_ERROR) {
                     logERR("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
                     try {

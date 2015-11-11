@@ -27,8 +27,9 @@ windows_event_queue_t::windows_event_queue_t(linux_thread_t *thread_)
 }
 
 void windows_event_queue_t::add_handle(fd_t handle) {
+    debugf("ATN: Adding handle %x to completion port %x\n", handle, completion_port);
     completion_port = CreateIoCompletionPort(handle, completion_port, static_cast<ULONG_PTR>(windows_message_type_t::OVERLAPPED_OPERATION), 1);
-    guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort failed");
+    guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort: failed to add handle");
 }
 
 void windows_event_queue_t::watch_event(windows_event_t& event, event_callback_t *cb) {

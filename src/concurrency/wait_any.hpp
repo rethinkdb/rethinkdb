@@ -5,6 +5,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
+#include "concurrency/wait_any.hpp"
 
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
 pulsed. */
