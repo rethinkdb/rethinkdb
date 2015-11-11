@@ -246,18 +246,20 @@ public:
         case range_state_t::EXHAUSTED: break;
         default: unreachable();
         }
-        raw_stream_t new_cache;
-        new_cache.reserve((cached->cache.size() - cached_index)
-                          + (fresh ? (fresh->stream.size() - fresh_index) : 0));
-        std::move(cached->cache.begin() + cached_index,
-                  cached->cache.end(),
-                  std::back_inserter(new_cache));
-        if (fresh != nullptr) {
-            std::move(fresh->stream.begin() + fresh_index,
-                      fresh->stream.end(),
+        if (fresh != nullptr || cached_index > 0) {
+            raw_stream_t new_cache;
+            new_cache.reserve((cached->cache.size() - cached_index)
+                              + (fresh ? (fresh->stream.size() - fresh_index) : 0));
+            std::move(cached->cache.begin() + cached_index,
+                      cached->cache.end(),
                       std::back_inserter(new_cache));
+            if (fresh != nullptr) {
+                std::move(fresh->stream.begin() + fresh_index,
+                          fresh->stream.end(),
+                          std::back_inserter(new_cache));
+            }
+            cached->cache = std::move(new_cache);
         }
-        cached->cache = std::move(new_cache);
         finished = true;
     }
 
@@ -326,11 +328,12 @@ raw_stream_t rget_response_reader_t::unshard(
     pseudoshards.reserve(active_ranges->ranges.size() * CPU_SHARDING_FACTOR);
     size_t n_active = 0, n_fresh = 0;
     for (auto &&pair : active_ranges->ranges) {
+        bool range_active = pair.second.state() == range_state_t::ACTIVE;
         for (auto &&hash_pair : pair.second.hash_ranges) {
             if (hash_pair.second.totally_exhausted()) continue;
             keyed_stream_t *fresh = nullptr;
             // Active shards need their bounds updated.
-            if (hash_pair.second.state == range_state_t::ACTIVE) {
+            if (range_active) {
                 n_active += 1;
                 store_key_t *new_bound = nullptr;
                 auto it = stream.substreams.find(
