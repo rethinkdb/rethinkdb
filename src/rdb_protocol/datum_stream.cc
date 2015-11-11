@@ -216,7 +216,7 @@ public:
           finished(false) {
         r_sanity_check(_cached != nullptr);
     }
-    pseudoshard_t(pseudoshard_t &&) noexcept = default;
+    pseudoshard_t(pseudoshard_t &&) = default;
     pseudoshard_t &operator=(pseudoshard_t &&) = default;
 
     void finish() {
