@@ -86,7 +86,7 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
    (#4063)
  * Extended `or` and `and` to accept zero arguments (#4132)
 * Web UI
- * The Data Explorer now allows executing only parts of a query be seleting them (#4814)
+ * The Data Explorer now allows executing only parts of a query be selecting them (#4814)
 * All drivers
  * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
    than `ReqlDriverError` for certain errors (#4669)
