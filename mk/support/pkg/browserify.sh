@@ -1,5 +1,4 @@
 
 npm_package=browserify
-version=3.24.13
-
+version=12.0.1
 include npm-pkg.inc
