@@ -246,7 +246,7 @@ public:
         case range_state_t::EXHAUSTED: break;
         default: unreachable();
         }
-        if (fresh || cached_index > 0) {
+        if (fresh != nullptr || cached_index > 0) {
             raw_stream_t new_cache;
             new_cache.reserve((cached->cache.size() - cached_index)
                               + (fresh ? (fresh->stream.size() - fresh_index) : 0));
