@@ -149,7 +149,11 @@ void debug_print(printf_buffer_t *buf, const btree_key_t *k) {
 }
 
 void debug_print(printf_buffer_t *buf, const store_key_t &k) {
-    debug_print(buf, k.btree_key());
+    if (k == store_key_max) {
+        buf->appendf("MAX_KEY");
+    } else {
+        debug_print(buf, k.btree_key());
+    }
 }
 
 void debug_print(printf_buffer_t *buf, const key_range_t::right_bound_t &rb) {

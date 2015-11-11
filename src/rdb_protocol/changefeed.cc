@@ -747,7 +747,7 @@ sorting_t flip(sorting_t sorting) {
 }
 
 std::vector<item_t> mangle_sort_truncate_stream(
-    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n) {
+    raw_stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n) {
     std::vector<item_t> vec;
     vec.reserve(stream.size());
     for (auto &&item : stream) {
@@ -934,14 +934,26 @@ public:
         }
         rdb_rget_slice(
             ref.btree,
+            region_t(),
             range,
             boost::none,
             ref.superblock,
             env,
             batchspec_t::all(),
             std::vector<transform_variant_t>(),
-            boost::optional<terminal_variant_t>(limit_read_t{
-                    is_primary_t::YES, n, sorting, ops}),
+            boost::optional<terminal_variant_t>(
+                limit_read_t{
+                    is_primary_t::YES,
+                    n,
+                    // This code uses the same generic code path as a normal
+                    // read, and a normal read needs to keep track of the
+                    // region and last seen key for unsharding, but we
+                    // discard this information from the response later so
+                    // it can be whatever we want.
+                    region_t(),
+                    store_key_t::min(),
+                    sorting,
+                    ops}),
             sorting,
             &resp,
             release_superblock_t::KEEP);
@@ -952,9 +964,16 @@ public:
             throw *exc;
         }
         stream_t stream = groups_to_batch(gs->get_underlying_map());
-        guarantee(stream.size() <= n);
-        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
-            std::move(stream), is_primary_t::YES, sorting, n);
+        guarantee(stream.substreams.size() <= 1);
+        std::vector<item_t> item_vec;
+        if (stream.substreams.size() == 1) {
+            raw_stream_t *raw_stream = &stream.substreams.begin()->second.stream;
+            guarantee(raw_stream->size() <= n);
+            item_vec = mangle_sort_truncate_stream(
+                std::move(*raw_stream), is_primary_t::YES, sorting, n);
+        } else {
+            guarantee(item_vec.size() == 0);
+        }
         return item_vec;
     }
 
@@ -984,6 +1003,7 @@ public:
             ref.sindex_info->mapping_version_info.latest_compatible_reql_version;
         rdb_rget_secondary_slice(
             ref.btree,
+            region_t(),
             ql::datumspec_t(srange),
             srange.to_sindex_keyrange(reql_version),
             ref.superblock,
@@ -991,7 +1011,17 @@ public:
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
             boost::optional<terminal_variant_t>(limit_read_t{
-                    is_primary_t::NO, n, sorting, ops}),
+                    is_primary_t::NO,
+                    n,
+                    // This code uses the same generic code path as a normal
+                    // read, and a normal read needs to keep track of the
+                    // region and last seen key for unsharding, but we
+                    // discard this information from the response later so
+                    // it can be whatever we want.
+                    region_t(),
+                    store_key_t::min(),
+                    sorting,
+                    ops}),
             *pk_range,
             sorting,
             *ref.sindex_info,
@@ -1004,8 +1034,15 @@ public:
             throw *exc;
         }
         stream_t stream = groups_to_batch(gs->get_underlying_map());
-        std::vector<item_t> item_vec = mangle_sort_truncate_stream(
-            std::move(stream), is_primary_t::NO, sorting, n);
+        guarantee(stream.substreams.size() <= 1);
+        std::vector<item_t> item_vec;
+        if (stream.substreams.size() == 1) {
+            raw_stream_t *raw_stream = &stream.substreams.begin()->second.stream;
+            item_vec = mangle_sort_truncate_stream(
+                std::move(*raw_stream), is_primary_t::NO, sorting, n);
+        } else {
+            guarantee(item_vec.size() == 0);
+        }
         return item_vec;
     }
 
@@ -1082,11 +1119,10 @@ void limit_manager_t::commit(
         std::vector<item_t> s;
         boost::optional<exc_t> exc;
         try {
-            s = read_more(
-                sindex_ref,
-                spec.range.sorting,
-                start,
-                spec.limit - item_queue.size());
+            s = read_more(sindex_ref,
+                          spec.range.sorting,
+                          start,
+                          spec.limit - item_queue.size());
         } catch (const exc_t &e) {
             exc = e;
         }
@@ -1356,10 +1392,6 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
-    void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
-    void each_sub(const auto_drainer_t::lock_t &lock,
-                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -2509,7 +2541,14 @@ private:
                 }
             }
             if (!src->is_exhausted() && !batcher.should_send_batch()) {
-                std::vector<datum_t> batch = src->next_batch(env, bs);
+                // We set `MIN_ELS` to 8 here because we're still doing
+                // inefficient unsharding for changefeed reads, and this
+                // improves the worst-case performance by a lot in exchange for
+                // an increase in latency.  (8 used to be the global default
+                // MIN_ELS value.)
+                batchspec_t new_bs = bs.with_min_els(8);
+                new_bs = new_bs.with_lazy_sorting_override(sorting_t::ASCENDING);
+                std::vector<datum_t> batch = src->next_batch(env, new_bs);
                 update_ranges();
                 r_sanity_check(active_state);
                 read_once = true;
@@ -2583,7 +2622,7 @@ private:
         }
     }
     void update_ranges() {
-        active_state = src->get_active_state();
+        active_state = src->truncate_and_get_active_state();
         key_range_t range = last_read_range();
         for (const auto &pair : last_read_stamps()) {
             add_range(pair.first, pair.second, range);
@@ -2837,18 +2876,19 @@ void feed_t::del_sub_with_lock(
     rwlock_t *rwlock, const std::function<size_t()> &f) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
-        // We need to check this because when our caller checked that their
-        // `feed_t` pointer was non-NULL, they were doing that on a different
-        // thread.
-        if (detached) return;
+        // Note that we proceed deleting the subscription, even if the `feed_t` has been
+        // detached. This is important because the destructor of a subscription might
+        // call `del_sub` in order to remove itself from the map, and not going
+        // through with it would leave an invalid pointer in the map. `stop_subs` might
+        // then try to use that pointer and cause memory corruption or crash.
         auto_drainer_t::lock_t lock = get_drainer_lock();
         rwlock_in_line_t spot(rwlock, access_t::write);
         spot.write_signal()->wait_lazily_unordered();
-        // We need to check this because we might have detached while blocking
-        // in which case we don't want to do anything here.
-        if (detached) return;
         size_t erased = f();
-        guarantee(erased == 1);
+        if (erased == 0) {
+            guarantee(detached);
+            return;
+        }
     }
     guarantee(num_subs > 0);
     num_subs -= 1;
@@ -2983,12 +3023,6 @@ void feed_t::each_point_sub_with_lock(
                    std::cref(f),
                    ph::_1));
 }
-void feed_t::each_point_sub(
-    const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&point_subs_lock, access_t::read);
-    each_point_sub_with_lock(&spot, f);
-}
 
 void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
@@ -3008,19 +3042,6 @@ void feed_t::each_limit_sub_with_lock(
                    std::cref(f),
                    ph::_1));
 
-}
-void feed_t::each_limit_sub(
-    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
-    assert_thread();
-    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
-    each_limit_sub_with_lock(&spot, f);
-}
-
-void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
-                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
-    each_range_sub(lock, f);
-    each_point_sub(f);
-    each_limit_sub(f);
 }
 
 void feed_t::on_point_sub(
@@ -3199,6 +3220,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                         // presumably in a broken state and needs to be replaced).
                         // We want to destroy the feed after the lock is released,
                         // because it may be expensive.
+                        spot.write_signal()->wait_lazily_unordered();
                         destroy.swap(feed_it->second);
                         destroy->mark_detached();
                         feeds.erase(feed_it);

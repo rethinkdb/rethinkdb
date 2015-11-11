@@ -302,9 +302,9 @@ void run_create_drop_sindex_test(
             // Order doesn't matter because streams->size() is 1.
             auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
-            ASSERT_EQ(1u, stream->size());
+            ASSERT_EQ(1u, stream->substreams.size());
             ASSERT_EQ(ql::to_datum(data, limits, reql_version_t::LATEST),
-                      stream->at(0).data);
+                      stream->substreams.begin()->second.stream.at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -567,7 +567,8 @@ void read_sindex(namespace_interface_t *nsi,
         // Order doesn't matter because streams->size() is 1.
         ql::stream_t *stream = &streams->begin()->second;
         ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(expected_size, stream->size());
+        ASSERT_EQ(1ul, stream->substreams.size());
+        ASSERT_EQ(expected_size, stream->substreams.begin()->second.stream.size());
     } else {
         ADD_FAILURE() << "got wrong type of result back";
     }
@@ -767,7 +768,8 @@ void run_sindex_oversized_keys_test(
                     ASSERT_TRUE(stream != NULL);
                     // There should be results equal to the number of iterations
                     // performed
-                    ASSERT_EQ(i + 1, stream->size());
+                    ASSERT_EQ(1ul, stream->substreams.size());
+                    ASSERT_EQ(i + 1, stream->substreams.begin()->second.stream.size());
                 } else {
                     ADD_FAILURE() << "got wrong type of result back";
                 }

@@ -167,13 +167,17 @@ void page_cache_t::have_read_ahead_cb_destroyed() {
 
 void page_cache_t::consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                        auto_drainer_t::lock_t lock) {
+    // Atomically grab a list of block IDs that currently exist in current_pages.
+    std::vector<block_id_t> current_block_ids;
+    current_block_ids.reserve(page_cache->current_pages_.size());
+    for (const auto &current_page : page_cache->current_pages_) {
+        current_block_ids.push_back(current_page.first);
+    }
+
+    // In a separate step, evict current pages that should be evicted.
+    // We do this separately so that we can yield between evictions.
     size_t i = 0;
-    for (auto current_page_it = page_cache->current_pages_.begin();
-         current_page_it != page_cache->current_pages_.end();) {
-        // Grab the block id and then advance the iterator. If the block gets
-        // evicted, the old iterator will be invalidated.
-        block_id_t id = current_page_it->first;
-        ++current_page_it;
+    for (block_id_t id : current_block_ids) {
         page_cache->consider_evicting_current_page(id);
         if (i % 16 == 15) {
             coro_t::yield();

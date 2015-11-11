@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <functional>
 
+#include "stl_utils.hpp"
+#include "boost_utils.hpp"
+
 #include "btree/operations.hpp"
 #include "btree/reql_specific.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -468,12 +471,18 @@ region_t read_t::get_region() const THROWS_NOTHING {
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
                                    read_t::variant_t *_payload_out)
-        : region(_region), payload_out(_payload_out) { }
+        : region(*_region), payload_out(_payload_out) {
+        // One day we'll get rid of unbounded right bounds, but until then
+        // we canonicalize them here because otherwise life sucks.
+        if (region.inner.right.unbounded) {
+            region.inner.right = key_range_t::right_bound_t(store_key_t::max());
+        }
+    }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
-        if (region_contains_key(*region, key)) {
+        if (region_contains_key(region, key)) {
             *payload_out = arg;
             return true;
         } else {
@@ -488,7 +497,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     template <class T>
     bool rangey_read(const T &arg) const {
         const hash_region_t<key_range_t> intersection
-            = region_intersection(*region, arg.region);
+            = region_intersection(region, arg.region);
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
@@ -504,7 +513,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const changefeed_limit_subscribe_t &s) const {
-        return rangey_read(s);
+        bool do_read = rangey_read(s);
+        if (do_read) {
+            auto *out = boost::get<changefeed_limit_subscribe_t>(payload_out);
+            out->current_shard = region;
+        }
+        return do_read;
     }
 
     bool operator()(const changefeed_stamp_t &t) const {
@@ -516,10 +530,51 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const rget_read_t &rg) const {
-        bool do_read = rangey_read(rg);
+        bool do_read;
+        if (rg.hints) {
+            auto it = rg.hints->find(region);
+            if (it != rg.hints->end()) {
+                do_read = rangey_read(rg);
+                auto *rr = boost::get<rget_read_t>(payload_out);
+                guarantee(rr);
+                if (do_read) {
+                    // TODO: We could avoid an `std::map` copy by making
+                    // `rangey_read` smarter.
+                    rr->hints = boost::none;
+                    if (!rg.sindex) {
+                        if (!reversed(rg.sorting)) {
+                            guarantee(it->second >= rr->region.inner.left);
+                            rr->region.inner.left = it->second;
+                        } else {
+                            key_range_t::right_bound_t rb(it->second);
+                            guarantee(rb <= rr->region.inner.right);
+                            rr->region.inner.right = rb;
+                        }
+                        r_sanity_check(!rr->region.inner.is_empty());
+                    } else {
+                        guarantee(rr->sindex);
+                        guarantee(rr->sindex->region);
+                        if (!reversed(rg.sorting)) {
+                            rr->sindex->region->inner.left = it->second;
+                        } else {
+                            rr->sindex->region->inner.right =
+                                key_range_t::right_bound_t(it->second);
+                        }
+                        r_sanity_check(!rr->sindex->region->inner.is_empty());
+                    }
+                }
+            } else {
+                do_read = false;
+            }
+        } else {
+            do_read = rangey_read(rg);
+        }
         if (do_read) {
-            auto rg_out = boost::get<rget_read_t>(payload_out);
-            rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            auto *rg_out = boost::get<rget_read_t>(payload_out);
+            guarantee(!region.inner.right.unbounded);
+            rg_out->current_shard = region;
+            rg_out->batchspec = rg_out->batchspec.scale_down(
+                rg.hints ? rg.hints->size() : CPU_SHARDING_FACTOR);
             if (static_cast<bool>(rg_out->primary_keys)) {
                 for (auto it = rg_out->primary_keys->begin();
                      it != rg_out->primary_keys->end();) {
@@ -555,7 +610,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(d);
     }
 
-    const hash_region_t<key_range_t> *region;
+    region_t region;
     read_t::variant_t *payload_out;
 };
 
@@ -571,7 +626,8 @@ bool read_t::shard(const hash_region_t<key_range_t> &region,
 
 class distribution_read_response_less_t {
 public:
-    bool operator()(const distribution_read_response_t& x, const distribution_read_response_t& y) {
+    bool operator()(const distribution_read_response_t& x,
+                    const distribution_read_response_t& y) {
         if (x.region.inner == y.region.inner) {
             return x.region < y.region;
         } else {
@@ -783,7 +839,13 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
-    unshard_range_batch<rget_read_response_t>(rg, rg.sorting);
+    if (rg.hints && count != rg.hints->size()) {
+        response_out->response = rget_read_response_t(
+            ql::exc_t(ql::base_exc_t::OP_FAILED, "Read aborted by unshard operation.",
+                      ql::backtrace_id_t::empty()));
+    } else {
+        unshard_range_batch<rget_read_response_t>(rg, rg.sorting);
+    }
 }
 
 template<class query_response_t, class query_t>
@@ -800,13 +862,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     // Initialize response.
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
-    out->truncated = false;
     out->reql_version = reql_version_t::EARLIEST;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
     std::vector<changefeed_stamp_response_t *> stamp_resps(count);
-    store_key_t *best = NULL;
     key_le_t key_le(sorting);
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<query_response_t>(&responses[i].response);
@@ -834,19 +894,12 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             }
 #endif // NDEBUG
         }
-        if (resp->truncated) {
-            out->truncated = true;
-            if (best == NULL || key_le.is_le(resp->last_key, *best)) {
-                best = &resp->last_key;
-            }
-        }
         results[i] = &resp->result;
         if (q.stamp) {
             guarantee(resp->stamp_response);
             stamp_resps[i] = &*resp->stamp_response;
         }
     }
-    out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
     if (q.stamp) {
         out->stamp_response = changefeed_stamp_response_t();
         unshard_stamps(stamp_resps, &*out->stamp_response);
@@ -856,9 +909,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     try {
         scoped_ptr_t<ql::accumulator_t> acc(q.terminal
             ? ql::make_terminal(*q.terminal)
-            : ql::make_append(sorting, NULL));
-        acc->unshard(&env, out->last_key, results);
-        acc->finish(&out->result);
+            : ql::make_unsharding_append());
+        acc->unshard(&env, results);
+        // The semantics here are that we aborted before ever iterating since no
+        // iteration occured (since we don't actually have a btree here).
+        acc->finish(continue_bool_t::ABORT, &out->result);
     } catch (const ql::exc_t &ex) {
         *out = query_response_t(ex);
     }
@@ -1295,8 +1350,8 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
     ql::skey_version_t::post_1_16, ql::skey_version_t::post_1_16);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    rget_read_response_t, stamp_response, result, reql_version, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    rget_read_response_t, stamp_response, result, reql_version);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
@@ -1320,9 +1375,20 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(rget_read_t,
-                                     stamp, region, primary_keys, optargs, table_name,
-                                     batchspec, transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
+    rget_read_t,
+    stamp,
+    region,
+    current_shard,
+    hints,
+    primary_keys,
+    optargs,
+    table_name,
+    batchspec,
+    transforms,
+    terminal,
+    sindex,
+    sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);
@@ -1334,8 +1400,8 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
         distribution_read_t, max_depth, result_limit, region);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    changefeed_limit_subscribe_t, addr, uuid, spec, table, region);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+    changefeed_limit_subscribe_t, addr, uuid, spec, table, region, current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 

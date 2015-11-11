@@ -572,34 +572,32 @@ private:
 
 class job_data_t {
 public:
-    job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+    job_data_t(ql::env_t *_env,
+               const ql::batchspec_t &batchspec,
                const std::vector<transform_variant_t> &_transforms,
                const boost::optional<terminal_variant_t> &_terminal,
+               region_t region,
+               store_key_t last_key,
                sorting_t _sorting)
         : env(_env),
           batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
           sorting(_sorting),
           accumulator(_terminal
                       ? ql::make_terminal(*_terminal)
-                      : ql::make_append(sorting, batcher.get())) {
+                      : ql::make_append(std::move(region),
+                                        std::move(last_key),
+                                        sorting,
+                                        batcher.get())) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
             transformers.push_back(ql::make_op(_transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }
-
-    job_data_t(job_data_t &&jd)
-        : env(jd.env),
-          batcher(std::move(jd.batcher)),
-          transformers(std::move(jd.transformers)),
-          sorting(jd.sorting),
-          accumulator(jd.accumulator.release()) {
-    }
+    job_data_t(job_data_t &&) = default;
 
     bool should_send_batch() const {
         return accumulator->should_send_batch();
     }
-
 private:
     friend class rget_cb_t;
     ql::env_t *const env;
@@ -624,8 +622,7 @@ class rget_cb_t {
 public:
     rget_cb_t(rget_io_data_t &&_io,
               job_data_t &&_job,
-              boost::optional<rget_sindex_data_t> &&_sindex,
-              const key_range_t &range);
+              boost::optional<rget_sindex_data_t> &&_sindex);
 
     continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
@@ -633,13 +630,7 @@ public:
         const boost::optional<std::string> &skey_left,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
-
-    bool should_finish() const {
-        return job.should_send_batch();
-    }
-
-    void finish() THROWS_ONLY(interrupted_exc_t);
-
+    void finish(continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t);
 private:
     const rget_io_data_t io; // How do get data in/out.
     job_data_t job; // What to do next (stateful).
@@ -649,6 +640,7 @@ private:
 
     // State for internal bookkeeping.
     bool bad_init;
+    boost::optional<std::string> last_truncated_secondary_for_abort;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
 };
@@ -680,20 +672,11 @@ private:
 
 rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
                      job_data_t &&_job,
-                     boost::optional<rget_sindex_data_t> &&_sindex,
-                     const key_range_t &range)
+                     boost::optional<rget_sindex_data_t> &&_sindex)
     : io(std::move(_io)),
       job(std::move(_job)),
       sindex(std::move(_sindex)),
       bad_init(false) {
-
-    if (!reversed(job.sorting)) {
-        io.response->last_key = range.left;
-    } else {
-        io.response->last_key = range.right.unbounded
-            ? store_key_t::max()
-            : range.right.key();
-    }
 
     if (sindex) {
         // Secondary index functions are deterministic (so no need for an
@@ -712,11 +695,8 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
                                         job.env->trace));
 }
 
-void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
-    job.accumulator->finish(&io.response->result);
-    if (job.accumulator->should_send_batch()) {
-        io.response->truncated = true;
-    }
+void rget_cb_t::finish(continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t) {
+    job.accumulator->finish(last_cb, &io.response->result);
 }
 
 // Handle a keyvalue pair.  Returns whether or not we're done early.
@@ -739,6 +719,35 @@ continue_bool_t rget_cb_t::handle_pair(
         return continue_bool_t::CONTINUE;
     }
 
+    // If the sindex portion of the key is long enough that it might be >= the
+    // length of a truncated sindex, we need to rember the key so we can make
+    // sure not to stop in the middle of a sindex range where some of the values
+    // are out of order because of truncation.
+    bool remember_key_for_sindex_batching = sindex
+        ? (ql::datum_t::extract_secondary(key_to_unescaped_str(key)).size()
+           >= ql::datum_t::max_trunc_size(
+               ql::skey_version_from_reql_version(sindex->func_reql_version)))
+        : false;
+    if (last_truncated_secondary_for_abort) {
+        std::string cur_truncated_secondary =
+            ql::datum_t::extract_truncated_secondary(key_to_unescaped_str(key));
+        if (cur_truncated_secondary != *last_truncated_secondary_for_abort) {
+            // The semantics here are that we're returning the "last considered
+            // key", which we set specially here to preserve the invariant that
+            // unsharding either consumes all rows with a particular truncated
+            // sindex value or none of them.
+            store_key_t stop_key;
+            if (!reversed(job.sorting)) {
+                stop_key = store_key_t(cur_truncated_secondary);
+            } else {
+                stop_key = store_key_t(*last_truncated_secondary_for_abort);
+            }
+            stop_key.decrement();
+            job.accumulator->stop_at_boundary(std::move(stop_key));
+            return continue_bool_t::ABORT;
+        }
+    }
+
     lazy_btree_val_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
                          keyvalue.expose_buf());
     ql::datum_t val;
@@ -757,17 +766,15 @@ continue_bool_t rget_cb_t::handle_pair(
     waiter.wait_interruptible();
 
     try {
-        // Update the last considered key.
-        if ((io.response->last_key < key && !reversed(job.sorting)) ||
-            (io.response->last_key > key && reversed(job.sorting))) {
-            io.response->last_key = key;
-            if (sindex) {
-                if (!reversed(job.sorting)) {
+        // Update the active region range.
+        if (sindex) {
+            if (!reversed(job.sorting)) {
+                if (sindex->active_region_range_inout->left < key) {
                     sindex->active_region_range_inout->left = key;
-                    // Closed on the left.
                     sindex->active_region_range_inout->left.increment();
-                } else {
-                    // Open on the right, so no need to decrement.
+                }
+            } else {
+                if (key < sindex->active_region_range_inout->right.key_or_max()) {
                     sindex->active_region_range_inout->right =
                         key_range_t::right_bound_t(key);
                 }
@@ -912,10 +919,16 @@ continue_bool_t rget_cb_t::handle_pair(
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
-        return (*job.accumulator)(job.env,
-                                  &data,
-                                  key,
-                                  lazy_sindex_val);
+        continue_bool_t cont = (*job.accumulator)(job.env, &data, key, lazy_sindex_val);
+        if (remember_key_for_sindex_batching) {
+            if (cont == continue_bool_t::ABORT) {
+                last_truncated_secondary_for_abort =
+                    ql::datum_t::extract_truncated_secondary(key_to_unescaped_str(key));
+            }
+            return continue_bool_t::CONTINUE;
+        } else {
+            return cont;
+        }
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return continue_bool_t::ABORT;
@@ -932,6 +945,7 @@ continue_bool_t rget_cb_t::handle_pair(
 // TODO: Having two functions which are 99% the same sucks.
 void rdb_rget_slice(
         btree_slice_t *slice,
+        const region_t &shard,
         const key_range_t &range,
         const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
         superblock_t *superblock,
@@ -947,49 +961,59 @@ void rdb_rget_slice(
 
     rget_cb_t callback(
         rget_io_data_t(response, slice),
-        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        boost::optional<rget_sindex_data_t>(),
-        range);
+        job_data_t(ql_env,
+                   batchspec,
+                   transforms,
+                   terminal,
+                   shard,
+                   !reversed(sorting)
+                       ? range.left
+                       : range.right.key_or_max(),
+                   sorting),
+        boost::none);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
+    continue_bool_t cont = continue_bool_t::CONTINUE;
     if (primary_keys) {
         auto cb = [&](const std::pair<store_key_t, uint64_t> &pair, bool is_last) {
             rget_cb_wrapper_t wrapper(&callback, pair.second, boost::none);
-            btree_concurrent_traversal(
+            return btree_concurrent_traversal(
                 superblock,
                 key_range_t::one_key(pair.first),
                 &wrapper,
                 direction,
                 is_last ? release_superblock : release_superblock_t::KEEP);
-            return callback.should_finish();
         };
         if (!reversed(sorting)) {
             for (auto it = primary_keys->begin(); it != primary_keys->end();) {
                 auto this_it = it++;
-                if (cb(*this_it, it == primary_keys->end())) {
+                if (cb(*this_it, it == primary_keys->end()) == continue_bool_t::ABORT) {
                     // If required the superblock will get released further up the stack.
+                    cont = continue_bool_t::ABORT;
                     break;
                 }
             }
         } else {
             for (auto it = primary_keys->rbegin(); it != primary_keys->rend();) {
                 auto this_it = it++;
-                if (cb(*this_it, it == primary_keys->rend())) {
+                if (cb(*this_it, it == primary_keys->rend()) == continue_bool_t::ABORT) {
                     // If required the superblock will get released further up the stack.
+                    cont = continue_bool_t::ABORT;
                     break;
                 }
             }
         }
     } else {
         rget_cb_wrapper_t wrapper(&callback, 1, boost::none);
-        btree_concurrent_traversal(
+        cont = btree_concurrent_traversal(
             superblock, range, &wrapper, direction, release_superblock);
     }
-    callback.finish();
+    callback.finish(cont);
 }
 
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
+        const region_t &shard,
         const ql::datumspec_t &datumspec,
         const key_range_t &sindex_region_range,
         sindex_superblock_t *superblock,
@@ -1012,15 +1036,22 @@ void rdb_rget_secondary_slice(
     key_range_t active_region_range = sindex_region_range;
     rget_cb_t callback(
         rget_io_data_t(response, slice),
-        job_data_t(ql_env, batchspec, transforms, terminal, sorting),
+        job_data_t(ql_env,
+                   batchspec,
+                   transforms,
+                   terminal,
+                   shard,
+                   !reversed(sorting)
+                       ? sindex_region_range.left
+                       : sindex_region_range.right.key_or_max(),
+                   sorting),
         rget_sindex_data_t(
             pk_range,
             datumspec,
             &active_region_range,
             sindex_func_reql_version,
             sindex_info.mapping,
-            sindex_info.multi),
-        sindex_region_range);
+            sindex_info.multi));
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     auto cb = [&](const std::pair<ql::datum_range_t, uint64_t> &pair, bool is_last) {
@@ -1032,25 +1063,23 @@ void rdb_rget_secondary_slice(
             key_to_unescaped_str(sindex_keyrange.left));
         key_range_t active_range = active_region_range.intersection(sindex_keyrange);
         // This can happen sometimes with truncated keys.
-        if (active_range.is_empty()) return false;
-        btree_concurrent_traversal(
+        if (active_range.is_empty()) return continue_bool_t::CONTINUE;
+        return btree_concurrent_traversal(
             superblock,
             active_range,
             &wrapper,
             direction,
             is_last ? release_superblock : release_superblock_t::KEEP);
-        // Returning `true` here aborts the iteration.  If required the
-        // superblock will be released further up the stack.
-        return callback.should_finish();
     };
-    datumspec.iter(sorting, cb);
-    callback.finish();
+    continue_bool_t cont = datumspec.iter(sorting, cb);
+    callback.finish(cont);
 }
 
 void rdb_get_intersecting_slice(
         btree_slice_t *slice,
+        const region_t &shard,
         const ql::datum_t &query_geometry,
-        const region_t &sindex_region,
+        const key_range_t &sindex_range,
         sindex_superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -1069,17 +1098,22 @@ void rdb_get_intersecting_slice(
         sindex_info.mapping_version_info.latest_compatible_reql_version;
     collect_all_geo_intersecting_cb_t callback(
         slice,
-        geo_job_data_t(ql_env, batchspec, transforms, terminal),
-        geo_sindex_data_t(pk_range, sindex_info.mapping, sindex_func_reql_version,
-                          sindex_info.multi),
+        geo_job_data_t(ql_env,
+                       shard,
+                       // The sorting is always `UNORDERED`, so this is always right.
+                       sindex_range.left,
+                       batchspec,
+                       transforms,
+                       terminal),
+        geo_sindex_data_t(pk_range, sindex_info.mapping,
+                          sindex_func_reql_version, sindex_info.multi),
         query_geometry,
-        sindex_region.inner,
         response);
-    btree_concurrent_traversal(
-        superblock, sindex_region.inner, &callback,
+    continue_bool_t cont = btree_concurrent_traversal(
+        superblock, sindex_range, &callback,
         direction_t::FORWARD,
         release_superblock_t::RELEASE);
-    callback.finish();
+    callback.finish(cont);
 }
 
 void rdb_get_nearest_slice(

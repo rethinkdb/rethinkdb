@@ -149,6 +149,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     rdb_rget_secondary_slice(
         store->get_sindex_slice(sindex_uuid),
+        region_t(),
         ql::datumspec_t(datum_range),
         datum_range.to_sindex_keyrange(reql_version_t::LATEST),
         sindex_sb.get(),
@@ -178,13 +179,15 @@ void _check_keys_are_present(store_t *store,
         // The order of `groups` doesn't matter because this is a small unit test.
         ql::stream_t *stream = &groups.begin()->second;
         ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(1ul, stream->size());
+        ASSERT_EQ(1ul, stream->substreams.size());
+        ql::raw_stream_t *raw_stream = &stream->substreams.begin()->second.stream;
+        ASSERT_EQ(1ul, raw_stream->size());
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         rapidjson::Document expected_value;
         expected_value.Parse(expected_data.c_str());
         ASSERT_EQ(ql::to_datum(expected_value, limits, reql_version_t::LATEST),
-                  stream->front().data);
+                  raw_stream->front().data);
     }
 }
 

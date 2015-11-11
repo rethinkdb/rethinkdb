@@ -29,6 +29,7 @@ bool query_type_is_valid(Query::QueryType query_type) {
     case Query::CONTINUE:
     case Query::STOP:
     case Query::NOREPLY_WAIT:
+    case Query::SERVER_INFO:
         return true;
     default:
         return false;

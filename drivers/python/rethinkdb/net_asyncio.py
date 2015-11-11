@@ -236,6 +236,8 @@ class ConnectionInstance(object):
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
                         future.set_result(None)
+                    elif res.type == pResponse.SERVER_INFO:
+                        future.set_result(res.data[0])
                     else:
                         future.set_exception(res.make_error(query))
                     del self._user_queries[token]

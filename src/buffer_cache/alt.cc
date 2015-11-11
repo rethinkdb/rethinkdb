@@ -751,12 +751,6 @@ page_t *buf_lock_t::get_held_page_for_read() {
     guarantee(cpa != NULL);
     // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     cpa->read_acq_signal()->wait();
-#ifndef NDEBUG
-    // Occasionally block, as if the block had to be fetched from disk
-    if (randint(10) == 0) {
-        coro_t::yield();
-    }
-#endif
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
@@ -768,12 +762,6 @@ page_t *buf_lock_t::get_held_page_for_write() {
     rassert(snapshot_node_ == NULL);
     // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     current_page_acq_->write_acq_signal()->wait();
-#ifndef NDEBUG
-    // Occasionally block, as if the block had to be fetched from disk
-    if (randint(10) == 0) {
-        coro_t::yield();
-    }
-#endif
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());

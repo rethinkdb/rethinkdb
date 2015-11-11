@@ -240,9 +240,11 @@ peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
+        server_id(generate_uuid()),
         mailbox_manager(&connectivity_cluster, 'M'),
         heartbeat_manager(heartbeat_semilattice_metadata),
         connectivity_cluster_run(&connectivity_cluster,
+                                 server_id,
                                  get_unittest_addresses(),
                                  peer_address_t(),
                                  ANY_PORT,
@@ -269,6 +271,7 @@ public:
     }
 private:
     connectivity_cluster_t connectivity_cluster;
+    server_id_t server_id;
     mailbox_manager_t mailbox_manager;
     heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t> heartbeat_manager;

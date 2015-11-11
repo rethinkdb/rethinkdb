@@ -755,6 +755,16 @@ module RethinkDB
       nil
     end
 
+    def server
+      raise ReqlRuntimeError, "Connection is closed." if !is_open()
+      q = [Query::QueryType::SERVER_INFO]
+      res = run_internal(q, {noreply: false}, new_token)
+      if res['t'] != Response::ResponseType::SERVER_INFO
+        raise ReqlRuntimeError, "Unexpected response to server_info: " + PP.pp(res, "")
+      end
+      res['r'][0]
+    end
+
     def self.last
       return @@last if @@last
       raise ReqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
