@@ -18,7 +18,7 @@ init () {
     min_coffee_version=1.7.0
     max_coffee_version=1.7.1
     min_browserify_version=3.0.0
-    max_browserify_version=3.24.13
+    max_browserify_version=12.0.1
     min_python_version=2.6.0
 
     must_fetch_list='bluebird v8'
