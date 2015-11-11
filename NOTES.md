@@ -17,7 +17,7 @@ Data files from RethinkDB versions 1.16.0 onward will be automatically migrated.
 As with any major release, back up your data files before performing the upgrade.
 
 If you're upgrading from RethinkDB 1.14.x or 1.15.x, you need to migrate your secondary
-indexes first. You can do this by following the following steps:
+indexes first. You can do this by following these steps:
 * install RethinkDB 2.0.5
 * update the RethinkDB Python driver (`sudo pip install 'rethinkdb<2.1.0'`)
 * run `rethinkdb index-rebuild`
@@ -59,35 +59,34 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
 ## Improvements ##
 
 * Server
- * TODO: Change the style of these?
  * Improved the scalability of many range queries on sharded tables (#4343)
  * Improved the performance of secondary-index-based `between` queries (#4862)
- * Avoid performance reduction in some edge cases when using `getAll` with a secondary
-   index (#4948)
  * Reduced the memory overhead for large data sets (#1951)
  * Redesigned the internal representation of queries to improve efficiency (#4601)
  * Removed the protocol buffer driver protocol (#4601)
  * Improved the construction of secondary indexes to make them resumable and more
    performant (#4959)
- * Allow more than 1024 changefeeds on a single connection (#4732)
- * Grow coroutine stacks automatically to avoid stack overflows (#4462)
- * Avoid a copy during the deserialization of network messages (#3734)
- * The table status now includes a `raft_leader` field to expose its current Raft leader
+ * Improved the performance when using `getAll` with a secondary index in some edge cases
+   (#4948)
+ * Removed the limit of 1024 concurrent changefeeds on a single connection (#4732)
+ * Implemented automatically growing coroutine stacks to avoid stack overflows (#4462)
+ * Optimized the deserialization of network messages to avoid an extra copy (#3734)
+ * Added a `raft_leader` field to a table's status to expose its current Raft leader
    (#4902)
- * The `'logs'` system table now remains readable if the log file contains invalid lines
-   (#4929)
+ * Made the handling of invalid lines in the `'logs'` system table more robust (#4929)
 * ReQL
- * Expose secondary index functions in the output of `indexStatus` (#3231)
+ * `indexStatus` now exposes the secondary index function (#3231)
  * Added an optarg called `changefeed_queue_size` to specify how many changes the server
    should buffer on a changefeed before generating an error (#3607)
- * `branch` now accepts an arbitrary number of conditions and values (#3199)
- * Strings can now contain null characters (except in the primary key) (#3163)
+ * Extended `branch` to accept an arbitrary number of conditions and values (#3199)
+ * Strings can now contain null characters (except in primary keys) (#3163)
  * Streams can now be coerced directly to an object (#2802)
  * Made `coerceTo('BOOL')` consistent with `branch` (#3133)
- * Now allow changefeeds on `filter` and `map` queries involving geospatial terms (#4063)
- * `or` and `and` can now be called with zero arguments (#4132)
+ * Changefeeds on `filter` and `map` queries involving geospatial terms are now allowed
+   (#4063)
+ * Extended `or` and `and` to accept zero arguments (#4132)
 * Web UI
- * Execute only highlighted portion of a query in the Data Explorer (#4814)
+ * The Data Explorer now allows executing only parts of a query be seleting them (#4814)
 * All drivers
  * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
    than `ReqlDriverError` for certain errors (#4669)
@@ -102,8 +101,6 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
 * Server
  * Fixed a segmentation fault that could happen when disconnecting a server while
    having open changefeeds (#4972)
- * Disallow writing `r.minval` and `r.maxval` to the `'_debug_scratch'` system table
-   (#4032)
  * Updated the description of the `--server-name` parameter in `rethinkdb --help` (#4739)
  * Fixed a crash with the message "Guarantee failed: [ts->tv_nsec >= 0 &&
    ts->tv_nsec < (1000LL * (1000LL * 1000LL))] " (#4931)
@@ -115,12 +112,14 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
  * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
    rapidly reconnecting servers (#4968)
  * Fixed an "Uncaught exception of type interrupted_exc_t" crash (#4977)
+ * Added a check to catch `r.minval` and `r.maxval` values when writing to the
+   `'_debug_scratch'` system table (#4032)
 * ReQL
  * Fixed the error message that's generated when passing in a function with the wrong
    arity (#4189)
  * Fixed a regression that caused `r.asc("test")` to not fail as it should (#4951)
 * JavaScript driver
- * Properly quote object keys in `toString` (#4997)
+ * Object keys in `toString` are now properly quoted (#4997)
 
 ## Contributors ##
 
