@@ -64,8 +64,8 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
  * Reduced the memory overhead for large data sets (#1951)
  * Redesigned the internal representation of queries to improve efficiency (#4601)
  * Removed the protocol buffer driver protocol (#4601)
- * Improved the construction of secondary indexes to make them resumable and more
-   performant (#4959)
+ * Improved the construction of secondary indexes to make them resumable and to reduce
+   their impact on any production workload (#4959)
  * Improved the performance when using `getAll` with a secondary index in some edge cases
    (#4948)
  * Removed the limit of 1024 concurrent changefeeds on a single connection (#4732)
