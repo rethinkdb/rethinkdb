@@ -2,10 +2,15 @@
 
 Released on 2015-11-XX
 
-Release highlights:
+RethinkDB 2.2 introduces atomic changefeeds. Atomic changefeeds include existing values
+from the database into the changefeed result, and then atomically transition to streaming
+updates.
+Atomic changefeeds make building realtime apps dramatically easier: you can use
+a single code path to populate your application with initial data, and continue receiving
+realtime data updates.
 
-* Atomic changefeeds
-* Performance & Scalability improvements
+This release also includes numerous performance and scalability improvements designed to
+help RethinkDB clusters scale to larger sizes while using fewer resources.
 
 Read the [blog post][2.2-release] for more details.
 
@@ -13,14 +18,14 @@ Read the [blog post][2.2-release] for more details.
 
 ## Compatibility ##
 
-Data files from RethinkDB versions 1.16.0 onward will be automatically migrated.
+Data files from RethinkDB version 1.16 onward will be automatically migrated.
 As with any major release, back up your data files before performing the upgrade.
 
 If you're upgrading from RethinkDB 1.14.x or 1.15.x, you need to migrate your secondary
 indexes first. You can do this by following these steps:
-* install RethinkDB 2.0.5
-* update the RethinkDB Python driver (`sudo pip install 'rethinkdb<2.1.0'`)
-* run `rethinkdb index-rebuild`
+* Install RethinkDB 2.0.5.
+* Update the RethinkDB Python driver (`sudo pip install 'rethinkdb<2.1.0'`).
+* Rebuild your indexes with `rethinkdb index-rebuild`.
 
 Afterwards, you can install RethinkDB 2.2 and start it on the existing data files.
 
@@ -30,16 +35,21 @@ upgrade using `rethinkdb dump`.
 ### API-breaking changes ###
 
 * Changefeeds on `.orderBy.limit` as well as `.get` queries previously provided
-  initial results by default. You now need to pass the `includeInitial: true` optarg to
-  `.changes` to achieve the same behavior.
-* The protocol buffer driver protocol is no longer supported. The JSON-based protocol is
-  now the only supported driver protocol. Certain older drivers (e.g. the Java drivers by
-  @dkhenry and by @npiv) no longer work with RethinkDB 2.2.0. See the [drivers][drivers]
-  list for up-to-date drivers.
+  initial results by default. You now need to include the optional argument
+  `includeInitial: true` to `.changes` to achieve the same behavior.
+* The deprecated protocol buffer driver protocol is no longer supported. The newer JSON
+  protocol is now the only supported driver protocol. Older drivers using the deprecated
+  protocol no longer work with RethinkDB 2.2.0. See the [drivers][drivers] list for
+  up-to-date drivers.
+  * If you're using Java, please note that at the time of writing, existing community
+    drivers have not been updated to use the newer JSON protocol. However, an
+    [official Java driver][java-driver] is in active development and will be available
+    soon.
 * Certain argument errors that used to throw `ReqlDriverError` exceptions now throw
   `ReqlCompileError` exceptions. See [#4669][issue-4669] for a full list of changes.
 
 [drivers]: http://rethinkdb.com/docs/install-drivers/
+[java-driver]: https://github.com/rethinkdb/rethinkdb/issues/3930
 [issue-4669]: https://github.com/rethinkdb/rethinkdb/issues/4669#issue-100428248
 
 ### Supported distributions ###
@@ -47,7 +57,8 @@ upgrade using `rethinkdb dump`.
 RethinkDB 2.2.0 now comes with official packages for Ubuntu 15.10 (Wily Werewolf) and
 CentOS 7.
 
-We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
+We no longer provide packages for Ubuntu 10.04 (Lucid Lynx), which has reached end of
+life.
 
 ## New features ##
 
@@ -59,11 +70,11 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
 ## Improvements ##
 
 * Server
- * Improved the scalability of many range queries on sharded tables (#4343)
- * Improved the performance of secondary-index-based `between` queries (#4862)
+ * Improved the scalability of range queries on sharded tables (#4343)
+ * Improved the performance of `between` queries on secondary indexes (#4862)
  * Reduced the memory overhead for large data sets (#1951)
  * Redesigned the internal representation of queries to improve efficiency (#4601)
- * Removed the protocol buffer driver protocol (#4601)
+ * Removed the deprecated protocol buffer driver protocol (#4601)
  * Improved the construction of secondary indexes to make them resumable and to reduce
    their impact on any production workload (#4959)
  * Improved the performance when using `getAll` with a secondary index in some edge cases
@@ -107,7 +118,7 @@ We no longer provide packages for Ubuntu 10.04 (Lucid Lynx).
  * Fixed a problem where backfill jobs didn't get removed from the `'jobs'` table (#4923)
  * Fixed a memory corruption that could trigger a segmentation fault during
    `getIntersecting` queries (#4937)
- * Fixed an issue that could stop data files from RethinkDB 1.13 to be migrated properly
+ * Fixed an issue that could stop data files from RethinkDB 1.13 from migrating properly
    (#4991) 
  * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
    rapidly reconnecting servers (#4968)
@@ -135,6 +146,17 @@ us ship RethinkDB 2.2. In no particular order:
 * Pritam Baral (@pritambaral)
 * Elian Gidoni (@eliangidoni)
 * Mike Mintz (@mikemintz)
+* Daniel Compton (@danielcompton)
+* Vinh Quốc Nguyễn (@kureikain)
+* Shayne Hodge (@schodge)
+* Alexander Zeillinger (@alexanderzeillinger)
+* Ben Gesoff (@bengesoff)
+* Dmitriy Lazarev (@wKich)
+* Chris Gaudreau (@clessg)
+* Paweł Świątkowski (@katafrakt)
+* Wang Zuo (@wangzuo)
+* Chris Goller (@goller)
+* Mateus Craveiro (@mccraveiro)
 
 --
 
