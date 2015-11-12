@@ -5,22 +5,30 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "concurrency/wait_any.hpp"
 
+//* TODO ATN
+#define debugf_overlapped(...) debugf("ATN: overlapped: " __VA_ARGS__) /*/
+#define debugf_overlapped(...) ((void)0) //*/
+
 overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+    debugf_overlapped("[%p] init from watcher %p\n", this, ew);
     rassert(event_watcher != nullptr);
     memset(&overlapped, 0, sizeof(overlapped));
 }
 
 overlapped_operation_t::~overlapped_operation_t() {
+        debugf_overlapped("[%p] destroy\n", this);
     if (!completed.is_pulsed()) {
         abort();
     }
 }
 
 void overlapped_operation_t::set_cancel() {
+    debugf_overlapped("[%p] set_cancel\n", this);
     set_result(0, ERROR_CANCELLED);
 }
 
 void overlapped_operation_t::abort() {
+    debugf_overlapped("[%p] abort\n", this);
     if (completed.is_pulsed()) {
         error = ERROR_OPERATION_ABORTED;
     } else {
@@ -37,6 +45,7 @@ void overlapped_operation_t::abort() {
 }
 
 void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+    debugf_overlapped("[%p] set_result(%zu, %u)\n", this, nb_bytes_, error_);
     rassert(!completed.is_pulsed());
     nb_bytes = nb_bytes_;
     error = error_;
@@ -74,18 +83,22 @@ windows_event_watcher_t::~windows_event_watcher_t() {
 }
 
 void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {
+    debugf_overlapped("[%p] wait_interruptible\n", this);
     try {
         ::wait_interruptible(&completed, interruptor);
     } catch (interrupted_exc_t) {
+        debugf_overlapped("[%p] interrupted\n", this);
         abort();
         throw;
     }
 }
 
 void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
+    debugf_overlapped("[%p] wait_abortable\n", this);
     wait_any_t waiter(&completed, aborter);
     waiter.wait_lazily_unordered();
     if (aborter->is_pulsed()) {
+        debugf_overlapped("[%p] aborted\n", this);
         abort();
     }
 }

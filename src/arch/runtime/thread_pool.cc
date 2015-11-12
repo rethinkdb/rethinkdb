@@ -38,14 +38,16 @@ const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif
 #endif  // VALGRIND
 
-DECL_THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-DECL_THREAD_LOCAL int linux_thread_pool_t::thread_id;
-DECL_THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
+DECL_THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
+DECL_THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
+DECL_THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
+    rassert(thread_pool != nullptr);
     return thread_pool;
 }
 NOINLINE void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {
+    rassert(thread_pool == nullptr || val == nullptr);
     thread_pool = val;
 }
 NOINLINE int linux_thread_pool_t::get_thread_id() {
@@ -55,10 +57,15 @@ NOINLINE void linux_thread_pool_t::set_thread_id(int val) {
     thread_id = val;
 }
 NOINLINE linux_thread_t *linux_thread_pool_t::get_thread() {
+    rassert(thread != nullptr);
     return thread;
 }
 NOINLINE void linux_thread_pool_t::set_thread(linux_thread_t *val) {
+    rassert(thread == nullptr || val == nullptr);
     thread = val;
+}
+NOINLINE bool linux_thread_pool_t::i_am_in_thread_pool_thread() {
+    return thread_id != -1;
 }
 
 linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :

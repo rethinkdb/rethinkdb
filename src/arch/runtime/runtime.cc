@@ -22,9 +22,13 @@ int get_num_threads() {
 
 #ifndef NDEBUG
 void assert_good_thread_id(threadnum_t thread) {
-    rassert(thread.threadnum >= 0, "(thread = %" PRIi32 ")", thread.threadnum);
-    rassert(thread.threadnum < get_num_threads(), "(thread = %" PRIi32 ", n_threads = %d)",
-            thread.threadnum, get_num_threads());
+    if (linux_thread_pool_t::i_am_in_thread_pool_thread()) {
+        rassert(thread.threadnum >= 0, "(thread = %" PRIi32 ")", thread.threadnum);
+        rassert(thread.threadnum < get_num_threads(), "(thread = %" PRIi32 ", n_threads = %d)",
+                thread.threadnum, get_num_threads());
+    } else {
+        rassert(thread.threadnum == 0);
+    }
 }
 #endif
 

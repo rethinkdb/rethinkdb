@@ -11,7 +11,7 @@
 // TODO ATN
 
 //*
-#define debugf_timer debugf /*/
+#define debugf_timer(...) debugf("ATN: timer: " __VA_ARGS__) /*/
 #define debugf_timer(...) ((void)0) //*/
 
 const HANDLE DEFAULT_TIMER_QUEUE = nullptr;
