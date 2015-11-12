@@ -5,6 +5,7 @@ Released on 2015-11-12
 RethinkDB 2.2 introduces atomic changefeeds. Atomic changefeeds include existing values
 from the database into the changefeed result, and then atomically transition to streaming
 updates.
+
 Atomic changefeeds make building realtime apps dramatically easier: you can use
 a single code path to populate your application with initial data, and continue receiving
 realtime data updates.
@@ -103,7 +104,7 @@ life.
    than `ReqlDriverError` for certain errors (#4669)
 * JavaScript driver
  * Added an `eachAsync` method on cursors that behaves like `each` but also returns a
-   promise (#4874)
+   promise (#4784)
 * Python driver
  * Implemented an API to override the default JSON encoder and decoder (#4825, #4818)
 
