@@ -1,3 +1,165 @@
+# Release 2.2.0 (Modern Times)
+
+Released on 2015-11-12
+
+RethinkDB 2.2 introduces atomic changefeeds. Atomic changefeeds include existing values
+from the database into the changefeed result, and then atomically transition to streaming
+updates.
+Atomic changefeeds make building realtime apps dramatically easier: you can use
+a single code path to populate your application with initial data, and continue receiving
+realtime data updates.
+
+This release also includes numerous performance and scalability improvements designed to
+help RethinkDB clusters scale to larger sizes while using fewer resources.
+
+Read the [blog post][2.2-release] for more details.
+
+[2.2-release]: http://rethinkdb.com/blog/2.2-release/
+
+## Compatibility ##
+
+Data files from RethinkDB version 1.16 onward will be automatically migrated.
+As with any major release, back up your data files before performing the upgrade.
+
+If you're upgrading from RethinkDB 1.14.x or 1.15.x, you need to migrate your secondary
+indexes first. You can do this by following these steps:
+* Install RethinkDB 2.0.5.
+* Update the RethinkDB Python driver (`sudo pip install 'rethinkdb<2.1.0'`).
+* Rebuild your indexes with `rethinkdb index-rebuild`.
+
+Afterwards, you can install RethinkDB 2.2 and start it on the existing data files.
+
+If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
+upgrade using `rethinkdb dump`.
+
+### API-breaking changes ###
+
+* Changefeeds on `.orderBy.limit` as well as `.get` queries previously provided
+  initial results by default. You now need to include the optional argument
+  `includeInitial: true` to `.changes` to achieve the same behavior.
+* The deprecated protocol buffer driver protocol is no longer supported. The newer JSON
+  protocol is now the only supported driver protocol. Older drivers using the deprecated
+  protocol no longer work with RethinkDB 2.2.0. See the [drivers][drivers] list for
+  up-to-date drivers.
+  * If you're using Java, please note that at the time of writing, existing community
+    drivers have not been updated to use the newer JSON protocol. However, an
+    [official Java driver][java-driver] is in active development and will be available
+    soon.
+* Certain argument errors that used to throw `ReqlDriverError` exceptions now throw
+  `ReqlCompileError` exceptions. See [#4669][issue-4669] for a full list of changes.
+
+[drivers]: http://rethinkdb.com/docs/install-drivers/
+[java-driver]: https://github.com/rethinkdb/rethinkdb/issues/3930
+[issue-4669]: https://github.com/rethinkdb/rethinkdb/issues/4669#issue-100428248
+
+### Supported distributions ###
+
+RethinkDB 2.2.0 now comes with official packages for Ubuntu 15.10 (Wily Werewolf) and
+CentOS 7.
+
+We no longer provide packages for Ubuntu 10.04 (Lucid Lynx), which has reached end of
+life.
+
+## New features ##
+
+* Added full support for atomic changefeeds through the `include_initial` optarg (#3579)
+* Added a `values` command to obtain the values of an object as an array (#2945)
+* Added a `conn.server` command to identify the server for a given connection (#3934)
+* Extended `r.uuid` to accept a string and work as a hash function (#4636)
+
+## Improvements ##
+
+* Server
+ * Improved the scalability of range queries on sharded tables (#4343)
+ * Improved the performance of `between` queries on secondary indexes (#4862)
+ * Reduced the memory overhead for large data sets (#1951)
+ * Redesigned the internal representation of queries to improve efficiency (#4601)
+ * Removed the deprecated protocol buffer driver protocol (#4601)
+ * Improved the construction of secondary indexes to make them resumable and to reduce
+   their impact on any production workload (#4959)
+ * Improved the performance when using `getAll` with a secondary index in some edge cases
+   (#4948)
+ * Removed the limit of 1024 concurrent changefeeds on a single connection (#4732)
+ * Implemented automatically growing coroutine stacks to avoid stack overflows (#4462)
+ * Optimized the deserialization of network messages to avoid an extra copy (#3734)
+ * Added a `raft_leader` field to a table's status to expose its current Raft leader
+   (#4902)
+ * Made the handling of invalid lines in the `'logs'` system table more robust (#4929)
+* ReQL
+ * `indexStatus` now exposes the secondary index function (#3231)
+ * Added an optarg called `changefeed_queue_size` to specify how many changes the server
+   should buffer on a changefeed before generating an error (#3607)
+ * Extended `branch` to accept an arbitrary number of conditions and values (#3199)
+ * Strings can now contain null characters (except in primary keys) (#3163)
+ * Streams can now be coerced directly to an object (#2802)
+ * Made `coerceTo('BOOL')` consistent with `branch` (#3133)
+ * Changefeeds on `filter` and `map` queries involving geospatial terms are now allowed
+   (#4063)
+ * Extended `or` and `and` to accept zero arguments (#4132)
+* Web UI
+ * The Data Explorer now allows executing only parts of a query be selecting them (#4814)
+* All drivers
+ * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
+   than `ReqlDriverError` for certain errors (#4669)
+* JavaScript driver
+ * Added an `eachAsync` method on cursors that behaves like `each` but also returns a
+   promise (#4874)
+* Python driver
+ * Implemented an API to override the default JSON encoder and decoder (#4825, #4818)
+
+## Bug fixes ##
+
+* Server
+ * Fixed a segmentation fault that could happen when disconnecting a server while
+   having open changefeeds (#4972)
+ * Updated the description of the `--server-name` parameter in `rethinkdb --help` (#4739)
+ * Fixed a crash with the message "Guarantee failed: [ts->tv_nsec >= 0 &&
+   ts->tv_nsec < (1000LL * (1000LL * 1000LL))] " (#4931)
+ * Fixed a problem where backfill jobs didn't get removed from the `'jobs'` table (#4923)
+ * Fixed a memory corruption that could trigger a segmentation fault during
+   `getIntersecting` queries (#4937)
+ * Fixed an issue that could stop data files from RethinkDB 1.13 from migrating properly
+   (#4991) 
+ * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
+   rapidly reconnecting servers (#4968)
+ * Fixed an "Uncaught exception of type interrupted_exc_t" crash (#4977)
+ * Added a check to catch `r.minval` and `r.maxval` values when writing to the
+   `'_debug_scratch'` system table (#4032)
+* ReQL
+ * Fixed the error message that's generated when passing in a function with the wrong
+   arity (#4189)
+ * Fixed a regression that caused `r.asc("test")` to not fail as it should (#4951)
+* JavaScript driver
+ * Object keys in `toString` are now properly quoted (#4997)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.2. In no particular order:
+
+* Peter Hollows (@captainpete)
+* Zhenchao Li (@fantasticsid)
+* Marshall Cottrell (@marshall007)
+* Adam Grandquist (@grandquista)
+* Ville Immonen (@fson)
+* Matt Broadstone (@mbroadst)
+* Pritam Baral (@pritambaral)
+* Elian Gidoni (@eliangidoni)
+* Mike Mintz (@mikemintz)
+* Daniel Compton (@danielcompton)
+* Vinh Quốc Nguyễn (@kureikain)
+* Shayne Hodge (@schodge)
+* Alexander Zeillinger (@alexanderzeillinger)
+* Ben Gesoff (@bengesoff)
+* Dmitriy Lazarev (@wKich)
+* Chris Gaudreau (@clessg)
+* Paweł Świątkowski (@katafrakt)
+* Wang Zuo (@wangzuo)
+* Chris Goller (@goller)
+* Mateus Craveiro (@mccraveiro)
+
+--
+
 # Release 2.1.5-2 (Forbidden Planet)
 
 Released on 2015-10-08
