@@ -1,6 +1,6 @@
 # Release 2.2.0 (Modern Times)
 
-Released on 2015-11-XX
+Released on 2015-11-12
 
 RethinkDB 2.2 introduces atomic changefeeds. Atomic changefeeds include existing values
 from the database into the changefeed result, and then atomically transition to streaming
