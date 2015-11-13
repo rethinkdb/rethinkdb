@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
@@ -19,8 +19,8 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -59,7 +59,7 @@ typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
 
 std::vector<item_t> mangle_sort_truncate_stream(
-    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
+    raw_stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -124,7 +124,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        datumspec_t datumspec;
     };
     struct limit_t {
         range_t range;
@@ -134,7 +134,7 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t(keyspec_t &&other)
+    keyspec_t(keyspec_t &&other) noexcept
         : spec(std::move(other.spec)),
           table(std::move(other.table)),
           table_name(std::move(other.table_name)) { }
@@ -234,7 +234,9 @@ private:
     std::set<diterator,
              std::function<bool(const diterator &, const diterator &)> > index;
 
-    void erase(const diterator &it) {
+    // This can't be passed by reference because we sometimes erase the source
+    // of the reference in the body of this function.
+    void erase(diterator it) {
         guarantee(it != data.end());
         auto ft = index.find(it);
         guarantee(ft != index.end());
@@ -359,7 +361,7 @@ public:
         region_t _region,
         std::string _table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -433,7 +435,7 @@ public:
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -475,7 +477,7 @@ private:
     void add_client_cb(
         signal_t *stopped,
         client_t::addr_t addr,
-        const auto_drainer_t::lock_t &keepalive);
+        auto_drainer_t::lock_t keepalive);
 
     // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
@@ -548,7 +550,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
         configured_limits_t limits,
         const keyspec_t::spec_t &spec,

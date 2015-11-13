@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <vector>
@@ -15,41 +15,41 @@ namespace ql {
 
 class and_term_t : public op_term_t {
 public:
-    and_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+    and_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = new_val_bool(true);
         for (size_t i = 0; i < args->num_args(); ++i) {
-            scoped_ptr_t<val_t> v = args->arg(env, i);
-            if (!v->as_bool() || i == args->num_args() - 1) {
-                return v;
-            }
+            v = args->arg(env, i);
+            if (!v->as_bool()) break;
         }
-        unreachable();
+        return v;
     }
     virtual const char *name() const { return "and"; }
 };
 
 class or_term_t : public op_term_t {
 public:
-    or_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+    or_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = new_val_bool(false);
         for (size_t i = 0; i < args->num_args(); ++i) {
-            scoped_ptr_t<val_t> v = args->arg(env, i);
-            if (v->as_bool()) {
-                return v;
-            }
+            v = args->arg(env, i);
+            if (v->as_bool()) break;
         }
-        return new_val_bool(false);
+        return v;
     }
     virtual const char *name() const { return "or"; }
 };
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    branch_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(3, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -72,7 +72,7 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    funcall_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
@@ -100,7 +100,8 @@ private:
                 rfail(base_exc_t::INTERNAL,
                       "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
-        counted_t<const func_t> f = args->arg(env, 0, flags)->as_func(shortcut);
+        counted_t<const func_t> f =
+            args->arg(env, 0, flags)->as_func(shortcut);
 
         // We need specialized logic for `grouped_data` here because `funcall`
         // needs to be polymorphic on its second argument rather than its first.
@@ -138,19 +139,19 @@ private:
 
 
 counted_t<term_t> make_and_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<and_term_t>(env, term);
 }
 counted_t<term_t> make_or_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<or_term_t>(env, term);
 }
 counted_t<term_t> make_branch_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<branch_term_t>(env, term);
 }
 counted_t<term_t> make_funcall_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<funcall_term_t>(env, term);
 }
 

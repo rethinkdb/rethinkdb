@@ -414,7 +414,7 @@ class RDBOp extends RDBVal
                 if arg isnt undefined
                     rethinkdb.expr arg
                 else
-                    throw new err.ReqlDriverError "Argument #{i} to #{@st || @mt} may not be `undefined`."
+                    throw new err.ReqlDriverCompileError "Argument #{i} to #{@st || @mt} may not be `undefined`."
         self.optargs = translateOptargs(optargs)
         return self
 
@@ -457,7 +457,7 @@ intsp = (seq) ->
     return res
 
 kved = (optargs) ->
-    ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
+    ['{', intsp([JSON.stringify(k), ': ', v] for own k,v of optargs), '}']
 
 intspallargs = (args, optargs) ->
     argrepr = []
@@ -487,7 +487,7 @@ class MakeObject extends RDBOp
         self.optargs = {}
         for own key,val of obj
             if typeof val is 'undefined'
-                throw new err.ReqlDriverError "Object field '#{key}' may not be undefined"
+                throw new err.ReqlDriverCompileError "Object field '#{key}' may not be undefined"
             self.optargs[key] = rethinkdb.expr val, nestingDepth-1
         return self
 
@@ -1010,7 +1010,7 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.ReqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.ReqlDriverCompileError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
@@ -1177,13 +1177,13 @@ class UUID extends RDBOp
 # Wrap a native JS value in an ReQL datum
 rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     if val is undefined
-        throw new err.ReqlDriverError "Cannot wrap undefined with r.expr()."
+        throw new err.ReqlDriverCompileError "Cannot wrap undefined with r.expr()."
 
     if nestingDepth <= 0
-        throw new err.ReqlDriverError "Nesting depth limit exceeded"
+        throw new err.ReqlDriverCompileError "Nesting depth limit exceeded."
 
     if typeof nestingDepth isnt "number" or isNaN(nestingDepth)
-        throw new err.ReqlDriverError "Second argument to `r.expr` must be a number or undefined."
+        throw new err.ReqlDriverCompileError "Second argument to `r.expr` must be a number or undefined."
 
     else if val instanceof TermBase
         val

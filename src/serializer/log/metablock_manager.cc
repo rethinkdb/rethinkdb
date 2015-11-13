@@ -147,8 +147,9 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_15)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_16)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_0)
-        || disk_format_version
-            == static_cast<uint32_t>(cluster_version_t::v2_1_is_latest);
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_1)
+        || disk_format_version ==
+            static_cast<uint32_t>(cluster_version_t::v2_2_is_latest);
 }
 
 
@@ -208,18 +209,6 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
-            // Right now we don't have anything super-special between disk format
-            // versions, just some per-block serialization versioning (which is
-            // derived from the 4 bytes block_magic_t at the front of the block), so
-            // we don't need to remember the version number -- we just assert it's
-            // ok.
-            if (!disk_format_version_is_recognized(mb_temp->disk_format_version)) {
-                fail_due_to_user_error(
-                        "Data version not recognized. Is the data "
-                        "directory from a newer version of RethinkDB? "
-                        "(version on disk: %" PRIu32 ")",
-                        mb_temp->disk_format_version);
-            }
             if (mb_temp->version > latest_version) {
                 /* this metablock is good, maybe there are more? */
                 latest_version = mb_temp->version;
@@ -248,6 +237,19 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
            is no metablock. */
 
     } else {
+        // Right now we don't have anything super-special between disk format
+        // versions, just some per-block serialization versioning (which is
+        // derived from the 4 bytes block_magic_t at the front of the block), so
+        // we don't need to remember the version number -- we just assert it's
+        // ok.
+        if (!disk_format_version_is_recognized(last_good_mb->disk_format_version)) {
+            fail_due_to_user_error(
+                    "Data version not recognized. Is the data "
+                    "directory from a newer version of RethinkDB? "
+                    "(version on disk: %" PRIu32 ")",
+                    last_good_mb->disk_format_version);
+        }
+
         /* we found a metablock, set everything up */
         next_version_number = latest_version + 1;
         latest_version = MB_BAD_VERSION; /* version is now useless */

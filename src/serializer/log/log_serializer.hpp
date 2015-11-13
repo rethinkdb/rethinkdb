@@ -11,8 +11,8 @@
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
-#include "concurrency/mutex.hpp"
 #include "concurrency/mutex_assertion.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/scoped.hpp"
@@ -70,9 +70,6 @@ public:
     void move_serializer_file_to_permanent_location();
     void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
     void unlink_serializer_file();
-#ifdef SEMANTIC_SERIALIZER_CHECK
-    void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);
-#endif
 
 private:
     void open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
@@ -142,7 +139,8 @@ public:
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
-    block_id_t max_block_id();
+    block_id_t end_block_id();
+    block_id_t end_aux_block_id();
     segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
                                                             block_id_t step);
 
@@ -251,6 +249,12 @@ private:
         state_shutting_down,
         state_shut_down
     } state;
+
+    /* Set to true during startup if the static file header needs to be migrated.
+    We delay migration until we perform the first index_write. That way if some other
+    migration step fails, users can still downgrade to the previous release. */
+    bool static_header_needs_migration;
+    new_mutex_t static_header_migration_mutex;
 
     file_t *dbfile;
     scoped_ptr_t<file_account_t> index_writes_io_account;

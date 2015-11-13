@@ -236,7 +236,7 @@ void migrate_databases(const metadata_v1_16::cluster_semilattice_metadata_t &met
         new_birth_certificate.initial_timestamp = branch_it->second.initial_timestamp;
         new_birth_certificate.origin =
             branch_it->second.origin.map(branch_it->second.region,
-            [&] (const metadata_v1_16::version_range_t &v) -> ::version_t {
+            [&](const metadata_v1_16::version_range_t &v) -> ::version_t {
                 ::version_t res(v.earliest.branch, v.earliest.timestamp);
                 guarantee(v.is_coherent());
                 if (seen_branches.count(res.branch) == 0) {
@@ -388,8 +388,8 @@ void migrate_table(const server_id_t &this_server_id,
         out->write(mdprefix_table_active().suffix(uuid_to_str(table_id)), active_state, interruptor);
 
         // The `table_raft_storage_interface_t` constructor will persist the header, snapshot, and logs
-        table_raft_storage_interface_t storage_interface(nullptr, out, table_id,
-                                                         persistent_state, interruptor);
+        table_raft_storage_interface_t storage_interface(
+            nullptr, out, table_id, persistent_state);
     }
 }
 
@@ -400,21 +400,21 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
     dummy_cache_balancer_t balancer(GIGABYTE);
     auto &tables = metadata.rdb_namespaces.namespaces;
     pmap(tables.begin(), tables.end(),
-         [&] (std::pair<const namespace_id_t,
-                        deletable_t<metadata_v1_16::namespace_semilattice_metadata_t> > &info) {
+         [&](std::pair<const namespace_id_t,
+                       deletable_t<metadata_v1_16::namespace_semilattice_metadata_t> > &info) {
             if (!info.second.is_deleted()) {
                 perfmon_collection_t dummy_stats;
                 serializer_filepath_t table_path(base_path, uuid_to_str(info.first));
                 filepath_file_opener_t file_opener(table_path, io_backender);
-                scoped_ptr_t<standard_serializer_t> inner_serializer(
-                    new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                scoped_ptr_t<log_serializer_t> inner_serializer(
+                    new log_serializer_t(log_serializer_t::dynamic_config_t(),
                                               &file_opener, &dummy_stats));
                 merger_serializer_t merger_serializer(std::move(inner_serializer),
                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
                 std::vector<serializer_t *> underlying({ &merger_serializer });
                 serializer_multiplexer_t multiplexer(underlying);
 
-                pmap(CPU_SHARDING_FACTOR, [&] (int index) {
+                pmap(CPU_SHARDING_FACTOR, [&](int index) {
                         perfmon_collection_t inner_dummy_stats;
                         store_t store(cpu_sharding_subspace(index),
                                       multiplexer.proxies[index],
@@ -425,7 +425,9 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      info.first);
+                                      info.first,
+                                      /* Important: Don't update indexes yet. */
+                                      update_sindexes_t::LEAVE_ALONE);
 
                         store.sindex_list(interruptor);
                     });
@@ -443,15 +445,15 @@ void migrate_tables(io_backender_t *io_backender,
     dummy_cache_balancer_t balancer(GIGABYTE);
     auto &tables = metadata.rdb_namespaces.namespaces;
     pmap(tables.begin(), tables.end(),
-         [&] (std::pair<const namespace_id_t,
-                        deletable_t<metadata_v1_16::namespace_semilattice_metadata_t> > &info) {
+         [&](std::pair<const namespace_id_t,
+                       deletable_t<metadata_v1_16::namespace_semilattice_metadata_t> > &info) {
             // We don't need to store anything for deleted tables
             if (!info.second.is_deleted()) {
                 perfmon_collection_t dummy_stats;
                 serializer_filepath_t table_path(base_path, uuid_to_str(info.first));
                 filepath_file_opener_t file_opener(table_path, io_backender);
-                scoped_ptr_t<standard_serializer_t> inner_serializer(
-                    new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                scoped_ptr_t<log_serializer_t> inner_serializer(
+                    new log_serializer_t(log_serializer_t::dynamic_config_t(),
                                               &file_opener, &dummy_stats));
                 merger_serializer_t merger_serializer(std::move(inner_serializer),
                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
@@ -461,7 +463,7 @@ void migrate_tables(io_backender_t *io_backender,
                 std::vector<regioned_version_t> table_versions;
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list;
 
-                pmap(CPU_SHARDING_FACTOR, [&] (int index) {
+                pmap(CPU_SHARDING_FACTOR, [&](int index) {
                         perfmon_collection_t inner_dummy_stats;
                         store_t store(cpu_sharding_subspace(index),
                                       multiplexer.proxies[index],
@@ -472,7 +474,8 @@ void migrate_tables(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      info.first);
+                                      info.first,
+                                      update_sindexes_t::UPDATE);
 
                         if (index == 0) {
                             sindex_list = store.sindex_list(interruptor);
@@ -486,7 +489,7 @@ void migrate_tables(io_backender_t *io_backender,
                             store.migrate_metainfo(
                                 order_token_t::ignore, &write_token,
                                 cluster_version_t::v2_0, cluster_version_t::v2_1,
-                                [&] (const region_t &r, const binary_blob_t &blob) -> binary_blob_t {
+                                [&](const region_t &r, const binary_blob_t &blob) -> binary_blob_t {
                                     auto const &v =
                                         binary_blob_t::get<metadata_v1_16::version_range_t>(blob);
                                     ::version_t res(v.earliest.branch, v.earliest.timestamp);
@@ -527,13 +530,12 @@ void migrate_tables(io_backender_t *io_backender,
 
 }
 
-void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
+void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
                                       const base_path_t &base_path,
                                       buf_parent_t buf_parent,
                                       const void *old_superblock,
                                       metadata_file_t::write_txn_t *out,
                                       signal_t *interruptor) {
-    logNTC("Migrating cluster metadata");
     const cluster_metadata_superblock_t *sb =
         static_cast<const cluster_metadata_superblock_t *>(old_superblock);
     cluster_version_t v = cluster_superblock_version(sb);
@@ -551,7 +553,8 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                           return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
-                      case cluster_version_t::v2_1_is_latest:
+                      case cluster_version_t::v2_1:
+                      case cluster_version_t::v2_2_is_latest:
                       default:
                         unreachable();
                       }
@@ -568,7 +571,8 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                           return deserialize<cluster_version_t::v2_0>(s, &metadata);
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
-                      case cluster_version_t::v2_1_is_latest:
+                      case cluster_version_t::v2_1:
+                      case cluster_version_t::v2_2_is_latest:
                       default:
                         unreachable();
                       }
@@ -595,14 +599,14 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                    sb->server_id, metadata, branch_history, out, interruptor);
 }
 
-void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
+void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
                                    const serializer_filepath_t &path,
                                    metadata_file_t::write_txn_t *out,
                                    signal_t *interruptor) {
     logNTC("Migrating auth metadata");
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
-    standard_serializer_t serializer(standard_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
+    log_serializer_t serializer(log_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
 
     if (!serializer.coop_lock_and_check()) {
         throw file_in_use_exc_t();
@@ -634,7 +638,8 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                           return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
-                      case cluster_version_t::v2_1_is_latest:
+                      case cluster_version_t::v2_1:
+                      case cluster_version_t::v2_2_is_latest:
                       default:
                           unreachable();
                       }
@@ -652,7 +657,8 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                           return deserialize<cluster_version_t::v2_0>(s, &metadata);
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
-                      case cluster_version_t::v2_1_is_latest:
+                      case cluster_version_t::v2_1:
+                      case cluster_version_t::v2_2_is_latest:
                       default:
                           unreachable();
                       }

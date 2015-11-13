@@ -1,0 +1,13 @@
+desc: 4729 read mode for changefeeds
+table_variable_name: tbl
+tests:
+  - rb: r.table_create('test_4729')['tables_created']
+    ot: 1
+  - rb: r.table('test_4729', read_mode:'outdated').get_all('').changes(include_initial:true, include_states:true).limit(1)
+    ot: [{"state"=>"initializing"}]
+  - rb: r.table('test_4729', read_mode:'majority').get_all('').changes(include_initial:true, include_states:true).limit(1)
+    ot: [{"state"=>"initializing"}]
+  - rb: r.table('test_4729', read_mode:'single').get_all('').changes(include_initial:true, include_states:true).limit(1)
+    ot: [{"state"=>"initializing"}]
+  - rb: r.table('test_4729', read_mode:'_debug_direct').get_all('').changes(include_initial:true, include_states:true).limit(1)
+    ot: err('RqlQueryLogicError','DEBUG_DIRECT is not a legal read mode for this operation (an up-to-date read mode is required).')

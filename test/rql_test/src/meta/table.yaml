@@ -143,7 +143,7 @@ tests:
 
     - cd: db.table_create('nonsense', 'foo')
       ot:
-        js: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.', [])
+        js: err('ReqlCompileError', 'Expected 1 argument (not including options) but found 2.', [])
         rb: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         py: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
@@ -166,24 +166,17 @@ tests:
     - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="foo")
       js: db.table('a').reconfigure({shards:1, replicas:{default:1}, primary_replica_tag:"foo"})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "foo")
-      ot: >
-          err('ReqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because
-          you specified no replicas in server tag `foo`.', [])
+      ot: err('ReqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because you specified no replicas in server tag `foo`.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="default", nonvoting_replica_tags=["foo"])
       js: db.table('a').reconfigure({shards:1, replicas:{"default":1}, primary_replica_tag:"default", nonvoting_replica_tags:["foo"]})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "default", :nonvoting_replica_tags => ["foo"])
-      ot: >
-          err('ReqlOpFailedError', 'You specified that the replicas in server tag `foo`
-          should be non-voting, but you didn\'t specify a number of replicas in server
-          tag `foo`.', [])
+      ot: err('ReqlOpFailedError', 'You specified that the replicas in server tag `foo` should be non-voting, but you didn\'t specify a number of replicas in server tag `foo`.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"foo":0}, primary_replica_tag="foo")
       js: db.table('a').reconfigure({shards:1, replicas:{foo:0}, primary_replica_tag:"foo"})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:foo => 0}, :primary_replica_tag => "foo")
-      ot: >
-          err('ReqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes
-          the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
+      ot: err('ReqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":0})
       js: db.table('a').reconfigure({shards:1, replicas:{default:0}})
@@ -203,16 +196,12 @@ tests:
     - py: db.table('a').reconfigure(shards=1, replicas=3, nonvoting_replica_tags=['foo'])
       js: db.table('a').reconfigure({shards:1, replicas:3, nonvoting_replica_tags:['foo']})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :nonvoting_replica_tags => ['foo'])
-      ot: >
-          err('ReqlQueryLogicError', '`replicas` must be an OBJECT if
-          `nonvoting_replica_tags` is specified.', [])
+      ot: err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `nonvoting_replica_tags` is specified.', [])
 
     - py: db.reconfigure(emergency_repair="unsafe_rollback")
       js: db.reconfigure({emergency_repair:"unsafe_rollback"})
       rb: db.reconfigure(:emergency_repair => "unsafe_rollback")
-      ot: >
-          err('ReqlQueryLogicError', 'Can\'t emergency repair an entire database at once;
-          instead you should run `reconfigure()` on each table individually.')
+      ot: err('ReqlQueryLogicError', 'Can\'t emergency repair an entire database at once; instead you should run `reconfigure()` on each table individually.')
 
     - py: db.table('a').reconfigure(emergency_repair="foo")
       js: db.table('a').reconfigure({emergency_repair:"foo"})
@@ -236,7 +225,7 @@ tests:
     - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
       js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
       rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
-      ot: {"inserted": 4}
+      ot: partial({"inserted": 4})
 
     - py: db.table('a').reconfigure(shards=2, replicas=1)
       js: db.table('a').reconfigure({shards:2, replicas:1})
@@ -246,10 +235,7 @@ tests:
     - py: db.table('a').reconfigure(shards=1, replicas=2)
       js: db.table('a').reconfigure({shards:1, replicas:2})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 2)
-      ot: >
-          err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag
-          `default` because there are only 1 servers with the tag `default`. It\'s
-          impossible to have more replicas of the data than there are servers.', [])
+      ot: err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It\'s impossible to have more replicas of the data than there are servers.', [])
 
     # Test wait and rebalance
     - cd: db.table('a').wait()

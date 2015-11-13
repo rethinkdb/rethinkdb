@@ -30,6 +30,19 @@ void encode_base64_ptype(
     writer->EndObject();
 }
 
+rapidjson::Value encode_base64_ptype(const datum_string_t &data,
+                                     rapidjson::Value::AllocatorType *allocator) {
+    rapidjson::Value res(rapidjson::kObjectType);
+    res.AddMember(rapidjson::Value(datum_t::reql_type_string.data(),
+                                   datum_t::reql_type_string.size(),
+                                   *allocator),
+                  rapidjson::Value(binary_string, *allocator), *allocator);
+    res.AddMember(rapidjson::Value(data_key, *allocator),
+                  rapidjson::Value(encode_base64(data.data(), data.size()).c_str(),
+                                   *allocator), *allocator);
+    return res;
+}
+
 scoped_cJSON_t encode_base64_ptype(const datum_string_t &data) {
     scoped_cJSON_t res(cJSON_CreateObject());
     res.AddItemToObject(datum_t::reql_type_string.to_std().c_str(),
@@ -64,23 +77,6 @@ datum_string_t decode_base64_ptype(
                  strprintf("Invalid binary pseudotype: lacking `%s` key.",
                            data_key).c_str());
     return res;
-}
-
-void write_binary_to_protobuf(Datum *d, const datum_string_t &data) {
-    d->set_type(Datum::R_OBJECT);
-
-    // Add pseudotype field with binary type
-    Datum_AssocPair *ap = d->add_r_object();
-    ap->set_key(datum_t::reql_type_string.to_std().c_str());
-    ap->mutable_val()->set_type(Datum::R_STR);
-    ap->mutable_val()->set_r_str(binary_string);
-
-    // Add 'data' field with base64-encoded data
-    std::string encoded_data(encode_base64(data.data(), data.size()));
-    ap = d->add_r_object();
-    ap->set_key(data_key);
-    ap->mutable_val()->set_type(Datum::R_STR);
-    ap->mutable_val()->set_r_str(encoded_data.data(), encoded_data.size());
 }
 
 } // namespace pseudo

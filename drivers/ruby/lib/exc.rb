@@ -14,4 +14,6 @@ module RethinkDB
   ReqlDriverError = RqlDriverError = Class.new(ReqlError)
   ReqlAuthError = RqlAuthError = Class.new(ReqlDriverError)
   ReqlCompileError = RqlCompileError = Class.new(ReqlError)
+  ReqlServerCompileError = Class.new(ReqlCompileError)
+  ReqlDriverCompileError = Class.new(ReqlCompileError)
 end

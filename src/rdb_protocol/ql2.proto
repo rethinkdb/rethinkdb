@@ -64,6 +64,7 @@ message VersionDummy { // We need to wrap it like this for some
 // * A [STOP] query with the same token as a [START] query that you want to stop.
 // * A [NOREPLY_WAIT] query with a unique per-connection token. The server answers
 //   with a [WAIT_COMPLETE] [Response].
+// * A [SERVER_INFO] query. The server answers with a [SERVER_INFO] [Response].
 message Query {
     enum QueryType {
         START    = 1; // Start a new query.
@@ -72,6 +73,8 @@ message Query {
         STOP     = 3; // Stop a query partway through executing.
         NOREPLY_WAIT = 4;
                       // Wait for noreply operations to finish.
+        SERVER_INFO = 5;
+                      // Get server information.
     }
     optional QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
@@ -120,6 +123,7 @@ message Response {
                                // more of the sequence.  Keep sending [CONTINUE]
                                // queries until you get back [SUCCESS_SEQUENCE].
         WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
+        SERVER_INFO       = 5; // The data for a [SERVER_INFO] request.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -227,8 +231,6 @@ message Datum {
         optional Datum val = 2;
     }
     repeated AssocPair r_object = 6;
-
-    extensions 10000 to 20000;
 }
 
 // A [Term] is either a piece of data (see **Datum** above), or an operator and
@@ -556,7 +558,7 @@ message Term {
         INDEX_LIST   = 77; // Table -> ARRAY
         // Gets information about whether or not a set of indexes are ready to
         // be accessed. Returns a list of objects that look like this:
-        // {index:STRING, ready:BOOL[, blocks_processed:NUMBER, blocks_total:NUMBER]}
+        // {index:STRING, ready:BOOL[, progress:NUMBER]}
         INDEX_STATUS = 139; // Table, STRING... -> ARRAY
         // Blocks until a set of indexes are ready to be accessed. Returns the
         // same values INDEX_STATUS.
@@ -781,8 +783,6 @@ message Term {
     repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
     // (Note that the order of the optional arguments doesn't matter; think of a
     // Hash.)
-
-    extensions 10000 to 20000;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

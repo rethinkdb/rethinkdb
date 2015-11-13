@@ -34,7 +34,7 @@ struct index_write_op_t {
 void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op);
 
 /* serializer_t is an abstract interface that describes how each serializer should
-behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
+behave. It is implemented by merger_serializer_t, log_serializer_t, and
 translator_serializer_t. */
 
 /* Except as otherwise noted, the serializer's methods should only be
@@ -69,14 +69,15 @@ public:
      * 2. A repli_timestamp_t, called the "recency"
      * 3. A boolean, called the "delete bit" */
 
-    /* max_block_id() and get_delete_bit() are used by the buffer cache to reconstruct
-    the free list of unused block IDs. */
+    /* end_block_id() / end_aux_block_id() and get_delete_bit() are used by the
+    buffer cache to reconstruct the free list of unused block IDs. */
 
-    /* Returns a block ID such that every existing block has an ID less than
-     * that ID. Note that index_read(max_block_id() - 1) is not guaranteed to be
-     * non-NULL. Note that for k > 0, max_block_id() - k might have never been
-     * created. */
-    virtual block_id_t max_block_id() = 0;
+    /* Returns a block ID such that every existing regular/aux block has an
+     * ID less than that ID. Note that index_read(end_block_id() - 1) is not
+     * guaranteed to be non-NULL. Note that for k > 0, end_block_id() - k might
+     * have never been created. */
+    virtual block_id_t end_block_id() = 0;
+    virtual block_id_t end_aux_block_id() = 0;
 
     /* Returns all recencies, for all block ids of the form first + step * k, for k =
        0, 1, 2, 3, ..., in order by block id.  Non-existant block ids have recency

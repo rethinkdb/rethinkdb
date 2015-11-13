@@ -153,26 +153,59 @@ public:
     watchable_map_t<key2_t, value_t> *get_values() {
         return &values;
     }
+
     void set_key(const key1_t &key1, const key2_t &key2, const value_t &value) {
-        auto it = entries.find(key1);
-        if (it != entries.end()) {
-            /* Update or erase the existing entry */
-            if (it->second.get_key() == key2) {
-                it->second.change([&](value_t *v) { *v = value; return true; });
+        auto key1_iter = entries.find(key1);
+
+        bool key2_exists = false;
+        values.read_key(key2, [&](const value_t *v) {
+            key2_exists = (v != nullptr);
+        });
+
+        if (key1_iter != entries.end()) {
+            // A `key1` entry already exists ..
+            if (key1_iter->second.get_key() == key2) {
+                // .. and has the right `key2`, change its value, and we're done.
+                key1_iter->second.change([&](value_t *v) {
+                    *v = value;
+                    return true;
+                });
                 return;
             } else {
-                /* We can't change the key of an existing entry, so erase it and create
-                a new one */
-                entries.erase(it);
+                // .. but does not have the right key, remove it.
+                entries.erase(key1_iter);
             }
         }
-        entries[key1] = typename watchable_map_var_t<key2_t, value_t>::entry_t(
-            &values, key2, value);
+
+        if (key2_exists) {
+            // A `key2` entry already exists, find the matching `key1` which we know
+            // isn't the one given, and delete it.
+            delete_secondary_key(key2);
+        }
+
+        // Insert the new `key1`, `key2`, `value` entry.
+        auto result = entries.insert(std::make_pair(
+            key1, typename watchable_map_var_t<key2_t, value_t>::entry_t(
+                &values, key2, value)));
+        guarantee(result.second);
     }
+
     void delete_key(const key1_t &key1) {
         entries.erase(key1);
     }
+
 private:
+    void delete_secondary_key(const key2_t &key2) {
+        // Iterate through all the `entries` in search of one with a key of `key2`,
+        // deleting it will automatically remove it from `values` as well.
+        for (auto iter = entries.begin(); iter != entries.end(); ++iter) {
+            if (iter->second.get_key() == key2) {
+                entries.erase(iter);
+                break;
+            }
+        }
+    }
+
     watchable_map_var_t<key2_t, value_t> values;
     std::map<key1_t, typename watchable_map_var_t<key2_t, value_t>::entry_t> entries;
 };

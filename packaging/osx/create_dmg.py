@@ -3,7 +3,7 @@
 
 '''Create the dmg for MacOS deployment'''
 
-import atexit, copy, os, re, shutil, subprocess, sys, tempfile
+import atexit, copy, glob, os, re, shutil, subprocess, sys, tempfile
 
 thisFolder = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(thisFolder)
@@ -102,7 +102,7 @@ def buildPackage(versionString, serverRootPath, installPath=None, signingName=No
 	
 	pkgCommand = ['/usr/bin/pkgbuild', serverPackagePath, '--root', serverRootPath, '--identifier', 'com.rethinkdb.server', '--version', versionString]
 	if installPath:
-	   pkgCommand += ['--install-location', str(installPath)]
+		pkgCommand += ['--install-location', str(installPath)]
 	
 	try:
 		subprocess.check_call(pkgCommand, stdout=logFile, stderr=logFile)
@@ -111,11 +111,34 @@ def buildPackage(versionString, serverRootPath, installPath=None, signingName=No
 		sys.stderr.write('Failed while building server package: %s\n%s' % (str(e), logFile.read()))
 		raise
 	
+	# - installer_resources
+	
+	installerResourcesPath = os.path.join(scratchFolder, 'installer_resources')
+	os.mkdir(installerResourcesPath)
+	logFile = open(os.path.join(scratchFolder, 'installer_background-assemble.log'), 'w+')
+	try:
+		subprocess.check_call(
+			['/usr/bin/tiffutil',
+			'-cathidpicheck'] + glob.glob(os.path.join(thisFolder, 'installer_resources', 'installer_background*.png')) +
+			['-out', os.path.join(installerResourcesPath, 'installer_background.tiff')],
+			stdout=logFile, stderr=subprocess.STDOUT
+		)
+	except Exception as e:
+		logFile.seek(0)
+		sys.stderr.write('Failed while building installer background: %s\n%s' % (str(e), logFile.read()))
+		raise
+	
 	# == assemble the archive
 	
 	distributionPath = os.path.join(scratchFolder, 'rethinkdb-%s.pkg' % versionString)
 	
-	productBuildCommand = ['/usr/bin/productbuild', '--distribution', os.path.join(thisFolder, 'Distribution.xml'), '--package-path', packageFolder, '--resources', os.path.join(thisFolder, 'installer_resources'), distributionPath]
+	productBuildCommand = [
+		'/usr/bin/productbuild',
+		'--distribution', os.path.join(thisFolder, 'Distribution.xml'),
+		'--package-path', packageFolder,
+		'--resources', installerResourcesPath,
+		distributionPath
+	]
 	if signingName is not None:
 		productBuildCommand += ['--sign', signingName]
 	

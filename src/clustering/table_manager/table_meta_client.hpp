@@ -147,6 +147,14 @@ public:
         bool *all_replicas_ready_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
+    /* `get_raft_leader()` fetches raft leader from the table directory.
+    This is for displaying raft information in `rethinkdb.table_status`. */
+    void get_raft_leader(
+        const namespace_id_t &table_id,
+        signal_t *interruptor,
+        boost::optional<server_id_t> *raft_leader_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
+
     /* `get_debug_status()` fetches all status information from all servers. This is for
     displaying in `rethinkdb._debug_table_status`. */
     void get_debug_status(

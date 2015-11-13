@@ -70,8 +70,10 @@ private:
         remote_replicator_server_t *parent;
         bool is_ready;
 
-        remote_replicator_client_intro_t::ready_mailbox_t ready_mailbox;
+        // The destruction order matters: The `ready_mailbox` callback assumes
+        // that `registration` is still valid.
         scoped_ptr_t<primary_dispatcher_t::dispatchee_registration_t> registration;
+        remote_replicator_client_intro_t::ready_mailbox_t ready_mailbox;
     };
 
     mailbox_manager_t *mailbox_manager;

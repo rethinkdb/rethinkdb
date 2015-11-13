@@ -1,12 +1,16 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "pprint/pprint.hpp"
 
 #include <vector>
 #include <list>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+
+#include "rdb_protocol/error.hpp"
 
 namespace pprint {
 
@@ -549,37 +553,37 @@ public:
     }
 
     void operator()(text_element_t *t) override {
-        guarantee(t->hpos);
+        r_sanity_check(t->hpos);
         maybe_push(t);
     }
 
     void operator()(crlf_element_t *e) override {
-        guarantee(e->hpos);
+        r_sanity_check(e->hpos);
         maybe_push(e);
     }
 
     void operator()(cond_element_t *c) override {
-        guarantee(c->hpos);
+        r_sanity_check(c->hpos);
         maybe_push(c);
     }
 
     void operator()(nbeg_element_t *e) override {
-        guarantee(!e->hpos);     // don't care about `nbeg_element_t` hpos
+        r_sanity_check(!e->hpos);     // don't care about `nbeg_element_t` hpos
         maybe_push(e);
     }
 
     void operator()(nend_element_t *e) override {
-        guarantee(e->hpos);
+        r_sanity_check(e->hpos);
         maybe_push(e);
     }
 
     void operator()(gbeg_element_t *e) override {
-        guarantee(!e->hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
+        r_sanity_check(!e->hpos);     // `hpos` shouldn't be set for `gbeg_element_t`
         lookahead.push_back(buffer_t(new std::list<counted_t<stream_element_t> >()));
     }
 
     void operator()(gend_element_t *e) override {
-        guarantee(e->hpos);
+        r_sanity_check(e->hpos);
         buffer_t b(std::move(lookahead.back()));
         lookahead.pop_back();
         if (lookahead.empty()) {
@@ -695,6 +699,15 @@ std::string pretty_print(size_t width, counted_t<const document_t> doc) {
     counted_t<fn_wrapper_t> annotate = annotate_stream(corr_gbeg);
     generate_stream(doc, annotate);
     return output->result;
+}
+
+std::string print_var(int64_t var_num) {
+    if (var_num < 0) {
+        // Internal variables
+        return "_var" + std::to_string(-var_num);
+    } else {
+        return "var" + std::to_string(var_num);
+    }
 }
 
 } // namespace pprint

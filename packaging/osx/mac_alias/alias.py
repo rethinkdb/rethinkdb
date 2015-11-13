@@ -139,28 +139,28 @@ class TargetInfo (object):
         self.type_code = type_code
 
         #: The depth of the alias? Always seems to be -1 on OS X.
-        self.levels_from = -1
+        self.levels_from = levels_from
 
         #: The depth of the target? Always seems to be -1 on OS X.
-        self.levels_to = -1
+        self.levels_to = levels_to
 
         #: The (POSIX) name of the target's containing folder. *(optional)*
-        self.folder_name = None
+        self.folder_name = folder_name
 
         #: The path from the volume root as a sequence of CNIDs. *(optional)*
-        self.cnid_path = None
+        self.cnid_path = cnid_path
 
         #: The Carbon path of the target *(optional)*
-        self.carbon_path = None
+        self.carbon_path = carbon_path
 
         #: The POSIX path of the target relative to the volume root.  Note
         #: that this may or may not have a leading '/' character, but it is
         #: always relative to the containing volume. *(optional)*
-        self.posix_path = None
+        self.posix_path = posix_path
 
         #: If the path points into a user's home folder, the number of folders
         #: deep that we go before we get to that home folder. *(optional)*
-        self.user_home_prefix_len = None
+        self.user_home_prefix_len = user_home_prefix_len
 
     def __repr__(self):
         args = ['kind', 'filename', 'folder_cnid', 'cnid', 'creation_date',

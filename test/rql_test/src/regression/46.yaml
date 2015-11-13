@@ -5,7 +5,7 @@ tests:
     ot: partial({'tables_created':1})
 
   - cd: r.table_list()
-    ot: (['46'])
+    ot: ['46']
 
   - cd: r.table_drop('46')
     ot: partial({'tables_dropped':1})

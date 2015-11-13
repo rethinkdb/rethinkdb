@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <stdint.h>
 
 #include <string>
@@ -15,7 +15,7 @@ namespace ql {
 
 class http_term_t : public op_term_t {
 public:
-    http_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    http_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1),
                     optargspec_t({"data",
                                   "timeout",
@@ -34,8 +34,8 @@ private:
     virtual const char *name() const { return "http"; }
 
     // No HTTP term is considered deterministic
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::no;
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
@@ -773,7 +773,7 @@ void http_term_t::get_bool_optarg(const std::string &optarg_name,
 }
 
 counted_t<term_t> make_http_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<http_term_t>(env, term);
 }
 

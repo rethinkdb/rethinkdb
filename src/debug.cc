@@ -1,3 +1,4 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "debug.hpp"
 
 #include <inttypes.h>
@@ -93,10 +94,6 @@ debugf_in_dtor_t::debugf_in_dtor_t(const char *msg, ...) {
 
 debugf_in_dtor_t::~debugf_in_dtor_t() {
     debugf("%s", message.c_str());
-}
-
-void pb_print(DEBUG_VAR Term *t) {
-    debugf("%s\n", t->DebugString().c_str());
 }
 
 debug_timer_t::debug_timer_t(std::string _name)

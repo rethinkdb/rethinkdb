@@ -30,15 +30,14 @@ class StaticCluster(rdb_unittest.RdbTestCase):
         # -- add a proxy node if called for
         if opts["use-proxy"]:
             utils.print_with_time('Using proxy')
-            workloadServer = driver.ProxyProcess(self.cluster, 'proxy-logfile', console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
+            workloadServer = driver.ProxyProcess(self.cluster, console_output='proxy-output', command_prefix=command_prefix, extra_options=serve_options)
             self.cluster.wait_until_ready()
         
         # -- run workload
         workload_runner.run(opts["workload"], workloadServer, opts["timeout"], db_name=self.dbName, table_name=self.tableName)
         utils.print_with_time("Ended workload: %s" % opts["workload"])
 
-# ==== main
+# ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main(argv=[sys.argv[0]])
+    rdb_unittest.main()

@@ -91,6 +91,7 @@ class Driver
                         if @state is 'ok'
                             is_disconnected.display_fail()
                     else
+                        body = require('./body.coffee')
                         is_disconnected = new body.IsDisconnected
                     @state = 'fail'
                 else

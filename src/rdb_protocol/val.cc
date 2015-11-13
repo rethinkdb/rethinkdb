@@ -31,12 +31,12 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(
@@ -58,7 +58,7 @@ public:
         std::vector<datum_t > keys{key};
         // We don't need to fetch the value for deterministic replacements.
         std::vector<datum_t > vals{
-            f->is_deterministic() ? datum_t() : get()};
+            f->is_deterministic() == deterministic_t::always ? datum_t() : get()};
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
@@ -91,14 +91,14 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(
@@ -205,7 +205,7 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        bounds};
+        datumspec_t(bounds)};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
@@ -214,7 +214,14 @@ counted_t<datum_stream_t> table_t::as_seq(
     backtrace_id_t bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
-    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, read_mode);
+    return tbl->read_all(
+        env,
+        idx,
+        bt,
+        display_name(),
+        datumspec_t(bounds),
+        sorting,
+        read_mode);
 }
 
 table_t::table_t(counted_t<base_table_t> &&_tbl,
@@ -247,7 +254,7 @@ datum_t table_t::batched_replace(
         return ql::datum_t::empty_object();
     }
 
-    if (!replacement_generator->is_deterministic()) {
+    if (replacement_generator->is_deterministic() != deterministic_t::always) {
         r_sanity_check(nondeterministic_replacements_ok);
         datum_object_builder_t stats;
         std::vector<datum_t> replacement_values;
@@ -351,7 +358,7 @@ datum_t table_t::get_row(env_t *env, datum_t pval) {
 
 counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
-        datum_t value,
+        const datumspec_t &datumspec,
         const std::string &get_all_sindex_id,
         backtrace_id_t bt) {
     return tbl->read_all(
@@ -359,7 +366,7 @@ counted_t<datum_stream_t> table_t::get_all(
         get_all_sindex_id,
         bt,
         display_name(),
-        datum_range_t(value),
+        datumspec,
         sorting_t::UNORDERED,
         read_mode);
 }

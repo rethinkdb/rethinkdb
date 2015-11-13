@@ -6,9 +6,11 @@
 #include <string>
 #include <vector>
 
+#include "containers/archive/archive.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 /* This is the backend for an artificial table that acts as much as possible like a real
 table. It accepts all reads and writes, storing the results in a `std::map`. It's used
@@ -64,6 +66,27 @@ public:
         random_delay(interruptor);
         on_thread_t thread_switcher(home_thread());
         if (new_value_inout->has()) {
+            /* Not all datums can be serialized into an actual table (r.minval,
+            r.maxval and large arrays in particular). To make the in-memory test
+            table behave as closely to an actual table as possible, we attempt to
+            serialize the datum, check for errors, and then discard the serialization
+            result. */
+            {
+                write_message_t wm;
+                ql::serialization_result_t res = ql::datum_serialize(
+                    &wm,
+                    *new_value_inout,
+                    ql::check_datum_serialization_errors_t::YES);
+                if (res & ql::serialization_result_t::ARRAY_TOO_BIG) {
+                    rfail_typed_target(new_value_inout, "Array too large for disk "
+                                       "writes (limit 100,000 elements).");
+                } else if (res & ql::serialization_result_t::EXTREMA_PRESENT) {
+                    rfail_typed_target(new_value_inout, "`r.minval` and `r.maxval` "
+                                       "cannot be written to disk.");
+                }
+                r_sanity_check(!ql::bad(res));
+            }
+
             ql::datum_t primary_key_2 = new_value_inout->get_field("id", ql::NOTHROW);
             guarantee(primary_key_2.has());
             guarantee(primary_key == primary_key_2);

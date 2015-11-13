@@ -56,11 +56,24 @@ sindex_config_t sindex_config_from_string(
     sindex_disk_info_t sindex_info;
     try {
         deserialize_sindex_info(vec, &sindex_info,
-            [target] () {
-                rfail_target(target, base_exc_t::LOGIC,
-                             "Attempted to import a RethinkDB 1.13 secondary index, "
-                             "which is no longer supported.  This secondary index "
-                             "may be updated by importing into RethinkDB 2.0.");
+            [target](obsolete_reql_version_t ver) {
+                switch (ver) {
+                case obsolete_reql_version_t::v1_13:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a RethinkDB 1.13 secondary index, "
+                                 "which is no longer supported.  This secondary index "
+                                 "may be updated by importing into RethinkDB 2.0.");
+                    break;
+                // v1_15 is equal to v1_14
+                case obsolete_reql_version_t::v1_14:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a secondary index from before "
+                                 "RethinkDB 1.16, which is no longer supported.  This "
+                                 "secondary index may be updated by importing into "
+                                 "RethinkDB 2.1.");
+                    break;
+                default: unreachable();
+                }
             });
     } catch (const archive_exc_t &e) {
         rfail_target(
@@ -77,6 +90,40 @@ sindex_config_t sindex_config_from_string(
         sindex_info.geo);
 }
 
+// Helper for `sindex_status_to_datum()`
+std::string format_index_create_query(
+        const std::string &name,
+        const sindex_config_t &config) {
+    // TODO: Theoretically we need to escape quotes and UTF-8 characters inside the name.
+    // Maybe use RapidJSON? Does our pretty-printer even do that for strings?
+    std::string ret = "indexCreate('" + name + "', ";
+    ret += config.func.compile_wire_func()->print_js_function();
+    bool first_optarg = true;
+    if (config.multi == sindex_multi_bool_t::MULTI) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "multi: true";
+    }
+    if (config.geo == sindex_geo_bool_t::GEO) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "geo: true";
+    }
+    if (!first_optarg) {
+        ret += "}";
+    }
+    ret += ")";
+    return ret;
+}
+
 /* `sindex_status_to_datum()` produces the documents that are returned from
 `sindex_status()` and `sindex_wait()`. */
 
@@ -87,10 +134,9 @@ ql::datum_t sindex_status_to_datum(
     ql::datum_object_builder_t stat;
     stat.overwrite("index", ql::datum_t(datum_string_t(name)));
     if (!status.ready) {
-        stat.overwrite("blocks_processed",
-            ql::datum_t(safe_to_double(status.blocks_processed)));
-        stat.overwrite("blocks_total",
-            ql::datum_t(safe_to_double(std::max<size_t>(status.blocks_total, 1))));
+        stat.overwrite("progress",
+            ql::datum_t(status.progress_numerator /
+                        std::max<double>(status.progress_denominator, 1.0)));
     }
     stat.overwrite("ready", ql::datum_t::boolean(status.ready));
     stat.overwrite("outdated", ql::datum_t::boolean(status.outdated));
@@ -100,12 +146,14 @@ ql::datum_t sindex_status_to_datum(
         ql::datum_t::boolean(config.geo == sindex_geo_bool_t::GEO));
     stat.overwrite("function",
         ql::datum_t::binary(sindex_config_to_string(config)));
+    stat.overwrite("query",
+        ql::datum_t(datum_string_t(format_index_create_query(name, config))));
     return std::move(stat).to_datum();
 }
 
 class sindex_create_term_t : public op_term_t {
 public:
-    sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_create_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -143,15 +191,13 @@ public:
                 config.func_version = reql_version_t::LATEST;
             }
         } else {
-
-            pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
-            protob_t<Term> func_term
-                = r::fun(x, r::var(x)[name_datum]).release_counted();
-            propagate_backtrace(func_term.get(), backtrace());
+            minidriver_t r(backtrace());
+            auto x = minidriver_t::dummy_var_t::SINDEXCREATE_X;
 
             compile_env_t empty_compile_env((var_visibility_t()));
-            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
-                &empty_compile_env, func_term);
+            counted_t<func_term_t> func_term_term =
+                make_counted<func_term_t>(&empty_compile_env,
+                                          r.fun(x, r.var(x)[name_datum]).root_term());
 
             config.func = ql::map_wire_func_t(func_term_term->eval_to_func(env->scope));
             config.func_version = reql_version_t::LATEST;
@@ -190,7 +236,7 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_drop_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -214,7 +260,7 @@ public:
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_list_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -243,7 +289,7 @@ public:
 
 class sindex_status_term_t : public op_term_t {
 public:
-    sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_status_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -266,12 +312,13 @@ public:
 
         /* Convert it into an array and return it */
         ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
+        std::set<std::string> remaining_sindexes = sindexes;
         for (const auto &pair : configs_and_statuses) {
             if (!sindexes.empty()) {
                 if (sindexes.count(pair.first) == 0) {
                     continue;
                 } else {
-                    sindexes.erase(pair.first);
+                    remaining_sindexes.erase(pair.first);
                 }
             }
             res.add(sindex_status_to_datum(
@@ -279,9 +326,9 @@ public:
         }
 
         /* Make sure we found all the requested sindexes. */
-        rcheck(sindexes.empty(), base_exc_t::OP_FAILED,
+        rcheck(remaining_sindexes.empty(), base_exc_t::OP_FAILED,
             strprintf("Index `%s` was not found on table `%s`.",
-                      sindexes.begin()->c_str(),
+                      remaining_sindexes.begin()->c_str(),
                       table->display_name().c_str()));
 
         return new_val(std::move(res).to_datum());
@@ -296,7 +343,7 @@ int64_t max_poll_ms = 10000;
 
 class sindex_wait_term_t : public op_term_t {
 public:
-    sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_wait_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -353,7 +400,7 @@ public:
 
 class sindex_rename_term_t : public op_term_t {
 public:
-    sindex_rename_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sindex_rename_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -393,27 +440,27 @@ public:
 };
 
 counted_t<term_t> make_sindex_create_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_drop_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_drop_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_list_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_list_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_status_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_status_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_wait_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_wait_term_t>(env, term);
 }
 counted_t<term_t> make_sindex_rename_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sindex_rename_term_t>(env, term);
 }
 

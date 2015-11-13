@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <algorithm>
 
 #include "btree/keys.hpp"
@@ -17,6 +17,7 @@
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/store.hpp"
 #include "stl_utils.hpp"
@@ -160,9 +161,11 @@ void prepare_namespace(namespace_interface_t *nsi,
     std::string index_id = "geo";
 
     const ql::sym_t arg(1);
-    ql::protob_t<const Term> mapping = ql::r::var(arg).release_counted();
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t mapping = r.var(arg).root_term();
+
     sindex_config_t sindex(
-        ql::map_wire_func_t(mapping, make_vector(arg), ql::backtrace_id_t::empty()),
+        ql::map_wire_func_t(mapping, make_vector(arg)),
         reql_version_t::LATEST,
         sindex_multi_bool_t::SINGLE,
         sindex_geo_bool_t::GEO);
@@ -190,7 +193,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
     std::string idx_name = "geo";
     read_t read(nearest_geo_read_t(region_t::universe(), center, max_distance,
                                    max_results, WGS84_ELLIPSOID, table_name, idx_name,
-                                   std::map<std::string, ql::wire_func_t>()),
+                                   ql::global_optargs_t()),
                 profile_bool_t::PROFILE,
                 read_mode_t::SINGLE);
     read_response_t response;
@@ -312,14 +315,15 @@ std::vector<datum_t> perform_get_intersecting(
     std::string idx_name = "geo";
     read_t read(intersecting_geo_read_t(boost::optional<changefeed_stamp_t>(),
                                         region_t::universe(),
-                                        std::map<std::string, ql::wire_func_t>(),
+                                        ql::global_optargs_t(),
                                         table_name, ql::batchspec_t::all(),
                                         std::vector<ql::transform_variant_t>(),
                                         boost::optional<ql::terminal_variant_t>(),
                                         sindex_rangespec_t(
                                             idx_name,
                                             region_t::universe(),
-                                            ql::datum_range_t::universe()),
+                                            ql::datumspec_t(
+                                                ql::datum_range_t::universe())),
                                         query_geometry),
                 profile_bool_t::PROFILE,
                 read_mode_t::SINGLE);
@@ -346,11 +350,22 @@ std::vector<datum_t> perform_get_intersecting(
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<datum_t>();
     }
-    const ql::stream_t &result_stream = (*result)[datum_t::null()];
     std::vector<datum_t> result_datum;
-    result_datum.reserve(result_stream.size());
-    for (size_t i = 0; i < result_stream.size(); ++i) {
-        result_datum.push_back(result_stream[i].data);
+    if (result->size() == 0) {
+        return result_datum;
+    } else if (result->size() != 1) {
+        ADD_FAILURE() << "got grouped result for some reason";
+        return std::vector<datum_t>();
+    }
+    if (result->begin()->first != datum_t::null()) {
+        ADD_FAILURE() << "got grouped result for some reason";
+        return std::vector<datum_t>();
+    }
+    const ql::stream_t &stream = (*result)[datum_t::null()];
+    for (auto &&pair : stream.substreams) {
+        for (auto &&el : pair.second.stream) {
+            result_datum.push_back(el.data);
+        }
     }
     return result_datum;
 }

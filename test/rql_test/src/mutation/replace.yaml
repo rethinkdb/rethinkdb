@@ -88,7 +88,7 @@ tests:
     - cd: tbl.get(1).replace({}, 'foo')
       ot:
         cd: err('ReqlCompileError', 'Expected 2 arguments but found 3.')
-        js: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
+        js: err('ReqlCompileError', 'Expected 1 argument (not including options) but found 2.')
 
     - cd: tbl.get(1).replace({}, {'foo':'bar'})
       py: tbl.get(1).replace({}, foo='bar')

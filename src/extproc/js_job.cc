@@ -27,7 +27,7 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
                         const ql::configured_limits_t &limits,
                         std::string *err_out);
 
-// Should never error.
+// Returns an empty handle on error and sets `err_out` accordingly.
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
 
@@ -689,7 +689,11 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
         for (size_t i = 0; i < datum.arr_size(); ++i) {
             v8::HandleScope scope(isolate);
             v8::Handle<v8::Value> val = js_from_datum(datum.get(i), err_out);
-            guarantee(!val.IsEmpty());
+            if (val.IsEmpty()) {
+                // The recursive call to `js_from_datum` should have set `err_out`
+                guarantee(!err_out->empty());
+                return v8::Handle<v8::Value>();
+            }
             array->Set(i, val);
         }
 
@@ -708,6 +712,11 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                 v8::HandleScope scope(isolate);
                 v8::Handle<v8::Value> key = v8::String::NewFromUtf8(isolate, pair.first.to_std().c_str());
                 v8::Handle<v8::Value> val = js_from_datum(pair.second, err_out);
+                if (val.IsEmpty()) {
+                    // The recursive call to `js_from_datum` should have set `err_out`
+                    guarantee(!err_out->empty());
+                    return v8::Handle<v8::Value>();
+                }
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);
             }

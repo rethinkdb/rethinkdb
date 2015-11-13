@@ -1,7 +1,7 @@
 desc: tests for `floor`, `ceil`, and `round`, tests inspired by the Python test suite
 tests:
     - cd: r.floor(1.0).type_of()
-      ot: '"NUMBER"'
+      ot: "NUMBER"
     - cd: r.floor(1.0)
       ot: 1.0
     - cd: r.expr(1.0).floor()
@@ -25,7 +25,7 @@ tests:
 
 
     - cd: r.ceil(1.0).type_of()
-      ot: '"NUMBER"'
+      ot: "NUMBER"
     - cd: r.ceil(1.0)
       ot: 1.0
     - cd: r.expr(1.0).ceil()
@@ -49,7 +49,7 @@ tests:
 
 
     - cd: r.round(1.0).type_of()
-      ot: '"NUMBER"'
+      ot: "NUMBER"
     - cd: r.round(1.0)
       ot: 1.0
     - cd: r.expr(1.0).round()

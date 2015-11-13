@@ -45,9 +45,8 @@ class ChangePrimary(rdb_unittest.RdbTestCase):
             workload.run_after()
             self.checkCluster()
             utils.print_with_time("After workload complete")
-            
-# ==== main
+
+# ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main(argv=[sys.argv[0]])
+    rdb_unittest.main()

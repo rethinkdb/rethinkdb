@@ -88,6 +88,19 @@ ql::datum_t convert_shard_status_to_datum(
     return std::move(shard_builder).to_datum();
 }
 
+ql::datum_t convert_raft_leader_to_datum(
+        const table_status_t &status,
+        admin_identifier_format_t identifier_format) {
+    if (static_cast<bool>(status.raft_leader)) {
+      return convert_name_or_uuid_to_datum(
+          status.server_names.get(*status.raft_leader),
+          *status.raft_leader,
+          identifier_format);
+    }
+
+    return ql::datum_t::null();
+}
+
 ql::datum_t convert_table_status_to_datum(
         const table_status_t &status,
         admin_identifier_format_t identifier_format) {
@@ -116,6 +129,10 @@ ql::datum_t convert_table_status_to_datum(
         }
         builder.overwrite("shards", std::move(shards_builder).to_datum());
     }
+
+    // add raft leader information
+    builder.overwrite("raft_leader",
+      convert_raft_leader_to_datum(status, identifier_format));
 
     ql::datum_object_builder_t status_builder;
     status_builder.overwrite("ready_for_outdated_reads", ql::datum_t::boolean(

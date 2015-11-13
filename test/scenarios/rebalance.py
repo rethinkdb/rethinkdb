@@ -68,9 +68,8 @@ class Rebalance(rdb_unittest.RdbTestCase):
             self.checkCluster()
         
         utils.print_with_time("Workload complete")
-            
-# ==== main
+
+# ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main(argv=[sys.argv[0]])
+    rdb_unittest.main()

@@ -76,7 +76,7 @@ class QueryResult
                 @results = []
                 @results_offset = 0
                 @cursor = value
-                @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
+                @is_feed = @cursor.toString().match(/\[object .*Feed\]/)
                 @missing = 0
                 @ended = false
                 @server_duration = null  # ignore server time if batched response
@@ -2571,7 +2571,7 @@ class Container extends Backbone.View
         dataexplorer_state.cursor_timed_out = false
         dataexplorer_state.query_has_changed = false
 
-        @raw_query = @codemirror.getValue()
+        @raw_query = @codemirror.getSelection() or @codemirror.getValue()
 
         @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
 
@@ -2841,7 +2841,7 @@ class Container extends Backbone.View
     # Called if there is any on the connection
     error_on_connect: (error) =>
         if /^(Unexpected token)/.test(error.message)
-            # Unexpected token, the server couldn't parse the protobuf message
+            # Unexpected token, the server couldn't parse the message
             # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
             @results_view_wrapper.render_error(null, error)
 

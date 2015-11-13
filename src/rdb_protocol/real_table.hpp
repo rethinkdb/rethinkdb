@@ -65,14 +65,13 @@ public:
     ql::datum_t get_id() const;
     const std::string &get_pkey() const;
 
-    ql::datum_t read_row(ql::env_t *env,
-        ql::datum_t pval, read_mode_t read_mode);
+    ql::datum_t read_row(ql::env_t *env, ql::datum_t pval, read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &sindex,
         ql::backtrace_id_t bt,
-        const std::string &table_name,   /* the table's own name, for display purposes */
-        const ql::datum_range_t &range,
+        const std::string &table_name, // The table's own name, for display purposes.
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_changes(

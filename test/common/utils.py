@@ -44,6 +44,7 @@ startTime = time.time()
 def print_with_time(*args, **kwargs): # add timing information to print statements
     args += ('(T+ %.2fs)' % (time.time() - startTime), )
     print(*args, **kwargs)
+    sys.stdout.flush()
 
 def guess_is_text_file(name):
     with file(name, 'rb') as f:
@@ -350,7 +351,7 @@ def wait_for_port(port, host='localhost', timeout=5):
         time.sleep(.1)
     raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
 
-def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
+def kill_process_group(processGroupId, timeout=20, shutdown_grace=5, only_warn=True):
     '''make sure that the given process group id is not running'''
     
     # -- validate input
@@ -430,16 +431,23 @@ def kill_process_group(processGroupId, timeout=20, shutdown_grace=5):
         elif e.errno == 1: # Operation not permitted: not our process
             return
         else:
-            warnings.warn('Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), '\n'.join(psLines)))
-            raise
+            mesg = 'Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), '\n'.join(psLines))
+            if only_warn:
+                warnings.warn(mesg)
+            else:
+                raise RuntimeError(mesg)
     
     # --
     
     timeElapsed = timeout - (deadline - time.time())
-    raise Warning('Unable to kill all of the processes for process group %d after %.2f seconds:\n%s\n' % (processGroupId, timeElapsed, psOutput.decode('utf-8')))
+    mesg = 'Unable to kill all of the processes for process group %d after %.2f seconds:\n%s\n' % (processGroupId, timeElapsed, psOutput.decode('utf-8'))
+    if only_warn:
+        warnings.warn(mesg)
+    else:
+        raise RuntimeError(mesg)
     # ToDo: better categorize the error
 
-def nonblocking_readline(source):
+def nonblocking_readline(source, seek=0):
     
     # - ensure we have a file
     
@@ -459,27 +467,28 @@ def nonblocking_readline(source):
     else:
         raise ValueError('bad source: %s' % repr(source))
     
-    # - set non-blocking IO
+    # - seek to the specified location
+    source.seek(seek)
+    assert source.tell() == seek
     
+    # - set non-blocking IO    
     fcntl.fcntl(source, fcntl.F_SETFL, fcntl.fcntl(source, fcntl.F_GETFL) | os.O_NONBLOCK)
     
     # -
     
     waitingLines = collections.deque()
     unprocessed = ''
-    lastRead = 0
+    lastRead = seek
     
     while True:
         
         # - return an already-processed line
-        
         try:
             yield waitingLines.popleft()
             continue
         except IndexError: pass
         
         # - try to read in a new chunk and split it
-        
         source.seek(lastRead)
         chunk = source.read(1024)
         
@@ -491,7 +500,6 @@ def nonblocking_readline(source):
         unprocessed += chunk
         
         # - process the block into lines
-        
         endsWithNewline = unprocessed[-1] == '\n'
         waitingLines.extend(unprocessed.splitlines())
         
@@ -531,6 +539,29 @@ def cleanupPathAtExit(path):
     global pathsToClean
     if path not in pathsToClean:
         pathsToClean.append(path)
+
+def populateTable(conn, table, db=None, records=100, fieldName='id'):
+    '''Given a table (name or object) insert a number of records into it'''
+    
+    # -- input validation/defaulting
+    
+    if hasattr(table, 'index_list'):
+        pass # nothing to do here
+    else:
+        db = str(db) or 'test'
+        table = conn._r.db(db).table(str(table))
+    
+    try:
+        records = int(records)
+        assert records >= 0
+    except Exception as e:
+        raise ValueError('bad value for records: %r (%s)' % (records, str(e)))
+    
+    fieldName = str(fieldName)
+    
+    # --
+    
+    return table.insert(conn._r.range(1, records + 1).map({fieldName:conn._r.row})).run(conn)
 
 def getShardRanges(conn, table, db='test'):
     '''Given a table and a connection return a list of tuples'''

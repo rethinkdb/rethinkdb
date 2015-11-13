@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-import os, pprint, sys, time
+import os, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import rdb_unittest, scenario_common, utils, vcoptparse, workload_runner
@@ -51,8 +51,7 @@ class KillIdleServer(rdb_unittest.RdbTestCase):
         
         utils.print_with_time("Done with kill_access_point")
 
-# ==== main
+# ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main(argv=[sys.argv[0]])
+    rdb_unittest.main()

@@ -12,10 +12,9 @@ RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(backfill_config_t,
     item_queue_mem_size, item_chunk_mem_size, pre_item_queue_mem_size,
     pre_item_chunk_mem_size);
 
-RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(backfiller_bcard_t::intro_2_t,
+RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(backfiller_bcard_t::intro_2_t,
     common_version, final_version_history, pre_items_mailbox, begin_session_mailbox,
-    end_session_mailbox, ack_items_mailbox, num_changes_estimate, distribution_counts,
-    distribution_counts_sum);
+    end_session_mailbox, ack_items_mailbox, num_changes_estimate, progress_estimator);
 
 RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(backfiller_bcard_t::intro_1_t,
     config, initial_version, initial_version_history, intro_mailbox, items_mailbox,

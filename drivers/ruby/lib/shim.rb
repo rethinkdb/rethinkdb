@@ -74,7 +74,7 @@ module RethinkDB
             when re::USER             then raise ReqlUserError,             r['r'][0]
             else                           raise ReqlRuntimeError,          r['r'][0]
           end
-        when rt::COMPILE_ERROR        then raise ReqlCompileError,          r['r'][0]
+        when rt::COMPILE_ERROR        then raise ReqlServerCompileError,    r['r'][0]
         when rt::CLIENT_ERROR         then raise ReqlDriverError,           r['r'][0]
         else raise ReqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
@@ -102,21 +102,21 @@ module RethinkDB
                     when RQL then x.to_pb
                     else { '$reql_type$' => 'BINARY', 'data' => Base64.strict_encode64(x) }
                     end
-                 }, []])
+                 }])
     end
 
     def self.safe_to_s(x)
       case x
       when String then x
       when Symbol then x.to_s
-      else raise ReqlDriverError, 'Object keys must be strings or symbols.  '+
+      else raise ReqlDriverCompileError, 'Object keys must be strings or symbols.  '+
           "(Got object `#{x.inspect}` of class `#{x.class}`.)"
       end
     end
 
     def self.fast_expr(x, max_depth)
       if max_depth == 0
-        raise ReqlDriverError, "Maximum expression depth exceeded " +
+        raise ReqlDriverCompileError, "Maximum expression depth exceeded " +
           "(you can override this with `r.expr(X, MAX_DEPTH)`)."
       end
       case x
@@ -143,11 +143,14 @@ module RethinkDB
         RQL.new({ '$reql_type$' => 'TIME',
                   'epoch_time'  => epoch_time,
                   'timezone'    => tz })
-      else raise ReqlDriverError, "r.expr can't handle #{x.inspect} of class #{x.class}."
+      else raise ReqlDriverCompileError, "r.expr can't handle #{x.inspect} of class #{x.class}."
       end
     end
 
     def expr(x, max_depth=20)
+      if not max_depth.is_a? Numeric
+        raise ReqlDriverCompileError, "Second argument to `r.expr` must be a number."
+      end
       unbound_if(@body != RQL)
       RQL.fast_expr(x, max_depth)
     end

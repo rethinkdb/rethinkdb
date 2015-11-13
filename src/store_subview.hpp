@@ -167,6 +167,10 @@ public:
         store_view->wait_until_ok_to_receive_backfill(interruptor);
     }
 
+    bool check_ok_to_receive_backfill() THROWS_NOTHING {
+        return store_view->check_ok_to_receive_backfill();
+    }
+
     void reset_data(
             const binary_blob_t &zero_version,
             const region_t &subregion,

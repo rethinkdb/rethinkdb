@@ -17,8 +17,6 @@ Here is a simple example:
 {'count': 5, 'verbose': False, 'infiles': ['file1.txt', 'file2.txt']}
 """
 
-
-
 class NoValueClass(object):
     pass
 NoValue = NoValueClass()
@@ -26,7 +24,7 @@ NoValue = NoValueClass()
 class Arg(object):
     pass
 
-class OptError(StandardError):
+class OptError(Exception):
     pass
 
 class OptParser(object):
@@ -102,7 +100,7 @@ class OptParser(object):
         
         # Apply defaults
         
-        for key, parser in self.parsers_by_key.iteritems():
+        for key, parser in self.parsers_by_key.items():
             if values[key] is NoValue:
                 if hasattr(parser, "default") and parser.default is not NoValue:
                     values[key] = parser.default

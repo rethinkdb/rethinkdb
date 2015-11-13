@@ -8,7 +8,7 @@
 #include "unittest/gtest.hpp"
 #include "unittest/mock_file.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 namespace unittest {
 
@@ -280,11 +280,11 @@ void run_tests(cache_t *cache) {
 
 TPTEST(BlobTest, all_tests) {
     mock_file_opener_t file_opener;
-    standard_serializer_t::create(
+    log_serializer_t::create(
             &file_opener,
-            standard_serializer_t::static_config_t());
-    standard_serializer_t log_serializer(
-            standard_serializer_t::dynamic_config_t(),
+            log_serializer_t::static_config_t());
+    log_serializer_t log_serializer(
+            log_serializer_t::dynamic_config_t(),
             &file_opener,
             &get_global_perfmon_collection());
 

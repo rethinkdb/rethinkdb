@@ -10,12 +10,11 @@ env:
 # Install build dependencies
 before_script:
   - nvm install v0.10.0
-  - sudo apt-get install npm protobuf-compiler protobuf-c-compiler libprotobuf-dev libv8-dev libgoogle-perftools-dev libprotoc-dev default-jre python-yaml time python-protobuf python-pylibmc
+  - sudo apt-get install npm protobuf-compiler protobuf-c-compiler libprotobuf-dev libv8-dev libgoogle-perftools-dev libprotoc-dev default-jre time
   - sudo npm install -g less@1.3.0
   - sudo npm install -g coffee-script@1.4.0
   - sudo npm install -g handlebars@1.0.10
   - sudo npm install -g mocha
-  - gem install ruby-protocol-buffers
 
   # we need a custom ppa for latest boost libs (1.46, which is on
   # Travis, doesn't work with Clang and C++ 11)

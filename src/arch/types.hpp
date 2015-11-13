@@ -101,19 +101,6 @@ enum class file_direct_io_mode_t {
     buffered_desired
 };
 
-class semantic_checking_file_t {
-public:
-    semantic_checking_file_t() { }
-    virtual ~semantic_checking_file_t() { }
-    // May not return -1.  Crashes instead.
-    virtual size_t semantic_blocking_read(void *buf, size_t length) = 0;
-    // May not return -1.  Crashes instead.
-    virtual size_t semantic_blocking_write(const void *buf, size_t length) = 0;
-
-private:
-    DISABLE_COPYING(semantic_checking_file_t);
-};
-
 // A linux file.  It expects reads and writes and buffers to have an
 // alignment of DEVICE_BLOCK_SIZE.
 class file_t {

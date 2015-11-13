@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <stdint.h>
 
 #include <string>
@@ -13,7 +13,7 @@ namespace ql {
 
 class javascript_term_t : public op_term_t {
 public:
-    javascript_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    javascript_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({ "timeout" })) { }
 
 private:
@@ -52,13 +52,13 @@ private:
     virtual const char *name() const { return "javascript"; }
 
     // No JS term is considered deterministic
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t  is_deterministic() const {
+        return deterministic_t::no;
     }
 };
 
 counted_t<term_t> make_javascript_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<javascript_term_t>(env, term);
 }
 

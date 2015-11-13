@@ -1,7 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/real_table.hpp"
 
 namespace unittest {
@@ -292,7 +293,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     env.init(new ql::env_t(&rdb_ctx,
                            ql::return_empty_normal_batches_t::NO,
                            &interruptor,
-                           std::map<std::string, ql::wire_func_t>(),
+                           ql::global_optargs_t(),
                            nullptr /* no profile trace */));
 
     // Set up any databases, tables, and data

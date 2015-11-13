@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # Copyright 2015 RethinkDB, all rights reserved.
 
-import itertools, os, random, shutil, unittest, warnings
+import itertools, os, random, shutil, sys, unittest, warnings
 
 import driver, utils
+
+def main():
+    unittest.main(argv=[sys.argv[0]])
 
 class RdbTestCase(unittest.TestCase):
     
@@ -21,17 +24,18 @@ class RdbTestCase(unittest.TestCase):
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
     
-    destructiveTest = False # if true the cluster will be disposed of
+    destructiveTest = False # if true the cluster should be restarted after this test
     
     # -- class variables
     
     dbName = None
     tableName = None
-
+    
+    db = None
     table = None
     
     cluster = None
-    conn = None
+    _conn = None
     
     r = utils.import_python_driver()
     
@@ -52,13 +56,42 @@ class RdbTestCase(unittest.TestCase):
             if self.tableName is None:
                 self.__class__.tableName = defaultTable
         
-        self.__class__.table = self.r.db(self.dbName).table(self.tableName)
+        self.__class__.db = self.r.db(self.dbName)
+        self.__class__.table = self.db.table(self.tableName)
         
         # Allow detecting test failure in tearDown
         self.__currentResult = result or self.defaultTestResult()
         self.__problemCount = 0 if result is None else len(self.__currentResult.errors) + len(self.__currentResult.failures)
         
         super(RdbTestCase, self).run(self.__currentResult)
+    
+    @property
+    def conn(self):
+        '''Retrieve a valid connection to some server in the cluster'''
+        
+        # -- check if we already have a good cached connection
+        if self.__class__._conn and self.__class__._conn.is_open():
+            try:
+                self.r.expr(1).run(self.__class__._conn)
+                return self.__class__._conn
+            except Exception: pass
+        if self.__class__.conn is not None:
+            try:
+                self.__class__._conn.close()
+            except Exception: pass
+            self.__class__._conn = None
+        
+        # -- try a new connection to each server in order
+        for server in self.cluster:
+            if not server.ready:
+                continue
+            try:
+                self.__class__._conn = self.r.connect(host=server.host, port=server.driver_port)
+                return self.__class__._conn
+            except Exception as e: pass
+        else:        
+            # fail as we have run out of servers
+            raise Exception('Unable to get a connection to any server in the cluster')
     
     def getPrimaryForShard(self, index, tableName=None, dbName=None):
         if tableName is None:
@@ -112,28 +145,35 @@ class RdbTestCase(unittest.TestCase):
             try:
                 self.checkCluster()
             except:
+                try:
+                    self.cluster.check_and_stop()
+                except Exception: pass
                 self.__class__.cluster = None
-                self.__class__.conn = None
+                self.__class__._conn = None
                 self.__class__.table = None
         
-        # - start new servers if necessary
-        
-        # note: we start up enough servers to make sure they each have only one role
+        # - ensure we have a cluster
         
         if self.cluster is None:
-            initalServers = max(self.shards * self.replicas, self.servers)
-            if self.servers is not None and initalServers > self.servers:
-                raise ValueError('servers must always be >= shards * replicas. If you need another configuration you must set it up manually')
-            utils.print_with_time("Starting cluster of %d servers" % initalServers)
-            self.__class__.cluster = driver.Cluster(
-                initial_servers=initalServers,
-                wait_until_ready=True,
-                command_prefix=self.server_command_prefix,
-                extra_options=self.server_extra_options
-            )
-        if self.conn is None:
-            server = self.cluster[0]
-            self.__class__.conn = self.r.connect(host=server.host, port=server.driver_port)
+            self.__class__.cluster = driver.Cluster()
+        
+        # - make sure we have any named servers
+        
+        if hasattr(self.servers, '__iter__'):
+            for name in self.servers:
+                firstServer = len(self.cluster) == 0
+                if not name in self.cluster:
+                    driver.Process(cluster=self.cluster, name=name, console_output=True, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options, wait_until_ready=firstServer)
+        
+        # - ensure we have the proper number of servers
+        # note: we start up enough servers to make sure they each have only one role
+        
+        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers)
+        for _ in range(serverCount - len(self.cluster)):
+            firstServer = len(self.cluster) == 0
+            driver.Process(cluster=self.cluster, wait_until_ready=firstServer, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options)
+        
+        self.cluster.wait_until_ready()
         
         # -- ensure db is available
         
@@ -155,7 +195,7 @@ class RdbTestCase(unittest.TestCase):
             # - add initial records
             
             if self.recordsToGenerate:
-                self.populateTable()
+                utils.populateTable(conn=self.conn, table=self.table, records=self.recordsToGenerate, fieldName=self.fieldName)
             
             # - shard and replicate the table
             
@@ -168,18 +208,6 @@ class RdbTestCase(unittest.TestCase):
                 shardPlan.append({'primary_replica':primary.name, 'replicas':[primary.name] + chosenReplicas})
             assert (self.r.db(self.dbName).table(self.tableName).config().update({'shards':shardPlan}).run(self.conn))['errors'] == 0
             self.r.db(self.dbName).table(self.tableName).wait().run(self.conn)
-    
-    def populateTable(self, recordsToGenerate=None, tableName=None, dbName=None, fieldName=None):
-        if recordsToGenerate is None:
-            recordsToGenerate = self.recordsToGenerate
-        if tableName is None:
-            tableName = self.tableName
-        if dbName is None:
-            dbName = self.dbName
-        if fieldName is None:
-            fieldName = self.fieldName
-        
-        self.r.db(dbName).table(tableName).insert(self.r.range(1, recordsToGenerate + 1).map({fieldName: self.r.row})).run(self.conn)
     
     def tearDown(self):
         
@@ -200,10 +228,6 @@ class RdbTestCase(unittest.TestCase):
         
         if lastError is not None or not allGood:
             
-            # -- get a list of server folders
-            
-            serverFolders = [server.files.db_path for server in self.cluster]
-            
             # -- stop all of the servers
             
             try:
@@ -215,20 +239,23 @@ class RdbTestCase(unittest.TestCase):
             try:
                 # - create enclosing dir
                 
-                outputFolder = os.path.realpath(os.path.join(os.getcwd(), self.id().lstrip('__main__.')))
+                name = self.id()
+                if name.startswith('__main__.'):
+                    name = name[len('__main__.'):]
+                outputFolder = os.path.realpath(os.path.join(os.getcwd(), name))
                 if not os.path.isdir(outputFolder):
                     os.makedirs(outputFolder)
                 
                 # - copy the servers data
                 
-                for serverFolder in serverFolders:
-                    shutil.copytree(serverFolder, os.path.join(outputFolder, os.path.basename(serverFolder)))
+                for server in self.cluster:
+                    shutil.copytree(server.data_path, os.path.join(outputFolder, os.path.basename(server.data_path)))
             
             except Exception as e:
                 warnings.warn('Unable to copy server folder into results: %s' % str(e))
             
             self.__class__.cluster = None
-            self.__class__.conn = None
+            self.__class__._conn = None
             self.__class__.table = None
             if lastError:
                 raise lastError
@@ -238,7 +265,7 @@ class RdbTestCase(unittest.TestCase):
                 self.cluster.check_and_stop()
             except Exception: pass
             self.__class__.cluster = None
-            self.__class__.conn = None
+            self.__class__._conn = None
             self.__class__.table = None
     
     def makeChanges(self, tableName=None, dbName=None, samplesPerShard=None, connections=None):

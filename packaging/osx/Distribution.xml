@@ -8,7 +8,7 @@
 
 <options customize="never" allow-external-scripts="no" rootVolumeOnly="yes" />
 
-<background file="installer_background.png" mime-type="image/png" alignment="topleft" scaling="none" />
+<background file="installer_background.tiff" mime-type="image/tiff" alignment="topleft" scaling="none" />
 
 <volume-check>
   <allowed-os-versions>

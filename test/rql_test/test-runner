@@ -7,13 +7,8 @@ from __future__ import print_function
 import atexit, collections, copy, datetime, distutils.version, distutils.spawn, itertools, json, optparse, os
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
 
-try:
-    import yaml
-except ImportError:
-    sys.exit('%s requires that PyYAML be installed: https://pypi.python.org/pypi/PyYAML' % os.path.basename(__file__))
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"))
-import driver, test_exceptions, utils
+import driver, parsePolyglot, test_exceptions, utils
 
 try:
     unicode
@@ -23,6 +18,26 @@ try:
     import Queue
 except ImportError:
     import queue as Queue
+try:
+    import reprlib
+except ImportError:
+    import repr as reprlib
+
+# -- repr subclass
+
+class ReprReplace(reprlib.Repr):
+    def repr_str(self, obj, level):
+        result = repr(obj)
+        if result.startswith("'"):
+            result = '"' + result[1:-1].replace('"', '\\"') + '"'
+        return result
+    
+    def repr_unicode(self, obj, level):
+        result = self.repr_str(obj, level)
+        if len(result) > 1 and result[:2] in ('u"', "u'"):
+            result = result[1:]
+        return result
+replaceRepr = ReprReplace()
 
 # -- ensure we can open enough files
 
@@ -37,7 +52,7 @@ except Exception as e:
 
 testExtensions = ['test', 'yaml', 'mocha']
 
-r = utils.import_python_driver()
+r = None
 
 print_debug = False
 
@@ -157,9 +172,7 @@ class SrcLang(object):
         if name:
             result = self.nametranslate(result)
         if quote:
-            result = repr(result)
-            if len(result) > 1 and result[:2] in ('u"', "u'"):
-                result = result[1:]
+            result = replaceRepr.repr(result)
         return result
     
     @property
@@ -222,7 +235,6 @@ class SrcLang(object):
         return self.__polyglot_language_header
 
 class PyLang(SrcLang):
-    test_types = None
     display_name = 'Python'
     
     interpreter_name_exe_names = None
@@ -278,7 +290,6 @@ class PyLang(SrcLang):
         return distutils.version.LooseVersion(str(versionNumbers[0]))
 
 class JsLang(SrcLang):
-    test_types = ['js']
     display_name = 'JavaScript'
     
     interpreter_name_exe_names = ['node']
@@ -302,8 +313,28 @@ class JsLang(SrcLang):
     
     nametranslate_regex = re.compile(r"(?P<quoteChar>[\"\'\`]?)\$?\b[a-z$]+(_[a-z$]+)+\b\$?(?P=quoteChar)")
     
-    def class_setup(self, version=None):
-        assert version is None, 'We do not currently support multiple versions of JavaScript/Node.js'
+    def class_setup(self, version):
+        if self.instance_setup is True:
+            return
+        
+        self.display_name = self.display_name + ' ' + version
+        self.test_types = []
+        self.interpreter_name_exe_names = []
+        
+        self.minVersion = distutils.version.LooseVersion(version)
+        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        
+        if version != '':
+            lastVersion = None
+            workingVersion = version
+            while lastVersion != workingVersion:
+                self.test_types.append('js' + workingVersion)
+                self.interpreter_name_exe_names.append('node' + workingVersion)
+                
+                lastVersion = workingVersion
+                workingVersion = os.path.splitext(workingVersion)[0]
+        self.test_types.append('js')
+        self.interpreter_name_exe_names.append('node')
     
     # Converts canonical form (underscore separation) to camel case
     @classmethod
@@ -328,6 +359,13 @@ class JsLang(SrcLang):
         name = re.sub(cls.nametranslate_regex, replaceFnct, name)
         return re.sub('__', '_', name)
     
+    def translate_query(self, src, quote=True, name=False):
+        '''Handle the errors from `eval({a:1})`: JavaScript thinks it is a code block'''
+        result = super(JsLang, self).translate_query(src, quote=quote, name=name)
+        if quote and re.match('["\']\{', result):
+            result = result[0] + '(' + result[1:-1] + ')' + result[-1]
+        return result
+    
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
@@ -339,7 +377,6 @@ class JsLang(SrcLang):
         return distutils.version.LooseVersion(versionNumber)
 
 class RbLang(SrcLang):
-    test_types = None
     display_name = 'Ruby'
     
     interpreter_name_exe_names = None
@@ -416,7 +453,7 @@ class RbLang(SrcLang):
             
             # skip everything not in a level
             elif len(stateStack) == 0:
-                continue
+                pass
             
             # end of non-dict level
             elif char in levelChars.keys() and stateStack[-1] == levelChars[char]:
@@ -431,9 +468,8 @@ class RbLang(SrcLang):
                 try:
                     # look at the preceding characters to see if this looks valid
                     startedWord = False
-                    for i in xrange(1, pos):
-                        checkChar = source[pos - i]
-                        
+                    for i in xrange(pos - 1, -1, -1):
+                        checkChar = source[i]
                         if checkChar in string.whitespace:
                             if startedWord:
                                 break
@@ -441,18 +477,29 @@ class RbLang(SrcLang):
                         elif checkChar in string.digits: # {a0:4} is valid, {5:4} is not
                             startedWord = True
                             continue
-                        elif checkChar in ('"', "'"):
-                            break # this we need to translate
+                        elif checkChar in levelChars.keys():
+                            if startedWord:
+                                raise AssertionError() # too complicated, probably not a dict key
+                            break # either a quotes string, a dict, or an array, all are valid
+                        elif i >= len('nil') and ''.join(source[pos - len('nil'): pos]) == 'nil':
+                            if i > len('nil') + 1:
+                                if source[pos - len('nil') - 1] in tuple(string.letters) + tuple(string.digits) + tuple('_'):
+                                    startedWord = True
+                                    continue
+                                else:
+                                    break # we need the => to keep it from auto-translateing {nil:1} to {:nil:1}
+                            break
                         elif checkChar in validPreChars:
-                            raise Exception() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
+                            raise AssertionError() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
                         else:
                             if startedWord:
                                 break
-                            raise Exception()
+                            raise AssertionError()
                     else:
-                        raise Exception()
+                        if not(startedWord) and i != 0:
+                            raise AssertionError()
                     
-                    # look at the following characters to make sure that looks good too
+                    # look at the following characters to make sure that looks good as well
                     for i in xrange(pos + 1, length):
                         checkChar = source[i]
                         if checkChar in string.whitespace:
@@ -460,18 +507,18 @@ class RbLang(SrcLang):
                         elif checkChar in validPostChars:
                             break
                         else:
-                            raise Exception()
+                            raise AssertionError()
                     else:
-                        raise Exception()
+                        raise AssertionError()
                     
                     # passed both tests, replace it
                     source[pos] = '=>'
                     
-                except Exception: pass
+                except AssertionError: pass
         
-        # - return the string
+        # - return the string, with extraneous newlines striped out
         
-        return ''.join(source)
+        return ''.join((x.strip('\n') for x in source))
     
     def get_interpreter_version(self, executablePath):
         '''Return the version string for this interpreter'''
@@ -513,21 +560,25 @@ class JrbLang(RbLang):
     
 
 interpreters = {
-    'js':     [JsLang()],
-    'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
+    'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
     'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), JrbLang('9.0')],
     'jrb':    [JrbLang('9.0')],
+    
+    'js0':    [JsLang('0.10'), JsLang('0.12')],
+    'js4':    [JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
     
     'py2':    [PyLang('2.6'), PyLang('2.7')],
     'py2.6':  [PyLang('2.6')],
     'py2.7':  [PyLang('2.7')],
     
-    'py3':    [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'py3':    [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
     'py3.0':  [PyLang('3.0')],
     'py3.1':  [PyLang('3.1')],
     'py3.2':  [PyLang('3.2')],
     'py3.3':  [PyLang('3.3')],
     'py3.4':  [PyLang('3.4')],
+    'py3.5':  [PyLang('3.5')],
     
     'rb1':    [RbLang('1.9')],
     'rb1.9':  [RbLang('1.9')],
@@ -559,10 +610,8 @@ class TestGroup(object):
         
         # sourceFile
         
-        if sourceFile is None:
-            raise ValueError('buildYamlTest requires a sourceFile, got None')
-        if not os.path.isfile(sourceFile):
-            raise ValueError('buildYamlTest requires a sourceFile, got: %s' % str(sourceFile))
+        if not sourceFile or not (hasattr(sourceFile, 'read') or os.path.isfile(sourceFile)):
+            raise ValueError('buildYamlTest requires a sourceFile, got: %r' % sourceFile)
         
         # lang
         
@@ -587,7 +636,7 @@ class TestGroup(object):
         
         parsed_data = None
         try:
-            parsed_data = yaml.safe_load(open(sourceFile))
+            parsed_data = parsePolyglot.parseYAML(sourceFile)
         except Exception as e:
             raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
         if parsed_data is None:
@@ -682,14 +731,17 @@ class TestGroup(object):
                 
                 variableMatch = cls.variableRegex.match(test_case)
                 if variableMatch:
-                    testCode.testopts['variable'] = lang.nametranslate(variableMatch.group('variableName'))
-                    test_case = variableMatch.group('expression')
+                    testCode.testopts['variable'] = parsePolyglot.yamlValue(lang.nametranslate(variableMatch.group('variableName')))
+                    if isinstance(test_case, parsePolyglot.yamlValue):
+                        test_case = parsePolyglot.yamlValue(variableMatch.group('expression'), test_case.linenumber)
+                    else:
+                        test_case = variableMatch.group('expression')
                 
                 try:
                     out.write("test(%(code)s, %(expected)s, %(name)s, %(driveropts)s, %(testopts)s)\n" % {
                         'code': lang.translate_query(test_case, name=True),
                         'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
-                        'name': repr(testName),
+                        'name': repr("line %d" % test_case.linenumber) if hasattr(test_case, 'linenumber') else repr(testName),
                         'driveropts': lang.translate_query(testCode.runopts, quote=False),
                         'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })
@@ -1342,7 +1394,7 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
                 self.existingDBsToTables = {}
                 for dbName in r.db_list().run(self.reqlConnection):
-                    self.existingDBsToTables[dbName]  = r.db(dbName).table_list().run(self.reqlConnection)
+                    self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.reqlConnection)
             else:
                 raise ValueError('existingServer must be an instance of RethinkDBRunningServer, got: %r' % existingServer)
         
@@ -1361,8 +1413,8 @@ class WorkerThread(threading.Thread):
         # -- start a new server
         
         if self.server is None:
-            clusterFolder = tempfile.mkdtemp(prefix='cluster-', dir=self.scratchDir)
-            self.server = driver.Process(console_output=True, wait_until_ready=True, output_folder=clusterFolder)
+            clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=self.scratchDir)
+            self.server = driver.Process(name=clusterFolder, console_output=True, wait_until_ready=True)
         
         # -- check that it is running
         
@@ -1570,15 +1622,14 @@ class WorkerThread(threading.Thread):
                 # - copy the server contents or just the server log
                 if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
-                        shutil.copytree(self.server.files.db_path, os.path.join(testOutputDir, 'server'))
+                        shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
                         
                         # try to add the server log to the errorDetails
                         try:
-                            self.server.console_file.seek(0)
                             if test.errorDetails is None:
-                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
+                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_output
                             else:
-                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
+                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_output
                         except IOError: pass # stdout will cause this
                         except Exception as e:
                             warnings.warn(str(e))
@@ -1635,6 +1686,7 @@ class WorkerThread(threading.Thread):
 
 def main():
     global print_debug
+    global r
     
     testFilters = []
     testList = []
@@ -1858,6 +1910,8 @@ def main():
         
         os.environ[language.driver_build_env_name] = language.driver_build_path
     
+    r = utils.import_python_driver()
+    
     # -- print pre-testing info
     
     print('Using rethinkdb binary %s' % rethinkdb_exe_path)
@@ -1986,7 +2040,7 @@ def main():
     
     # -- report final results
     
-    failedTestNames = [test.name for test in failedTests]
+    failedTestNames = sorted([test.name for test in failedTests])
     
     if cancelRun is True:
         print('\n== Canceled after %.2f seconds with %d test%s running. %s test%s passed, %s test%s failed, and %s test%s remaining%s' % (

@@ -32,7 +32,7 @@ class AllUnitTests(test_framework.Test):
                 dict[key].append(line.strip())
         tests = test_framework.TestTree(
             (group, UnitTest(unit_executable, group, tests))
-            for group, tests in dict.iteritems())
+            for group, tests in dict.items())
         for filter in self.filters:
             tests = tests.filter(filter)
         return tests

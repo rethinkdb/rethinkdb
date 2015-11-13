@@ -1,3 +1,3 @@
 mac_alias: http://alastairs-place.net/projects/mac_alias
 
-This is revision 1750720 with no changes.
+This is revision bad3aa9b980f/v1.1.0 with no changes.

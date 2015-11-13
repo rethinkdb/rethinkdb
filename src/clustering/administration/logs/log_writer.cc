@@ -447,15 +447,24 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t() {
-    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
+thread_pool_log_writer_t::thread_pool_log_writer_t()
+        : has_parse_error(false) {
+    pmap(
+        get_num_threads(),
+        boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
 thread_pool_log_writer_t::~thread_pool_log_writer_t() {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
 }
 
-std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(log_read_exc_t, interrupted_exc_t) {
+std::vector<log_message_t> thread_pool_log_writer_t::tail(
+        int max_lines,
+        struct timespec min_timestamp,
+        struct timespec max_timestamp,
+        signal_t *interruptor) THROWS_ONLY(log_read_exc_t, interrupted_exc_t) {
+    assert_thread();
+
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
@@ -472,11 +481,25 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct 
 
 
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(
+        boost::bind(
+            &thread_pool_log_writer_t::tail_blocking,
+            this,
+            max_lines,
+            min_timestamp,
+            max_timestamp,
+            &cancel,
+            &log_messages,
+            &error_message,
+            &ok));
     if (ok) {
         if (cancel) {
             throw interrupted_exc_t();
         } else {
+            if (has_parse_error == false && error_message.empty() == false) {
+                logERR("%s", error_message.c_str());
+                has_parse_error = true;
+            }
             return log_messages;
         }
     } else {
@@ -516,7 +539,14 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
     return;
 }
 
-void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
+void thread_pool_log_writer_t::tail_blocking(
+        int max_lines,
+        timespec min_timestamp,
+        timespec max_timestamp,
+        volatile bool *cancel,
+        std::vector<log_message_t> *messages_out,
+        std::string *error_out,
+        bool *ok_out) {
     try {
         scoped_fd_t fd;
         do {
@@ -525,20 +555,37 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
         throw_unless(fd.get() != INVALID_FD,
             strprintf("could not open '%s' for reading.",
                 fallback_log_writer.filename.path().c_str()));
+
         file_reverse_reader_t reader(std::move(fd));
         std::string line;
         while (max_lines-- > 0 && reader.get_next(&line) && !*cancel) {
-            if (line == "") {
+            if (line.empty()) {
                 continue;
             }
-            log_message_t lm = parse_log_message(line);
-            if (lm.timestamp > max_timestamp) continue;
-            if (lm.timestamp < min_timestamp) break;
+            log_message_t lm;
+            try {
+                lm = parse_log_message(line);
+            } catch (const log_read_exc_t &exc) {
+                *error_out = strprintf(
+                    "Failed to parse one or more lines from the log file, the contents "
+                    "of the `logs` system table will be incomplete. The following parse "
+                    "error occurred: %s while parsing \"%s\"",
+                    exc.what(),
+                    line.c_str());
+                continue;
+            }
+            if (lm.timestamp > max_timestamp) {
+                continue;
+            }
+            if (lm.timestamp < min_timestamp) {
+                break;
+            }
             messages_out->push_back(lm);
         }
         *ok_out = true;
         return;
     } catch (const log_read_exc_t &e) {
+        // Any parse errors are handled above, this is for reader-related failures.
         *error_out = e.what();
         *ok_out = false;
         return;

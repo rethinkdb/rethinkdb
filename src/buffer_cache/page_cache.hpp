@@ -5,6 +5,7 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -41,6 +42,8 @@ enum class page_create_t { no, yes };
 }  // namespace alt
 
 enum class alt_create_t { create };
+
+enum class block_type_t { normal, aux };
 
 class cache_conn_t {
 public:
@@ -180,7 +183,8 @@ public:
                        access_t access,
                        page_create_t create = page_create_t::no);
     current_page_acq_t(page_txn_t *txn,
-                       alt_create_t create);
+                       alt_create_t create,
+                       block_type_t block_type);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
                        read_access_t read);
@@ -217,7 +221,8 @@ private:
               access_t access,
               page_create_t create);
     void init(page_txn_t *txn,
-              alt_create_t create);
+              alt_create_t create,
+              block_type_t block_type);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
               read_access_t read);
@@ -332,7 +337,9 @@ public:
             std::function<void(throttler_acq_t *)> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
-    current_page_t *page_for_new_block_id(block_id_t *block_id_out);
+    current_page_t *page_for_new_block_id(
+        block_type_t block_type,
+        block_id_t *block_id_out);
     current_page_t *page_for_new_chosen_block_id(block_id_t block_id);
 
     // Returns how much memory is being used by all the pages in the cache at this
@@ -412,12 +419,22 @@ private:
 
     friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
+        // This `if` is redundant, since `recencies_.size()` will always be smaller
+        // than any aux block ID. It's probably a good idea to be explicit about this
+        // though.
+        if (is_aux_block_id(id)) {
+            return repli_timestamp_t::invalid;
+        }
         return recencies_.size() <= id
             ? repli_timestamp_t::invalid
             : recencies_[id];
     }
 
     void set_recency_for_block_id(block_id_t id, repli_timestamp_t recency) {
+        if(is_aux_block_id(id)) {
+            guarantee(recency == repli_timestamp_t::invalid);
+            return;
+        }
         while (recencies_.size() <= id) {
             recencies_.push_back(repli_timestamp_t::invalid);
         }
@@ -426,8 +443,6 @@ private:
 
     friend class current_page_t;
     free_list_t *free_list() { return &free_list_; }
-
-    void resize_current_pages_to_id(block_id_t block_id);
 
     static void consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                     auto_drainer_t::lock_t lock);
@@ -449,7 +464,7 @@ private:
     serializer_t *serializer_;
     segmented_vector_t<repli_timestamp_t> recencies_;
 
-    segmented_vector_t<current_page_t *> current_pages_;
+    std::unordered_map<block_id_t, current_page_t *> current_pages_;
 
     free_list_t free_list_;
 

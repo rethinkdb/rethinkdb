@@ -353,8 +353,7 @@ void contract_executor_t::gc_branch_history(signal_t *interruptor) {
         }
     });
     if (ok) {
-        execution_context.branch_history_manager->perform_gc(
-            remove_branches, interruptor);
+        execution_context.branch_history_manager->perform_gc(remove_branches);
     }
 }
 

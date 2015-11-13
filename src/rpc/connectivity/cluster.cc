@@ -30,10 +30,11 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_1_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "2.1.2"
+
+#define CLUSTER_VERSION_STRING "2.2.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -128,12 +129,12 @@ void connectivity_cluster_t::connection_t::kill_connection() {
     }
 }
 
-connectivity_cluster_t::connection_t::connection_t(run_t *p,
-                                                   peer_id_t id,
-                                                   keepalive_tcp_conn_stream_t *c,
-                                                   const peer_address_t &a) THROWS_NOTHING :
-    conn(c),
-    peer_address(a),
+connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
+                                                   const peer_id_t &_peer_id,
+                                                   keepalive_tcp_conn_stream_t *_conn,
+                                                   const peer_address_t &_peer_address) THROWS_NOTHING :
+    conn(_conn),
+    peer_address(_peer_address),
     flusher([&](signal_t *) {
         guarantee(this->conn != nullptr);
         // We need to acquire the send_mutex because flushing the buffer
@@ -145,10 +146,13 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
     }, 1),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
-    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
-        uuid_to_str(id.get_uuid())),
+    pm_collection_membership(
+        &_parent->parent->connectivity_collection,
+        &pm_collection,
+        uuid_to_str(_peer_id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
-    parent(p), peer_id(id),
+    parent(_parent),
+    peer_id(_peer_id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
@@ -204,7 +208,8 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
 }
 
 connectivity_cluster_t::run_t::run_t(
-        connectivity_cluster_t *p,
+        connectivity_cluster_t *_parent,
+        const server_id_t &_server_id,
         const std::set<ip_address_t> &local_addresses,
         const peer_address_t &canonical_addresses,
         int port,
@@ -212,7 +217,8 @@ connectivity_cluster_t::run_t::run_t(
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             _heartbeat_sl_view)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
-    parent(p),
+    parent(_parent),
+    server_id(_server_id),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -840,6 +846,7 @@ void connectivity_cluster_t::run_t::handle(
         // Everything after we send the version string COULD be moved _below_ the
         // point where we resolve the version string.  That would mean adding another
         // back and forth to the handshake?
+        serialize_universal(&wm, server_id);
         serialize_universal(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
@@ -902,6 +909,22 @@ void connectivity_cluster_t::run_t::handle(
         guarantee(resolved_version == cluster_version_t::CLUSTER);
     }
 
+    server_id_t remote_server_id;
+    {
+        if (deserialize_universal_and_check(conn, &remote_server_id, peername)) {
+            return;
+        }
+
+        if (servers.count(remote_server_id) != 0) {
+            // There currently is another connection open to the server
+            logINF("Rejected a connection from server %s since one is open already.",
+                   uuid_to_str(remote_server_id).c_str());
+            return;
+        }
+    }
+    set_insertion_sentry_t<server_id_t> remote_server_id_sentry(
+        &servers, remote_server_id);
+
     // Check bitsize (e.g. 32bit or 64bit)
     {
         std::string remote_arch_bitsize;
@@ -930,12 +953,9 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            auto reason = handshake_result_t::error(
-                handshake_result_code_t::INCOMPATIBLE_BUILD,
-                strprintf("local: %s, remote: %s",
-                          cluster_build_mode.c_str(), remote_build_mode.c_str()));
-            fail_handshake(conn, peername, reason);
-            return;
+            logWRN("Connecting nodes with different build modes, local: %s, remote: %s",
+                   cluster_build_mode.c_str(),
+                   remote_build_mode.c_str());
         }
     }
 
@@ -1131,19 +1151,19 @@ void connectivity_cluster_t::run_t::handle(
     anything that permanently blocks before setting up `conn_closer_2`. */
     conn_closer_1.reset();
 
-    // We could pick a better way to pick a better thread, our choice
-    // now is hopefully a performance non-problem.
-    threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
+    thread_allocation_t chosen_thread(&parent->thread_allocator);
 
-    cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
+    cross_thread_signal_t connection_thread_drain_signal(
+        drainer_lock.get_drain_signal(),
+        chosen_thread.get_thread());
     cross_thread_watchable_variable_t<heartbeat_semilattice_metadata_t>
         cross_thread_heartbeat_sl_view(
             clone_ptr_t<semilattice_watchable_t<heartbeat_semilattice_metadata_t> >(
                 new semilattice_watchable_t<heartbeat_semilattice_metadata_t>(
-                    heartbeat_sl_view)), chosen_thread);
+                    heartbeat_sl_view)), chosen_thread.get_thread());
 
     rethread_tcp_conn_stream_t unregister_conn(conn, INVALID_THREAD);
-    on_thread_t conn_threader(chosen_thread);
+    on_thread_t conn_threader(chosen_thread.get_thread());
     rethread_tcp_conn_stream_t reregister_conn(conn, get_thread_id());
 
     // Make sure that if we're ordered to shut down, any pending read
@@ -1219,6 +1239,12 @@ void connectivity_cluster_t::run_t::handle(
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
+    /* We assign threads from the highest thread number downwards. This is to reduce the
+    potential for conflicting with btree threads, which assign threads from the lowest
+    thread number upwards. */
+    thread_allocator([](threadnum_t a, threadnum_t b) {
+        return a.threadnum > b.threadnum;
+    }),
     current_run(NULL),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")

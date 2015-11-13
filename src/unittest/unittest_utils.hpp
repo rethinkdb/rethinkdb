@@ -62,6 +62,8 @@ region_t quick_region(const char *bounds);
 
 state_timestamp_t make_state_timestamp(int n);
 
+std::string random_letter_string(rng_t *rng, int min_length, int max_length);
+
 }  // namespace unittest
 
 
@@ -76,6 +78,5 @@ state_timestamp_t make_state_timestamp(int n);
         ::unittest::run_in_thread_pool(run_##group##_##name, j);        \
     }                                                                   \
     TPTEST(group, name)
-
 
 #endif /* UNITTEST_UNITTEST_UTILS_HPP_ */

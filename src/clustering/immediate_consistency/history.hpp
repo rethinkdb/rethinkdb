@@ -196,7 +196,7 @@ public:
     branch_history_combiner_t(
         const branch_history_reader_t *_r1,
         const branch_history_reader_t *_r2)
-        : r1(_r1), r2(_r2) { } 
+        : r1(_r1), r2(_r2) { }
     branch_birth_certificate_t get_branch(const branch_id_t& branch)
         const THROWS_ONLY(missing_branch_exc_t);
     bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
@@ -208,7 +208,7 @@ private:
 to add branches to the branch history. This is used for a branch history which is backed
 to disk. */
 class branch_history_manager_t :
-    public branch_history_reader_t,    
+    public branch_history_reader_t,
     public home_thread_mixin_t
 {
 public:
@@ -219,16 +219,14 @@ public:
     */
     virtual void create_branch(
         branch_id_t branch_id,
-        const branch_birth_certificate_t &bc,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
+        const branch_birth_certificate_t &bc)
+        THROWS_NOTHING = 0;
 
     /* Like `create_branch` but for all the records in a `branch_history_t`, atomically.
     */
     virtual void import_branch_history(
-        const branch_history_t &new_records,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
+        const branch_history_t &new_records)
+        THROWS_NOTHING = 0;
 
     /* `prepare_gc()` fills `branches` with the IDs of all known branches. `perform_gc()`
     deletes any branches whose IDs are in `remove_branches`. The standard procedure is to
@@ -238,9 +236,8 @@ public:
         std::set<branch_id_t> *branches_out)
         THROWS_NOTHING = 0;
     virtual void perform_gc(
-        const std::set<branch_id_t> &remove_branches,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
+        const std::set<branch_id_t> &remove_branches)
+        THROWS_NOTHING = 0;
 
 protected:
     virtual ~branch_history_manager_t() { }

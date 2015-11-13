@@ -1,141 +1,131 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/minidriver.hpp"
 
 namespace ql {
 
-namespace r {
+minidriver_t::minidriver_t(backtrace_id_t _bt) :
+    bt(_bt) { }
 
-reql_t::reql_t(scoped_ptr_t<Term> &&term_) : term(std::move(term_)) { }
-
-reql_t::reql_t(const double val) { set_datum(datum_t(val)); }
-
-reql_t::reql_t(const std::string &val) { set_datum(datum_t(val.c_str())); }
-
-reql_t::reql_t(const datum_t &d) { set_datum(d); }
-
-reql_t::reql_t(const Datum &d) : term(make_scoped<Term>()) {
-    term->set_type(Term::DATUM);
-    *term->mutable_datum() = d;
-}
-
-reql_t::reql_t(const Term &t) : term(make_scoped<Term>(t)) { }
-
-reql_t::reql_t(std::vector<reql_t> &&val) : term(make_scoped<Term>()) {
-    term->set_type(Term::MAKE_ARRAY);
-    for (auto i = val.begin(); i != val.end(); i++) {
-        add_arg(std::move(*i));
-    }
-}
-
-reql_t reql_t::copy() const { return reql_t(make_scoped<Term>(get())); }
-
-reql_t::reql_t(reql_t &&other) : term(std::move(other.term)) {
-    guarantee(term.has());
-}
-
-reql_t::reql_t(pb::dummy_var_t var) : term(make_scoped<Term>()) {
-    term->set_type(Term::VAR);
-    add_arg(static_cast<double>(dummy_var_to_sym(var).value));
-}
-
-reql_t boolean(bool b) {
-    return reql_t(datum_t(datum_t::construct_boolean_t(), b));
-}
-
-void reql_t::copy_optargs_from_term(const Term &from) {
-    for (int i = 0; i < from.optargs_size(); ++i) {
-        const Term_AssocPair &o = from.optargs(i);
-        add_arg(r::optarg(o.key(), o.val()));
-    }
-}
-
-void reql_t::copy_args_from_term(const Term &from, size_t start_index) {
-    for (int i = start_index; i < from.args_size(); ++i) {
-        add_arg(from.args(i));
-    }
-}
-
-reql_t &reql_t::operator=(reql_t &&other) {
-    term.swap(other.term);
+minidriver_t::reql_t &minidriver_t::reql_t::operator=(
+        const minidriver_t::reql_t &other) {
+    r = other.r;
+    term = other.term;
     return *this;
 }
 
-reql_t fun(reql_t&& body) {
-    return reql_t(Term::FUNC, array(), std::move(body));
+minidriver_t::reql_t::reql_t(const reql_t &other) :
+        r(other.r), term(other.term) { }
+
+minidriver_t::reql_t::reql_t(minidriver_t *_r, const raw_term_t &other) :
+        r(_r), term(make_counted<generated_term_t>(other.type(), other.bt())) {
+    term->datum = other.datum();
+    copy_args_from_term(other, 0);
+    copy_optargs_from_term(other);
 }
 
-reql_t fun(pb::dummy_var_t a, reql_t&& body) {
-    std::vector<reql_t> v;
-    v.emplace_back(static_cast<double>(dummy_var_to_sym(a).value));
-    return reql_t(Term::FUNC, std::move(v), std::move(body));
+minidriver_t::reql_t::reql_t(minidriver_t *_r, const reql_t &other) :
+        r(_r), term(other.term) { }
+
+minidriver_t::reql_t::reql_t(minidriver_t *_r, double val) :
+        r(_r), term(make_counted<generated_term_t>(Term::DATUM, r->bt)) {
+    term->datum = datum_t(val);
 }
 
-reql_t fun(pb::dummy_var_t a, pb::dummy_var_t b, reql_t&& body) {
-    std::vector<reql_t> v;
-    v.emplace_back(static_cast<double>(dummy_var_to_sym(a).value));
-    v.emplace_back(static_cast<double>(dummy_var_to_sym(b).value));
-    return reql_t(Term::FUNC, std::move(v), std::move(body));
+minidriver_t::reql_t::reql_t(minidriver_t *_r, const std::string &val) :
+        r(_r), term(make_counted<generated_term_t>(Term::DATUM, r->bt)) {
+    term->datum = datum_t(val.c_str());
 }
 
-reql_t null() {
-    auto t = make_scoped<Term>();
-    t->set_type(Term::DATUM);
-    t->mutable_datum()->set_type(Datum::R_NULL);
-    return reql_t(std::move(t));
+minidriver_t::reql_t::reql_t(minidriver_t *_r, const datum_t &d) :
+        r(_r), term(make_counted<generated_term_t>(Term::DATUM, r->bt)) {
+    term->datum = d;
 }
 
-Term *reql_t::release() {
-    guarantee(term.has());
-    return term.release();
+minidriver_t::reql_t::reql_t(minidriver_t *_r, std::vector<reql_t> &&val) :
+        r(_r), term(make_counted<generated_term_t>(Term::MAKE_ARRAY, r->bt)) {
+    for (const auto &item : val) {
+        term->args.push_back(item.term);
+    }
 }
 
-Term &reql_t::get() {
-    guarantee(term.has());
-    return *term;
+minidriver_t::reql_t::reql_t(minidriver_t *_r, dummy_var_t var) :
+        r(_r), term(make_counted<generated_term_t>(Term::VAR, r->bt)) {
+    counted_t<generated_term_t> arg_term =
+        make_counted<generated_term_t>(Term::DATUM, r->bt);
+    arg_term->datum = datum_t(static_cast<double>(dummy_var_to_sym(var).value));
+    term->args.push_back(arg_term);
 }
 
-const Term &reql_t::get() const {
-    guarantee(term.has());
-    return *term;
+minidriver_t::reql_t minidriver_t::boolean(bool b) {
+    return reql_t(this, datum_t(datum_t::construct_boolean_t(), b));
 }
 
-protob_t<Term> reql_t::release_counted() {
-    guarantee(term.has());
-    protob_t<Term> ret = make_counted_term();
-    auto t = scoped_ptr_t<Term>(term.release());
-    ret->Swap(t.get());
-    return ret;
+raw_term_t minidriver_t::reql_t::root_term() {
+    return raw_term_t(term);
 }
 
-void reql_t::swap(Term &t) {
-    t.Swap(term.get());
+void minidriver_t::reql_t::copy_optargs_from_term(const raw_term_t &from) {
+    from.each_optarg([&](const raw_term_t &optarg, const std::string &name) {
+            add_arg(r->optarg(name, optarg));
+        });
 }
 
-reql_t reql_t::operator !() RVALUE_THIS {
+void minidriver_t::reql_t::copy_args_from_term(const raw_term_t &from,
+                                               size_t start_index) {
+    for (size_t i = start_index; i < from.num_args(); ++i) {
+        add_arg(from.arg(i));
+    }
+}
+
+minidriver_t::reql_t minidriver_t::fun(const minidriver_t::reql_t &body) {
+    return reql_t(this, Term::FUNC, array(), std::move(body));
+}
+
+minidriver_t::reql_t minidriver_t::fun(dummy_var_t a,
+                                       const minidriver_t::reql_t &body) {
+    return reql_t(this, Term::FUNC,
+                  reql_t(this, Term::MAKE_ARRAY, dummy_var_to_sym(a).value),
+                  std::move(body));
+}
+
+minidriver_t::reql_t minidriver_t::fun(dummy_var_t a,
+                                       dummy_var_t b,
+                                       const minidriver_t::reql_t &body) {
+    return reql_t(this, Term::FUNC,
+                  reql_t(this, Term::MAKE_ARRAY,
+                         dummy_var_to_sym(a).value,
+                         dummy_var_to_sym(b).value),
+                  std::move(body));
+}
+
+minidriver_t::reql_t minidriver_t::null() {
+    return reql_t(this, datum_t::null());
+}
+
+minidriver_t::reql_t minidriver_t::reql_t::operator !() {
     return std::move(*this).call(Term::NOT);
 }
 
-reql_t reql_t::do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS {
-        return fun(arg, std::move(body))(std::move(*this));
+minidriver_t::reql_t minidriver_t::reql_t::do_(dummy_var_t arg,
+                                               const minidriver_t::reql_t &body) {
+    return r->fun(arg, std::move(body))(std::move(*this));
 }
 
-void reql_t::set_datum(const datum_t &d) {
-    term = make_scoped<Term>();
-    term->set_type(Term::DATUM);
-    d.write_to_protobuf(term->mutable_datum(), use_json_t::NO);
+minidriver_t::reql_t minidriver_t::db(const std::string &name) {
+    return reql_t(this, Term::DB, expr(name));
 }
 
-reql_t db(const std::string &name) {
-    return reql_t(Term::DB, expr(name));
+minidriver_t::reql_t minidriver_t::var(dummy_var_t v) {
+    return reql_t(this, Term::VAR, static_cast<double>(dummy_var_to_sym(v).value));
 }
 
-reql_t var(pb::dummy_var_t v) {
-    return reql_t(Term::VAR, static_cast<double>(dummy_var_to_sym(v).value));
+minidriver_t::reql_t minidriver_t::var(const sym_t &v) {
+    return reql_t(this, Term::VAR, static_cast<double>(v.value));
 }
 
-reql_t var(const sym_t &v) {
-    return reql_t(Term::VAR, static_cast<double>(v.value));
+sym_t minidriver_t::dummy_var_to_sym(dummy_var_t dummy_var) {
+    // dummy_var values are non-negative, we map them to small negative values.
+    return sym_t(-1 - static_cast<int64_t>(dummy_var));
 }
-
-} // namespace r
 
 } // namespace ql
