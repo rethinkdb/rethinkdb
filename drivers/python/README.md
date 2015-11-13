@@ -34,6 +34,9 @@ After you have everything installed you can test it by running this command:
 python -c 'import rethinkdb'
 ```
 
+*Note*: The make for `rethinkdb` itself (not the python driver) requires python2
+so make sure you do not have a python3 virtualenv activated when running it.
+
 ## Running the tests
 
 To run the tests you can use tox:
