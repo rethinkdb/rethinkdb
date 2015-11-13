@@ -194,6 +194,8 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
+        yield from self._reader_task
+
         return None
 
     @asyncio.coroutine
