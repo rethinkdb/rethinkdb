@@ -9,27 +9,47 @@
 
 namespace unittest {
 
-int wait_array[2][10] = { { 1, 1, 2, 3, 5, 13, 20, 30, 40, 8 },
-                          { 5, 3, 2, 40, 30, 20, 8, 13, 1, 1 } };
+const int waits = 10;
+const int simultaneous = 4;
+const int repeat = 10;
 
-void walk_wait_times(int i) {
-    ticks_t t = get_ticks();
-    for (int j = 0; j < 10; ++j) {
-        nap(wait_array[i][j]);
-        const ticks_t t2 = get_ticks();
-        const int64_t diff = static_cast<int64_t>(t2) - static_cast<int64_t>(t);
-        // Asserts that we're off by less than 25% of the sleep time
-        // or two milliseconds, whichever is larger.
-        ASSERT_LT(
-            llabs(diff - wait_array[i][j] * MILLION),
-            std::max(diff / 4, static_cast<int64_t>(2 * MILLION)));
-        t = t2;
+int wait_array[][waits] =
+    { { 1, 1, 2, 3, 5, 13, 20, 30, 40, 8 },
+      { 5, 3, 2, 40, 30, 20, 8, 13, 1, 1 } };
+
+const int max_error_ms = 5;
+const int max_average_error_ms = 2;
+
+void walk_wait_times(int i, uint64_t *mse) {
+    uint64_t se = 0;
+    for (int j = 0; j < waits; ++j) {
+        int expected_ms = wait_array[i % sizeof(wait_array)][j];
+        ticks_t t1 = get_ticks();
+        nap(expected_ms);
+        ticks_t t2 = get_ticks();
+        int64_t actual_ns = t2 - t1;
+        int64_t error_ns = actual_ns - expected_ms * MILLION;
+
+        EXPECT_LT(llabs(error_ns), max_error_ms * MILLION)
+            << "failed to nap for " << expected_ms << "ms";
+
+        se += error_ns * error_ns;
     }
-
+    *mse += se / waits;
 }
 
-TPTEST(TimerTest, DISABLED_TestApproximateWaitTimes) { // ATN TODO
-    pmap(2, walk_wait_times);
+TPTEST(TimerTest, TestApproximateWaitTimes) {
+    uint64_t mse_each[simultaneous] = {0};
+    for (int i = 0; i < repeat; i++){
+        pmap(2, [&](int j){ walk_wait_times(j, &mse_each[j]); });
+    }
+    int64_t mse = 0;
+    for (int i = 0; i < simultaneous; i++) {
+        mse += mse_each[i] / repeat;
+    }
+    mse /= simultaneous;
+    EXPECT_LT(sqrt(mse) / MILLION, max_average_error_ms)
+        << "Average timer error too high";
 }
 
 
