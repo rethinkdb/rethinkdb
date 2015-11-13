@@ -67,14 +67,12 @@ message VersionDummy { // We need to wrap it like this for some
 // * A [SERVER_INFO] query. The server answers with a [SERVER_INFO] [Response].
 message Query {
     enum QueryType {
-        START    = 1; // Start a new query.
-        CONTINUE = 2; // Continue a query that returned [SUCCESS_PARTIAL]
-                      // (see [Response]).
-        STOP     = 3; // Stop a query partway through executing.
-        NOREPLY_WAIT = 4;
-                      // Wait for noreply operations to finish.
-        SERVER_INFO = 5;
-                      // Get server information.
+        START        = 1; // Start a new query.
+        CONTINUE     = 2; // Continue a query that returned [SUCCESS_PARTIAL]
+                          // (see [Response]).
+        STOP         = 3; // Stop a query partway through executing.
+        NOREPLY_WAIT = 4; // Wait for noreply operations to finish.
+        SERVER_INFO  = 5; // Get server information.
     }
     optional QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
@@ -123,7 +121,9 @@ message Response {
                                // more of the sequence.  Keep sending [CONTINUE]
                                // queries until you get back [SUCCESS_SEQUENCE].
         WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
-        SERVER_INFO       = 5; // The data for a [SERVER_INFO] request.
+        SERVER_INFO       = 5; // The data for a [SERVER_INFO] request.  This is
+                               // the same as `SUCCESS_ATOM` except that there will
+                               // never be profiling data.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -178,8 +178,9 @@ message Response {
 
     optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
-    // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
-    // data if [type] is [SUCCESS_SEQUENCE] or [SUCCESS_PARTIAL].  It contains 1
+    // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM] or
+    // [SERVER_INFO].  [response] contains many RQL data if [type] is
+    // [SUCCESS_SEQUENCE] or [SUCCESS_PARTIAL].  [response] contains 1
     // error message (of type [R_STR]) in all other cases.
     repeated Datum response = 3;
 
