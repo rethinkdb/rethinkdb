@@ -191,9 +191,9 @@ public:
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
             auto order_it = queue_order.insert(queue_order.end(), change_val.pkey);
+            auto pkey = change_val.pkey;
             auto pair = std::make_pair(
-                std::move(change_val.pkey),
-                std::make_pair(std::move(change_val), order_it));
+                std::move(pkey), std::make_pair(std::move(change_val), order_it));
             auto res = queue.insert(std::move(pair));
             it = res.first;
             guarantee(res.second);
