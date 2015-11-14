@@ -74,7 +74,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logERR("Error in %s at line %d:", file, line);
+    logERR("Error in thread %d in %s at line %d:", get_thread_id(), file, line);
     vlogERR(msg, args);
     va_end(args);
 

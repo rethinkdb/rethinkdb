@@ -13,6 +13,7 @@
 const int MAX_SIMULTANEOUS_EVENTS = 16;
 
 class linux_thread_t;
+class timer_provider_callback_t;
 
 class windows_event_queue_t {
 public:
@@ -28,7 +29,13 @@ public:
 
     void run();
 
+    void set_timer(int64_t next_time_in_nanos, timer_provider_callback_t *cb);
+    void unset_timer();
+
 private:
+    ticks_t next_time_in_nanos;
+    timer_provider_callback_t *timer_cb;
+
     linux_thread_t *thread;
     HANDLE completion_port;
 };

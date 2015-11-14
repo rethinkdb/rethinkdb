@@ -1,5 +1,9 @@
 #include "time.hpp"
 
+#include "debug.hpp" // ATN TODO
+
+#include <inttypes.h>
+
 #ifndef _MSC_VER
 #include <sys/time.h>
 #endif
@@ -59,11 +63,21 @@ timespec clock_monotonic() {
     ret.tv_nsec = nanosecs % BILLION;
     return ret;
 #elif defined(_WIN32)
-	timespec ret;
-	ULONGLONG millisecs = GetTickCount64(); /* ATN: TODO nanosecs */
-	ret.tv_sec = millisecs / THOUSAND;
-	ret.tv_nsec = (millisecs % THOUSAND) * THOUSAND;
-	return ret;
+    timespec ret;
+    // ULONGLONG millisecs = GetTickCount64();
+    // ret.tv_sec = millisecs / THOUSAND;
+    // ret.tv_nsec = (millisecs % THOUSAND) * MILLION;
+    static LARGE_INTEGER frequency_hz = {0};
+    if (frequency_hz.QuadPart == 0) {
+        BOOL res = QueryPerformanceFrequency(&frequency_hz);
+        guarantee_winerr(res, "QueryPerformanceFrequency failed");
+    }
+    LARGE_INTEGER counter;
+    BOOL res = QueryPerformanceCounter(&counter);
+    guarantee_winerr(res, "QueryPerformanceCounter failed");
+    ret.tv_sec = counter.QuadPart / frequency_hz.QuadPart;
+    ret.tv_nsec = (counter.QuadPart - ret.tv_sec * frequency_hz.QuadPart) * BILLION / frequency_hz.QuadPart;
+    return ret;
 #else
     timespec ret;
     int res = clock_gettime(CLOCK_MONOTONIC, &ret);
@@ -150,7 +164,8 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
 
 ticks_t get_ticks() {
     timespec tv = clock_monotonic();
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    ticks_t ticks = secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    return ticks;
 }
 
 time_t get_secs() {

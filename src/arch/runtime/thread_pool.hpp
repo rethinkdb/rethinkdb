@@ -104,6 +104,7 @@ public:
     static void set_thread_id(int val);
     static linux_thread_t *get_thread();
     static void set_thread(linux_thread_t *val);
+    static bool i_am_in_thread_pool_thread();
 
 private:
     // The thread_pool that started the thread we are currently in

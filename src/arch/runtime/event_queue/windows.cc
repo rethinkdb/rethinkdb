@@ -2,12 +2,15 @@
 
 // TODO ATN
 
+#include <inttypes.h>
+
+#include "arch/timer.hpp"
 #include "arch/runtime/event_queue/windows.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/event_watcher.hpp"
 
-//* TODO ATN
-#define debugf_queue(...) debugf("ATN: queue:" __VA_ARGS__) /*/
+/* TODO ATN
+#define debugf_queue(...) debugf("ATN: queue: " __VA_ARGS__) /*/
 #define debugf_queue(...) ((void)0) //*/
 
 enum class windows_message_type_t : ULONG_PTR {
@@ -25,7 +28,7 @@ struct proxied_overlapped_operation_t {
 };
 
 windows_event_queue_t::windows_event_queue_t(linux_thread_t *thread_)
-    : thread(thread_) {
+    : thread(thread_), timer_cb(nullptr) {
     debugf_queue("[%p] create\n", this);
     completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, static_cast<ULONG_PTR>(windows_message_type_t::OVERLAPPED_OPERATION), 1);
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort failed");
@@ -59,6 +62,16 @@ void windows_event_queue_t::post_event(event_callback_t *cb) {
     guarantee_winerr(res, "PostQueuedCompletionStatus failed");
 }
 
+void windows_event_queue_t::set_timer(int64_t next_time_in_nanos_, timer_provider_callback_t *cb) {
+    rassert(cb != nullptr);
+    next_time_in_nanos = next_time_in_nanos_;
+    timer_cb = cb;
+}
+
+void windows_event_queue_t::unset_timer() {
+    timer_cb = nullptr;
+}
+
 void windows_event_queue_t::run() {
     debugf_queue("[%p] run\n", this);
     while (!thread->should_shut_down()) {
@@ -66,49 +79,70 @@ void windows_event_queue_t::run() {
         ULONG_PTR key;
         OVERLAPPED *overlapped;
 
-        BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &key, &overlapped, INFINITE);
-        DWORD error = res ? NO_ERROR : GetLastError();
-        if (overlapped == NULL) {
-            guarantee_winerr(res != 0, "GetQueuedCompletionStatus failed");
-        }
-
-        switch (static_cast<windows_message_type_t>(key)) {
-        case windows_message_type_t::OVERLAPPED_OPERATION: {
-            debugf_queue("[%p] dequeued overlapped operation\n", this);
-            overlapped_operation_t *ao = reinterpret_cast<overlapped_operation_t*>(overlapped);
-            threadnum_t target_thread = ao->event_watcher->current_thread();
-            if (target_thread != get_thread_id()) {
-                HANDLE target_cp = linux_thread_pool_t::get_thread_pool()->threads[target_thread.threadnum]->queue.completion_port;
-                proxied_overlapped_operation_t *poa = new proxied_overlapped_operation_t(error, nb_bytes, ao);
-                BOOL res = PostQueuedCompletionStatus(target_cp, 0, static_cast<ULONG_PTR>(windows_message_type_t::PROXIED_OVERLAPPED_OPERATION), reinterpret_cast<OVERLAPPED*>(poa));
-                guarantee_winerr(res, "PostQueuedCompletionStatus failed");
+        DWORD wait_ms;
+        if (timer_cb != nullptr) {
+            int64_t wait_ns = next_time_in_nanos - get_ticks();
+            if (wait_ns <= 0) {
+                wait_ms = 0;
             } else {
-                ao->set_result(nb_bytes, error);
+                wait_ms = 1 + ((wait_ns - 1) / MILLION); // ceil(wait_ns / MILLION)
             }
-            break;
+        } else {
+            wait_ms = INFINITE;
         }
 
-        case windows_message_type_t::PROXIED_OVERLAPPED_OPERATION: {
-            debugf_queue("[%p] dequeued proxied overlapped operation\n", this);
-            guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
-            proxied_overlapped_operation_t *poa = reinterpret_cast<proxied_overlapped_operation_t*>(overlapped);
-            poa->op->set_result(poa->nb_bytes, poa->error);
-            delete poa;
-            break;
+        debugf_queue("waiting for next event (wait %ums%s)\n", wait_ms, wait_ms == INFINITE ? " inf" : "");
+
+        BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &key, &overlapped, wait_ms);
+        DWORD error = res ? NO_ERROR : GetLastError();
+
+        if (timer_cb != nullptr && (error == WAIT_TIMEOUT || next_time_in_nanos < get_ticks())) {
+            debugf_queue("[%p] trigger timer callback\n", this);
+            timer_provider_callback_t *cb = timer_cb;
+            timer_cb = nullptr;
+            cb->on_oneshot();
+        } else if (overlapped == nullptr) {
+            guarantee_xwinerr(false, error, "GetQueuedCompletionStatus failed");
         }
 
-        case windows_message_type_t::EVENT_CALLBACK: {
-            debugf_queue("[%p] dequeued event callback\n", this);
-            guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
-            event_callback_t *cb = reinterpret_cast<event_callback_t*>(overlapped);
-            cb->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
-            break;
-        }
+        if (overlapped != nullptr) {
+            switch (static_cast<windows_message_type_t>(key)) {
+            case windows_message_type_t::OVERLAPPED_OPERATION: {
+                debugf_queue("[%p] dequeued overlapped operation\n", this);
+                overlapped_operation_t *ao = reinterpret_cast<overlapped_operation_t*>(overlapped);
+                threadnum_t target_thread = ao->event_watcher->current_thread();
+                if (target_thread != get_thread_id()) {
+                    HANDLE target_cp = linux_thread_pool_t::get_thread_pool()->threads[target_thread.threadnum]->queue.completion_port;
+                    proxied_overlapped_operation_t *poa = new proxied_overlapped_operation_t(error, nb_bytes, ao);
+                    BOOL res = PostQueuedCompletionStatus(target_cp, 0, static_cast<ULONG_PTR>(windows_message_type_t::PROXIED_OVERLAPPED_OPERATION), reinterpret_cast<OVERLAPPED*>(poa));
+                    guarantee_winerr(res, "PostQueuedCompletionStatus failed");
+                } else {
+                    ao->set_result(nb_bytes, error);
+                }
+                break;
+            }
 
-        default:
-            crash("Unknown message type in IOCP queue %lu", key);
-        }
+            case windows_message_type_t::PROXIED_OVERLAPPED_OPERATION: {
+                debugf_queue("[%p] dequeued proxied overlapped operation\n", this);
+                guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
+                proxied_overlapped_operation_t *poa = reinterpret_cast<proxied_overlapped_operation_t*>(overlapped);
+                poa->op->set_result(poa->nb_bytes, poa->error);
+                delete poa;
+                break;
+            }
 
+            case windows_message_type_t::EVENT_CALLBACK: {
+                debugf_queue("[%p] dequeued event callback\n", this);
+                guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
+                event_callback_t *cb = reinterpret_cast<event_callback_t*>(overlapped);
+                cb->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
+                break;
+            }
+
+            default:
+                crash("Unknown message type in IOCP queue %lu", key);
+            }
+        }
         thread->pump();
     }
 }
