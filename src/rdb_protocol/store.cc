@@ -228,6 +228,32 @@ void do_read(ql::env_t *env,
                     rget.sindex->datumspec.covering_range().to_sindex_keyrange(
                         reql_version);
             }
+            if (sindex_info.geo == sindex_geo_bool_t::GEO) {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::LOGIC,
+                    strprintf(
+                        "Index `%s` is a geospatial index.  Only get_nearest and "
+                        "get_intersecting can use a geospatial index.",
+                        rget.sindex->id.c_str()),
+                    ql::backtrace_id_t::empty());
+                return;
+            }
+
+            rdb_rget_secondary_slice(
+                store->get_sindex_slice(sindex_uuid),
+                *rget.current_shard,
+                rget.sindex->datumspec,
+                sindex_range,
+                sindex_sb.get(),
+                env,
+                rget.batchspec,
+                rget.transforms,
+                rget.terminal,
+                rget.region.inner,
+                rget.sorting,
+                sindex_info,
+                res,
+                release_superblock_t::RELEASE);
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;
@@ -237,33 +263,6 @@ void do_read(ql::env_t *env,
             res->result = ql::exc_t(e, ql::backtrace_id_t::empty());
             return;
         }
-
-        if (sindex_info.geo == sindex_geo_bool_t::GEO) {
-            res->result = ql::exc_t(
-                ql::base_exc_t::LOGIC,
-                strprintf(
-                    "Index `%s` is a geospatial index.  Only get_nearest and "
-                    "get_intersecting can use a geospatial index.",
-                    rget.sindex->id.c_str()),
-                ql::backtrace_id_t::empty());
-            return;
-        }
-
-        rdb_rget_secondary_slice(
-            store->get_sindex_slice(sindex_uuid),
-            *rget.current_shard,
-            rget.sindex->datumspec,
-            sindex_range,
-            sindex_sb.get(),
-            env,
-            rget.batchspec,
-            rget.transforms,
-            rget.terminal,
-            rget.region.inner,
-            rget.sorting,
-            sindex_info,
-            res,
-            release_superblock_t::RELEASE);
     }
 }
 
