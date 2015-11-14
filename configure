@@ -24,7 +24,7 @@ init () {
     must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    optional_libs="gtest termcap boost_system ssl"
+    optional_libs="gtest termcap boost_system libressl"
     required_libs="protobuf v8 re2 z crypto curl"
     other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
@@ -1128,8 +1128,8 @@ lib_pkg_name () {
         tcmalloc) echo gperftools ;;
         z) echo zlib ;;
         boost_system) echo boost ;;
-        crypto) echo openssl ;;
-        ssl) echo openssl ;;
+        crypto) echo libressl ;;
+        ssl) echo libressl ;;
         *) echo "$1" ;;
     esac
 }
