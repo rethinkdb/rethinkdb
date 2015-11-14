@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
 #include "debug.hpp"
@@ -398,7 +399,12 @@ private:
             // `last_key` because whoever is using `to_array` should be calling
             // `accumulate_all`.
             if (sorting != sorting_t::UNORDERED) {
-                boost::optional<bool> is_sindex_sort;
+                // We first initialize `is_sindex_sort` to `false` and then reset it to
+                // `none` because GCC 4.8 hates us and keeps thinking that
+                // `*is_sindex_sort` is uninitialized even after checking
+                // `is_sindex_sort` to not be none.
+                boost::optional<bool> is_sindex_sort(false);
+                is_sindex_sort = boost::none;
                 std::vector<std::pair<raw_stream_t::iterator,
                                       raw_stream_t::iterator> > v;
                 v.reserve(stream->substreams.size());
