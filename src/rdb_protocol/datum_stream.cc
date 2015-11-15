@@ -838,26 +838,20 @@ void primary_readgen_t::restrict_active_ranges(
         for (const auto &key_pair : *store_keys) {
             const store_key_t &key = key_pair.first;
             uint64_t hash = hash_region_hasher(key);
-            bool found_pair = false;
             for (auto &&pair : limits) {
                 if (pair.first.contains_key(key)) {
-                    bool found_hash_pair = false;
                     for (auto &&hash_pair : pair.second) {
                         if (hash_pair.first.contains(hash)) {
                             hash_pair.second.first =
                                 std::min(hash_pair.second.first, key);
                             hash_pair.second.second =
                                 std::max(hash_pair.second.second, key);
-                            found_hash_pair = true;
                             break;
                         }
                     }
-                    guarantee(found_hash_pair);
-                    found_pair = true;
                     break;
                 }
             }
-            guarantee(found_pair);
         }
         for (auto &&pair : ranges_inout->ranges) {
             for (auto &&hash_pair : pair.second.hash_ranges) {
