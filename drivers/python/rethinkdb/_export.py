@@ -24,12 +24,12 @@ try:
     from multiprocessing import SimpleQueue
 except ImportError:
     from multiprocessing.queues import SimpleQueue
-	
+
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
-      [--format (csv | json)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
+      [--format (csv | json | nsj)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
       [--clients NUM]"
 
 def print_export_help():
@@ -42,7 +42,7 @@ def print_export_help():
     print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
     print("  -d [ --directory ] DIR           directory to output to (defaults to")
     print("                                   rethinkdb_export_DATE_TIME)")
-    print("  --format (csv | json)            format to write (defaults to json)")
+    print("  --format (csv | json | nsj)      format to write (defaults to json)")
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
@@ -74,7 +74,7 @@ def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
-    parser.add_option("--format", dest="format", metavar="json | csv", default="json", type="string")
+    parser.add_option("--format", dest="format", metavar="json | csv | nsj", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
@@ -98,8 +98,8 @@ def parse_options():
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid --format option
-    if options.format not in ["csv", "json"]:
-        raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.format)
+    if options.format not in ["csv", "json", "nsj"]:
+        raise RuntimeError("Error: Unknown format '%s', valid options are 'csv', 'json', and 'nsj'" % options.format)
     res["format"] = options.format
 
     # Verify valid directory option
@@ -237,11 +237,12 @@ def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_
     # Export is done - since we used estimates earlier, update the actual table size
     progress_info[1].value = progress_info[0].value
 
-def json_writer(filename, fields, task_queue, error_queue):
+def json_writer(filename, fields, task_queue, error_queue, format):
     try:
         with open(filename, "w") as out:
             first = True
-            out.write("[")
+            if format != "nsj":
+                out.write("[")
             item = task_queue.get()
             while not isinstance(item, StopIteration):
                 row = item[0]
@@ -249,14 +250,15 @@ def json_writer(filename, fields, task_queue, error_queue):
                     for item in list(row.keys()):
                         if item not in fields:
                             del row[item]
-                if first:
+                if first or format == "nsj":
                     first = False
                     out.write("\n" + json.dumps(row))
                 else:
                     out.write(",\n" + json.dumps(row))
 
                 item = task_queue.get()
-            out.write("\n]\n")
+            if format != "nsj":
+                out.write("\n]\n")
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
@@ -306,6 +308,12 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
                                        args=(filename, fields, delimiter, task_queue, error_queue))
+
+    elif format == "nsj":
+       filename = directory + "/%s/%s.json" % (db, table)
+       return multiprocessing.Process(target=json_writer,
+                                      args=(filename, fields, task_queue, error_queue, format))
+
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
