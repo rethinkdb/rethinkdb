@@ -306,7 +306,7 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
             pass
 
 def launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue):
-    if format == "json":
+    if format == "json" or format == "nsj":
         filename = directory + "/%s/%s.json" % (db, table)
         return multiprocessing.Process(target=json_writer,
                                        args=(filename, fields, task_queue, error_queue, format))
@@ -314,11 +314,6 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
                                        args=(filename, fields, delimiter, task_queue, error_queue))
-
-    elif format == "nsj":
-       filename = directory + "/%s/%s.json" % (db, table)
-       return multiprocessing.Process(target=json_writer,
-                                      args=(filename, fields, task_queue, error_queue, format))
 
     else:
         raise RuntimeError("unknown format type: %s" % format)
