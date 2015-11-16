@@ -67,7 +67,7 @@ def print_import_help():
     print("  -f [ --file ] FILE               the file to import data from")
     print("  --table DB.TABLE                 the table to import the data into")
     print("  --format (csv | json)            the format of the file (defaults to json and accepts")
-    print("                                   newline separated json)")
+    print("                                   newline delimited json)")
     print("  --pkey PRIMARY_KEY               the field to use as the primary key in the table")
     print("")
     print("Import CSV format:")
