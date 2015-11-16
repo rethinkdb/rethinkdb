@@ -309,30 +309,36 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
-def get_table_size(progress, conn, db, table, progress_info):
-    table_size = r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
-    progress_info[1].value = int(table_size)
-    progress_info[0].value = 0
+def get_all_table_sizes(host, port, auth_key, db_table_set):
+    def get_table_size(progress, conn, db, table):
+        return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
+
+    conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+
+    ret = dict()
+    for pair in db_table_set:
+        db, table = pair
+        ret[pair] = int(rdb_call_wrapper(conn_fn, "count", get_table_size, db, table))
+
+    return ret
 
 def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, stream_semaphore, exit_event):
+                 error_queue, progress_info, sindex_counter, exit_event):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
         sindex_counter.value += len(table_info["indexes"])
 
-        with stream_semaphore:
-            task_queue = SimpleQueue()
-            writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
-            writer.start()
+        task_queue = SimpleQueue()
+        writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
+        writer.start()
 
-            rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
-                             table_info["primary_key"], task_queue, progress_info, exit_event)
+        rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
+                         table_info["primary_key"], task_queue, progress_info, exit_event)
     except (r.ReqlError, r.ReqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -373,41 +379,49 @@ def run_clients(options, db_table_set):
     processes = []
     error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
-    stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
     sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
 
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
     errors = [ ]
 
     try:
+        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set)
+
         progress_info = []
 
+        arg_lists = []
         for db, table in db_table_set:
-            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
-                                  multiprocessing.Value(ctypes.c_longlong, 0)))
-            processes.append(multiprocessing.Process(target=export_table,
-                                                     args=(options["host"],
-                                                           options["port"],
-                                                           options["auth_key"],
-                                                           db, table,
-                                                           options["directory_partial"],
-                                                           options["fields"],
-                                                           options["delimiter"],
-                                                           options["format"],
-                                                           error_queue,
-                                                           progress_info[-1],
-                                                           sindex_counter,
-                                                           stream_semaphore,
-                                                           exit_event)))
-            processes[-1].start()
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, 0),
+                                  multiprocessing.Value(ctypes.c_longlong, sizes[(db, table)])))
+            arg_lists.append((options["host"],
+                              options["port"],
+                              options["auth_key"],
+                              db, table,
+                              options["directory_partial"],
+                              options["fields"],
+                              options["delimiter"],
+                              options["format"],
+                              error_queue,
+                              progress_info[-1],
+                              sindex_counter,
+                              exit_event))
+
 
         # Wait for all tables to finish
-        while len(processes) > 0:
+        while len(processes) > 0 or len(arg_lists) > 0:
             time.sleep(0.1)
+
             while not error_queue.empty():
                 exit_event.set() # Stop rather immediately if an error occurs
                 errors.append(error_queue.get())
+
             processes = [process for process in processes if process.is_alive()]
+
+            if len(processes) < options["clients"] and len(arg_lists) > 0:
+                processes.append(multiprocessing.Process(target=export_table,
+                                                         args=arg_lists.pop(0)))
+                processes[-1].start()
+
             update_progress(progress_info)
 
         # If we were successful, make sure 100% progress is reported
