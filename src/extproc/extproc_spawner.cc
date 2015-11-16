@@ -66,11 +66,9 @@ public:
             if (read_res != read_size) {
                 break;
             }
-
             if (!fn(&socket_stream, &socket_stream)) {
                 break;
             }
-
             // Trade magic numbers with the parent
             uint64_t magic_from_parent;
             {
@@ -82,7 +80,6 @@ public:
                     break;
                 }
             }
-
             write_message_t wm;
             serialize<cluster_version_t::LATEST_OVERALL>(
                     &wm, extproc_worker_t::worker_to_parent_magic);
@@ -301,8 +298,6 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
     if (argc != 3 || strcmp(argv[1], SUBCOMMAND_START_WORKER)) {
         return false;
     }
-
-    debugf("starting worker process with pipe %s\n", argv[2]);
 
     fd_t fd = CreateFile(argv[2],
                          GENERIC_READ | GENERIC_WRITE,

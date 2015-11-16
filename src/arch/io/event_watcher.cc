@@ -5,7 +5,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "concurrency/wait_any.hpp"
 
-//* TODO ATN
+/* TODO ATN
 #define debugf_overlapped(...) debugf("ATN: overlapped: " __VA_ARGS__) /*/
 #define debugf_overlapped(...) ((void)0) //*/
 
@@ -33,11 +33,16 @@ void overlapped_operation_t::abort() {
         error = ERROR_OPERATION_ABORTED;
     } else {
         BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
-        if (!res && GetLastError() == ERROR_NOT_FOUND) {
-            // TODO ATN: possible race condition?
-            set_result(0, ERROR_OPERATION_ABORTED);
-        } else if (!res) {
-            guarantee_winerr(res, "CancelIoEx failed");
+        if (!res) {
+            switch (GetLastError()) {
+            case ERROR_NOT_FOUND:
+            case ERROR_INVALID_HANDLE:
+                // TODO ATN: possible race condition?
+                set_result(0, ERROR_OPERATION_ABORTED);
+                break;
+            default:
+                guarantee_winerr(res, "CancelIoEx failed");
+            }
         } else {
             completed.wait_lazily_unordered(); // TODO ATN: does completed always get pulsed after being canceled?
         }

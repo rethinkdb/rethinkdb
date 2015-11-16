@@ -8,17 +8,14 @@
 #include "concurrency/wait_any.hpp"
 #include "concurrency/interruptor.hpp"
 
-// TODO ATN: read and write don't use hte interruptor correctly
-// TODO ATN: when interrupted they should also cancel the overlapped
-
 int64_t socket_stream_t::read(void *buf, int64_t count) {
     DWORD ret;
     DWORD error;
-    if (!event_watcher.has()) {
+    if (event_watcher == nullptr) {
         BOOL res = ReadFile(fd, buf, count, &ret, nullptr);
         error = GetLastError();
     } else {
-        overlapped_operation_t op(event_watcher.get());
+        overlapped_operation_t op(event_watcher);
         BOOL res = ReadFile(fd, buf, count, nullptr, &op.overlapped);
         error = GetLastError();
         if (res || error == ERROR_IO_PENDING) {
@@ -41,11 +38,11 @@ int64_t socket_stream_t::read(void *buf, int64_t count) {
 int64_t socket_stream_t::write(const void *buf, int64_t count) {
     DWORD ret;
     DWORD error;
-    if (!event_watcher.has()) {
+    if (event_watcher == nullptr) {
         BOOL res = WriteFile(fd, buf, count, &ret, nullptr);
         error = GetLastError();
     } else {
-        overlapped_operation_t op(event_watcher.get());
+        overlapped_operation_t op(event_watcher);
         BOOL res = WriteFile(fd, buf, count, nullptr, &op.overlapped);
         error = GetLastError();
         if (res || error == ERROR_IO_PENDING) {
@@ -63,8 +60,8 @@ int64_t socket_stream_t::write(const void *buf, int64_t count) {
 }
 
 void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
-    rassert(event_watcher.has());
-    overlapped_operation_t op(event_watcher.get());
+    rassert(event_watcher != nullptr);
+    overlapped_operation_t op(event_watcher);
     // TODO ATN: the docs claim that the overlapped must contain a valid event handle
     BOOL res = ConnectNamedPipe(fd, &op.overlapped);
     DWORD error = GetLastError();
@@ -139,12 +136,8 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
       event_callback_(NULL),
       event_watcher_(fd, this)
 {
-#ifdef _WIN32
-    crash("ATN TODO");
-#else
     int res = fcntl(fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make fd non-blocking.");
-#endif
 }
 
 void linux_event_fd_watcher_t::init_callback(event_callback_t *cb) {

@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <unistd.h>
 
+// TODO ATN: do not use windows_event_watcher unless _WIN32
+
 #include "logger.hpp"
 
 #include "extproc/extproc_worker.hpp"
@@ -29,8 +31,9 @@ extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != process_ref_t::invalid) {
-        socket_stream.create(socket.get(), nullptr);
-
+        socket_stream.create(socket.get(), windows_event_watcher.get());
+        cond_t non_interruptor;
+        socket_stream->set_interruptor(&non_interruptor);
         try {
             run_job(&worker_exit_fn);
 
@@ -58,12 +61,20 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     // This will also repair a killed worker
 
     // We create the streams here, since they are thread-dependant
+#ifdef _WIN32
+    bool new_worker = false;
+#endif
     if (worker_pid == process_ref_t::invalid) {
         socket.reset(spawner->spawn(&worker_pid));
         debugf("Spawned worker process %x\n", worker_pid);
+
+#ifdef _WIN32
+        new_worker = true;
+        windows_event_watcher.create(socket.get(), nullptr);
+#endif
     }
 
-    socket_stream.create(socket.get(), nullptr);
+    socket_stream.create(socket.get(), windows_event_watcher.get());
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
     guarantee(interruptor == NULL);
@@ -72,9 +83,12 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     socket_stream.get()->set_interruptor(interruptor);
 
 #ifdef _WIN32
-    socket_stream->wait_for_pipe_client(_interruptor);
+
+    if (new_worker) {
+        socket_stream->wait_for_pipe_client(_interruptor);
+    }
 #endif
-    debugf("Connected to worker %x\n", worker_pid);
+
 }
 
 void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
@@ -134,14 +148,16 @@ void extproc_worker_t::kill_process() {
 
 #ifdef _WIN32
     BOOL res = TerminateProcess(worker_pid, EXIT_FAILURE);
-    guarantee_winerr(res, "TerminateProcess failed");
+    if (!res) {
+        logWRN("failed to kill worker process: %s", winerr_string(GetLastError()).c_str());
+    }
 #else
     ::kill(worker_pid, SIGKILL);
     worker_pid = process_ref_t::invalid;
+#endif
 
     // Clean up our socket fd
     socket.reset();
-#endif
 }
 
 bool extproc_worker_t::is_process_alive()

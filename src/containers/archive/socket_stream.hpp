@@ -17,11 +17,20 @@ class socket_stream_t :
     public read_stream_t,
     public write_stream_t {
 public:
-    socket_stream_t(fd_t fd_, blocking_fd_watcher_t *) : fd(fd_), interruptor(nullptr) { }
-    socket_stream_t(fd_t fd_, std::nullptr_t)
+    socket_stream_t(fd_t fd_, blocking_fd_watcher_t *)
         : fd(fd_),
-          event_watcher(make_scoped<windows_event_watcher_t>(fd, nullptr)),
-          interruptor(nullptr) { }
+          interruptor(nullptr),
+          event_watcher(nullptr) { }
+    socket_stream_t(fd_t fd_, windows_event_watcher_t *ew)
+        : fd(fd_),
+          event_watcher(ew),
+          interruptor(nullptr) {
+        rassert(ew != nullptr);
+    }
+
+    // TODO ATN: reject null
+    socket_stream_t(fd_t fd_, std::nullptr_t) = delete;
+    socket_stream_t(fd_t fd_, int) = delete;
 
     socket_stream_t(const socket_stream_t &) = default;
 
@@ -34,8 +43,7 @@ public:
 private:
     fd_t fd;
     signal_t *interruptor;
-    scoped_ptr_t<windows_event_watcher_t> event_watcher;
-
+    windows_event_watcher_t *event_watcher;
 };
 
 #else
