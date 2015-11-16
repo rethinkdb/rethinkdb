@@ -42,7 +42,8 @@ def print_export_help():
     print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
     print("  -d [ --directory ] DIR           directory to output to (defaults to")
     print("                                   rethinkdb_export_DATE_TIME)")
-    print("  --format (csv | json | nsj)      format to write (defaults to json)")
+    print("  --format (csv | json | nsj)      format to write (defaults to json.")
+    print("                                   nsj is newline separated json.)")
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
@@ -250,8 +251,13 @@ def json_writer(filename, fields, task_queue, error_queue, format):
                     for item in list(row.keys()):
                         if item not in fields:
                             del row[item]
-                if first or format == "nsj":
+                if first:
+                    if format == "nsj":
+                        out.write(json.dumps(row))
+                    else:
+                        out.write("\n" + json.dumps(row))
                     first = False
+                elif format == "nsj":
                     out.write("\n" + json.dumps(row))
                 else:
                     out.write(",\n" + json.dumps(row))
@@ -303,7 +309,7 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     if format == "json":
         filename = directory + "/%s/%s.json" % (db, table)
         return multiprocessing.Process(target=json_writer,
-                                       args=(filename, fields, task_queue, error_queue))
+                                       args=(filename, fields, task_queue, error_queue, format))
     elif format == "csv":
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
