@@ -52,6 +52,7 @@ class QueryResult
         @driver_handler = options.driver_handler
         @ready = false
         @position = 0
+        @server_duration = null
         if options.events?
             for own event, handler of options.events
                 @on event, handler
@@ -63,18 +64,22 @@ class QueryResult
         else if not @discard_results
             if @has_profile
                 @profile = result.profile
+                @server_duration = result.profile.reduce(((total, prof) ->
+                    total + (prof['duration(ms)'] or prof['mean_duration(ms)'])), 0)
                 value = result.value
             else
                 @profile = null
-                value = result
+                @server_duration = result?.profile[0]['duration(ms)']
+                value = result.value
             if value? and typeof value._next is 'function' and value not instanceof Array # if it's a cursor
                 @type = 'cursor'
                 @results = []
                 @results_offset = 0
                 @cursor = value
-                @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
+                @is_feed = @cursor.toString().match(/\[object .*Feed\]/)
                 @missing = 0
                 @ended = false
+                @server_duration = null  # ignore server time if batched response
             else
                 @type = 'value'
                 @value = value
@@ -454,6 +459,7 @@ class Container extends Backbone.View
         any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary', 'line', 'point', 'polygon']
         geometry: ['line', 'point', 'polygon']
         sequence: ['table', 'selection', 'stream', 'array']
+        stream: ['table', 'selection']
         grouped_stream: ['stream', 'array']
 
     # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
@@ -476,9 +482,9 @@ class Container extends Backbone.View
     # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
     set_doc_description: (command, tag, suggestions) =>
         if command['body']?
-            # The body of `getField` uses `()` and not `getField()`
+            # The body of `bracket` uses `()` and not `bracket()`
             # so we manually set the variables dont_need_parenthesis and full_tag
-            if tag is 'getField'
+            if tag is 'bracket'
                 dont_need_parenthesis = false
                 full_tag = tag+'('
             else
@@ -499,7 +505,7 @@ class Container extends Backbone.View
 
         parents = {}
         returns = []
-        for pair in command.io
+        for pair in command.io ? []
             parent_values = if (pair[0] == null) then '' else pair[0]
             return_values = pair[1]
 
@@ -538,13 +544,13 @@ class Container extends Backbone.View
             tag = command['name']
             if tag of @ignored_commands
                 continue
-            if tag is '()' # The parentheses will be added later
+            if tag is '() (bracket)' # The parentheses will be added later
                 # Add `(attr)`
                 tag = ''
                 @set_doc_description command, tag, @suggestions
 
-                # Add `getField(sttr)`
-                tag = 'getField'
+                # Add `bracket(sttr)`
+                tag = 'bracket'
             else if tag is 'toJsonString, toJSON'
                 # Add the `toJsonString()` alias
                 tag = 'toJsonString'
@@ -2565,7 +2571,7 @@ class Container extends Backbone.View
         dataexplorer_state.cursor_timed_out = false
         dataexplorer_state.query_has_changed = false
 
-        @raw_query = @codemirror.getValue()
+        @raw_query = @codemirror.getSelection() or @codemirror.getValue()
 
         @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
 
@@ -2835,7 +2841,7 @@ class Container extends Backbone.View
     # Called if there is any on the connection
     error_on_connect: (error) =>
         if /^(Unexpected token)/.test(error.message)
-            # Unexpected token, the server couldn't parse the protobuf message
+            # Unexpected token, the server couldn't parse the message
             # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
             @results_view_wrapper.render_error(null, error)
 
@@ -3020,7 +3026,7 @@ class ResultView extends Backbone.View
     setStackSize: =>
         # In some versions of firefox, the effective recursion
         # limit gets hit sometimes by the driver. Here we patch
-        # the driver's built in stackSize to 30 (normally it's
+        # the driver's built in stackSize to 12 (normally it's
         # 100). The driver will invoke callbacks with setImmediate
         # vs directly invoking themif the stackSize limit is
         # exceeded, which keeps the stack size manageable (but
@@ -3028,9 +3034,9 @@ class ResultView extends Backbone.View
         if @_patched_already
             return
         iterableProto = @query_result.cursor?.__proto__?.__proto__?.constructor?.prototype
-        if iterableProto?.stackSize > 20
-            console.log "Patching stack limit on cursors to 30"
-            iterableProto.stackSize = 20
+        if iterableProto?.stackSize > 12
+            console.log "Patching stack limit on cursors to 12"
+            iterableProto.stackSize = 12
             @_patched_already = true
 
 
@@ -3501,14 +3507,8 @@ class ProfileView extends ResultView
         super args
 
     compute_total_duration: (profile) ->
-        total_duration = 0
-        for task in profile
-            if task['duration(ms)']?
-                total_duration += task['duration(ms)']
-            else if task['mean_duration(ms)']?
-                total_duration += task['mean_duration(ms)']
-
-        total_duration
+        profile.reduce(((total, task) ->
+            total + (task['duration(ms)'] or task['mean_duration(ms)'])) ,0)
 
     compute_num_shard_accesses: (profile) ->
         num_shard_accesses = 0
@@ -3739,7 +3739,7 @@ class ResultViewWrapper extends Backbone.View
                 show_more_data: has_more_data and not @container.state.cursor_timed_out
                 cursor_timed_out_template: (
                     @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
-                execution_time_pretty: util.prettify_duration @container.driver_handler.total_duration
+                execution_time_pretty: util.prettify_duration @query_result.server_duration
                 no_results: @query_result.ended and @query_result.size() == 0
                 num_results: @query_result.size()
                 floating_metadata: @floating_metadata
@@ -3833,7 +3833,8 @@ class OptionsView extends Backbone.View
                 @$('.profiler_enabled').slideUp 'fast'
 
     change_query_limit: (event) =>
-        @options['query_limit'] = if parseInt(@$('#query_limit').val(), 10) > 40 then parseInt(@$('#query_limit').val(), 10) else  40
+        query_limit = parseInt(@$("#query_limit").val(), 10) or DEFAULTS.options.query_limit
+        @options['query_limit'] = Math.max(query_limit, 1)
         if window.localStorage?
             window.localStorage.options = JSON.stringify @options
         @$('#query_limit').val(@options['query_limit']) # In case the input is reset to 40

@@ -19,6 +19,7 @@
 # rungroup=rethinkdb
 
 ## Stash the pid in this file when the process is running
+## Note for systemd users: Systemd uses its own internal mechanism. Do not set this parameter.
 ## Command line default: none
 ## Init script default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
 # pid-file=/var/run/rethinkdb/rethinkdb.pid

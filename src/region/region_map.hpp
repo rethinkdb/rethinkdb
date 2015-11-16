@@ -266,7 +266,7 @@ void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
 
 template<cluster_version_t W, class V>
 void serialize(write_message_t *wm, const region_map_t<V> &map) {
-    static_assert(W == cluster_version_t::v2_1_is_latest,
+    static_assert(W == cluster_version_t::v2_2_is_latest,
         "serialize() is only supported for the latest version");
     serialize<W>(wm, map.inner);
     serialize<W>(wm, map.hash_beg);
@@ -276,7 +276,8 @@ void serialize(write_message_t *wm, const region_map_t<V> &map) {
 template<cluster_version_t W, class V>
 MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
     switch (W) {
-        case cluster_version_t::v2_1_is_latest: {
+        case cluster_version_t::v2_2_is_latest:
+        case cluster_version_t::v2_1: {
             archive_result_t res;
             res = deserialize<W>(s, &map->inner);
             if (bad(res)) { return res; }

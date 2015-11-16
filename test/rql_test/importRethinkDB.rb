@@ -7,10 +7,10 @@ rethinkdbDriverPath = File.expand_path(ENV['RUBY_DRIVER_DIR'] || File.join(File.
 
 # -- import the RethinkDB driver
 
-if !Dir.exists?(rethinkdbDriverPath) or !File.exists?(File.join(rethinkdbDriverPath, 'rethinkdb.rb'))
+if !Dir.exist?(rethinkdbDriverPath) or !File.exist?(File.join(rethinkdbDriverPath, 'rethinkdb.rb'))
   abort "Unable to locate the Ruby driver from " + rethinkdbDriverPath
 end
-if !File.exists?(File.join(rethinkdbDriverPath, 'ql2.pb.rb'))
+if !File.exist?(File.join(rethinkdbDriverPath, 'ql2.pb.rb'))
   abort "Ruby driver is not built: " + rethinkdbDriverPath
 end
 

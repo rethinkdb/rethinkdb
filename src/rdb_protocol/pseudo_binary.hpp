@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 #define RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,9 +21,12 @@ extern const char *const data_key;
 void encode_base64_ptype(
         const datum_string_t &data,
         rapidjson::Writer<rapidjson::StringBuffer> *writer);
+
+rapidjson::Value encode_base64_ptype(const datum_string_t &data,
+                                     rapidjson::Value::AllocatorType *allocator);
+
 // DEPRECATED
 scoped_cJSON_t encode_base64_ptype(const datum_string_t &data);
-void write_binary_to_protobuf(Datum *d, const datum_string_t &data);
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string
 datum_string_t decode_base64_ptype(

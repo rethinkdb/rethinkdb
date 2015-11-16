@@ -8,9 +8,9 @@
 class real_branch_history_manager_t : public branch_history_manager_t {
 public:
     static void erase(
-        const namespace_id_t &_table_id,
-        metadata_file_t *_metadata_file,
-        signal_t *interruptor);
+        metadata_file_t::write_txn_t *write_txn,
+        const namespace_id_t &_table_id);
+
     real_branch_history_manager_t(
         const namespace_id_t &_table_id,
         metadata_file_t *_metadata_file,
@@ -22,20 +22,17 @@ public:
     bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
     void create_branch(
         branch_id_t branch_id,
-        const branch_birth_certificate_t &bc,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+        const branch_birth_certificate_t &bc)
+        THROWS_NOTHING;
     void import_branch_history(
-        const branch_history_t &new_records,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+        const branch_history_t &new_records)
+        THROWS_NOTHING;
     void prepare_gc(
         std::set<branch_id_t> *branches_out)
         THROWS_NOTHING;
     void perform_gc(
-        const std::set<branch_id_t> &remove_branches,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+        const std::set<branch_id_t> &remove_branches)
+        THROWS_NOTHING;
 
 private:
     namespace_id_t const table_id;

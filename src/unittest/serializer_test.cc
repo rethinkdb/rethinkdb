@@ -3,7 +3,7 @@
 #include "arch/runtime/starter.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "serializer/buf_ptr.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "unittest/mock_file.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -15,16 +15,16 @@ namespace unittest {
 TPTEST(SerializerTest, CreateConstructDestroy, 4) {
     // This serves more as a mock_file_t test than a serializer test.
     mock_file_opener_t file_opener;
-    standard_serializer_t::create(&file_opener, standard_serializer_t::static_config_t());
-    standard_serializer_t ser(standard_serializer_t::dynamic_config_t(),
+    log_serializer_t::create(&file_opener, log_serializer_t::static_config_t());
+    log_serializer_t ser(log_serializer_t::dynamic_config_t(),
                               &file_opener,
                               &get_global_perfmon_collection());
 }
 
 void run_AddDeleteRepeatedly(bool perform_index_write) {
     mock_file_opener_t file_opener;
-    standard_serializer_t::create(&file_opener, standard_serializer_t::static_config_t());
-    standard_serializer_t ser(standard_serializer_t::dynamic_config_t(),
+    log_serializer_t::create(&file_opener, log_serializer_t::static_config_t());
+    log_serializer_t ser(log_serializer_t::dynamic_config_t(),
                               &file_opener,
                               &get_global_perfmon_collection());
 
@@ -61,7 +61,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
                 // There are no other index_write operations to maintain ordering with.
                 new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops);
+                ser.index_write(&dummy_acq, []{ }, write_ops);
             }
             // Now delete the only block token and delete the index reference.
             tokens.clear();
@@ -71,7 +71,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
                 // There are no other index_write operations to maintain ordering with.
                 new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops);
+                ser.index_write(&dummy_acq, []{ }, write_ops);
             }
 
         } else {

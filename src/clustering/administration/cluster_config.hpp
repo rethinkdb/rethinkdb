@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 
@@ -24,7 +24,9 @@ class cluster_config_artificial_table_backend_t :
 public:
     cluster_config_artificial_table_backend_t(
             boost::shared_ptr<semilattice_readwrite_view_t<
-                auth_semilattice_metadata_t> > _sl_view);
+                auth_semilattice_metadata_t> > _auth_sl_view,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                heartbeat_semilattice_metadata_t> > _heartbeat_sl_view);
     ~cluster_config_artificial_table_backend_t();
 
     std::string get_primary_key_name();
@@ -74,7 +76,7 @@ private:
 
     class auth_doc_t : public doc_t {
     public:
-        auth_doc_t(boost::shared_ptr< semilattice_readwrite_view_t<
+        auth_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
             auth_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { }
         bool read(
                 signal_t *interruptor,
@@ -86,13 +88,35 @@ private:
                 admin_err_t *error_out);
         void set_notification_callback(const std::function<void()> &fun);
     private:
-        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             sl_view;
         scoped_ptr_t<
             semilattice_read_view_t<auth_semilattice_metadata_t>::subscription_t> subs;
     };
 
+    class heartbeat_doc_t : public doc_t {
+    public:
+        explicit heartbeat_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
+            heartbeat_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { }
+        bool read(
+                signal_t *interruptor,
+                ql::datum_t *row_out,
+                admin_err_t *error_out);
+        bool write(
+                signal_t *interruptor,
+                ql::datum_t *row_out,
+                admin_err_t *error_out);
+        void set_notification_callback(const std::function<void()> &fun);
+    private:
+        boost::shared_ptr<
+            semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t> > sl_view;
+        scoped_ptr_t<
+                semilattice_read_view_t<heartbeat_semilattice_metadata_t>::subscription_t
+            > subs;
+    };
+
     auth_doc_t auth_doc;
+    heartbeat_doc_t heartbeat_doc;
 
     std::map<std::string, doc_t *> docs;
 };

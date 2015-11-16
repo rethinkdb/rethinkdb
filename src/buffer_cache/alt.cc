@@ -518,6 +518,7 @@ void buf_lock_t::mark_deleted() {
     debugf("%p: buf_lock_t %p delete %" PRIu64 "\n", cache(), this, block_id());
 #endif
     guarantee(!empty());
+    guarantee(current_page_acq()->write_acq_signal()->is_pulsed());
     current_page_acq()->mark_deleted();
 }
 
@@ -535,7 +536,10 @@ void buf_lock_t::wait_for_parent(buf_parent_t parent, access_t access) {
     }
 }
 
-void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
+void buf_lock_t::help_construct(
+        buf_parent_t parent,
+        alt_create_t,
+        block_type_t block_type) {
     cache()->assert_thread();
 
     buf_lock_t::wait_for_parent(parent, access_t::write);
@@ -547,7 +551,8 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  alt_create_t::create));
+                                                  alt_create_t::create,
+                                                  block_type));
 
     if (parent.lock_or_null_ != NULL) {
         create_empty_child_snapshot_attachments(txn_->cache(),
@@ -567,21 +572,23 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
 }
 
 buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       alt_create_t create)
+                       alt_create_t create,
+                       block_type_t block_type)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    help_construct(parent, create);
+    help_construct(parent, create, block_type);
 }
 
 buf_lock_t::buf_lock_t(buf_lock_t *parent,
-                       alt_create_t create)
+                       alt_create_t create,
+                       block_type_t block_type)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    help_construct(buf_parent_t(parent), create);
+    help_construct(buf_parent_t(parent), create, block_type);
 }
 
 buf_lock_t::~buf_lock_t() {
@@ -713,13 +720,17 @@ repli_timestamp_t buf_lock_t::get_recency() const {
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     repli_timestamp_t ret = cpa->recency();
-    // You may not call this on a buf lock that was marked deleted.a
+    // You may not call this on a buf lock that was marked deleted, and you
+    // shouldn't call it on an aux block either.
     guarantee(ret != repli_timestamp_t::invalid);
     return ret;
 }
 
 void buf_lock_t::set_recency(repli_timestamp_t recency) {
     guarantee(!empty());
+    // You should never need to set the recency of an aux block. It will be
+    // discarded anyway.
+    guarantee(!is_aux_block_id(block_id()));
     rassert(snapshot_node_ == NULL);
 
     // We only wait here so that we can guarantee(!empty()) after it's pulsed.

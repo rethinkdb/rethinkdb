@@ -3,12 +3,12 @@ write_queries = [
         "query": "r.db('test').table(table['name']).get(table['ids'][i]).update({'update_field': 'value'})",
         "tag": "single_update",
         # We just clean what we update using between and the fact that the array table['ids'] is sorted
-        "clean": "r.db('test').table(table['name']).between(None, table['ids'][i], right_bound='closed').replace(r.row.without('update_field'))"
+        "clean": "r.db('test').table(table['name']).between(r.minval, table['ids'][i], right_bound='closed').replace(r.row.without('update_field'))"
     },
     {
         "query": "r.db('test').table(table['name']).get(table['ids'][i]).replace(r.row.merge({'replace_field': 'value'}))",
         "tag": "single_replace",
-        "clean": "r.db('test').table(table['name']).between(None, table['ids'][i], right_bound='closed').replace(r.row.without('replace_field'))"
+        "clean": "r.db('test').table(table['name']).between(r.minval, table['ids'][i], right_bound='closed').replace(r.row.without('replace_field'))"
     }
 ]
 

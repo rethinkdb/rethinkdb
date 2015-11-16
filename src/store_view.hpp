@@ -136,19 +136,22 @@ public:
     `callback`. */
 
     /* The semantics of `on_item()` and `on_empty_range()` are the same as for
-    `send_backfill_pre()`. The metainfo blob that is passed to `on_item()` and
-    `on_empty_range()` is guaranteed to cover at least the region from the right-hand
-    edge of the previous item to the right-hand edge of the current item; it may or may
-    not cover a larger area as well. */
+    `store_view_t::send_backfill_pre()`. The only difference is that these functions
+    don't return a `continue_bool_t`. This is because enforcing a memory limit is
+    handled separately through a `backfill_item_memory_tracker_t`. The metainfo
+    blob that is passed to `on_item()` and `on_empty_range()` is guaranteed to
+    cover at least the region from the right-hand edge of the previous item to the
+    right-hand edge of the current item; it may or may not cover a larger area as
+    well. */
     class backfill_item_consumer_t {
     public:
         /* It's OK for `on_item()` and `on_empty_range()` to block, but they shouldn't
         block for very long, because the caller may hold B-tree locks while calling them.
         */
-        virtual continue_bool_t on_item(
+        virtual void on_item(
             const region_map_t<binary_blob_t> &metainfo,
             backfill_item_t &&item) THROWS_NOTHING = 0;
-        virtual continue_bool_t on_empty_range(
+        virtual void on_empty_range(
             const region_map_t<binary_blob_t> &metainfo,
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
@@ -178,6 +181,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
+            backfill_item_memory_tracker_t *memory_tracker,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -232,6 +236,9 @@ public:
     perform a backfill. */
     virtual void wait_until_ok_to_receive_backfill(signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
+    /* Like `wait_until_ok_to_receive_backfill`, but doesn't block and instead returns
+    `false` if an index is post-constructing. */
+    virtual bool check_ok_to_receive_backfill() THROWS_NOTHING = 0;
 
     /* Deletes every key in the region, and sets the metainfo for that region to
     `zero_version`. */

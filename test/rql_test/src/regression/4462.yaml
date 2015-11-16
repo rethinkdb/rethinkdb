@@ -1,0 +1,24 @@
+desc: 4462 -- Coroutine stacks should not overflow during datum serialization
+table_variable_name: tbl
+tests:
+  # Create a deeply nested array
+  - js: tbl.insert({id:1,arr:[]})('inserted')
+    ot: 1
+  - js: r.range(1000).forEach(function(i) { return tbl.get(1).update(function(x) { return {arr:[x('arr')]} }, {durability:'soft'})})('replaced')
+    ot: 1000
+  # We don't care about the actual contents here. We just want to make sure the server
+  # doesn't crash when sending the document over.
+  - js: tbl.get(1)
+    ot: partial({})
+  - js: tbl.get(1).delete()('deleted')
+    ot: 1
+
+  # A similar test with a nested object
+  - js: tbl.insert({id:1,obj:{}})('inserted')
+    ot: 1
+  - js: r.range(1000).forEach(function(i) { return tbl.get(1).update(function(x) { return {obj:{a:x('obj')}} }, {durability:'soft'})})('replaced')
+    ot: 1000
+  - js: tbl.get(1)
+    ot: partial({})
+  - js: tbl.get(1).delete()('deleted')
+    ot: 1

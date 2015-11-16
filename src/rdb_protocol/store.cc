@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
+#include <list>
+
 #include "btree/backfill_debug.hpp"
 #include "btree/reql_specific.hpp"
 #include "btree/superblock.hpp"
@@ -8,7 +10,6 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "containers/cow_ptr.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
@@ -18,15 +19,26 @@
 #include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
-    if (changefeed_server.has()) {
-        changefeed_server->stop_all();
+    // We acquire `changefeed_servers_lock` and move all pointers out of
+    // `changefeed_servers`. We then destruct the servers in a separate step,
+    // after releasing the lock.
+    // The reason we do this is to avoid deadlocks that could happen if someone
+    // was holding a lock on the drainer in one of the changefeed servers,
+    // and was at the same time trying to acquire the `changefeed_servers_lock`.
+    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > to_destruct;
+    {
+        rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+        ASSERT_NO_CORO_WAITING;
+        std::swap(changefeed_servers, to_destruct);
     }
+    // The changefeed servers are actually getting destructed here. This might
+    // block.
 }
 
 reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
                                                      buf_lock_t *sindex_block) {
     sindex_disk_info_t sindex_info;
-    deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
+    deserialize_sindex_info_or_crash(sindex->opaque_definition, &sindex_info);
 
     reql_version_t res = sindex_info.mapping_version_info.original_reql_version;
 
@@ -51,24 +63,6 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
     }
 
     return res;
-}
-
-void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (index_report.has()) {
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(sindex_block, &sindexes);
-
-        std::set<std::string> index_set;
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (!it->first.being_deleted &&
-                update_sindex_last_compatible_version(&it->second,
-                                                      sindex_block) !=
-                    reql_version_t::LATEST) {
-                index_set.insert(it->first.name);
-            }
-        }
-        index_report->set_outdated_indexes(std::move(index_set));
-    }
 }
 
 void store_t::help_construct_bring_sindexes_up_to_date() {
@@ -96,64 +90,52 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
     superblock.reset();
 
-    struct sindex_clearer_t {
-        static void clear(store_t *store,
-                          secondary_index_t sindex,
-                          auto_drainer_t::lock_t store_keepalive) {
-            try {
-                // Note that we can safely use a noop deleter here, since the
-                // secondary index cannot be in use at this point and we therefore
-                // don't have to detach anything.
-                rdb_noop_deletion_context_t noop_deletion_context;
-                rdb_value_sizer_t sizer(store->cache->max_block_size());
+    // Migrate the secondary index block
+    migrate_secondary_index_block(&sindex_block);
 
-                /* Clear the sindex. */
-                store->clear_sindex(
-                    sindex,
-                    &sizer,
-                    &noop_deletion_context,
-                    store_keepalive.get_drain_signal());
-            } catch (const interrupted_exc_t &e) {
-                /* Ignore */
-            }
+    auto clear_sindex = [this](uuid_u sindex_id,
+                               auto_drainer_t::lock_t store_keepalive) {
+        try {
+            // Note that we can safely use a noop deleter here, since the
+            // secondary index cannot be in use at this point and we therefore
+            // don't have to detach anything.
+            // This is in contrast to `delayed_clear_and_drop_sindex()`, where we
+            // have to deal with some parts of the index still potentially being live.
+            rdb_noop_deletion_context_t noop_deletion_context;
+            rdb_value_sizer_t sizer(cache->max_block_size());
+
+            /* Clear the sindex. */
+            clear_sindex_data(
+                sindex_id,
+                &sizer,
+                &noop_deletion_context,
+                key_range_t::universe(),
+                store_keepalive.get_drain_signal());
+
+            /* Drop the sindex, now that it's empty. */
+            drop_sindex(sindex_id);
+        } catch (const interrupted_exc_t &e) {
+            /* Ignore */
         }
     };
 
-    // Get the map of indexes and check if any were postconstructing
-    // Drop these and recreate them (see github issue #2925)
-    std::set<sindex_name_t> sindexes_to_update;
-    {
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(&sindex_block, &sindexes);
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (!it->second.being_deleted && !it->second.post_construction_complete) {
-                bool success = mark_secondary_index_deleted(&sindex_block, it->first);
-                guarantee(success);
-
-                success = add_sindex_internal(
-                    it->first, it->second.opaque_definition, &sindex_block);
-                guarantee(success);
-                sindexes_to_update.insert(it->first);
-            }
-        }
-    }
-
-    // Get the new map of indexes, now that we're deleting the old postconstructing ones
-    // Kick off coroutines to finish deleting all indexes that are being deleted
+    // Get the map of indexes and check if any were postconstructing or being deleted.
+    // Kick off coroutines to finish the respective operations
     {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (it->second.being_deleted) {
-                coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
-                                                 this, it->second, drainer.lock()));
+                coro_t::spawn_sometime(std::bind(clear_sindex,
+                                                 it->second.id, drainer.lock()));
+            } else if (!it->second.post_construction_complete()) {
+                coro_t::spawn_sometime(std::bind(&rdb_protocol::resume_construct_sindex,
+                                                 it->second.id,
+                                                 it->second.needs_post_construction_range,
+                                                 this,
+                                                 drainer.lock()));
             }
         }
-    }
-
-    if (!sindexes_to_update.empty()) {
-        rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                &sindex_block);
     }
 }
 
@@ -190,7 +172,7 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     }
 
     try {
-        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        deserialize_sindex_info_or_crash(sindex_mapping_data, sindex_info_out);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
@@ -206,16 +188,27 @@ void do_read(ql::env_t *env,
              const rget_read_t &rget,
              rget_read_response_t *res,
              release_superblock_t release_superblock) {
+    guarantee(rget.current_shard);
     if (!rget.sindex) {
         // Normal rget
-        rdb_rget_slice(btree, rget.region.inner, superblock,
-                       env, rget.batchspec, rget.transforms, rget.terminal,
-                       rget.sorting, res, release_superblock);
+        rdb_rget_slice(
+            btree,
+            *rget.current_shard,
+            rget.region.inner,
+            rget.primary_keys,
+            superblock,
+            env,
+            rget.batchspec,
+            rget.transforms,
+            rget.terminal,
+            rget.sorting,
+            res,
+            release_superblock);
     } else {
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
-        region_t true_region;
+        key_range_t sindex_range;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -225,13 +218,16 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
-            ql::skey_version_t skey_version =
-                ql::skey_version_from_reql_version(
-                    sindex_info.mapping_version_info.latest_compatible_reql_version);
-            res->skey_version = skey_version;
-            true_region = rget.sindex->region
-                ? *rget.sindex->region
-                : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
+            reql_version_t reql_version =
+                sindex_info.mapping_version_info.latest_compatible_reql_version;
+            res->reql_version = reql_version;
+            if (static_cast<bool>(rget.sindex->region)) {
+                sindex_range = rget.sindex->region->inner;
+            } else {
+                sindex_range =
+                    rget.sindex->datumspec.covering_range().to_sindex_keyrange(
+                        reql_version);
+            }
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;
@@ -255,29 +251,39 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->original_range, std::move(true_region),
-            sindex_sb.get(), env, rget.batchspec, rget.transforms,
-            rget.terminal, rget.region.inner, rget.sorting,
-            sindex_info, res, release_superblock_t::RELEASE);
+            *rget.current_shard,
+            rget.sindex->datumspec,
+            sindex_range,
+            sindex_sb.get(),
+            env,
+            rget.batchspec,
+            rget.transforms,
+            rget.terminal,
+            rget.region.inner,
+            rget.sorting,
+            sindex_info,
+            res,
+            release_superblock_t::RELEASE);
     }
 }
 
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_client(s.addr, s.region);
+        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(cserver.first != nullptr);
+        cserver.first->add_client(s.addr, s.region, cserver.second);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server->get_uuid());
-        res->addrs.insert(store->changefeed_server->get_stop_addr());
+        res->server_uuids.insert(cserver.first->get_uuid());
+        res->addrs.insert(cserver.first->get_stop_addr());
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
         ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
                       interruptor, s.optargs, trace);
-        ql::stream_t stream;
+        ql::raw_stream_t stream;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
@@ -285,22 +291,31 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             }
             rget_read_t rget;
             rget.region = s.region;
+            rget.current_shard = s.current_shard;
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             if (s.spec.range.sindex) {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::NO,
                     s.spec.limit,
+                    s.region,
+                    !reversed(s.spec.range.sorting)
+                        ? store_key_t::min()
+                        : store_key_t::max(),
                     s.spec.range.sorting,
                     &ops};
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     boost::none, // We just want to use whole range.
-                    s.spec.range.range);
+                    s.spec.range.datumspec);
             } else {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES,
                     s.spec.limit,
+                    s.region,
+                    !reversed(s.spec.range.sorting)
+                        ? store_key_t::min()
+                        : store_key_t::max(),
                     s.spec.range.sorting,
                     &ops};
             }
@@ -317,7 +332,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 response->response = resp;
                 return;
             }
-            stream = groups_to_batch(gs->get_underlying_map());
+            ql::stream_t read_stream = groups_to_batch(gs->get_underlying_map());
+            guarantee(read_stream.substreams.size() <= 1);
+            if (read_stream.substreams.size() == 1) {
+                stream = std::move(read_stream.substreams.begin()->second.stream);
+            } else {
+                guarantee(stream.size() == 0);
+            }
         }
         auto lvec = ql::changefeed::mangle_sort_truncate_stream(
             std::move(stream),
@@ -325,8 +346,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_limit_client(
+        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(cserver.first != nullptr);
+        cserver.first->add_limit_client(
             s.addr,
             s.region,
             s.table,
@@ -335,52 +357,52 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
-            std::move(lvec));
-        auto addr = store->changefeed_server->get_limit_stop_addr();
+            std::move(lvec),
+            cserver.second);
+        auto addr = cserver.first->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    boost::optional<changefeed_stamp_response_t> do_stamp(const changefeed_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
-            changefeed_stamp_response_t out;
-            out.stamps[store->changefeed_server->get_uuid()] = *stamp;
-            return out;
-        } else {
-            return boost::none;
+    changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s) {
+        auto cserver = store->changefeed_server(s.region);
+        if (cserver.first != nullptr) {
+            if (boost::optional<uint64_t> stamp
+                    = cserver.first->get_stamp(s.addr, cserver.second)) {
+                changefeed_stamp_response_t out;
+                out.stamps = std::map<uuid_u, uint64_t>();
+                (*out.stamps)[cserver.first->get_uuid()] = *stamp;
+                return out;
+            }
         }
+        return changefeed_stamp_response_t();
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        if (boost::optional<changefeed_stamp_response_t> resp = do_stamp(s)) {
-            response->response = *resp;
-        } else {
-            // The client was removed, so no future messages are coming.
-            changefeed_stamp_response_t removed;
-            guarantee(store->changefeed_server.has());
-            removed.stamps[store->changefeed_server->get_uuid()]
-                = std::numeric_limits<uint64_t>::max();
-            response->response = removed;
-        }
+        response->response = do_stamp(s);
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
         response->response = changefeed_point_stamp_response_t();
-        auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(), *stamp);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
+        auto cserver = store->changefeed_server(s.key);
+        if (cserver.first != nullptr) {
+            res->resp = changefeed_point_stamp_response_t::valid_response_t();
+            auto *vres = &*res->resp;
+            if (boost::optional<uint64_t> stamp
+                    = cserver.first->get_stamp(s.addr, cserver.second)) {
+                vres->stamp = std::make_pair(cserver.first->get_uuid(), *stamp);
+            } else {
+                // The client was removed, so no future messages are coming.
+                vres->stamp = std::make_pair(cserver.first->get_uuid(),
+                                             std::numeric_limits<uint64_t>::max());
+            }
+            point_read_response_t val;
+            rdb_get(s.key, btree, superblock, &val, trace);
+            vres->initial_val = val.data;
         } else {
-            // The client was removed, so no future messages are coming.
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(),
-                                        std::numeric_limits<uint64_t>::max());
+            res->resp = boost::none;
         }
-        point_read_response_t val;
-        rdb_get(s.key, btree, superblock, &val, trace);
-        res->initial_val = val.data;
     }
 
     void operator()(const point_read_t &get) {
@@ -413,6 +435,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             res->result = e;
             return;
         }
+        res->reql_version =
+            sindex_info.mapping_version_info.latest_compatible_reql_version;
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
@@ -428,8 +452,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         guarantee(geo_read.sindex.region);
         rdb_get_intersecting_slice(
             store->get_sindex_slice(sindex_uuid),
+            geo_read.region, // This happens to always be the shard for geo reads.
             geo_read.query_geometry,
-            *geo_read.sindex.region,
+            geo_read.sindex.region->inner,
             sindex_sb.get(),
             &ql_env,
             geo_read.batchspec,
@@ -494,7 +519,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (rget.stamp) {
             res->stamp_response = changefeed_stamp_response_t();
-            if (boost::optional<changefeed_stamp_response_t> r = do_stamp(*rget.stamp)) {
+            changefeed_stamp_response_t r = do_stamp(*rget.stamp);
+            if (r.stamps) {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(
@@ -509,7 +535,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.size() != 0);
+            rassert(rget.optargs.has_optarg("db"));
         }
         ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
                          interruptor, rget.optargs, trace);
@@ -805,11 +831,10 @@ void store_t::protocol_write(const write_t &write,
     response->event_log.push_back(profile::stop_t());
 }
 
-void store_t::delayed_clear_sindex(
+void store_t::delayed_clear_and_drop_sindex(
         secondary_index_t sindex,
         auto_drainer_t::lock_t store_keepalive)
-        THROWS_NOTHING
-{
+        THROWS_NOTHING {
     try {
         rdb_value_sizer_t sizer(cache->max_block_size());
         /* If the index had been completely constructed, we must
@@ -823,15 +848,19 @@ void store_t::delayed_clear_sindex(
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_con_deletion_context;
         deletion_context_t *actual_deletion_context =
-            sindex.post_construction_complete
+            sindex.post_construction_complete()
             ? static_cast<deletion_context_t *>(&live_deletion_context)
             : static_cast<deletion_context_t *>(&post_con_deletion_context);
 
-        /* Clear the sindex. */
-        clear_sindex(sindex,
-                     &sizer,
-                     actual_deletion_context,
-                     store_keepalive.get_drain_signal());
+        /* Clear the sindex */
+        clear_sindex_data(sindex.id,
+                          &sizer,
+                          actual_deletion_context,
+                          key_range_t::universe(),
+                          store_keepalive.get_drain_signal());
+
+        /* Drop the sindex, now that it's empty. */
+        drop_sindex(sindex.id);
     } catch (const interrupted_exc_t &e) {
         /* Ignore. The sindex deletion will continue when the store
         is next started up. */
@@ -844,4 +873,61 @@ namespace_id_t const &store_t::get_table_id() const {
 
 store_t::sindex_context_map_t *store_t::get_sindex_context_map() {
     return &sindex_context;
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const region_t &region,
+        const rwlock_acq_t *acq) {
+    acq->guarantee_is_holding(&changefeed_servers_lock);
+    for (auto &&pair : changefeed_servers) {
+        if (pair.first.inner.is_superset(region.inner)) {
+            return std::make_pair(pair.second.get(), pair.second->get_keepalive());
+        }
+    }
+    return std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>(
+        nullptr, auto_drainer_t::lock_t());
+}
+
+std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
+          scoped_ptr_t<rwlock_acq_t> > store_t::access_changefeed_servers() {
+    return std::make_pair(&changefeed_servers,
+                          make_scoped<rwlock_acq_t>(&changefeed_servers_lock,
+                                                    access_t::read));
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const region_t &region) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
+    return changefeed_server(region, &acq);
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
+        const store_key_t &key) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
+    for (auto &&pair : changefeed_servers) {
+        if (pair.first.inner.contains_key(key)) {
+            return std::make_pair(pair.second.get(), pair.second->get_keepalive());
+        }
+    }
+    return std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>(
+        nullptr, auto_drainer_t::lock_t());
+}
+
+std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
+        store_t::get_or_make_changefeed_server(const region_t &region) {
+    rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+    guarantee(ctx != nullptr);
+    guarantee(ctx->manager != nullptr);
+    auto existing = changefeed_server(region, &acq);
+    if (existing.first != nullptr) {
+        return existing;
+    }
+    for (auto &&pair : changefeed_servers) {
+        guarantee(!pair.first.inner.overlaps(region.inner));
+    }
+    auto it = changefeed_servers.insert(
+        std::make_pair(
+            region_t(region),
+            make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
+    return std::make_pair(it->second.get(), it->second->get_keepalive());
 }

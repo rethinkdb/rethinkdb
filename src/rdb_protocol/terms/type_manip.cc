@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
@@ -153,7 +153,7 @@ static int merge_types(int supertype, int subtype) {
 
 class coerce_term_t : public op_term_t {
 public:
-    coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    coerce_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -176,6 +176,14 @@ private:
              && opaque_start_type.is_convertible(supertype(end_type)))
             || start_type == end_type) {
             return val;
+        }
+
+        // * -> BOOL
+        if (end_type == R_BOOL_TYPE) {
+            if (start_type == R_NULL_TYPE) {
+                return new_val(datum_t::boolean(false));
+            }
+            return new_val(datum_t::boolean(true));
         }
 
         // DATUM -> *
@@ -253,7 +261,7 @@ private:
             }
 
             // SEQUENCE -> OBJECT
-            if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+            if (end_type == R_OBJECT_TYPE) {
                 datum_object_builder_t obj;
                 batchspec_t batchspec
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
@@ -261,13 +269,17 @@ private:
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     datum_t pair;
                     while (pair = ds->next(env->env, batchspec), pair.has()) {
+                        rcheck(pair.arr_size() == 2,
+                               base_exc_t::LOGIC,
+                               strprintf("Expected array of size 2, but got size %zu.",
+                                         pair.arr_size()));
                         datum_string_t key = pair.get(0).as_str();
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::LOGIC,
-                               strprintf("Duplicate key `%s` in coerced object.  "
-                                         "(got `%s` and `%s` as values)",
-                                         key.to_std().c_str(),
+                               strprintf("Duplicate key %s in coerced object.  "
+                                         "(got %s and %s as values)",
+                                         datum_t(key).print().c_str(),
                                          obj.at(key).trunc_print().c_str(),
                                          keyval.trunc_print().c_str()));
                         sampler.new_sample();
@@ -285,7 +297,7 @@ private:
 
 class ungroup_term_t : public op_term_t {
 public:
-    ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    ungroup_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -334,7 +346,7 @@ datum_t typename_of(const scoped_ptr_t<val_t> &v, scope_env_t *env) {
 
 class typeof_term_t : public op_term_t {
 public:
-    typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    typeof_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -346,7 +358,7 @@ private:
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    info_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -498,19 +510,19 @@ private:
 };
 
 counted_t<term_t> make_coerce_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<coerce_term_t>(env, term);
 }
 counted_t<term_t> make_ungroup_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<ungroup_term_t>(env, term);
 }
 counted_t<term_t> make_typeof_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<typeof_term_t>(env, term);
 }
 counted_t<term_t> make_info_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<info_term_t>(env, term);
 }
 

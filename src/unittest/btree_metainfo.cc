@@ -7,7 +7,7 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "containers/binary_blob.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 namespace unittest {
 
@@ -43,12 +43,12 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -81,15 +81,17 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                 keys.push_back(string_to_vector(pair.first));
                 values.push_back(string_to_blob(pair.second));
             }
-            set_superblock_metainfo(superblock.get(), keys, values);
+            set_superblock_metainfo(superblock.get(), keys, values,
+                                    cluster_version_t::v2_1);
         }
         {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> superblock;
             get_btree_superblock_and_txn_for_reading(
                 &cache_conn, CACHE_SNAPSHOTTED_NO, &superblock, &txn);
+            cluster_version_t version;
             std::vector<std::pair<std::vector<char>, std::vector<char> > > read_back;
-            get_superblock_metainfo(superblock.get(), &read_back);
+            get_superblock_metainfo(superblock.get(), &read_back, &version);
             std::set<std::string> seen;
             for (const auto &pair : read_back) {
                 std::string key = vector_to_string(pair.first);
@@ -98,6 +100,7 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                 seen.insert(key);
                 ASSERT_EQ(metainfo[key], value);
             }
+            ASSERT_EQ(version, cluster_version_t::v2_1);
             ASSERT_EQ(metainfo.size(), seen.size());
         }
     }

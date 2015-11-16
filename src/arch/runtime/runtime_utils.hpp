@@ -59,7 +59,7 @@ within that block and any attempt to do so will be a fatal error. */
 within that block may call `coro_t::spawn_now_dangerously()` or `coro_t::notify_now()` but
 not `coro_t::wait()`. This is because `coro_t::spawn_now_dangerously()` and
 `coro_t::notify_now()` will return control directly to the coroutine that called
-then. */
+them. */
 #define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var(__FILE__, __LINE__)
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */

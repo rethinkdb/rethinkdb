@@ -64,14 +64,15 @@ public:
      * 2. A repli_timestamp_t, called the "recency"
      * 3. A boolean, called the "delete bit" */
 
-    /* max_block_id() and get_delete_bit() are used by the buffer cache to
-    reconstruct the free list of unused block IDs. */
+    /* end_block_id() / end_aux_block_id() and get_delete_bit() are used by the
+    buffer cache to reconstruct the free list of unused block IDs. */
 
-    /* Returns a block ID such that every existing block has an ID less than
-     * that ID. Note that index_read(max_block_id() - 1) is not guaranteed to be
-     * non-NULL. Note that for k > 0, max_block_id() - k might have never been
-     * created. */
-    block_id_t max_block_id() { return inner->max_block_id(); }
+    /* Returns a block ID such that every existing regular/aux block has an
+     * ID less than that ID. Note that index_read(end_block_id() - 1) is not
+     * guaranteed to be non-NULL. Note that for k > 0, end_block_id() - k might
+     * have never been created. */
+    block_id_t end_block_id() { return inner->end_block_id(); }
+    block_id_t end_aux_block_id() { return inner->end_aux_block_id(); }
 
     segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
                                                             block_id_t step) {
@@ -82,13 +83,12 @@ public:
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
 
     /* Reads the block's actual data */
-    counted_t<standard_block_token_t> index_read(block_id_t block_id) {
-        return inner->index_read(block_id);
-    }
+    counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
     void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
     // Returns block tokens in the same order as write_infos.
@@ -133,6 +133,12 @@ private:
 
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
+
+    // Used to stop changes to outstanding_index_write_ops during the time where
+    // the outstanding_index_write_ops are being committed to the inner serializer,
+    // and before they have become visible to `index_read()` calls on the inner
+    // serializer.
+    new_mutex_t outstanding_index_write_mutex;
 
     pump_coro_t write_committer;
 

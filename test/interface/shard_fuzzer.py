@@ -12,6 +12,11 @@ startTime = time.time()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
 opts['random-seed'] = vcoptparse.FloatFlag('--random-seed', random.random())
@@ -135,8 +140,8 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     create_tables(conn)
 
     random.seed(parsed_opts['random-seed'])
-    print("Fuzzing shards for %ds, random seed: %f (%.2fs)" %
-          (parsed_opts['duration'], parsed_opts['random-seed'], time.time() - startTime))
+    print("Fuzzing shards for %ds, random seed: %s (%.2fs)" %
+          (parsed_opts['duration'], repr(parsed_opts['random-seed']), time.time() - startTime))
     stop_event = threading.Event()
     table_threads = []
     for table in tables:

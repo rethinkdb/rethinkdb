@@ -27,7 +27,7 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
                         const ql::configured_limits_t &limits,
                         std::string *err_out);
 
-// Should never error.
+// Returns an empty handle on error and sets `err_out` accordingly.
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
 
@@ -81,11 +81,19 @@ void js_instance_t::maybe_initialize_v8() {
     }
 }
 
+// Wrapper around `v8::Persistent<v8::Value> >` that calls `Reset()` on destruction
+class persistent_value_t {
+public:
+    ~persistent_value_t() {
+        value.Reset();
+    }
+    v8::Persistent<v8::Value> value;
+};
+
 // Worker-side JS evaluation environment.
 class js_env_t {
 public:
     js_env_t();
-    ~js_env_t();
 
     js_result_t eval(const std::string &source, const ql::configured_limits_t &limits);
     js_result_t call(js_id_t id, const std::vector<ql::datum_t> &args,
@@ -95,10 +103,10 @@ public:
 
 private:
     js_id_t remember_value(const v8::Handle<v8::Value> &value);
-    const boost::shared_ptr<v8::Persistent<v8::Value> > find_value(js_id_t id);
+    const boost::shared_ptr<persistent_value_t> find_value(js_id_t id);
 
     js_id_t next_id;
-    std::map<js_id_t, boost::shared_ptr<v8::Persistent<v8::Value> > > values;
+    std::map<js_id_t, boost::shared_ptr<persistent_value_t> > values;
 };
 
 // Cleans the worker process's environment when instantiated
@@ -378,13 +386,6 @@ static void append_caught_error(std::string *err_out, const v8::TryCatch &try_ca
 js_env_t::js_env_t() :
     next_id(MIN_ID) { }
 
-js_env_t::~js_env_t() {
-    // Clean up handles.
-    for (auto it = values.begin(); it != values.end(); ++it) {
-        it->second->Reset();
-    }
-}
-
 js_result_t js_env_t::eval(const std::string &source,
                            const ql::configured_limits_t &limits) {
     js_context_t clean_context;
@@ -446,15 +447,15 @@ js_id_t js_env_t::remember_value(const v8::Handle<v8::Value> &value) {
     // Save this value in a persistent handle so it isn't deallocated when
     // its scope is destructed.
 
-    boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>());
-    persistent_handle->Reset(js_instance_t::isolate(), value);
+    boost::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
+    persistent_handle->value.Reset(js_instance_t::isolate(), value);
 
     values.insert(std::make_pair(id, persistent_handle));
     return id;
 }
 
-const boost::shared_ptr<v8::Persistent<v8::Value> > js_env_t::find_value(js_id_t id) {
-    std::map<js_id_t, boost::shared_ptr<v8::Persistent<v8::Value> > >::iterator it = values.find(id);
+const boost::shared_ptr<persistent_value_t> js_env_t::find_value(js_id_t id) {
+    std::map<js_id_t, boost::shared_ptr<persistent_value_t> >::iterator it = values.find(id);
     guarantee(it != values.end());
     return it->second;
 }
@@ -495,15 +496,16 @@ js_result_t js_env_t::call(js_id_t id,
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
-    const boost::shared_ptr<v8::Persistent<v8::Value> > found_value = find_value(id);
-    guarantee(!found_value->IsEmpty());
+    const boost::shared_ptr<persistent_value_t> found_value = find_value(id);
+    guarantee(!found_value->value.IsEmpty());
 
     v8::Isolate *isolate = js_instance_t::isolate();
 
     v8::HandleScope handle_scope(isolate);
 
     // Construct local handle from persistent handle
-    v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(isolate, *found_value);
+    v8::Local<v8::Value> local_handle =
+        v8::Local<v8::Value>::New(isolate, found_value->value);
     v8::Local<v8::Function> fn = v8::Local<v8::Function>::Cast(local_handle);
     v8::Handle<v8::Value> value = run_js_func(fn, args, err_out);
 
@@ -687,7 +689,11 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
         for (size_t i = 0; i < datum.arr_size(); ++i) {
             v8::HandleScope scope(isolate);
             v8::Handle<v8::Value> val = js_from_datum(datum.get(i), err_out);
-            guarantee(!val.IsEmpty());
+            if (val.IsEmpty()) {
+                // The recursive call to `js_from_datum` should have set `err_out`
+                guarantee(!err_out->empty());
+                return v8::Handle<v8::Value>();
+            }
             array->Set(i, val);
         }
 
@@ -706,6 +712,11 @@ v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                 v8::HandleScope scope(isolate);
                 v8::Handle<v8::Value> key = v8::String::NewFromUtf8(isolate, pair.first.to_std().c_str());
                 v8::Handle<v8::Value> val = js_from_datum(pair.second, err_out);
+                if (val.IsEmpty()) {
+                    // The recursive call to `js_from_datum` should have set `err_out`
+                    guarantee(!err_out->empty());
+                    return v8::Handle<v8::Value>();
+                }
                 guarantee(!key.IsEmpty() && !val.IsEmpty());
                 obj->Set(key, val);
             }

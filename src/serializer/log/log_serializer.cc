@@ -97,23 +97,6 @@ void filepath_file_opener_t::unlink_serializer_file() {
     guarantee_err(res == 0, "unlink() failed");
 }
 
-#ifdef SEMANTIC_SERIALIZER_CHECK
-void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) {
-    const std::string semantic_filepath = filepath_.permanent_path() + "_semantic";
-    int semantic_fd;
-    do {
-        semantic_fd = open(semantic_filepath.c_str(),
-                           O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    } while (semantic_fd == -1 && get_errno() == EINTR);
-
-    if (semantic_fd == INVALID_FD) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(get_errno()).c_str());
-    } else {
-        file_out->init(new linux_semantic_checking_file_t(semantic_fd));
-    }
-}
-#endif  // SEMANTIC_SERIALIZER_CHECK
-
 
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
@@ -231,18 +214,14 @@ struct ls_start_existing_fsm_t :
     bool next_starting_up_step() {
         if (start_existing_state == state_read_static_header) {
             // STATE B
-            // TODO: static_header_read now always returns false.
-            if (static_header_read(ser->dbfile,
-                    &ser->static_config,
-                    sizeof(log_serializer_on_disk_static_config_t),
-                    this)) {
-                crash("static_header_read always returns false");
-                // start_existing_state = state_find_metablock;
-            } else {
-                start_existing_state = state_waiting_for_static_header;
-                // STATE B above implies STATE C here
-                return false;
-            }
+            static_header_read(ser->dbfile,
+                &ser->static_config,
+                sizeof(log_serializer_on_disk_static_config_t),
+                &ser->static_header_needs_migration,
+                this);
+            start_existing_state = state_waiting_for_static_header;
+            // STATE B above implies STATE C here
+            return false;
         }
 
         rassert(start_existing_state != state_waiting_for_static_header);
@@ -297,18 +276,30 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             start_existing_state = state_reconstruct_ongoing;
-            num_blocks_reconstructed = 0;
+            next_block_to_reconstruct = 0;
             // Fall through into state_reconstruct_ongoing
         }
 
         if (start_existing_state == state_reconstruct_ongoing) {
             int batch = 0;
-            for (; num_blocks_reconstructed < ser->lba_index->end_block_id(); num_blocks_reconstructed++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(num_blocks_reconstructed);
+            while (true) {
+                // Once we are done with the normal blocks, switch over to the aux blocks.
+                if (!is_aux_block_id(next_block_to_reconstruct)
+                    && next_block_to_reconstruct >= ser->lba_index->end_block_id()) {
+                    next_block_to_reconstruct = FIRST_AUX_BLOCK_ID;
+                }
+                if (next_block_to_reconstruct >= ser->lba_index->end_aux_block_id()) {
+                    break;
+                }
+
+                flagged_off64_t offset =
+                    ser->lba_index->get_block_offset(next_block_to_reconstruct);
                 if (offset.has_value()) {
                     ser->data_block_manager->mark_live(offset.get_value(),
-                        ser->lba_index->get_block_size(num_blocks_reconstructed));
+                        ser->lba_index->get_block_size(next_block_to_reconstruct));
                 }
+
+                ++next_block_to_reconstruct;
                 ++batch;
                 if (batch >= LBA_RECONSTRUCTION_BATCH_SIZE) {
                     call_later_on_this_thread(this);
@@ -384,7 +375,7 @@ struct ls_start_existing_fsm_t :
 
     // When in state_reconstruct_ongoing, we keep track of how many blocks we
     // already have reconstructed.
-    block_id_t num_blocks_reconstructed;
+    block_id_t next_block_to_reconstruct;
 
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
@@ -402,7 +393,9 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
 #endif
       dynamic_config(_dynamic_config),
       shutdown_callback(NULL),
+      shutdown_state(shutdown_not_started),
       state(state_unstarted),
+      static_header_needs_migration(false),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),
@@ -469,6 +462,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
+                                   const std::function<void()> &on_writes_reflected,
                                    const std::vector<index_write_op_t> &write_ops) {
     assert_thread();
     ticks_t pm_time;
@@ -523,6 +517,22 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
         }
     }
 
+    // All changes are now in the in-memory LBA
+    on_writes_reflected();
+
+    // Before we fully commit the write to disk, we must migrate the static header
+    // if necessary.
+    // Note that this is early enough for upgrading from the 1.13 serializer
+    // version to 2.2, since only the format of the LBA changed.
+    // Future serializer format changes might require this step to happen earlier.
+    {
+        new_mutex_acq_t acq(&static_header_migration_mutex);
+        if (static_header_needs_migration) {
+            static_header_needs_migration = false;
+            migrate_static_header(dbfile, sizeof(log_serializer_on_disk_static_config_t));
+        }
+    }
+
     index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
 
     stats->pm_serializer_index_writes.end(&pm_time);
@@ -560,7 +570,11 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     /* End the extent manager transaction so the extents can actually get reused. */
     extent_manager->commit_transaction(txn);
 
-    //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
+    /* Note that it's important that we don't start GCing before we finish the first
+    index write, because of how we migrate the static header of the serializer file
+    (see the call to `migrate_static_header` above). We don't want to migrate it before
+    we get an *explicit* index write. Specifically we don't want to migrate the static
+    header due to garbage collection. */
     consider_start_gc();
 
     // If we were in the process of shutting down and this is the
@@ -745,12 +759,18 @@ bool log_serializer_t::is_gc_active() const {
     return data_block_manager->is_gc_active() || lba_index->is_any_gc_active();
 }
 
-// TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
-block_id_t log_serializer_t::max_block_id() {
+block_id_t log_serializer_t::end_block_id() {
     assert_thread();
     rassert(state == state_ready);
 
     return lba_index->end_block_id();
+}
+
+block_id_t log_serializer_t::end_aux_block_id() {
+    assert_thread();
+    rassert(state == state_ready);
+
+    return lba_index->end_aux_block_id();
 }
 
 counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
@@ -759,7 +779,8 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
 
     rassert(state == state_ready);
 
-    if (block_id >= lba_index->end_block_id()) {
+    if ((is_aux_block_id(block_id) && block_id >= lba_index->end_aux_block_id())
+        || (!is_aux_block_id(block_id) && block_id >= lba_index->end_block_id())) {
         return counted_t<ls_block_token_pointee_t>();
     }
 
@@ -793,6 +814,7 @@ void log_serializer_t::shutdown(cond_t *cb) {
     rassert(state == state_ready);
     shutdown_callback = cb;
 
+    rassert(shutdown_state == shutdown_not_started);
     shutdown_state = shutdown_begin;
 
     // We must shutdown the LBA GC before we shut down

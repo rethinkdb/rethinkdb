@@ -1,9 +1,12 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef DEBUG_HPP_
 #define DEBUG_HPP_
 
 #include <string>
 
+#include "boost_utils.hpp"
 #include "containers/printf_buffer.hpp"
+#include "stl_utils.hpp"
 #include "time.hpp"
 
 #ifndef NDEBUG
@@ -39,6 +42,13 @@ void debug_print(printf_buffer_t *buf, T *ptr) {
     buf->appendf("%p", ptr);
 }
 
+template<class T>
+std::string debug_str(const T &t) {
+    printf_buffer_t buf;
+    debug_print(&buf, t);
+    return buf.c_str();
+}
+
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
@@ -69,9 +79,6 @@ public:
 private:
     std::string message;
 };
-
-class Term;
-void pb_print(Term *t);
 
 // TODO: make this more efficient (use `clock_monotonic` and use a vector of
 // integers rather than accumulating a string).

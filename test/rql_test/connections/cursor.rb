@@ -45,7 +45,7 @@ def test_cursor_after_connection_close(conn)
   read_cursor = -> {
     cursor.each{ |i| count += 1 }
   }
-  expect_error(read_cursor, RethinkDB::RqlRuntimeError, "Connection is closed.")
+  expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Connection is closed.")
   raise "Did not get any cursor results" if count == 0
 end
 
@@ -79,7 +79,7 @@ def test_cursor_double_each(conn)
   }
   read_cursor.call()
   expect_eq(count, 10000)
-  expect_error(read_cursor, RethinkDB::RqlRuntimeError, "Can only iterate over a cursor once.")
+  expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Can only iterate over a cursor once.")
   expect_eq(count, 10000)
 end
 

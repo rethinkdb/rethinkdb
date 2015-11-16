@@ -60,7 +60,7 @@ with driver.Cluster(initial_servers=2, console_output=True) as cluster:
     try:
         next(changefeed)
         sys.exit('Failure: did not get a exception on the changefeed as expected!')
-    except r.errors.RqlRuntimeError:
+    except r.errors.ReqlRuntimeError:
         pass
     
     # == check that the first server can close gracefully
@@ -70,8 +70,7 @@ with driver.Cluster(initial_servers=2, console_output=True) as cluster:
     except RuntimeError as e:
         sys.stderr.write('Failure: server did not close cleanly: %s\n' % str(e))
         print('========= Stdout/Stderr: =========')
-        stableServer.console_file.seek(0)
-        sys.stdout.write(stableServer.console_file.read())
+        sys.stdout.write(stableServer.console_output)
         print('\n=========')
         sys.exit(1)
 

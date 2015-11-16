@@ -21,6 +21,38 @@ assert r == rethinkdb
 assert issubclass(r, object)
 assert issubclass(rethinkdb, object)
 
+"""ReqlCursorEmpty
+ReqlError
+    ReqlCompileError
+    ReqlRuntimeError
+    ReqlQueryLogicError
+        ReqlNonExistenceError
+    ReqlResourceLimitError
+    ReqlUserError
+    ReqlInternalError
+    ReqlTimeoutError
+    ReqlAvailabilityError
+        ReqlOpFailedError
+        ReqlOpIndeterminateError
+    ReqlDriverError
+        ReqlAuthError"""
+
+assert issubclass(ReqlCursorEmpty, Exception)
+assert issubclass(ReqlError, Exception)
+assert issubclass(ReqlCompileError, ReqlError)
+assert issubclass(ReqlRuntimeError, ReqlError)
+assert issubclass(ReqlRuntimeError, ReqlError)
+assert issubclass(ReqlNonExistenceError, ReqlQueryLogicError)
+assert issubclass(ReqlResourceLimitError, ReqlError)
+assert issubclass(ReqlUserError, ReqlError)
+assert issubclass(ReqlInternalError, ReqlError)
+assert issubclass(ReqlTimeoutError, ReqlError)
+assert issubclass(ReqlAvailabilityError, ReqlError)
+assert issubclass(ReqlOpFailedError, ReqlAvailabilityError)
+assert issubclass(ReqlOpIndeterminateError, ReqlAvailabilityError)
+assert issubclass(ReqlDriverError, ReqlError)
+assert issubclass(ReqlAuthError, ReqlDriverError)
+
 assert issubclass(RqlError, Exception)
 assert issubclass(RqlClientError, RqlError)
 assert issubclass(RqlCompileError, RqlError)

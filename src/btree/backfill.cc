@@ -130,7 +130,7 @@ continue_bool_t btree_send_backfill_pre(
                     });
                 for (const btree_key_t *key : keys) {
                     backfill_pre_item_t pre_item;
-                    pre_item.range = key_range_t(key);
+                    pre_item.range = key_range_t::one_key(key);
                     if (continue_bool_t::ABORT ==
                             pre_item_consumer->on_pre_item(std::move(pre_item))) {
                         return continue_bool_t::ABORT;
@@ -166,7 +166,8 @@ continue_bool_t btree_send_backfill_pre(
 
 /* The `backfill_item_loader_t` gets backfill items from the `backfill_item_preparer_t`,
 but that the actual row values have not been loaded into the items yet. It loads the
-values from the cache and then passes the items on to the `backfill_item_consumer_t`. */
+values from the cache and then passes the items on to the
+`btree_backfill_item_consumer_t`. */
 class backfill_item_loader_t {
 public:
     backfill_item_loader_t(
@@ -212,6 +213,13 @@ public:
         fifo_enforcer_sink_t::exit_write_t exit_write(
             &fifo_sink, fifo_source.enter_write());
         wait_interruptible(&exit_write, interruptor);
+    }
+
+    /* Gets the size of a given value in a leaf node. */
+    int64_t size_value(
+            buf_parent_t parent,
+            const void *value_in_leaf_node) {
+        return item_consumer->size_value(parent, value_in_leaf_node);
     }
 
 private:
@@ -295,9 +303,11 @@ public:
             repli_timestamp_t _reference_timestamp,
             btree_backfill_pre_item_producer_t *_pre_item_producer,
             signal_t *_abort_cond,
-            backfill_item_loader_t *_loader) :
+            backfill_item_loader_t *_loader,
+            backfill_item_memory_tracker_t *_memory_tracker) :
         sizer(_sizer), reference_timestamp(_reference_timestamp),
-        pre_item_producer(_pre_item_producer), abort_cond(_abort_cond), loader(_loader)
+        pre_item_producer(_pre_item_producer), abort_cond(_abort_cond), loader(_loader),
+        memory_tracker(_memory_tracker)
         { }
 
 private:
@@ -345,8 +355,13 @@ private:
             }
             subrange.right = cursor;
             rassert(!subrange.is_empty());
-            handle_pre_leaf_subrange(
-                buf, subrange, std::move(items_from_pre), interruptor);
+
+            if (continue_bool_t::ABORT == handle_pre_leaf_subrange(
+                    buf, subrange, std::move(items_from_pre), interruptor)) {
+                /* The subrange has not been fully processed. We must abort
+                and try again next time. */
+                return continue_bool_t::ABORT;
+            }
             if (abort_cond->is_pulsed()) {
                 return continue_bool_t::ABORT;
             }
@@ -358,8 +373,9 @@ private:
     given leaf, for which the pre-items are already available. The pre-items are
     delivered in the form of a `std::list<backfill_item_t>` where each item's range is
     the same as one of the pre-items, but the other fields of the item are uninitialized.
+    It returns `continue_bool_t::ABORT` if the memory usage limit has been hit.
     */
-    void handle_pre_leaf_subrange(
+    continue_bool_t handle_pre_leaf_subrange(
             const counted_t<counted_buf_lock_and_read_t> &buf,
             const key_range_t &subrange,
             std::list<backfill_item_t> &&items_from_pre,
@@ -411,9 +427,18 @@ private:
                     return p1.key < p2.key;
                 });
 
-            /* Note that `on_item()` may block, which will limit the rate at which we
-            traverse the B-tree. */
-            loader->on_item(std::move(item), buf, interruptor);
+            /* Cut the item off if it's too large. */
+            continue_bool_t cont =
+                limit_item_memory_usage(buf_parent_t(&buf->lock), &item);
+
+            /* `limit_item_memory_usage()` might have left the item empty. */
+            if (!item.get_range().is_empty()) {
+                /* Note that `on_item()` may block, which will limit the rate at which
+                we traverse the B-tree. */
+                loader->on_item(std::move(item), buf, interruptor);
+            }
+
+            return cont;
 
         } else {
             /* Attach `min_deletion_timestamp` to `items_from_pre`, because it hasn't
@@ -470,7 +495,7 @@ private:
                                 "item %" PRIu64, timestamp.longtime));
                             items_from_time.push_back(backfill_item_t());
                             item = &items_from_time.back();
-                            item->range = key_range_t(key);
+                            item->range = key_range_t::one_key(key);
                             item->min_deletion_timestamp =
                                 repli_timestamp_t::distant_past;
                         } else {
@@ -527,10 +552,79 @@ private:
 
             /* Send the results to the loader */
             for (backfill_item_t &i : items_from_pre) {
-                loader->on_item(std::move(i), buf, interruptor);
+                /* Cut the item off if it's too large. */
+                continue_bool_t cont =
+                    limit_item_memory_usage(buf_parent_t(&buf->lock), &i);
+                /* `limit_item_memory_usage()` might have left the item empty. */
+                if (!i.get_range().is_empty()) {
+                    loader->on_item(std::move(i), buf, interruptor);
+                }
+                if (cont == continue_bool_t::ABORT) {
+                    return continue_bool_t::ABORT;
+                }
             }
             loader->on_empty_range(subrange.right, interruptor);
+
+            return continue_bool_t::CONTINUE;
         }
+    }
+
+    MUST_USE continue_bool_t limit_item_memory_usage(
+            const buf_parent_t &parent,
+            backfill_item_t *item) {
+
+        /* Reserve space for the item structure itself. */
+        memory_tracker->reserve_memory(sizeof(backfill_item_t));
+        /* ...if that already exceeds the memory limit, make the item empty and
+        abort now. */
+        if (memory_tracker->is_limit_exceeded()) {
+            item->mask_in_place(key_range_t::empty());
+            return continue_bool_t::ABORT;
+        }
+
+        /* Reserve space for the values and cut the item off once we have reached
+        the memory limit. */
+        for (const auto &pair : item->pairs) {
+            /* Compute the amount of memory needed for the pair */
+            size_t pair_size;
+            if (static_cast<bool>(pair.value)) {
+                /* It's not a deletion */
+                rassert(pair.value->size() == sizeof(void *));
+                const void *value_ptr = *reinterpret_cast<void *const *>(
+                    pair.value->data());
+                size_t value_size =
+                    static_cast<size_t>(loader->size_value(parent, value_ptr));
+                pair_size = pair.get_mem_size_with_value(value_size);
+            } else {
+                pair_size = pair.get_mem_size();
+            }
+
+            /* Reserve the memory. */
+            memory_tracker->reserve_memory(pair_size);
+            bool stop_loading = memory_tracker->is_limit_exceeded();
+            memory_tracker->note_item();
+
+            /* If `stop_loading` is set, we cut the current and all subsequent keys
+            out of the item. */
+            if (stop_loading) {
+                key_range_t mask_range = key_range_t(
+                    key_range_t::none, store_key_t(),
+                    key_range_t::open, pair.key);
+                item->mask_in_place(mask_range);
+                /* We must abort. Our caller might already have consumed some
+                backfill pre item which we now end up not fully covering. So
+                continuing would make us skip values. */
+                return continue_bool_t::ABORT;
+            }
+        }
+
+        /* If the item doesn't have any key/value pairs, we will get here
+        without telling the memory_tracker that we have made progress. Tell it
+        now. */
+        guarantee(!item->get_range().is_empty());
+        memory_tracker->note_item();
+
+        return continue_bool_t::CONTINUE;
     }
 
     continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
@@ -557,7 +651,9 @@ private:
             }
             for (backfill_item_t &i : items) {
                 loader->on_item(
-                    std::move(i), counted_t<counted_buf_lock_and_read_t>(), interruptor);
+                    std::move(i),
+                    counted_t<counted_buf_lock_and_read_t>(),
+                    interruptor);
             }
             loader->on_empty_range(cursor, interruptor);
         }
@@ -570,6 +666,7 @@ private:
     btree_backfill_pre_item_producer_t *pre_item_producer;
     signal_t *abort_cond;
     backfill_item_loader_t *loader;
+    backfill_item_memory_tracker_t *memory_tracker;
 };
 
 continue_bool_t btree_send_backfill(
@@ -580,19 +677,21 @@ continue_bool_t btree_send_backfill(
         repli_timestamp_t reference_timestamp,
         btree_backfill_pre_item_producer_t *pre_item_producer,
         btree_backfill_item_consumer_t *item_consumer,
+        backfill_item_memory_tracker_t *memory_tracker,
         signal_t *interruptor) {
     backfill_debug_range(range, strprintf(
         "btree_send_backfill %" PRIu64, reference_timestamp.longtime));
     cond_t abort_cond;
     backfill_item_loader_t loader(item_consumer, &abort_cond);
     backfill_item_preparer_t preparer(
-        sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader);
+        sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader,
+        memory_tracker);
     continue_bool_t cont = btree_depth_first_traversal(
             superblock, range, &preparer, access_t::read, FORWARD, release_superblock,
             interruptor);
-    /* Wait for `loader` to finish what it's doing, even if `pre_item_producer` aborted.
-    This is important so that we can make progress even if `pre_item_producer` only gives
-    us a couple of pre-items at a time. */
+    /* Wait for `loader` to finish what it's doing, even if `btree_pre_item_producer`
+    aborted. This is important so that we can make progress even if
+    `btree_pre_item_producer` only gives us a couple of pre-items at a time. */
     loader.finish(interruptor);
     return abort_cond.is_pulsed() ? continue_bool_t::ABORT : cont;
 }
@@ -610,7 +709,8 @@ public:
         *skip_out = true;
         buf_write_t buf_write(&buf->lock);
         leaf_node_t *lnode = static_cast<leaf_node_t *>(buf_write.get_data_write());
-        leaf::erase_deletions(sizer, lnode, min_deletion_timestamp);
+        leaf::erase_deletions(sizer, lnode,
+                              boost::make_optional(min_deletion_timestamp));
         buf->lock.set_recency(superceding_recency(
             min_deletion_timestamp, buf->lock.get_recency()));
         return continue_bool_t::CONTINUE;

@@ -9,7 +9,7 @@ pkg_configure () {
     local ssl_command
     ssl_command="--with-ssl"
     if [[ "$OS" = "Darwin" ]]; then
-        sslCommand="--with-darwinssl --without-ssl"
+        ssl_command="--with-darwinssl --without-ssl"
     fi
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags="--host=$($CXX -dumpmachine)"

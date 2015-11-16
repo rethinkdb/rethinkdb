@@ -1,0 +1,19 @@
+desc: Tests manipulation operations on tables
+table_variable_name: tbl
+tests:
+    # Add some data
+    - cd: tbl.insert([{"a":["k1","v1"]},{"a":["k2","v2"]}])
+
+    # Coerce to an object (after map)
+    - js: tbl.map(r.row("a")).coerce_to("object")
+      rb: tbl.map{|row| row["a"]}.coerce_to("object")
+      py: tbl.map(r.row["a"]).coerce_to("object")
+      ot: {"k1":"v1","k2":"v2"}
+
+    # Coerce to an array
+    - cd: tbl.limit(1).type_of()
+      ot: "SELECTION<STREAM>"
+
+    - cd: tbl.limit(1).coerce_to('array').type_of()
+      ot: "ARRAY"
+

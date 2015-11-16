@@ -98,18 +98,19 @@ private:
                     credits. */
                     send_ack_items();
 
+                    /* `send_ack_items()` could block, so we have to check again */
+                    if (!items.empty_domain()) {
+                        break;
+                    }
+
                     if (got_ack_end_session.is_pulsed()) {
                         /* The callback returned false, so we sent an end-session message
                         to the backfiller, and it replied; then we drained the `items`
                         queue. So this session is over. */
                         guarantee(callback_returned_false);
+                        parent->progress_tracker->is_ready = true;
                         done_cond.pulse();
                         return;
-                    }
-
-                    /* `send_ack_items()` could block, so we have to check again */
-                    if (!items.empty_domain()) {
-                        break;
                     }
 
                     /* Wait for more items to arrive */
@@ -185,18 +186,10 @@ private:
                             }
 
                             if (!new_threshold.unbounded) {
-                                const auto &distribution_counts =
-                                    parent->parent->intro.distribution_counts;
-                                auto lower_bound =
-                                    distribution_counts.lower_bound(new_threshold.key());
-                                if (lower_bound != distribution_counts.end()) {
-                                    double distribution_counts_sum =
-                                        parent->parent->intro.distribution_counts_sum;
-                                    parent->parent->progress_tracker->progress =
-                                        lower_bound->second / distribution_counts_sum;
-                                } else {
-                                    parent->parent->progress_tracker->progress = 1.0;
-                                }
+                                const distribution_progress_estimator_t &estimator =
+                                    parent->parent->intro.progress_estimator;
+                                parent->parent->progress_tracker->progress =
+                                    estimator.estimate_progress(new_threshold.key());
                             } else {
                                 parent->parent->progress_tracker->progress = 1.0;
                             }
@@ -246,13 +239,14 @@ private:
 
             wait_interruptible(&got_ack_end_session, keepalive.get_drain_signal());
             guarantee(items.empty_domain());
+            parent->progress_tracker->is_ready = true;
             done_cond.pulse();
 
         } catch (const interrupted_exc_t &) {
-            /* The backfillee was destroyed */
+            /* The backfillee was destroyed, if the session is restarted `is_ready` will
+            be set to false again. */
+            parent->progress_tracker->is_ready = true;
         }
-
-        parent->progress_tracker->is_ready = true;
     }
 
     /* `send_ack_items()` lets the backfiller know the total mem size of the items we've
@@ -386,11 +380,8 @@ backfillee_t::backfillee_t(
 
     /* Record the branch history we got from the backfiller */
     {
-        cross_thread_signal_t interruptor_on_bhm_thread(
-            interruptor, branch_history_manager->home_thread());
         on_thread_t thread_switcher(branch_history_manager->home_thread());
-        branch_history_manager->import_branch_history(
-            intro.final_version_history, &interruptor_on_bhm_thread);
+        branch_history_manager->import_branch_history(intro.final_version_history);
     }
 
     /* Spawn the coroutine that will stream pre-items to the backfiller. */
@@ -503,7 +494,7 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
                 keepalive.get_drain_signal());
 
             /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal to
-            `PRE_ITEM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
+            `pre_item_chunk_mem_size`, and then transfer the semaphore ownership. */
             sem_acq.change_count(chunk.get_mem_size());
             pre_item_throttler_acq.transfer_in(std::move(sem_acq));
 

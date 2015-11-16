@@ -488,14 +488,25 @@ block_size_t page_t::get_page_buf_size() {
 }
 
 uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
+    // Note that the `base_size` we're assigning is overly conservative.
+    // Not every `page_t` corresponds to one `current_page_t`. and not every
+    // `page_t` has a block token. However in typical workloads, most of them will.
+    //
+    // It is tempting to account for the `standard_block_token_t` only if
+    // `block_token_.has()` is `true`. However there are some places in the code
+    // that assume that `hypothetical_memory_usage` doesn't change after setting
+    // the block token.
+    size_t base_size = sizeof(current_page_t) + sizeof(page_t) +
+        sizeof(standard_block_token_t);
     if (buf_.has()) {
-        return buf_.aligned_block_size();
+        return base_size + buf_.aligned_block_size();
     } else if (block_token_.has()) {
-        return buf_ptr_t::compute_aligned_block_size(block_token_->block_size());
+        return base_size +
+            buf_ptr_t::compute_aligned_block_size(block_token_->block_size());
     } else {
         // If the block isn't loaded and we don't know, we respond conservatively,
         // to stay on the proper side of the memory limit.
-        return page_cache->max_block_size().ser_value();
+        return base_size + page_cache->max_block_size().ser_value();
     }
 }
 
@@ -709,7 +720,9 @@ bool timestamped_page_ptr_t::has() const {
 void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
                                   page_t *page) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
-    rassert(page == NULL || timestamp != repli_timestamp_t::invalid);
+    rassert(page == NULL ||
+            timestamp != repli_timestamp_t::invalid ||
+            is_aux_block_id(page->block_id()));
     timestamp_ = timestamp;
     page_ptr_.init(page);
 }

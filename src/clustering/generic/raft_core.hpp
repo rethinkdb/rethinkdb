@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_RAFT_CORE_HPP_
 #define CLUSTERING_GENERIC_RAFT_CORE_HPP_
 
@@ -68,7 +68,7 @@ typedef uint64_t raft_log_index_t;
 /* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
 way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
-`peer_id_t`. If a single server leaves a Raft cluter and then joins again, it will use a
+`peer_id_t`. If a single server leaves a Raft cluster and then joins again, it will use a
 different `raft_member_id_t` the second time. */
 class raft_member_id_t {
 public:
@@ -180,7 +180,8 @@ public:
 
     /* The equality and inequality operators are mostly for debugging */
     bool operator==(const raft_complex_config_t &other) const {
-        return config == other.config && new_config == other.new_config;
+        return config == other.config &&
+            new_config == other.new_config;
     }
     bool operator!=(const raft_complex_config_t &other) const {
         return !(*this == other);
@@ -212,6 +213,17 @@ public:
     /* Whether `change` and `config` are empty or not depends on the value of `type`. */
     boost::optional<typename state_t::change_t> change;
     boost::optional<raft_complex_config_t> config;
+
+    /* The equality and inequality operators are for testing. */
+    bool operator==(const raft_log_entry_t<state_t> &other) const {
+        return type == other.type &&
+            term == other.term &&
+            change == other.change &&
+            config == other.config;
+    }
+    bool operator!=(const raft_log_entry_t<state_t> &other) const {
+        return !(*this == other);
+    }
 
     RDB_MAKE_ME_SERIALIZABLE_4(raft_log_entry_t, type, term, change, config);
 };
@@ -286,6 +298,16 @@ public:
         entries.push_back(entry);
     }
 
+    /* The equality and inequality operators are for testing. */
+    bool operator==(const raft_log_t<state_t> &other) const {
+        return prev_index == other.prev_index &&
+            prev_term == other.prev_term &&
+            entries == other.entries;
+    }
+    bool operator!=(const raft_log_t<state_t> &other) const {
+        return !(*this == other);
+    }
+
     RDB_MAKE_ME_SERIALIZABLE_3(raft_log_t, prev_index, prev_term, entries);
 };
 
@@ -328,6 +350,19 @@ public:
     `commit_index`. This ensures that the Raft committed state doesn't revert to an
     earlier state if the member crashes and restarts. */
     raft_log_index_t commit_index;
+
+    /* The equality and inequality operators are for testing. */
+    bool operator==(const raft_persistent_state_t<state_t> &other) const {
+        return current_term == other.current_term &&
+            voted_for == other.voted_for &&
+            snapshot_state == other.snapshot_state &&
+            snapshot_config == other.snapshot_config &&
+            log == other.log &&
+            commit_index == other.commit_index;
+    }
+    bool operator!=(const raft_persistent_state_t<state_t> &other) const {
+        return !(*this == other);
+    }
 
     RDB_MAKE_ME_SERIALIZABLE_6(raft_persistent_state_t, current_term, voted_for,
         snapshot_state, snapshot_config, log, commit_index);
@@ -641,7 +676,7 @@ public:
     /* `propose_change()` tries to apply a `change_t` to the cluster.
     `propose_config_change()` tries to change the cluster's configuration.
     `propose_noop()` executes a transaction with no side effects; this can be used to
-    test if this node is actually a functioning leader. 
+    test if this node is actually a functioning leader.
 
     `propose_*()` will block while the change is being initiated; this should be a
     relatively quick process.

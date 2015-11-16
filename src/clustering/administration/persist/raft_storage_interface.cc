@@ -3,37 +3,8 @@
 
 #include "clustering/administration/persist/file_keys.hpp"
 
-/* The raft state is stored as follows:
-- There is a single `table_raft_stored_header_t` which stores `current_term`,
-    `voted_for`, and `commit_index`.
-- There is a single `table_raft_stored_snapshot_t` which stores `snapshot_state`,
-    `snapshot_config`, `log.prev_index`, and `log.prev_term`.
-- There are zero or more `raft_log_entry_t`s, which use the log index as part of the
-    B-tree key. */
-
-class table_raft_stored_header_t {
-public:
-    static table_raft_stored_header_t from_state(
-            const raft_persistent_state_t<table_raft_state_t> &state) {
-        return table_raft_stored_header_t {
-            state.current_term, state.voted_for, state.commit_index };
-    }
-    raft_term_t current_term;
-    raft_member_id_t voted_for;
-    raft_log_index_t commit_index;
-};
-
 RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(table_raft_stored_header_t,
     current_term, voted_for, commit_index);
-
-class table_raft_stored_snapshot_t {
-public:
-    table_raft_state_t snapshot_state;
-    raft_complex_config_t snapshot_config;
-    raft_log_index_t log_prev_index;
-    raft_term_t log_prev_term;
-};
-
 RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(table_raft_stored_snapshot_t,
     snapshot_state, snapshot_config, log_prev_index, log_prev_term);
 
@@ -100,13 +71,14 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
         metadata_file_t *_file,
         metadata_file_t::write_txn_t *txn,
         const namespace_id_t &_table_id,
-        const raft_persistent_state_t<table_raft_state_t> &_state,
-        signal_t *interruptor) :
+        const raft_persistent_state_t<table_raft_state_t> &_state) :
         file(_file), table_id(_table_id), state(_state) {
+    cond_t non_interruptor;
+
     txn->write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         table_raft_stored_header_t::from_state(state),
-        interruptor);
+        &non_interruptor);
 
     /* To avoid expensive copies of `state`, we move `state` into the snapshot and then
     back out after we're done */
@@ -118,7 +90,7 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
     txn->write(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
         snapshot,
-        interruptor);
+        &non_interruptor);
     state.snapshot_state = std::move(snapshot.snapshot_state);
     state.snapshot_config = std::move(snapshot.snapshot_config);
 
@@ -128,31 +100,31 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i)),
             state.log.get_entry_ref(i),
-            interruptor);
+            &non_interruptor);
     }
 }
 
 void table_raft_storage_interface_t::erase(
         metadata_file_t::write_txn_t *txn,
-        const namespace_id_t &table_id,
-        signal_t *interruptor) {
+        const namespace_id_t &table_id) {
+    cond_t non_interruptor;
     txn->erase(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        interruptor);
+        &non_interruptor);
     txn->erase(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
-        interruptor);
+        &non_interruptor);
     std::vector<std::string> log_keys;
     txn->read_many<raft_log_entry_t<table_raft_state_t> >(
         mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &index_str, const raft_log_entry_t<table_raft_state_t> &) {
             log_keys.push_back(index_str);
         },
-        interruptor);
+        &non_interruptor);
     for (const std::string &key : log_keys) {
         txn->erase(
             mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/" + key),
-            interruptor);
+            &non_interruptor);
     }
 }
 

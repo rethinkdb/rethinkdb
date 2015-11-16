@@ -1,0 +1,33 @@
+desc: issue 763 check arg count for indexCreate in JS driver
+table_variable_name: tbl
+tests:
+    - js: tbl.indexCreate()
+      ot: err("ReqlCompileError", "Expected between 1 and 3 arguments but found 0.")
+
+    - js: tbl.indexCreate('a', 'b', 'c', 'd')
+      ot: err("ReqlCompileError", "Expected between 1 and 3 arguments but found 4.")
+
+    - js: tbl.indexCreate('a', 'b')
+      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM:")
+
+    - js: tbl.indexCreate('a')
+      ot: ({'created':1})
+
+    # The fix also changed affected arg checking for other variable argument functions
+    - js: r('a').eq()
+      ot: err("ReqlCompileError", "Expected 2 or more arguments but found 1.")
+
+    - js: r('a').lt()
+      ot: err("ReqlCompileError", "Expected 2 or more arguments but found 1.")
+
+    - js: r(['a']).union()
+      ot: ['a']
+
+    - js: r.do()
+      ot: err("ReqlCompileError", "Expected 1 or more arguments but found 0.")
+
+    - js: r.add()
+      ot: err("ReqlCompileError", "Expected 1 or more arguments but found 0.")
+
+    - js: r.add(1)
+      ot: 1

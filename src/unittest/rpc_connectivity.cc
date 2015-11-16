@@ -97,13 +97,17 @@ private:
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -113,14 +117,18 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
 /* `Message` sends some simple messages between the nodes of a cluster. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, Message, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T'), a3(&c3, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
 
@@ -143,12 +151,16 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, Message, 3) {
 fail. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     /* Note that we DON'T join them together. */
 
@@ -183,17 +195,22 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 /* `LostPeer` tests that nothing crashes when we lose a connection. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, LostPeer, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *connection;
 
     {
-        connectivity_cluster_t::run_t cr2(
-            &c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, 0);
+        connectivity_cluster_t::run_t cr2(&c2, generate_uuid(),
+            get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+            heartbeat_manager.get_view());
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
@@ -223,12 +240,16 @@ order they were sent in.
 TODO: Maybe we should drop this test. See the note about reordering in `cluster.hpp`. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, Ordering, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     cr1.join(get_cluster_local_address(&c2));
 
@@ -251,9 +272,13 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, Ordering, 3) {
 correct. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     /* Make sure `get_connections()` is initially sane */
     std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> list_1 =
@@ -263,8 +288,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
 
     {
         connectivity_cluster_t c2;
-        connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(),
-            peer_address_t(), ANY_PORT, 0);
+        connectivity_cluster_t::run_t cr2(&c2, generate_uuid(),
+            get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+            heartbeat_manager.get_view());
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
@@ -292,6 +318,10 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
 while it is still coming up */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     const int num_members = 5;
 
     /* Spin up `num_members` cluster-members */
@@ -299,8 +329,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(),
-            ANY_PORT, 0);
+        runs[i].create(nodes[i].get(), generate_uuid(), get_unittest_addresses(),
+            peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(get_cluster_local_address(nodes[0].get()));
@@ -323,6 +353,10 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
 together. */
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     /* Two blobs of `blob_size` nodes */
     const size_t blob_size = 4;
 
@@ -331,8 +365,8 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), get_unittest_addresses(), peer_address_t(),
-            ANY_PORT, 0);
+        runs[i].create(nodes[i].get(), generate_uuid(), get_unittest_addresses(),
+            peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     }
 
     for (size_t i = 1; i < blob_size; i++) {
@@ -375,13 +409,17 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
 /* `Multiplexer` uses different `message_tag_t`s and checks that the wires don't get
 crossed. */
 TPTEST(RPCConnectivityTest, Multiplexer) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2;
     recording_test_application_t c1aA(&c1, 'A'), c2aA(&c2, 'A');
     recording_test_application_t c1aB(&c1, 'B'), c2aB(&c2, 'B');
-    connectivity_cluster_t::run_t c1r(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t c2r(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t c1r(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t c2r(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     c1r.join(get_cluster_local_address(&c2));
     let_stuff_happen();
@@ -449,12 +487,16 @@ public:
 };
 
 TPTEST_MULTITHREAD(RPCConnectivityTest, BinaryData, 3) {
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
     cr1.join(get_cluster_local_address(&c2));
 
     let_stuff_happen();
@@ -546,10 +588,15 @@ void check_tcp_closed(socket_stream_t *stream) {
 
 // `CheckHeaders` makes sure that we close the connection if we get a malformed header.
 TPTEST(RPCConnectivityTest, CheckHeaders) {
+    // Initialize a dummy semilattice for the heartbeat metadata
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -582,10 +629,15 @@ TPTEST(RPCConnectivityTest, CheckHeaders) {
 }
 
 TPTEST(RPCConnectivityTest, DifferentVersion) {
+    // Initialize a dummy semilattice for the heartbeat metadata
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -632,10 +684,15 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
 }
 
 TPTEST(RPCConnectivityTest, DifferentArch) {
+    // Initialize a dummy semilattice for the heartbeat metadata
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
 
     // Manually connect to the cluster.
     peer_address_t addr = get_cluster_local_address(&c1);
@@ -680,56 +737,6 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     check_tcp_closed(&stream);
 }
 
-TPTEST(RPCConnectivityTest, DifferentBuildMode) {
-    // Set up a cluster node.
-    connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-
-    // Manually connect to the cluster.
-    peer_address_t addr = get_cluster_local_address(&c1);
-    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
-    socket_stream_t stream(sock.get());
-
-    // Read & check its header.
-    const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
-    {
-        scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&stream, data.data(), len);
-        ASSERT_GE(read, 0);
-        data[read] = 0;         // null-terminate
-        ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
-    }
-
-    // Send the base header
-    ASSERT_EQ(len,
-              stream.write(connectivity_cluster_t::cluster_proto_header.c_str(),
-                           connectivity_cluster_t::cluster_proto_header.length()));
-    let_stuff_happen();
-    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
-
-    // Send the expected version but bad arch bitsize
-    std::string bad_build_mode_str("build mode activated");
-    write_message_t bad_build_mode_msg;
-    serialize<cluster_version_t::CLUSTER>(
-            &bad_build_mode_msg,
-            connectivity_cluster_t::cluster_version_string.length());
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version_string.data(),
-                              connectivity_cluster_t::cluster_version_string.length());
-    serialize<cluster_version_t::CLUSTER>(
-            &bad_build_mode_msg,
-            connectivity_cluster_t::cluster_arch_bitsize.length());
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
-                              connectivity_cluster_t::cluster_arch_bitsize.length());
-    serialize<cluster_version_t::CLUSTER>(&bad_build_mode_msg,
-                                         bad_build_mode_str.length());
-    bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
-    ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
-    let_stuff_happen();
-
-    check_tcp_closed(&stream);
-}
-
 std::set<host_and_port_t> convert_from_any_port(const std::set<host_and_port_t> &addresses,
                                                 port_t actual_port) {
     std::set<host_and_port_t> result;
@@ -745,6 +752,11 @@ std::set<host_and_port_t> convert_from_any_port(const std::set<host_and_port_t> 
 
 // This could possibly cause some weird behavior on someone's network
 TPTEST(RPCConnectivityTest, CanonicalAddress) {
+    // Initialize a dummy semilattice for the heartbeat metadata
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
+        heartbeat_manager(heartbeat_semilattice_metadata);
+
     // cr1 should use default addresses, cr2 and cr3 should use canonical addresses
     std::set<host_and_port_t> c2_addresses;
     c2_addresses.insert(host_and_port_t("10.9.9.254", port_t(0)));
@@ -761,12 +773,12 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
     // Note: this won't have full connectivity in the unit test because we aren't actually using
     //  a proxy or anything
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(),
-        ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(),
-        peer_address_t(c2_addresses), ANY_PORT, 0);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(),
-        peer_address_t(c3_addresses), ANY_PORT, 0);
+    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(c2_addresses), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
+        peer_address_t(c3_addresses), ANY_PORT, 0, heartbeat_manager.get_view());
 
     int c2_port = 0;
     peer_address_t c2_self_address = get_cluster_local_address(&c2);

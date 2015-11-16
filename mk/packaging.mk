@@ -28,7 +28,7 @@ prepare_deb_package_dirs:
 DIST_SUPPORT_PACKAGES := re2 gtest v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf jemalloc boost icu
+  DIST_SUPPORT_PACKAGES += protobuf jemalloc boost
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -42,7 +42,7 @@ DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper, libicu-dev
+DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
 
 ifneq (1,$(BUILD_PORTABLE))
@@ -105,11 +105,11 @@ install-osx: install-binaries
 ifneq (Darwin,$(OS))
   OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)
 else ifneq ("","$(findstring $(OSX_SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
-  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg" --signing-name "$(OSX_SIGNATURE_NAME)"
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg/$(bin_dir)" --install-path "$(bin_dir)" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg" --signing-name "$(OSX_SIGNATURE_NAME)"
 else ifeq ($(REQUIRE_SIGNED),1)
   OSX_DMG_BUILD = $(error Certificate not found: $(OSX_SIGNATURE_NAME))
 else
-  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg"
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg/$(bin_dir)" --install-path "$(bin_dir)" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg"
 endif
 
 .PHONY: build-osx

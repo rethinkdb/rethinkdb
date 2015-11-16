@@ -6,8 +6,10 @@
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"
-#include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "config/args.hpp"
+#include "logger.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 
@@ -22,7 +24,7 @@ struct metadata_disk_superblock_t {
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
-static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'i' } };
+static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'j' } };
 
 void init_metadata_superblock(void *sb_void, size_t block_size) {
     memset(sb_void, 0, block_size);
@@ -32,26 +34,32 @@ void init_metadata_superblock(void *sb_void, size_t block_size) {
     sb->stat_block = NULL_BLOCK_ID;
 }
 
+void update_metadata_superblock_version(void *sb_void) {
+    metadata_disk_superblock_t *sb = static_cast<metadata_disk_superblock_t *>(sb_void);
+    sb->magic = metadata_sb_magic;
+}
 
-enum class superblock_version_t { pre_1_16 = 0, from_1_16_to_2_0 = 1, post_2_1 = 2 };
-
-superblock_version_t magic_to_version(block_magic_t magic) {
+cluster_version_t magic_to_version(block_magic_t magic) {
     guarantee(magic.bytes[0] == metadata_sb_magic.bytes[0]);
     guarantee(magic.bytes[1] == metadata_sb_magic.bytes[1]);
     guarantee(magic.bytes[2] == metadata_sb_magic.bytes[2]);
     switch (magic.bytes[3]) {
-        case 'd': return superblock_version_t::pre_1_16;
-        case 'e': return superblock_version_t::pre_1_16;
-        case 'f': return superblock_version_t::pre_1_16;
-        case 'g': return superblock_version_t::from_1_16_to_2_0;
-        case 'h': return superblock_version_t::from_1_16_to_2_0;
-        case 'i': return superblock_version_t::post_2_1;
-        default: crash("You're trying to use an earlier version of RethinkDB to open a "
-            "database created by a later version of RethinkDB.");
+    case 'd': // obsolete version - v1.13
+        fail_due_to_user_error("This version of RethinkDB cannot migrate in-place "
+            "from databases created by versions older than RethinkDB 1.14.");
+    case 'e': return cluster_version_t::v1_14;
+    case 'f': return cluster_version_t::v1_15;
+    case 'g': return cluster_version_t::v1_16;
+    case 'h': return cluster_version_t::v2_0;
+    case 'i': return cluster_version_t::v2_1;
+    case 'j': return cluster_version_t::v2_2;
+    default:
+        fail_due_to_user_error("You're trying to use an earlier version of RethinkDB "
+            "to open a database created by a later version of RethinkDB.");
     }
     // This is here so you don't forget to add new versions above.
     // Please also update the value of metadata_sb_magic at the top of this file!
-    static_assert(cluster_version_t::v2_1_is_latest_disk == cluster_version_t::v2_1,
+    static_assert(cluster_version_t::LATEST_DISK == cluster_version_t::v2_2,
         "Please add new version to magic_to_version.");
 }
 
@@ -284,12 +292,12 @@ void metadata_file_t::write_txn_t::write_bin(
 
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor) :
     btree_stats(perfmon_parent, "metadata")
 {
-    filepath_file_opener_t file_opener(filename, io_backender);
+    filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
@@ -302,44 +310,52 @@ metadata_file_t::metadata_file_t(
     object_buffer_t<buf_write_t> sb_write;
     sb_write.create(sb_lock.get());
     void *sb_data = sb_write->get_data_write();
-    superblock_version_t metadata_version =
+
+    cluster_version_t metadata_version =
         magic_to_version(*static_cast<block_magic_t *>(sb_data));
     switch (metadata_version) {
-        case superblock_version_t::pre_1_16: {
-            crash("This version of RethinkDB cannot migrate in place from databases "
-                "created by versions older than RethinkDB 1.16.");
-            break;
-        }
-        case superblock_version_t::from_1_16_to_2_0: {
+    case cluster_version_t::v1_14: // fallthrough intentional
+    case cluster_version_t::v1_15: // fallthrough intentional
+    case cluster_version_t::v1_16: // fallthrough intentional
+    case cluster_version_t::v2_0: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
             sb_write.reset();
             sb_lock.reset();
-            migrate_v1_16::migrate_cluster_metadata(
-                &write_txn.txn, buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn);
-            break;
-        }
-        case superblock_version_t::post_2_1: {
-            /* No need to do any migration */
-            break;
-        }
-        default: unreachable();
+
+            logNTC("Migrating cluster metadata to v2.2");
+            migrate_cluster_metadata_to_v2_2(
+                io_backender, base_path,
+                buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
+                interruptor);
+        } break;
+    case cluster_version_t::v2_1: {
+            update_metadata_superblock_version(sb_data);
+            sb_write.reset();
+            sb_lock.reset();
+
+            logNTC("Rewriting cluster metadata for v2.2");
+            rewrite_cluster_metadata(&write_txn, interruptor);
+        } break;
+    case cluster_version_t::v2_2:
+        break; // Up-to-date, do nothing
+    default: unreachable();
     }
 }
 
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
         signal_t *interruptor) :
     btree_stats(perfmon_parent, "metadata")
 {
-    filepath_file_opener_t file_opener(filename, io_backender);
-    standard_serializer_t::create(
+    filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
@@ -362,9 +378,9 @@ metadata_file_t::metadata_file_t(
 void metadata_file_t::init_serializer(
         filepath_file_opener_t *file_opener,
         perfmon_collection_t *perfmon_parent) {
-    scoped_ptr_t<standard_serializer_t> standard_ser(
-        new standard_serializer_t(
-            standard_serializer_t::dynamic_config_t(),
+    scoped_ptr_t<log_serializer_t> standard_ser(
+        new log_serializer_t(
+            log_serializer_t::dynamic_config_t(),
             file_opener,
             perfmon_parent));
     if (!standard_ser->coop_lock_and_check()) {
@@ -373,6 +389,10 @@ void metadata_file_t::init_serializer(
     serializer.init(new merger_serializer_t(
         std::move(standard_ser),
         MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+}
+
+serializer_filepath_t metadata_file_t::get_filename(const base_path_t &path) {
+    return serializer_filepath_t(path, "metadata");
 }
 
 metadata_file_t::~metadata_file_t() {

@@ -8,7 +8,7 @@
 store_metainfo_manager_t::store_metainfo_manager_t(real_superblock_t *superblock) {
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     // TODO: this is inefficient, cut out the middleman (vector)
-    get_superblock_metainfo(superblock, &kv_pairs);
+    get_superblock_metainfo(superblock, &kv_pairs, &cache_version);
     std::vector<region_t> regions;
     std::vector<binary_blob_t> values;
     for (auto &pair : kv_pairs) {
@@ -26,9 +26,18 @@ store_metainfo_manager_t::store_metainfo_manager_t(real_superblock_t *superblock
     rassert(cache.get_domain() == region_t::universe());
 }
 
+cluster_version_t store_metainfo_manager_t::get_version(
+        real_superblock_t *superblock) const {
+    guarantee(superblock != nullptr);
+    superblock->get()->read_acq_signal()->wait_lazily_unordered();
+    return cache_version;
+}
+
 region_map_t<binary_blob_t> store_metainfo_manager_t::get(
         real_superblock_t *superblock,
-        const region_t &region) {
+        const region_t &region) const {
+    guarantee(cache_version == cluster_version_t::v2_1,
+              "Old metainfo needs to be migrated before being used.");
     guarantee(superblock != nullptr);
     superblock->get()->read_acq_signal()->wait_lazily_unordered();
     return cache.mask(region);
@@ -37,7 +46,9 @@ region_map_t<binary_blob_t> store_metainfo_manager_t::get(
 void store_metainfo_manager_t::visit(
         real_superblock_t *superblock,
         const region_t &region,
-        const std::function<void(const region_t &, const binary_blob_t &)> &cb) {
+        const std::function<void(const region_t &, const binary_blob_t &)> &cb) const {
+    guarantee(cache_version == cluster_version_t::v2_1,
+              "Old metainfo needs to be migrated before being used.");
     guarantee(superblock != nullptr);
     superblock->get()->read_acq_signal()->wait_lazily_unordered();
     cache.visit(region, cb);
@@ -66,5 +77,27 @@ void store_metainfo_manager_t::update(
             values.push_back(value);
         });
 
-    set_superblock_metainfo(superblock, keys, values);
+    set_superblock_metainfo(superblock, keys, values, cache_version);
+}
+
+void store_metainfo_manager_t::migrate(
+        real_superblock_t *superblock,
+        cluster_version_t from,
+        cluster_version_t to,
+        const region_t &region, // This should be for all valid ranges for this hash shard
+        const std::function<binary_blob_t(const region_t &, const binary_blob_t &)> &cb) {
+    guarantee(superblock != nullptr);
+    superblock->get()->write_acq_signal()->wait_lazily_unordered();
+
+    guarantee(cache_version == from);
+    region_map_t<binary_blob_t> new_metainfo;
+    {
+        ASSERT_NO_CORO_WAITING;
+        cache.visit(region, [&] (const region_t &r, const binary_blob_t &b) {
+                        new_metainfo.update(r, cb(r, b));
+                    });
+    }
+
+    cache_version = to;
+    update(superblock, new_metainfo);
 }

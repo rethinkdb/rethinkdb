@@ -60,7 +60,7 @@ tests:
     - py: db.table_create('ab', durability='fake')
       js: db.table_create('ab', {durability:'fake'})
       rb: db.table_create('ab', :durability => 'fake')
-      ot: err('RqlLogicError', 'Durability option `fake` unrecognized (options are "hard" and "soft").')
+      ot: err('ReqlQueryLogicError', 'Durability option `fake` unrecognized (options are "hard" and "soft").')
 
     - py: db.table_create('ab', primary_key='bar', shards=2, replicas=1)
       js: db.tableCreate('ab', {primary_key:'bar', shards:2, replicas:1})
@@ -108,17 +108,17 @@ tests:
     - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback")
       js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback"})
       rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback")
-      ot: err('RqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
+      ot: err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
 
     - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback", dry_run=True)
       js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback", dry_run:true})
       rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback", :dry_run => true)
-      ot: err('RqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
+      ot: err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
 
     - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback_or_erase")
       js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback_or_erase"})
       rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback_or_erase")
-      ot: err('RqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
+      ot: err('ReqlOpFailedError', 'This table doesn\'t need to be repaired.', [])
 
     - py: db.table('a').reconfigure(emergency_repair=None, shards=1, replicas=1, dry_run=True)
       js: db.table('a').reconfigure({emergency_repair:null, shards:1, replicas:1, dry_run:true})
@@ -133,24 +133,24 @@ tests:
       ot: partial({'tables_created':1})
 
     - cd: db.table_create('foo')
-      ot: err('RqlOpFailedError', 'Table `test.foo` already exists.', [0])
+      ot: err('ReqlOpFailedError', 'Table `test.foo` already exists.', [0])
 
     - cd: db.table_drop('foo')
       ot: partial({'tables_dropped':1})
 
     - cd: db.table_drop('foo')
-      ot: err('RqlOpFailedError', 'Table `test.foo` does not exist.', [0])
+      ot: err('ReqlOpFailedError', 'Table `test.foo` does not exist.', [0])
 
     - cd: db.table_create('nonsense', 'foo')
       ot:
-        js: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.', [])
-        rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
-        py: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
+        js: err('ReqlCompileError', 'Expected 1 argument (not including options) but found 2.', [])
+        rb: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
+        py: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
     - js: db.table_create('nonsense', {'foo':'bar'})
       py: db.table_create('nonsense', foo='bar')
       rb: db.table_create('nonsense', :foo => 'bar')
-      ot: err('RqlCompileError', "Unrecognized optional argument `foo`.", [])
+      ot: err('ReqlCompileError', "Unrecognized optional argument `foo`.", [])
 
     # RSI(reql_admin): Add tests for table_create() with configuration parameters
 
@@ -161,68 +161,57 @@ tests:
     - py: db.table('a').reconfigure(shards=0, replicas=1)
       js: db.table('a').reconfigure({shards:0, replicas:1})
       rb: db.table('a').reconfigure(:shards => 0, :replicas => 1)
-      ot: err('RqlLogicError', 'Every table must have at least one shard.', [])
+      ot: err('ReqlQueryLogicError', 'Every table must have at least one shard.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="foo")
       js: db.table('a').reconfigure({shards:1, replicas:{default:1}, primary_replica_tag:"foo"})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "foo")
-      ot: >
-          err('RqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because
-          you specified no replicas in server tag `foo`.', [])
+      ot: err('ReqlOpFailedError', 'Can\'t use server tag `foo` for primary replicas because you specified no replicas in server tag `foo`.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="default", nonvoting_replica_tags=["foo"])
       js: db.table('a').reconfigure({shards:1, replicas:{"default":1}, primary_replica_tag:"default", nonvoting_replica_tags:["foo"]})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "default", :nonvoting_replica_tags => ["foo"])
-      ot: >
-          err('RqlOpFailedError', 'You specified that the replicas in server tag `foo`
-          should be non-voting, but you didn\'t specify a number of replicas in server
-          tag `foo`.', [])
+      ot: err('ReqlOpFailedError', 'You specified that the replicas in server tag `foo` should be non-voting, but you didn\'t specify a number of replicas in server tag `foo`.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"foo":0}, primary_replica_tag="foo")
       js: db.table('a').reconfigure({shards:1, replicas:{foo:0}, primary_replica_tag:"foo"})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:foo => 0}, :primary_replica_tag => "foo")
-      ot: >
-          err('RqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes
-          the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
+      ot: err('ReqlOpFailedError', 'You must set `replicas` to at least one. `replicas` includes the primary replica; if there are zero replicas, there is nowhere to put the data.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":0})
       js: db.table('a').reconfigure({shards:1, replicas:{default:0}})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 0})
-      ot: err('RqlLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
+      ot: err('ReqlQueryLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default')
       js: db.table('a').reconfigure({shards:1, replicas:{default:-3}, primary_replica_tag:'default'})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => -3}, :primary_replica_tag => 'default')
-      ot: err('RqlLogicError', 'Can\'t have a negative number of replicas', [])
+      ot: err('ReqlQueryLogicError', 'Can\'t have a negative number of replicas', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas=3, primary_replica_tag='foo')
       js: db.table('a').reconfigure({shards:1, replicas:3, primary_replica_tag:'foo'})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :primary_replica_tag => 'foo')
-      ot: err('RqlLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
+      ot: err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
 
     - py: db.table('a').reconfigure(shards=1, replicas=3, nonvoting_replica_tags=['foo'])
       js: db.table('a').reconfigure({shards:1, replicas:3, nonvoting_replica_tags:['foo']})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :nonvoting_replica_tags => ['foo'])
-      ot: >
-          err('RqlLogicError', '`replicas` must be an OBJECT if
-          `nonvoting_replica_tags` is specified.', [])
+      ot: err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `nonvoting_replica_tags` is specified.', [])
 
     - py: db.reconfigure(emergency_repair="unsafe_rollback")
       js: db.reconfigure({emergency_repair:"unsafe_rollback"})
       rb: db.reconfigure(:emergency_repair => "unsafe_rollback")
-      ot: >
-          err('RqlLogicError', 'Can\'t emergency repair an entire database at once;
-          instead you should run `reconfigure()` on each table individually.')
+      ot: err('ReqlQueryLogicError', 'Can\'t emergency repair an entire database at once; instead you should run `reconfigure()` on each table individually.')
 
     - py: db.table('a').reconfigure(emergency_repair="foo")
       js: db.table('a').reconfigure({emergency_repair:"foo"})
       rb: db.table('a').reconfigure(:emergency_repair => "foo")
-      ot: err('RqlLogicError', '`emergency_repair` should be "unsafe_rollback" or "unsafe_rollback_or_erase"', [])
+      ot: err('ReqlQueryLogicError', '`emergency_repair` should be "unsafe_rollback" or "unsafe_rollback_or_erase"', [])
 
     - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback", shards=1, replicas=1)
       js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback", shards:1, replicas:1})
       rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback", :shards => 1, :replicas => 1)
-      ot: err('RqlLogicError', 'In emergency repair mode, you can\'t specify shards, replicas, etc.')
+      ot: err('ReqlQueryLogicError', 'In emergency repair mode, you can\'t specify shards, replicas, etc.')
 
     # Test reconfigure auto-sharding without data
     - py: db.table('a').reconfigure(shards=2, replicas=1)
@@ -236,7 +225,7 @@ tests:
     - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
       js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
       rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
-      ot: {"inserted": 4}
+      ot: partial({"inserted": 4})
 
     - py: db.table('a').reconfigure(shards=2, replicas=1)
       js: db.table('a').reconfigure({shards:2, replicas:1})
@@ -246,10 +235,7 @@ tests:
     - py: db.table('a').reconfigure(shards=1, replicas=2)
       js: db.table('a').reconfigure({shards:1, replicas:2})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 2)
-      ot: >
-          err('RqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag
-          `default` because there are only 1 servers with the tag `default`. It\'s
-          impossible to have more replicas of the data than there are servers.', [])
+      ot: err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It\'s impossible to have more replicas of the data than there are servers.', [])
 
     # Test wait and rebalance
     - cd: db.table('a').wait()
@@ -278,22 +264,22 @@ tests:
     - py: db.reconfigure(shards=0, replicas=1)
       js: db.reconfigure({shards:0, replicas:1})
       rb: db.reconfigure(:shards => 0, :replicas => 1)
-      ot: err('RqlLogicError', 'Every table must have at least one shard.', [])
+      ot: err('ReqlQueryLogicError', 'Every table must have at least one shard.', [])
 
     - py: db.reconfigure(shards=1, replicas={"default":0})
       js: db.reconfigure({shards:1, replicas:{default:0}})
       rb: db.reconfigure(:shards => 1, :replicas => {:default => 0})
-      ot: err('RqlLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
+      ot: err('ReqlQueryLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', [])
 
     - py: db.reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default')
       js: db.reconfigure({shards:1, replicas:{default:-3}, primary_replica_tag:'default'})
       rb: db.reconfigure(:shards => 1, :replicas => {:default => -3}, :primary_replica_tag => 'default')
-      ot: err('RqlLogicError', 'Can\'t have a negative number of replicas', [])
+      ot: err('ReqlQueryLogicError', 'Can\'t have a negative number of replicas', [])
 
     - py: db.reconfigure(shards=1, replicas=3, primary_replica_tag='foo')
       js: db.reconfigure({shards:1, replicas:3, primary_replica_tag:'foo'})
       rb: db.reconfigure(:shards => 1, :replicas => 3, :primary_replica_tag => 'foo')
-      ot: err('RqlLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
+      ot: err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
 
     - py: db.reconfigure(shards=2, replicas=1)
       js: db.reconfigure({shards:2, replicas:1})
@@ -324,10 +310,10 @@ tests:
       ot: {'db':'test','name':'testA'}
 
     - cd: r.table('doesntexist').config()
-      ot: err('RqlOpFailedError', 'Table `test.doesntexist` does not exist.', [])
+      ot: err('ReqlOpFailedError', 'Table `test.doesntexist` does not exist.', [])
 
     - cd: r.table('test2B').config()
-      ot: err('RqlOpFailedError', 'Table `test.test2B` does not exist.', [])
+      ot: err('ReqlOpFailedError', 'Table `test.test2B` does not exist.', [])
 
     - cd: r.db('rethinkdb').table('table_config').filter({'name':'testA'}).nth(0).eq(r.table('testA').config())
       ot: True

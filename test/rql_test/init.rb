@@ -59,12 +59,14 @@ end
 $statelog = []
 
 r.table_create('test').run rescue nil
+r.table('test').reconfigure(shards: 2, replicas: 1).run
+r.table('test').wait.run
 r.table('test').index_create('a').run rescue nil
 r.table('test').index_wait('a').run
 ['id', 'a'].each {|field|
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {field => i, z: 9}}).run
-  q = r.table('test').between(10, 20, index: field).changes(include_initial_vals: true)
+  q = r.table('test').between(10, 20, index: field).changes(include_initial: true)
   EM.run {
     $h = H.new(field)
     $handle = q.em_run($h, max_batch_rows: 1)

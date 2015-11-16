@@ -1,7 +1,5 @@
 desc: Tests r.default
 tests:
-
-    # tst
     - cd: r.expr(1).default(2)
       ot: 1
     - cd: r.expr(null).default(2)
@@ -11,7 +9,7 @@ tests:
       ot: 2
     - cd: r.expr(r.expr('a')['b']).default(2)
       js: r.expr(r.expr('a')('b')).default(2)
-      ot: err("RqlLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
+      ot: err("ReqlQueryLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
     - rb: r.expr([]).reduce{|a,b| a+b}.default(2)
       py: r.expr([]).reduce(lambda a,b:a+b).default(2)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(2)
@@ -23,7 +21,7 @@ tests:
     - rb: r.expr('a').reduce{|a,b| a+b}.default(2)
       py: r.expr('a').reduce(lambda a,b:a+b).default(2)
       js: r.expr('a').reduce(function(a,b){return a+b}).default(2)
-      ot: err("RqlLogicError", "Cannot convert STRING to SEQUENCE", [])
+      ot: err("ReqlQueryLogicError", "Cannot convert STRING to SEQUENCE", [])
     - cd: (r.expr(null) + 5).default(2)
       js: (r.expr(null).add(5)).default(2)
       ot: 2
@@ -38,16 +36,16 @@ tests:
       ot: 2
     - cd: (r.expr('a') + 5).default(2)
       js: (r.expr('a').add(5)).default(2)
-      ot: err("RqlLogicError", "Expected type STRING but found NUMBER.", [])
+      ot: err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", [])
     - cd: (5 + r.expr('a')).default(2)
       js: (r.expr(5).add('a')).default(2)
-      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", [])
     - cd: (r.expr('a') - 5).default(2)
       js: (r.expr('a').sub(5)).default(2)
-      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", [])
     - cd: (5 - r.expr('a')).default(2)
       js: (r.expr(5).sub('a')).default(2)
-      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", [])
 
     - cd: r.expr(1).default(r.error())
       ot: 1
@@ -55,27 +53,27 @@ tests:
       ot: (null)
     - cd: r.expr({})['b'].default(r.error())
       js: r.expr({})('b').default(r.error())
-      ot: err("RqlNonExistenceError", "No attribute `b` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `b` in object:", [])
     - rb: r.expr([]).reduce{|a,b| a+b}.default(r.error)
       py: r.expr([]).reduce(lambda a,b:a+b).default(r.error)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(r.error)
-      ot: err("RqlNonExistenceError", "Cannot reduce over an empty stream.", [])
+      ot: err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", [])
     - rb: r.expr([]).union([]).reduce{|a,b| a+b}.default(r.error)
       py: r.expr([]).union([]).reduce(lambda a,b:a+b).default(r.error)
       js: r.expr([]).union([]).reduce(function(a,b){return a+b}).default(r.error)
-      ot: err("RqlNonExistenceError", "Cannot reduce over an empty stream.", [])
+      ot: err("ReqlNonExistenceError", "Cannot reduce over an empty stream.", [])
     - cd: (r.expr(null) + 5).default(r.error)
       js: (r.expr(null).add(5)).default(r.error)
-      ot: err("RqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
+      ot: err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
     - cd: (5 + r.expr(null)).default(r.error)
       js: (r.expr(5).add(null)).default(r.error)
-      ot: err("RqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
+      ot: err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
     - cd: (5 - r.expr(null)).default(r.error)
       js: (r.expr(5).sub(null)).default(r.error)
-      ot: err("RqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
+      ot: err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
     - cd: (r.expr(null) - 5).default(r.error)
       js: (r.expr(null).sub(5)).default(r.error)
-      ot: err("RqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
+      ot: err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", [])
 
     - rb: r.expr(1).default{|e| e}
       py: r.expr(1).default(lambda e:e)
@@ -88,7 +86,7 @@ tests:
     - cd: r.expr({})['b'].default{|e| e}
       py: r.expr({})['b'].default(lambda e:e)
       js: r.expr({})('b').default(function(e){return e})
-      ot: ("No attribute `b` in object:\n{}")
+      ot: "No attribute `b` in object:\n{}"
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
@@ -127,7 +125,8 @@ tests:
     - cd: arr.filter(:default => true){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=True)
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':true})
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
     - cd: arr.filter(:default => r.js('true')){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=r.js('true'))
       js: arr.filter(function(x) { return x('a').eq(1) }, { 'default':r.js('true') })
@@ -139,7 +138,7 @@ tests:
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':r.error()})
-      ot: err("RqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.expr(false).do{|d| arr.filter(:default => d){|x| x['a'].eq(1)}}
       py: r.expr(False).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d))
@@ -148,7 +147,8 @@ tests:
     - cd: r.expr(true).do{|d| arr.filter(:default => d){|x| x['a'].eq(1)}}.orderby('a')
       py: r.expr(True).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d)).order_by('a')
       js: r.expr(true).do(function(d){return arr.filter(function(x){return x('a').eq(1)}, {default:d})}).orderBy('a')
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
 
     - cd: arr.filter{|x| x['a'].default(0).eq(1)}
       py: arr.filter(lambda x:x['a'].default(0).eq(1))
@@ -161,7 +161,8 @@ tests:
     - cd: arr.filter{|x| x['a'].default(r.error).eq(1)}
       py: arr.filter(lambda x:x['a'].default(r.error()).eq(1))
       js: arr.filter(function(x){return x('a').default(r.error()).eq(1)})
-      ot: [{'a':1}] # gets caught by `filter` default
+      ot: [{'a':1}]
+      # gets caught by `filter` default
 
     - cd: r.expr(0).do{|i| arr.filter{|x| x['a'].default(i).eq(1)}}
       py: r.expr(0).do(lambda i:arr.filter(lambda x:x['a'].default(i).eq(1)))
@@ -187,7 +188,7 @@ tests:
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
       py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
-      ot: err("RqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.table_create('default_test')
       ot: partial({'tables_created':1})
@@ -208,11 +209,12 @@ tests:
     - cd: tbl.filter(:default => true){|x| x['a'].eq(1)}
       py: tbl.filter(lambda x:x['a'].eq(1), default=True)
       js: tbl.filter(function(x){return x('a').eq(1)}, {'default':true})
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1)}
       py: tbl.filter(lambda x:x['a'].eq(1), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1)}, {'default':r.error()})
-      ot: err("RqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.expr(false).do{|d| tbl.filter(:default => d){|x| x['a'].eq(1)}}
       py: r.expr(False).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d))
@@ -221,7 +223,8 @@ tests:
     - cd: r.expr(true).do{|d| tbl.filter(:default => d){|x| x['a'].eq(1)}}.orderby('a')
       py: r.expr(True).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d)).order_by('a')
       js: r.expr(true).do(function(d){return tbl.filter(function(x){return x('a').eq(1)}, {default:d})}).orderBy('a')
-      ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+      ot: [{}, {'a':1}]
+      # `null` compares not equal to 1 with no error
 
     - cd: tbl.filter{|x| x['a'].default(0).eq(1)}
       py: tbl.filter(lambda x:x['a'].default(0).eq(1))
@@ -234,7 +237,8 @@ tests:
     - cd: tbl.filter{|x| x['a'].default(r.error).eq(1)}
       py: tbl.filter(lambda x:x['a'].default(r.error()).eq(1))
       js: tbl.filter(function(x){return x('a').default(r.error()).eq(1)})
-      ot: [{'a':1}] # gets caught by `filter` default
+      ot: [{'a':1}]
+      # gets caught by `filter` default
 
     - cd: r.expr(0).do{|i| tbl.filter{|x| x['a'].default(i).eq(1)}}
       py: r.expr(0).do(lambda i:tbl.filter(lambda x:x['a'].default(i).eq(1)))
@@ -260,7 +264,7 @@ tests:
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
       py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
-      ot: err("RqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.table_drop('default_test')
       ot: partial({'tables_dropped':1})

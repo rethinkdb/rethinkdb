@@ -4,7 +4,6 @@
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/archive/cow_ptr_type.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -17,6 +16,10 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
 RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
+
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(heartbeat_semilattice_metadata_t, heartbeat_timeout);
+RDB_IMPL_SEMILATTICE_JOINABLE_1(heartbeat_semilattice_metadata_t, heartbeat_timeout);
+RDB_IMPL_EQUALITY_COMPARABLE_1(heartbeat_semilattice_metadata_t, heartbeat_timeout);
 
 RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(proc_directory_metadata_t,
     version,

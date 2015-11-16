@@ -1,12 +1,30 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
-__all__ = ['RqlError',
-           'RqlClientError',
-           'RqlCompileError',
-           'RqlRuntimeError',
-           'RqlDriverError',
-           'RqlTimeoutError',
-           'RqlCursorEmpty']
+__all__ = ["ReqlCursorEmpty",
+           "ReqlError",
+           "ReqlCompileError",
+           "ReqlDriverCompileError",
+           "ReqlServerCompileError",
+           "ReqlRuntimeError",
+           "ReqlQueryLogicError",
+           "ReqlNonExistenceError",
+           "ReqlResourceLimitError",
+           "ReqlUserError",
+           "ReqlInternalError",
+           "ReqlTimeoutError",
+           "ReqlAvailabilityError",
+           "ReqlOpFailedError",
+           "ReqlOpIndeterminateError",
+           "ReqlDriverError",
+           "ReqlAuthError",
+
+           "RqlCursorEmpty",
+           "RqlError", 
+           "RqlClientError",
+           "RqlCompileError",
+           "RqlRuntimeError",
+           "RqlDriverError",
+           "RqlTimeoutError"]
 
 import sys
 
@@ -15,68 +33,135 @@ try:
 
     def convertForPrint(inputString):
         if type(inputString) == unicode:
-            return inputString.encode(sys.stdout.encoding or 'utf-8',
-                                      'replace')
+            encoding = 'utf-8'
+            if hasattr(sys.stdout, 'encoding') and sys.stdout.encoding:
+                encoding = sys.stdout.encoding
+            return inputString.encode(encoding or 'utf-8', 'replace')
         else:
             return str(inputString)
 except NameError:
     def convertForPrint(inputString):
         return inputString
+
 try:
     {}.iteritems
     dict_items = lambda d: d.iteritems()
 except AttributeError:
     dict_items = lambda d: d.items()
 
-class RqlError(Exception):
-    def __init__(self, message):
-        self.message = message
 
-    def __str__(self):
-        return convertForPrint(self.message)
-
-    def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.message) + ")"
-
-class RqlQueryError(RqlError):
-    def __init__(self, message, term, frames):
-        RqlError.__init__(self, message)
-        self.frames = frames
-        self.query_printer = QueryPrinter(term, self.frames)
-
-    def __str__(self):
-        return convertForPrint(self.__class__.__name__ + ": " + self.message +
-                               " in:\n" + self.query_printer.print_query() +
-                               '\n' + self.query_printer.print_carrots())
-
-
-class RqlClientError(RqlQueryError):
-    pass
-
-
-class RqlCompileError(RqlQueryError):
-    pass
-
-
-class RqlRuntimeError(RqlQueryError):
-    def __str__(self):
-        return convertForPrint(self.message + " in:\n" +
-                               self.query_printer.print_query() + '\n' +
-                               self.query_printer.print_carrots())
-
-
-class RqlDriverError(RqlError):
-    pass
-
-
-class RqlTimeoutError(RqlError):
+class ReqlCursorEmpty(Exception):
     def __init__(self):
-        RqlError.__init__(self, 'Operation timed out.')
+        super(ReqlCursorEmpty, self).__init__("Cursor is empty.")
+        self.message = "Cursor is empty."
+
+RqlCursorEmpty = ReqlCursorEmpty
 
 
-class RqlCursorEmpty(RqlQueryError):
-    def __init__(self, term):
-        RqlQueryError.__init__(self, 'Cursor is empty.', term, [])
+class ReqlError(Exception):
+    def __init__(self, message, term=None, frames=None):
+        super(ReqlError, self).__init__(message)
+        self.message = message
+        self.frames = frames
+        if term is not None and frames is not None:
+            self.query_printer = QueryPrinter(term, self.frames)
+
+    def __str__(self):
+        if self.frames is None:
+            return convertForPrint(self.message)
+        else:
+            return convertForPrint("%s in:\n%s\n%s" % (
+                self.message.rstrip("."),
+                self.query_printer.print_query(),
+                self.query_printer.print_carrots()))
+
+RqlError = ReqlError
+
+
+class ReqlCompileError(ReqlError):
+    pass
+
+RqlCompileError = ReqlCompileError
+
+class ReqlDriverCompileError(ReqlCompileError):
+    pass
+
+class ReqlServerCompileError(ReqlCompileError):
+    pass
+
+
+class ReqlRuntimeError(ReqlError):
+    pass
+
+RqlRuntimeError = ReqlRuntimeError
+
+
+class ReqlQueryLogicError(ReqlRuntimeError):
+    pass
+
+
+class ReqlNonExistenceError(ReqlQueryLogicError):
+    pass
+
+
+class ReqlResourceLimitError(ReqlRuntimeError):
+    pass
+
+
+class ReqlUserError(ReqlRuntimeError):
+    pass
+
+
+class ReqlInternalError(ReqlRuntimeError):
+    pass
+
+
+class ReqlAvailabilityError(ReqlRuntimeError):
+    pass
+
+
+class ReqlOpFailedError(ReqlAvailabilityError):
+    pass
+
+
+class ReqlOpIndeterminateError(ReqlAvailabilityError):
+    pass
+
+
+class ReqlDriverError(ReqlError):
+    pass
+
+RqlClientError = ReqlDriverError
+RqlDriverError = ReqlDriverError
+
+class ReqlAuthError(ReqlDriverError):
+    def __init__(self, host=None, port=None):
+        if host is None or port is None:
+            super(ReqlDriverError, self).__init__("Incorrect authentication key.")
+        else:
+            super(ReqlDriverError, self).__init__(
+                "Could not connect to %s:%d, incorrect authentication key." %
+                (host, port))
+
+
+try:
+    class ReqlTimeoutError(ReqlDriverError, TimeoutError):
+        def __init__(self, host=None, port=None):
+            if host is None or port is None:
+                super(ReqlDriverError, self).__init__("Operation timed out.")
+            else:
+                super(ReqlDriverError, self).__init__(
+                    "Could not connect to %s:%d, operation timed out." % (host, port))
+except NameError:
+    class ReqlTimeoutError(ReqlDriverError):
+        def __init__(self, host=None, port=None):
+            if host is None or port is None:
+                super(ReqlDriverError, self).__init__("Operation timed out.")
+            else:
+                super(ReqlDriverError, self).__init__(
+                    "Could not connect to %s:%d, operation timed out." % (host, port))
+
+RqlTimeoutError = ReqlTimeoutError
 
 
 class QueryPrinter(object):

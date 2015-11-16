@@ -22,8 +22,9 @@ class cfeed_artificial_table_backend_t :
 public:
     bool read_changes(
         ql::env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
+        ql::configured_limits_t limits,
         ql::backtrace_id_t bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,
@@ -33,6 +34,7 @@ public:
 protected:
     class machinery_t : private ql::changefeed::artificial_t {
     public:
+        machinery_t() : last_subscriber_time(current_microtime()) { }
         virtual ~machinery_t() { }
 
     protected:

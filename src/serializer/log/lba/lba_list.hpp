@@ -53,6 +53,7 @@ public:
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
     block_id_t end_block_id();
+    block_id_t end_aux_block_id();
 
 #ifndef NDEBUG
     bool is_extent_referenced(int64_t offset);
@@ -116,7 +117,7 @@ private:
     bool check_inline_lba_full() const;
     void move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn);
     void add_inline_entry(block_id_t block, repli_timestamp_t recency,
-                                flagged_off64_t offset, uint32_t ser_block_size);
+                                flagged_off64_t offset, uint16_t ser_block_size);
 
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 

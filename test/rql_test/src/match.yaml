@@ -35,4 +35,4 @@ tests:
 
     - cd: r.expr("").match("ab\\9")
       ot: |
-         err("RqlLogicError", "Error in regexp `ab\\9` (portion `\\9`): invalid escape sequence: \\9", [])
+         err("ReqlQueryLogicError", "Error in regexp `ab\\9` (portion `\\9`): invalid escape sequence: \\9", [])

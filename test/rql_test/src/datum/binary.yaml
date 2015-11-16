@@ -267,7 +267,7 @@ tests:
 
     # Test coercions
     - py: r.binary(b'foo').coerce_to('string')
-      ot: ('foo')
+      ot: 'foo'
     - py:
         cd: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')).coerce_to('string')
         ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'
@@ -283,6 +283,9 @@ tests:
 
     - py: r.expr('foo').coerce_to('binary')
       ot: b'foo'
+
+    - cd: r.binary(a).coerce_to('bool')
+      ot: True
 
     - py: r.binary(b'foo').coerce_to('binary')
       ot: b'foo'
@@ -312,51 +315,49 @@ tests:
     # Test binary_format optarg
     - cd: r.binary(b)
       runopts:
-        binary_format: '"native"'
+        binary_format: "native"
       ot: b
     - cd: r.binary(b)
       runopts:
-        binary_format: '"raw"'
-      ot: ({'$reql_type$':'BINARY','data':'AAE='})
+        binary_format: "raw"
+      ot: {'$reql_type$':'BINARY','data':'AAE='}
 
     # Test r.binary of nested terms
     - cd: r.binary(r.expr("data"))
       ot:
         js: Buffer("data", "binary")
-        rb: ("data")
-        py: (b"data")
+        rb: "data"
+        py: b"data"
 
     - cd: r.binary(r.expr({}))
-      ot: err('RqlLogicError', 'Expected type STRING but found OBJECT.', [])
+      ot: err('ReqlQueryLogicError', 'Expected type STRING but found OBJECT.', [])
 
     - cd: r.binary(r.expr([]))
-      ot: err('RqlLogicError', 'Expected type STRING but found ARRAY.', [])
+      ot: err('ReqlQueryLogicError', 'Expected type STRING but found ARRAY.', [])
 
     # Test errors
 
     # Missing 'data' field
     - py: r.expr({'$reql_type$':'BINARY'})
       rb: r.expr({'$reql_type$':'BINARY'})
-      ot: err('RqlRuntimeError','Invalid binary pseudotype:'+' lacking `data` key.',[])
+      ot: err('ReqlQueryLogicError','Invalid binary pseudotype:'+' lacking `data` key.',[])
 
     # Invalid base64 format
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'})
-      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+      ot: err('ReqlQueryLogicError','Invalid base64 format, data found after padding character \'=\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEF==$'})
-      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+      ot: err('ReqlQueryLogicError','Invalid base64 format, data found after padding character \'=\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'A^CDEFGH'})
-      ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
+      ot: err('ReqlQueryLogicError','Invalid base64 character found:'+' \'^\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
-      ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
+      ot: err('ReqlQueryLogicError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
 
     # Invalid coercions
     - cd: r.binary(a).coerce_to('array')
-      ot: err('RqlLogicError','Cannot coerce BINARY to ARRAY.',[])
+      ot: err('ReqlQueryLogicError','Cannot coerce BINARY to ARRAY.',[])
     - cd: r.binary(a).coerce_to('object')
-      ot: err('RqlLogicError','Cannot coerce BINARY to OBJECT.',[])
-    - cd: r.binary(a).coerce_to('bool')
-      ot: err('RqlLogicError','Cannot coerce BINARY to BOOL.',[])
+      ot: err('ReqlQueryLogicError','Cannot coerce BINARY to OBJECT.',[])
     - cd: r.binary(a).coerce_to('number')
-      ot: err('RqlLogicError','Cannot coerce BINARY to NUMBER.',[])
+      ot: err('ReqlQueryLogicError','Cannot coerce BINARY to NUMBER.',[])
     - cd: r.binary(a).coerce_to('nu'+'ll')
-      ot: err('RqlLogicError','Cannot coerce BINARY to NULL.',[])
+      ot: err('ReqlQueryLogicError','Cannot coerce BINARY to NULL.',[])

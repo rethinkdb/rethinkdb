@@ -1,11 +1,13 @@
 #include "backend.hpp"
 
+#include <algorithm>
+
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
         ql::backtrace_id_t bt,
-        const ql::datum_range_t &range,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,
@@ -19,16 +21,16 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     std::string primary_key = get_primary_key_name();
 
     /* Apply range filter */
-    if (!range.is_universe()) {
-        std::vector<ql::datum_t> temp;
-        for (const ql::datum_t &row : rows) {
+    if (!datumspec.is_universe()) {
+        std::vector<ql::datum_t> filter_rows;
+        for (const auto &row : rows) {
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
-            if (range.contains(key)) {
-                temp.push_back(row);
+            for (size_t i = 0; i < datumspec.copies(key); ++i) {
+                filter_rows.push_back(row);
             }
         }
-        rows = std::move(temp);
+        rows = std::move(filter_rows);
     }
 
     /* Apply sorting */
@@ -53,7 +55,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
 
     ql::changefeed::keyspec_t::range_t range_keyspec;
     range_keyspec.sorting = sorting;
-    range_keyspec.range = range;
+    range_keyspec.datumspec = datumspec;
     boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
         counted_t<base_table_t>(new artificial_table_t(this)),

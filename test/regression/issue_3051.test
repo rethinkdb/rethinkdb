@@ -32,7 +32,7 @@ if not 'test' in r.db_list().run(conn):
 
 try:
 	r.db(dbName).table_create(tableName).run(conn) # should error because of the unicode
-except r.RqlRuntimeError as e:
+except r.ReqlRuntimeError as e:
 	try:
 		str(e)
 	except UnicodeEncodeError:

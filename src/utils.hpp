@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
@@ -60,7 +60,7 @@ private:
 // Reads from /dev/urandom.  Use this sparingly, please.
 void get_dev_urandom(void *out, int64_t nbytes);
 
-int randint(int n);
+int randint(int n); // In range [0, n)
 uint64_t randuint64(uint64_t n);
 size_t randsize(size_t n);
 double randdouble();

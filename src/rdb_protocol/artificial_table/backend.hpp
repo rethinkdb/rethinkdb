@@ -39,7 +39,7 @@ public:
        which you must handle yourself when overriding it. */
     virtual bool read_all_rows_as_stream(
         ql::backtrace_id_t bt,
-        const ql::datum_range_t &range,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,
@@ -75,8 +75,9 @@ public:
 
     virtual bool read_changes(
         ql::env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
+        ql::configured_limits_t limits,
         ql::backtrace_id_t bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,

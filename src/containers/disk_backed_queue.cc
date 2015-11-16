@@ -6,7 +6,7 @@
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 
 #define DBQ_MAX_REF_SIZE 251
@@ -20,10 +20,10 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
       head_block_id(NULL_BLOCK_ID),
       tail_block_id(NULL_BLOCK_ID),
       file_opener(new filepath_file_opener_t(filename, io_backender)) {
-    standard_serializer_t::create(file_opener.get(),
-                                  standard_serializer_t::static_config_t());
+    log_serializer_t::create(file_opener.get(),
+                                  log_serializer_t::static_config_t());
 
-    serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+    serializer.init(new log_serializer_t(log_serializer_t::dynamic_config_t(),
                                               file_opener.get(),
                                               &perfmon_collection));
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
@@ -19,8 +19,8 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -59,7 +59,7 @@ typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
 
 std::vector<item_t> mangle_sort_truncate_stream(
-    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
+    raw_stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -124,7 +124,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        datumspec_t datumspec;
     };
     struct limit_t {
         range_t range;
@@ -134,7 +134,7 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t(keyspec_t &&other)
+    keyspec_t(keyspec_t &&other) noexcept
         : spec(std::move(other.spec)),
           table(std::move(other.table)),
           table_name(std::move(other.table_name)) { }
@@ -189,6 +189,7 @@ public:
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         counted_t<datum_stream_t> maybe_src,
+        configured_limits_t limits,
         const datum_t &squash,
         bool include_states,
         const namespace_id_t &table,
@@ -233,7 +234,9 @@ private:
     std::set<diterator,
              std::function<bool(const diterator &, const diterator &)> > index;
 
-    void erase(const diterator &it) {
+    // This can't be passed by reference because we sometimes erase the source
+    // of the reference in the body of this function.
+    void erase(diterator it) {
         guarantee(it != data.end());
         auto ft = index.find(it);
         guarantee(ft != index.end());
@@ -358,7 +361,7 @@ public:
         region_t _region,
         std::string _table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -421,40 +424,49 @@ public:
     typedef server_addr_t addr_t;
     typedef mailbox_addr_t<void(client_t::addr_t, boost::optional<std::string>, uuid_u)>
         limit_addr_t;
-    explicit server_t(mailbox_manager_t *_manager);
+    explicit server_t(mailbox_manager_t *_manager, store_t *_parent);
     ~server_t();
-    void add_client(const client_t::addr_t &addr, region_t region);
+    void add_client(
+        const client_t::addr_t &addr,
+        region_t region,
+        const auto_drainer_t::lock_t &keepalive);
     void add_limit_client(
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        std::vector<item_t> &&start_data);
+        std::vector<item_t> &&start_data,
+        const auto_drainer_t::lock_t &keepalive);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(const msg_t &msg,
-                  const store_key_t &key,
-                  rwlock_in_line_t *stamp_spot);
-    void stop_all();
+    void send_all(
+        const msg_t &msg,
+        const store_key_t &key,
+        rwlock_in_line_t *stamp_spot,
+        const auto_drainer_t::lock_t &keepalive);
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
-    boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
+    boost::optional<uint64_t> get_stamp(
+        const client_t::addr_t &addr,
+        const auto_drainer_t::lock_t &keepalive);
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
-    void foreach_limit(const boost::optional<std::string> &s,
-                       const store_key_t *pkey, // NULL if none
-                       std::function<void(rwlock_in_line_t *,
-                                          rwlock_in_line_t *,
-                                          rwlock_in_line_t *,
-                                          limit_manager_t *)> f) THROWS_NOTHING;
-    bool has_limit(const boost::optional<std::string> &s);
-    rwlock_in_line_t get_in_line_for_stamp(access_t access) {
-        return rwlock_in_line_t(&stamp_lock, access);
-    }
+    void foreach_limit(
+        const boost::optional<std::string> &s,
+        const store_key_t *pkey, // NULL if none
+        std::function<void(rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           limit_manager_t *)> f,
+        const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING;
+    bool has_limit(
+        const boost::optional<std::string> &s,
+        const auto_drainer_t::lock_t &keepalive);
+    auto_drainer_t::lock_t get_keepalive();
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
@@ -462,7 +474,10 @@ private:
                                client_t::addr_t addr,
                                boost::optional<std::string> sindex,
                                uuid_u uuid);
-    void add_client_cb(signal_t *stopped, client_t::addr_t addr);
+    void add_client_cb(
+        signal_t *stopped,
+        client_t::addr_t addr,
+        auto_drainer_t::lock_t keepalive);
 
     // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
@@ -493,14 +508,10 @@ private:
         boost::optional<std::string> sindex,
         size_t offset);
 
-    void send_one_with_lock(const auto_drainer_t::lock_t &lock,
-                            std::pair<const client_t::addr_t, client_info_t> *client,
-                            msg_t msg);
+    void send_one_with_lock(std::pair<const client_t::addr_t, client_info_t> *client,
+                            msg_t msg,
+                            const auto_drainer_t::lock_t &lock);
 
-    // Used to control access to stamps.  We need this so that `do_stamp` in
-    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
-    // in `btree.cc`.
-    rwlock_t stamp_lock;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
     // * `get_stamp` is called
@@ -512,6 +523,8 @@ private:
     // while looping over `clients`, and we need to make sure the map doesn't
     // change under it.
     rwlock_t clients_lock;
+    // We need access to the stamp lock that exists on the parent.
+    store_t *parent;
 
     auto_drainer_t drainer;
     // Clients send a message to this mailbox with their address when they want
@@ -537,8 +550,9 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial_vals,
+        bool include_initial,
         bool include_states,
+        configured_limits_t limits,
         const keyspec_t::spec_t &spec,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,

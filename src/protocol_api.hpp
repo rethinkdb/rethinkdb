@@ -133,4 +133,36 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,
         reql_version_t::EARLIEST, reql_version_t::LATEST);
 
+enum class emergency_repair_mode_t { DEBUG_RECOMMIT,
+                                     UNSAFE_ROLLBACK,
+                                     UNSAFE_ROLLBACK_OR_ERASE };
+
+/* `backfill_item_memory_tracker_t` is used by the backfilling logic to control the
+memory usage on the backfill sender. It is updated whenever a key/value pair is
+loaded, or a new backfill_item_t structure is allocated. */
+class backfill_item_memory_tracker_t {
+public:
+    explicit backfill_item_memory_tracker_t(size_t memory_limit)
+        : remaining_memory(memory_limit), had_at_least_one_item(false) { }
+
+    bool is_limit_exceeded() const {
+        return had_at_least_one_item && remaining_memory < 0;
+    }
+    void reserve_memory(size_t mem_size) {
+        remaining_memory -= mem_size;
+    }
+    void note_item() {
+        had_at_least_one_item = true;
+    }
+private:
+    ssize_t remaining_memory;
+
+    /* We need to ensure that the backfill makes progress. If we have a key/value
+    pair that was larger than the memory limit, we would get stuck if we enforced
+    the memory limit strictly.
+    Hence we always let the first item through. `had_at_least_one_item` is used
+    to track whether this has already happened. */
+    bool had_at_least_one_item;
+};
+
 #endif /* PROTOCOL_API_HPP_ */

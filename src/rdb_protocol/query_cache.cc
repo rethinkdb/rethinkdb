@@ -1,57 +1,12 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_cache.hpp"
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/response.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
-#include "debug.hpp"
-
 namespace ql {
-
-query_id_t::query_id_t(query_id_t &&other) :
-        intrusive_list_node_t(std::move(other)),
-        parent(other.parent),
-        value_(other.value_) {
-    parent->assert_thread();
-    other.parent = NULL;
-}
-
-query_id_t::query_id_t(query_cache_t *_parent) :
-        parent(_parent),
-        value_(parent->next_query_id++) {
-    // Guarantee correct ordering.
-    query_id_t *last_newest = parent->outstanding_query_ids.tail();
-    guarantee(last_newest == nullptr || last_newest->value() < value_);
-    guarantee(value_ >= parent->oldest_outstanding_query_id.get());
-
-    parent->outstanding_query_ids.push_back(this);
-}
-
-query_id_t::~query_id_t() {
-    if (parent != nullptr) {
-        parent->assert_thread();
-    } else {
-        rassert(!in_a_list());
-    }
-
-    if (in_a_list()) {
-        parent->outstanding_query_ids.remove(this);
-        if (value_ == parent->oldest_outstanding_query_id.get()) {
-            query_id_t *next_outstanding_id = parent->outstanding_query_ids.head();
-            if (next_outstanding_id == nullptr) {
-                parent->oldest_outstanding_query_id.set_value(parent->next_query_id);
-            } else {
-                guarantee(next_outstanding_id->value() > value_);
-                parent->oldest_outstanding_query_id.set_value(next_outstanding_id->value());
-            }
-        }
-    }
-}
-
-uint64_t query_id_t::value() const {
-    guarantee(in_a_list());
-    return value_;
-}
 
 query_cache_t::query_cache_t(
             rdb_context_t *_rdb_ctx,
@@ -79,98 +34,93 @@ query_cache_t::const_iterator query_cache_t::end() const {
     return queries.end();
 }
 
-scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
-        int64_t token,
-        protob_t<Query> original_query,
-        use_json_t use_json,
-        signal_t *interruptor) {
-    if (queries.find(token) != queries.end()) {
-        throw bt_exc_t(
-            Response::CLIENT_ERROR,
-            Response::LOGIC,
-            strprintf("ERROR: duplicate token %" PRIi64, token),
+scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(query_params_t *query_params,
+                                                         signal_t *interruptor) {
+    guarantee(this == query_params->query_cache);
+    query_params->maybe_release_query_id();
+    if (queries.find(query_params->token) != queries.end()) {
+        throw bt_exc_t(Response::CLIENT_ERROR, Response::QUERY_LOGIC,
+            strprintf("ERROR: duplicate token %" PRIi64, query_params->token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
-    counted_t<const term_t> root_term;
-    backtrace_registry_t bt_reg;
-    std::map<std::string, wire_func_t> global_optargs;
+    global_optargs_t global_optargs;
+    counted_t<const term_t> term_tree;
     try {
-        preprocess_term(original_query->mutable_query(), &bt_reg);
-        global_optargs = parse_global_optargs(original_query);
+        query_params->term_storage->preprocess();
+        global_optargs = query_params->term_storage->global_optargs();
 
-        Term *t = original_query->mutable_query();
         compile_env_t compile_env((var_visibility_t()));
-        root_term = compile_term(&compile_env, original_query.make_child(t));
+        term_tree = compile_term(&compile_env, query_params->term_storage->root_term());
+
     } catch (const exc_t &e) {
         throw bt_exc_t(Response::COMPILE_ERROR,
-                       e.get_error_type(),
-                       e.what(),
-                       bt_reg.datum_backtrace(e));
+            e.get_error_type(),
+            e.what(),
+            query_params->term_storage->backtrace_registry().datum_backtrace(e));
     } catch (const datum_exc_t &e) {
         throw bt_exc_t(Response::COMPILE_ERROR,
                        e.get_error_type(),
                        e.what(),
                        backtrace_registry_t::EMPTY_BACKTRACE);
     }
-
-    scoped_ptr_t<entry_t> entry(new entry_t(original_query,
-                                            std::move(bt_reg),
+    scoped_ptr_t<entry_t> entry(new entry_t(query_params,
                                             std::move(global_optargs),
-                                            std::move(root_term)));
+                                            std::move(term_tree)));
+
     scoped_ptr_t<ref_t> ref(new ref_t(this,
-                                      token,
+                                      query_params->token,
+                                      std::move(query_params->throttler),
                                       entry.get(),
-                                      use_json,
                                       interruptor));
-    auto insert_res = queries.insert(std::make_pair(token, std::move(entry)));
+    auto insert_res = queries.insert(std::make_pair(query_params->token,
+                                                    std::move(entry)));
     guarantee(insert_res.second);
     return ref;
 }
 
-scoped_ptr_t<query_cache_t::ref_t> query_cache_t::get(
-        int64_t token,
-        use_json_t use_json,
-        signal_t *interruptor) {
-    auto it = queries.find(token);
+scoped_ptr_t<query_cache_t::ref_t> query_cache_t::get(query_params_t *query_params,
+                                                      signal_t *interruptor) {
+    guarantee(this == query_params->query_cache);
+    query_params->maybe_release_query_id();
+    auto it = queries.find(query_params->token);
     if (it == queries.end()) {
-        throw bt_exc_t(
-            Response::CLIENT_ERROR,
-            Response::LOGIC,
-            strprintf("Token %" PRIi64 " not in stream cache.", token),
+        throw bt_exc_t(Response::CLIENT_ERROR, Response::QUERY_LOGIC,
+            strprintf("Token %" PRIi64 " not in stream cache.", query_params->token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     return scoped_ptr_t<ref_t>(new ref_t(this,
-                                         token,
+                                         query_params->token,
+                                         std::move(query_params->throttler),
                                          it->second.get(),
-                                         use_json,
                                          interruptor));
 }
 
-void query_cache_t::noreply_wait(const query_id_t &query_id,
-                                 int64_t token,
+void query_cache_t::noreply_wait(const query_params_t &query_params,
                                  signal_t *interruptor) {
-    auto it = queries.find(token);
+    guarantee(this == query_params.query_cache);
+    auto it = queries.find(query_params.token);
     if (it != queries.end()) {
-        throw bt_exc_t(
-            Response::CLIENT_ERROR,
-            Response::LOGIC,
-            strprintf("ERROR: duplicate token %" PRIi64, token),
+        throw bt_exc_t(Response::CLIENT_ERROR, Response::QUERY_LOGIC,
+            strprintf("ERROR: duplicate token %" PRIi64, query_params.token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
 
     oldest_outstanding_query_id.get_watchable()->run_until_satisfied(
-        [&query_id](uint64_t oldest_id_value) -> bool {
-            return oldest_id_value == query_id.value();
+        [&query_params](uint64_t oldest_id_value) -> bool {
+            return oldest_id_value == query_params.id.value();
         }, interruptor);
 }
 
-void query_cache_t::terminate_query(int64_t token) {
+void query_cache_t::stop_query(const query_params_t &query_params) {
+    r_sanity_check(query_params.type == Query::STOP);
+    guarantee(this == query_params.query_cache);
     assert_thread();
-    auto entry_it = queries.find(token);
+    auto entry_it = queries.find(query_params.token);
     if (entry_it != queries.end()) {
         terminate_internal(entry_it->second.get());
+        entry_it->second->interrupt_reason = interrupt_reason_t::STOP;
     }
 }
 
@@ -184,14 +134,14 @@ void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
 
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
+                            new_semaphore_acq_t _throttler,
                             query_cache_t::entry_t *_entry,
-                            use_json_t _use_json,
                             signal_t *interruptor) :
         entry(_entry),
         token(_token),
         trace(maybe_make_profile_trace(entry->profile)),
-        use_json(_use_json),
         query_cache(_query_cache),
+        throttler(std::move(_throttler)),
         drainer_lock(&entry->drainer),
         combined_interruptor(interruptor, &entry->persistent_interruptor),
         mutex_lock(&entry->mutex) {
@@ -222,7 +172,7 @@ query_cache_t::ref_t::~ref_t() {
     }
 }
 
-void query_cache_t::ref_t::fill_response(Response *res) {
+void query_cache_t::ref_t::fill_response(response_t *res) {
     query_cache->assert_thread();
     if (entry->state != entry_t::state_t::START &&
         entry->state != entry_t::state_t::STREAM) {
@@ -231,7 +181,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         // In this case, just pretend it's a duplicate token issue
         throw bt_exc_t(
             Response::CLIENT_ERROR,
-            Response::LOGIC,
+            Response::QUERY_LOGIC,
             strprintf("ERROR: duplicate token %" PRIi64, token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
@@ -245,7 +195,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
 
         if (entry->state == entry_t::state_t::START) {
             run(&env, res);
-            entry->root_term.reset();
+            entry->term_tree.reset();
         }
 
         if (entry->state == entry_t::state_t::STREAM) {
@@ -253,60 +203,78 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         }
 
         if (trace.has()) {
-            trace->as_datum().write_to_protobuf(res->mutable_profile(), use_json);
+            res->set_profile(trace->as_datum());
         }
     } catch (const interrupted_exc_t &ex) {
+        query_cache->terminate_internal(entry);
         if (entry->persistent_interruptor.is_pulsed()) {
-            if (entry->state != entry_t::state_t::DONE) {
-                throw bt_exc_t(
-                    Response::RUNTIME_ERROR,
-                    Response::OP_INDETERMINATE,
-                    "Query terminated by the `rethinkdb.jobs` table.",
-                    backtrace_registry_t::EMPTY_BACKTRACE);
+            std::string message;
+            switch (entry->interrupt_reason) {
+            case interrupt_reason_t::DELETE:
+                message.assign("Query terminated by the `rethinkdb.jobs` table.");
+                break;
+            case interrupt_reason_t::STOP:
+                // A STOP'ed stream should always return an empty SUCCESS
+                // for compatibility purposes
+                res->clear();
+                res->set_type(Response::SUCCESS_SEQUENCE);
+                return;
+            case interrupt_reason_t::UNKNOWN:
+                message.assign("Query terminated by an unknown cause.");
+                break;
+            default: unreachable();
             }
-            // For compatibility, we return a SUCCESS_SEQUENCE in this case
-            res->Clear();
-            res->set_type(Response::SUCCESS_SEQUENCE);
-        } else {
-            query_cache->terminate_internal(entry);
-            throw;
+
+            throw bt_exc_t(
+                Response::RUNTIME_ERROR,
+                Response::OP_INDETERMINATE,
+                message,
+                backtrace_registry_t::EMPTY_BACKTRACE);
         }
+        throw;
     } catch (const exc_t &ex) {
         query_cache->terminate_internal(entry);
         throw bt_exc_t(Response::RUNTIME_ERROR,
                        ex.get_error_type(),
                        ex.what(),
-                       entry->bt_reg.datum_backtrace(ex));
+                       entry->term_storage->backtrace_registry().datum_backtrace(ex));
+    } catch (const datum_exc_t &ex) {
+        query_cache->terminate_internal(entry);
+        throw bt_exc_t(Response::RUNTIME_ERROR,
+                       ex.get_error_type(),
+                       ex.what(),
+                       entry->term_storage->backtrace_registry().datum_backtrace(
+                            backtrace_id_t::empty(), 0));
     } catch (const std::exception &ex) {
         query_cache->terminate_internal(entry);
         throw bt_exc_t(Response::RUNTIME_ERROR,
                        Response::INTERNAL,
-                       ex.what(),
+                       strprintf("Unexpected exception: %s", ex.what()).c_str(),
                        backtrace_registry_t::EMPTY_BACKTRACE);
     }
 }
 
-void query_cache_t::ref_t::run(env_t *env, Response *res) {
-    // The state will be overwritten if we end up with a stream
-    entry->state = entry_t::state_t::DONE;
-
+void query_cache_t::ref_t::run(env_t *env, response_t *res) {
     scope_env_t scope_env(env, var_scope_t());
+    scoped_ptr_t<val_t> val = entry->term_tree->eval(&scope_env);
 
-    scoped_ptr_t<val_t> val = entry->root_term->eval(&scope_env);
     if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
         res->set_type(Response::SUCCESS_ATOM);
-        val->as_datum().write_to_protobuf(res->add_response(), use_json);
+        res->set_data(val->as_datum());
+        entry->state = entry_t::state_t::DONE;
     } else if (counted_t<grouped_data_t> gd =
             val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
         datum_t d = to_datum_for_client_serialization(std::move(*gd), env->limits());
         res->set_type(Response::SUCCESS_ATOM);
-        d.write_to_protobuf(res->add_response(), use_json);
+        res->set_data(d);
+        entry->state = entry_t::state_t::DONE;
     } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
         counted_t<datum_stream_t> seq = val->as_seq(env);
         const datum_t arr = seq->as_array(env);
         if (arr.has()) {
             res->set_type(Response::SUCCESS_ATOM);
-            arr.write_to_protobuf(res->add_response(), use_json);
+            res->set_data(arr);
+            entry->state = entry_t::state_t::DONE;
         } else {
             entry->stream = seq;
             entry->has_sent_batch = false;
@@ -320,8 +288,14 @@ void query_cache_t::ref_t::run(env_t *env, Response *res) {
     }
 }
 
-void query_cache_t::ref_t::serve(env_t *env, Response *res) {
+void query_cache_t::ref_t::serve(env_t *env, response_t *res) {
     guarantee(entry->stream.has());
+
+    feed_type_t cfeed_type = entry->stream->cfeed_type();
+    if (cfeed_type != feed_type_t::not_feed) {
+        // We don't throttle changefeed queries because they can block forever.
+        throttler.reset();
+    }
 
     batch_type_t batch_type = entry->has_sent_batch
                                   ? batch_type_t::NORMAL
@@ -329,13 +303,11 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
     std::vector<datum_t> ds = entry->stream->next_batch(
             env, batchspec_t::user(batch_type, env));
     entry->has_sent_batch = true;
-    for (auto d = ds.begin(); d != ds.end(); ++d) {
-        d->write_to_protobuf(res->add_response(), use_json);
-    }
+    res->set_data(std::move(ds));
 
     // Note that `SUCCESS_SEQUENCE` is possible for feeds if you call `.limit`
     // after the feed.
-    if (entry->stream->is_exhausted() || is_noreply(entry->original_query)) {
+    if (entry->stream->is_exhausted() || entry->noreply) {
         guarantee(entry->state == entry_t::state_t::STREAM);
         entry->state = entry_t::state_t::DONE;
         res->set_type(Response::SUCCESS_SEQUENCE);
@@ -343,44 +315,45 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
 
-    switch (entry->stream->cfeed_type()) {
+    switch (cfeed_type) {
     case feed_type_t::not_feed:
         // If we don't have a feed, then a 0-size response means there's no more
         // data.  The reason this `if` statement is only in this branch of the
         // `case` statement is that feeds can sometimes have 0-size responses
         // for other reasons (e.g. in their first batch, or just whenever with a
         // V0_3 protocol).
-        if (res->response_size() == 0) res->set_type(Response::SUCCESS_SEQUENCE);
+        if (res->data().size() == 0) res->set_type(Response::SUCCESS_SEQUENCE);
         break;
     case feed_type_t::stream:
-        res->add_notes(Response::SEQUENCE_FEED);
+        res->add_note(Response::SEQUENCE_FEED);
         break;
     case feed_type_t::point:
-        res->add_notes(Response::ATOM_FEED);
+        res->add_note(Response::ATOM_FEED);
         break;
     case feed_type_t::orderby_limit:
-        res->add_notes(Response::ORDER_BY_LIMIT_FEED);
+        res->add_note(Response::ORDER_BY_LIMIT_FEED);
         break;
     case feed_type_t::unioned:
-        res->add_notes(Response::UNIONED_FEED);
+        res->add_note(Response::UNIONED_FEED);
         break;
     default: unreachable();
     }
     entry->stream->set_notes(res);
 }
 
-query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,
-                                backtrace_registry_t &&_bt_reg,
-                                std::map<std::string, wire_func_t> &&_global_optargs,
-                                counted_t<const term_t> _root_term) :
+query_cache_t::entry_t::entry_t(query_params_t *query_params,
+                                global_optargs_t &&_global_optargs,
+                                counted_t<const term_t> &&_term_tree) :
         state(state_t::START),
+        interrupt_reason(interrupt_reason_t::UNKNOWN),
         job_id(generate_uuid()),
-        original_query(_original_query),
-        bt_reg(std::move(_bt_reg)),
+        noreply(query_params->noreply),
+        profile(query_params->profile ? profile_bool_t::PROFILE :
+                                        profile_bool_t::DONT_PROFILE),
+        term_storage(std::move(query_params->term_storage)),
         global_optargs(std::move(_global_optargs)),
-        profile(profile_bool_optarg(original_query)),
         start_time(current_microtime()),
-        root_term(_root_term),
+        term_tree(std::move(_term_tree)),
         has_sent_batch(false) { }
 
 query_cache_t::entry_t::~entry_t() { }

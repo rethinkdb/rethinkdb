@@ -1,0 +1,9 @@
+desc: 4582 -- non-deterministic arguments to `replace` and `update`.
+table_variable_name: tbl
+tests:
+  - cd: tbl.get(0).replace(tbl.get(0))
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')
+  - cd: tbl.get(0).update(tbl.get(0))
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')
+  - cd: tbl.replace(r.args([tbl.get(0)]))
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')

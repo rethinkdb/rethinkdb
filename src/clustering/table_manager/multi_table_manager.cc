@@ -41,7 +41,7 @@ multi_table_manager_t::multi_table_manager_t(
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
-            new_mutex_acq_t table_mutex_acq(&table->mutex);
+            rwlock_acq_t table_lock_acq(&table->access_rwlock, access_t::write);
             perfmon_collection_repo_t::collections_t *perfmon_collections =
                 perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
             table->status = table_t::status_t::ACTIVE;
@@ -58,7 +58,7 @@ multi_table_manager_t::multi_table_manager_t(
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
-            new_mutex_acq_t table_mutex_acq(&table->mutex);
+            rwlock_acq_t table_lock_acq(&table->access_rwlock, access_t::write);
             table->status = table_t::status_t::INACTIVE;
             table->basic_configs_entry.create(&table_basic_configs, table_id,
                 std::make_pair(state.second_hand_config, state.timestamp));
@@ -102,7 +102,7 @@ multi_table_manager_t::~multi_table_manager_t() {
     /* Next, destroy all of the `active_table_t`s. This is important because otherwise
     `active_table_t` can call `schedule_sync()`. */
     for (auto &&pair : tables) {
-        new_mutex_acq_t mutex_acq(&pair.second->mutex);
+        rwlock_acq_t lock_acq(&pair.second->access_rwlock, access_t::write);
         pair.second->status = table_t::status_t::SHUTTING_DOWN;
         pair.second->active.reset();
         pair.second->multistore_ptr.reset();
@@ -219,7 +219,9 @@ bool multi_table_manager_t::active_table_t::should_sync_assuming_no_name_change(
 }
 
 void multi_table_manager_t::help_construct() {
-    /* Whenever a server connects, we need to sync all of our tables to it. */
+    /* Whenever a server connects, we need to sync all of our tables to it.
+    Additionally: sync all of our existing tables with all servers that are
+    already connected. */
     multi_table_manager_directory_subs.init(
         new watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t(
             multi_table_manager_directory,
@@ -230,7 +232,7 @@ void multi_table_manager_t::help_construct() {
                         schedule_sync(pair.first, pair.second.get(), peer);
                     }
                 }
-            }, initial_call_t::NO));
+            }, initial_call_t::YES));
 
     /* Whenever a server changes its entry for a table in the directory, we need to
     re-sync that table to that server. */
@@ -292,9 +294,9 @@ void multi_table_manager_t::on_action(
     } else {
         table = tables.at(table_id).get();
     }
-    new_mutex_in_line_t table_mutex_in_line(&table->mutex);
+    rwlock_in_line_t table_lock_in_line(&table->access_rwlock, access_t::write);
     global_mutex_acq.reset();
-    wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
+    wait_interruptible(table_lock_in_line.write_signal(), interruptor);
 
     /* Validate existing record */
     if (!is_new) {
@@ -325,7 +327,16 @@ void multi_table_manager_t::on_action(
             case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
         }
-        if (!timestamp.supersedes(current_timestamp)) {
+        /* If we are inactive and are told to become active, we ignore the
+        timestamp. The `base_table_config_t` in our inactive state might be
+        a left-over from an emergency repair that none of the currently active
+        servers has seen. In that case we would have no chance to become active
+        again for this table until another emergency repair happened
+        (which might be impossible, if the table is otherwise still available). */
+        bool ignore_timestamp =
+            table->status == table_t::status_t::INACTIVE
+            && action_status == action_status_t::ACTIVE;
+        if (!ignore_timestamp && !timestamp.supersedes(current_timestamp)) {
             if (!ack_addr.is_nil()) {
                 send(mailbox_manager, ack_addr);
             }
@@ -355,7 +366,6 @@ void multi_table_manager_t::on_action(
                 table_id,
                 table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
                 *initial_raft_state,
-                interruptor,
                 &raft_storage);
 
             /* Open files for the new table. We do this after writing the record, because
@@ -390,7 +400,6 @@ void multi_table_manager_t::on_action(
                 table_id,
                 table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
                 *initial_raft_state,
-                interruptor,
                 &raft_storage);
 
             table->active = make_scoped<active_table_t>(
@@ -417,7 +426,7 @@ void multi_table_manager_t::on_action(
             /* Destroy files for the table before we update the metadata record, so that
             if we crash we won't leak the file. */
             persistence_interface->destroy_multistore(
-                table_id, &table->multistore_ptr, interruptor);
+                table_id, &table->multistore_ptr);
 
             logINF("Table %s: Removed replica on this server.",
                 uuid_to_str(table_id).c_str());
@@ -438,8 +447,7 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->write_metadata_inactive(
                 table_id,
-                table_inactive_persistent_state_t { *basic_config, timestamp },
-                interruptor);
+                table_inactive_persistent_state_t { *basic_config, timestamp });
         }
 
     } else if (action_status == action_status_t::DELETED) {
@@ -451,7 +459,7 @@ void multi_table_manager_t::on_action(
                 /* Destroy files for the table before we update the metadata record, so
                 that if we crash we won't leak the file. */
                 persistence_interface->destroy_multistore(
-                    table_id, &table->multistore_ptr, interruptor);
+                    table_id, &table->multistore_ptr);
 
                 logINF("Table %s: Deleted the table.", uuid_to_str(table_id).c_str());
             }
@@ -462,7 +470,7 @@ void multi_table_manager_t::on_action(
 
         /* Remove the record on disk */
         if (!is_proxy_server) {
-            persistence_interface->delete_metadata(table_id, interruptor);
+            persistence_interface->delete_metadata(table_id);
         }
 
         should_resync = true;
@@ -502,9 +510,9 @@ void multi_table_manager_t::on_get_status(
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
         auto it = tables.find(table_id);
         if (it != tables.end()) {
-            new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
+            rwlock_in_line_t table_lock_in_line(&it->second->access_rwlock, access_t::read);
             global_mutex_acq.reset();
-            wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
+            wait_interruptible(table_lock_in_line.read_signal(), interruptor);
             if (it->second->status == table_t::status_t::ACTIVE) {
                 it->second->active->manager.get_status(
                     request, interruptor, &responses[table_id]);
@@ -622,9 +630,9 @@ void multi_table_manager_t::schedule_sync(
             while (!table->to_sync_set.empty()) {
                 std::set<peer_id_t> to_sync_set;
                 std::swap(table->to_sync_set, to_sync_set);
-                new_mutex_in_line_t table_mutex_in_line(&table->mutex);
+                rwlock_in_line_t table_lock_in_line(&table->access_rwlock, access_t::write);
                 global_mutex_acq.reset();
-                wait_interruptible(table_mutex_in_line.acq_signal(),
+                wait_interruptible(table_lock_in_line.write_signal(),
                     keepalive.get_drain_signal());
                 if (table->status == table_t::status_t::SHUTTING_DOWN) {
                     return;

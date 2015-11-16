@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
-
-from __future__ import print_function
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 import os, sys, time, urllib2
-
-startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -14,12 +10,12 @@ op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-print("Spinning up a server (%.2fs)" % (time.time() - startTime))
-with driver.Process(output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
+utils.print_with_time("Spinning up a server")
+with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve_options) as server:
     
     baseURL = 'http://%s:%d/' % (server.host, server.http_port)
     
-    print("Getting root (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Getting root")
     
     fetchResult = urllib2.urlopen(baseURL, timeout=2)
     fetchData = fetchResult.read()
@@ -27,7 +23,7 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     assert fetchResult.headers['content-type'] == 'text/html'
     assert '<html' in fetchData, 'Data from root did not include "html": %s' % fetchData
     
-    print("Getting invalid page (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Getting invalid page")
     
     # open a log file iterator and flush out the existing lines
     logFile = utils.nonblocking_readline(server.logfile_path)
@@ -41,7 +37,7 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     else:
         assert False, "Did not raise a 403 error code when requesting a bad url"
     
-    print("Checking that the bad access was recorded (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking that the bad access was recorded")
     
     deadline = time.time() + 2
     foundIt = False
@@ -58,7 +54,7 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     else:
         assert False, "Timed out waiting for the bad access marker to be written to the log"
     
-    print("Getting ajax/me (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Getting ajax/me")
     
     fetchResult = urllib2.urlopen(os.path.join(baseURL, 'ajax/me'), timeout=2)
     fetchData = fetchResult.read()
@@ -68,5 +64,5 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     
     # -- ending
     
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done.")

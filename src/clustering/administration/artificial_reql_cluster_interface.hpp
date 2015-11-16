@@ -135,7 +135,7 @@ public:
     bool table_emergency_repair(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            bool allow_erase,
+            emergency_repair_mode_t,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,
@@ -196,10 +196,12 @@ class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
             real_reql_cluster_interface_t *_next_reql_cluster_interface,
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            boost::shared_ptr<semilattice_readwrite_view_t<
                 auth_semilattice_metadata_t> > _auth_view,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                heartbeat_semilattice_metadata_t> > _heartbeat_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
                 cluster_directory_metadata_t> > > _directory_view,
             watchable_map_t<peer_id_t, cluster_directory_metadata_t>

@@ -17,7 +17,10 @@
 #include "utils.hpp"
 
 #ifndef VALGRIND
-const int SIGNAL_HANDLER_STACK_SIZE = SIGSTKSZ;
+// This needs to be large enough for abi::__cxa_demangle to not overflow the stack.
+// If this is too small, you may see memory corruption and crashes when attempting
+// to format a backtrace.
+const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif  // VALGRIND
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
@@ -196,17 +199,19 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     thread_barrier_t barrier(n_threads + 1);
 
     for (int i = 0; i < n_threads; i++) {
+        bool is_utility_thread = (i == n_threads - 1);
         thread_data_t *tdata = new thread_data_t();
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_thread = i;
-        // The initial message gets sent to thread zero.
-        tdata->initial_message = (i == 0) ? initial_message : NULL;
+        // The initial message gets sent to the utility thread.
+        tdata->initial_message = is_utility_thread ? initial_message : NULL;
 
         int res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee_xerr(res == 0, res, "Could not create thread");
 
-        if (do_set_affinity) {
+        // Don't set affinity for the utility thread
+        if (do_set_affinity && !is_utility_thread) {
             // On Apple, the thread affinity API has awful documentation, so we don't even bother.
 #ifdef _GNU_SOURCE
             // Distribute threads evenly among CPUs

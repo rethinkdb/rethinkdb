@@ -74,13 +74,14 @@ RDB_DECLARE_SERIALIZABLE(sindex_config_t);
 class sindex_status_t {
 public:
     sindex_status_t() :
-        blocks_processed(0),
-        blocks_total(0),
+        progress_numerator(0),
+        progress_denominator(0),
         ready(true),
         outdated(false),
         start_time(-1) { }
     void accum(const sindex_status_t &other);
-    size_t blocks_processed, blocks_total;
+    double progress_numerator;
+    double progress_denominator;
     bool ready;
     bool outdated;
     /* Note that `start_time` is only valid when `ready` is false, and while we
@@ -138,12 +139,13 @@ public:
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const ql::datum_range_t &range,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         counted_t<ql::datum_stream_t> maybe_src,
+        ql::configured_limits_t limits,
         const ql::datum_t &squash,
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
@@ -284,7 +286,7 @@ public:
     virtual bool table_emergency_repair(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            bool allow_data_loss,
+            emergency_repair_mode_t,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,

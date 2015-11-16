@@ -29,7 +29,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         branch_birth_certificate_t dummy_branch;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
-        branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
+        branch_history_manager.create_branch(dummy_branch_id, dummy_branch);
     }
 
     state_timestamp_t timestamp = state_timestamp_t::zero();

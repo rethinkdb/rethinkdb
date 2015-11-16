@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "cjson/json.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
@@ -12,7 +12,7 @@
 namespace ql {
 class json_term_t : public op_term_t {
 public:
-    json_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    json_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -61,7 +61,7 @@ public:
 
 class to_json_string_term_t : public op_term_t {
 public:
-    to_json_string_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    to_json_string_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -84,12 +84,12 @@ public:
 };
 
 counted_t<term_t> make_json_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<json_term_t>(env, term);
 }
 
 counted_t<term_t> make_to_json_string_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<to_json_string_term_t>(env, term);
 }
 } // namespace ql

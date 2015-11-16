@@ -67,7 +67,17 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                         version_find_branch_common(&combined_branch_history,
                             vers, branch, branch_reg);
                 } catch (const missing_branch_exc_t &) {
+#ifndef NDEBUG
                     crash("Branch history is incomplete");
+#else
+                    logERR("The branch history is incomplete. This probably means "
+                           "that there is a bug in RethinkDB. Please report this "
+                           "at https://github.com/rethinkdb/rethinkdb/issues/ .");
+                    /* Recover by using the root branch */
+                    points_on_canonical_branch =
+                        region_map_t<version_t>(region_t::universe(),
+                                                version_t::zero());
+#endif
                 }
                 return points_on_canonical_branch.map(branch_reg,
                 [&](const version_t &common_vers) {
@@ -104,6 +114,23 @@ bool invisible_to_majority_of_set(
     return !(count > judges.size() / 2);
 }
 
+/* A small helper function for `calculate_contract()` to test whether a given
+replica is currently streaming. */
+bool is_streaming(
+        const contract_t &old_c,
+        const std::map<server_id_t, contract_ack_frag_t> &acks,
+        server_id_t server) {
+    auto it = acks.find(server);
+    if (it != acks.end() &&
+            (it->second.state == contract_ack_t::state_t::secondary_streaming ||
+            (static_cast<bool>(old_c.primary) &&
+                old_c.primary->server == server))) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /* `calculate_contract()` calculates a new contract for a region. Whenever any of the
 inputs changes, the coordinator will call `update_contract()` to compute a contract for
 each range of keys. The new contract will often be the same as the old, in which case it
@@ -128,27 +155,90 @@ contract_t calculate_contract(
     new_c.replicas.insert(config.all_replicas.begin(), config.all_replicas.end());
 
     /* If there is a mismatch between `config.voting_replicas()` and `c.voters`, then
-    correct it */
+    add and/or remove voters until both sets match.
+    There are three important restrictions we have to consider here:
+    1. We should not remove voters if that would reduce the total number of voters
+       below the minimum of the size of the current voter set and the size of the
+       configured voter set. Consider the case where a user wants to replace
+       a few replicas by different ones. Without this restriction, we would often
+       remove all the old replicas from the voters set before enough of the new
+       replicas would become streaming to replace them.
+    2. To increase availability in some scenarios, we also don't remove replicas
+       if that would mean being left with less than a majority of streaming
+       replicas.
+    3. Only replicas that are streaming are guaranteed to have a complete branch
+       history. Once we make a replica voting, some parts of our logic assume that
+       the branch history is intact (most importantly our call to
+       `break_ack_into_fragments()` in `calculate_all_contracts()`).
+       To avoid this condition, we only add a replica to the voters list after it
+       has started streaming.
+       See https://github.com/rethinkdb/rethinkdb/issues/4866 for more details. */
     std::set<server_id_t> config_voting_replicas = config.voting_replicas();
     if (!static_cast<bool>(old_c.temp_voters) &&
             old_c.voters != config_voting_replicas) {
-        size_t num_streaming = 0;
+        bool voters_changed = false;
+        std::set<server_id_t> new_voters = old_c.voters;
+
+        /* Step 1: Check if we can add any voters */
         for (const server_id_t &server : config_voting_replicas) {
-            auto it = acks.find(server);
-            if (it != acks.end() &&
-                    (it->second.state == contract_ack_t::state_t::secondary_streaming ||
-                    (static_cast<bool>(old_c.primary) &&
-                        old_c.primary->server == server))) {
-                ++num_streaming;
+            if (old_c.voters.count(server)) {
+                /* The replica is already a voter */
+                continue;
+            }
+            if (is_streaming(old_c, acks, server)) {
+                /* The replica is streaming. We can add it to the voter set. */
+                new_voters.insert(server);
+                voters_changed = true;
             }
         }
 
-        /* We don't want to initiate the change until a majority of the new replicas are
-        already streaming, or else we'll lose write availability as soon as we set
-        `temp_voters`. */
-        if (num_streaming > config_voting_replicas.size() / 2) {
-            /* OK, we're ready to go */
-            new_c.temp_voters = boost::make_optional(config_voting_replicas);
+        /* Step 2: Remove voters */
+        /* We try to remove non-streaming replicas first before we start removing
+        streaming ones to maximize availability in case a replica fails. */
+        std::list<server_id_t> to_remove;
+        for (const server_id_t &server : new_voters) {
+            if (config_voting_replicas.count(server) > 0) {
+                /* The replica should remain a voter */
+                continue;
+            }
+            if (is_streaming(old_c, acks, server)) {
+                /* The replica is streaming. Put it at the end of the `to_remove`
+                list. */
+                to_remove.push_back(server);
+            } else {
+                /* The replica is not streaming. Removing it doesn't hurt
+                availability, so we put it at the front of the `to_remove` list. */
+                to_remove.push_front(server);
+            }
+        }
+
+        size_t num_streaming = 0;
+        for (const server_id_t &server : new_voters) {
+            if (is_streaming(old_c, acks, server)) {
+                ++num_streaming;
+            }
+        }
+        size_t min_voters_size = std::min(old_c.voters.size(),
+                                          config_voting_replicas.size());
+        for (const server_id_t &server_to_remove : to_remove) {
+            /* Check if we can remove more voters without going below
+            `min_voters_size`, and without losing a majority of streaming voters. */
+            size_t remaining_streaming = is_streaming(old_c, acks, server_to_remove)
+                                         ? num_streaming - 1
+                                         : num_streaming;
+            size_t remaining_total = new_voters.size() - 1;
+            bool would_lose_majority = remaining_streaming <= remaining_total / 2;
+            if (would_lose_majority || new_voters.size() <= min_voters_size) {
+                break;
+            }
+            new_voters.erase(server_to_remove);
+            voters_changed = true;
+        }
+
+        /* Step 3: If anything changed, stage the new voter set into `temp_voters` */
+        rassert(voters_changed == (old_c.voters != new_voters));
+        if (voters_changed) {
+            new_c.temp_voters = boost::make_optional(new_voters);
         }
     }
 
@@ -548,11 +638,24 @@ void calculate_all_contracts(
                         auto res = register_current_branches_out->insert(
                             std::make_pair(reg, to_register));
                         guarantee(res.second);
+                        /* Due to branch garbage collection on the executor,
+                        the branch history in the contract_ack might be incomplete.
+                        Usually this isn't a problem, because the executor is
+                        only going to garbage collect branches when it is sure
+                        that the current branches are already present in the Raft
+                        state. In that case `copy_branch_history_for_branch()` is
+                        not going to traverse to the GCed branches.
+                        However this assumption no longer holds if the Raft state
+                        has just been overwritten by an emergency repair operation.
+                        Hence we ignore missing branches in the copy operation. */
+                        bool ignore_missing_branches
+                            = old_contract.after_emergency_repair;
                         copy_branch_history_for_branch(
                             to_register,
                             this_contract_acks->at(
                                 old_contract.primary->server).branch_history,
                             old_state,
+                            ignore_missing_branches,
                             add_branches_out);
                         registered_new_branch = boost::make_optional(to_register);
                     }

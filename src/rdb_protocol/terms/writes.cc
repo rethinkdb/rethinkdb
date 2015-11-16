@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 
 #include <string>
 #include <utility>
@@ -81,7 +81,7 @@ return_changes_t parse_return_changes(
 
 class insert_term_t : public op_term_t {
 public:
-    insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    insert_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"conflict", "durability", "return_vals",
                                   "return_changes"})) { }
@@ -226,7 +226,7 @@ private:
 
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    replace_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"non_atomic", "durability",
                                   "return_vals", "return_changes"})) { }
@@ -243,9 +243,17 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));
 
-        counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
-            f->assert_deterministic("Maybe you want to use the non_atomic flag?");
+            rcheck(args->arg_is_deterministic(1) == deterministic_t::always,
+                   base_exc_t::LOGIC,
+                   "Could not prove argument deterministic.  "
+                   "Maybe you want to use the non_atomic flag?");
+        }
+        counted_t<const func_t> f =
+            args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+        if (!nondet_ok) {
+            // If this isn't true we should have caught it in the `rcheck` above.
+            rassert(f->is_deterministic() == deterministic_t::always);
         }
 
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
@@ -262,15 +270,16 @@ private:
             counted_t<table_t> tbl = tblrows->table;
             counted_t<datum_stream_t> ds = tblrows->seq;
 
-            if (f->is_deterministic()) {
+            if (f->is_deterministic() == deterministic_t::always) {
                 // Attach a transformation to `ds` to pull out the primary key.
-                auto x = pb::dummy_var_t::REPLACE_HELPER_ROW;
-                r::reql_t map = r::fun(x, r::expr(x)[tbl->get_pkey()]);
+                minidriver_t r(backtrace());
+                auto x = minidriver_t::dummy_var_t::REPLACE_HELPER_ROW;
                 compile_env_t compile_env((var_visibility_t()));
-                func_term_t func_term(&compile_env, map.release_counted());
-                var_scope_t var_scope;
-                counted_t<const func_t> func = func_term.eval_to_func(var_scope);
-                ds->add_transformation(map_wire_func_t(func), backtrace());
+                func_term_t func_term(&compile_env,
+                                      r.fun(x, r.expr(x)[tbl->get_pkey()]).root_term());
+                ds->add_transformation(
+                    map_wire_func_t(func_term.eval_to_func(var_scope_t())),
+                    backtrace());
             }
 
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
@@ -281,7 +290,7 @@ private:
                 }
 
                 scoped_ptr_t<std::vector<datum_t> > keys;
-                if (!f->is_deterministic()) {
+                if (f->is_deterministic() != deterministic_t::always) {
                     keys = make_scoped<std::vector<datum_t> >();
                     keys->reserve(vals.size());
                     for (const auto &val : vals) {
@@ -309,7 +318,7 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    foreach_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
@@ -324,7 +333,8 @@ private:
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
-            counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
+            counted_t<const func_t> f =
+                args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
             datum_t row;
             while (row = ds->next(env->env, batchspec), row.has()) {
                 scoped_ptr_t<val_t> v = f->call(env->env, row);
@@ -356,17 +366,17 @@ private:
 };
 
 counted_t<term_t> make_insert_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<insert_term_t>(env, term);
 }
 
 counted_t<term_t> make_replace_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<replace_term_t>(env, term);
 }
 
 counted_t<term_t> make_foreach_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<foreach_term_t>(env, term);
 }
 

@@ -1,2 +1,0 @@
-
-generate_test("$RETHINKDB/test/protobuf_test/protobuf.test", name="protobuf")

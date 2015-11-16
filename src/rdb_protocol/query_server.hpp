@@ -1,45 +1,45 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_QUERY_SERVER_HPP_
 #define RDB_PROTOCOL_QUERY_SERVER_HPP_
 
 #include <set>
-#include <string>
 
 #include "arch/address.hpp"
-#include "protob/protob.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "client_protocol/server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 
 namespace ql {
-template <class> class protob_t;
-class query_id_t;
+class query_params_t;
 class query_cache_t;
+class response_t;
 }
-class rdb_context_t;
 
-// Overloads used by protob_server_t.
-void make_empty_protob_bearer(ql::protob_t<Query> *request);
-Query *underlying_protob_value(ql::protob_t<Query> *request);
+class rdb_context_t;
 
 class rdb_query_server_t : public query_handler_t {
 public:
     rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                        int port,
-                       rdb_context_t *_rdb_ctx);
+                       rdb_context_t *_rdb_ctx,
+                       server_config_client_t *_server_config_client,
+                       const server_id_t &_server_id);
 
     http_app_t *get_http_app();
     int get_port() const;
 
-    void run_query(ql::query_id_t &&query_id,
-                   const ql::protob_t<Query> &query,
-                   Response *response_out,
-                   ql::query_cache_t *query_cache,
+    void run_query(ql::query_params_t *query_params,
+                   ql::response_t *response_out,
                    signal_t *interruptor);
-public:
+private:
+    void fill_server_info(ql::response_t *out);
+
     static const uint32_t default_http_timeout_sec = 300;
 
     query_server_t server;
     rdb_context_t *rdb_ctx;
+    server_config_client_t *server_config_client;
+    server_id_t server_id;
     one_per_thread_t<int> thread_counters;
 
     DISABLE_COPYING(rdb_query_server_t);

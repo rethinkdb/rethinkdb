@@ -10,6 +10,7 @@ error_tolerant.kill-secondary
 error_tolerant.more-or-less
 error_tolerant.rebalance
 interface.progress
+interface.table_fuzzer
 regression.676
 split_workloads.add-secondary-multi-serial-mix
 split_workloads.change-primary-multi-serial-mix
@@ -24,4 +25,5 @@ split_workloads.rebalance-multi-serial-mix
 split_workloads.remove-secondary-multi-serial-mix
 split_workloads.transfer-multi-serial-mix
 static_cluster.rget-huge
+static_cluster.rget-huge-proxy
 unit.JSON

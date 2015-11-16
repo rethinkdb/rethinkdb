@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
 #include <netinet/in.h>
@@ -11,7 +11,9 @@
 
 #include "arch/io/network.hpp"
 #include "arch/timing.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
 #include "config/args.hpp"
@@ -20,6 +22,7 @@
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
+#include "rpc/semilattice/watchable.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
@@ -27,10 +30,11 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_1_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "2.1.0"
+
+#define CLUSTER_VERSION_STRING "2.2.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -125,12 +129,12 @@ void connectivity_cluster_t::connection_t::kill_connection() {
     }
 }
 
-connectivity_cluster_t::connection_t::connection_t(run_t *p,
-                                                   peer_id_t id,
-                                                   keepalive_tcp_conn_stream_t *c,
-                                                   const peer_address_t &a) THROWS_NOTHING :
-    conn(c),
-    peer_address(a),
+connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
+                                                   const peer_id_t &_peer_id,
+                                                   keepalive_tcp_conn_stream_t *_conn,
+                                                   const peer_address_t &_peer_address) THROWS_NOTHING :
+    conn(_conn),
+    peer_address(_peer_address),
     flusher([&](signal_t *) {
         guarantee(this->conn != nullptr);
         // We need to acquire the send_mutex because flushing the buffer
@@ -142,10 +146,13 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
     }, 1),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
-    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
-        uuid_to_str(id.get_uuid())),
+    pm_collection_membership(
+        &_parent->parent->connectivity_collection,
+        &pm_collection,
+        uuid_to_str(_peer_id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
-    parent(p), peer_id(id),
+    parent(_parent),
+    peer_id(_peer_id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
@@ -200,12 +207,18 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     return peer_address_t(our_addrs);
 }
 
-connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
-                                     const std::set<ip_address_t> &local_addresses,
-                                     const peer_address_t &canonical_addresses,
-                                     int port, int client_port)
+connectivity_cluster_t::run_t::run_t(
+        connectivity_cluster_t *_parent,
+        const server_id_t &_server_id,
+        const std::set<ip_address_t> &local_addresses,
+        const peer_address_t &canonical_addresses,
+        int port,
+        int client_port,
+        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+            _heartbeat_sl_view)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
-    parent(p),
+    parent(_parent),
+    server_id(_server_id),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -238,6 +251,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+
+    heartbeat_sl_view(_heartbeat_sl_view),
 
     listener(new tcp_listener_t(
         cluster_listener_socket.get(),
@@ -400,36 +415,48 @@ class connectivity_cluster_t::heartbeat_manager_t :
     private cluster_send_message_write_callback_t
 {
 public:
-    static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
     static const int HEARTBEAT_TIMEOUT_INTERVALS = 5;
 
     heartbeat_manager_t(
             connectivity_cluster_t::connection_t *connection_,
             auto_drainer_t::lock_t connection_keepalive_,
-            std::string peer_str_) :
+            const std::string &peer_str_,
+            clone_ptr_t<watchable_t<heartbeat_semilattice_metadata_t> >
+                heartbeat_sl_view_) :
         connection(connection_),
         connection_keepalive(connection_keepalive_),
-        read_done(false), write_done(false),
+        read_done(false),
+        write_done(false),
         intervals_since_last_read_done(0),
         peer_str(peer_str_),
-        timer(HEARTBEAT_INTERVAL_MS, this)
+        timeout(0),
+        heartbeat_sl_view(std::move(heartbeat_sl_view_)),
+        heartbeat_sl_view_sub(std::bind(&heartbeat_manager_t::on_heartbeat_change, this))
     {
         connection->conn->set_keepalive_callback(this);
+
+        // This will trigger the initialization of the timeout, and timer
+        watchable_t<heartbeat_semilattice_metadata_t>::freeze_t
+            freeze(heartbeat_sl_view);
+        heartbeat_sl_view_sub.reset(heartbeat_sl_view, &freeze);
     }
 
     ~heartbeat_manager_t() {
-        connection->conn->set_keepalive_callback(NULL);
+        connection->conn->set_keepalive_callback(nullptr);
     }
 
     /* These are called by the `keepalive_tcp_conn_stream_t`. */
     void keepalive_read() {
         read_done = true;
     }
+
     void keepalive_write() {
         write_done = true;
     }
+
     void on_ring() {
         ASSERT_FINITE_CORO_WAITING;
+
         if (intervals_since_last_read_done > HEARTBEAT_TIMEOUT_INTERVALS) {
             logERR("Heartbeat timeout, killing connection to peer %s", peer_str.c_str());
 
@@ -454,33 +481,68 @@ public:
                 });
         }
         if (read_done) {
-            intervals_since_last_read_done = 0;
+            /* `intervals_since_last_read_done` may be negative when transitioning
+               between timeouts, we should't reset it to zero when it's doing so. */
+            if (intervals_since_last_read_done >= 0) {
+                intervals_since_last_read_done = 0;
+            } else {
+                intervals_since_last_read_done++;
+            }
             read_done = false;
         } else {
             intervals_since_last_read_done++;
         }
     }
+
     void write(write_stream_t *) {
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
         attached, which will trigger `keepalive_read()` on the remote server. */
     }
+
 #ifdef ENABLE_MESSAGE_PROFILER
     const char *message_profiler_tag() const {
         return "heartbeat";
     }
 #endif
+
+    void on_heartbeat_change() {
+        int64_t timeout_new = heartbeat_sl_view->get().heartbeat_timeout.get_ref();
+        if (timeout == timeout_new) {
+            /* The timeout hasn't changed, this could be due to the semilattice
+               `versioned` changing without the value changing. */
+            return;
+        }
+
+        if (timeout > timeout_new) {
+            /* It may take the peer some time to transition to the new timeout, by
+               setting `intervals_since_last_read_done` to a negative value we allow it
+               to transition. */
+            intervals_since_last_read_done = -timeout / timeout_new;
+        } else {
+            intervals_since_last_read_done = 0;
+        }
+        timeout = timeout_new;
+        timer = scoped_ptr_t<repeating_timer_t>(new repeating_timer_t(
+            timeout / HEARTBEAT_TIMEOUT_INTERVALS, this));
+    }
+
+private:
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
     bool read_done, write_done;
-    int intervals_since_last_read_done;
+    int64_t intervals_since_last_read_done;
     std::string peer_str;
+    int64_t timeout;
 
     /* Order is important here. When destroying the `heartbeat_manager_t`, we must first
     destroy the timer so that new `on_ring()` calls don't get spawned; then destroy the
     `auto_drainer_t` to drain any ongoing coroutines; and only then is it safe to destroy
     the other fields. */
     auto_drainer_t drainer;
-    repeating_timer_t timer;
+    scoped_ptr_t<repeating_timer_t> timer;
+
+    clone_ptr_t<watchable_t<heartbeat_semilattice_metadata_t> > heartbeat_sl_view;
+    watchable_subscription_t<heartbeat_semilattice_metadata_t> heartbeat_sl_view_sub;
 
     DISABLE_COPYING(heartbeat_manager_t);
 };
@@ -784,6 +846,7 @@ void connectivity_cluster_t::run_t::handle(
         // Everything after we send the version string COULD be moved _below_ the
         // point where we resolve the version string.  That would mean adding another
         // back and forth to the handshake?
+        serialize_universal(&wm, server_id);
         serialize_universal(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
@@ -846,6 +909,22 @@ void connectivity_cluster_t::run_t::handle(
         guarantee(resolved_version == cluster_version_t::CLUSTER);
     }
 
+    server_id_t remote_server_id;
+    {
+        if (deserialize_universal_and_check(conn, &remote_server_id, peername)) {
+            return;
+        }
+
+        if (servers.count(remote_server_id) != 0) {
+            // There currently is another connection open to the server
+            logINF("Rejected a connection from server %s since one is open already.",
+                   uuid_to_str(remote_server_id).c_str());
+            return;
+        }
+    }
+    set_insertion_sentry_t<server_id_t> remote_server_id_sentry(
+        &servers, remote_server_id);
+
     // Check bitsize (e.g. 32bit or 64bit)
     {
         std::string remote_arch_bitsize;
@@ -874,12 +953,9 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            auto reason = handshake_result_t::error(
-                handshake_result_code_t::INCOMPATIBLE_BUILD,
-                strprintf("local: %s, remote: %s",
-                          cluster_build_mode.c_str(), remote_build_mode.c_str()));
-            fail_handshake(conn, peername, reason);
-            return;
+            logWRN("Connecting nodes with different build modes, local: %s, remote: %s",
+                   cluster_build_mode.c_str(),
+                   remote_build_mode.c_str());
         }
     }
 
@@ -1075,14 +1151,19 @@ void connectivity_cluster_t::run_t::handle(
     anything that permanently blocks before setting up `conn_closer_2`. */
     conn_closer_1.reset();
 
-    // We could pick a better way to pick a better thread, our choice
-    // now is hopefully a performance non-problem.
-    threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
+    thread_allocation_t chosen_thread(&parent->thread_allocator);
 
-    cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
+    cross_thread_signal_t connection_thread_drain_signal(
+        drainer_lock.get_drain_signal(),
+        chosen_thread.get_thread());
+    cross_thread_watchable_variable_t<heartbeat_semilattice_metadata_t>
+        cross_thread_heartbeat_sl_view(
+            clone_ptr_t<semilattice_watchable_t<heartbeat_semilattice_metadata_t> >(
+                new semilattice_watchable_t<heartbeat_semilattice_metadata_t>(
+                    heartbeat_sl_view)), chosen_thread.get_thread());
 
     rethread_tcp_conn_stream_t unregister_conn(conn, INVALID_THREAD);
-    on_thread_t conn_threader(chosen_thread);
+    on_thread_t conn_threader(chosen_thread.get_thread());
     rethread_tcp_conn_stream_t reregister_conn(conn, get_thread_id());
 
     // Make sure that if we're ordered to shut down, any pending read
@@ -1102,7 +1183,8 @@ void connectivity_cluster_t::run_t::handle(
         heartbeat_manager_t heartbeat_manager(
             &conn_structure,
             auto_drainer_t::lock_t(conn_structure.drainers.get()),
-            peerstr);
+            peerstr,
+            cross_thread_heartbeat_sl_view.get_watchable());
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
@@ -1157,6 +1239,12 @@ void connectivity_cluster_t::run_t::handle(
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
+    /* We assign threads from the highest thread number downwards. This is to reduce the
+    potential for conflicting with btree threads, which assign threads from the lowest
+    thread number upwards. */
+    thread_allocator([](threadnum_t a, threadnum_t b) {
+        return a.threadnum > b.threadnum;
+    }),
     current_run(NULL),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")

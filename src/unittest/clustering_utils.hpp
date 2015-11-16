@@ -9,18 +9,20 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "buffer_cache/cache_balancer.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 
 namespace unittest {
@@ -45,10 +47,10 @@ public:
 
 inline merger_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
     filepath_file_opener_t file_opener(temp_file->name(), io_backender);
-    standard_serializer_t::create(&file_opener,
-                                  standard_serializer_t::static_config_t());
-    auto inner_serializer = make_scoped<standard_serializer_t>(
-            standard_serializer_t::dynamic_config_t(),
+    log_serializer_t::create(&file_opener,
+                                  log_serializer_t::static_config_t());
+    auto inner_serializer = make_scoped<log_serializer_t>(
+            log_serializer_t::dynamic_config_t(),
             &file_opener,
             &get_global_perfmon_collection());
     return new merger_serializer_t(std::move(inner_serializer),
@@ -63,7 +65,7 @@ public:
             store(region_t::universe(), serializer.get(), balancer.get(),
                 temp_file.name().permanent_path(), true,
                 &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
+                generate_uuid(), update_sindexes_t::UPDATE) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;
@@ -238,12 +240,16 @@ peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
+        server_id(generate_uuid()),
         mailbox_manager(&connectivity_cluster, 'M'),
+        heartbeat_manager(heartbeat_semilattice_metadata),
         connectivity_cluster_run(&connectivity_cluster,
+                                 server_id,
                                  get_unittest_addresses(),
                                  peer_address_t(),
                                  ANY_PORT,
-                                 0)
+                                 0,
+                                 heartbeat_manager.get_view())
         { }
     connectivity_cluster_t *get_connectivity_cluster() {
         return &connectivity_cluster;
@@ -265,7 +271,10 @@ public:
     }
 private:
     connectivity_cluster_t connectivity_cluster;
+    server_id_t server_id;
     mailbox_manager_t mailbox_manager;
+    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t> heartbeat_manager;
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 

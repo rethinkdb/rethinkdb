@@ -19,7 +19,7 @@
 #include "rdb_protocol/geo/primitives.hpp"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
-#include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/lazy_btree_val.hpp"
 #include "rdb_protocol/profile.hpp"
 
 using geo::S2Point;
@@ -51,14 +51,21 @@ const double NEAREST_GOAL_BATCH_SIZE = 100.0;
 const unsigned int NEAREST_NUM_VERTICES = 8;
 
 
-geo_job_data_t::geo_job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
-        const std::vector<ql::transform_variant_t> &_transforms,
-        const boost::optional<ql::terminal_variant_t> &_terminal)
+geo_job_data_t::geo_job_data_t(
+    ql::env_t *_env,
+    region_t region,
+    store_key_t last_key,
+    const ql::batchspec_t &batchspec,
+    const std::vector<ql::transform_variant_t> &_transforms,
+    const boost::optional<ql::terminal_variant_t> &_terminal)
     : env(_env),
-      batcher(batchspec.to_batcher()),
+      batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
       accumulator(_terminal
                   ? ql::make_terminal(*_terminal)
-                  : ql::make_append(sorting_t::UNORDERED, &batcher)) {
+                  : ql::make_append(std::move(region),
+                                    std::move(last_key),
+                                    sorting_t::UNORDERED,
+                                    batcher.get())) {
     for (size_t i = 0; i < _transforms.size(); ++i) {
         transformers.push_back(ql::make_op(_transforms[i]));
     }
@@ -115,8 +122,8 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalu
         return continue_bool_t::CONTINUE;
     }
 
-    lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
-                    keyvalue.expose_buf());
+    lazy_btree_val_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
+                         keyvalue.expose_buf());
     ql::datum_t val = row.get();
     slice->stats.pm_keys_read.record();
     slice->stats.pm_total_keys_read += 1;
@@ -192,20 +199,16 @@ collect_all_geo_intersecting_cb_t::collect_all_geo_intersecting_cb_t(
         geo_job_data_t &&_job,
         geo_sindex_data_t &&_sindex,
         const ql::datum_t &_query_geometry,
-        const key_range_t &_sindex_range,
         rget_read_response_t *_resp_out)
     : geo_intersecting_cb_t(_slice, std::move(_sindex), _job.env, &distinct_emitted),
       job(std::move(_job)), response(_resp_out) {
     guarantee(response != NULL);
-    response->last_key = _sindex_range.left;
     init_query(_query_geometry);
 }
 
-void collect_all_geo_intersecting_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
-    job.accumulator->finish(&response->result);
-    if (job.accumulator->should_send_batch()) {
-        response->truncated = true;
-    }
+void collect_all_geo_intersecting_cb_t::finish(
+    continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t) {
+    job.accumulator->finish(last_cb, &response->result);
 }
 
 bool collect_all_geo_intersecting_cb_t::post_filter(
@@ -220,20 +223,16 @@ continue_bool_t collect_all_geo_intersecting_cb_t::emit_result(
         store_key_t &&key,
         ql::datum_t &&val)
         THROWS_ONLY(interrupted_exc_t, ql::base_exc_t, geo_exception_t) {
-    // Update the last considered key.
-    rassert(response->last_key <= key);
-    response->last_key = key;
-
     ql::groups_t data;
     data = {{ql::datum_t(), ql::datums_t{std::move(val)}}};
 
     for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-        (**it)(job.env, &data, sindex_val);
+        (**it)(job.env, &data, [&]() { return sindex_val; });
     }
     return (*job.accumulator)(job.env,
                               &data,
                               std::move(key),
-                              std::move(sindex_val)); // NULL if no sindex
+                              [&]() { return sindex_val; });
 }
 
 void collect_all_geo_intersecting_cb_t::emit_error(

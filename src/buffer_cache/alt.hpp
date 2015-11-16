@@ -168,12 +168,14 @@ public:
     // Creates a block, a new child of the given parent.  It gets assigned a block id
     // from one of the unused block id's.
     buf_lock_t(buf_parent_t parent,
-               alt_create_t create);
+               alt_create_t create,
+               block_type_t block_type = block_type_t::normal);
 
     // Creates a block, a new child of the given parent.  It gets assigned a block id
     // from one of the unused block id's.
     buf_lock_t(buf_lock_t *parent,
-               alt_create_t create);
+               alt_create_t create,
+               block_type_t block_type = block_type_t::normal);
 
     ~buf_lock_t();
 
@@ -195,8 +197,8 @@ public:
         return current_page_acq()->block_id();
     }
 
-    // It is illegal to call this on a buf lock that has been mark_deleted.  This
-    // never returns repli_timestamp_t::invalid.
+    // It is illegal to call this on a buf lock that has been mark_deleted, or that
+    // is a lock on an aux block.  This never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
     // Sets the buf's recency to `superceding_recency`, which must be greater than or
@@ -226,7 +228,10 @@ public:
 
 private:
     void help_construct(buf_parent_t parent, block_id_t block_id, access_t access);
-    void help_construct(buf_parent_t parent, alt_create_t create);
+    void help_construct(
+        buf_parent_t parent,
+        alt_create_t create,
+        block_type_t block_type);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
     static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);

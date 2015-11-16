@@ -96,6 +96,8 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
 }
 
 void remote_replicator_server_t::proxy_replica_t::on_ready(signal_t *) {
+    // Can't block here, or we would need an auto drainer.
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!is_ready);
     is_ready = true;
     registration->mark_ready();

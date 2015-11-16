@@ -65,6 +65,8 @@ class Driver
                 else
                     @state = 'ok'
                     query.private_run connection, (err, result) =>
+                        if result?.value? and result?.profile?
+                            result = result.value
                         if typeof result?.toArray is 'function'
                             result.toArray (err, result) ->
                                 callback(err, result)
@@ -89,6 +91,7 @@ class Driver
                         if @state is 'ok'
                             is_disconnected.display_fail()
                     else
+                        body = require('./body.coffee')
                         is_disconnected = new body.IsDisconnected
                     @state = 'fail'
                 else
@@ -102,6 +105,11 @@ class Driver
                             (fn = =>
                                 try
                                     query.private_run connection, (err, result) =>
+                                        # All http connections have an
+                                        # implicit profile now, so we
+                                        # have to pull it out
+                                        if result?.value? and result?.profile?
+                                            result = result.value
                                         if typeof result?.toArray is 'function'
                                             result.toArray (err, result) =>
                                                 # This happens if people load the page with the back button

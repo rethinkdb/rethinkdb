@@ -1,17 +1,18 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <functional>
 #include <stdexcept>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "protob/protob.hpp"
+#include "client_protocol/server.hpp"
 #include "rapidjson/document.h"
 #include "rdb_protocol/backtrace.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/query_params.hpp"
+#include "rdb_protocol/response.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/rdb_env.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -67,7 +68,7 @@ public:
 };
 
 void count_evals(test_rdb_env_t *test_env,
-                 ql::protob_t<const Term> term,
+                 const ql::raw_term_t &term,
                  uint32_t *count_out,
                  verify_callback_t *verify_callback) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
@@ -85,7 +86,7 @@ void count_evals(test_rdb_env_t *test_env,
 }
 
 void interrupt_test(test_rdb_env_t *test_env,
-                    ql::protob_t<const Term> term,
+                    const ql::raw_term_t &term,
                     uint32_t interrupt_phase,
                     verify_callback_t *verify_callback) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
@@ -134,25 +135,21 @@ private:
 };
 
 TEST(RDBInterrupt, InsertOp) {
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t insert_term =
+        r.db("db").table("table").insert(
+            r.object(r.optarg("id", "key"), r.optarg("value", "stuff"))).root_term();
+
     uint32_t eval_count;
-
-    ql::datum_object_builder_t row;
-    row.overwrite("id", ql::datum_t(datum_string_t("key")));
-    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
-
-    ql::protob_t<const Term> insert_proto =
-        ql::r::db("db").table("table")
-                       .insert(std::move(row).to_datum()).release_counted();
-
     {
         test_rdb_env_t test_env;
         test_env.add_database("db");
         test_env.add_table("db", "table", "id");
         exists_verify_callback_t verify_callback(
-            "db", "table", ql::datum_t(datum_string_t("key")), true);
+            "db", "table", ql::datum_t("key"), true);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
-                                               insert_proto,
+                                               insert_term,
                                                &eval_count,
                                                &verify_callback));
     }
@@ -161,10 +158,10 @@ TEST(RDBInterrupt, InsertOp) {
         test_env.add_database("db");
         test_env.add_table("db", "table", "id");
         exists_verify_callback_t verify_callback(
-            "db", "table", ql::datum_t(datum_string_t("key")), false);
+            "db", "table", ql::datum_t("key"), false);
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
-                                               insert_proto,
+                                               insert_term,
                                                i,
                                                &verify_callback));
     }
@@ -183,12 +180,13 @@ TEST(RDBInterrupt, GetOp) {
     std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
-    row.overwrite("id", ql::datum_t(datum_string_t("key")));
-    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
+    row.overwrite("id", ql::datum_t("key"));
+    row.overwrite("value", ql::datum_t("stuff"));
     initial_data.insert(std::move(row).to_datum());
 
-    ql::protob_t<const Term> get_proto =
-        ql::r::db("db").table("table").get_("key").release_counted();
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t get_term =
+        r.db("db").table("table").get_("key").root_term();
 
     {
         test_rdb_env_t test_env;
@@ -197,7 +195,7 @@ TEST(RDBInterrupt, GetOp) {
         test_env.add_table("db", "table", "id", initial_data);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
-                                               get_proto,
+                                               get_term,
                                                &eval_count,
                                                &dummy_callback));
     }
@@ -206,7 +204,10 @@ TEST(RDBInterrupt, GetOp) {
         dummy_callback_t dummy_callback;
         test_env.add_database("db");
         test_env.add_table("db", "table", "id", initial_data);
-        unittest::run_in_thread_pool(std::bind(interrupt_test, &test_env, get_proto, i,
+        unittest::run_in_thread_pool(std::bind(interrupt_test,
+                                               &test_env,
+                                               get_term,
+                                               i,
                                                &dummy_callback));
     }
 }
@@ -216,12 +217,13 @@ TEST(RDBInterrupt, DeleteOp) {
     std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
-    row.overwrite("id", ql::datum_t(datum_string_t("key")));
-    row.overwrite("value", ql::datum_t(datum_string_t("stuff")));
+    row.overwrite("id", ql::datum_t("key"));
+    row.overwrite("value", ql::datum_t("stuff"));
     initial_data.insert(std::move(row).to_datum());
 
-    ql::protob_t<const Term> delete_proto =
-        ql::r::db("db").table("table").get_("key").delete_().release_counted();
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t delete_term =
+        r.db("db").table("table").get_("key").delete_().root_term();
 
     {
         test_rdb_env_t test_env;
@@ -231,7 +233,7 @@ TEST(RDBInterrupt, DeleteOp) {
             "db", "table", ql::datum_t(datum_string_t("key")), false);
         unittest::run_in_thread_pool(std::bind(count_evals,
                                                &test_env,
-                                               delete_proto,
+                                               delete_term,
                                                &eval_count,
                                                &verify_callback));
     }
@@ -243,7 +245,7 @@ TEST(RDBInterrupt, DeleteOp) {
             "db", "table", ql::datum_t(datum_string_t("key")), true);
         unittest::run_in_thread_pool(std::bind(interrupt_test,
                                                &test_env,
-                                               delete_proto,
+                                               delete_term,
                                                i,
                                                &verify_callback));
     }
@@ -251,23 +253,24 @@ TEST(RDBInterrupt, DeleteOp) {
 
 // This is a simple drop-in mock of query_server_t - it will not handle
 // concurrent queries for the same token - aside from a STOP query.
-class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
+class query_hanger_t : public query_handler_t {
 public:
     static const std::string stop_query_message;
 
-    void run_query(UNUSED ql::query_id_t &&query_id,
-                   const ql::protob_t<Query> &query,
-                   Response *res,
-                   UNUSED ql::query_cache_t *query_cache,
+    void run_query(ql::query_params_t *query_params,
+                   ql::response_t *res_out,
                    signal_t *interruptor) {
-        assert_thread();
+        if (!handler_thread) {
+            handler_thread = get_thread_id();
+        }
+        rassert(handler_thread.get() == get_thread_id());
 
-        if (query->type() != Query::STOP) {
+        if (query_params->type != Query::STOP) {
             cond_t dummy_cond;
             cond_t local_interruptor;
             wait_any_t final_interruptor(&local_interruptor, interruptor);
             map_insertion_sentry_t<int64_t, cond_t *> sentry(&interruptors,
-                                                             query->token(),
+                                                             query_params->token,
                                                              &local_interruptor);
 
             try {
@@ -278,20 +281,19 @@ public:
                 }
             }
         } else {
-            auto interruptor_it = interruptors.find(query->token());
+            auto interruptor_it = interruptors.find(query_params->token);
             guarantee(interruptor_it != interruptors.end());
             interruptor_it->second->pulse_if_not_already_pulsed();
         }
 
         // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
-        res->set_token(query->token());
-        ql::fill_error(res,
-                       Response::RUNTIME_ERROR,
-                       Response::LOGIC,
-                       stop_query_message,
-                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
+        res_out->fill_error(Response::RUNTIME_ERROR,
+                            Response::QUERY_LOGIC,
+                            stop_query_message,
+                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
+    boost::optional<threadnum_t> handler_thread;
     std::map<int64_t, cond_t *> interruptors;
 };
 

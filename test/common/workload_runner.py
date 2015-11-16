@@ -1,10 +1,8 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+import os, signal, subprocess, sys, time
 
-import subprocess, os, time, string, signal, sys
-
-import vcoptparse
+import utils, vcoptparse
 
 class RDBPorts(object):
     def __init__(self, host, http_port, rdb_port, db_name, table_name):
@@ -20,12 +18,24 @@ class RDBPorts(object):
         env["DB_NAME"] = self.db_name
         env["TABLE_NAME"] = self.table_name
 
-def run(command_line, ports, timeout):
-    assert isinstance(ports, RDBPorts)
+def run(command_line, ports, timeout, db_name=None, table_name=None):
+    if isinstance(ports, RDBPorts):
+        if db_name is not None:
+            ports.db_name = db_name
+        if table_name is not None:
+            ports.table_name = table_name
+    else: # probably a driver.Process or subclass
+        assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
+        assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
+        
+        assert hasattr(ports, 'http_port'), 'When using a non-RDBPorts ports, the ports object must have a http_port attribute: %r' % ports
+        assert hasattr(ports, 'driver_port'), 'When using a non-RDBPorts ports, the ports object must have a driver_port attribute: %r' % ports
+        
+        ports = RDBPorts(host=ports.host, http_port=ports.http_port, rdb_port=ports.driver_port, db_name=db_name, table_name=table_name)
 
     start_time = time.time()
     end_time = start_time + timeout
-    print("Running workload %r..." % command_line)
+    utils.print_with_time("Running workload %r..." % command_line)
 
     # Set up environment
     new_environ = os.environ.copy()
@@ -39,10 +49,10 @@ def run(command_line, ports, timeout):
             if result is None:
                 time.sleep(1)
             elif result == 0:
-                print("Done (%d seconds)" % (time.time() - start_time))
+                utils.print_with_time("Done")
                 return
             else:
-                print("Failed (%d seconds)" % (time.time() - start_time))
+                utils.print_with_time("Failed")
                 sys.stderr.write("workload '%s' failed with error code %d\n" % (command_line, result))
                 exit(1)
         sys.stderr.write("\nWorkload timed out after %d seconds (%s)\n"  % (time.time() - start_time, command_line))
@@ -54,25 +64,42 @@ def run(command_line, ports, timeout):
     exit(1)
 
 class ContinuousWorkload(object):
-    def __init__(self, command_line, ports):
-        assert isinstance(ports, RDBPorts)
+    
+    running = False
+    ports = None
+    
+    def __init__(self, command_line, ports, db_name=None, table_name=None):
+        
         self.command_line = command_line
-        self.ports = ports
-        self.running = False
+        
+        if isinstance(ports, RDBPorts):
+            self.ports = ports
+            if db_name is not None:
+                self.ports.db_name = db_name
+            if table_name is not None:
+                self.ports.table_name = table_name
+        
+        else: # probably a driver.Process or subclass
+            assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
+            assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
+            
+            assert hasattr(ports, 'http_port'), 'When using a non-RDBPorts ports, the ports object must have a http_port attribute: %r' % ports
+            assert hasattr(ports, 'driver_port'), 'When using a non-RDBPorts ports, the ports object must have a driver_port attribute: %r' % ports
+            
+            self.ports = RDBPorts(host=ports.host, http_port=ports.http_port, rdb_port=ports.driver_port, db_name=db_name, table_name=table_name)
 
     def __enter__(self):
         return self
 
     def start(self):
         assert not self.running
-        print("Starting workload %r..." % self.command_line)
+        utils.print_with_time("Starting workload %r..." % self.command_line)
 
         # Set up environment
         new_environ = os.environ.copy()
         self.ports.add_to_environ(new_environ)
-
-        self.proc = subprocess.Popen(self.command_line, shell=True, env=new_environ, preexec_fn=lambda: os.setpgid(0, 0))
-
+        
+        self.proc = subprocess.Popen(self.command_line, shell=True, env=new_environ, preexec_fn=os.setpgrp)
         self.running = True
 
         self.check()
@@ -86,7 +113,7 @@ class ContinuousWorkload(object):
 
     def stop(self):
         self.check()
-        print("Stopping %r..." % self.command_line)
+        utils.print_with_time("Stopping %r..." % self.command_line)
         os.killpg(self.proc.pid, signal.SIGINT)
         shutdown_grace_period = 10   # seconds
         end_time = time.time() + shutdown_grace_period
@@ -95,7 +122,7 @@ class ContinuousWorkload(object):
             if result is None:
                 time.sleep(1)
             elif result == 0 or result == -signal.SIGINT:
-                print("OK")
+                utils.print_with_time("OK")
                 self.running = False
                 break
             else:
@@ -131,9 +158,24 @@ def prepare_option_parser_for_split_or_continuous_workload(op, allow_between=Fal
     op["timeout-after"] = vcoptparse.IntFlag("--timeout-after", 600)
 
 class SplitOrContinuousWorkload(object):
-    def __init__(self, opts, ports):
+    def __init__(self, opts, ports, db_name=None, table_name=None):
         self.opts = opts
-        self.ports = ports
+        if isinstance(ports, RDBPorts):
+            self.ports = ports
+            if db_name is not None:
+                self.ports.db_name = db_name
+            if table_name is not None:
+                self.ports.table_name = table_name
+        
+        else: # probably a driver.Process or subclass
+            assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
+            assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
+            
+            assert hasattr(ports, 'http_port'), 'When using a non-RDBPorts ports, the ports object must have a http_port attribute: %r' % ports
+            assert hasattr(ports, 'driver_port'), 'When using a non-RDBPorts ports, the ports object must have a driver_port attribute: %r' % ports
+            
+            self.ports = RDBPorts(host=ports.host, http_port=ports.http_port, rdb_port=ports.driver_port, db_name=db_name, table_name=table_name)
+    
     def __enter__(self):
         self.continuous_workloads = []
         for cl in self.opts["workload-during"]:
@@ -141,13 +183,15 @@ class SplitOrContinuousWorkload(object):
             cwl.__enter__()
             self.continuous_workloads.append(cwl)
         return self
+    
     def _spin_continuous_workloads(self, seconds):
         assert self.opts["workload-during"]
         if seconds != 0:
-            print("Letting %s run for %d seconds..." % (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds))
+            utils.print_with_time("Letting %s run for %d seconds..." % (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds))
             for i in xrange(seconds):
                 time.sleep(1)
                 self.check()
+    
     def run_before(self):
         if self.opts["workload-before"] is not None:
             run(self.opts["workload-before"], self.ports, self.opts["timeout-before"])
@@ -155,9 +199,11 @@ class SplitOrContinuousWorkload(object):
             for cwl in self.continuous_workloads:
                 cwl.start()
             self._spin_continuous_workloads(self.opts["extra-before"])
+    
     def check(self):
         for cwl in self.continuous_workloads:
             cwl.check()
+    
     def run_between(self):
         self.check()
         assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
@@ -165,6 +211,7 @@ class SplitOrContinuousWorkload(object):
             run(self.opts["workload-between"], self.ports, self.opts["timeout-between"])
         if self.opts["workload-during"]:
             self._spin_continuous_workloads(self.opts["extra-between"])
+    
     def run_after(self):
         if self.opts["workload-during"]:
             self._spin_continuous_workloads(self.opts["extra-after"])
@@ -172,6 +219,7 @@ class SplitOrContinuousWorkload(object):
                 cwl.stop()
         if self.opts["workload-after"] is not None:
             run(self.opts["workload-after"], self.ports, self.opts["timeout-after"])
+    
     def __exit__(self, exc = None, ty = None, tb = None):
         if self.opts["workload-during"] is not None:
             for cwl in self.continuous_workloads:

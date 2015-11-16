@@ -1274,7 +1274,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
     // Step 4B: Commit the transaction to the serializer, emptying
     // out all the i_array bits.
     new_mutex_in_line_t dummy_acq;
-    serializer->index_write(&dummy_acq, index_write_ops);
+    serializer->index_write(&dummy_acq, []{}, index_write_ops);
 }
 
 void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {

@@ -5,6 +5,7 @@ from optparse import OptionParser
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import utils
+
 r = utils.import_python_driver()
 
 def call_ignore_interrupt(fun):
@@ -154,7 +155,7 @@ def print_stats(stats, start_time, end_time, num_clients):
     if len(stats["errors"]) != 0:
         print >> sys.stderr, ""
         print >> sys.stderr, "Errors encountered:"
-        for error, count in stats["errors"].iteritems():
+        for error, count in stats["errors"].items():
             print >> sys.stderr, "%s: %s" % (error, count)
 
 def interrupt_handler(signal, frame, exit_event, parent_pid):
@@ -197,7 +198,7 @@ class QueryThrottler:
         result = {"timestamp": start_time}
         try:
             result.update(self.workload.run(conn))
-        except (r.RqlError, r.RqlDriverError) as ex:
+        except (r.ReqlError, r.ReqlDriverError) as ex:
             result["errors"] = result.get('errors', []) + [ex.message]
         except (IOError, OSError) as ex:
             if ex.errno != errno.EINTR:

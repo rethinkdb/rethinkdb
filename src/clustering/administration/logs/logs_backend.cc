@@ -76,8 +76,12 @@ bool logs_artificial_table_backend_t::read_all_rows_as_vector(
         std::vector<ql::datum_t> *rows_out,
         admin_err_t *error_out) {
     return read_all_rows_raw(
-        [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
-            rows_out->push_back(convert_log_message_to_datum(msg, si, sd));
+        [&](const log_message_t &message,
+                const peer_id_t &,
+                const server_id_t &server_id,
+                const ql::datum_t &server_name_datum) {
+            rows_out->push_back(convert_log_message_to_datum(
+                message, server_id, server_name_datum));
         },
         interruptor,
         error_out);
@@ -286,8 +290,8 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
             break;
         }
 
-        map_insertion_sentry_t<server_id_t, timespec> last_timestamp(
-            &last_timestamps, server_id, initial_latest_timestamp);
+        map_insertion_sentry_t<peer_id_t, timespec> last_timestamp(
+            &last_timestamps, peer, initial_latest_timestamp);
 
         /* Now that we've fetched the initial timestamp, we can let the call to
         `.changes()` return */
@@ -381,14 +385,17 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
     of `run()`, but we would still end up returning `false`, so there would be no
     instance of `run()` for that server. */
     ASSERT_FINITE_CORO_WAITING;
-    bool still_connected;
-    parent->directory->read_key(peer, [&](const cluster_directory_metadata_t *md) {
-        still_connected = (md != nullptr);
+
+    bool connected;
+    parent->directory->read_key(
+        peer,
+        [&](const cluster_directory_metadata_t *metadata) {
+            connected = (metadata != nullptr);
         });
-    if (!still_connected) {
+    if (!connected) {
         peers_handled.erase(peer);
     }
-    return still_connected;
+    return connected;
 }
 
 bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
@@ -397,14 +404,19 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
         signal_t *interruptor) {
     admin_err_t dummy_error;
     return parent->read_all_rows_raw(
-        [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
-            ql::datum_t row = convert_log_message_to_datum(msg, si, sd);
+        [&](const log_message_t &message,
+                const peer_id_t &peer_id,
+                const server_id_t &server_id,
+                const ql::datum_t &server_name_datum) {
+            ql::datum_t row = convert_log_message_to_datum(
+                message, server_id, server_name_datum);
             initial_values_out->push_back(row);
-            auto it = last_timestamps.find(si);
-            if (it != last_timestamps.end() && it->second < msg.timestamp) {
-                it->second = msg.timestamp;
-                store_key_t key(
-                    convert_log_key_to_datum(msg.timestamp, si).print_primary());
+
+            auto it = last_timestamps.find(peer_id);
+            if (it != last_timestamps.end() && it->second < message.timestamp) {
+                it->second = message.timestamp;
+                store_key_t key(convert_log_key_to_datum(
+                    message.timestamp, server_id).print_primary());
                 send_all_change(proof, key, ql::datum_t(), row);
             }
         },
@@ -414,34 +426,38 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
 
 bool logs_artificial_table_backend_t::read_all_rows_raw(
         const std::function<void(
-            const log_message_t &msg,
+            const log_message_t &message,
+            const peer_id_t &peer_id,
             const server_id_t &server_id,
-            const ql::datum_t &server_datum)> &callback,
+            const ql::datum_t &server_name_datum)> &callback,
         signal_t *interruptor,
         admin_err_t *error_out) {
-    std::map<server_id_t, std::pair<name_string_t, log_server_business_card_t> > servers;
+    std::map<peer_id_t, std::pair<name_string_t, server_id_t>> server_names;
+    std::map<peer_id_t, log_server_business_card_t> server_business_cards;
     directory->read_all(
-        [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
+        [&](const peer_id_t &peer_id, const cluster_directory_metadata_t *value) {
             if (value->peer_type == SERVER_PEER) {
-                servers.insert(std::make_pair(value->server_id,
-                    std::make_pair(value->server_config.config.name,
-                                   value->log_mailbox)));
+                server_names.insert(std::make_pair(
+                    peer_id,
+                    std::make_pair(value->server_config.config.name, value->server_id)));
+                server_business_cards.insert(std::make_pair(
+                    peer_id, value->log_mailbox));
             }
         });
 
     boost::optional<std::string> error;
-    pmap(servers.begin(), servers.end(),
-        [&](const std::pair<server_id_t,
-                std::pair<name_string_t, log_server_business_card_t> > &pair) {
-            ql::datum_t server_datum = convert_name_or_uuid_to_datum(
-                pair.second.first, pair.first, identifier_format);
+    pmap(server_business_cards.begin(), server_business_cards.end(),
+        [&](const std::pair<peer_id_t, log_server_business_card_t> &pair) {
+            auto server_name = server_names.find(pair.first);
+            guarantee(server_name != server_names.end());
+
             std::vector<log_message_t> messages;
             try {
                 struct timespec min_time = { 0, 0 };
                 struct timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
                 messages = fetch_log_file(
                     mailbox_manager,
-                    pair.second.second,
+                    pair.second,
                     entries_per_server,
                     min_time,
                     max_time,
@@ -455,11 +471,20 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             } catch (const log_read_exc_t &e) {
                 /* We'll deal with it outside the `pmap()` */
                 error = strprintf("Problem with reading log file on server `%s`: %s",
-                    pair.second.first.c_str(), e.what());
+                    server_name->second.first.c_str(), e.what());
                 return;
             }
-            for (const log_message_t &m : messages) {
-                callback(m, pair.first, server_datum);
+
+            ql::datum_t server_name_datum = convert_name_or_uuid_to_datum(
+                server_name->second.first,
+                server_name->second.second,
+                identifier_format);
+            for (const log_message_t &message : messages) {
+                callback(
+                    message,
+                    pair.first,
+                    server_name->second.second,
+                    server_name_datum);
             }
         });
 

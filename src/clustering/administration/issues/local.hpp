@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "clustering/administration/issues/log_write.hpp"
-#include "clustering/administration/issues/outdated_index.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -17,11 +16,9 @@ class cluster_directory_metadata_t;
 /* "Local issues" are issues that originate on a particular server. When the user queries
 the `rethinkdb.current_issues` system table, each server polls the other servers to
 retrieve their local issues. */
-
 class local_issues_t {
 public:
     std::vector<log_write_issue_t> log_write_issues;
-    std::vector<outdated_index_issue_t> outdated_index_issues;
 };
 
 RDB_DECLARE_SERIALIZABLE(local_issues_t);
@@ -38,8 +35,7 @@ class local_issue_server_t : public home_thread_mixin_t {
 public:
     local_issue_server_t(
         mailbox_manager_t *mm,
-        log_write_issue_tracker_t *log_write_issue_tracker,
-        outdated_index_issue_tracker_t *outdated_index_issue_tracker);
+        log_write_issue_tracker_t *log_write_issue_tracker);
 
     local_issue_bcard_t get_bcard() {
         return local_issue_bcard_t { get_mailbox.get_address() };
@@ -50,7 +46,6 @@ private:
 
     mailbox_manager_t *const mailbox_manager;
     log_write_issue_tracker_t *const log_write_issue_tracker;
-    outdated_index_issue_tracker_t *const outdated_index_issue_tracker;
     local_issue_bcard_t::get_mailbox_t get_mailbox;
     DISABLE_COPYING(local_issue_server_t);
 };

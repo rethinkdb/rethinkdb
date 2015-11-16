@@ -15,6 +15,7 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/new_semaphore.hpp"
 #include "concurrency/rwlock.hpp"
@@ -69,18 +70,9 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class outdated_index_report_t {
-public:
-    outdated_index_report_t() { }
-    virtual ~outdated_index_report_t() { }
-
-    // Called during store_t instantiation
-    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
-
-    // Called when indexes change during store_t lifetime
-    virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void indexes_renamed(
-        const std::map<std::string, std::string> &name_changes) = 0;
+enum class update_sindexes_t {
+    UPDATE,
+    LEAVE_ALONE
 };
 
 class store_t final : public store_view_t {
@@ -96,8 +88,8 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            scoped_ptr_t<outdated_index_report_t> &&_index_report,
-            namespace_id_t table_id);
+            namespace_id_t table_id,
+            update_sindexes_t update_sindexes);
     ~store_t();
 
     void note_reshard();
@@ -119,6 +111,19 @@ public:
             order_token_t order_token,
             write_token_t *token,
             write_durability_t durability,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    cluster_version_t metainfo_version(read_token_t *token,
+                                       signal_t *interruptor);
+
+    void migrate_metainfo(
+            order_token_t order_token,
+            write_token_t *token,
+            cluster_version_t from,
+            cluster_version_t to,
+            const std::function<binary_blob_t(const region_t &,
+                                              const binary_blob_t &)> &cb,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -151,6 +156,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
+            backfill_item_memory_tracker_t *memory_tracker,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
     continue_bool_t receive_backfill(
@@ -161,6 +167,7 @@ public:
 
     void wait_until_ok_to_receive_backfill(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+    bool check_ok_to_receive_backfill() THROWS_NOTHING;
 
     void reset_data(
             const binary_blob_t &zero_version,
@@ -175,6 +182,8 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+    /* Warning: If the index already exists, this function will crash. Make sure that
+    you don't run multiple instances of this for the same index at the same time. */
     void sindex_create(
             const std::string &name,
             const sindex_config_t &config,
@@ -192,17 +201,19 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
+    rwlock_in_line_t get_in_line_for_cfeed_stamp(access_t access);
 
     void register_sindex_queue(
-            internal_disk_backed_queue_t *disk_backed_queue,
+            disk_backed_queue_wrapper_t<rdb_modification_report_t> *disk_backed_queue,
+            const key_range_t &construction_range,
             const new_mutex_in_line_t *acq);
 
     void deregister_sindex_queue(
-            internal_disk_backed_queue_t *disk_backed_queue,
+            disk_backed_queue_wrapper_t<rdb_modification_report_t> *disk_backed_queue,
             const new_mutex_in_line_t *acq);
 
     void emergency_deregister_sindex_queue(
-            internal_disk_backed_queue_t *disk_backed_queue);
+            disk_backed_queue_wrapper_t<rdb_modification_report_t> *disk_backed_queue);
 
     // Updates the live sindexes, and pushes modification reports onto the sindex
     // queues of non-live indexes.
@@ -219,7 +230,9 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    MUST_USE bool add_sindex_internal(
+    // Returns the UUID of the created index, or boost::none if an index by `name`
+    // already existed.
+    MUST_USE boost::optional<uuid_u> add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
@@ -227,16 +240,10 @@ public:
     std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
 
     bool mark_index_up_to_date(
-        const sindex_name_t &name,
-        buf_lock_t *sindex_block)
-    THROWS_NOTHING;
-
-    bool mark_index_up_to_date(
         uuid_u id,
-        buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block,
+        const key_range_t &except_for_remaining_range)
     THROWS_NOTHING;
-
-    void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
@@ -281,17 +288,6 @@ public:
             sindex_access_vector_t *sindex_sbs_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
-    void acquire_post_constructed_sindex_superblocks_for_write(
-            buf_lock_t *sindex_block,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_NOTHING;
-
-    bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<sindex_name_t> > sindexes_to_acquire, //none means acquire all sindexes
-            buf_lock_t *sindex_block,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_ready_exc_t);
-
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
@@ -330,21 +326,29 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-private:
-    // Helper function to clear out a secondary index that has been
-    // marked as deleted. To be run in a coroutine.
-    void delayed_clear_sindex(
-            secondary_index_t sindex,
-            auto_drainer_t::lock_t store_keepalive)
-            THROWS_NOTHING;
-    // Internally called by `delayed_clear_sindex()`
-    void clear_sindex(
-            secondary_index_t sindex,
+    // Used by `delayed_clear_and_drop_sindex` and during index post-construction.
+    // Clears out a slice of a secondary index.
+    void clear_sindex_data(
+            uuid_u sindex_id,
             value_sizer_t *sizer,
             const deletion_context_t *deletion_context,
+            const key_range_t &pkey_range_to_clear,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+private:
+    // Helper function to clear out a secondary index that has been
+    // marked as deleted and drop it at the end. To be run in a coroutine.
+    void delayed_clear_and_drop_sindex(
+            secondary_index_t sindex,
+            auto_drainer_t::lock_t store_keepalive)
+            THROWS_NOTHING;
+    // Drops a secondary index. Assumes that the index has previously been cleared
+    // through `clear_sindex_data()`.
+    void drop_sindex(uuid_u sindex_id) THROWS_NOTHING;
+
+    // Resumes post construction for partially constructed indexes.  Resumes deleting
+    // deleted indexes.  Also migrates the secondary index block to the current version.
     void help_construct_bring_sindexes_up_to_date();
 
     MUST_USE bool mark_secondary_index_deleted(
@@ -354,12 +358,12 @@ private:
 public:
     namespace_id_t const &get_table_id() const;
 
-    typedef std::map<
-        uuid_u, std::pair<microtime_t, parallel_traversal_progress_t const *>
-    > sindex_context_map_t;
+    // The `double` is the progress of the secondary index construction.
+    typedef std::map<uuid_u, std::pair<microtime_t, double const *> >
+        sindex_context_map_t;
     sindex_context_map_t *get_sindex_context_map();
 
-    progress_completion_fraction_t get_sindex_progress(uuid_u const &id);
+    double get_sindex_progress(uuid_u const &id);
     microtime_t get_sindex_start_time(uuid_u const &id);
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
@@ -378,15 +382,49 @@ public:
 
     std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
-    std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    // We construct secondary indexes by starting with a `universe()` construction_range,
+    // and then making the range increasingly smaller until it is `empty()`.
+    // While we are in that process, we must put any write for a primary key that is in
+    // `construction_range` into the associated secondary index queue. Any other write
+    // must be applied directly to the secondary index.
+    struct ranged_sindex_queue_t {
+        // Once the index has been fully constructed, `construction_range` will be empty.
+        key_range_t construction_range;
+        disk_backed_queue_wrapper_t<rdb_modification_report_t> *queue;
+    };
+    std::vector<ranged_sindex_queue_t> sindex_queues;
     new_mutex_t sindex_queue_mutex;
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with the `rdb_modification_report_cb_t` in
+    // `btree.cc`.
+    rwlock_t cfeed_stamp_lock;
 
+private:
     rdb_context_t *ctx;
-    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+    // We store regions here even though we only really need the key ranges
+    // because it's nice to have a unique identifier across `store_t`s.  In the
+    // future we may use these `region_t`s instead of the `uuid_u`s in the
+    // changefeed server.
+    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > changefeed_servers;
+    rwlock_t changefeed_servers_lock;
 
-    // This report is used by the outdated index issue tracker, and should be updated
-    // any time the set of outdated indexes for this table changes
-    scoped_ptr_t<outdated_index_report_t> index_report;
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region,
+            const rwlock_acq_t *acq);
+public:
+    // Returns a pointer to `changefeed_servers` together with a read acquisition
+    // on `changefeed_servers_lock`.
+    std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
+              scoped_ptr_t<rwlock_acq_t> > access_changefeed_servers();
+    // Return a pointer to a specific changefeed server if it exists. These can
+    // block.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region);
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const store_key_t &key);
+    // Like `changefeed_server()`, but creates the server if it doesn't exist.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
+            get_or_make_changefeed_server(const region_t &region);
 
 private:
     namespace_id_t table_id;

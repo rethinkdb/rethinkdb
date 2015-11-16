@@ -5,7 +5,9 @@
 // serialization / deserialization happens relative to one of these versions.
 enum class obsolete_cluster_version_t {
     v1_13 = 0,
-    v1_13_2 = 1
+    v1_13_2 = 1,
+
+    v1_13_2_is_latest = v1_13_2
 };
 enum class cluster_version_t {
     // The versions are _currently_ contiguously numbered.  If this becomes untrue,
@@ -16,23 +18,24 @@ enum class cluster_version_t {
     v1_16 = 4,
     v2_0 = 5,
     v2_1 = 6,
+    v2_2 = 7,
 
     // This is used in places where _something_ needs to change when a new cluster
     // version is created.  (Template instantiations, switches on version number,
     // etc.)
-    v2_1_is_latest = v2_1,
+    v2_2_is_latest = v2_2,
 
     // Like the *_is_latest version, but for code that's only concerned with disk
     // serialization. Must be changed whenever LATEST_DISK gets changed.
-    v2_1_is_latest_disk = v2_1,
+    v2_2_is_latest_disk = v2_2,
 
     // The latest version, max of CLUSTER and LATEST_DISK
-    LATEST_OVERALL = v2_1_is_latest,
+    LATEST_OVERALL = v2_2_is_latest,
 
     // The latest version for disk serialization can sometimes be different from the
     // version we use for cluster serialization.  This is also the latest version of
     // ReQL deterministic function behavior.
-    LATEST_DISK = v2_1,
+    LATEST_DISK = v2_2,
 
     // This exists as long as the clustering code only supports the use of one
     // version.  It uses cluster_version_t::CLUSTER wherever it uses this.
@@ -72,26 +75,33 @@ static_assert(cluster_version_t::CLUSTER != cluster_version_t::LATEST_DISK,
 // Then, v1.18 would still only support v1_17 and v1_18.  However, v1.18.1 might
 // support v1_17, v1_17_1, and v1_18 (and v1_18_1 if that needs to be created).
 
+
 enum class obsolete_reql_version_t {
-    v1_13 = 0
-};
-// Reql versions define how secondary index functions should be evaluated.  Older
-// versions have bugs that are fixed in newer versions.  They also define how secondary
-// index keys are generated.  v1_13 has buggy secondary index key generation, and in
-// v1_16 pseudotypes are no longer permitted to be treated as objects.
-enum class reql_version_t {
+    v1_13 = 0,
     v1_14 = 1,
     v1_15 = v1_14,
+
+    v1_15_is_latest = v1_15,
+
+    EARLIEST = v1_13,
+    LATEST = v1_15_is_latest
+};
+
+// Reql versions define how secondary index functions should be evaluated.  Older
+// versions have bugs that are fixed in newer versions.  They also define how secondary
+// index keys are generated.
+enum class reql_version_t {
     v1_16 = 2,
     v2_0 = 3,
     v2_1 = 4,
+    v2_2 = 5,
 
     // Code that uses _is_latest may need to be updated when the
     // version changes
-    v2_1_is_latest = v2_1,
+    v2_2_is_latest = v2_2,
 
-    EARLIEST = v1_14,
-    LATEST = v2_1,
+    EARLIEST = v1_16,
+    LATEST = v2_2_is_latest
 };
 
 // Serialization of reql_version_t is defined in protocol_api.hpp.

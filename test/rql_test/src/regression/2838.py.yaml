@@ -1,0 +1,16 @@
+desc: Test that return_changes fails gracefully.
+table_variable_name: tbl
+tests:
+  - py: tbl.insert([{'result':i} for i in range(1,100)]).pluck('first_error', 'inserted')
+    ot: {'inserted':99}
+  
+  - py: tbl.update({'foo':'bar'}, return_changes=True)['changes'].count()
+    runopts:
+      array_limit: 40
+    ot: 40
+  
+  - py: tbl.update({'foo':'quux'}, return_changes=True)['warnings']
+    runopts:
+      array_limit: 40
+    ot: ['Too many changes, array truncated to 40.']
+

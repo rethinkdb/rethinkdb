@@ -1,29 +1,34 @@
 desc: Tests for the basic usage of the mod operation
 tests:
     
-    # Python supports the overloaded operator '%' in both directions
-    - py: [(r.expr(10) % 3), (10 % r.expr(3)), (r.expr(10).mod(3))]
-      js: r(10).mod(3)
-      rb: [(r 10) % 3, r(10).mod 3, 10 % (r 3)]
+    - cd: r.expr(10).mod(3)
+      py:
+        - r.expr(10) % 3
+        - 10 % r.expr(3)
+        - r.expr(10).mod(3)
+      rb:
+        - (r 10) % 3
+        - r(10).mod 3
+        - 10 % (r 3)
       ot: 1
 
-    - py: r.expr(-10) % -3
-      js: r(-10).mod(-3)
+    - cd: r.expr(-10).mod(-3)
+      py: r.expr(-10) % -3
       rb: (r -10) % -3
       ot: -1
 
     # Type errors
-    - py: r.expr(4) % 'a'
-      js: r(4).mod('a')
+    - cd: r.expr(4).mod('a')
+      py: r.expr(4) % 'a'
       rb: r(4) % 'a'
-      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [1])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1])
 
-    - py: r.expr('a') % 1
-      js: r('a').mod(1)
+    - cd: r.expr('a').mod(1)
+      py: r.expr('a') % 1
       rb: r('a') % 1
-      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
-    - py: r.expr('a') % 'b'
-      js: r('a').mod('b')
+    - cd: r.expr('a').mod('b')
+      py: r.expr('a') % 'b'
       rb: r('a') % 'b'
-      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])

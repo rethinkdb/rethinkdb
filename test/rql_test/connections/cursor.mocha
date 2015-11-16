@@ -16,8 +16,8 @@ var numRows = parseInt(process.env.TEST_ROWS) || 100;
 var numRowsMany = parseInt(process.env.TEST_MANY_ROWS) || 10000; // Keep a "big" value to try hitting `maximum call stack exceed`
 
 // -- load rethinkdb from the proper location
-
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var Promise = r._bluebird;
 
 // -- globals
 
@@ -52,14 +52,14 @@ var withConnection = function(fnct) {
             return reqlConn;
         })
         // re-establish the connection if it was bad
-        .catch(r.Error.RqlDriverError, r.Error.RqlRuntimeError, function(err) {
-        	reqlConn = null;
-        	return r.connect({host:serverHost, port:driverPort})
-        	.then(function(conn) {
+        .catch(r.Error.ReqlDriverError, r.Error.ReqlRuntimeError, function(err) {
+                reqlConn = null;
+                return r.connect({host:serverHost, port:driverPort})
+                .then(function(conn) {
                 // cache the new connection
                 reqlConn = conn;
                 return reqlConn;
-        	});
+                });
         });
     }
 }
@@ -77,7 +77,7 @@ var withTableCursor = function() {
 
 var argErrorTest = function(expectedMsg) {
     return function(err) {
-        return (err instanceof r.Error.RqlDriverError) && (expectedMsg == err.msg)
+        return (err instanceof r.Error.ReqlDriverCompileError) && (expectedMsg == err.msg)
     }
 }
 
@@ -90,7 +90,7 @@ describe('JavaScript Cursor', function() {
     // setup
     before(function() {
         this.timeout(10000)
-        
+
         // ensure db exists
         return withConnection()
         .then(function() {
@@ -115,12 +115,12 @@ describe('JavaScript Cursor', function() {
             ).run(reqlConn);
         });
     });
-    
+
     // ensure reqlConn and tableCursor are valid before each test
     beforeEach(function() { return withTableCursor(); });
-    
+
     describe('callback style', function() {
-        
+
         it('gets created on a table query', function(done) {
             tbl.run(reqlConn, function(err, cur) {
                 assert.ifError(err);
@@ -128,7 +128,7 @@ describe('JavaScript Cursor', function() {
                 done();
             });
         });
-        
+
         describe('next', function() {
             it('yields the next element', function(done) {
                 tableCursor.next(function(err, row) {
@@ -138,7 +138,7 @@ describe('JavaScript Cursor', function() {
                 });
             });
         });
-        
+
         describe('toArray', function() {
             it('yields the full result set', function(done) {
                 var expectedResult = [];
@@ -152,7 +152,7 @@ describe('JavaScript Cursor', function() {
                 });
             });
         });
-        
+
         describe('each', function() {
             it('iterates over table', function(done) {
                 var i = 0;
@@ -168,14 +168,88 @@ describe('JavaScript Cursor', function() {
                     }
                 );
             });
-            
+
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.each(
+                    function(err, row) {
+                        assert.ifError(err);
+                        assert.deepEqual(row, {'id':i});
+                        if (row.id === 10) {
+                            return false;
+                        }
+                        i++;
+                    },
+                    function() {
+                        assert.equal(i, 10);
+                        done();
+                    }
+                );
+            });
+
             it('errors when missing argument', function(done) {
                 expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
                 assert.throws(function() { tableCursor.each(); }, argErrorTest(expectedMsg));
                 done();
             });
         });
-        
+
+        describe('eachAsync', function() {
+            it('iterates over table', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                }).then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('resolves before continuing iteration', function(done) {
+                var i = 0,
+                    handled = 0;
+
+                function asyncHandler(row) {
+                    return Promise.resolve().then(function () {
+                        assert.equal(handled++, row.id);
+                    })
+                }
+
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                    return asyncHandler(row);
+                })
+                .then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    if (row.id === 10) {
+                        return Promise.reject(row);
+                    }
+                    i++;
+                })
+                .catch(function(row) {
+                    assert.equal(i, 10);
+                    assert.equal(row.id, 10);
+                    done();
+                });
+            });
+
+            it('errors when missing argument', function(done) {
+                expectedMsg = 'First argument to eachAsync must be a function.';
+                assert.throws(function() { tableCursor.eachAsync(); }, argErrorTest(expectedMsg));
+                done();
+            });
+        });
+
         describe('close', function(done) {
             it("doesn't error", function(done) {
                 tableCursor.close(function(err) {
@@ -184,10 +258,11 @@ describe('JavaScript Cursor', function() {
                 });
             });
         });
-        
+
         it('errors on extra argument to toString', function(done) {
             expectedMsg = 'Expected 0 arguments but found 1.';
-            assert.throws(function() { tableCursor.toString(1); }, argErrorTest(expectedMsg));
+            assert.throws(function() {tableCursor.toString(1); },
+                          argErrorTest(expectedMsg));
             done();
         });
     });
@@ -198,25 +273,25 @@ describe('JavaScript array', function() {
     for(var i = 0; i < numRows; i++) {
         testArray.push(i);
     }
-    
+
     // ensure reqlConn is valid before each test
     beforeEach(function() { return withConnection(); });
-    
+
     it('has the right type, contents and size', function(done) {
         r(testArray).run(reqlConn, function(err, res) {
             assert.ifError(err);
-            
+
             assert(res instanceof Array);
             assert.equal(res.length, numRows);
             assert.deepEqual(res, testArray);
-            
+
             res.push(numRows);
             assert.equal(res[numRows], numRows);
             assert.equal(res.length, numRows + 1);
             done();
         });
     });
-    
+
     describe('next', function() {
         it('yields the next value', function(done) {
             r(testArray).run(reqlConn, function(err, res) {
@@ -227,13 +302,13 @@ describe('JavaScript array', function() {
             });
         });
     });
-    
+
     describe('toArray', function() {
         it('returns the same array without copying', function(done) {
             r(testArray).run(reqlConn, function(err, res) {
                 assert.ifError(err);
                 assert.deepEqual(res, testArray);
-                
+
                 res.toArray(function(err, res2) {
                     assert.ifError(err);
                     assert.strictEqual(res, res2); // this should return the same object, not a copy
@@ -242,7 +317,7 @@ describe('JavaScript array', function() {
             });
         });
     });
-    
+
     it('works with a large array', function(done) {
         var bigArray = [];
         for(var i = 0; i < numRowsMany; i++) {
@@ -250,7 +325,7 @@ describe('JavaScript array', function() {
         }
         r.expr(bigArray).run(reqlConn, function(err, res) {
             assert.ifError(err);
-            
+
             var i = 0;
             res.each(
                 function(err, value) {

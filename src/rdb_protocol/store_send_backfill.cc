@@ -5,7 +5,7 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/lazy_btree_val.hpp"
 
 /* After every `MAX_BACKFILL_ITEMS_PER_TXN` backfill items or backfill pre-items, we'll
 release the superblock and start a new transaction. */
@@ -78,7 +78,9 @@ continue_bool_t store_t::send_backfill_pre(
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,
                 const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
-            guarantee(!p1.first.overlaps(p2.first));
+            /* Note that the OS X std::sort implementation sometimes calls the
+            comparison operator on an element itself. */
+            guarantee(&p1 == &p2 || !p1.first.overlaps(p2.first));
             return p1.first.left < p2.first.left;
         });
     for (const auto &pair : reference_timestamps) {
@@ -149,28 +151,26 @@ public:
             store_view_t::backfill_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
-        inner_aborted(false), remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
+        remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
         threshold_ptr(_threshold_ptr), metainfo_ptr(_metainfo_ptr) { }
     continue_bool_t on_item(backfill_item_t &&item) {
-        rassert(!inner_aborted && remaining > 0);
+        rassert(remaining > 0);
         --remaining;
         rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
         *threshold_ptr = item.range.right;
-        inner_aborted = continue_bool_t::ABORT == inner->on_item(
-            *metainfo_ptr, std::move(item));
-        return (inner_aborted || remaining == 0)
+        inner->on_item(*metainfo_ptr, std::move(item));
+        return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
     continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &new_threshold) {
-        rassert(!inner_aborted && remaining > 0);
+        rassert(remaining > 0);
         --remaining;
         rassert(new_threshold >= *threshold_ptr);
         *threshold_ptr = new_threshold;
-        inner_aborted = continue_bool_t::ABORT == inner->on_empty_range(
-            *metainfo_ptr, new_threshold);
-        return (inner_aborted || remaining == 0)
+        inner->on_empty_range(*metainfo_ptr, new_threshold);
+        return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
     void copy_value(
@@ -197,7 +197,17 @@ public:
         }
         guarantee(offset == value_out->size());
     }
-    bool inner_aborted;
+    int64_t size_value(
+            buf_parent_t parent,
+            const void *value_in_leaf_node) {
+        const rdb_value_t *v =
+            static_cast<const rdb_value_t *>(value_in_leaf_node);
+        rdb_blob_wrapper_t blob_wrapper(
+            parent.cache()->max_block_size(),
+            const_cast<rdb_value_t *>(v)->value_ref(),
+            blob::btree_maxreflen);
+        return blob_wrapper.valuesize();
+    }
     size_t remaining;
 private:
     store_view_t::backfill_item_consumer_t *const inner;
@@ -212,7 +222,8 @@ private:
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_item_producer_t *pre_item_producer,
-        backfill_item_consumer_t *item_consumer,
+        store_view_t::backfill_item_consumer_t *item_consumer,
+        backfill_item_memory_tracker_t *memory_tracker,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     /* Just like in `send_backfill_pre()`, we first break `start_point` up into regions
@@ -231,7 +242,9 @@ continue_bool_t store_t::send_backfill(
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,
                 const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
-            guarantee(!p1.first.overlaps(p2.first));
+            /* Note that the OS X std::sort implementation sometimes calls the
+            comparison operator on an element itself. */
+            guarantee(&p1 == &p2 || !p1.first.overlaps(p2.first));
             return p1.first.left < p2.first.left;
         });
     for (const auto &pair : reference_timestamps) {
@@ -255,8 +268,19 @@ continue_bool_t store_t::send_backfill(
             to_do.left = threshold.key();
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
-                &pre_item_adapter, &limiter, interruptor);
-            if (limiter.inner_aborted || pre_item_adapter.aborted) {
+                &pre_item_adapter, &limiter, memory_tracker, interruptor);
+
+            /* Check if the backfill was aborted because of exhausting the memory
+            limit, or because the pre_item_adapter aborted.
+            Note that `memory_tracker->is_limit_exceeded()` can sometimes return
+            `true` even though that wasn't the reason for the backfill being aborted.
+            In particular this can happen if `memory_tracker->note_item()` was called
+            after the last time that `memory_tracker->is_limit_exceeded()` was checked
+            in the backfill. The next loop iteration would abort anyway because of
+            the exceeded limit, so aborting now even if that wasn't the reason for
+            `cont` being set to `continue_bool_t::ABORT` isn't a big deal. */
+            if ((cont == continue_bool_t::ABORT && memory_tracker->is_limit_exceeded())
+                || pre_item_adapter.aborted) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
             }

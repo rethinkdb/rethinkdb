@@ -27,7 +27,11 @@ sindex_manager_t::get_status(signal_t *interruptor) const {
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > res;
     table_config->apply_read([&](const table_config_t *config) {
         for (const auto &pair : config->sindexes) {
-            res[pair.first] = std::make_pair(pair.second, sindex_status_t());
+            auto it = res.insert(
+                std::make_pair(pair.first, std::make_pair(pair.second,
+                                                          sindex_status_t()))).first;
+            it->second.second.outdated =
+                (pair.second.func_version != reql_version_t::LATEST);
         }
     });
 
@@ -123,6 +127,9 @@ void sindex_manager_t::update_blocking(signal_t *interruptor) {
         }
         store->sindex_rename_multi(to_rename, &ct_interruptor);
         for (const auto &pair : to_create) {
+            /* Note that this crashes if the index already exists. Luckily we are running
+            in a `pump_coro_t`, and we should be the only thing that's creating indexes
+            on the store so this shouldn't be an issue. */
             store->sindex_create(pair.first, pair.second, &ct_interruptor);
         }
     }

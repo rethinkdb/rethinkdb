@@ -44,5 +44,5 @@ tests:
 #    # - order by
 #    
 #    - cd: tbl.union(tbl).changes().order_by('id')
-#      ot: err('RqlRuntimeError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
+#      ot: err('ReqlRuntimeError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
 #    

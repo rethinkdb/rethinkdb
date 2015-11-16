@@ -518,3 +518,8 @@ void store_t::wait_until_ok_to_receive_backfill(signal_t *interruptor)
     wait_interruptible(lock_acq.read_signal(), interruptor);
 }
 
+bool store_t::check_ok_to_receive_backfill() THROWS_NOTHING {
+    rwlock_in_line_t lock_acq(&backfill_postcon_lock, access_t::read);
+    return lock_acq.read_signal()->is_pulsed();
+}
+

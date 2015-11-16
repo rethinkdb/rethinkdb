@@ -17,12 +17,11 @@ The test framework is written in python.
 
 ### Dependencies
 
-Before the tests will work, you must `./configure` and build RethinkDB. Additionally, Python's YAML library
-and the node.js mocha test framework need to be installed.
+Before all the tests will work, you must `./configure` and build RethinkDB, install node.js,
+as well as install the node.js mocha test framework.
 
 ```
 make -C ../..
-sudo easy_install pyyaml
 sudo npm install -g mocha
 ```
 

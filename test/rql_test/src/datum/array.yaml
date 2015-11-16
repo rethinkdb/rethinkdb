@@ -1,8 +1,9 @@
 desc: Tests conversion to and from the RQL array type
 tests:
-    - py: r.expr([])
-      js: ['r.expr([])', 'r([])']
-      rb: r([])
+    - cd: 
+        - r.expr([])
+        - r([])
+      py: r.expr([])
       ot: []
 
     - py: r.expr([1])
@@ -16,22 +17,28 @@ tests:
       ot: [1,2,3,4,5]
 
     - cd: r.expr([]).type_of()
-      ot: "'ARRAY'"
+      ot: 'ARRAY'
 
     # test coercions
     - cd:
         - r.expr([1, 2]).coerce_to('string')
         - r.expr([1, 2]).coerce_to('STRING')
-      ot: "'[1,2]'"
+      ot: '[1,2]'
 
     - cd: r.expr([1, 2]).coerce_to('array')
       ot: [1, 2]
 
     - cd: r.expr([1, 2]).coerce_to('number')
-      ot: err('RqlLogicError', 'Cannot coerce ARRAY to NUMBER.', [0])
+      ot: err('ReqlQueryLogicError', 'Cannot coerce ARRAY to NUMBER.', [0])
 
     - cd: r.expr([['a', 1], ['b', 2]]).coerce_to('object')
-      ot: ({'a':1,'b':2})
+      ot: {'a':1,'b':2}
+
+    - cd: r.expr([[]]).coerce_to('object')
+      ot: err('ReqlQueryLogicError', 'Expected array of size 2, but got size 0.')
+
+    - cd: r.expr([['1',2,3]]).coerce_to('object')
+      ot: err('ReqlQueryLogicError', 'Expected array of size 2, but got size 3.')
 
     # Nested expression
     - cd: r.expr([r.expr(1)])
@@ -45,18 +52,18 @@ tests:
       ot: [1,2,3,4]
     - cd: r.expr([1,2,3]).insert_at(3, 4)
       ot: [1,2,3,4]
-    - py: "r.expr(3).do(lambda x: r.expr([1,2,3]).insert_at(x, 4))"
+    - py: r.expr(3).do(lambda x: r.expr([1,2,3]).insert_at(x, 4))
     - js: r.expr(3).do(function (x) { return r.expr([1,2,3]).insert_at(x, 4); })
     - rb: r.expr(3).do{|x| r.expr([1,2,3]).insert_at(x, 4)}
       ot: [1,2,3,4]
     - cd: r.expr([1,2,3]).insert_at(4, 5)
-      ot: "err('RqlNonExistenceError', 'Index `4` out of bounds for array of size: `3`.', [0])"
+      ot: err('ReqlNonExistenceError', 'Index `4` out of bounds for array of size: `3`.', [0])
     - cd: r.expr([1,2,3]).insert_at(-5, -1)
-      ot: "err('RqlNonExistenceError', 'Index out of bounds: -5', [0])"
+      ot: err('ReqlNonExistenceError', 'Index out of bounds: -5', [0])
     - cd: r.expr([1,2,3]).insert_at(1.5, 1)
-      ot: "err('RqlLogicError', 'Number not an integer: 1.5', [0])"
+      ot: err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0])
     - cd: r.expr([1,2,3]).insert_at(null, 1)
-      ot: "err('RqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])"
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])
 
     - cd: r.expr([1,4]).splice_at(1, [2,3])
       ot: [1,2,3,4]
@@ -66,24 +73,24 @@ tests:
       ot: [1,2,3,4]
     - cd: r.expr([1,2]).splice_at(-1, [3,4])
       ot: [1,2,3,4]
-    - py: "r.expr(2).do(lambda x: r.expr([1,2]).splice_at(x, [3,4]))"
+    - py: r.expr(2).do(lambda x: r.expr([1,2]).splice_at(x, [3,4]))
     - js: r.expr(2).do(function (x) { return r.expr([1,2]).splice_at(x, [3,4]); })
     - rb: r.expr(2).do{|x| r.expr([1,2]).splice_at(x, [3,4])}
       ot: [1,2,3,4]
     - cd: r.expr([1,2]).splice_at(3, [3,4])
-      ot: "err('RqlNonExistenceError', 'Index `3` out of bounds for array of size: `2`.', [0])"
+      ot: err('ReqlNonExistenceError', 'Index `3` out of bounds for array of size: `2`.', [0])
     - cd: r.expr([1,2]).splice_at(-4, [3,4])
-      ot: "err('RqlNonExistenceError', 'Index out of bounds: -4', [0])"
+      ot: err('ReqlNonExistenceError', 'Index out of bounds: -4', [0])
     - cd: r.expr([1,2,3]).splice_at(1.5, [1])
-      ot: "err('RqlLogicError', 'Number not an integer: 1.5', [0])"
+      ot: err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0])
     - cd: r.expr([1,2,3]).splice_at(null, [1])
-      ot: "err('RqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])"
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])
     - cd: r.expr([1,4]).splice_at(1, 2)
-      ot: "err('RqlLogicError', 'Expected type ARRAY but found NUMBER.', [0])"
+      ot: err('ReqlQueryLogicError', 'Expected type ARRAY but found NUMBER.', [0])
 
     - cd: r.expr([1,2,3,4]).delete_at(0)
       ot: [2,3,4]
-    - py: "r.expr(0).do(lambda x: r.expr([1,2,3,4]).delete_at(x))"
+    - py: r.expr(0).do(lambda x: r.expr([1,2,3,4]).delete_at(x))
     - js: r.expr(0).do(function (x) { return r.expr([1,2,3,4]).delete_at(x); })
     - rb: r.expr(0).do{|x| r.expr([1,2,3,4]).delete_at(x)}
       ot: [2,3,4]
@@ -98,17 +105,17 @@ tests:
     - cd: r.expr([1,2,3,4]).delete_at(1,-1)
       ot: [1,4]
     - cd: r.expr([1,2,3,4]).delete_at(4)
-      ot: "err('RqlNonExistenceError', 'Index `4` out of bounds for array of size: `4`.', [0])"
+      ot: err('ReqlNonExistenceError', 'Index `4` out of bounds for array of size: `4`.', [0])
     - cd: r.expr([1,2,3,4]).delete_at(-5)
-      ot: "err('RqlNonExistenceError', 'Index out of bounds: -5', [0])"
+      ot: err('ReqlNonExistenceError', 'Index out of bounds: -5', [0])
     - cd: r.expr([1,2,3]).delete_at(1.5)
-      ot: "err('RqlLogicError', 'Number not an integer: 1.5', [0])"
+      ot: err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0])
     - cd: r.expr([1,2,3]).delete_at(null)
-      ot: "err('RqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])"
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])
 
     - cd: r.expr([0,2,3]).change_at(0, 1)
       ot: [1,2,3]
-    - py: "r.expr(1).do(lambda x: r.expr([0,2,3]).change_at(0,x))"
+    - py: r.expr(1).do(lambda x: r.expr([0,2,3]).change_at(0,x))
     - js: r.expr(1).do(function (x) { return r.expr([0,2,3]).change_at(0,x); })
     - rb: r.expr(1).do{|x| r.expr([0,2,3]).change_at(0,x)}
       ot: [1,2,3]
@@ -117,10 +124,10 @@ tests:
     - cd: r.expr([1,2,0]).change_at(2, 3)
       ot: [1,2,3]
     - cd: r.expr([1,2,3]).change_at(3, 4)
-      ot: "err('RqlNonExistenceError', 'Index `3` out of bounds for array of size: `3`.', [0])"
+      ot: err('ReqlNonExistenceError', 'Index `3` out of bounds for array of size: `3`.', [0])
     - cd: r.expr([1,2,3,4]).change_at(-5, 1)
-      ot: "err('RqlNonExistenceError', 'Index out of bounds: -5', [0])"
+      ot: err('ReqlNonExistenceError', 'Index out of bounds: -5', [0])
     - cd: r.expr([1,2,3]).change_at(1.5, 1)
-      ot: "err('RqlLogicError', 'Number not an integer: 1.5', [0])"
+      ot: err('ReqlQueryLogicError', 'Number not an integer: 1.5', [0])
     - cd: r.expr([1,2,3]).change_at(null, 1)
-      ot: "err('RqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])"
+      ot: err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0])

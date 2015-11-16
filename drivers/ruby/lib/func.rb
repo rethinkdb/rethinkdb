@@ -83,12 +83,12 @@ module RethinkDB
         if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
           a.each {|arg|
             if arg.is_a?(RQL) && arg.bitop
-              err = "Calling #{__method__} on result of infix bitwise operator:\n" +
+              err = "Calling '#{__method__}' on result of infix bitwise operator:\n" +
                 "#{arg.inspect}.\n" +
                 "This is almost always a precedence error.\n" +
                 "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
                 "If you really want this behavior, use `.or` or `.and` instead."
-              raise RqlDriverError, err
+              raise ReqlDriverCompileError, err
             end
           }
         end
@@ -151,7 +151,7 @@ module RethinkDB
     def do(*args, &b)
       a = ((@body != RQL) ? [self] : []) + args.dup
       if a == [] && !b
-        raise RqlDriverError, "Expected 1 or more arguments but found 0."
+        raise ReqlDriverCompileError, "Expected 1 or more arguments but found 0."
       end
       funcall_args = (b ? [new_func(&b)] : [a.pop]) + a
       # PP.pp funcall_args

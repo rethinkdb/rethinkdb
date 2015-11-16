@@ -1,9 +1,10 @@
-var Path = require('path');
-var Promise = require(Path.resolve(__dirname, '..', '..', '..', 'build', 'packages', 'js', 'node_modules', 'bluebird'));
+var path = require('path');
+var assert = require('assert');
 
 // -- load rethinkdb from the proper location
 
-var r = require(Path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var promise = r._bluebird
 
 // -- global variables
 
@@ -51,16 +52,23 @@ var TRACE_ENABLED = process.env.VERBOSE || false;
 
 // -- utilities --
 
-function printTestFailure(name, src, expected, result) {
+function printTestFailure(test, result) {
     failure_count += 1;
-    console.log("TEST FAILURE:  " + name + "\n" +
-    			"     SOURCE:   " + src + "\n" +
-    			"     EXPECTED: " + expected + "\n" +
-    			"     RESULT:   " + result + "\n");
+    console.log("TEST FAILURE:    " + test.name + "\n" +
+    			"     SOURCE:     " + test.src + "\n" +
+    			"     EXPECTED:   " + stringValue(test.exp_fun) + "\n" +
+    			"     RESULT:     " + stringValue(result));
+    if (result.stack) {
+        console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>>")
+    }
+    if (result.cmpMsg) {
+        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>>")
+    }
+    console.log('')
 }
 
 function eq_test(expected, result, compOpts, partial) {
-    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " || partial: " + (partial == true));
+    TRACE("eq_test - expected: " + stringValue(expected) + " result: " + stringValue(result) + " partial: " + (partial == true) + " settings: " + stringValue(compOpts));
     
     if (expected instanceof Function) {
         return expected(result);
@@ -72,8 +80,8 @@ function eq_test(expected, result, compOpts, partial) {
         return false;
 
     } else if (parseFloat(expected) === expected && parseFloat(result) === result) {
-        if (compOpts && 'precision' in compOpts && parseFloat(compOpts['precision']) === compOpts['precision']) {
-            return Math.abs(expected - result) <= compOpts['precision'];
+        if (compOpts && 'precision' in compOpts && !Number.isNaN(parseFloat(compOpts['precision']))) {
+            return Math.abs(expected - result) <= parseFloat(compOpts['precision']);
         } else {
             return expected === result;
         }
@@ -84,34 +92,32 @@ function eq_test(expected, result, compOpts, partial) {
         return expected == result;
 
     } else if (Array.isArray(expected)) {
+        
+        // short circuit on length
+        
         if (partial) {
-            // short circuit on length
             if (expected.length > result.length) return false;
-
-            // Recurse on each element of expected
-            var resultIndex = 0;
-            for (var expectedIndex in expected) {
-                var foundIt = false;
-                for (; resultIndex < result.length; resultIndex++) {
-                    if (eq_test(expected[expectedIndex], result[resultIndex], compOpts)) {
-                        foundIt = true;
-                        break;
-                    }
-                }
-                if (foundIt == false) {
+        } else {
+            if (expected.length !== result.length) return false;
+        }
+        
+        // Recurse on each element of expected
+        var expIndex = 0, resultIndex = 0;
+        for (; expIndex < expected.length && resultIndex < result.length; expIndex++, resultIndex++) {
+            if (!eq_test(expected[expIndex], result[resultIndex], compOpts)) {
+                if (partial) {
+                    expIndex--; // combines with the ++ in the for loop this holds position
+                } else {
                     return false;
                 }
             }
-        } else {
-            // short circuit on length
-            if (expected.length !== result.length) return false;
-
-            // Recurse on each element of expected
-            for (var i = 0; i < expected.length; i++) {
-                if (!eq_test(expected[i], result[i], compOpts)) return false;
-            }
         }
-
+        if (expIndex != expected.length) {
+            return false; // ran out of expected before results
+        }
+        if (!partial && resultIndex != result.length) {
+            return false; // ran out of results before expected
+        } 
         return true;
 
     } else if (expected instanceof Buffer) {
@@ -142,15 +148,17 @@ function eq_test(expected, result, compOpts, partial) {
 // Equality comparison
 function eq(exp, compOpts) {
     var fun = function eq_inner (val) {
-        if (!eq_test(val, exp, compOpts)) {
+        if (!eq_test(exp, val, compOpts)) {
             return false;
         } else {
             return true;
         }
     };
+    fun.hasDesc = true;
     fun.toString = function() {
         return JSON.stringify(exp);
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -158,9 +166,11 @@ function returnTrue() {
     var fun = function returnTrue_inner (val) {
         return True;
     }
+    fun.hasDesc = true;
     fun.toString = function() {
         return 'Always true';
     }
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -233,7 +243,7 @@ function atexitCleanup(exitCode) {
         }
         
         if(promisesToKeep.length > 0) {
-            Promise.all(promisesToKeep).then(function () {
+            promise.all(promisesToKeep).then(function () {
                 process.exit(exitCode);
             });
         } else {
@@ -260,6 +270,7 @@ r.connect({port:DRIVER_PORT}, function(error, conn) {
         process.exit(1);
     }
     reqlConn = conn;
+    defines['conn'] = conn // allow access to connection
 
     // Start the chain of tests
     runTest();
@@ -320,22 +331,25 @@ function runTest() {
                 
                 // - convert expected value into a function for comparison
                 var exp_fun = null;
-                try {
-                    with (defines) {
-                        exp_fun = eval(test.expectedSrc);
+                if (test.expectedSrc !== undefined) {
+                    try {
+                        with (defines) {
+                            regexEscaped = test.expectedSrc.replace(/(regex\((['"])(.*?)\1\))/g, function(match) {return match.replace('\\', '\\\\');})
+                            exp_fun = eval(regexEscaped);
+                        }
+                    } catch (err) {
+                        // Oops, this shouldn't have happened
+                        console.error(test.name);
+                        console.error(test.expectedSrc);
+                        throw err;
                     }
-                } catch (err) {
-                    // Oops, this shouldn't have happened
-                    console.log(test.name);
-                    console.log(test.expectedSrc);
-                    throw err;
                 }
                 if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
                 
                 test.exp_fun = exp_fun;
                 
-                TRACE('expected value: ' + stringValue(test.exp_fun) + ' from ' + stringValue(test.expectedSrc))
+                TRACE('expected value: <<' + stringValue(test.exp_fun) + '>> from <<' + stringValue(test.expectedSrc) + '>>')
                 
                 // - evaluate the test
                 
@@ -373,7 +387,7 @@ function runTest() {
                         } else {
                             resultText = result
                             try {
-                                resultText = result.toString();
+                                resultText = stringValue(result);
                             } catch (err) {}
                             TRACE("non reql-query result: " + resultText)
                             processResult(null, result, test); // will go on to next test
@@ -381,8 +395,7 @@ function runTest() {
                         }
                     }
                 } catch (result) {
-                    TRACE("querry error - " + result.toString())
-                    TRACE("stack: " + String(result.stack));
+                    TRACE("error result: " + stringValue(result))
                     processResult(result, null, test); // will go on to next test
                     return;
                 }
@@ -406,7 +419,7 @@ function runTest() {
 
 function processResult(err, result, test) {
     // prepare the result to be compared (e.g.: collect feeds and cursor results)
-    TRACE('processResult: ' + result + ', err: ' + err + ', testopts: ' +  stringValue(test.testopts))
+    TRACE('processResult: ' + stringValue(result) + ', err: ' + stringValue(err) + ', testopts: ' +  stringValue(test.testopts))
     var accumulator = [];
     
     try {
@@ -499,51 +512,20 @@ function processResult(err, result, test) {
     }
 }
 
-function stringValue(value) {
-    returnValue = '<< unknown >>';
-    if (value instanceof Error) {
-	    var errStr = value.name ? value.name + ": " : '';
-	    
-	    if (value.msg) {
-			errStr += value.msg;
-		} else if (value.message) {
-			errStr += value.message;
-		} else {
-			errStr += stringValue(value);
-		}
-		
-		if (value.stack) {
-			errStr += "\nStack:\n" + value.stack.toString();
-		}
-	    return errStr;
-	} else if (value && value.name) {
-        returnValue = value.name;
-    } else {
-		try {
-			returnValue = JSON.stringify(value);
-		} catch (err) {
-			try {
-				returnValue = value.toString();
-			} catch (err) {}
-		}
-    }
-    return returnValue;
-}
-
 function compareResult(error, value, test) {
     try {
         expextedText = null;
-        TRACE("compareResult - err:" + stringValue(error) + ", result:" + stringValue(value) + " expected function: " + test.exp_fun.toString());
+        TRACE("compareResult - err:" + stringValue(error) + ", result:" + stringValue(value) + " expected function: " + stringValue(test.exp_fun));
         if (error) {
             if (test.exp_fun.isErr) {
                 if (!test.exp_fun(error)) {
-                    printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
+                    printTestFailure(test, error);
                 }
             } else {
-                printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
+                printTestFailure(test, error);
             }
         } else if (!test.exp_fun(value)) {
-            printTestFailure(test.name, test.src, test.expectedSrc, stringValue(value));
+            printTestFailure(test, value);
         }
     
         runTest(); // Continue to next test.
@@ -554,34 +536,34 @@ function compareResult(error, value, test) {
 }
 
 function stringValue(value) {
-    returnValue = '<< unknown >>';
     if (value instanceof Error) {
 	    var errStr = value.name ? value.name + ": " : '';
 	    
-	    if (value.msg) {
+	    if (value.cmpMsg) {
+	       errStr += value.cmpMsg
+	    } else if (value.msg) {
 			errStr += value.msg;
 		} else if (value.message) {
 			errStr += value.message;
 		} else {
 			errStr += stringValue(value);
 		}
-		
-		if (value.stack) {
-			errStr += "\nStack:\n" + value.stack.toString();
-		}
 	    return errStr;
-	} else if (value && value.name) {
-        returnValue = value.name;
+    } else if (value && value.hasDesc) {
+        return value.toString()
+	} else if (value && value.name && value.prototype) {
+        return value.name;
     } else {
 		try {
-			returnValue = JSON.stringify(value);
+			return JSON.stringify(value);
 		} catch (err) {
 			try {
-				returnValue = value.toString();
-			} catch (err) {}
+				return value.toString();
+			} catch (err) {
+    			return '<< unknown >>';
+			}
 		}
     }
-    return returnValue;
 }
 
 function unexpectedException(){
@@ -595,6 +577,7 @@ function unexpectedException(){
 function test(testSrc, expectedSrc, name, runopts, testopts) {
     tests.push({
         'src':testSrc,
+        'exp_fun':expectedSrc,
         'expectedSrc':expectedSrc,
         'name':name,
         'runopts':runopts,
@@ -678,9 +661,11 @@ function fetch(cursor, limit) {
             unexpectedException("processResult", test.name, err);
         }
     };
+    fun.hasDesc = true;
     fun.toString = function() {
         return 'fetch_inner() limit = ' + limit;
     };
+    fun.toJSON = fun.toString;
     fun.autoRunTest = true;
     return fun;
 }
@@ -691,9 +676,11 @@ function wait(seconds) {
         TRACE("wait_inner test: " + stringValue(test))
         setTimeout(function () { runTest() }, seconds * 1000);
     };
+    fun.hasDesc = true;
     fun.toString = function() {
         return 'wait_inner() seconds = ' + seconds;
     };
+    fun.toJSON = fun.toString;
     fun.autoRunTest = true;
     return fun;
 }
@@ -730,7 +717,7 @@ function bag(expected, compOpts, partial) {
     }
     
     function sortFunc(left, right) {
-        TRACE('sorting: ' + stringValue(left) + ' vs.: ' + stringValue(right) + ' ' + sortFuncName(left))
+        //TRACE('sorting: ' + stringValue(left) + ' (' + sortFuncName(left) + ') vs.: ' + stringValue(right) + ' (' + sortFuncName(right) + ')')
         // -- compare object types, sorting by name
         
         var result = sortFuncName(left).localeCompare(sortFuncName(right))
@@ -748,13 +735,13 @@ function bag(expected, compOpts, partial) {
         // -- array
         
         } else if (left instanceof Array) {
-            TRACE('array')
+            //TRACE('array')
             var i = 0;
             for (i = 0; i < left.length; i++) {
                 if (i >= right.length) {
                     return -1;
                 }
-                TRACE('item ' + i + ' ' + left[i] + ' ' +  right[i])
+                //TRACE('item ' + i + ' ' + left[i] + ' ' +  right[i])
                 result = sortFunc(left[i], right[i]);
                 if (result != 0) { return result; }
             }
@@ -783,7 +770,7 @@ function bag(expected, compOpts, partial) {
         } else if (Number.isNaN(Number(left)) === false && Number.isNaN(Number(right)) === false) {
             left = Number(left);
             right = Number(right);
-            return left == right ? 0 : left > right;
+            return left == right ? 0 : (left > right ? 1 : -1);
         
         // -- string
         
@@ -793,15 +780,17 @@ function bag(expected, compOpts, partial) {
         return 0;
     }
 
-    var bag = eval(expected).sort(sortFunc);
+    var sortedExpected = eval(expected).sort(sortFunc);
     var fun = function bag_inner(other) {
-        other = other.sort(sortFunc);
-        TRACE("bag: " + stringValue(bag) + " other: " + stringValue(other))
-        return eq_test(bag, other, compOpts, true);
+        sortedOther = other.sort(sortFunc);
+        TRACE("bag: " + stringValue(sortedExpected) + " other: " + stringValue(sortedOther))
+        return eq_test(sortedExpected, sortedOther, compOpts, true);
     };
+    fun.hasDesc = true;
     fun.toString = function() {
-        return "bag(" + expected + ")";
+        return "bag(" + stringValue(expected) + ")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -813,13 +802,33 @@ function partial(expected, compOpts) {
         var fun = function partial_inner(result) {
             return eq_test(expected, result, compOpts, true);
         };
+        fun.hasDesc = true;
         fun.toString = function() {
-            return "partial dict(" + expected + ")";
+            return "partial(" + stringValue(expected) + ")";
         };
+        fun.toJSON = fun.toString;
         return fun;
     } else {
         unexpectedException("partial can only handle Arrays and Objects, got: " + typeof(expected));
     }
+}
+
+function regex(pattern) {
+    regex = new RegExp(pattern)
+    var fun = function regexReturn(other) {
+        console.error('a', pattern, regex.test(other), '---', other)
+        if (regex.exec(other) === null) {
+            return false;
+        }
+        return true;
+    }
+    fun.isErr = true;
+    fun.hasDesc = true;
+    fun.toString = function() {
+        return 'regex: ' + pattern.toString();
+    };
+    fun.toJSON = fun.toString;
+    return fun;
 }
 
 // Invoked by generated code to demonstrate expected error output
@@ -828,7 +837,7 @@ function err(err_name, err_msg, err_frames) {
         err_name,
         function(msg) { return (!err_msg || (err_msg === msg)); },
         err_frames || [],
-        err_name+"(\""+err_msg+"\")"
+        err_name + ": " +err_msg
     );
 }
 
@@ -837,29 +846,42 @@ function err_regex(err_name, err_pat, err_frames) {
         err_name,
         function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
         err_frames,
-        err_name + "(\""+err_pat+"\")"
+        err_name + ": " +err_pat
     );
 }
 errRegex = err_regex
 
 function err_predicate(err_name, err_pred, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
+    var err_class = null
+    if (err_name.prototype instanceof Error) {
+        err_class = err_name
+    } else if (r.Error[err_name]) {
+        err_class = r.Error[err_name]
+    }
+    assert(err_class.prototype instanceof Error, 'err_name must be the name of an error class');
+    
     var fun = function err_predicate_return (other) {
-        if (!(other instanceof Error)) return false;
-        if (err_name && !(other.name === err_name)) return false;
-
-        // Strip out "offending object" from err message
-        other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
-        other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
-
-        if (!err_pred(other.msg)) return false;
-        if (err_frames && !(eq_test(other.frames, err_frames))) return false;
+        if (other instanceof Error) {
+            // Strip out "offending object" from err message
+            other.cmpMsg = other.msg || other.message
+            other.cmpMsg = other.cmpMsg.replace(/^([^\n]*?)(?: in)?:\n[\s\S]*$/, '$1:');
+            other.cmpMsg = other.cmpMsg.replace(/\nFailed assertion: .*/, "");
+            other.cmpMsg = other.cmpMsg.replace(/\nStack:\n[\s\S]*$/, "");
+            TRACE("Translate msg: <<" + (other.message || other.msg) + ">> => <<" + other.cmpMsg + ">>")
+        }
+        
+        if (!(other instanceof err_class)) return false;
+        if (!err_pred(other.cmpMsg)) return false;
+        if (err_frames && !(eq_test(err_frames, other.frames))) return false;
         return true;
     }
     fun.isErr = true;
+    fun.hasDesc = true;
     fun.toString = function() {
         return desc;
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -870,9 +892,11 @@ function builtin_err(err_name, err_msg) {
         return true;
     }
     fun.isErr = true;
+    fun.hasDesc = true;
     fun.toString = function() {
         return err_name+"(\""+err_msg+"\")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -881,9 +905,11 @@ function arrlen(length, eq_fun) {
         if (!thing.length || thing.length !== length) return false;
         return !eq_fun || thing.every(eq_fun);
     };
+    fun.hasDesc = true;
     fun.toString = function() {
-        return "arrlen("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
+        return "arrlen(" + length + (eq_fun ? ", " + eq_fun.toString() : '') + ")";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 
@@ -894,6 +920,7 @@ function uuid() {
     fun.toString = function() {
         return "uuid()";
     };
+    fun.toJSON = fun.toString;
     return fun;
 }
 

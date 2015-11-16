@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -66,13 +66,12 @@ def run_tests(build=None, data_dir='./'):
     else:
         print('Testing: %s' % executable_path)
     
+    i = 0
     for settings in servers_settings:
 
         print("Starting server with cache_size " + str(settings["cache_size"]) + " MB...", end=' ')
         sys.stdout.flush()
-        serverFiles = driver.Files(machine_name=settings["name"], db_path=os.path.join(data_dir, settings["name"]))
-        
-        with driver.Process(files=serverFiles, executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
+        with driver.Process(name=os.path.join(data_dir, settings["name"]), executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
             
             print(" Done.\nConnecting...", end=' ')
             sys.stdout.flush()
@@ -88,6 +87,7 @@ def run_tests(build=None, data_dir='./'):
 
             if i == 0:
                 execute_constant_queries()
+            i = i + 1
 
     save_compare_results()
 
@@ -99,7 +99,7 @@ def init_tables(connection):
     sys.stdout.flush()
     try:
         r.db_drop("test").run(connection)
-    except r.errors.RqlRuntimeError as e:
+    except r.errors.ReqlRuntimeError as e:
         pass
 
     r.db_create("test").run(connection)
@@ -364,11 +364,6 @@ def stop_cluster(cluster):
     """Stop the cluster"""
     cluster.check_and_stop()
 
-def check_driver():
-    '''If this driver is protobuf based, make sure we are using the C++ backend.'''
-    if hasattr(r, 'protobuf_implementation') and r.protobuf_implementation == 'py':
-        sys.exit("Please install the C++ backend for the tests.")
-
 def save_compare_results():
     """Save the current results, and if previous results are available, generate an HTML page with the differences"""
     global results, str_date
@@ -411,7 +406,6 @@ def save_compare_results():
 
 def main(data_dir):
     """Main method"""
-    check_driver()
     run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef BTREE_SECONDARY_OPERATIONS_HPP_
 #define BTREE_SECONDARY_OPERATIONS_HPP_
 
@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/uuid.hpp"
@@ -24,20 +25,33 @@ class buf_lock_t;
 struct secondary_index_t {
     secondary_index_t()
         : superblock(NULL_BLOCK_ID),
-          post_construction_complete(false),
+          needs_post_construction_range(key_range_t::universe()),
           being_deleted(false),
-          /* TODO(2014-08): This generate_uuid() is weird. */
           id(generate_uuid()) { }
 
     /* A virtual superblock. */
     block_id_t superblock;
 
-    /* Whether the index is has completed post construction, and/or is being deleted.
-     * Note that an index can be in any combination of those states. */
-    bool post_construction_complete;
+    /* Whether the index still needs to be post constructed, and/or is being deleted.
+     Note that an index can be in any combination of those states. */
+    key_range_t needs_post_construction_range;
     bool being_deleted;
+
+    /* Note that this is even still relevant if the index is being deleted. In that case
+     it tells us whether the index had completed post constructing before it got deleted
+     or not. That is relevant because once an index got post-constructed, there can be
+     snapshotted read queries that are still accessing it, and we must detach any
+     values that we are deleting from the index.
+     If on the other hand the index never finished post-construction, we must not detach
+     values because they might be pointing to blocks that no longer exist (in general a
+     not fully constructed index can be in an inconsistent state). */
+    bool post_construction_complete() const {
+        return needs_post_construction_range.is_empty();
+    }
+
+    /* Determines whether it's ok to query the index. */
     bool is_ready() const {
-        return post_construction_complete && !being_deleted;
+        return post_construction_complete() && !being_deleted;
     }
 
     /* An opaque blob that describes the index.  See serialize_sindex_info and
@@ -94,6 +108,9 @@ bool get_secondary_index(buf_lock_t *sindex_block, uuid_u id,
 
 void get_secondary_indexes(buf_lock_t *sindex_block,
                            std::map<sindex_name_t, secondary_index_t> *sindexes_out);
+
+/* Rewrites the secondary index block with up-to-date serialization */
+void migrate_secondary_index_block(buf_lock_t *sindex_block);
 
 /* Overwrites existing values with the same id. */
 void set_secondary_index(buf_lock_t *sindex_block,

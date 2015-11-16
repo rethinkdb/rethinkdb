@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 # This file tests the `rethinkdb.stats` admin table.
 # The scenario works by starting a cluster of two servers and two tables. The tables are
@@ -22,11 +22,15 @@
 # and so on.  This is not valid when getting rows from the stats table individually,
 # as there will be race conditions then.
 
-from __future__ import print_function
+import multiprocessing, os, pprint, random, re, sys, time
 
-import sys, os, time, re, multiprocessing, random, pprint
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse, workload_runner
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 r = utils.import_python_driver()
 
@@ -48,7 +52,7 @@ def read_write_workload(port, table, stop_event):
             r.db(db).table(table).insert({'id':random.choice(ids), 'value': counter},
                                          conflict='replace').run(conn)
             time.sleep(0.05)
-        except r.RqlRuntimeError:
+        except r.ReqlRuntimeError:
             # Ignore runtime errors and keep going until stopped
             pass
 
@@ -113,15 +117,11 @@ def check_cluster_stats(global_stats):
     assert len(cluster_row) == 1
     cluster_row = cluster_row[0]
 
-    table_rows = find_rows(global_stats,
-                           lambda row_id: len(row_id) == 2 and \
-                                          row_id[0] == 'table')
+    table_rows = find_rows(global_stats, lambda row_id: len(row_id) == 2 and row_id[0] == 'table')
     check_sum_stat(['query_engine', 'read_docs_per_sec'], table_rows, cluster_row)
     check_sum_stat(['query_engine', 'written_docs_per_sec'], table_rows, cluster_row)
 
-    server_rows = find_rows(global_stats,
-                            lambda row_id: len(row_id) == 2 and \
-                                           row_id[0] == 'server')
+    server_rows = find_rows(global_stats, lambda row_id: len(row_id) == 2 and row_id[0] == 'server')
     check_sum_stat(['query_engine', 'read_docs_per_sec'], server_rows, cluster_row)
     check_sum_stat(['query_engine', 'written_docs_per_sec'], server_rows, cluster_row)
     check_sum_stat(['query_engine', 'client_connections'], server_rows, cluster_row)
@@ -133,10 +133,12 @@ def get_and_check_global_stats(tables, servers, conn):
     check_cluster_stats(global_stats)
     for table in tables:
         check_table_stats(table['id'], global_stats)
+    numServers = 0
     for server in servers:
-        check_server_stats(server['id'], global_stats)
+        numServers += 1
+        check_server_stats(server.uuid, global_stats)
 
-    assert len(global_stats) == 1 + len(tables) + len(servers) + (len(tables) * len(servers))
+    assert len(global_stats) == 1 + len(tables) + numServers + (len(tables) * numServers)
     return global_stats
     
 def get_individual_stats(global_stats, conn):
@@ -213,32 +215,16 @@ def compare_global_and_individual_stats(global_stats, individual_stats):
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    # We use a cache size of 0 to force disk reads
-    serve_options += ['--cache-size', '0']
+# We use a cache size of 0 to force disk reads
+serve_options += ['--cache-size', '0']
+
+with  driver.Cluster(initial_servers=server_names, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+
+    conn = r.connect(cluster[0].host, cluster[0].driver_port)
     
-    print('Spinning up %d processes...' % len(server_names))
-    servers = [ ]
-    for i in xrange(len(server_names)):
-        info = { 'name': server_names[i] }
-        info['files'] = driver.Files(metacluster, db_path='db-%d' % i,
-                                     console_output='create-output-%d' % i,
-                                     server_name=info['name'], command_prefix=command_prefix)
-        info['process'] = driver.Process(cluster, info['files'],
-                                         console_output='serve-output-%d' % i,
-                                         command_prefix=command_prefix, extra_options=serve_options)
-        servers.append(info)
-
-    for server in servers:
-        server['process'].wait_until_started_up()
-
-    conn = r.connect(servers[0]['process'].host, servers[0]['process'].driver_port)
-    
-    print('Creating %d tables...' % len(table_names))
+    utils.print_with_time('Creating %d tables...' % len(table_names))
     stop_event = multiprocessing.Event()
 
     # Store uuids for each table and server for verification purposes
@@ -249,51 +235,42 @@ with driver.Metacluster() as metacluster:
         r.db(db).table_create(name, shards=2, replicas=1).run(conn)
         info['db_id'] = r.db(db).config()['id'].run(conn)
         info['id'] = r.db(db).table(info['name']).config()['id'].run(conn)
-        info['workload'] = multiprocessing.Process(target=read_write_workload, args=(servers[0]['process'].driver_port, name, stop_event))
+        info['workload'] = multiprocessing.Process(target=read_write_workload, args=(cluster[0].driver_port, name, stop_event))
         info['workload'].start()
         tables.append(info)
-
-    for server in servers:
-        server['id'] = r.db('rethinkdb').table('server_config') \
-                        .filter(r.row['name'].eq(server['name']))[0]['id'].run(conn)
 
     # Allow some time for the workload to get the stats going
     time.sleep(1)
 
     try:
         # Perform table scan, get each row individually, and check the integrity of the results
-        all_stats = get_and_check_global_stats(tables, servers, conn)
+        all_stats = get_and_check_global_stats(tables, cluster, conn)
         also_stats = get_individual_stats(all_stats, conn)
         compare_global_and_individual_stats(all_stats, also_stats)
 
         # Shut down one server
-        print("Killing second server...")
-        servers[1]['process'].close()
+        utils.print_with_time("Killing second server...")
+        cluster[1].stop()
         time.sleep(5)
 
         # Perform table scan, observe that server 1 is now gone
-        all_stats = get_and_check_global_stats(tables, [servers[0]], conn)
+        all_stats = get_and_check_global_stats(tables, [cluster[0]], conn)
         also_stats = get_individual_stats(all_stats, conn)
         compare_global_and_individual_stats(all_stats, also_stats)
 
         # Basic test of the `_debug_stats` table
-        debug_stats_0 = r.db('rethinkdb').table('_debug_stats') \
-                         .get(servers[0]["id"]).run(conn)
-        debug_stats_1 = r.db('rethinkdb').table('_debug_stats') \
-                         .get(servers[1]["id"]).run(conn)
+        debug_stats_0 = r.db('rethinkdb').table('_debug_stats').get(cluster[0].uuid).run(conn)
+        debug_stats_1 = r.db('rethinkdb').table('_debug_stats').get(cluster[1].uuid).run(conn)
         assert debug_stats_0["stats"]["eventloop"]["total"] > 0
         assert debug_stats_1 is None
 
         # Restart server
-        print("Restarting second server...")
-        servers[1]['process'] = driver.Process(cluster, servers[1]['files'],
-                                               console_output='serve-output-1',
-                                               command_prefix=command_prefix, extra_options=serve_options)
-        servers[1]['process'].wait_until_started_up()
+        utils.print_with_time("Restarting second server...")
+        cluster[1].start()
         time.sleep(5)
 
         # Perform table scan
-        all_stats = get_and_check_global_stats(tables, servers, conn)
+        all_stats = get_and_check_global_stats(tables, cluster, conn)
         also_stats = get_individual_stats(all_stats, conn)
         compare_global_and_individual_stats(all_stats, also_stats)
 
@@ -301,7 +278,7 @@ with driver.Metacluster() as metacluster:
         def check_non_zero_totals(stats):
             for row in stats:
                 if row['id'][0] == 'server':
-                    if row['id'][1] == servers[1]['id']:
+                    if row['id'][1] == cluster[1].uuid:
                         assert row['query_engine']['queries_total'] == 0
                     else:
                         assert row['query_engine']['queries_total'] > 0
@@ -321,7 +298,7 @@ with driver.Metacluster() as metacluster:
         for table in tables:
             table['workload'].join()
 
-    print("Checking that stats table is not writable...")
+    utils.print_with_time("Checking that stats table is not writable...")
     length = r.db("rethinkdb").table("stats").count().run(conn)
     res = r.db("rethinkdb").table("stats").delete().run(conn)
     assert res["errors"] == length, res
@@ -332,4 +309,4 @@ with driver.Metacluster() as metacluster:
 
     cluster.check_and_stop()
 
-print('Done.')
+utils.print_with_time('Done.')
