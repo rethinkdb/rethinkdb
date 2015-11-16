@@ -238,7 +238,7 @@ public:
     }
 private:
     std::map<store_key_t,
-             std::pair<change_val_t, std::list<store_key_t>::iterator> >queue;
+             std::pair<change_val_t, std::list<store_key_t>::iterator> > queue;
     std::list<store_key_t> queue_order;
 };
 
