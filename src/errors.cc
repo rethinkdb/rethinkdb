@@ -171,20 +171,23 @@ NORETURN void terminate_handler() {
 }
 
 #ifdef _WIN32
+template <class T>
+T *relative_to(ULONG_PTR hInstance, T *ptr) {
+    return reinterpret_cast<T*>(hInstance + reinterpret_cast<ULONG_PTR>(ptr));
+}
+
 LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     std::string message;
-    switch (exception->ExceptionRecord->ExceptionCode) {
+    EXCEPTION_RECORD *record = exception->ExceptionRecord;
+    switch (record->ExceptionCode) {
     case 0xe06d7363:
-        if (std::uncaught_exception()) {
-            try {
-                throw;
-            } catch (const std::exception& e) {
-                message = strprintf("Uncaught C++ exception: %s", + e.what());
-            } catch (...) {
-                message = "Uncaught C++ exception of unknown type";
-            }
-        } else {
-            message = "Uncaught C++ exception";
+        try {
+            _CxxThrowException(reinterpret_cast<void*>(record->ExceptionInformation[1]),
+                               reinterpret_cast<_ThrowInfo*>(record->ExceptionInformation[2]));
+        } catch (std::exception &e) {
+            message = strprintf("Unhandled C++ exception: %s: %s", typeid(e).name(), e.what());
+        } catch (...) {
+            message = "Unhandled C++ exception";
         }
         break;
     case EXCEPTION_BREAKPOINT:
