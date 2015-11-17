@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
@@ -105,11 +106,11 @@ public:
 
 private:
     // The thread_pool that started the thread we are currently in
-    static __thread linux_thread_pool_t *thread_pool;
+    static DECL_THREAD_LOCAL linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
-    static __thread int thread_id;
+    static DECL_THREAD_LOCAL int thread_id;
     // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
-    static __thread linux_thread_t *thread;
+    static DECL_THREAD_LOCAL linux_thread_t *thread;
 
     DISABLE_COPYING(linux_thread_pool_t);
 };

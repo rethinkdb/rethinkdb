@@ -9,6 +9,7 @@
 #include "arch/runtime/coroutines.hpp"
 #endif
 
+#include "arch/compiler.hpp"
 #include "errors.hpp"
 #include "concurrency/cache_line_padded.hpp"
 #include "utils.hpp"
@@ -62,7 +63,7 @@
 
 #ifndef THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
-    static __thread type TLS_ ## name = initial;                        \
+    static DECL_THREAD_LOCAL type TLS_ ## name = initial;               \
                                                                         \
     NOINLINE type TLS_get_ ## name () {                                 \
         return TLS_ ## name;                                            \
@@ -89,7 +90,7 @@
 
 #ifndef THREADED_COROUTINES
 #define TLS(type, name)                                                 \
-    static __thread type TLS_ ## name;                                  \
+    static DECL_THREAD_LOCAL type TLS_ ## name;                         \
                                                                         \
     NOINLINE type TLS_get_ ## name () {                                 \
         return TLS_ ## name;                                            \

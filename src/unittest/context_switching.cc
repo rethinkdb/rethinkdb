@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 
+#include "arch/compiler.hpp"
 #include "containers/scoped.hpp"
 #include "unittest/gtest.hpp"
 
@@ -24,11 +25,11 @@ TEST(ContextSwitchingTest, CreateArtificialStack) {
 /* Thread-local variables for use in test functions, because we cannot pass a
 `void*` to the test functions... */
 
-static __thread coro_context_ref_t
+static DECL_THREAD_LOCAL coro_context_ref_t
     *original_context = NULL,
     *artificial_stack_1_context = NULL,
     *artificial_stack_2_context = NULL;
-static __thread int test_int;
+static DECL_THREAD_LOCAL int test_int;
 
 static void switch_context_test(void) {
     test_int++;
@@ -89,11 +90,11 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
     original_context = NULL;
 }
 
-__attribute__((noreturn)) static void throw_an_exception() {
+NORETURN static void throw_an_exception() {
     throw std::runtime_error("This is a test exception");
 }
 
-__attribute__((noreturn)) static void throw_exception_from_coroutine() {
+NORETURN static void throw_exception_from_coroutine() {
     coro_stack_t artificial_stack(&throw_an_exception, 1024*1024);
     coro_context_ref_t _original_context;
     context_switch(&_original_context, &artificial_stack.context);
