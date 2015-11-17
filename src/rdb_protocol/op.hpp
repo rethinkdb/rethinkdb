@@ -139,6 +139,10 @@ protected:
     // a subclass).
     virtual void accumulate_captures(var_captures_t *captures) const;
 
+    const std::vector<counted_t<const term_t> > &get_original_args() const;
+
+    virtual deterministic_t is_deterministic() const;
+
 private:
     friend class args_t;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
@@ -160,8 +164,6 @@ private:
                                           eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
     virtual bool is_grouped_seq_op() const;
-
-    virtual deterministic_t is_deterministic() const;
 
     scoped_ptr_t<const arg_terms_t> arg_terms;
 
