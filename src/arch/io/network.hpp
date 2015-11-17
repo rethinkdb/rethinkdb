@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/lazy_erase_vector.hpp"
@@ -111,7 +112,7 @@ public:
     buffered writes; this may improve performance. */
     void write_buffered(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
-    void writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) __attribute__ ((format (printf, 3, 4)));
+    void writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) ATTR_FORMAT(printf, 3, 4);
 
     void flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);   // Blocks until flush is done
     void flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);   // Blocks only if the queue is backed up
