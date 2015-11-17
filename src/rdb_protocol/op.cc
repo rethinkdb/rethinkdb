@@ -191,7 +191,7 @@ op_term_t::op_term_t(compile_env_t *env, const raw_term_t &term,
             rcheck_src(o.bt(), res.second,
                        base_exc_t::LOGIC,
                        strprintf("Duplicate optional argument: %s", name.c_str()));
-            
+
         });
 }
 op_term_t::~op_term_t() { }
@@ -265,6 +265,10 @@ void op_term_t::accumulate_captures(var_captures_t *captures) const {
         arg->accumulate_captures(captures);
     }
     accumulate_all_captures(optargs, captures);
+}
+
+const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() const {
+    return arg_terms->get_original_args();
 }
 
 deterministic_t all_are_deterministic(
