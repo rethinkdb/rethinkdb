@@ -28,25 +28,24 @@ void overlapped_operation_t::set_cancel() {
 }
 
 void overlapped_operation_t::abort() {
-    debugf_overlapped("[%p] abort\n", this);
     if (completed.is_pulsed()) {
-        error = ERROR_OPERATION_ABORTED;
+        debugf_overlapped("[%p] abort: already pulsed\n", this);
     } else {
+        debugf_overlapped("[%p] abort: cancelling\n", this);
         BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
         if (!res) {
             switch (GetLastError()) {
             case ERROR_NOT_FOUND:
             case ERROR_INVALID_HANDLE:
-                // TODO ATN: possible race condition?
-                set_result(0, ERROR_OPERATION_ABORTED);
+                debugf_overlapped("[%p] abort: not found or invalid\n", this);
                 break;
             default:
                 guarantee_winerr(res, "CancelIoEx failed");
             }
-        } else {
-            completed.wait_lazily_unordered(); // TODO ATN: does completed always get pulsed after being canceled?
         }
+        completed.wait_lazily_unordered();
     }
+    error = ERROR_OPERATION_ABORTED;
 }
 
 void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {

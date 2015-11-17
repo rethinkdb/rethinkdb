@@ -39,6 +39,14 @@ public:
         return *this;
     }
 
+    bool operator==(const process_ref_t other) {
+        return handle == other.handle;
+    }
+
+    bool operator!=(const process_ref_t other) {
+        return handle != other.handle;
+    }
+
 private:
     DISABLE_COPYING(process_ref_t);
 

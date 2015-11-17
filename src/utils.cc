@@ -109,13 +109,9 @@ startup_shutdown_t::~startup_shutdown_t() {
 }
 
 
-void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
-#ifndef _WIN32 // ATN: TODO
-    flockfile(stderr);
-#endif
-
+void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
     if (ulength == 0) {
-        fprintf(stderr, "(data length is zero)\n");
+        debugf("(data length is zero)\n");
     }
 
     const char *buf = reinterpret_cast<const char *>(vbuf);
@@ -126,42 +122,45 @@ void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
                               0xBD, 0xBD, 0xBD, 0xBD,
                               0xBD, 0xBD, 0xBD, 0xBD };
     uint8_t zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint8_t ff_sample[16] = { 0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff };
 
     bool skipped_last = false;
+
     while (length > 0) {
         bool skip = length >= 16 && (
                     memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
                     memcmp(buf, ff_sample, 16) == 0);
         if (skip) {
-            if (!skipped_last) fprintf(stderr, "*\n");
+            if (!skipped_last) {
+                debugf("*\n");
+            }
         } else {
-            fprintf(stderr, "%.8x  ", (unsigned int)offset);
+            std::string line = strprintf("%.8x  ", (unsigned int)offset);
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
-                    fprintf(stderr, "%.2hhx ", buf[i]);
+                    line += strprintf("%.2hhx ", buf[i]);
                 } else {
-                    fprintf(stderr, "   ");
+                    line += "   ";
                 }
             }
-            fprintf(stderr, "| ");
+            line += "| ";
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
                     if (isprint(buf[i])) {
-                        fputc(buf[i], stderr);
+                        line += buf[i];
                     } else {
-                        fputc('.', stderr);
+                        line += '.';
                     }
                 } else {
-                    fputc(' ', stderr);
+                    line += ' ';
                 }
             }
-            fprintf(stderr, "\n");
+            debugf("%s\n", line.c_str());
         }
         skipped_last = skip;
 
@@ -169,10 +168,6 @@ void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
         buf += 16;
         length -= 16;
     }
-
-#ifndef _WIN32 // ATN: TODO
-    funlockfile(stderr);
-#endif
 }
 
 void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {

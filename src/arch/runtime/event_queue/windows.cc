@@ -108,7 +108,7 @@ void windows_event_queue_t::run() {
         if (overlapped != nullptr) {
             switch (static_cast<windows_message_type_t>(key)) {
             case windows_message_type_t::OVERLAPPED_OPERATION: {
-                debugf_queue("[%p] dequeued overlapped operation\n", this);
+                debugf_queue("[%p] dequeued overlapped operation %p\n", this, overlapped);
                 overlapped_operation_t *ao = reinterpret_cast<overlapped_operation_t*>(overlapped);
                 threadnum_t target_thread = ao->event_watcher->current_thread();
                 if (target_thread != get_thread_id()) {

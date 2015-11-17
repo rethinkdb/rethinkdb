@@ -66,7 +66,6 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 #endif
     if (worker_pid == process_ref_t::invalid) {
         socket.reset(spawner->spawn(&worker_pid));
-        debugf("Spawned worker process %x\n", worker_pid);
 
 #ifdef _WIN32
         new_worker = true;
@@ -116,7 +115,6 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
                 }
             }
 
-
             uint64_t magic_from_child;
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST_OVERALL>(socket_stream.get(),
@@ -124,6 +122,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
             if (bad(res) || magic_from_child != worker_to_parent_magic) {
                 throw extproc_worker_exc_t("did not receive magic number");
             }
+
         } catch (...) {
             // This would indicate a job is hanging or not reading out all its data
             if (!final_interruptor.is_pulsed() || timeout.is_pulsed()) {
@@ -151,17 +150,18 @@ void extproc_worker_t::kill_process() {
     if (!res) {
         logWRN("failed to kill worker process: %s", winerr_string(GetLastError()).c_str());
     }
+    windows_event_watcher.reset();
 #else
     ::kill(worker_pid, SIGKILL);
-    worker_pid = process_ref_t::invalid;
 #endif
+
+    worker_pid.reset();
 
     // Clean up our socket fd
     socket.reset();
 }
 
-bool extproc_worker_t::is_process_alive()
-{
+bool extproc_worker_t::is_process_alive() {
     return (worker_pid != process_ref_t::invalid);
 }
 

@@ -251,8 +251,6 @@ fd_t extproc_spawner_t::spawn(process_ref_t *pid_out) {
     std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
     mutable_command_line.push_back('\0');
 
-    debugf("ATN: executable path: %s\n", rethinkdb_path);
-
     STARTUPINFO startup_info;
     memset(&startup_info, 0, sizeof(startup_info));
     startup_info.cb = sizeof(startup_info);
@@ -307,8 +305,6 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
                          FILE_ATTRIBUTE_NORMAL,
                          nullptr);
     guarantee_winerr(fd != INVALID_FD, "opening '%s'", argv[2]);
-
-    debugf("Worker connected to server\n");
 
     worker_run_t worker(fd, -1);
     worker.main_loop();

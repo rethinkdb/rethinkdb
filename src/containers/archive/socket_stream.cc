@@ -7,6 +7,7 @@
 #include "logger.hpp"
 #include "concurrency/wait_any.hpp"
 #include "concurrency/interruptor.hpp"
+#include "utils.hpp"
 
 int64_t socket_stream_t::read(void *buf, int64_t count) {
     DWORD ret;
@@ -25,6 +26,7 @@ int64_t socket_stream_t::read(void *buf, int64_t count) {
         ret = op.nb_bytes;
     }
     if (error == ERROR_BROKEN_PIPE) {
+        // debugf("read failed: broken pipe\n");
         return 0;
     }
     if (error != NO_ERROR) {
@@ -32,12 +34,16 @@ int64_t socket_stream_t::read(void *buf, int64_t count) {
         set_errno(EIO); // TODO ATN
         return -1;
     }
+    // debugf("read %d/%d\n", ret, count);
+    // print_hexdump(buf, 0, ret);
     return ret;
 }
 
 int64_t socket_stream_t::write(const void *buf, int64_t count) {
     DWORD ret;
     DWORD error;
+    // debugf("write %d\n", count);
+    // print_hexdump(buf, 0, count);
     if (event_watcher == nullptr) {
         BOOL res = WriteFile(fd, buf, count, &ret, nullptr);
         error = GetLastError();
