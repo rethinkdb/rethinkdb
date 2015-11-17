@@ -118,39 +118,39 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
-#define guarantee(cond, msg...) do {    \
+#define guarantee(cond, ...) do {       \
         if (!(cond)) {                  \
-            crash_or_trap(format_assert_message("Guarantee", cond) msg); \
+            crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
         }                               \
     } while (0)
 
-#define guarantee_xerr(cond, err, msg, args...) do {                            \
+#define guarantee_xerr(cond, err, msg, ...) do {                                \
         int guarantee_xerr_errsv = (err);                                       \
         if (!(cond)) {                                                          \
             if (guarantee_xerr_errsv == 0) {                                    \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##__VA_ARGS__); \
             } else {                                                            \
                 char guarantee_xerr_buf[250];                                      \
                 const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf)); \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##args); \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##__VA_ARGS__); \
             }                                                                   \
         }                                                                       \
     } while (0)
-#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, get_errno(), msg, ##args)
+#define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
 
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
 #ifdef NDEBUG
-#define rassert(cond, msg...) ((void)(0))
-#define rassert_err(cond, msg...) ((void)(0))
+#define rassert(cond, ...) ((void)(0))
+#define rassert_err(cond, ...) ((void)(0))
 #else
-#define rassert(cond, msg...) do {                                        \
+#define rassert(cond, ...) do {                                           \
         if (!(cond)) {                                                    \
-            crash_or_trap(format_assert_message("Assertion", cond) msg);  \
+            crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__); \
         }                                                                 \
     } while (0)
-#define rassert_err(cond, msg, args...) do {                                \
+#define rassert_err(cond, msg, ...) do {                                    \
         int rassert_err_errsv = get_errno();                                      \
         if (!(cond)) {                                                      \
             if (rassert_err_errsv == 0) {                                   \
@@ -158,7 +158,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
             } else {                                                        \
                 char rassert_err_buf[250];                                  \
                 const char *errstr = errno_string_maybe_using_buffer(rassert_err_errsv, rassert_err_buf, sizeof(rassert_err_buf)); \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##args);  \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##__VA_ARGS__);  \
             }                                                               \
         }                                                                   \
     } while (0)
