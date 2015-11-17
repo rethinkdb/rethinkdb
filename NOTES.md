@@ -19,7 +19,7 @@ older version.
 * `rethinkdb export` and `rethinkdb dump` now limit the number of subprocesses to
   reduce memory consumption (#4809)
 * Fixed a segmentation fault in  `orderBy.limit` changefeeds (#5081)
-* Fixed a crash when using `getAll` with unprintable keys (#5086)
+* Fixed a crash when using `getAll` with illegal keys (#5086)
 * `r.uuid` is now considered a deterministic operation if it is passed a single
   argument (#5092)
 * Fixed the "Task was destroyed but it is pending!" error when using the `asyncio`
