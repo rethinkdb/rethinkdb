@@ -953,9 +953,14 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     serv_addr.sin_addr = addr;
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
-    winsock_debugf("ATN: bound socket %x\n", sock); // TODO ATN
+    winsock_debugf("ATN: bound socket %x\n", sock);
     if (res != 0) {
-        res = get_errno(); // TODO ATN: GetLastError on windows
+#ifdef _WIN32 // ATN TODO
+        logWRN("bind(4) failed: %s", winerr_string(GetLastError()).c_str());
+        res = EIO;
+#else
+        res = get_errno();
+#endif
     } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
@@ -976,7 +981,12 @@ int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
     if (res != 0) {
-        res = get_errno(); // TODO ATN: on windows, GetLastError
+#ifdef _WIN32
+        logWRN("bind(6) failed: %s", winerr_string(GetLastError()).c_str());
+        res = EIO;
+#else
+        res = get_errno();
+#endif
     } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");

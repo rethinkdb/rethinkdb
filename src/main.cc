@@ -1,5 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32 // TODO ATN
+// #ifndef _WIN32 // TODO ATN
 
 #ifndef _MSC_VER
 #include <sys/resource.h>
@@ -105,4 +105,4 @@ int main(int argc, char *argv[]) {
     }
 }
 
-#endif // TODO ATN
+// #endif // TODO ATN
