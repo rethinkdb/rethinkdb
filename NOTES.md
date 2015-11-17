@@ -1,3 +1,32 @@
+# Release 2.2.1 (Modern Times)
+
+Released on 2015-11-16
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.1 is fully compatible with RethinkDB 2.2.0. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Bug fixes ###
+
+* Fixed a crash with the message "Guarantee failed: [found_hash_pair]" when running
+  `getAll` queries (#5085)
+* `rethinkdb export` and `rethinkdb dump` now limit the number of subprocesses to
+  reduce memory consumption (#4809)
+* Fixed a segmentation fault in  `orderBy.limit` changefeeds (#5081)
+* Fixed a crash when using `getAll` with unprintable keys (#5086)
+* `r.uuid` is now considered a deterministic operation if it is passed a single
+  argument (#5092)
+* Fixed the "Task was destroyed but it is pending!" error when using the `asyncio`
+  event loop on Python (#5043)
+
+--
+
 # Release 2.2.0 (Modern Times)
 
 Released on 2015-11-12
