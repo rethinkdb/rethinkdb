@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -39,13 +40,13 @@ int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
-struct btree_key_t {
+ATTR_PACKED(struct btree_key_t {
     uint8_t size;
     uint8_t contents[];
     uint16_t full_size() const {
         return size + offsetof(btree_key_t, contents);
     }
-} __attribute__((__packed__));
+});
 
 inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
     return sized_strcmp(left->contents, left->size, right->contents, right->size);

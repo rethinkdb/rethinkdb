@@ -50,7 +50,7 @@ struct config_block_id_t {
 
 #define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
-struct multiplexer_config_block_t {
+ATTR_PACKED(struct multiplexer_config_block_t {
     block_magic_t magic;
 
     /* What time the database was created. To help catch the case where files from two
@@ -70,7 +70,7 @@ struct multiplexer_config_block_t {
     int32_t n_proxies;
 
     static const block_magic_t expected_magic;
-} __attribute__((packed));
+});
 
 /* The translator serializer is a wrapper around another serializer. It uses some subset
 of the block IDs available on the inner serializer, but presents the illusion of a complete

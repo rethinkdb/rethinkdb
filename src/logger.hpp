@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string>
 
+#include "arch/compiler.hpp"
+
 enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_notice, log_level_warn, log_level_error };
 
 /* These functions are implemented in `clustering/administration/logs/log_writer.cc`.
@@ -12,7 +14,7 @@ This header file exists so that anything can call them without having to include
 things that `clustering/administration/logs/log_writer.hpp` does. */
 
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...)
-    __attribute__ ((format (printf, 4, 5)));
+    ATTR_FORMAT(printf, 4, 5);
 
 void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args);
 

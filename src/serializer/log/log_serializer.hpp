@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 
+#include "arch/compiler.hpp"
 #include "arch/types.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
@@ -34,9 +35,9 @@ struct shutdown_callback_t {
     virtual ~shutdown_callback_t() {}
 };
 
-struct metablock_mixin_t {
+ATTR_PACKED(struct metablock_mixin_t {
     int64_t active_extent;
-} __attribute__((__packed__));
+});
 
 }  // namespace data_block_manager
 
@@ -46,11 +47,11 @@ struct metablock_mixin_t {
  * respect that it deserves.
  */
 
-struct log_serializer_metablock_t {
+ATTR_PACKED(struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
-} __attribute__((__packed__));
+});
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache

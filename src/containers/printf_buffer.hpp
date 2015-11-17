@@ -14,15 +14,15 @@
 class printf_buffer_t {
 public:
     printf_buffer_t();
-    explicit printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
-    printf_buffer_t(va_list ap, const char *format) __attribute__((format (printf, 3, 0)));
+    explicit printf_buffer_t(const char *format, ...) ATTR_FORMAT(printf, 2, 3);
+    printf_buffer_t(va_list ap, const char *format) ATTR_FORMAT(printf, 3, 0);
     ~printf_buffer_t();
 
     // append and vappend become slow if the total size grows to N or
     // greater.  We still have std::vector-style amortized constant
     // time growth, though.
-    void appendf(const char *format, ...) __attribute__((format (printf, 2, 3)));
-    void vappendf(const char *format, va_list ap) __attribute__((format (printf, 2, 0)));
+    void appendf(const char *format, ...) ATTR_FORMAT(printf, 2, 3);
+    void vappendf(const char *format, va_list ap) ATTR_FORMAT(printf, 2, 0);
 
     char *data() const { return ptr_; }
     const char *c_str() const { return ptr_; }
