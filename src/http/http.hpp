@@ -104,7 +104,6 @@ public:
     explicit http_res_t(http_status_code_t rescode);
     http_res_t(http_status_code_t rescode, const std::string &content_type,
                const std::string &content);
-    void add_last_modified(int);
 };
 
 bool maybe_gzip_response(const http_req_t &req, http_res_t *res);

@@ -98,7 +98,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
 
     /* Allocate a buffer for doing our writes */
     scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
-    bzero(buffer.get(), METABLOCK_SIZE);
+    memset(buffer.get(), 0, METABLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */

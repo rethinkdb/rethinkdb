@@ -9,6 +9,7 @@
 #include "config/args.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "containers/scoped.hpp"
 
 // The CURRENT_SERIALIZER_VERSION_STRING might remain unchanged for a while --
 // individual metablocks have a disk_format_version field that can be incremented
@@ -38,7 +39,7 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
 
     file->set_file_size_at_least(DEVICE_BLOCK_SIZE);
 
-    bzero(buffer.get(), DEVICE_BLOCK_SIZE);
+    memset(buffer.get(), 0, DEVICE_BLOCK_SIZE);
 
     rassert(sizeof(SOFTWARE_NAME_STRING) < 16);
     memcpy(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING));

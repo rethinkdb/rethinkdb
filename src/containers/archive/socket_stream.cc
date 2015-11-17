@@ -1,4 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 #include "containers/archive/socket_stream.hpp"
 
 #include <fcntl.h>
@@ -321,3 +327,4 @@ void socket_stream_t::on_event(int events) {
     if (fd_watcher_->is_read_open()) shutdown_read();
 }
 
+#endif

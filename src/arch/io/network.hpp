@@ -5,9 +5,14 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifdef _WIN32
+#include "windows.hpp"
+#else
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#endif
 
 #include <functional>
 #include <set>

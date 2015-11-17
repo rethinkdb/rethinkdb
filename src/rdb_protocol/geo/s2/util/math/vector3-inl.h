@@ -28,7 +28,7 @@
 
 #include "rdb_protocol/geo/s2/util/math/vector3.h"
 
-#include <math.h>
+#include <cmath>
 
 #include <algorithm>
 
@@ -45,6 +45,7 @@ using std::min;
 using std::max;
 using std::swap;
 using std::reverse;
+using std::fabs;
 
 
 template <typename VType>

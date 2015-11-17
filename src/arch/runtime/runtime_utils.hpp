@@ -8,8 +8,18 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
+#ifdef _WIN32
+
+typedef HANDLE fd_t;
+#define INVALID_FD INVALID_HANDLE_VALUE
+
+#else
+
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
+
+#endif
+
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
@@ -80,8 +90,10 @@ struct assert_finite_coro_waiting_t {
 
 #endif  // NDEBUG
 
+#ifndef _WIN32
 struct sigaction make_sa_handler(int sa_flags, void (*sa_handler_func)(int));
 struct sigaction make_sa_sigaction(int sa_flags, void (*sa_sigaction_func)(int, siginfo_t *, void *));
+#endif
 
 
 #endif // ARCH_RUNTIME_RUNTIME_UTILS_HPP_

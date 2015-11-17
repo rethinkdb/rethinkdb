@@ -112,8 +112,8 @@ private:
     mailbox_write_callback_t *subwriter;
 };
 
-void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
-        mailbox_write_callback_t *callback) {
+void send_write(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
+                mailbox_write_callback_t *callback) {
     guarantee(src);
     guarantee(!dest.is_nil());
     new_semaphore_in_line_t acq(src->semaphores.get(), 1);

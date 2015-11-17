@@ -42,7 +42,7 @@
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
-        peer_address_t peer(std::set<host_and_port_t>(&names[i], &names[i+1]));
+        peer_address_t peer(std::set<host_and_port_t>{names[i]});
         if (peers.find(peer) != peers.end()) {
             logWRN("Duplicate peer in --join parameters, ignoring: '%s:%d'",
                    names[i].host().c_str(), names[i].port().value());
@@ -77,9 +77,13 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+#ifdef _WIN32
+std::string windows_version_string();
+#else
 // Defined in command_line.cc; not in any header, because it is not
 // safe to run in general.
 std::string run_uname(const std::string &flags);
+#endif
 
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
@@ -92,7 +96,11 @@ bool do_serve(io_backender_t *io_backender,
     components of the server. */
 
     // Do this here so we don't block on popen while pretending to serve.
+#ifdef _WIN32
+    std::string uname = windows_version_string();
+#else
     std::string uname = run_uname("ms");
+#endif
     try {
         /* `extproc_pool` spawns several subprocesses that can be used to run tasks that
         we don't want to run in the main RethinkDB process, such as Javascript
@@ -590,7 +598,7 @@ bool do_serve(io_backender_t *io_backender,
                     /* This is the end of the startup process. `stop_cond` will be pulsed
                     when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
-
+#ifndef _WIN32
                     if (stop_cond->get_source_signo() == SIGINT) {
                         logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
@@ -603,6 +611,7 @@ bool do_serve(io_backender_t *io_backender,
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
+#endif
                 }
 
                 cond_t non_interruptor;

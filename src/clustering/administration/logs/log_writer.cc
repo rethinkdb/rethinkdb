@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+#include <io.h>
+#endif
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -17,6 +21,7 @@
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
+
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
@@ -72,7 +77,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
     while (start < static_cast<ssize_t>(message.length()) && message[start] == '\n') {
         ++start;
     }
-    while (end >= 0 && message[end] == '\n') {
+    while (end >= 0 && (message[end] == '\n' || message[end] == '\r')) {
         end--;
     }
     for (int i = start; i <= end; i++) {
@@ -96,10 +101,10 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                 message_reformatted.append("\\\\");
             }
         } else if (message[i] < ' ' || message[i] > '~') {
-#ifndef NDEBUG
-            crash("We can't have special characters in log messages because then it "
-                "would be difficult to parse the log file. Message: %s",
-                message.c_str());
+#if !defined(NDEBUG)
+             crash("We can't have special characters in log messages because then it "
+                   "would be difficult to parse the log file. Message: %s",
+                   message.c_str());
 #else
             message_reformatted.push_back('?');
 #endif
@@ -279,7 +284,12 @@ private:
     struct timespec uptime_reference;
     struct timespec last_msg_timestamp;
     spinlock_t last_msg_timestamp_lock;
+
+#ifdef _WIN32
+    // TODO WINDOWS: log locking
+#else
     struct flock filelock, fileunlock;
+#endif
     scoped_fd_t fd;
 
     DISABLE_COPYING(fallback_log_writer_t);
@@ -290,6 +300,7 @@ fallback_log_writer_t::fallback_log_writer_t() :
     uptime_reference = clock_monotonic();
     last_msg_timestamp = clock_realtime();
 
+#ifndef _WIN32
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;
     filelock.l_start = 0;
@@ -301,12 +312,23 @@ fallback_log_writer_t::fallback_log_writer_t() :
     fileunlock.l_start = 0;
     fileunlock.l_len = 0;
     fileunlock.l_pid = getpid();
+#endif
 }
 
 void fallback_log_writer_t::install(const std::string &logfile_name) {
     guarantee(filename.path() == "-", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = base_path_t(logfile_name);
 
+#ifdef _WIN32
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    fd.reset(h);
+
+    if (fd.get() == INVALID_FD) {
+        throw std::runtime_error(strprintf("Failed to open log file '%s': %s",
+                                           logfile_name.c_str(),
+                                           winerr_string(GetLastError()).c_str()).c_str());
+    }
+#else
     int res;
     do {
         res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
@@ -319,6 +341,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
                                            logfile_name.c_str(),
                                            errno_string(errno).c_str()).c_str());
     }
+#endif
 
     // Get the absolute path for the log file, so it will still be valid if
     //  the working directory changes
@@ -363,8 +386,18 @@ log_message_t fallback_log_writer_t::assemble_log_message(
     return log_message_t(timestamp, uptime, level, m);
 }
 
+// WINDOWS TODO: this function could benefit from some refactoring
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg) + "\n";
+
+#ifdef _MSC_VER
+    static int STDOUT_FILENO = -1;
+    static int STDERR_FILENO = -1;
+    if (STDOUT_FILENO == -1) {
+        STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
+        STDERR_FILENO = STDOUT_FILENO;
+    }
+#endif
 
     FILE* write_stream = nullptr;
     int fileno = -1;
@@ -389,14 +422,29 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     if (msg.level != log_level_info) {
         // Write to stdout/stderr for all log levels but info (#3040)
         std::string console_formatted = format_log_message(msg, true) + "\n";
+#ifdef _WIN32
+        // WINDOWS TODO
+        (void) write_stream;
+#else
         flockfile(write_stream);
+#endif
 
+#ifndef _WIN32
+        // WINDOWS TODO: use fileno
+        (void) fileno;
+        size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
+#else
         ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
-        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+#endif
+        if (write_res != console_formatted.length()) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
 
+
+#ifdef _WIN32
+        // WINDOWS TODO
+#else
         int fsync_res = fsync(fileno);
         if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL ||
                 get_errno() == ENOTSUP)) {
@@ -405,30 +453,43 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         }
 
         funlockfile(write_stream);
+#endif
     }
 
     if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
         return false;
     }
-
+#ifndef _WIN32
     int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (fcntl_res != 0) {
         error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
+#ifdef _WIN32
+    DWORD bytes_written;
+    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, NULL);
+    if (!res) {
+        error_out->assign("cannot write to log file: " + winerr_string(GetLastError()));
+        return false;
+    }
+#else
     ssize_t write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
         error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
+#ifndef _WIN32
     fcntl_res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (fcntl_res != 0) {
         error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
     return true;
 }
@@ -441,10 +502,10 @@ void fallback_log_writer_t::initiate_write(log_level_t level, const std::string 
     }
 }
 
+typedef auto_drainer_t * type;
 
-
-TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
-TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
+TLS_with_init(thread_pool_log_writer_t *, global_log_writer, nullptr);
+TLS_with_init(auto_drainer_t *, global_log_drainer, nullptr);
 TLS_with_init(int, log_writer_block, 0);
 
 thread_pool_log_writer_t::thread_pool_log_writer_t()
@@ -517,9 +578,9 @@ void thread_pool_log_writer_t::install_on_thread(int i) {
 void thread_pool_log_writer_t::uninstall_on_thread(int i) {
     on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == this);
-    TLS_set_global_log_writer(NULL);
+    TLS_set_global_log_writer(nullptr);
     delete TLS_get_global_log_drainer();
-    TLS_set_global_log_drainer(NULL);
+    TLS_set_global_log_drainer(nullptr);
 }
 
 void thread_pool_log_writer_t::write(const log_message_t &lm) {
@@ -549,9 +610,13 @@ void thread_pool_log_writer_t::tail_blocking(
         bool *ok_out) {
     try {
         scoped_fd_t fd;
+#ifdef _WIN32
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+#else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));
         } while (fd.get() == INVALID_FD && get_errno() == EINTR);
+#endif
         throw_unless(fd.get() != INVALID_FD,
             strprintf("could not open '%s' for reading.",
                 fallback_log_writer.filename.path().c_str()));

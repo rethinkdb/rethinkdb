@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32
+
 #include <unistd.h>
 
 #include "logger.hpp"
@@ -154,3 +156,5 @@ read_stream_t *extproc_worker_t::get_read_stream() {
 write_stream_t *extproc_worker_t::get_write_stream() {
     return socket_stream.get();
 }
+
+#endif

@@ -2,7 +2,7 @@
 #include "rdb_protocol/query_server.hpp"
 
 #include "perfmon/perfmon.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/query_params.hpp"

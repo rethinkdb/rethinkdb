@@ -41,7 +41,7 @@ template <class T, class... Args>
 std::vector<T> make_vector(const T &arg, Args... args) {
     std::vector<T> ret;
     ret.push_back(arg);
-    UNUSED int dummy[] = { (ret.push_back(args), 1)... };
+    UNUSED int dummy[] = { 0, (ret.push_back(args), 1)... };
     return ret;
 }
 

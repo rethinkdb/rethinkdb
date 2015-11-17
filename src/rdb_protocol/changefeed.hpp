@@ -27,6 +27,7 @@
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "containers/archive/boost_types.hpp"
 
 class artificial_table_backend_t;
 class auto_drainer_t;

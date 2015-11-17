@@ -1,5 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+#ifndef _WIN32
 #include <sys/resource.h>
+#endif
 
 #include <set>
 
@@ -8,7 +11,7 @@
 #include "config/args.hpp"
 
 int main(int argc, char *argv[]) {
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(_WIN32)
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
     core_limit.rlim_max = 200 * MEGABYTE;
@@ -47,7 +50,7 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_index_rebuild(argc, argv);
         } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
-		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());
+                printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());
             }
             print_version_message();
             return 0;

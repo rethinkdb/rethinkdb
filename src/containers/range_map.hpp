@@ -5,6 +5,7 @@
 
 #include "debug.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 /* `range_map_t` maps from ranges delimited by `edge_t` to values of type `value_t`. The
 ranges must be contiguous and non-overlapping; adjacent ranges with the same value will
@@ -140,7 +141,7 @@ public:
     MUST_USE range_map_t<edge_t, value_t> mask(const edge_t &l, const edge_t &r) const {
         range_map_t res(l);
         visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
-            res.extend_right(l2, r2, value_t(v));
+            res.extend_right(l2, r2, clone(v));
         });
         return res;
     }

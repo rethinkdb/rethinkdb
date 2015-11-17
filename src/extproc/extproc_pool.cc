@@ -50,12 +50,12 @@ void extproc_pool_t::dealloc_blocking(UNUSED signal_t *interruptor_) {
 
 void extproc_pool_t::on_worker_acquired()
 {
-    __sync_add_and_fetch(&worker_cnt, 1);
+    ++worker_cnt;
 }
 
 void extproc_pool_t::on_worker_released()
 {
-    __sync_sub_and_fetch(&worker_cnt, 1);
+    --worker_cnt;
 }
 
 extproc_pool_t::ct_interruptors_t::ct_interruptors_t(signal_t *shutdown_signal) :

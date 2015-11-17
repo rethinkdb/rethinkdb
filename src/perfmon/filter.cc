@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
-#include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
 #include "utils.hpp"
@@ -14,16 +13,15 @@
    expressions, but for perfmon_t objects.  */
 perfmon_filter_t::perfmon_filter_t(const std::set<std::vector<std::string> > &paths) {
     for (auto const &path : paths) {
-        std::vector<scoped_ptr_t<scoped_regex_t> > compiled_path;
+        std::vector<scoped_ptr_t<RE2> > compiled_path;
         for (auto const &str : path) {
-            scoped_ptr_t<scoped_regex_t> re(new scoped_regex_t());
-            if (!re->compile("^" + str + "$")) {
-                logWRN("Error: regex %s failed to compile (%s), treating as empty.",
-                       sanitize_for_logger(str).c_str(),
-                       sanitize_for_logger(re->get_error()).c_str());
-                if (!re->compile("^$")) {
-                    crash("Regex '^$' failed to compile (%s).\n",
-                          sanitize_for_logger(re->get_error()).c_str());
+            scoped_ptr_t<RE2> re = make_scoped<RE2>("^" + str + "$");
+            if (!re->ok()) {
+                logWRN("Error: regex %s failed to compile, treating as empty.",
+                       sanitize_for_logger(str).c_str());
+				re = scoped_ptr_t<RE2>(new RE2("^$"));
+                if (!re->ok()) {
+                    crash("Regex '^$' failed to compile.\n");
                 }
             }
 
@@ -61,7 +59,7 @@ ql::datum_t perfmon_filter_t::subfilter(const ql::datum_t &stats,
                     some_subpath = true;
                     continue;
                 }
-                subactive[j] = regexps[j][depth]->matches(pair.first.to_std());
+                subactive[j] = RE2::FullMatch(pair.first.to_std(), *regexps[j][depth]);
                 some_subpath |= subactive[j];
             }
 

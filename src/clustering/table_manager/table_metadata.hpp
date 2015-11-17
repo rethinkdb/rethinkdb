@@ -50,7 +50,8 @@ public:
         microtime_t timestamp;
         uuid_u id;
 
-        RDB_DECLARE_ME_SERIALIZABLE(epoch_t);
+        // Keep the class keyword here to satisfy VC++
+        RDB_DECLARE_ME_SERIALIZABLE(class epoch_t);
     };
 
     static multi_table_manager_timestamp_t min() {

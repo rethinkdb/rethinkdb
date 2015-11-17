@@ -1,8 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "parsing/util.hpp"
-
-#include <alloca.h>
-
 #include "arch/io/network.hpp"
 
 line_parser_t::line_parser_t(tcp_conn_t *_conn) : conn(_conn) {

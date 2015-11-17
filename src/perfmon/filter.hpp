@@ -8,7 +8,7 @@
 
 #include "errors.hpp"
 
-#include "containers/scoped_regex.hpp"
+#include "re2/re2.h"
 #include "rdb_protocol/datum.hpp"
 
 template <class> class scoped_ptr_t;
@@ -20,7 +20,7 @@ public:
 private:
     ql::datum_t subfilter(const ql::datum_t &stats,
                           size_t depth, std::vector<bool> active) const;
-    std::vector<std::vector<scoped_ptr_t<scoped_regex_t> > > regexps; //regexps[PATH][DEPTH]
+    std::vector<std::vector<scoped_ptr_t<RE2> > > regexps; //regexps[PATH][DEPTH]
     DISABLE_COPYING(perfmon_filter_t);
 };
 

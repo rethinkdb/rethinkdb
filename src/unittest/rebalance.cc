@@ -18,7 +18,6 @@ table_shard_scheme_t do_rebalance(const std::map<store_key_t, int64_t> &distribu
 }
 
 TEST(Rebalance, Regression3020) {
-    static const uint8_t key0[0] = { };
     static const uint8_t key1[1] = { 'N' };
     static const uint8_t key2[5] = { 'N', 'Z', 'a', 'b', 'c' };
     static const uint8_t key3[6] = { 'N', 'Z', 'a', 'b', 'c', '\x00' };
@@ -29,7 +28,6 @@ TEST(Rebalance, Regression3020) {
     static const uint8_t key8[2] = { 'S', '4' };
 
     std::map<store_key_t, int64_t> distribution;
-    distribution[store_key_t(sizeof(key0), key0)] = 1;
     distribution[store_key_t(sizeof(key1), key1)] = 1;
     distribution[store_key_t(sizeof(key2), key2)] = 6;
     distribution[store_key_t(sizeof(key3), key3)] = 6;
@@ -43,14 +41,12 @@ TEST(Rebalance, Regression3020) {
 }
 
 TEST(Rebalance, NoBalance) {
-    static const uint8_t key0[0] = { };
     static const uint8_t key1[1] = { 'D' };
     static const uint8_t key2[1] = { 'F' };
     static const uint8_t key3[1] = { 'O' };
     static const uint8_t key4[1] = { 'U' };
 
     std::map<store_key_t, int64_t> distribution;
-    distribution[store_key_t(sizeof(key0), key0)] = 5;
     distribution[store_key_t(sizeof(key1), key1)] = 5;
     distribution[store_key_t(sizeof(key2), key2)] = 5;
     distribution[store_key_t(sizeof(key3), key3)] = 5;

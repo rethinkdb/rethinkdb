@@ -66,7 +66,7 @@ public:
 
 void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
     dummy_mailbox_t::write_impl_t writer(message);
-    send(c, dest, &writer);
+    send_write(c, dest, &writer);
 }
 
 }   /* anonymous namespace */

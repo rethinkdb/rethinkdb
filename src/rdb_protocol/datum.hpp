@@ -256,7 +256,7 @@ public:
         reql_version_t reql_version,
         extrema_ok_t extrema_ok = extrema_ok_t::NOT_OK) const;
     void check_type(type_t desired, const char *msg = NULL) const;
-    void type_error(const std::string &msg) const NORETURN;
+    NORETURN void type_error(const std::string &msg) const;
 
     bool as_bool() const;
     double as_num() const;
@@ -322,9 +322,9 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    void runtime_fail(base_exc_t::type_t exc_type,
-                      const char *test, const char *file, int line,
-                      std::string msg) const NORETURN;
+    NORETURN void runtime_fail(base_exc_t::type_t exc_type,
+                               const char *test, const char *file, int line,
+                               std::string msg) const;
 
     static size_t max_trunc_size(skey_version_t skey_version);
     static size_t trunc_size(skey_version_t skey_version, size_t primary_key_size);

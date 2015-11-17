@@ -1,6 +1,12 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "backtrace.hpp"
 
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 #include <cxxabi.h>
 #include <execinfo.h>
 #include <stdio.h>
@@ -337,3 +343,5 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
 
     return output;
 }
+
+#endif

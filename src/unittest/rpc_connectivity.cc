@@ -1,4 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 #include <functional>
 
 #include "arch/runtime/thread_pool.hpp"
@@ -861,3 +867,5 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
 }
 
 }   /* namespace unittest */
+
+#endif

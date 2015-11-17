@@ -191,7 +191,7 @@ public:
     // This JS call resulted in a JSON value
     val_t *operator()(const datum_t &json_val) const;
     // This JS evaluation resulted in an id for a js function
-    val_t *operator()(const id_t id_val) const;
+    val_t *operator()(const js_id_t id_val) const;
 
 private:
     std::string code;

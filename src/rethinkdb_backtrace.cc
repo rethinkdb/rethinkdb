@@ -1,9 +1,15 @@
 #include "rethinkdb_backtrace.hpp"
 
+#ifdef _WIN32
+
+int rethinkdb_backtrace(void **buffer, int size) {
+    // TODO WINDOWS
+    return 0;
+}
+
+#elif defined(__MACH__)
+
 #include <execinfo.h>
-
-#ifdef __MACH__
-
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -95,6 +101,8 @@ int rethinkdb_backtrace(void **buffer, int size) {
 }
 
 #else
+
+#include <execinfo.h>
 
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);

@@ -66,8 +66,14 @@ serializer_filepath_t manual_serializer_filepath(const std::string &permanent_pa
 static const char *const temp_file_create_suffix = ".create";
 
 temp_file_t::temp_file_t() {
+#ifdef _WIN32
+    char tmpl[MAX_PATH + 1];
+    DWORD res = GetTempPath(MAX_PATH, tmpl);
+    guarantee_winerr(res != 0, "GetTempPath failed");
+    filename = std::string(tmpl) + strprintf("rdb_unittest.%6d", randint(1000000));
+#else
+    char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
     for (;;) {
-        char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
         const int fd = mkstemp(tmpl);
         guarantee_err(fd != -1, "Couldn't create a temporary file");
         close(fd);
@@ -82,6 +88,7 @@ temp_file_t::temp_file_t() {
             EXPECT_EQ(0, unlink_res);
         }
     }
+#endif
 }
 
 temp_file_t::~temp_file_t() {
@@ -97,10 +104,36 @@ serializer_filepath_t temp_file_t::name() const {
 }
 
 temp_directory_t::temp_directory_t() {
+#ifdef _WIN32
+    char tmpl[] = "rdb_unittest.";
+    char path[MAX_PATH + 1 + sizeof(tmpl) + 6 + 1];
+    DWORD res = GetTempPath(sizeof(path), path);
+    guarantee_winerr(res != NULL && res < MAX_PATH + 1, "GetTempPath failed");
+    strcpy(path + res, tmpl); // NOLINT
+    char *end = path + strlen(path);
+    int tries = 0;
+    while (true) {
+        snprintf(end, 7, "%06d", randint(1000000)); // NOLINT(runtime/printf)
+        BOOL res = CreateDirectory(path, nullptr);
+        if (res) {
+            directory = base_path_t(std::string(path));
+            break;
+        }
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            if (tries > 10) {
+                guarantee_winerr(res, "CreateDirectory failed");
+            }
+            tries++;
+            continue;
+        }
+        guarantee_winerr(res, "CreateDirectory failed");
+    }
+#else
     char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
     char *res = mkdtemp(tmpl);
     guarantee_err(res != nullptr, "Couldn't create a temporary directory");
     directory = base_path_t(std::string(res));
+#endif
 
     // Some usages of this directory may require an internal temporary directory
     recreate_temporary_directory(directory);
