@@ -69,7 +69,7 @@ public:
     size_t free_space_below(const void *addr) const;
 
 private:
-    page_aligned_ptr_t<char> stack;
+    scoped_page_aligned_ptr_t<char> stack;
     size_t stack_size;
 #ifdef VALGRIND
     int valgrind_stack_id;
