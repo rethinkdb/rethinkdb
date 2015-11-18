@@ -226,6 +226,10 @@ private:
 
 template <class T>
 class scoped_malloc_t {
+
+    static_assert(std::is_pod<T>::value || std::is_same<T, void>::value,
+                  "refusing to malloc non-POD, non-void type");
+
 public:
     template <class U>
     friend class scoped_malloc_t;
