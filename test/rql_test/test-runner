@@ -1299,7 +1299,7 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
             extension = extension.lstrip('.').strip().lower()
             
             testName, testLangExtensions = os.path.splitext(testName)
-            testLangExtensions = testLangExtensions.lstrip('.').strip().lower()
+            testLangExtensions = testLangExtensions.lstrip('.').strip().lower().replace('_', '.')
             if testLangExtensions:
                 testLangExtensions = testLangExtensions.split(',')
             else:
