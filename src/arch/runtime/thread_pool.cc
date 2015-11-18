@@ -122,7 +122,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         running under valgrind, we don't install this handler because Valgrind will print the
         backtrace for us. */
 #ifndef VALGRIND
-        page_aligned_ptr_t<void> stack_base(SIGNAL_HANDLER_STACK_SIZE);
+        scoped_page_aligned_ptr_t<void> stack_base(SIGNAL_HANDLER_STACK_SIZE);
         stack_t signal_stack;
         signal_stack.ss_sp = stack_base.get();
         signal_stack.ss_flags = 0;

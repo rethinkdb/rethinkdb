@@ -12,7 +12,7 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    device_block_aligned_ptr_t<char> data;
+    scoped_device_block_aligned_ptr_t<char> data;
     extent_t *parent;
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;

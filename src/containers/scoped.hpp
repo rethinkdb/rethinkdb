@@ -361,14 +361,14 @@ TEMPLATE_ALIAS(scoped_malloc_t, scoped_alloc_t<T, rmalloc, free>);
 // A type for aligned pointers
 // Needed because, on Windows, raw_free_aligned doesn't call free
 template <class T, int alignment>
-TEMPLATE_ALIAS(aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<alignment>, raw_free_aligned>);
+TEMPLATE_ALIAS(scoped_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<alignment>, raw_free_aligned>);
 
 // A type for page-aligned pointers
 template <class T>
-TEMPLATE_ALIAS(page_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_page_aligned, raw_free_aligned>);
+TEMPLATE_ALIAS(scoped_page_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_page_aligned, raw_free_aligned>);
 
 // A type for device-block-aligned pointers
 template <class T>
-TEMPLATE_ALIAS(device_block_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<DEVICE_BLOCK_SIZE>, raw_free_aligned>);
+TEMPLATE_ALIAS(scoped_device_block_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<DEVICE_BLOCK_SIZE>, raw_free_aligned>);
 
 #endif  // CONTAINERS_SCOPED_HPP_

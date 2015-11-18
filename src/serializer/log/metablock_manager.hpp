@@ -141,7 +141,7 @@ private:
 
     metablock_version_t next_version_number;
 
-    const device_block_aligned_ptr_t<crc_metablock_t> mb_buffer;
+    const scoped_device_block_aligned_ptr_t<crc_metablock_t> mb_buffer;
     // true: we're using the buffer, no one else can
     bool mb_buffer_in_use;
 

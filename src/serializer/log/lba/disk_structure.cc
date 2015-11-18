@@ -29,7 +29,7 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file,
         superblock_extent = new extent_t(em, file, superblock_extent_offset,
             superblock_offset + superblock_size - superblock_extent_offset);
 
-        startup_superblock_buffer = device_block_aligned_ptr_t<lba_superblock_t>(superblock_size);
+        startup_superblock_buffer = scoped_device_block_aligned_ptr_t<lba_superblock_t>(superblock_size);
         superblock_extent->read(
             superblock_offset - superblock_extent_offset,
             superblock_size,

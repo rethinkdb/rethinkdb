@@ -67,7 +67,7 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
     buf_ptr_t local_buf = std::move(*buf);
 
     block_size_t block_size = block_size_t::undefined();
-    device_block_aligned_ptr_t<ser_buffer_t> ptr;
+    scoped_device_block_aligned_ptr_t<ser_buffer_t> ptr;
     local_buf.release(&block_size, &ptr);
 
     // We're going to reconstruct the buf_ptr_t on the other side of this do_on_thread
@@ -121,7 +121,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
 }
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
-                                      device_block_aligned_ptr_t<ser_buffer_t> ptr,
+                                      scoped_device_block_aligned_ptr_t<ser_buffer_t> ptr,
                                       const counted_t<standard_block_token_t> &token) {
     assert_thread();
 

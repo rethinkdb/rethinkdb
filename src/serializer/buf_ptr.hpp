@@ -24,7 +24,7 @@ public:
     }
 
     buf_ptr_t(block_size_t size,
-              device_block_aligned_ptr_t<ser_buffer_t> ser_buffer)
+              scoped_device_block_aligned_ptr_t<ser_buffer_t> ser_buffer)
         : block_size_(size),
           ser_buffer_(std::move(ser_buffer)) {
         guarantee(block_size_.ser_value() != 0);
@@ -80,7 +80,7 @@ public:
     }
 
     void release(block_size_t *block_size_out,
-                 device_block_aligned_ptr_t<ser_buffer_t> *ser_buffer_out) {
+                 scoped_device_block_aligned_ptr_t<ser_buffer_t> *ser_buffer_out) {
         buf_ptr_t tmp(std::move(*this));
         *block_size_out = tmp.block_size_;
         *ser_buffer_out = std::move(tmp.ser_buffer_);
@@ -113,7 +113,7 @@ private:
     // more efficiently write the buffer to disk.
     block_size_t block_size_;
     // The buffer, or empty if this buf_ptr_t is empty.
-    device_block_aligned_ptr_t<ser_buffer_t> ser_buffer_;
+    scoped_device_block_aligned_ptr_t<ser_buffer_t> ser_buffer_;
 
     DISABLE_COPYING(buf_ptr_t);
 };

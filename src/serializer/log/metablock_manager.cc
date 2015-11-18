@@ -97,7 +97,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
-    device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
+    scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
     bzero(buffer.get(), METABLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
@@ -175,7 +175,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
         }
 
     private:
-        device_block_aligned_ptr_t<crc_metablock_t> buffer;
+        scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer;
     } lbm(metablock_offsets.size());
     struct : public iocallback_t, public cond_t {
         int refcount;
