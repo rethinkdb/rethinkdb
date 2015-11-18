@@ -223,6 +223,12 @@ private:
     DISABLE_COPYING(scoped_array_t);
 };
 
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
+#define CAN_ALIAS_TEMPLATES 0
+#else
+#define CAN_ALIAS_TEMPLATES 1
+#endif
+
 /*
  * For pointers with custom allocators and deallocators
  */
@@ -306,9 +312,11 @@ public:
         swap(tmp);
     }
 
-protected:
+#if !CAN_ALIAS_TEMPLATES
     // This is a base class, but the destructor is not virtual because
-    // we don't want a vtable pointer
+    // we don't want a vtable pointer. Make it protected instead.
+protected:
+#endif
     ~scoped_alloc_t() {
         dealloc(ptr_);
 
@@ -337,7 +345,7 @@ void *raw_malloc_aligned(size_t size) {
     return raw_malloc_aligned(size, alignment);
 }
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
+#if !CAN_ALIAS_TEMPLATES
 
 // GCC 4.6 doesn't support template aliases
 
