@@ -25,21 +25,20 @@ bool static_header_check(file_t *file) {
     if (file->get_file_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
-        static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
-        co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
-        bool equals = memcmp(buffer, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0;
-        free(buffer);
+        device_block_aligned_ptr_t<static_header_t> buffer(DEVICE_BLOCK_SIZE);
+        co_read(file, 0, DEVICE_BLOCK_SIZE, buffer.get(), DEFAULT_DISK_ACCOUNT);
+        bool equals = memcmp(buffer.get(), SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0;
         return equals;
     }
 }
 
 void co_static_header_write(file_t *file, void *data, size_t data_size) {
-    static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+    device_block_aligned_ptr_t<static_header_t> buffer(DEVICE_BLOCK_SIZE);
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
 
     file->set_file_size_at_least(DEVICE_BLOCK_SIZE);
 
-    bzero(buffer, DEVICE_BLOCK_SIZE);
+    bzero(buffer.get(), DEVICE_BLOCK_SIZE);
 
     rassert(sizeof(SOFTWARE_NAME_STRING) < 16);
     memcpy(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING));
@@ -52,9 +51,7 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
 
     // We want to follow up the static header write with a datasync, because... it's the
     // most important block in the file!
-    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
-
-    free(buffer);
+    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer.get(), DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
 
 void co_static_header_write_helper(file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
@@ -74,8 +71,8 @@ void co_static_header_read(
         size_t data_size,
         bool *needs_migration_out) {
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
-    static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
-    co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
+    device_block_aligned_ptr_t<static_header_t> buffer(DEVICE_BLOCK_SIZE);
+    co_read(file, 0, DEVICE_BLOCK_SIZE, buffer.get(), DEFAULT_DISK_ACCOUNT);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
         fail_due_to_user_error("This doesn't appear to be a RethinkDB data file.");
     }
@@ -96,7 +93,6 @@ void co_static_header_read(
     }
     memcpy(data_out, buffer->data, data_size);
     callback->on_static_header_read();
-    free(buffer);
 }
 
 void static_header_read(
