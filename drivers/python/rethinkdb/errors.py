@@ -1,30 +1,24 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-__all__ = ["ReqlCursorEmpty",
-           "ReqlError",
-           "ReqlCompileError",
-           "ReqlDriverCompileError",
-           "ReqlServerCompileError",
-           "ReqlRuntimeError",
-           "ReqlQueryLogicError",
-           "ReqlNonExistenceError",
-           "ReqlResourceLimitError",
-           "ReqlUserError",
-           "ReqlInternalError",
-           "ReqlTimeoutError",
-           "ReqlAvailabilityError",
-           "ReqlOpFailedError",
-           "ReqlOpIndeterminateError",
-           "ReqlDriverError",
-           "ReqlAuthError",
-
-           "RqlCursorEmpty",
-           "RqlError", 
-           "RqlClientError",
-           "RqlCompileError",
-           "RqlRuntimeError",
-           "RqlDriverError",
-           "RqlTimeoutError"]
+__all__ = [
+    "ReqlCursorEmpty", "RqlCursorEmpty",
+    "ReqlError", "RqlError",
+        "ReqlCompileError", "RqlCompileError",
+            "ReqlDriverCompileError",
+            "ReqlServerCompileError",
+        "ReqlRuntimeError", "RqlRuntimeError",
+            "ReqlQueryLogicError",
+                "ReqlNonExistenceError",
+            "ReqlResourceLimitError",
+            "ReqlUserError",
+            "ReqlInternalError",
+            "ReqlTimeoutError", "RqlTimeoutError",
+            "ReqlAvailabilityError",
+                "ReqlOpFailedError",
+                "ReqlOpIndeterminateError",
+        "ReqlDriverError", "RqlDriverError", "RqlClientError",
+            "ReqlAuthError"
+]
 
 import sys
 
