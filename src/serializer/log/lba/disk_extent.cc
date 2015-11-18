@@ -68,7 +68,5 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
                                   static_cast<uint16_t>(e->ser_block_size));
         }
     }
-
-    free(info->buffer.get());
 }
 
