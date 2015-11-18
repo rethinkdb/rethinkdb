@@ -271,13 +271,9 @@ public:
     class released_t {
     public:
         ~released_t() {
-            dealloc(ptr_);
+            rassert(ptr_ == nullptr);
         }
         released_t(const released_t &other) {
-            ptr_ = other.ptr_;
-            other.ptr_ = nullptr;
-        }
-        const released_t &operator=(const released_t &other) {
             ptr_ = other.ptr_;
             other.ptr_ = nullptr;
         }
@@ -311,8 +307,13 @@ public:
     }
 
 protected:
+    // This is a base class, but the destructor is not virtual because
+    // we don't want a vtable pointer
     ~scoped_alloc_t() {
         dealloc(ptr_);
+
+        static_assert(sizeof(*this) == sizeof(ptr_),
+                      "scoped_alloc_t is larger than a pointer");
     }
 
 private:
