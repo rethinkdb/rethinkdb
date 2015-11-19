@@ -223,6 +223,25 @@ private:
     DISABLE_COPYING(scoped_array_t);
 };
 
+// This class has move semantics in its copy constructor.
+// It is meant to be used instead of C++14 generalized lambda capture,
+// to capture a variable using move smeantics,
+// which GCC 4.6 doesn't support.
+template<class T>
+class copyable_unique_t {
+public:
+    copyable_unique_t(T&& x)
+        : it(std::move(x)) { }
+    copyable_unique_t(const copyable_unique_t<T> &other)
+        : it(std::move(other.it)) { }
+    T release() const {
+        T x(std::move(it));
+        return x;
+    }
+private:
+    mutable T it;
+};
+
 #if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
 #define CAN_ALIAS_TEMPLATES 0
 #else
@@ -264,6 +283,12 @@ public:
         movee.ptr_ = NULL;
     }
 
+    template <class U>
+    scoped_alloc_t(copyable_unique_t<U> other) noexcept {
+        scoped_alloc_t tmp(other.release());
+        swap(tmp);
+    }
+
     void operator=(scoped_alloc_t &&movee) noexcept {
         scoped_alloc_t tmp(std::move(movee));
         swap(tmp);
@@ -271,37 +296,6 @@ public:
 
     T *get() const { return ptr_; }
     T *operator->() const { return ptr_; }
-
-    // This class has move semantics in its copy constructor
-    // It allows passing scoped_alloc_t through things like std::bind
-    class released_t {
-    public:
-        ~released_t() {
-            rassert(ptr_ == nullptr);
-        }
-        released_t(const released_t &other) {
-            ptr_ = other.ptr_;
-            other.ptr_ = nullptr;
-        }
-    private:
-        friend class scoped_alloc_t;
-        released_t(T* ptr) : ptr_(ptr) { }
-        mutable T* ptr_;
-    };
-
-    // Does not return a raw pointer to ensure that the pointer gets deallocated correctly
-    released_t release() {
-        rassert(ptr_ != nullptr);
-        released_t released(ptr_);
-        ptr_ = NULL;
-        return released;
-    }
-
-    scoped_alloc_t(released_t released) {
-        rassert(released.ptr_ != nullptr);
-        ptr_ = released.ptr_;
-        released.ptr_ = nullptr;
-    }
 
     bool has() const {
         return ptr_ != NULL;
@@ -313,15 +307,10 @@ public:
     }
 
 #if !CAN_ALIAS_TEMPLATES
-    // This is a base class, but the destructor is not virtual because
-    // we don't want a vtable pointer. Make it protected instead.
 protected:
 #endif
     ~scoped_alloc_t() {
         dealloc(ptr_);
-
-        static_assert(sizeof(*this) == sizeof(ptr_),
-                      "scoped_alloc_t is larger than a pointer");
     }
 
 private:

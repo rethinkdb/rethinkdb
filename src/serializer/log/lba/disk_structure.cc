@@ -59,7 +59,7 @@ void lba_disk_structure_t::on_extent_read() {
                 startup_superblock_buffer->entries[i].lba_entries_count));
     }
 
-    startup_superblock_buffer.release();
+    startup_superblock_buffer.reset();
 
     start_callback->on_lba_load();
 }
