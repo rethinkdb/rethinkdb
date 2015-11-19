@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <functional>
 
+#include "stl_utils.hpp"
+#include "boost_utils.hpp"
+
 #include "btree/operations.hpp"
 #include "btree/reql_specific.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -12,6 +15,7 @@
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/distribution_progress.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -27,120 +31,185 @@ namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
-        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
+        uuid_u sindex_id_to_bring_up_to_date,
+        key_range_t *construction_range_inout,
+        int64_t max_pairs_to_construct,
         store_t *store,
-        internal_disk_backed_queue_t *mod_queue_ptr)
+        scoped_ptr_t<disk_backed_queue_wrapper_t<rdb_modification_report_t> >
+            &&mod_queue)
     THROWS_NOTHING;
 
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
-void bring_sindexes_up_to_date(
-        const std::set<sindex_name_t> &sindexes_to_bring_up_to_date,
+void resume_construct_sindex(
+        const uuid_u &sindex_to_construct,
+        const key_range_t &construct_range,
         store_t *store,
-        buf_lock_t *sindex_block)
-    THROWS_NOTHING
-{
+        auto_drainer_t::lock_t store_keepalive) THROWS_NOTHING {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
 
-    /* We register our modification queue here.
-     * We must register it before calling post_construct_and_drain_queue to
-     * make sure that every changes which we don't learn about in
-     * the parallel traversal that's started there, we do learn about from the mod
-     * queue. Changes that happen between the mod queue registration and
-     * the parallel traversal will be accounted for twice. That is ok though,
-     * since every modification can be applied repeatedly without causing any
-     * damage (if that should ever not true for any of the modifications, that
-     * modification must be fixed or this code would have to be changed to account
-     * for that). */
-    uuid_u post_construct_id = generate_uuid();
-
-    /* Keep the store alive for as long as mod_queue exists. It uses its io_backender
-     * and perfmon_collection, so that is important. */
-    auto_drainer_t::lock_t store_drainer_acq(&store->drainer);
-
-    // TODO: This can now be a disk_backed_queue_t<rdb_modification_report_t>.
-    scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(
-            new internal_disk_backed_queue_t(
-                store->io_backender_,
-                serializer_filepath_t(
-                    store->base_path_,
-                    "post_construction_" + uuid_to_str(post_construct_id)),
-                &store->perfmon_collection));
-
-    {
-        new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(sindex_block);
-        store->register_sindex_queue(mod_queue.get(), &acq);
-    }
-
-    std::map<sindex_name_t, secondary_index_t> sindexes;
-    get_secondary_indexes(sindex_block, &sindexes);
-    std::map<uuid_u, std::string> sindexes_to_bring_up_to_date_uuid_name;
-
-    for (auto it = sindexes_to_bring_up_to_date.begin();
-         it != sindexes_to_bring_up_to_date.end(); ++it) {
-        guarantee(!it->being_deleted, "Trying to bring an index up to date that's "
-                                      "being deleted");
-        auto sindexes_it = sindexes.find(*it);
-        guarantee(sindexes_it != sindexes.end());
-        sindexes_to_bring_up_to_date_uuid_name.insert(
-            std::make_pair(sindexes_it->second.id, sindexes_it->first.name));
-    }
-
-    coro_t::spawn_sometime(std::bind(
-                &post_construct_and_drain_queue,
-                store_drainer_acq,
-                sindexes_to_bring_up_to_date_uuid_name,
-                store,
-                mod_queue.release()));
-}
-
-/* This function is really part of the logic of bring_sindexes_up_to_date
- * however it needs to be in a seperate function so that it can be spawned in a
- * coro.
- */
-void post_construct_and_drain_queue(
-        auto_drainer_t::lock_t lock,
-        std::map<uuid_u, std::string> const &sindexes_to_bring_up_to_date_uuid_name,
-        store_t *store,
-        internal_disk_backed_queue_t *mod_queue_ptr)
-    THROWS_NOTHING
-{
-    std::set<uuid_u> sindexes_to_bring_up_to_date;
-    parallel_traversal_progress_t progress_tracker;
-    std::vector<map_insertion_sentry_t<
-        store_t::sindex_context_map_t::key_type,
-        store_t::sindex_context_map_t::mapped_type> > sindex_context_sentries;
-    for (auto const &sindex : sindexes_to_bring_up_to_date_uuid_name) {
-        sindexes_to_bring_up_to_date.insert(sindex.first);
-        sindex_context_sentries.emplace_back(
-            store->get_sindex_context_map(),
-            sindex.first,
-            std::make_pair(current_microtime(), &progress_tracker));
-    }
-
-    scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
-
-    rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);
+    // Block out backfills to improve performance.
+    // A very useful side-effect of this is that if a server is added as a new replica
+    // to a table, its indexes get constructed before the backfill can complete.
+    // This makes sure that the indexes are actually ready by the time the new replica
+    // becomes active.
+    //
     // Note that we don't actually wait for the lock to be acquired.
     // All we want is to pause backfills by having our write lock acquisition
     // in line.
     // Waiting for the write lock would restrict us to having only one post
-    // construction active at any time (which we might not want, for no specific
-    // reason).
+    // construction active at any time (which would make constructing multiple indexes
+    // at the same time less efficient).
+    rwlock_in_line_t backfill_lock_acq(&store->backfill_postcon_lock, access_t::write);
+
+    // Used by the `jobs` table and `indexStatus` to track the progress of the
+    // construction.
+    distribution_progress_estimator_t progress_estimator(
+        store, store_keepalive.get_drain_signal());
+    double current_progress =
+        progress_estimator.estimate_progress(construct_range.left);
+    map_insertion_sentry_t<
+        store_t::sindex_context_map_t::key_type,
+        store_t::sindex_context_map_t::mapped_type> sindex_context_sentry(
+            store->get_sindex_context_map(),
+            sindex_to_construct,
+            std::make_pair(current_microtime(), &current_progress));
+
+    /* We start by clearing out any residual data in the index left behind by a previous
+    post construction process (if the server got terminated in the middle). */
+    try {
+        /* It's safe to use a noop deletion context because this part of the index has
+        never been live. */
+        rdb_noop_deletion_context_t noop_deletion_context;
+        rdb_value_sizer_t sizer(store->cache->max_block_size());
+        store->clear_sindex_data(
+            sindex_to_construct,
+            &sizer,
+            &noop_deletion_context,
+            construct_range,
+            store_keepalive.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        return;
+    }
+
+    uuid_u post_construct_id = generate_uuid();
+
+    /* Secondary indexes are constructed in multiple passes, moving through the primary
+    key range from the smallest key to the largest one. In each pass, we handle a
+    certain number of primary keys and put the corresponding entries into the secondary
+    index. While this happens, we use a queue to keep track of any writes to the range
+    we're constructing. We then drain the queue and atomically delete it, before we
+    start the next pass. */
+    const int64_t PAIRS_TO_CONSTRUCT_PER_PASS = 512;
+    key_range_t remaining_range = construct_range;
+    while (!remaining_range.is_empty()) {
+        scoped_ptr_t<disk_backed_queue_wrapper_t<rdb_modification_report_t> > mod_queue;
+        {
+            /* Start a transaction and acquire the sindex_block */
+            write_token_t token;
+            store->new_write_token(&token);
+            scoped_ptr_t<txn_t> txn;
+            scoped_ptr_t<real_superblock_t> superblock;
+            try {
+                store->acquire_superblock_for_write(1,
+                                                    write_durability_t::SOFT,
+                                                    &token,
+                                                    &txn,
+                                                    &superblock,
+                                                    store_keepalive.get_drain_signal());
+            } catch (const interrupted_exc_t &) {
+                return;
+            }
+            buf_lock_t sindex_block(superblock->expose_buf(),
+                                    superblock->get_sindex_block_id(),
+                                    access_t::write);
+            superblock.reset();
+
+            /* We register our modification queue here.
+             * We must register it before calling post_construct_and_drain_queue to
+             * make sure that every changes which we don't learn about in
+             * the concurrent traversal that's started there, we do learn about from the
+             * mod queue. Changes that happen between the mod queue registration and
+             * the parallel traversal will be accounted for twice. That is ok though,
+             * since every modification can be applied repeatedly without causing any
+             * damage (if that should ever not true for any of the modifications, that
+             * modification must be fixed or this code would have to be changed to
+             * account for that). */
+            const int64_t MAX_MOD_QUEUE_MEMORY_BYTES = 8 * MEGABYTE;
+            mod_queue.init(
+                    new disk_backed_queue_wrapper_t<rdb_modification_report_t>(
+                        store->io_backender_,
+                        serializer_filepath_t(
+                            store->base_path_,
+                            "post_construction_" + uuid_to_str(post_construct_id)),
+                        &store->perfmon_collection,
+                        MAX_MOD_QUEUE_MEMORY_BYTES));
+
+            secondary_index_t sindex;
+            bool found_index =
+                get_secondary_index(&sindex_block, sindex_to_construct, &sindex);
+            if (!found_index || sindex.being_deleted) {
+                // The index was deleted. Abort construction.
+                return;
+            }
+
+            new_mutex_in_line_t acq =
+                store->get_in_line_for_sindex_queue(&sindex_block);
+            store->register_sindex_queue(mod_queue.get(), remaining_range, &acq);
+        }
+
+        // This updates `remaining_range`.
+        post_construct_and_drain_queue(
+            store_keepalive,
+            sindex_to_construct,
+            &remaining_range,
+            PAIRS_TO_CONSTRUCT_PER_PASS,
+            store,
+            std::move(mod_queue));
+
+        // Update the progress value
+        current_progress = progress_estimator.estimate_progress(remaining_range.left);
+    }
+}
+
+/* This function is used by resume_construct_sindex. It traverses the primary btree
+and creates entries in the given secondary index. It then applies outstanding changes
+from the mod_queue and deregisters it. */
+void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
+        uuid_u sindex_id_to_bring_up_to_date,
+        key_range_t *construction_range_inout,
+        int64_t max_pairs_to_construct,
+        store_t *store,
+        scoped_ptr_t<disk_backed_queue_wrapper_t<rdb_modification_report_t> >
+            &&mod_queue)
+    THROWS_NOTHING {
+
+    // `post_construct_secondary_index_range` can post-construct multiple secondary
+    // indexes at the same time. We don't currently make use of that functionality
+    // though. (it doesn't make sense to remove it, since it doesn't add anything to
+    // its complexity).
+    std::set<uuid_u> sindexes_to_bring_up_to_date;
+    sindexes_to_bring_up_to_date.insert(sindex_id_to_bring_up_to_date);
 
     try {
-        post_construct_secondary_indexes(
+        const size_t MOD_QUEUE_SIZE_LIMIT = 16;
+        // This constructs a part of the index and updates `construction_range_inout`
+        // to the range that's still remaining.
+        post_construct_secondary_index_range(
             store,
             sindexes_to_bring_up_to_date,
-            lock.get_drain_signal(),
-            &progress_tracker);
+            construction_range_inout,
+            // Abort if the mod_queue gets larger than the `MOD_QUEUE_SIZE_LIMIT`, or
+            // we've constructed `max_pairs_to_construct` pairs.
+            [&](int64_t pairs_constructed) {
+                return pairs_constructed >= max_pairs_to_construct
+                    || mod_queue->size() > MOD_QUEUE_SIZE_LIMIT;
+            },
+            lock.get_drain_signal());
 
-        /* Drain the queue. */
-
-        while (!lock.get_drain_signal()->is_pulsed()) {
-            // Yield while we are not holding any locks yet.
-            coro_t::yield();
-
+        // Drain the queue.
+        {
             write_token_t token;
             store->new_write_token(&token);
 
@@ -154,7 +223,7 @@ void post_construct_and_drain_queue(
             // Other than that, the hard durability guarantee is not actually
             // needed here.
             store->acquire_superblock_for_write(
-                2,
+                2 + mod_queue->size(),
                 write_durability_t::HARD,
                 &token,
                 &queue_txn,
@@ -175,44 +244,78 @@ void post_construct_and_drain_queue(
                     &queue_sindex_block,
                     &sindexes);
 
+            // Pretend that the indexes in `sindexes` have been post-constructed up to
+            // the new range. This is important to make the call to
+            // `rdb_update_sindexes()` below actually update the indexes.
+            // We use the same trick in the `post_construct_traversal_helper_t`.
+            // TODO: Avoid this hackery (here and in `post_construct_traversal_helper_t`)
+            for (auto &&access : sindexes) {
+                access->sindex.needs_post_construction_range = *construction_range_inout;
+            }
+
             if (sindexes.empty()) {
-                break;
+                // We still need to deregister the queues. This is done further below
+                // after the exception handler.
+                // We throw here because that's consistent with how
+                // `post_construct_secondary_index_range` signals the fact that all
+                // indexes have been deleted.
+                throw interrupted_exc_t();
             }
 
             new_mutex_in_line_t acq =
                 store->get_in_line_for_sindex_queue(&queue_sindex_block);
-            // TODO (daniel): Is there a way to release the queue_sindex_block
-            // earlier than we do now, ideally before we wait for the acq signal?
             acq.acq_signal()->wait_lazily_unordered();
 
-            const int MAX_CHUNK_SIZE = 10;
-            int current_chunk_size = 0;
-            while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
-                rdb_modification_report_t mod_report;
-                // This involves a disk backed queue so there are no versioning issues.
-                deserializing_viewer_t<rdb_modification_report_t>
-                    viewer(&mod_report);
-                mod_queue->pop(&viewer);
-                rdb_post_construction_deletion_context_t deletion_context;
-                rdb_update_sindexes(store,
-                                    sindexes,
-                                    &mod_report,
-                                    queue_txn.get(),
-                                    &deletion_context,
-                                    NULL,
-                                    NULL,
-                                    NULL);
-                ++current_chunk_size;
+            while (mod_queue->size() > 0) {
+                if (lock.get_drain_signal()->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+                // The `disk_backed_queue_wrapper` can sometimes be non-empty, but not
+                // have a value available because it's still loading from disk.
+                // In that case we must wait until a value becomes available.
+                while (!mod_queue->available->get()) {
+                    // TODO: The availability_callback_t interface on passive producers
+                    //   is difficult to use and should be simplified.
+                    struct on_availability_t : public availability_callback_t {
+                        void on_source_availability_changed() {
+                            cond.pulse_if_not_already_pulsed();
+                        }
+                        cond_t cond;
+                    } on_availability;
+                    mod_queue->available->set_callback(&on_availability);
+                    try {
+                        wait_interruptible(&on_availability.cond,
+                                           lock.get_drain_signal());
+                    } catch (const interrupted_exc_t &) {
+                        mod_queue->available->unset_callback();
+                        throw;
+                    }
+                    mod_queue->available->unset_callback();
+                }
+                rdb_modification_report_t mod_report = mod_queue->pop();
+                // We only need to apply modifications that fall in the range that
+                // has actually been constructed.
+                // If it's in the range that is still to be constructed we ignore it.
+                if (!construction_range_inout->contains_key(mod_report.primary_key)) {
+                    rdb_post_construction_deletion_context_t deletion_context;
+                    rdb_update_sindexes(store,
+                                        sindexes,
+                                        &mod_report,
+                                        queue_txn.get(),
+                                        &deletion_context,
+                                        NULL,
+                                        NULL,
+                                        NULL);
+                }
             }
 
-            if (mod_queue->size() == 0) {
-                for (auto it = sindexes_to_bring_up_to_date.begin();
-                     it != sindexes_to_bring_up_to_date.end(); ++it) {
-                    store->mark_index_up_to_date(*it, &queue_sindex_block);
-                }
-                store->deregister_sindex_queue(mod_queue.get(), &acq);
-                return;
-            }
+            // Mark parts of the index up to date (except for what remains in
+            // `construction_range_inout`).
+            store->mark_index_up_to_date(sindex_id_to_bring_up_to_date,
+                                         &queue_sindex_block,
+                                         *construction_range_inout);
+            store->deregister_sindex_queue(mod_queue.get(), &acq);
+            return;
         }
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
@@ -233,13 +336,14 @@ void post_construct_and_drain_queue(
         scoped_ptr_t<txn_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
+        cond_t non_interruptor;
         store->acquire_superblock_for_write(
             2,
             write_durability_t::HARD,
             &token,
             &queue_txn,
             &queue_superblock,
-            lock.get_drain_signal());
+            &non_interruptor);
 
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
@@ -272,23 +376,47 @@ region_t monokey_region(const store_key_t &k) {
 }
 
 key_range_t sindex_key_range(const store_key_t &start,
-                             const store_key_t &end) {
+                             const store_key_t &end,
+                             key_range_t::bound_t end_type,
+                             ql::skey_version_t skey_version) {
+
+    const size_t max_trunc_size = ql::datum_t::max_trunc_size(skey_version);
+
+    // If `end` is not truncated and right bound is open, we don't increment the right
+    // bound.
+    guarantee(static_cast<size_t>(end.size()) <= max_trunc_size);
     store_key_t end_key;
-    std::string end_key_str(key_to_unescaped_str(end));
+    const bool end_is_truncated = static_cast<size_t>(end.size()) == max_trunc_size;
+    // The key range we generate must be open on the right end because the keys in the
+    // btree have extra data appended to the secondary key part.
+    if (end_is_truncated) {
+        // Since the key is already truncated, we must make it larger without making it
+        // longer.
+        std::string end_key_str(key_to_unescaped_str(end));
+        while (end_key_str.length() > 0 &&
+               end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+            end_key_str.erase(end_key_str.length() - 1);
+        }
 
-    // Need to make the next largest store_key_t without making the key longer
-    while (end_key_str.length() > 0 &&
-           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
-        end_key_str.erase(end_key_str.length() - 1);
-    }
-
-    if (end_key_str.length() == 0) {
-        end_key = store_key_t::max();
+        if (end_key_str.length() == 0) {
+            end_key = store_key_t::max();
+        } else {
+            ++end_key_str[end_key_str.length() - 1];
+            end_key = store_key_t(end_key_str);
+        }
+    } else if (end_type == key_range_t::bound_t::closed) {
+        // `end` is not truncated, but the range is closed. We know that `end` is
+        // currently terminated by a null byte. We can replace that by a '\1' to ensure
+        // that any key in the btree with that exact secondary index value will be
+        // included in the range.
+        end_key = end;
+        guarantee(end_key.size() > 0);
+        guarantee(end_key.contents()[end_key.size() - 1] == 0);
+        end_key.contents()[end_key.size() - 1] = 1;
     } else {
-        ++end_key_str[end_key_str.length() - 1];
-        end_key = store_key_t(end_key_str);
+        end_key = end;
     }
-    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
+    return key_range_t(key_range_t::closed, start, key_range_t::open, std::move(end_key));
 }
 
 }  // namespace rdb_protocol
@@ -343,12 +471,18 @@ region_t read_t::get_region() const THROWS_NOTHING {
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
                                    read_t::variant_t *_payload_out)
-        : region(_region), payload_out(_payload_out) { }
+        : region(*_region), payload_out(_payload_out) {
+        // One day we'll get rid of unbounded right bounds, but until then
+        // we canonicalize them here because otherwise life sucks.
+        if (region.inner.right.unbounded) {
+            region.inner.right = key_range_t::right_bound_t(store_key_t::max());
+        }
+    }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
-        if (region_contains_key(*region, key)) {
+        if (region_contains_key(region, key)) {
             *payload_out = arg;
             return true;
         } else {
@@ -363,7 +497,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     template <class T>
     bool rangey_read(const T &arg) const {
         const hash_region_t<key_range_t> intersection
-            = region_intersection(*region, arg.region);
+            = region_intersection(region, arg.region);
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
@@ -379,7 +513,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const changefeed_limit_subscribe_t &s) const {
-        return rangey_read(s);
+        bool do_read = rangey_read(s);
+        if (do_read) {
+            auto *out = boost::get<changefeed_limit_subscribe_t>(payload_out);
+            out->current_shard = region;
+        }
+        return do_read;
     }
 
     bool operator()(const changefeed_stamp_t &t) const {
@@ -391,10 +530,51 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const rget_read_t &rg) const {
-        bool do_read = rangey_read(rg);
+        bool do_read;
+        if (rg.hints) {
+            auto it = rg.hints->find(region);
+            if (it != rg.hints->end()) {
+                do_read = rangey_read(rg);
+                auto *rr = boost::get<rget_read_t>(payload_out);
+                guarantee(rr);
+                if (do_read) {
+                    // TODO: We could avoid an `std::map` copy by making
+                    // `rangey_read` smarter.
+                    rr->hints = boost::none;
+                    if (!rg.sindex) {
+                        if (!reversed(rg.sorting)) {
+                            guarantee(it->second >= rr->region.inner.left);
+                            rr->region.inner.left = it->second;
+                        } else {
+                            key_range_t::right_bound_t rb(it->second);
+                            guarantee(rb <= rr->region.inner.right);
+                            rr->region.inner.right = rb;
+                        }
+                        r_sanity_check(!rr->region.inner.is_empty());
+                    } else {
+                        guarantee(rr->sindex);
+                        guarantee(rr->sindex->region);
+                        if (!reversed(rg.sorting)) {
+                            rr->sindex->region->inner.left = it->second;
+                        } else {
+                            rr->sindex->region->inner.right =
+                                key_range_t::right_bound_t(it->second);
+                        }
+                        r_sanity_check(!rr->sindex->region->inner.is_empty());
+                    }
+                }
+            } else {
+                do_read = false;
+            }
+        } else {
+            do_read = rangey_read(rg);
+        }
         if (do_read) {
-            auto rg_out = boost::get<rget_read_t>(payload_out);
-            rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            auto *rg_out = boost::get<rget_read_t>(payload_out);
+            guarantee(!region.inner.right.unbounded);
+            rg_out->current_shard = region;
+            rg_out->batchspec = rg_out->batchspec.scale_down(
+                rg.hints ? rg.hints->size() : CPU_SHARDING_FACTOR);
             if (static_cast<bool>(rg_out->primary_keys)) {
                 for (auto it = rg_out->primary_keys->begin();
                      it != rg_out->primary_keys->end();) {
@@ -430,7 +610,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_read(d);
     }
 
-    const hash_region_t<key_range_t> *region;
+    region_t region;
     read_t::variant_t *payload_out;
 };
 
@@ -446,7 +626,8 @@ bool read_t::shard(const hash_region_t<key_range_t> &region,
 
 class distribution_read_response_less_t {
 public:
-    bool operator()(const distribution_read_response_t& x, const distribution_read_response_t& y) {
+    bool operator()(const distribution_read_response_t& x,
+                    const distribution_read_response_t& y) {
         if (x.region.inner == y.region.inner) {
             return x.region < y.region;
         } else {
@@ -559,7 +740,7 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
-            // `include_initial_vals` changefeeds.
+            // `include_initial` changefeeds.
             auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
             if (!pair.second) {
                 out->stamps = boost::none;
@@ -658,7 +839,13 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
-    unshard_range_batch<rget_read_response_t>(rg, rg.sorting);
+    if (rg.hints && count != rg.hints->size()) {
+        response_out->response = rget_read_response_t(
+            ql::exc_t(ql::base_exc_t::OP_FAILED, "Read aborted by unshard operation.",
+                      ql::backtrace_id_t::empty()));
+    } else {
+        unshard_range_batch<rget_read_response_t>(rg, rg.sorting);
+    }
 }
 
 template<class query_response_t, class query_t>
@@ -675,13 +862,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     // Initialize response.
     response_out->response = query_response_t();
     query_response_t *out = boost::get<query_response_t>(&response_out->response);
-    out->truncated = false;
-    out->reql_version = reql_version_t::v1_14;
+    out->reql_version = reql_version_t::EARLIEST;
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
     std::vector<changefeed_stamp_response_t *> stamp_resps(count);
-    store_key_t *best = NULL;
     key_le_t key_le(sorting);
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<query_response_t>(&responses[i].response);
@@ -709,19 +894,12 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             }
 #endif // NDEBUG
         }
-        if (resp->truncated) {
-            out->truncated = true;
-            if (best == NULL || key_le.is_le(resp->last_key, *best)) {
-                best = &resp->last_key;
-            }
-        }
         results[i] = &resp->result;
         if (q.stamp) {
             guarantee(resp->stamp_response);
             stamp_resps[i] = &*resp->stamp_response;
         }
     }
-    out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
     if (q.stamp) {
         out->stamp_response = changefeed_stamp_response_t();
         unshard_stamps(stamp_resps, &*out->stamp_response);
@@ -731,9 +909,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     try {
         scoped_ptr_t<ql::accumulator_t> acc(q.terminal
             ? ql::make_terminal(*q.terminal)
-            : ql::make_append(sorting, NULL));
-        acc->unshard(&env, out->last_key, results);
-        acc->finish(&out->result);
+            : ql::make_unsharding_append());
+        acc->unshard(&env, results);
+        // The semantics here are that we aborted before ever iterating since no
+        // iteration occured (since we don't actually have a btree here).
+        acc->finish(continue_bool_t::ABORT, &out->result);
     } catch (const ql::exc_t &ex) {
         *out = query_response_t(ex);
     }
@@ -1169,9 +1349,9 @@ int write_t::expected_document_changes() const {
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
-    ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    rget_read_response_t, stamp_response, result, reql_version, truncated, last_key);
+    ql::skey_version_t::post_1_16, ql::skey_version_t::post_1_16);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    rget_read_response_t, stamp_response, result, reql_version);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
@@ -1195,9 +1375,20 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(rget_read_t,
-                                     stamp, region, primary_keys, optargs, table_name,
-                                     batchspec, transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
+    rget_read_t,
+    stamp,
+    region,
+    current_shard,
+    hints,
+    primary_keys,
+    optargs,
+    table_name,
+    batchspec,
+    transforms,
+    terminal,
+    sindex,
+    sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);
@@ -1209,8 +1400,8 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
         distribution_read_t, max_depth, result_limit, region);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    changefeed_limit_subscribe_t, addr, uuid, spec, table, region);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+    changefeed_limit_subscribe_t, addr, uuid, spec, table, region, current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 

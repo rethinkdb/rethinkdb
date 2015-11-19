@@ -47,7 +47,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
 
 inline MUST_USE archive_result_t deserialize_reql_version(
         read_stream_t *s, reql_version_t *thing,
-        const std::function<void()> &obsolete_cb) {
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb) {
     // Initialize `thing` to *something* because GCC 4.6.3 thinks that `thing`
     // could be used uninitialized, even when the return value of this function
     // is checked through `guarantee_deserialization()`.
@@ -55,13 +55,16 @@ inline MUST_USE archive_result_t deserialize_reql_version(
     *thing = reql_version_t::LATEST;
     int8_t raw;
     archive_result_t res = deserialize_universal(s, &raw);
-    if (raw == static_cast<int8_t>(obsolete_reql_version_t::v1_13)) {
-        obsolete_cb();
+    if (raw < static_cast<int8_t>(reql_version_t::EARLIEST)) {
+        guarantee(
+            raw >= static_cast<int8_t>(obsolete_reql_version_t::EARLIEST)
+            && raw <= static_cast<int8_t>(obsolete_reql_version_t::LATEST));
+        obsolete_cb(static_cast<obsolete_reql_version_t>(raw));
         crash("Outdated index handling did not crash or throw.");
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
-        rassert(raw >= static_cast<int8_t>(reql_version_t::v1_14)
-                && raw <= static_cast<int8_t>(reql_version_t::v2_2_is_latest));
+        guarantee(raw >= static_cast<int8_t>(reql_version_t::EARLIEST)
+                  && raw <= static_cast<int8_t>(reql_version_t::LATEST));
         *thing = static_cast<reql_version_t>(raw);
     }
     return res;
@@ -207,6 +210,14 @@ size_t serialized_size_for_version(cluster_version_t version,
 #define INSTANTIATE_SERIALIZABLE_SINCE_v2_1(typ)         \
     INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v2_1(typ)
+
+#define INSTANTIATE_DESERIALIZE_SINCE_v2_2(typ)                                  \
+    template archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(    \
+            read_stream_t *, typ *)
+
+#define INSTANTIATE_SERIALIZABLE_SINCE_v2_2(typ)         \
+    INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
+    INSTANTIATE_DESERIALIZE_SINCE_v2_2(typ)
 
 #define INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(typ)                      \
     INSTANTIATE_SERIALIZE_FOR_CLUSTER(typ);                            \

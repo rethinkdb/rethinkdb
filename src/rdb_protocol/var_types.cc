@@ -133,6 +133,10 @@ var_visibility_t var_scope_t::compute_visibility() const {
     return ret;
 }
 
+size_t var_scope_t::size() const {
+    return vars.size();
+}
+
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const var_scope_t &vs) {
     serialize<W>(wm, vs.vars);

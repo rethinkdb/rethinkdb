@@ -16,11 +16,32 @@ tests:
 
     - cd: r.expr(False).type_of()
       ot: 'BOOL'
-      
+
     # test coercions
     - cd: r.expr(True).coerce_to('string')
       ot: 'true'
-      
+
     - cd: r.expr(True).coerce_to('bool')
+      ot: True
+
+    - cd: r.expr(False).coerce_to('bool')
+      ot: False
+
+    - cd: r.expr(null).coerce_to('bool')
+      ot: False
+
+    - cd: r.expr(0).coerce_to('bool')
+      ot: True
+
+    - cd: r.expr('false').coerce_to('bool')
+      ot: True
+
+    - cd: r.expr('foo').coerce_to('bool')
+      ot: True
+
+    - cd: r.expr([]).coerce_to('bool')
+      ot: True
+
+    - cd: r.expr({}).coerce_to('bool')
       ot: True
 

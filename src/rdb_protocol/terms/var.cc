@@ -31,8 +31,8 @@ private:
         captures->vars_captured.insert(varname);
     }
 
-    virtual bool is_deterministic() const {
-        return true;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::always;
     }
 
     sym_t varname;
@@ -59,8 +59,8 @@ private:
         captures->implicit_is_captured = true;
     }
 
-    virtual bool is_deterministic() const {
-        return true;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::always;
     }
 
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) const {

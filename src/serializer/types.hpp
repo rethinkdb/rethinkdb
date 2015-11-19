@@ -20,7 +20,21 @@ class buf_ptr_t;
 class printf_buffer_t;
 
 typedef uint64_t block_id_t;
+// The block ID space is divided into two sub-ranges:
+//  1. Regular block IDs starting at 0 up to FIRST_AUX_BLOCK_ID-1
+//  2. Aux block IDs starting at FIRST_AUX_BLOCK_ID up to NULL_BLOCK_ID-1
+#define FIRST_AUX_BLOCK_ID ((uint64_t)1 << 63)
 #define NULL_BLOCK_ID (block_id_t(-1))
+inline bool is_aux_block_id(const block_id_t id) {
+    return id >= FIRST_AUX_BLOCK_ID && id != NULL_BLOCK_ID;
+}
+// Maps from the aux block ID space into a block ID space that starts at 0.
+// This is useful if you want to use an aux block ID to index into an array for
+// example.
+inline block_id_t make_aux_block_id_relative(const block_id_t id) {
+    rassert(is_aux_block_id(id));
+    return id - FIRST_AUX_BLOCK_ID;
+}
 
 #define PR_BLOCK_ID PRIu64
 
@@ -160,7 +174,6 @@ struct serializer_traits_t<log_serializer_t> {
 };
 
 class file_t;
-class semantic_checking_file_t;
 
 class serializer_file_opener_t {
 public:
@@ -174,103 +187,11 @@ public:
     virtual void move_serializer_file_to_permanent_location() = 0;
     virtual void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
     virtual void unlink_serializer_file() = 0;
-#ifdef SEMANTIC_SERIALIZER_CHECK
-    virtual void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) = 0;
-#endif
 };
 
-#ifdef SEMANTIC_SERIALIZER_CHECK
-
-template <class T>
-class semantic_checking_serializer_t;
-
-typedef semantic_checking_serializer_t<log_serializer_t> standard_serializer_t;
-
-struct scs_block_info_t {
-    enum state_t {
-        state_unknown,
-        state_deleted,
-        state_have_crc
-    } state;
-    uint32_t crc;
-
-    explicit scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
-
-    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid
-    // having uninitialized memory lying around, which annoys valgrind when we try to
-    // write persisted_block_info_ts to disk.
-    scs_block_info_t() : state(state_unknown), crc(0) {}
-    operator bool() { return state != state_unknown; }
-};
-
-template <class inner_serializer_t>
-struct scs_block_token_t {
-    scs_block_token_t(block_id_t _block_id, const scs_block_info_t &_info,
-                      counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> tok)
-        : block_id(_block_id), info(_info), inner_token(std::move(tok)), ref_count_(0) {
-        rassert(inner_token.has(), "scs_block_token wrapping null token");
-    }
-
-    block_size_t block_size() const {
-        return inner_token->block_size();
-    }
-
-    block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
-    scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
-    counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
-
-    template <class T>
-    friend void counted_add_ref(scs_block_token_t<T> *p);
-    template <class T>
-    friend void counted_release(scs_block_token_t<T> *p);
-private:
-    intptr_t ref_count_;
-};
-
-template <class inner_serializer_t>
-void counted_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
-    rassert(res > 0);
-}
-
-template <class inner_serializer_t>
-void counted_release(scs_block_token_t<inner_serializer_t> *p) {
-    const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
-    rassert(res >= 0);
-    if (res == 0) {
-        delete p;
-    }
-}
-
-
-template <class inner_serializer_type>
-struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
-    typedef scs_block_token_t<inner_serializer_type> block_token_type;
-};
-
-// God this is such a hack (Part 1 of 2)
-inline counted_t< scs_block_token_t<log_serializer_t> >
-to_standard_block_token(block_id_t block_id,
-                        counted_t<ls_block_token_pointee_t> tok) {
-    return make_counted<scs_block_token_t<log_serializer_t> >(block_id,
-                                                              scs_block_info_t(),
-                                                              std::move(tok));
-}
-
-template <class inner_serializer_t>
-void debug_print(printf_buffer_t *buf,
-                 const counted_t<scs_block_token_t<inner_serializer_t> > &token) {
-    debug_print(buf, token->inner_token);
-}
-
-
-
-
-#else  // SEMANTIC_SERIALIZER_CHECK
-
-typedef log_serializer_t standard_serializer_t;
-
-// God this is such a hack (Part 2 of 2)
+// TODO: This is a hack remaining from when we had the semantic checking serializer
+// and had to mask the implementation of a block token. We should check if we
+// can remove this indirection now.
 inline
 counted_t<ls_block_token_pointee_t>
 to_standard_block_token(UNUSED block_id_t block_id,
@@ -278,9 +199,7 @@ to_standard_block_token(UNUSED block_id_t block_id,
     return tok;
 }
 
-#endif
-
-typedef serializer_traits_t<standard_serializer_t>::block_token_type standard_block_token_t;
+typedef serializer_traits_t<log_serializer_t>::block_token_type standard_block_token_t;
 
 class serializer_t;
 

@@ -6,6 +6,7 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/immediate_consistency/backfill_item_seq.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "rdb_protocol/distribution_progress.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -160,9 +161,8 @@ public:
         /* This is used to determine the backfill priority. */
         uint64_t num_changes_estimate;
 
-        /* These are used to estimate backfill progress. */
-        std::map<store_key_t, int64_t> distribution_counts;
-        int64_t distribution_counts_sum;
+        /* This is used to estimate backfill progress. */
+        distribution_progress_estimator_t progress_estimator;
     };
 
     typedef mailbox_t<void(

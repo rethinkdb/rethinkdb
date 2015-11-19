@@ -12,15 +12,15 @@ tests:
     - rb: tbl.insert([{id:1, a:8}, {id:2, a:7}])
       ot: partial({'errors':0, 'inserted':2})
 
-    - rb: idmin = tbl.min(index:'id').changes(squash:false).limit(2)
-    - rb: idmax = tbl.max(index:'id').changes(squash:false).limit(2)
-    - rb: amin = tbl.min(index:'a').changes(squash:false).limit(2)
-    - rb: amax = tbl.max(index:'a').changes(squash:false).limit(2)
+    - rb: idmin = tbl.min(index:'id').changes(squash:false, include_initial:true).limit(2)
+    - rb: idmax = tbl.max(index:'id').changes(squash:false, include_initial:true).limit(2)
+    - rb: amin = tbl.min(index:'a').changes(squash:false, include_initial:true).limit(2)
+    - rb: amax = tbl.max(index:'a').changes(squash:false, include_initial:true).limit(2)
 
-    - rb: idmin2 = tbl.min(index:'id').changes(squash:true).limit(2)
-    - rb: idmax2 = tbl.max(index:'id').changes(squash:true).limit(2)
-    - rb: amin2 = tbl.min(index:'a').changes(squash:true).limit(2)
-    - rb: amax2 = tbl.max(index:'a').changes(squash:true).limit(2)
+    - rb: idmin2 = tbl.min(index:'id').changes(squash:true, include_initial:true).limit(2)
+    - rb: idmax2 = tbl.max(index:'id').changes(squash:true, include_initial:true).limit(2)
+    - rb: amin2 = tbl.min(index:'a').changes(squash:true, include_initial:true).limit(2)
+    - rb: amax2 = tbl.max(index:'a').changes(squash:true, include_initial:true).limit(2)
 
     - rb: tbl.insert([{id:0, a:9}, {id:3, a:6}])
       ot: partial({'errors':0, 'inserted':2})

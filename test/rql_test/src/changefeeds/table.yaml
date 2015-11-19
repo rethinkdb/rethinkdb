@@ -41,7 +41,7 @@ tests:
 
     # - order by
 
-    - cd: ordered = tbl.changes().order_by('id')
+    - cd: tbl.changes().order_by('id')
       ot: err('ReqlQueryLogicError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
 #
 # ToDo: enable this when #4067 is done
@@ -55,16 +55,16 @@ tests:
 #      ot: [104, 103, 102, 101, 100]
 
     # - changes overflow
-#
-# ToDo: enable this when we can reduce the number of items to generate the overflow #3607
-#
-#    - cd: overflow = tbl.changes()
-#    # add enough entries to make sure we get the overflow error
-#    - js: tbl.insert(r.range(100,002).map(function(x) { return({}); }), {durability:"soft"})
-#      py: tbl.insert(r.range(100,002).map(lambda x: {}), durability="soft")
-#      rb: tbl.insert(r.range(100,002).map(|x| {}), :durability=>"soft")
-#    - cd: overflow
-#      ot: error(ReqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
+
+    - cd: overflow = tbl.changes()
+      runopts:
+        changefeed_queue_size: 100
+    # add enough entries to make sure we get the overflow error
+    - js: tbl.insert(r.range(200).map(function(x) { return({}); }))
+      py: tbl.insert(r.range(200).map(lambda x: {}))
+      rb: tbl.insert(r.range(200).map{|x| {}})
+    - cd: fetch(overflow, 90)
+      ot: partial([{'error': regex('Changefeed cache over array size limit, skipped \d+ elements.')}])
 
     # ==== virtual tables
 

@@ -34,9 +34,18 @@ private:
     }
     virtual const char *name() const { return "uuid"; }
 
-    // UUID generation is nondeterministic.
-    virtual bool is_deterministic() const {
-        return false;
+    // UUID generation is nondeterministic, unless it's actually a hash (then it depends
+    // on its argument).
+    virtual deterministic_t is_deterministic() const {
+        // We are slightly over-cautious here. If the argument is `r.args`, we assume
+        // that we're non-deterministic since we can't check whether it will evaluate to
+        // 0 or more arguments.
+        if (get_original_args().size() == 1
+            && get_original_args()[0]->get_src().type() != Term::ARGS) {
+            return op_term_t::is_deterministic();
+        } else {
+            return deterministic_t::no;
+        }
     }
 };
 

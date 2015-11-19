@@ -318,10 +318,19 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
     explicit rcheck_transform_visitor_t(Args &&... args)
         : bt_rcheckable_t(std::forward<Args...>(args)...) { }
     void check_f(const wire_func_t &f) const {
-        rcheck_src(f.get_bt(),
-                   f.compile_wire_func()->is_deterministic(),
-                   base_exc_t::LOGIC,
-                   "Cannot call `changes` after a non-deterministic function.");
+        switch (f.compile_wire_func()->is_deterministic()) {
+            case deterministic_t::always:
+            case deterministic_t::single_server:
+                // ok
+                break;
+
+            case deterministic_t::no:
+                rfail_src(f.get_bt(),
+                          base_exc_t::LOGIC,
+                          "Cannot call `changes` after a non-deterministic function.");
+
+            default: unreachable();
+        }
     }
     void operator()(const map_wire_func_t &f) const {
         check_f(f);
@@ -383,7 +392,7 @@ public:
             env, term, argspec_t(1),
             optargspec_t({"squash",
                           "changefeed_queue_size",
-                          "include_initial_vals",
+                          "include_initial",
                           "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -405,8 +414,11 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
-        scoped_ptr_t<val_t> include_initial_vals_val =
-            args->optarg(env, "include_initial_vals");
+
+        bool include_initial = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_initial")) {
+            include_initial = v->as_bool();
+        }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         configured_limits_t limits = env->env->limits_with_changefeed_queue_size(
@@ -417,10 +429,7 @@ private:
             std::vector<changespec_t> changespecs = seq->get_changespecs();
             r_sanity_check(changespecs.size() >= 1);
             for (auto &&changespec : changespecs) {
-                bool include_initial_vals = include_initial_vals_val.has()
-                    ? include_initial_vals_val->as_bool()
-                    : changespec.include_initial_vals();
-                if (include_initial_vals) {
+                if (include_initial) {
                     r_sanity_check(changespec.stream.has());
                 }
                 boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
@@ -428,8 +437,8 @@ private:
                 streams.push_back(
                     changespec.keyspec.table->read_changes(
                         env->env,
-                        include_initial_vals ? std::move(changespec.stream)
-                                             : counted_t<datum_stream_t>(),
+                        include_initial ? std::move(changespec.stream)
+                                        : counted_t<datum_stream_t>(),
                         limits,
                         squash,
                         include_states,
@@ -449,13 +458,10 @@ private:
                         streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-                bool include_initial_vals = include_initial_vals_val.has()
-                    ? include_initial_vals_val->as_bool()
-                    : true;
             return new_val(
                 env->env,
                 v->as_single_selection()->read_changes(
-                    include_initial_vals,
+                    include_initial,
                     limits,
                     squash,
                     include_states));

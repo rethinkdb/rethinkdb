@@ -87,7 +87,8 @@ void debug_print(printf_buffer_t *, const datum_t &);
 // The serialization for this is defined in `protocol.cc` and needs to be
 // updated if more versions are added.
 enum class skey_version_t {
-    pre_1_16 = 0,
+    // We used to distinguish between pre 1.16 and post 1.16 secondary index keys.
+    // At the moment we only have one format.
     post_1_16 = 1
 };
 skey_version_t skey_version_from_reql_version(reql_version_t rv);

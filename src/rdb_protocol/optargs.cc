@@ -62,7 +62,7 @@ static const std::set<std::string> acceptable_optargs({
     "group_format",
     "header",
     "identifier_format",
-    "include_initial_vals",
+    "include_initial",
     "include_states",
     "index",
     "left_bound",

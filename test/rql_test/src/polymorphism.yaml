@@ -14,7 +14,7 @@ tests:
             return res;
         }())
       rb: tbl.insert((0..2).map{ |i| { :id => i, :a => i } })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
+      ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':3})
 
     # Polymorphism
     - cd:
@@ -31,4 +31,3 @@ tests:
         - tbl.pluck('a').nth(0)
         - obj.pluck('a')
       ot: ({'a':0})
-

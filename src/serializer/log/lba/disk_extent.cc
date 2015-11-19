@@ -60,8 +60,12 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
     for (int i = 0; i < info->count; i++) {
         lba_entry_t *e = &extent->entries[i];
         if (!lba_entry_t::is_padding(e)) {
+            // The on-disk format still stores 32 bit block sizes.
+            // We've never actually used them, and we now use 16 bit block sizes
+            // for the in-memory index to save a few bytes.
+            guarantee(e->ser_block_size <= std::numeric_limits<uint16_t>::max());
             index->set_block_info(e->block_id, e->recency, e->offset,
-                                  e->ser_block_size);
+                                  static_cast<uint16_t>(e->ser_block_size));
         }
     }
 

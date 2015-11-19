@@ -9,7 +9,6 @@
 
 namespace unittest {
 
-
 const int waits = 10;
 const int simultaneous = 2;
 const int repeat = 10;
@@ -37,7 +36,7 @@ void walk_wait_times(int i, uint64_t *mse) {
         int64_t actual_ns = t2 - t1;
         int64_t error_ns = actual_ns - expected_ms * MILLION;
 
-        EXPECT_LT(llabs(error_ns) , max_error_ms * MILLION)
+        EXPECT_LT(llabs(error_ns), max_error_ms * MILLION)
             << "failed to nap for " << expected_ms << "ms";
 
         se += error_ns * error_ns;

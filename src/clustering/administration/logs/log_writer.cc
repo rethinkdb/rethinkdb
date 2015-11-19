@@ -595,8 +595,8 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
 
 void thread_pool_log_writer_t::tail_blocking(
         int max_lines,
-        struct timespec min_timestamp,
-        struct timespec max_timestamp,
+        timespec min_timestamp,
+        timespec max_timestamp,
         volatile bool *cancel,
         std::vector<log_message_t> *messages_out,
         std::string *error_out,

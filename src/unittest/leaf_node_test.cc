@@ -6,66 +6,12 @@
 #include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
 #include "unittest/gtest.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "utils.hpp"
+#include "unittest/btree_utils.hpp"
 
-
-struct short_value_t;
-
-class short_value_sizer_t : public value_sizer_t {
-public:
-    explicit short_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
-
-    int size(const void *value) const {
-        int x = *reinterpret_cast<const uint8_t *>(value);
-        return 1 + x;
-    }
-
-    bool fits(const void *value, int length_available) const {
-        return length_available > 0 && size(value) <= length_available;
-    }
-
-    int max_possible_size() const {
-        return 256;
-    }
-
-    block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 's', 'h', 'L', 'F' } };
-        return magic;
-    }
-
-    max_block_size_t block_size() const { return block_size_; }
-
-private:
-    max_block_size_t block_size_;
-
-    DISABLE_COPYING(short_value_sizer_t);
-};
 
 namespace unittest {
-
-class short_value_buffer_t {
-public:
-    explicit short_value_buffer_t(const short_value_t *v) {
-        memcpy(data_, v, reinterpret_cast<const uint8_t *>(v)[0] + 1);
-    }
-
-    explicit short_value_buffer_t(const std::string& v) {
-        rassert(v.size() <= 255);
-        data_[0] = v.size();
-        memcpy(data_ + 1, v.data(), v.size());
-    }
-
-    short_value_t *data() {
-        return reinterpret_cast<short_value_t *>(data_);
-    }
-
-    std::string as_str() const {
-        return std::string(data_ + 1, data_ + 1 + data_[0]);
-    }
-
-private:
-    uint8_t data_[256];
-};
 
 class LeafNodeTracker {
 public:
@@ -398,21 +344,12 @@ TEST(LeafNodeTest, InsertRemove) {
     }
 }
 
-std::string random_letter_string(rng_t *rng, int min_length, int max_length) {
-    std::string ret;
-    int size = min_length + rng->randint(max_length - min_length + 1);
-    for (int i = 0; i < size; i++) {
-        ret.push_back('a' + rng->randint(26));
-    }
-    return ret;
-}
-
 scoped_ptr_t<LeafNodeTracker> test_random_out_of_order(
         int num_keys,
         int num_ops,
         bool random_tstamps,
-        store_key_t low_key=store_key_t::min(),
-        store_key_t high_key=store_key_t::max()) {
+        store_key_t low_key = store_key_t::min(),
+        store_key_t high_key = store_key_t::max()) {
 
     scoped_ptr_t<LeafNodeTracker> tracker(new LeafNodeTracker());
 

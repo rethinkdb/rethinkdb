@@ -74,7 +74,7 @@ private:
     block_id_t tail_block_id;
 
     scoped_ptr_t<serializer_file_opener_t> file_opener;
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<log_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<cache_conn_t> cache_conn;
@@ -101,6 +101,27 @@ private:
     T *value_out_;
 
     DISABLE_COPYING(deserializing_viewer_t);
+};
+
+// Copies the buffer group into a write_message_t
+class copying_viewer_t : public buffer_group_viewer_t {
+public:
+    explicit copying_viewer_t(write_message_t *wm_out) : wm_out_(wm_out) { }
+    ~copying_viewer_t() { }
+
+    void view_buffer_group(const const_buffer_group_t *group) {
+        buffer_group_read_stream_t stream(group);
+        char buf[1024];
+        while (!stream.entire_stream_consumed()) {
+            int64_t c = stream.read(&buf, 1024);
+            wm_out_->append(&buf, c);
+        }
+    }
+
+private:
+    write_message_t *wm_out_;
+
+    DISABLE_COPYING(copying_viewer_t);
 };
 
 template <class T>

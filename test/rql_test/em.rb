@@ -117,7 +117,7 @@ EM.run {
       runner.call(r.table('test').get_all(0).coerce_to('array'), handler)
       runner.call(r.table('test'), handler)
       runner.call(r.table('fake'), handler)
-      runner.call(r.table('test').get(0).changes, handler)
+      runner.call(r.table('test').get(0).changes(include_initial: true), handler)
       runner.call(r.table('test').changes, handler)
     }
   }

@@ -34,8 +34,8 @@ private:
     virtual const char *name() const { return "http"; }
 
     // No HTTP term is considered deterministic
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::no;
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;

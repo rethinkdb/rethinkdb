@@ -116,17 +116,6 @@ private:
     DISABLE_COPYING(linux_file_t);
 };
 
-class linux_semantic_checking_file_t : public semantic_checking_file_t {
-public:
-    explicit linux_semantic_checking_file_t(fd_t fd);
-
-    virtual size_t semantic_blocking_read(void *buf, size_t length);
-    virtual size_t semantic_blocking_write(const void *buf, size_t length);
-
-private:
-    scoped_fd_t fd_;
-};
-
 file_open_result_t open_file(const char *path, int mode,
                              io_backender_t *backender,
                              scoped_ptr_t<file_t> *out);

@@ -29,6 +29,7 @@ bool query_type_is_valid(Query::QueryType query_type) {
     case Query::CONTINUE:
     case Query::STOP:
     case Query::NOREPLY_WAIT:
+    case Query::SERVER_INFO:
         return true;
     default:
         return false;
@@ -43,7 +44,7 @@ raw_term_t::raw_term_t() { }
 raw_term_t::raw_term_t(const term_variant_t &source) {
     class param_visitor_t : public boost::static_visitor<void> {
     public:
-        param_visitor_t(raw_term_t *_parent) : parent(_parent) { }
+        explicit param_visitor_t(raw_term_t *_parent) : parent(_parent) { }
         void operator() (const rapidjson::Value *json_source) {
             parent->init_json(json_source);
         }

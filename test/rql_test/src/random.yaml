@@ -37,6 +37,7 @@ tests:
         - r.random(-0.495, float=True).do(lambda x:r.and_(x.le(0), x.gt(-0.495)))
         - r.random(1823756.24, float=True).do(lambda x:r.and_(x.ge(0), x.lt(1823756.24)))
         - r.random(-1823756.24, float=True).do(lambda x:r.and_(x.le(0), x.gt(-1823756.24)))
+      ot: True
 
     # Non-zero-based random numbers
     - py:

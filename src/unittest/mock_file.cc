@@ -76,22 +76,6 @@ bool mock_file_t::coop_lock_and_check() {
     return true;
 }
 
-size_t mock_semantic_checking_file_t::semantic_blocking_read(void *buf, size_t length) {
-    size_t length_to_read = std::min(data_->size() - pos_, length);
-    memcpy(buf, data_->data() + pos_, length_to_read);
-    pos_ += length_to_read;
-    return length_to_read;
-}
-
-size_t mock_semantic_checking_file_t::semantic_blocking_write(const void *buf, size_t length) {
-    if (data_->size() < pos_ + length) {
-        data_->resize(pos_ + length);
-    }
-    memcpy(data_->data() + pos_, buf, length);
-    pos_ += length;
-    return length;
-}
-
 
 std::string mock_file_opener_t::file_name() const {
     return "<mock file>";
@@ -117,11 +101,5 @@ void mock_file_opener_t::unlink_serializer_file() {
     ASSERT_TRUE(file_existence_state_ == temporary_file || file_existence_state_ == permanent_file);
     file_existence_state_ = unlinked_file;
 }
-
-#ifdef SEMANTIC_SERIALIZER_CHECK
-void mock_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) {
-    file_out->init(new mock_semantic_checking_file_t(&semantic_checking_file_));
-}
-#endif
 
 }  // namespace unittest

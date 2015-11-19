@@ -51,17 +51,20 @@ class MainContainer extends Backbone.View
         @navbar.init_typeahead()
 
     fetch_ajax_data: =>
-        $.ajax({
-            contentType: 'application/json'
-            url: 'ajax/me'
-            dataType: 'json'
-            success: (response) =>
-                @fetch_data(response)
-            error: (response) =>
+        driver.connect (error, conn) =>
+            if error?
+                console.log(error)
                 @fetch_data(null)
-        })
+            else
+                conn.server (error, me) =>
+                    driver.close conn
+                    if error?
+                        console.log(error)
+                        @fetch_data(null)
+                    else
+                        @fetch_data(me.name)
 
-    fetch_data: (server_uuid) =>
+    fetch_data: (me) =>
         query = r.expr
             tables: r.db(system_db).table('table_config').pluck('db', 'name', 'id').coerceTo("ARRAY")
             servers: r.db(system_db).table('server_config').pluck('name', 'id').coerceTo("ARRAY")
@@ -72,7 +75,7 @@ class MainContainer extends Backbone.View
             num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
                 status("all_replicas_ready")
             ).count()
-            me: r.db(system_db).table('server_status').get(server_uuid)('name')
+            me: me
 
 
         @timer = driver.run query, 5000, (error, result) =>

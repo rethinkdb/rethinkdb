@@ -56,11 +56,24 @@ sindex_config_t sindex_config_from_string(
     sindex_disk_info_t sindex_info;
     try {
         deserialize_sindex_info(vec, &sindex_info,
-            [target]() {
-                rfail_target(target, base_exc_t::LOGIC,
-                             "Attempted to import a RethinkDB 1.13 secondary index, "
-                             "which is no longer supported.  This secondary index "
-                             "may be updated by importing into RethinkDB 2.0.");
+            [target](obsolete_reql_version_t ver) {
+                switch (ver) {
+                case obsolete_reql_version_t::v1_13:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a RethinkDB 1.13 secondary index, "
+                                 "which is no longer supported.  This secondary index "
+                                 "may be updated by importing into RethinkDB 2.0.");
+                    break;
+                // v1_15 is equal to v1_14
+                case obsolete_reql_version_t::v1_14:
+                    rfail_target(target, base_exc_t::LOGIC,
+                                 "Attempted to import a secondary index from before "
+                                 "RethinkDB 1.16, which is no longer supported.  This "
+                                 "secondary index may be updated by importing into "
+                                 "RethinkDB 2.1.");
+                    break;
+                default: unreachable();
+                }
             });
     } catch (const archive_exc_t &e) {
         rfail_target(
@@ -77,6 +90,40 @@ sindex_config_t sindex_config_from_string(
         sindex_info.geo);
 }
 
+// Helper for `sindex_status_to_datum()`
+std::string format_index_create_query(
+        const std::string &name,
+        const sindex_config_t &config) {
+    // TODO: Theoretically we need to escape quotes and UTF-8 characters inside the name.
+    // Maybe use RapidJSON? Does our pretty-printer even do that for strings?
+    std::string ret = "indexCreate('" + name + "', ";
+    ret += config.func.compile_wire_func()->print_js_function();
+    bool first_optarg = true;
+    if (config.multi == sindex_multi_bool_t::MULTI) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "multi: true";
+    }
+    if (config.geo == sindex_geo_bool_t::GEO) {
+        if (first_optarg) {
+            ret += ", {";
+            first_optarg = false;
+        } else {
+            ret += ", ";
+        }
+        ret += "geo: true";
+    }
+    if (!first_optarg) {
+        ret += "}";
+    }
+    ret += ")";
+    return ret;
+}
+
 /* `sindex_status_to_datum()` produces the documents that are returned from
 `sindex_status()` and `sindex_wait()`. */
 
@@ -87,10 +134,9 @@ ql::datum_t sindex_status_to_datum(
     ql::datum_object_builder_t stat;
     stat.overwrite("index", ql::datum_t(datum_string_t(name)));
     if (!status.ready) {
-        stat.overwrite("blocks_processed",
-            ql::datum_t(safe_to_double(status.blocks_processed)));
-        stat.overwrite("blocks_total",
-            ql::datum_t(safe_to_double(std::max<size_t>(status.blocks_total, 1))));
+        stat.overwrite("progress",
+            ql::datum_t(status.progress_numerator /
+                        std::max<double>(status.progress_denominator, 1.0)));
     }
     stat.overwrite("ready", ql::datum_t::boolean(status.ready));
     stat.overwrite("outdated", ql::datum_t::boolean(status.outdated));
@@ -100,6 +146,8 @@ ql::datum_t sindex_status_to_datum(
         ql::datum_t::boolean(config.geo == sindex_geo_bool_t::GEO));
     stat.overwrite("function",
         ql::datum_t::binary(sindex_config_to_string(config)));
+    stat.overwrite("query",
+        ql::datum_t(datum_string_t(format_index_create_query(name, config))));
     return std::move(stat).to_datum();
 }
 
@@ -145,7 +193,7 @@ public:
         } else {
             minidriver_t r(backtrace());
             auto x = minidriver_t::dummy_var_t::SINDEXCREATE_X;
-            
+
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term_term =
                 make_counted<func_term_t>(&empty_compile_env,

@@ -18,6 +18,20 @@ namespace ql {
 
 class func_term_t;
 
+// Note that the order of these is relevant; they should always go from least
+// deterministic to most deterministic; see all_are_deterministic.
+enum class deterministic_t {
+    // non-deterministic operations, like ones involving external queries
+    no,
+
+    // deterministic on a single server, but not necessarily across the cluster (different
+    // cpus, compilers), like geo operations
+    single_server,
+
+    // always deterministic, even across different machines
+    always,
+};
+
 // Specifies the range of normal arguments a function can take (arguments
 // provided by `r.args` count toward the total).  You may also optionally
 // provide `eval_flags` that should be used when pre-evaluating arguments (which
@@ -63,7 +77,7 @@ public:
     // Retrieves the arg.  The arg is removed (leaving an empty pointer in its
     // slot), forcing you to call this function exactly once per argument.
     MUST_USE counted_t<const runtime_term_t> remove(size_t i);
-    bool is_deterministic(size_t i) const;
+    deterministic_t is_deterministic(size_t i) const;
     size_t size() const { return vec.size(); }
     bool empty() const { return vec.empty(); }
 private:
@@ -76,7 +90,7 @@ public:
     size_t num_args() const;
     // Returns argument `i`.
     scoped_ptr_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS);
-    bool arg_is_deterministic(size_t i) const;
+    deterministic_t arg_is_deterministic(size_t i) const;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
     scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 
@@ -94,8 +108,8 @@ private:
     DISABLE_COPYING(args_t);
 };
 
-// Calls is_deterministic on the map entries.
-bool all_are_deterministic(
+// Calls determinism on the map entries, returns the most restrictive of them.
+deterministic_t all_are_deterministic(
         const std::map<std::string, counted_t<const term_t> > &optargs);
 
 // Calls accumulate_captures on the map entries.
@@ -125,6 +139,10 @@ protected:
     // a subclass).
     virtual void accumulate_captures(var_captures_t *captures) const;
 
+    const std::vector<counted_t<const term_t> > &get_original_args() const;
+
+    virtual deterministic_t is_deterministic() const;
+
 private:
     friend class args_t;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
@@ -146,8 +164,6 @@ private:
                                           eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
     virtual bool is_grouped_seq_op() const;
-
-    virtual bool is_deterministic() const;
 
     scoped_ptr_t<const arg_terms_t> arg_terms;
 

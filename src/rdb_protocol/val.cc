@@ -31,12 +31,12 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(
@@ -58,7 +58,7 @@ public:
         std::vector<datum_t > keys{key};
         // We don't need to fetch the value for deterministic replacements.
         std::vector<datum_t > vals{
-            f->is_deterministic() ? datum_t() : get()};
+            f->is_deterministic() == deterministic_t::always ? datum_t() : get()};
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
@@ -91,14 +91,14 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial_vals,
+        bool include_initial,
         configured_limits_t limits,
         const datum_t &squash,
         bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         counted_t<datum_stream_t> maybe_src;
-        if (include_initial_vals) {
+        if (include_initial) {
             // We want to provide an empty stream in this case because we get
             // the initial values from the stamp read instead.
             maybe_src = make_counted<vector_datum_stream_t>(
@@ -254,7 +254,7 @@ datum_t table_t::batched_replace(
         return ql::datum_t::empty_object();
     }
 
-    if (!replacement_generator->is_deterministic()) {
+    if (replacement_generator->is_deterministic() != deterministic_t::always) {
         r_sanity_check(nondeterministic_replacements_ok);
         datum_object_builder_t stats;
         std::vector<datum_t> replacement_values;

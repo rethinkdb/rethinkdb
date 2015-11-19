@@ -18,13 +18,11 @@ class btree_slice_t;
 enum class delete_mode_t;
 class deletion_context_t;
 class key_tester_t;
-class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
 class refcount_superblock_t;
 struct sindex_disk_info_t;
 
-class parallel_traversal_progress_t;
 
 bool btree_value_fits(max_block_size_t bs, int data_length, const rdb_value_t *value);
 
@@ -136,6 +134,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 
 void rdb_rget_slice(
     btree_slice_t *slice,
+    const region_t &shard,
     const key_range_t &range,
     const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
     superblock_t *superblock,
@@ -149,6 +148,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
+    const region_t &shard,
     const ql::datumspec_t &datumspec,
     const key_range_t &sindex_range,
     sindex_superblock_t *superblock,
@@ -164,8 +164,9 @@ void rdb_rget_secondary_slice(
 
 void rdb_get_intersecting_slice(
     btree_slice_t *slice,
+    const region_t &shard,
     const ql::datum_t &query_geometry,
-    const region_t &sindex_region,
+    const key_range_t &sindex_range,
     sindex_superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -268,7 +269,7 @@ void serialize_sindex_info(write_message_t *wm,
 void deserialize_sindex_info(
         const std::vector<char> &data,
         sindex_disk_info_t *info_out,
-        const std::function<void()> &obsolete_cb);
+        const std::function<void(obsolete_reql_version_t)> &obsolete_cb);
 
 // Utility function that will call deserialize_sindex_info with an `obsolete_cb`
 // that will `fail_due_to_user_error` when an obsolete index is encountered.
@@ -326,11 +327,12 @@ void rdb_update_sindexes(
     index_vals_t *old_keys_out,
     index_vals_t *new_keys_out);
 
-void post_construct_secondary_indexes(
+void post_construct_secondary_index_range(
         store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
-        signal_t *interruptor,
-        parallel_traversal_progress_t *progress_tracker)
+        key_range_t *construction_range_inout,
+        const std::function<bool(int64_t)> &check_should_abort,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
 /* This deleter actually deletes the value and all associated blocks. */

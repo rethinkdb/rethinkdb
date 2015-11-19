@@ -16,8 +16,8 @@ $streams = [
 
 $infstreams = [
   $t.changes(),
-  $t.between(10, 100, index: 'id').changes(include_initial_vals: false),
-  $t.get(0).changes().skip(1)
+  $t.between(10, 100, index: 'id').changes(include_initial: false),
+  $t.get(0).changes(include_initial: true).skip(1)
 ]
 
 # TODO: uncomment these once we increase the stack size.  (Issue #4348.)
@@ -44,6 +44,8 @@ end
 
 $t.delete.run
 $t.insert((0...100).map{|i| {id: i}}).run
+$t.reconfigure(shards: 2, replicas: 1).run
+$t.wait.run
 
 $eager_pop = $streams*2 + $empty_streams*2 + $streams
 $eager_union_1 = flat_union($eager_pop)

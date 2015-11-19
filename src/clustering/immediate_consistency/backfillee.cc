@@ -186,18 +186,10 @@ private:
                             }
 
                             if (!new_threshold.unbounded) {
-                                const auto &distribution_counts =
-                                    parent->parent->intro.distribution_counts;
-                                auto lower_bound =
-                                    distribution_counts.lower_bound(new_threshold.key());
-                                if (lower_bound != distribution_counts.end()) {
-                                    double distribution_counts_sum =
-                                        parent->parent->intro.distribution_counts_sum;
-                                    parent->parent->progress_tracker->progress =
-                                        lower_bound->second / distribution_counts_sum;
-                                } else {
-                                    parent->parent->progress_tracker->progress = 1.0;
-                                }
+                                const distribution_progress_estimator_t &estimator =
+                                    parent->parent->intro.progress_estimator;
+                                parent->parent->progress_tracker->progress =
+                                    estimator.estimate_progress(new_threshold.key());
                             } else {
                                 parent->parent->progress_tracker->progress = 1.0;
                             }
@@ -388,11 +380,8 @@ backfillee_t::backfillee_t(
 
     /* Record the branch history we got from the backfiller */
     {
-        cross_thread_signal_t interruptor_on_bhm_thread(
-            interruptor, branch_history_manager->home_thread());
         on_thread_t thread_switcher(branch_history_manager->home_thread());
-        branch_history_manager->import_branch_history(
-            intro.final_version_history, &interruptor_on_bhm_thread);
+        branch_history_manager->import_branch_history(intro.final_version_history);
     }
 
     /* Spawn the coroutine that will stream pre-items to the backfiller. */

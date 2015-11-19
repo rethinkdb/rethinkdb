@@ -457,7 +457,7 @@ intsp = (seq) ->
     return res
 
 kved = (optargs) ->
-    ['{', intsp([k, ': ', v] for own k,v of optargs), '}']
+    ['{', intsp([JSON.stringify(k), ': ', v] for own k,v of optargs), '}']
 
 intspallargs = (args, optargs) ->
     argrepr = []
@@ -479,7 +479,7 @@ class MakeArray extends RDBOp
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
-    tt: protoTermType.MAKE_OBJECT
+    tt: protoTermType.MAKE_OBJ
     st: '{...}' # This is only used by the `undefined` argument checker
 
     constructor: (obj, nestingDepth=20) ->

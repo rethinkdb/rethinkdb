@@ -579,43 +579,6 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
         , path, errno_string(open_res.errsv).c_str());
 }
 
-linux_semantic_checking_file_t::linux_semantic_checking_file_t(fd_t fd) : fd_(fd) { }
-
-size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
-                                                              size_t length) {
-#ifdef _WIN32
-    DWORD bytes_read;
-    BOOL res = ReadFile(fd_.get(), buf, length, &bytes_read, NULL);
-    guarantee_winerr(res != FALSE, "Could not read from the semantic checker file");
-    return bytes_read;
-#else
-    ssize_t res;
-    do {
-        res = ::read(fd_.get(), buf, length);
-    } while (res == -1 && get_errno() == EINTR);
-    guarantee_err(res != -1, "Could not read from the semantic checker file");
-    return res;
-#endif
-}
-
-size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
-                                                               size_t length) {
-#ifdef _WIN32
-    DWORD bytes_written;
-    BOOL res = WriteFile(fd_.get(), buf, length, &bytes_written, NULL);
-    guarantee_winerr(res != FALSE, "Could not write to the semantic checker file");
-    return bytes_written;
-#else
-    ssize_t res;
-    do {
-        res = ::write(fd_.get(), buf, length);
-    } while (res == -1 && get_errno() == EINTR);
-    guarantee_err(res != -1, "Could not write to the semantic checker file");
-    return res;
-#endif
-}
-
-
 // Upon error, returns the errno value.
 int perform_datasync(fd_t fd) {
     // On OS X, we use F_FULLFSYNC because fsync lies.  fdatasync is not available.  On

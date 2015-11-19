@@ -1,20 +1,14 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
+import collections
 import errno
-import json
+import imp
 import numbers
+import os
 import socket
+import ssl
 import struct
 import time
-import ssl
-import collections
-try:
-    from importlib import import_module
-except ImportError:
-    def import_module(name, package=None):
-        # song & dance needed to do relative import in 2.6, which
-        # doesn't have importlib
-        return __import__(name[1:], globals(), locals(), [], 1)
 
 from . import ql2_pb2 as p
 
@@ -65,6 +59,10 @@ class Query(object):
         self.term = term
         self.global_optargs = global_optargs
 
+        global_optargs = global_optargs or { }
+        self._json_encoder = global_optargs.pop('json_encoder', None)
+        self._json_decoder = global_optargs.pop('json_decoder', None)
+
     def serialize(self, reql_encoder=ReQLEncoder()):
         message = [self.type]
         if self.term is not None:
@@ -106,8 +104,8 @@ class Response(object):
                 pErrorType.USER: ReqlUserError
             }.get(self.error_type, ReqlRuntimeError)(
                 self.data[0], query.term, self.backtrace)
-        return ReqlDriverError("Unknown Response type %d encountered" +
-                               " in a response." % self.type)
+        return ReqlDriverError(("Unknown Response type %d encountered" +
+                                " in a response.") % self.type)
 
 
 # This class encapsulates all shared behavior between cursor implementations.
@@ -147,6 +145,7 @@ class Cursor(object):
         self.outstanding_requests = 0
         self.threshold = 1
         self.error = None
+        self._json_decoder = self.conn._parent._get_json_decoder(self.query)
 
         self.conn._cursor_cache[self.query.token] = self
 
@@ -176,8 +175,7 @@ class Cursor(object):
         self.outstanding_requests -= 1
         self._maybe_fetch_batch()
 
-        res = Response(self.query.token, res_buf,
-                       self.conn._parent._get_json_decoder(self.query.global_optargs))
+        res = Response(self.query.token, res_buf, self._json_decoder)
         self._extend_internal(res)
 
     def _extend_internal(self, res):
@@ -432,7 +430,7 @@ class ConnectionInstance(object):
             self._header_in_progress = None
 
     def run_query(self, query, noreply):
-        self._socket.sendall(query.serialize(self._parent._get_json_encoder()))
+        self._socket.sendall(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -447,6 +445,8 @@ class ConnectionInstance(object):
             return maybe_profile(cursor, res)
         elif res.type == pResponse.WAIT_COMPLETE:
             return None
+        elif res.type == pResponse.SERVER_INFO:
+            return res.data[0]
         else:
             raise res.make_error(query)
 
@@ -483,7 +483,7 @@ class ConnectionInstance(object):
             elif res_token == token:
                 return Response(
                     res_token, res_buf,
-                    self._parent._get_json_decoder(query.global_optargs))
+                    self._parent._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
@@ -492,6 +492,8 @@ class ConnectionInstance(object):
 
 class Connection(object):
     _r = None
+    _json_decoder = ReQLDecoder
+    _json_encoder = ReQLEncoder
 
     def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
@@ -511,6 +513,11 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
+
+        if 'json_encoder' in kwargs:
+            self._json_encoder = kwargs.pop('json_encoder')
+        if 'json_decoder' in kwargs:
+            self._json_decoder = kwargs.pop('json_decoder')
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -564,6 +571,11 @@ class Connection(object):
         q = Query(pQuery.NOREPLY_WAIT, self._new_token(), None, None)
         return self._instance.run_query(q, False)
 
+    def server(self):
+        self.check_open()
+        q = Query(pQuery.SERVER_INFO, self._new_token(), None, None)
+        return self._instance.run_query(q, False)
+
     def _new_token(self):
         res = self._next_token
         self._next_token += 1
@@ -586,25 +598,37 @@ class Connection(object):
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return self._instance.run_query(q, True)
 
-    def _get_json_decoder(self, format_opts):
-        return ReQLDecoder(format_opts)
+    def _get_json_decoder(self, query):
+        return (query._json_decoder or self._json_decoder)(query.global_optargs)
 
-    def _get_json_encoder(self):
-        return ReQLEncoder()
+    def _get_json_encoder(self, query):
+        return (query._json_encoder or self._json_encoder)()
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
         Connection.__init__(self, ConnectionInstance, *args, **kwargs)
 
-
 connection_type = DefaultConnection
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
-    global connection_type
     conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):
     global connection_type
-    mod = import_module('.net_%s' % library, package=__package__)
-    connection_type = mod.Connection
+    
+    # find module file
+    moduleName = 'net_%s' % library
+    modulePath = None
+    driverDir = os.path.realpath(os.path.dirname(__file__))
+    if os.path.isfile(os.path.join(driverDir, library + '_net', moduleName + '.py')):
+        modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
+    else:
+        raise ValueError('Unknown loop type: %r' % library)
+    
+    # load the module
+    moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
+    module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
+    
+    # set the connection type
+    connection_type = module.Connection

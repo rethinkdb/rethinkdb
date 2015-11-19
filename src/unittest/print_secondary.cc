@@ -10,7 +10,6 @@ void test_mangle(const std::string &pkey, const std::string &skey, boost::option
                                  sizeof(uint64_t));
     }
     auto versions = {
-        reql_version_t::v1_14,
         reql_version_t::v1_16,
         reql_version_t::v2_0,
         reql_version_t::v2_1,
@@ -24,7 +23,6 @@ void test_mangle(const std::string &pkey, const std::string &skey, boost::option
         std::string skey2 = skey;
         guarantee(!(skey2[0] & 0x80)); // None of our types have the top bit set.
         switch (skey_version) {
-        case ql::skey_version_t::pre_1_16: break;
         case ql::skey_version_t::post_1_16:
             skey2[0] |= 0x80; // Flip the top bit to indicate 1.16+ skey_version.
             break;

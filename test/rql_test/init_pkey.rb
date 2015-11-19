@@ -52,12 +52,14 @@ class H < RethinkDB::Handler
 end
 
 r.table_create('test').run rescue nil
-(0...100).each {|i|
+(0...10).each {|i|
   p i
   $statelog = []
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {id: i, z: 9}}).run
-  q = r.table('test').between(10, 20).changes(include_initial_vals: true)
+  r.table('test').reconfigure(shards: 2, replicas: 1).run
+  r.table('test').wait.run
+  q = r.table('test').between(10, 20).changes(include_initial: true)
   EM.run {
     $h = H.new
     $handle = q.em_run($h, max_batch_rows: 1)

@@ -19,7 +19,7 @@
 #include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "stl_utils.hpp"
-#include "serializer/config.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -60,9 +60,7 @@ void insert_rows(int start, int finish, store_t *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         store_t::sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                 &sindex_block,
-                 &sindexes);
+        store->acquire_all_sindex_superblocks_for_write(&sindex_block, &sindexes);
         rdb_update_sindexes(store,
                             sindexes,
                             &mod_report,
@@ -151,6 +149,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     rdb_rget_secondary_slice(
         store->get_sindex_slice(sindex_uuid),
+        region_t(),
         ql::datumspec_t(datum_range),
         datum_range.to_sindex_keyrange(reql_version_t::LATEST),
         sindex_sb.get(),
@@ -180,13 +179,15 @@ void _check_keys_are_present(store_t *store,
         // The order of `groups` doesn't matter because this is a small unit test.
         ql::stream_t *stream = &groups.begin()->second;
         ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(1ul, stream->size());
+        ASSERT_EQ(1ul, stream->substreams.size());
+        ql::raw_stream_t *raw_stream = &stream->substreams.begin()->second.stream;
+        ASSERT_EQ(1ul, raw_stream->size());
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         rapidjson::Document expected_value;
         expected_value.Parse(expected_data.c_str());
         ASSERT_EQ(ql::to_datum(expected_value, limits, reql_version_t::LATEST),
-                  stream->front().data);
+                  raw_stream->front().data);
     }
 }
 
@@ -241,12 +242,12 @@ TPTEST(RDBBtree, SindexPostConstruct) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -260,7 +261,8 @@ TPTEST(RDBBtree, SindexPostConstruct) {
             NULL,
             &io_backender,
             base_path_t("."),
-            generate_uuid());
+            generate_uuid(),
+            update_sindexes_t::UPDATE);
 
     cond_t dummy_interruptor;
 
@@ -283,12 +285,12 @@ TPTEST(RDBBtree, SindexEraseRange) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -302,7 +304,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
             NULL,
             &io_backender,
             base_path_t("."),
-            generate_uuid());
+            generate_uuid(),
+            update_sindexes_t::UPDATE);
 
     cond_t dummy_interruptor;
 
@@ -363,12 +366,12 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -382,7 +385,8 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
             NULL,
             &io_backender,
             base_path_t("."),
-            generate_uuid());
+            generate_uuid(),
+            update_sindexes_t::UPDATE);
 
     cond_t dummy_interruptor;
 
@@ -405,12 +409,12 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
     dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
-    standard_serializer_t::create(
+    log_serializer_t::create(
         &file_opener,
-        standard_serializer_t::static_config_t());
+        log_serializer_t::static_config_t());
 
-    standard_serializer_t serializer(
-        standard_serializer_t::dynamic_config_t(),
+    log_serializer_t serializer(
+        log_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
 
@@ -424,7 +428,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
             NULL,
             &io_backender,
             base_path_t("."),
-            generate_uuid()));
+            generate_uuid(),
+            update_sindexes_t::UPDATE));
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 

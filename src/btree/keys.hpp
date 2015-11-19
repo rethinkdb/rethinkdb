@@ -26,6 +26,15 @@ enum class sorting_t {
 // UNORDERED sortings aren't reversed
 bool reversed(sorting_t sorting);
 
+template<class T>
+bool is_better(const T &a, const T &b, sorting_t sorting) {
+    if (!reversed(sorting)) {
+        return a < b;
+    } else {
+        return b < a;
+    }
+}
+
 // Fast string compare
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
@@ -174,6 +183,9 @@ private:
     char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
 };
 
+static const store_key_t store_key_max = store_key_t::max();
+static const store_key_t store_key_min = store_key_t::min();
+
 inline bool operator==(const store_key_t &k1, const store_key_t &k2) {
     return k1.size() == k2.size() && memcmp(k1.contents(), k2.contents(), k1.size()) == 0;
 }
@@ -240,6 +252,9 @@ public:
             rassert(!unbounded);
             return internal_key;
         }
+        const store_key_t &key_or_max() const {
+            return unbounded ? store_key_max : internal_key;
+        }
 
         bool unbounded;
 
@@ -247,6 +262,10 @@ public:
         instead of accessing this directly. */
         store_key_t internal_key;
     };
+
+    const store_key_t &right_or_max() const {
+        return right.key_or_max();
+    }
 
     enum bound_t {
         open,

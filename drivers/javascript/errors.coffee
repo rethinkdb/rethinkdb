@@ -1,8 +1,15 @@
 class ReqlError extends Error
-    constructor: (msg) ->
+    constructor: (msg, term, frames) ->
         @name = @constructor.name
         @msg = msg
-        @message = msg
+        @frames = frames?[0..]
+        if term?
+            if msg[msg.length-1] is '.'
+                @message = "#{msg.slice(0, msg.length-1)} in:\n#{ReqlQueryPrinter::printQuery(term)}\n#{ReqlQueryPrinter::printCarrots(term, frames)}"
+            else
+                @message = "#{msg} in:\n#{ReqlQueryPrinter::printQuery(term)}\n#{ReqlQueryPrinter::printCarrots(term, frames)}"
+        else
+            @message = "#{msg}"
         if Error.captureStackTrace?
             Error.captureStackTrace @, @
 
@@ -17,19 +24,6 @@ class ReqlDriverError extends ReqlError
 class ReqlAuthError extends ReqlDriverError
 
 class ReqlRuntimeError extends ReqlError
-    constructor: (msg, term, frames) ->
-        @name = @constructor.name
-        @msg = msg
-        @frames = frames[0..]
-        if term?
-            if msg[msg.length-1] is '.'
-                @message = "#{msg.slice(0, msg.length-1)} in:\n#{ReqlQueryPrinter::printQuery(term)}\n#{ReqlQueryPrinter::printCarrots(term, frames)}"
-            else
-                @message = "#{msg} in:\n#{ReqlQueryPrinter::printQuery(term)}\n#{ReqlQueryPrinter::printCarrots(term, frames)}"
-        else
-            @message = "#{msg}"
-        if Error.captureStackTrace?
-            Error.captureStackTrace @, @
 
 class ReqlQueryLogicError extends ReqlRuntimeError
 class ReqlNonExistenceError extends ReqlQueryLogicError

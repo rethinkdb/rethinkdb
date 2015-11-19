@@ -41,7 +41,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
                              'ready_for_outdated_reads': True,
                              'ready_for_reads': True,
                              'ready_for_writes': True},
-                'issue': 'Table `test.fully_avalible` is available for all operations, but some replicas are not ready. The following servers are not reachable: KingHamlet'},
+                'issue': 'Table `test.fully_available` is available for all operations, but some replicas are not ready. The following servers are not reachable: KingHamlet'},
             {   'name': 'change_primary',
                 'primary': 'KingHamlet', 'primaryEffect': 'changed',
                 'replicas': ['PrinceHamlet', 'KingHamlet', 'Gertrude', 'Polonius'], 'nonvoting_replicas':['Polonius'],

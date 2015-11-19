@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# This script is used to build RethinkDB RPM on CentOS 6.4
+# This script is used to build RethinkDB RPM on CentOS 6.4 and 7
 #
 # It requires:
-# yum --assumeyes install http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-# yum --assumeyes install git-core boost-static m4 gcc-c++ python-pip v8-devel nodejs npm ncurses-devel which make PyYAML subversion ncurses-static rubygems ruby-devel build-rpm rpm-build zlib-devel zlib-static
-# gem install fpm
+# * The build dependencies: https://www.rethinkdb.com/docs/install/centos/
+# * gem install fpm
 
 set -eu
 
@@ -32,6 +31,8 @@ EOF
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 
+    GLIBC_VERSION=`rpm -qa --queryformat '%{VERSION}' glibc`
+
     command=fpm
     ... -t rpm                  # Build an RPM package
     ... --package $RPM_PACKAGE
@@ -41,7 +42,7 @@ EOF
     ... --category Database
     ... --version "$VERSION"
     ... --iteration "`./scripts/gen-version.sh -r`"
-    ... --depends 'glibc >= 2.12' # Only if you build with glibc 2.12
+    ... --depends "glibc >= $GLIBC_VERSION"
     ... --conflicts 'rethinkdb'
     ... --architecture "$ARCH"
     ... --maintainer 'RethinkDB <devops@rethinkdb.com>'

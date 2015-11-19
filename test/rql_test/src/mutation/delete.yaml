@@ -14,7 +14,7 @@ tests:
             return res;
         }())
       rb: tbl.insert((1..100).map{ |i| {"id" => i} })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
+      ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':100})
 
     - cd: tbl.count()
       ot: 100
@@ -22,7 +22,7 @@ tests:
     # Point delete
 
     - cd: tbl.get(12).delete()
-      ot: ({'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+      ot: ({'deleted':1,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0})
 
     # Attempt deletion with bad durability flag.
 
@@ -36,14 +36,14 @@ tests:
     - js: tbl.skip(50).delete({durability:'soft'})
       rb: tbl.skip(50).delete({ :durability => 'soft' })
       py: tbl.skip(50).delete(durability='soft')
-      ot: ({'deleted':49,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+      ot: ({'deleted':49,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0})
 
     # Delete whole table, hard durability flag.
 
     - js: tbl.delete({durability:'hard'})
       rb: tbl.delete({ :durability => 'hard' })
       py: tbl.delete(durability='hard')
-      ot: ({'deleted':50,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+      ot: ({'deleted':50,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0})
 
     # test deletion on a non-deletable object
     - cd: r.expr([1, 2]).delete()

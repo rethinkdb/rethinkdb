@@ -388,8 +388,8 @@ void migrate_table(const server_id_t &this_server_id,
         out->write(mdprefix_table_active().suffix(uuid_to_str(table_id)), active_state, interruptor);
 
         // The `table_raft_storage_interface_t` constructor will persist the header, snapshot, and logs
-        table_raft_storage_interface_t storage_interface(nullptr, out, table_id,
-                                                         persistent_state, interruptor);
+        table_raft_storage_interface_t storage_interface(
+            nullptr, out, table_id, persistent_state);
     }
 }
 
@@ -406,8 +406,8 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
                 perfmon_collection_t dummy_stats;
                 serializer_filepath_t table_path(base_path, uuid_to_str(info.first));
                 filepath_file_opener_t file_opener(table_path, io_backender);
-                scoped_ptr_t<standard_serializer_t> inner_serializer(
-                    new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                scoped_ptr_t<log_serializer_t> inner_serializer(
+                    new log_serializer_t(log_serializer_t::dynamic_config_t(),
                                               &file_opener, &dummy_stats));
                 merger_serializer_t merger_serializer(std::move(inner_serializer),
                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
@@ -425,7 +425,9 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      info.first);
+                                      info.first,
+                                      /* Important: Don't update indexes yet. */
+                                      update_sindexes_t::LEAVE_ALONE);
 
                         store.sindex_list(interruptor);
                     });
@@ -450,8 +452,8 @@ void migrate_tables(io_backender_t *io_backender,
                 perfmon_collection_t dummy_stats;
                 serializer_filepath_t table_path(base_path, uuid_to_str(info.first));
                 filepath_file_opener_t file_opener(table_path, io_backender);
-                scoped_ptr_t<standard_serializer_t> inner_serializer(
-                    new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                scoped_ptr_t<log_serializer_t> inner_serializer(
+                    new log_serializer_t(log_serializer_t::dynamic_config_t(),
                                               &file_opener, &dummy_stats));
                 merger_serializer_t merger_serializer(std::move(inner_serializer),
                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
@@ -472,7 +474,8 @@ void migrate_tables(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      info.first);
+                                      info.first,
+                                      update_sindexes_t::UPDATE);
 
                         if (index == 0) {
                             sindex_list = store.sindex_list(interruptor);
@@ -603,7 +606,7 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
     logNTC("Migrating auth metadata");
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
-    standard_serializer_t serializer(standard_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
+    log_serializer_t serializer(log_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
 
     if (!serializer.coop_lock_and_check()) {
         throw file_in_use_exc_t();

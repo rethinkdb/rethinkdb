@@ -15,6 +15,7 @@
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/term_storage.hpp"
@@ -37,10 +38,15 @@ public:
 
     virtual boost::optional<size_t> arity() const = 0;
 
-    virtual bool is_deterministic() const = 0;
+    virtual deterministic_t is_deterministic() const = 0;
 
     // Used by info_term_t.
     virtual std::string print_source() const = 0;
+
+    // Similar to `print_source()`, but prints a JS expression of the form
+    // `function(arg1, arg2, ...) { return body; }`. Fails if the func_t has a non-empty
+    // captured scope.
+    virtual std::string print_js_function() const = 0;
 
     virtual void visit(func_visitor_t *visitor) const = 0;
 
@@ -91,9 +97,10 @@ public:
 
     boost::optional<size_t> arity() const;
 
-    bool is_deterministic() const;
+    deterministic_t is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 
@@ -132,9 +139,10 @@ public:
 
     boost::optional<size_t> arity() const;
 
-    bool is_deterministic() const;
+    deterministic_t is_deterministic() const;
 
     std::string print_source() const;
+    std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
 
@@ -202,7 +210,7 @@ public:
 
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
-    virtual bool is_deterministic() const;
+    virtual deterministic_t is_deterministic() const;
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
     virtual const char *name() const { return "func"; }
 

@@ -5,7 +5,7 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/lazy_btree_val.hpp"
 
 /* After every `MAX_BACKFILL_ITEMS_PER_TXN` backfill items or backfill pre-items, we'll
 release the superblock and start a new transaction. */

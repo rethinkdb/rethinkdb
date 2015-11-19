@@ -26,10 +26,6 @@ ifeq ($(BUILD_DIR),)
       BUILD_DIR += intel
   endif
 
-  ifeq (1,$(SEMANTIC_SERIALIZER_CHECK))
-    BUILD_DIR += scs
-  endif
-
   ifeq (1,$(LEGACY_LINUX))
     BUILD_DIR += legacy
   endif
