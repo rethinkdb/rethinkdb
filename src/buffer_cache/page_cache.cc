@@ -80,7 +80,7 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
                  std::bind(&page_cache_t::add_read_ahead_buf,
                            page_cache_,
                            block_id,
-                           ptr.release(),
+                           copyable_unique_t<scoped_device_block_aligned_ptr_t<ser_buffer_t> >(std::move(ptr)),
                            token));
 }
 
