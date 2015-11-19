@@ -7,7 +7,7 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 
-DECL_THREAD_LOCAL int thread_is_blocker_pool_thread = 0;
+THREAD_LOCAL int thread_is_blocker_pool_thread = 0;
 // Access functions to thread_is_blocker_pool_thread. Marked as NOINLINE
 // to avoid certain compiler optimizations that can break TLS. See
 // thread_local.hpp for a more detailed explanation.

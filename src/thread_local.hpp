@@ -63,7 +63,7 @@
 
 #ifndef THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
-    static DECL_THREAD_LOCAL type TLS_ ## name = initial;               \
+    static THREAD_LOCAL type TLS_ ## name = initial;               \
                                                                         \
     NOINLINE type TLS_get_ ## name () {                                 \
         return TLS_ ## name;                                            \
@@ -90,7 +90,7 @@
 
 #ifndef THREADED_COROUTINES
 #define TLS(type, name)                                                 \
-    static DECL_THREAD_LOCAL type TLS_ ## name;                         \
+    static THREAD_LOCAL type TLS_ ## name;                         \
                                                                         \
     NOINLINE type TLS_get_ ## name () {                                 \
         return TLS_ ## name;                                            \

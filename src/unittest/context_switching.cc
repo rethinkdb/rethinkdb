@@ -25,11 +25,11 @@ TEST(ContextSwitchingTest, CreateArtificialStack) {
 /* Thread-local variables for use in test functions, because we cannot pass a
 `void*` to the test functions... */
 
-static DECL_THREAD_LOCAL coro_context_ref_t
+static THREAD_LOCAL coro_context_ref_t
     *original_context = NULL,
     *artificial_stack_1_context = NULL,
     *artificial_stack_2_context = NULL;
-static DECL_THREAD_LOCAL int test_int;
+static THREAD_LOCAL int test_int;
 
 static void switch_context_test(void) {
     test_int++;

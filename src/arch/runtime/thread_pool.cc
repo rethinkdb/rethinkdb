@@ -24,9 +24,9 @@
 const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif  // VALGRIND
 
-DECL_THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-DECL_THREAD_LOCAL int linux_thread_pool_t::thread_id;
-DECL_THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
+THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
+THREAD_LOCAL int linux_thread_pool_t::thread_id;
+THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
     return thread_pool;

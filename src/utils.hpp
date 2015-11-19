@@ -28,15 +28,6 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
-/* Forbid the following function definition to be inlined
- */
-#ifdef _MSC_VER
-#define NOINLINE __declspec(noinline)
-#else
-#define NOINLINE __attribute__ ((noinline))
-#endif
-
-
 void *raw_malloc_aligned(size_t size, size_t alignment);
 void *raw_malloc_page_aligned(size_t size);
 void raw_free_aligned(void *ptr);

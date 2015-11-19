@@ -106,11 +106,11 @@ public:
 
 private:
     // The thread_pool that started the thread we are currently in
-    static DECL_THREAD_LOCAL linux_thread_pool_t *thread_pool;
+    static THREAD_LOCAL linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
-    static DECL_THREAD_LOCAL int thread_id;
+    static THREAD_LOCAL int thread_id;
     // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
-    static DECL_THREAD_LOCAL linux_thread_t *thread;
+    static THREAD_LOCAL linux_thread_t *thread;
 
     DISABLE_COPYING(linux_thread_pool_t);
 };

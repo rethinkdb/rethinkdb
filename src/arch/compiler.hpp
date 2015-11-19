@@ -8,8 +8,12 @@
 #define ATTR_ALIGNED(size) __declspec(align(size))
 #define ATTR_PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #define ATTR_FORMAT(...)
-#define DECL_THREAD_LOCAL thread_local
+#define THREAD_LOCAL thread_local
 #define CURRENT_FUNCTION_PRETTY __FUNCSIG__
+#define NORETURN __declspec(noreturn)
+#define UNUSED __pragma(warning(suppress: 4100 4101))
+#define MUST_USE _Check_return_
+#define NOINLINE __declspec(noinline)
 
 #else // gcc, clang
 
@@ -22,8 +26,12 @@
 #define ATTR_FORMAT(...) __attribute__((format(__VA_ARGS__)))
 #endif
 
-#define DECL_THREAD_LOCAL __thread
+#define THREAD_LOCAL __thread
 #define CURRENT_FUNCTION_PRETTY __PRETTY_FUNCTION__
+#define NORETURN __attribute__((__noreturn__))
+#define UNUSED __attribute__((unused))
+#define MUST_USE __attribute__((warn_unused_result))
+#define NOINLINE __attribute__((noinline))
 
 #endif
 

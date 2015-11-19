@@ -34,12 +34,6 @@
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
-#ifdef _MSC_VER
-#define NORETURN __declspec(noreturn)
-#else
-#define NORETURN __attribute__((__noreturn__))
-#endif
-
 /* Accessors to errno.
  * Please access errno *only* through these access functions.
  * Accessing errno directly is unsafe in the context of
@@ -81,14 +75,6 @@ void set_errno(int new_errno);
  * The names rassert* are used instead of assert* because /usr/include/assert.h undefines assert macro and redefines it with its own version
  * every single time it gets included.
  */
-
-#ifdef _MSC_VER
-#define UNUSED __pragma(warning(suppress: 4100 4101))
-#define MUST_USE _Check_return_
-#else
-#define UNUSED __attribute__((unused))
-#define MUST_USE __attribute__((warn_unused_result))
-#endif
 
 #ifndef NDEBUG
 #define DEBUG_VAR
