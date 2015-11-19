@@ -225,7 +225,7 @@ private:
 
 // This class has move semantics in its copy constructor.
 // It is meant to be used instead of C++14 generalized lambda capture,
-// to capture a variable using move smeantics,
+// to capture a variable using move semantics,
 // which GCC 4.6 doesn't support.
 template<class T>
 class copyable_unique_t {
