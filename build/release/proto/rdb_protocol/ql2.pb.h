@@ -87,11 +87,12 @@ enum Query_QueryType {
   Query_QueryType_START = 1,
   Query_QueryType_CONTINUE = 2,
   Query_QueryType_STOP = 3,
-  Query_QueryType_NOREPLY_WAIT = 4
+  Query_QueryType_NOREPLY_WAIT = 4,
+  Query_QueryType_SERVER_INFO = 5
 };
 bool Query_QueryType_IsValid(int value);
 const Query_QueryType Query_QueryType_QueryType_MIN = Query_QueryType_START;
-const Query_QueryType Query_QueryType_QueryType_MAX = Query_QueryType_NOREPLY_WAIT;
+const Query_QueryType Query_QueryType_QueryType_MAX = Query_QueryType_SERVER_INFO;
 const int Query_QueryType_QueryType_ARRAYSIZE = Query_QueryType_QueryType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Query_QueryType_descriptor();
@@ -128,6 +129,7 @@ enum Response_ResponseType {
   Response_ResponseType_SUCCESS_SEQUENCE = 2,
   Response_ResponseType_SUCCESS_PARTIAL = 3,
   Response_ResponseType_WAIT_COMPLETE = 4,
+  Response_ResponseType_SERVER_INFO = 5,
   Response_ResponseType_CLIENT_ERROR = 16,
   Response_ResponseType_COMPILE_ERROR = 17,
   Response_ResponseType_RUNTIME_ERROR = 18
@@ -692,6 +694,7 @@ class Query : public ::google::protobuf::Message {
   static const QueryType CONTINUE = Query_QueryType_CONTINUE;
   static const QueryType STOP = Query_QueryType_STOP;
   static const QueryType NOREPLY_WAIT = Query_QueryType_NOREPLY_WAIT;
+  static const QueryType SERVER_INFO = Query_QueryType_SERVER_INFO;
   static inline bool QueryType_IsValid(int value) {
     return Query_QueryType_IsValid(value);
   }
@@ -1071,6 +1074,7 @@ class Response : public ::google::protobuf::Message {
   static const ResponseType SUCCESS_SEQUENCE = Response_ResponseType_SUCCESS_SEQUENCE;
   static const ResponseType SUCCESS_PARTIAL = Response_ResponseType_SUCCESS_PARTIAL;
   static const ResponseType WAIT_COMPLETE = Response_ResponseType_WAIT_COMPLETE;
+  static const ResponseType SERVER_INFO = Response_ResponseType_SERVER_INFO;
   static const ResponseType CLIENT_ERROR = Response_ResponseType_CLIENT_ERROR;
   static const ResponseType COMPILE_ERROR = Response_ResponseType_COMPILE_ERROR;
   static const ResponseType RUNTIME_ERROR = Response_ResponseType_RUNTIME_ERROR;
