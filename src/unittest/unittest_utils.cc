@@ -38,6 +38,7 @@ struct make_sindex_read_t {
                 boost::optional<changefeed_stamp_t>(),
                 region_t::universe(),
                 boost::none,
+                boost::none,
                 ql::global_optargs_t(),
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
@@ -156,6 +157,15 @@ state_timestamp_t make_state_timestamp(int n) {
     state_timestamp_t t;
     t.num = n;
     return t;
+}
+
+std::string random_letter_string(rng_t *rng, int min_length, int max_length) {
+    std::string ret;
+    int size = min_length + rng->randint(max_length - min_length + 1);
+    for (int i = 0; i < size; i++) {
+        ret.push_back('a' + rng->randint(26));
+    }
+    return ret;
 }
 
 }  // namespace unittest

@@ -59,7 +59,7 @@ typedef std::pair<std::string, std::pair<datum_t, datum_t> > item_t;
 typedef std::pair<const std::string, std::pair<datum_t, datum_t> > const_item_t;
 
 std::vector<item_t> mangle_sort_truncate_stream(
-    stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
+    raw_stream_t &&stream, is_primary_t is_primary, sorting_t sorting, size_t n);
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -134,7 +134,7 @@ struct keyspec_t {
         datum_t key;
     };
 
-    keyspec_t(keyspec_t &&other)
+    keyspec_t(keyspec_t &&other) noexcept
         : spec(std::move(other.spec)),
           table(std::move(other.table)),
           table_name(std::move(other.table_name)) { }
@@ -281,9 +281,13 @@ public:
 
     iterator begin() { return index.begin(); }
     iterator end() { return index.end(); }
+    // This is sometimes called after `**raw_it` has been invalidated, so we
+    // can't just dispatch to the `erase(diterator)` implementation above.
     void erase(const iterator &raw_it) {
         guarantee(raw_it != index.end());
-        erase(*raw_it);
+        data.erase(*raw_it);
+        index.erase(raw_it);
+        guarantee(data.size() == index.size());
     }
     void clear() {
         data.clear();

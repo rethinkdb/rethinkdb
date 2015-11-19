@@ -655,7 +655,7 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
 struct allocate_helper_t : public blob::traverse_helper_t {
     buf_lock_t preprocess(buf_parent_t parent, int levels,
                           block_id_t *block_id) {
-        buf_lock_t temp_lock(parent, alt_create_t::create);
+        buf_lock_t temp_lock(parent, alt_create_t::create, block_type_t::aux);
         *block_id = temp_lock.block_id();
         {
             buf_write_t lock_write(&temp_lock);
@@ -708,7 +708,7 @@ void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
 
 // Always returns levels + 1.
 int blob_t::add_level(buf_parent_t parent, int levels) {
-    buf_lock_t lock(parent, alt_create_t::create);
+    buf_lock_t lock(parent, alt_create_t::create, block_type_t::aux);
     buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
     if (levels == 0) {

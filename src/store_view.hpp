@@ -236,6 +236,9 @@ public:
     perform a backfill. */
     virtual void wait_until_ok_to_receive_backfill(signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
+    /* Like `wait_until_ok_to_receive_backfill`, but doesn't block and instead returns
+    `false` if an index is post-constructing. */
+    virtual bool check_ok_to_receive_backfill() THROWS_NOTHING = 0;
 
     /* Deletes every key in the region, and sets the metainfo for that region to
     `zero_version`. */

@@ -26,15 +26,15 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(sindex_config_t,
     func, func_version, multi, geo);
 
 void sindex_status_t::accum(const sindex_status_t &other) {
-    blocks_processed += other.blocks_processed;
-    blocks_total += other.blocks_total;
+    progress_numerator += other.progress_numerator;
+    progress_denominator += other.progress_denominator;
     ready &= other.ready;
     start_time = std::min(start_time, other.start_time);
     rassert(outdated == other.outdated);
 }
 
-RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(sindex_status_t,
-    blocks_processed, blocks_total, ready, outdated, start_time);
+RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(sindex_status_t,
+    progress_numerator, progress_denominator, ready, outdated, start_time);
 
 const char *rql_perfmon_name = "query_engine";
 

@@ -52,8 +52,8 @@ private:
     virtual const char *name() const { return "javascript"; }
 
     // No JS term is considered deterministic
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t  is_deterministic() const {
+        return deterministic_t::no;
     }
 };
 

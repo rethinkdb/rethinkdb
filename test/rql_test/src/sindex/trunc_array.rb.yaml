@@ -1,0 +1,70 @@
+desc: sindex truncation tests
+table_variable_name: tbl
+tests:
+
+  - rb: tbl.index_create('a')
+    ot: ({'created' => 1})
+  - rb: tbl.index_create('idi'){|row| row['id']}
+    ot: ({'created':1})
+  - rb: tbl.index_wait()
+
+# Create a mix of truncated and untruncated sindex keys.
+  - def:
+      rb: a = (0...100).map{|i| "a"*1000 + sprintf("1%02d", i)}
+  - def:
+      rb: b = (0...1).map{|i| "a"*10 + "b" + sprintf("2%02d", i)}
+  - def:
+      rb: c = (0...100).map{|i| "b"*100 + sprintf("3%02d", i)}
+  - def:
+      rb: d = (0...100).map{|i| "c"*1000 + sprintf("4%02d", i)}
+  - def:
+      rb: e = (0...1).map{|i| "c"*1000 + sprintf("5%02d", i)}
+  - def:
+      rb: f = (0...1).map{|i| "d"*1000 + sprintf("6%02d", i)}
+  - def:
+      rb: "vals = (a+b+c+d+e+f).map{|x| {a: x, num: x.match(/[0-9]+/).to_s.to_i}}"
+
+  - rb: tbl.insert(vals)['inserted']
+    ot: 303
+
+# Run tests with a batch configuration that guarantees some truncated
+# keys are split across batches.
+  - rb: tbl.orderby({:index => 'a'}).map{|x| x['num']}.coerce_to('array')
+    runopts:
+      max_batch_rows: 10
+    ot: vals.map{|x| x[:num]}
+
+  - rb: tbl.orderby({:index => r.desc('a')}).map{|x| x['num']}.coerce_to('array')
+    runopts:
+      max_batch_rows: 10
+    ot: vals.map{|x| x[:num]}.reverse
+
+  - rb: tbl.between("a"*1000+"150", 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}.coerce_to('array')
+    runopts:
+      max_batch_rows: 10
+    ot: vals.map{|x| x[:num]}.select{|x| x >= 150 && x < 450}
+
+  - rb: tbl.between(r.minval, 'c'*1000+"450", index:'a').orderby('a').map{|x| x['num']}.coerce_to('array')
+    runopts:
+      max_batch_rows: 10
+    ot: vals.map{|x| x[:num]}.select{|x| x < 450}
+
+  - rb: tbl.between("a"*1000+"150", r.maxval, index:'a').orderby('a').map{|x| x['num']}.coerce_to('array')
+    runopts:
+      max_batch_rows: 10
+    ot: vals.map{|x| x[:num]}.select{|x| x >= 150}
+
+  - rb: tbl.orderby('id').coerce_to('array').eq(tbl.orderby(index:'id').coerce_to('array'))
+    ot: true
+
+  - rb: tbl.orderby(r.desc('id')).coerce_to('array').eq(tbl.orderby(index:r.desc('id')).coerce_to('array'))
+    ot: true
+
+  - rb: result = tbl.orderby('a', index:'idi').coerce_to('array')
+    runopts:
+      max_batch_rows: 100
+      first_batch_scaledown_factor: 1
+      max_batch_bytes: 1000000000000
+      max_batch_seconds: 86399
+  - rb: fetch(result).length
+    ot: 303

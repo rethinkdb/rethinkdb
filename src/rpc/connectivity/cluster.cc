@@ -129,12 +129,12 @@ void connectivity_cluster_t::connection_t::kill_connection() {
     }
 }
 
-connectivity_cluster_t::connection_t::connection_t(run_t *p,
-                                                   peer_id_t id,
-                                                   keepalive_tcp_conn_stream_t *c,
-                                                   const peer_address_t &a) THROWS_NOTHING :
-    conn(c),
-    peer_address(a),
+connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
+                                                   const peer_id_t &_peer_id,
+                                                   keepalive_tcp_conn_stream_t *_conn,
+                                                   const peer_address_t &_peer_address) THROWS_NOTHING :
+    conn(_conn),
+    peer_address(_peer_address),
     flusher([&](signal_t *) {
         guarantee(this->conn != nullptr);
         // We need to acquire the send_mutex because flushing the buffer
@@ -146,10 +146,13 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
     }, 1),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
-    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
-        uuid_to_str(id.get_uuid())),
+    pm_collection_membership(
+        &_parent->parent->connectivity_collection,
+        &pm_collection,
+        uuid_to_str(_peer_id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
-    parent(p), peer_id(id),
+    parent(_parent),
+    peer_id(_peer_id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
@@ -205,7 +208,8 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
 }
 
 connectivity_cluster_t::run_t::run_t(
-        connectivity_cluster_t *p,
+        connectivity_cluster_t *_parent,
+        const server_id_t &_server_id,
         const std::set<ip_address_t> &local_addresses,
         const peer_address_t &canonical_addresses,
         int port,
@@ -213,7 +217,8 @@ connectivity_cluster_t::run_t::run_t(
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             _heartbeat_sl_view)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
-    parent(p),
+    parent(_parent),
+    server_id(_server_id),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -841,6 +846,7 @@ void connectivity_cluster_t::run_t::handle(
         // Everything after we send the version string COULD be moved _below_ the
         // point where we resolve the version string.  That would mean adding another
         // back and forth to the handshake?
+        serialize_universal(&wm, server_id);
         serialize_universal(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
@@ -902,6 +908,22 @@ void connectivity_cluster_t::run_t::handle(
         // In the future we'll need to support multiple cluster versions.
         guarantee(resolved_version == cluster_version_t::CLUSTER);
     }
+
+    server_id_t remote_server_id;
+    {
+        if (deserialize_universal_and_check(conn, &remote_server_id, peername)) {
+            return;
+        }
+
+        if (servers.count(remote_server_id) != 0) {
+            // There currently is another connection open to the server
+            logINF("Rejected a connection from server %s since one is open already.",
+                   uuid_to_str(remote_server_id).c_str());
+            return;
+        }
+    }
+    set_insertion_sentry_t<server_id_t> remote_server_id_sentry(
+        &servers, remote_server_id);
 
     // Check bitsize (e.g. 32bit or 64bit)
     {

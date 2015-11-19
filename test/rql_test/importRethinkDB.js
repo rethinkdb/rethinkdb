@@ -9,6 +9,8 @@ if (fs.existsSync(path.resolve(rethinkdbLocation, 'rethinkdb.js')) == false) {
     process.exit(1);
 }
 var r = require(path.resolve(rethinkdbLocation, 'rethinkdb'));
+var protodef = require(path.resolve(rethinkdbLocation, 'proto-def'));
 console.log('Using RethinkDB client from: ' + rethinkdbLocation)
 
 module.exports.r = r
+module.exports.protodef = protodef

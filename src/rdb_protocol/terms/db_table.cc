@@ -104,7 +104,7 @@ public:
         : op_term_t(env, term, std::move(argspec), std::move(optargspec)) { }
 
 private:
-    virtual bool is_deterministic() const { return false; }
+    virtual deterministic_t is_deterministic() const { return deterministic_t::no; }
 };
 
 class db_term_t : public meta_op_term_t {
@@ -708,7 +708,7 @@ private:
         return new_val(make_counted<table_t>(
             std::move(table), db, name.str(), read_mode, backtrace()));
     }
-    virtual bool is_deterministic() const { return false; }
+    virtual deterministic_t is_deterministic() const { return deterministic_t::no; }
     virtual const char *name() const { return "table"; }
 };
 
@@ -741,6 +741,9 @@ private:
                       base_exc_t::LOGIC,
                       "Cannot use a geospatial index with `get_all`. "
                       "Use `get_intersecting` instead.");
+        rcheck_target(arg, datum_arg.get_type() != datum_t::R_NULL,
+                      base_exc_t::NON_EXISTENCE,
+                      "Keys cannot be NULL.");
         return datum_arg;
     }
 

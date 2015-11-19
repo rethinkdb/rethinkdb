@@ -44,6 +44,8 @@ end
 
 $t.delete.run
 $t.insert((0...100).map{|i| {id: i}}).run
+$t.reconfigure(shards: 2, replicas: 1).run
+$t.wait.run
 
 $eager_pop = $streams*2 + $empty_streams*2 + $streams
 $eager_union_1 = flat_union($eager_pop)

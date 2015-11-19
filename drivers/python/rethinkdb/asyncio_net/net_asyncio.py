@@ -1,14 +1,9 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
-import errno
-import json
-import numbers
+import asyncio
+import contextlib
 import socket
 import struct
-import sys
-from tornado import gen, iostream
-from tornado.ioloop import IOLoop
-from tornado.concurrent import Future
 
 from . import ql2_pb2 as p
 from .ast import ReQLDecoder
@@ -21,107 +16,138 @@ __all__ = ['Connection']
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-@gen.coroutine
-def with_absolute_timeout(deadline, generator, **kwargs):
-    if deadline is None:
-        res = yield generator
+@asyncio.coroutine
+def _read_until(streamreader, delimiter):
+    """Naive implementation of reading until a delimiter"""
+    buffer = bytearray()
+    while True:
+        c = yield from streamreader.read(1)
+        if c == b'':
+            break  # EOF
+        buffer.append(c[0])
+        if c == delimiter:
+            break
+    return bytes(buffer)
+
+
+def reusable_waiter(loop, timeout):
+    """Wait for something, with a timeout from when the waiter was created.
+
+    This can be used in loops::
+
+        waiter = reusable_waiter(event_loop, 10.0)
+        while some_condition:
+            yield from waiter(some_future)
+    """
+    if timeout is not None:
+        deadline = loop.time() + timeout
     else:
-        try:
-            res = yield gen.with_timeout(deadline, generator, **kwargs)
-        except gen.TimeoutError:
-            raise ReqlTimeoutError()
-    raise gen.Return(res)
+        deadline = None
+
+    @asyncio.coroutine
+    def wait(future):
+        if deadline is not None:
+            new_timeout = max(deadline - loop.time(), 0)
+        else:
+            new_timeout = None
+        return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
+
+    return wait
+
+@contextlib.contextmanager
+def translate_timeout_errors():
+    try:
+        yield
+    except asyncio.TimeoutError:
+        raise ReqlTimeoutError()
 
 
-# The Tornado implementation of the Cursor object:
+# The asyncio implementation of the Cursor object:
 # The `new_response` Future notifies any waiting coroutines that the can attempt
 # to grab the next result.  In addition, the waiting coroutine will schedule a
 # timeout at the given deadline (if provided), at which point the future will be
 # errored.
-class TornadoCursor(Cursor):
+class AsyncioCursor(Cursor):
     def __init__(self, *args, **kwargs):
         Cursor.__init__(self, *args, **kwargs)
-        self.new_response = Future()
+        self.new_response = asyncio.Future()
 
     def _extend(self, res):
         Cursor._extend(self, res)
         self.new_response.set_result(True)
-        self.new_response = Future()
+        self.new_response = asyncio.Future()
 
     # Convenience function so users know when they've hit the end of the cursor
     # without having to catch an exception
-    @gen.coroutine
+    @asyncio.coroutine
     def fetch_next(self, wait=True):
         timeout = Cursor._wait_to_timeout(wait)
-        deadline = None if timeout is None else self.conn._io_loop.time() + timeout
+        waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
-            yield with_absolute_timeout(deadline, self.new_response)
+            with translate_timeout_errors():
+                yield from waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
-        raise gen.Return(len(self.items) != 0 or not isinstance(self.error, ReqlCursorEmpty))
+        return len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
 
     def _empty_error(self):
-        # We do not have ReqlCursorEmpty inherit from StopIteration as that interferes
-        # with Tornado's gen.coroutine and is the equivalent of gen.Return(None).
-        return ReqlCursorEmpty()
+        # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
+        # with mechanisms to return from a coroutine.
+        return RqlCursorEmpty()
 
-    @gen.coroutine
+    @asyncio.coroutine
     def _get_next(self, timeout):
-        deadline = None if timeout is None else self.conn._io_loop.time() + timeout
+        waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0:
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
-            yield with_absolute_timeout(deadline, self.new_response)
-        raise gen.Return(self.items.popleft())
+            with translate_timeout_errors():
+                yield from waiter(asyncio.shield(self.new_response))
+        return self.items.popleft()
+
+    def _maybe_fetch_batch(self):
+        if self.error is None and \
+           len(self.items) < self.threshold and \
+           self.outstanding_requests == 0:
+            self.outstanding_requests += 1
+            asyncio.async(self.conn._parent._continue(self))
 
 
 class ConnectionInstance(object):
+    _streamreader = None
+    _streamwriter = None
+
     def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
         self._user_queries = { }
         self._cursor_cache = { }
-        self._ready = Future()
+        self._ready = asyncio.Future()
         self._io_loop = io_loop
         if self._io_loop is None:
-            self._io_loop = IOLoop.current()
+            self._io_loop = asyncio.get_event_loop()
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if len(self._parent.ssl) > 0:
-            ssl_options = {}
-            if self._parent.ssl["ca_certs"]:
-                ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
-                ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
-            self._stream = iostream.SSLIOStream(
-                self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
-        else:
-            self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
-
-    @gen.coroutine
+    @asyncio.coroutine
     def connect(self, timeout):
-        deadline = None if timeout is None else self._io_loop.time() + timeout
         try:
-            yield with_absolute_timeout(
-                deadline,
-                self._stream.connect((self._parent.host,
-                                      self._parent.port),
-                                      server_hostname=self._parent.host),
-                io_loop=self._io_loop,
-                quiet_exceptions=(iostream.StreamClosedError))
+            self._streamreader, self._streamwriter = yield from \
+                asyncio.open_connection(self._parent.host, self._parent.port,
+                            family=socket.AF_INET, loop=self._io_loop)
+            self._streamwriter.get_extra_info('socket').setsockopt(
+                                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
         try:
-            self._stream.write(self._parent.handshake)
-            response = yield with_absolute_timeout(
-                deadline,
-                self._stream.read_until(b'\0'),
-                io_loop=self._io_loop,
-                quiet_exceptions=(iostream.StreamClosedError))
+            self._streamwriter.write(self._parent.handshake)
+            with translate_timeout_errors():
+                response = yield from asyncio.wait_for(
+                    _read_until(self._streamreader, b'\0'),
+                    timeout, loop=self._io_loop,
+                )
         except Exception as err:
             raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
@@ -138,13 +164,14 @@ class ConnectionInstance(object):
                     (message, ))
 
         # Start a parallel function to perform reads
-        self._io_loop.add_callback(self._reader)
-        raise gen.Return(self._parent)
+        #  store a reference to it so it doesn't get destroyed
+        self._reader_task = asyncio.async(self._reader(), loop=self._io_loop)
+        return self._parent
 
     def is_open(self):
-        return not self._stream.closed()
+        return not (self._closing or self._streamreader.at_eof())
 
-    @gen.coroutine
+    @asyncio.coroutine
     def close(self, noreply_wait, token, exception=None):
         self._closing = True
         if exception is not None:
@@ -164,38 +191,35 @@ class ConnectionInstance(object):
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
-            yield self.run_query(noreply, False)
+            yield from self.run_query(noreply, False)
 
-        try:
-            self._stream.close()
-        except iostream.StreamClosedError:
-            pass
-        raise gen.Return(None)
+        self._streamwriter.close()
+        yield from self._reader_task
 
-    @gen.coroutine
+        return None
+
+    @asyncio.coroutine
     def run_query(self, query, noreply):
-        yield self._stream.write(query.serialize(self._parent._get_json_encoder()))
+        self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
-            raise gen.Return(None)
+            return None
 
-        response_future = Future()
+        response_future = asyncio.Future()
         self._user_queries[query.token] = (query, response_future)
-        res = yield response_future
-        raise gen.Return(res)
+        return (yield from response_future)
 
-    # The _reader coroutine runs in its own context at the top level of the
-    # Tornado.IOLoop it was created with.  It runs in parallel, reading responses
+    # The _reader coroutine runs in parallel, reading responses
     # off of the socket and forwarding them to the appropriate Future or Cursor.
     # This is shut down as a consequence of closing the stream, or an error in the
     # socket/protocol from the server.  Unexpected errors in this coroutine will
     # close the ConnectionInstance and be passed to any open Futures or Cursors.
-    @gen.coroutine
+    @asyncio.coroutine
     def _reader(self):
         try:
             while True:
-                buf = yield self._stream.read_bytes(12)
+                buf = yield from self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
-                buf = yield self._stream.read_bytes(length)
+                buf = yield from self._streamreader.readexactly(length)
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
@@ -205,15 +229,17 @@ class ConnectionInstance(object):
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
                     res = Response(token, buf,
-                                   self._parent._get_json_decoder(query.global_optargs))
+                                   self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
-                        cursor = TornadoCursor(self, query, res)
+                        cursor = AsyncioCursor(self, query, res)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
                         future.set_result(None)
+                    elif res.type == pResponse.SERVER_INFO:
+                        future.set_result(res.data[0])
                     else:
                         future.set_exception(res.make_error(query))
                     del self._user_queries[token]
@@ -221,47 +247,27 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                self.close(False, None, ex)
+                yield from self.close(False, None, ex)
 
 
-# Wrap functions from the base connection class that may throw - these will
-# put any exception inside a Future and return it.
 class Connection(ConnectionBase):
     def __init__(self, *args, **kwargs):
         ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        try:
+            self.port = int(self.port)
+        except ValueError:
+            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
-    @gen.coroutine
+    @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
-        yield self.close(noreply_wait)
-        res = yield ConnectionBase.reconnect(self, noreply_wait, timeout)
-        raise gen.Return(res)
+        yield from self.close(noreply_wait)
+        self._instance = self._conn_type(self, **self._child_kwargs)
+        return (yield from self._instance.connect(timeout))
 
-    @gen.coroutine
+    @asyncio.coroutine
     def close(self, *args, **kwargs):
         if self._instance is None:
-            res = None
-        else:
-            res = yield ConnectionBase.close(self, *args, **kwargs)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def noreply_wait(self, *args, **kwargs):
-        res = yield ConnectionBase.noreply_wait(self, *args, **kwargs)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def _start(self, *args, **kwargs):
-        res = yield ConnectionBase._start(self, *args, **kwargs)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def _continue(self, *args, **kwargs):
-        res = yield ConnectionBase._continue(self, *args, **kwargs)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def _stop(self, *args, **kwargs):
-        res = yield ConnectionBase._stop(self, *args, **kwargs)
-        raise gen.Return(res)
+            return None
+        return (yield from ConnectionBase.close(self, *args, **kwargs))

@@ -86,10 +86,11 @@ class intersecting_readgen_t;
 
 namespace rdb_protocol {
 
-void bring_sindexes_up_to_date(
-        const std::set<sindex_name_t> &sindexes_to_bring_up_to_date,
+void resume_construct_sindex(
+        const uuid_u &sindex_to_construct,
+        const key_range_t &construct_range,
         store_t *store,
-        buf_lock_t *sindex_block)
+        auto_drainer_t::lock_t store_keepalive)
     THROWS_NOTHING;
 
 } // namespace rdb_protocol
@@ -116,13 +117,11 @@ struct rget_read_response_t {
     boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
     reql_version_t reql_version;
-    bool truncated;
-    store_key_t last_key;
 
     rget_read_response_t()
-        : reql_version(reql_version_t::EARLIEST), truncated(false) { }
+        : reql_version(reql_version_t::EARLIEST) { }
     explicit rget_read_response_t(const ql::exc_t &ex)
-        : result(ex), reql_version(reql_version_t::EARLIEST), truncated(false) { }
+        : result(ex), reql_version(reql_version_t::EARLIEST) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
@@ -281,6 +280,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
+                boost::optional<std::map<region_t, store_key_t> > _hints,
                 boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 ql::global_optargs_t _optargs,
                 std::string _table_name,
@@ -291,6 +291,7 @@ public:
                 sorting_t _sorting)
     : stamp(std::move(_stamp)),
       region(std::move(_region)),
+      hints(std::move(_hints)),
       primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
       table_name(std::move(_table_name)),
@@ -303,6 +304,8 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
+    boost::optional<region_t> current_shard;
+    boost::optional<std::map<region_t, store_key_t> > hints;
 
     // The `uint64_t`s here are counts.  This map is used to make `get_all` more
     // efficient, and it's legal to pass duplicate keys to `get_all`.
@@ -442,6 +445,7 @@ struct changefeed_limit_subscribe_t {
     std::string table;
     ql::global_optargs_t optargs;
     region_t region;
+    boost::optional<region_t> current_shard;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 

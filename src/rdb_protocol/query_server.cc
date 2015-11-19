@@ -10,9 +10,13 @@
 
 rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
                                        int port,
-                                       rdb_context_t *_rdb_ctx) :
+                                       rdb_context_t *_rdb_ctx,
+                                       server_config_client_t *_server_config_client,
+                                       const server_id_t &_server_id) :
     server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec),
     rdb_ctx(_rdb_ctx),
+    server_config_client(_server_config_client),
+    server_id(_server_id),
     thread_counters(0) { }
 
 http_app_t *rdb_query_server_t::get_http_app() {
@@ -51,6 +55,10 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
             query_params->query_cache->noreply_wait(*query_params, interruptor);
             response_out->set_type(Response::WAIT_COMPLETE);
         } break;
+        case Query::SERVER_INFO: {
+            fill_server_info(response_out);
+            response_out->set_type(Response::SERVER_INFO);
+        } break;
         default: unreachable();
         }
     } catch (const ql::bt_exc_t &ex) {
@@ -69,4 +77,18 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
 
     rdb_ctx->stats.queries_per_sec.record();
     ++rdb_ctx->stats.queries_total;
+}
+
+void rdb_query_server_t::fill_server_info(ql::response_t *out) {
+    datum_string_t id(uuid_to_str(server_id));
+
+    boost::optional<server_config_versioned_t> server_conf =
+        server_config_client->get_server_config_map()->get_key(server_id);
+    guarantee(server_conf); // the local server always exists
+    datum_string_t name(server_conf->config.name.str());
+
+    ql::datum_object_builder_t builder;
+    builder.overwrite(datum_string_t("name"), ql::datum_t(name));
+    builder.overwrite(datum_string_t("id"), ql::datum_t(id));
+    out->set_data(std::move(builder).to_datum());
 }

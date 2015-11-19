@@ -1,0 +1,12 @@
+desc: Regression tests for issue 4132
+table_variable_name: tbl
+tests:
+    - cd: r.and()
+      py: r.and_()
+      ot: true
+    - cd: r.or()
+      py: r.or_()
+      ot: false
+    - cd: r.expr(false).or(nil)
+      py: r.expr(false).or_(nil)
+      ot: nil

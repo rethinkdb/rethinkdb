@@ -4,42 +4,42 @@ tests:
     - rb: t.insert({})
     - rb: t.update({:a => {:b => r.literal({})}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => {}}}])
+      ot: [{'a':{'b':{}}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => r.literal()}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {}}])
+      ot: [{'a': {}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => {:c => {:d => r.literal({})}}}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => {:c => {:d => {}}}}}])
+      ot: [{'a':{'b':{'c':{'d':{}}}}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => [[[{:c => r.literal({})}]]]}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => [[[{:c => {}}]]]}}])
+      ot: [{'a':{'b':[[[{'c':{}}]]]}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => [r.literal()]}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => []}}])
+      ot: [{'a':{'b':[]}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => r.literal(), :d => 'D'}}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :d => 'D'}}}])
+      ot: [{'a':{'b':{'a':'A', 'b':'B', 'c':'C', 'd':'D'}}}]
     - rb: t.delete()
 
     - rb: t.insert({})
     - rb: t.update({:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => r.literal('CC'), :d => 'D'}}})
     - rb: t.without('id').coerce_to("ARRAY")
-      ot: ([{:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => 'CC', :d => 'D'}}}])
+      ot: [{'a':{'b':{'a':'A', 'b':'B', 'c':'C', 'cc':'CC', 'd':'D'}}}]
     - rb: t.delete()
 

@@ -15,6 +15,7 @@
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/term_storage.hpp"
@@ -37,7 +38,7 @@ public:
 
     virtual boost::optional<size_t> arity() const = 0;
 
-    virtual bool is_deterministic() const = 0;
+    virtual deterministic_t is_deterministic() const = 0;
 
     // Used by info_term_t.
     virtual std::string print_source() const = 0;
@@ -96,7 +97,7 @@ public:
 
     boost::optional<size_t> arity() const;
 
-    bool is_deterministic() const;
+    deterministic_t is_deterministic() const;
 
     std::string print_source() const;
     std::string print_js_function() const;
@@ -138,7 +139,7 @@ public:
 
     boost::optional<size_t> arity() const;
 
-    bool is_deterministic() const;
+    deterministic_t is_deterministic() const;
 
     std::string print_source() const;
     std::string print_js_function() const;
@@ -209,7 +210,7 @@ public:
 
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
-    virtual bool is_deterministic() const;
+    virtual deterministic_t is_deterministic() const;
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
     virtual const char *name() const { return "func"; }
 

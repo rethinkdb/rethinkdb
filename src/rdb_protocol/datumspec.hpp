@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "btree/types.hpp"
 #include "rdb_protocol/datum.hpp"
 
 namespace ql {
@@ -83,14 +84,14 @@ public:
         return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
     }
 
-    void iter(sorting_t sorting,
-              const std::function<bool(
-                  const std::pair<ql::datum_range_t, uint64_t> &,
-                  bool)> &cb) const {
+    continue_bool_t iter(sorting_t sorting,
+                         const std::function<continue_bool_t(
+                             const std::pair<ql::datum_range_t, uint64_t> &,
+                             bool)> &cb) const {
         return boost::apply_visitor(
-            ds_helper_t<void>(
+            ds_helper_t<continue_bool_t>(
                 [&cb](const datum_range_t &dr) {
-                    cb(std::make_pair(dr, 1), true);
+                    return cb(std::make_pair(dr, 1), true);
                 },
                 [sorting, &cb](const std::map<datum_t, uint64_t> &m) {
                     if (!reversed(sorting)) {
@@ -98,8 +99,9 @@ public:
                             auto this_it = it++;
                             if (cb(std::make_pair(datum_range_t(this_it->first),
                                                   this_it->second),
-                                   it == m.end())) {
-                                break;
+                                   it == m.end())
+                                == continue_bool_t::ABORT) {
+                                return continue_bool_t::ABORT;
                             }
                         }
                     } else {
@@ -107,11 +109,13 @@ public:
                             auto this_it = it++;
                             if (cb(std::make_pair(datum_range_t(this_it->first),
                                                   this_it->second),
-                                   it == m.rend())) {
-                                break;
+                                   it == m.rend())
+                                == continue_bool_t::ABORT) {
+                                return continue_bool_t::ABORT;
                             }
                         }
                     }
+                    return continue_bool_t::CONTINUE;
                 }),
             spec);
     }

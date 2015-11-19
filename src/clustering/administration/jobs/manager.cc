@@ -138,8 +138,8 @@ void jobs_manager_t::on_get_job_reports(
                     table_id,
                     status.first,
                     status.second.second.ready,
-                    status.second.second.blocks_processed,
-                    status.second.second.blocks_total);
+                    status.second.second.progress_numerator,
+                    status.second.second.progress_denominator);
             }
 
             std::map<region_t, backfill_progress_tracker_t::progress_tracker_t> backfills =

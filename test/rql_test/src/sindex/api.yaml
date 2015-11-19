@@ -433,7 +433,7 @@ tests:
   - rb: tbl.get_all(null, :index => :nil)
     py: tbl.get_all(null, index='nil')
     js: tbl.getAll(null, {index:'nil'})
-    ot: err("ReqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu" + "ll of type NULL).", [])
+    ot: err("ReqlNonExistenceError", "Keys cannot be NULL.", [])
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})

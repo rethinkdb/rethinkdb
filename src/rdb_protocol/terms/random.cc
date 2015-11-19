@@ -69,8 +69,8 @@ public:
             : new_val(env->env, new_ds);
     }
 
-    bool is_deterministic() const {
-        return false;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::no;
     }
 
     virtual const char *name() const { return "sample"; }
@@ -81,8 +81,8 @@ public:
     random_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) { }
 private:
-    virtual bool is_deterministic() const {
-        return false;
+    virtual deterministic_t is_deterministic() const {
+        return deterministic_t::no;
     }
 
     enum class bound_type_t {

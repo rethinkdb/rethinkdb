@@ -54,16 +54,16 @@ public:
         filepath_file_opener_t file_opener(path, io_backender);
 
         if (create) {
-            standard_serializer_t::create(
+            log_serializer_t::create(
                 &file_opener,
-                standard_serializer_t::static_config_t());
+                log_serializer_t::static_config_t());
         }
 
         // TODO: Could we handle failure when loading the serializer?  Right
         // now, we don't.
 
-        scoped_ptr_t<serializer_t> inner_serializer(new standard_serializer_t(
-            standard_serializer_t::dynamic_config_t(),
+        scoped_ptr_t<serializer_t> inner_serializer(new log_serializer_t(
+            log_serializer_t::dynamic_config_t(),
             &file_opener,
             perfmon_collection_serializers));
         serializer.init(new merger_serializer_t(
@@ -93,7 +93,8 @@ public:
                 rdb_context,
                 io_backender,
                 base_path,
-                table_id));
+                table_id,
+                update_sindexes_t::UPDATE));
 
             /* Initialize the metainfo if necessary */
             if (create) {

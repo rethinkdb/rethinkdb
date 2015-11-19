@@ -178,6 +178,14 @@ private:
             return val;
         }
 
+        // * -> BOOL
+        if (end_type == R_BOOL_TYPE) {
+            if (start_type == R_NULL_TYPE) {
+                return new_val(datum_t::boolean(false));
+            }
+            return new_val(datum_t::boolean(true));
+        }
+
         // DATUM -> *
         if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
             datum_t d = val->as_datum();

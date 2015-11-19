@@ -73,7 +73,7 @@ private:
         // constant so that they're deterministic.
         r_sanity_fail();
     }
-    bool is_deterministic() const { return false; }
+    virtual deterministic_t is_deterministic() const { return deterministic_t::no; }
     virtual const char *name() const { return "now"; }
 };
 

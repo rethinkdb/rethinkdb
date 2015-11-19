@@ -2,7 +2,6 @@
 #include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/cyanide.hpp"
-#include "clustering/administration/http/me_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
@@ -11,21 +10,17 @@
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
         int port,
-        const server_id_t &my_server_id,
         http_app_t *reql_app,
         std::string path)
 {
 
     file_app.init(new file_http_app_t(path));
 
-    me_app.init(new me_http_app_t(my_server_id));
-
 #ifndef NDEBUG
     cyanide_app.init(new cyanide_http_app_t);
 #endif
 
     std::map<std::string, http_app_t *> ajax_routes;
-    ajax_routes["me"] = me_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
     ajax_routing_app.init(new routing_http_app_t(nullptr, ajax_routes));

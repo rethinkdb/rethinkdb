@@ -37,7 +37,10 @@ class sampler_t;
 
 class geo_job_data_t {
 public:
-    geo_job_data_t(ql::env_t *_env, const ql::batchspec_t &batchspec,
+    geo_job_data_t(ql::env_t *_env,
+                   region_t region,
+                   store_key_t last_key,
+                   const ql::batchspec_t &batchspec,
                    const std::vector<ql::transform_variant_t> &_transforms,
                    const boost::optional<ql::terminal_variant_t> &_terminal);
     geo_job_data_t(geo_job_data_t &&jd)
@@ -134,10 +137,9 @@ public:
             geo_job_data_t &&_job,
             geo_sindex_data_t &&_sindex,
             const ql::datum_t &_query_geometry,
-            const key_range_t &_sindex_range,
             rget_read_response_t *_resp_out);
 
-    void finish() THROWS_ONLY(interrupted_exc_t);
+    void finish(continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t);
 
 protected:
     bool post_filter(

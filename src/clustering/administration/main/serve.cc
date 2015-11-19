@@ -204,6 +204,7 @@ bool do_serve(io_backender_t *io_backender,
         try {
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
+                server_id,
                 serve_info.ports.local_addresses,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
@@ -484,7 +485,9 @@ bool do_serve(io_backender_t *io_backender,
                 rdb_query_server_t rdb_query_server(
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
-                    &rdb_ctx);
+                    &rdb_ctx,
+                    &server_config_client,
+                    server_id);
                 logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
@@ -535,7 +538,6 @@ bool do_serve(io_backender_t *io_backender,
                             new administrative_http_server_manager_t(
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
-                                server_id,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
                         logNTC("Listening for administrative HTTP connections on port %d\n",

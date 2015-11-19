@@ -50,16 +50,16 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(backtrace_id_t bt, datum_t _d, bool _deterministic)
+    faux_term_t(backtrace_id_t bt, datum_t _d, deterministic_t _deterministic)
         : runtime_term_t(bt), d(std::move(_d)), deterministic(_deterministic) { }
-    bool is_deterministic() const final { return deterministic; }
+    deterministic_t is_deterministic() const final { return deterministic; }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
     scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const final {
         return new_val(d);
     }
     datum_t d;
-    bool deterministic;
+    deterministic_t deterministic;
 };
 
 
@@ -106,7 +106,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     std::vector<counted_t<const runtime_term_t> > args;
     for (const auto &arg : original_args) {
         if (arg->get_src().type() == Term::ARGS) {
-            bool det = arg->is_deterministic();
+            deterministic_t det = arg->is_deterministic();
             scoped_ptr_t<val_t> v = arg->eval(env, new_flags);
             datum_t d = v->as_datum();
             for (size_t i = 0; i < d.arr_size(); ++i) {
@@ -136,7 +136,7 @@ counted_t<const runtime_term_t> argvec_t::remove(size_t i) {
     ret.swap(vec[i]);
     return ret;
 }
-bool argvec_t::is_deterministic(size_t i) const {
+deterministic_t argvec_t::is_deterministic(size_t i) const {
     r_sanity_check(i < vec.size());
     r_sanity_check(vec[i].has());
     return vec[i]->is_deterministic();
@@ -146,7 +146,7 @@ size_t args_t::num_args() const {
     return argv.size();
 }
 
-bool args_t::arg_is_deterministic(size_t i) const {
+deterministic_t args_t::arg_is_deterministic(size_t i) const {
     return argv.is_deterministic(i);
 }
 scoped_ptr_t<val_t> args_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
@@ -191,7 +191,7 @@ op_term_t::op_term_t(compile_env_t *env, const raw_term_t &term,
             rcheck_src(o.bt(), res.second,
                        base_exc_t::LOGIC,
                        strprintf("Duplicate optional argument: %s", name.c_str()));
-            
+
         });
 }
 op_term_t::~op_term_t() { }
@@ -267,25 +267,37 @@ void op_term_t::accumulate_captures(var_captures_t *captures) const {
     accumulate_all_captures(optargs, captures);
 }
 
-bool all_are_deterministic(
-        const std::map<std::string, counted_t<const term_t> > &optargs) {
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        if (!it->second->is_deterministic()) {
-            return false;
-        }
-    }
-    return true;
+const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() const {
+    return arg_terms->get_original_args();
 }
 
-bool op_term_t::is_deterministic() const {
-    const std::vector<counted_t<const term_t> > &original_args
-        = arg_terms->get_original_args();
-    for (size_t i = 0; i < original_args.size(); ++i) {
-        if (!original_args[i]->is_deterministic()) {
-            return false;
+deterministic_t all_are_deterministic(
+        const std::map<std::string, counted_t<const term_t> > &optargs) {
+    deterministic_t worst_so_far = deterministic_t::always;
+    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+        deterministic_t det = it->second->is_deterministic();
+        if (det < worst_so_far) {
+            worst_so_far = det;
         }
     }
-    return all_are_deterministic(optargs);
+    return worst_so_far;
+}
+
+deterministic_t op_term_t::is_deterministic() const {
+    const std::vector<counted_t<const term_t> > &original_args
+        = arg_terms->get_original_args();
+    deterministic_t worst_so_far = deterministic_t::always;
+    for (size_t i = 0; i < original_args.size(); ++i) {
+        deterministic_t det = original_args[i]->is_deterministic();
+        if (det < worst_so_far) {
+            worst_so_far = det;
+        }
+    }
+    deterministic_t optargs_det = all_are_deterministic(optargs);
+    if (optargs_det < worst_so_far) {
+        worst_so_far = optargs_det;
+    }
+    return worst_so_far;
 }
 
 void op_term_t::maybe_grouped_data(scope_env_t *env,
