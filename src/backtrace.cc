@@ -329,13 +329,14 @@ void initialize_dbghelp() {
 
         // Initialize and load the symbol tables
         UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
-        // TODO ATN: test return value 
+        // TODO ATN: test return value
     }
 }
 #endif
 
-std::string lazy_backtrace_formatter_t::print_frames(UNUSED bool use_addr2line) {
+std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
 #ifdef _WIN32
+    (void) use_addr2line; // TODO ATN
     initialize_dbghelp();
 
     std::string output;

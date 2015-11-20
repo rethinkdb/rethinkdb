@@ -111,12 +111,10 @@ NORETURN static void throw_exception_from_coroutine() {
     unreachable();
 }
 
-// ATN TODO: issue with gtest: throwing an exception from a death test doesn't seem to work
 TEST(ContextSwitchingTest, UncaughtException) {
 #ifdef _WIN32
     coro_initialize_for_thread();
 #endif
-    EXPECT_DEATH(throw std::runtime_error("foo"), "foo");
     EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
 }
 

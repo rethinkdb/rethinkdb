@@ -145,7 +145,6 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
     async_connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len, event_watcher, interuptor);
 }
 
-NORETURN // TODO ATN: gcc warns if NORETURN isn't here
 void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id, event_watcher_t *event_watcher, signal_t *interuptor) {
     struct sockaddr_in6 sa;
     socklen_t sa_len(sizeof(sa));

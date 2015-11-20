@@ -224,9 +224,18 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
 
 
 // -------------------- socket_stream_t --------------------
-socket_stream_t::socket_stream_t(fd_t fd, fd_watcher_t *watcher)
+socket_stream_t::socket_stream_t(fd_t fd)
     : fd_(fd),
-      fd_watcher_(watcher ? watcher : make_scoped<linux_event_fd_watcher_t>(fd)),
+      fd_watcher_(make_scoped<linux_event_fd_watcher_t>(fd)),
+      interruptor(NULL)
+{
+    guarantee(fd != INVALID_FD);
+    fd_watcher_->init_callback(this);
+}
+
+socket_stream_t::socket_stream_t(fd_t fd, scoped_ptr_t<fd_watcher_t> &&watcher)
+    : fd_(fd),
+      fd_watcher_(std::move(watcher)),
       interruptor(NULL)
 {
     guarantee(fd != INVALID_FD);

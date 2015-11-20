@@ -382,11 +382,13 @@ coro_stack_t* coro_t::get_stack() {
 a coroutine's stack. Could also in theory be used by a function to check if it's
 about to overflow the stack. */
 
-bool is_coroutine_stack_overflow(UNUSED void *addr) {
+bool is_coroutine_stack_overflow(void *addr) {
 #ifndef _WIN32 // ATN TODO
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
 #else
-	return false;
+    // TODO ATN
+    (void) addr;
+    return false;
 #endif
 }
 

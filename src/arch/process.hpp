@@ -64,9 +64,11 @@ inline process_ref_t current_process() {
 class process_ref_t {
     // TODO ATN
 public:
+    process_ref_t() : pid(invalid) { }
     process_ref_t(pid_t pid_) : pid(pid_) { }
     operator pid_t () { return pid; }
     static const pid_t invalid = -1;
+    void reset() { pid = invalid; }
     RDB_MAKE_ME_SERIALIZABLE_1(process_ref_t, pid);
 
 private:

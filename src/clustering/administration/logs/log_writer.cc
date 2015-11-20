@@ -428,7 +428,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         (void) fileno;
         size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
 #endif
-        if (write_res != static_cast<size_t>(console_formatted.length())) {
+        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }

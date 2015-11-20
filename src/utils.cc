@@ -26,11 +26,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/resource.h>
-#endif
-
-#ifndef __MINGW32__
-#include <filesystem>
-#else
 #include <ftw.h>
 #endif
 

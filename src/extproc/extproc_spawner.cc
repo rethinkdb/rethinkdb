@@ -21,7 +21,7 @@ extproc_spawner_t *extproc_spawner_t::instance = NULL;
 class worker_run_t {
 public:
     worker_run_t(fd_t _socket, pid_t _spawner_pid) :
-        socket(_socket), socket_stream(socket.get(), &blocking_watcher) {
+        socket(_socket), socket_stream(socket.get(), make_scoped<blocking_fd_watcher_t>()) {
 
 #ifndef _WIN32 // ATN TODO
         guarantee(spawner_pid == -1);
@@ -103,7 +103,6 @@ private:
 #endif
 
     scoped_fd_t socket;
-    blocking_fd_watcher_t blocking_watcher;
     socket_stream_t socket_stream;
 };
 
@@ -280,9 +279,11 @@ fd_t extproc_spawner_t::spawn(process_ref_t *pid_out) {
     res = send_fds(spawner_socket.get(), 1, &fds[1]);
     guarantee_err(res == 0, "could not send socket file descriptor to worker process");
 
+    socket_stream_t stream_out(fds[0]);
+
     // Get the pid of the new worker process
     archive_result_t archive_res;
-    archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_out->get(),
+    archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(&stream_out,
                                                                  pid_out);
     guarantee_deserialization(archive_res, "pid_out");
     guarantee(*pid_out != process_ref_t::invalid);
@@ -292,6 +293,7 @@ fd_t extproc_spawner_t::spawn(process_ref_t *pid_out) {
 #endif
 }
 
+#ifdef _WIN32
 bool extproc_maybe_run_worker(int argc, char **argv) {
     if (argc != 3 || strcmp(argv[1], SUBCOMMAND_START_WORKER)) {
         return false;
@@ -311,3 +313,4 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
     ::_exit(EXIT_SUCCESS);
     return true;
 }
+#endif

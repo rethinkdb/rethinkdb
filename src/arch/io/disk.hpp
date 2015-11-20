@@ -15,7 +15,7 @@
 
 // The maximum user-specifiable value how many concurrent I/O requests may be done per event
 // queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
-#define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
+const int MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION;
 
 struct iovec;
 

@@ -31,7 +31,11 @@ extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != process_ref_t::invalid) {
+#ifdef _WIN32
         socket_stream.create(socket.get(), windows_event_watcher.get());
+#else
+        socket_stream.create(socket.get());
+#endif
         cond_t non_interruptor;
         socket_stream->set_interruptor(&non_interruptor);
         try {
@@ -73,7 +77,11 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 #endif
     }
 
+#ifdef _WIN32 // TODO ATN
     socket_stream.create(socket.get(), windows_event_watcher.get());
+#else
+    socket_stream.create(socket.get());
+#endif
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
     guarantee(interruptor == NULL);

@@ -1294,7 +1294,7 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
     if (max_concurrent_io_requests <= 0
         || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-        fprintf(stderr, "ERROR: io-threads must be between 1 and %" PRIi64 "\n",
+        fprintf(stderr, "ERROR: io-threads must be between 1 and %d\n",
                 MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
         return false;
     }
