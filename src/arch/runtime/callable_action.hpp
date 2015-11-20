@@ -71,11 +71,7 @@ public:
 private:
     bool action_on_heap;
     callable_action_t *action_;
-<<<<<<< HEAD
-	ATTR_ALIGNED(sizeof(void*)) char action_data[CALLABLE_CUTOFF_SIZE];
-=======
     ATTR_ALIGNED(sizeof(void*)) char action_data[CALLABLE_CUTOFF_SIZE];
->>>>>>> origin/windows2
 
     DISABLE_COPYING(callable_action_wrapper_t);
 };

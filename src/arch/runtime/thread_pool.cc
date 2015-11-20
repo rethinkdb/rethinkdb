@@ -65,9 +65,6 @@ NOINLINE void linux_thread_pool_t::set_thread(linux_thread_t *val) {
     rassert(thread == nullptr || val == nullptr);
     thread = val;
 }
-NOINLINE bool linux_thread_pool_t::i_am_in_thread_pool_thread() {
-    return thread_id != -1;
-}
 
 linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
 #ifndef NDEBUG

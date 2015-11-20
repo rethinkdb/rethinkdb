@@ -358,9 +358,11 @@ TEMPLATE_ALIAS(scoped_malloc_t, scoped_alloc_t<T, rmalloc, free>);
 template <class T, int alignment>
 TEMPLATE_ALIAS(scoped_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<alignment>, raw_free_aligned>);
 
+#ifndef _WIN32
 // A type for page-aligned pointers
 template <class T>
 TEMPLATE_ALIAS(scoped_page_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_page_aligned, raw_free_aligned>);
+#endif
 
 // A type for device-block-aligned pointers
 template <class T>

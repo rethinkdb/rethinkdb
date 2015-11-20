@@ -17,7 +17,7 @@ fiber_context_ref_t::~fiber_context_ref_t() {
     rassert(fiber == nullptr, "leaking a fiber"); // ATN TODO: why not destroy it here?
 }
 
-DECL_THREAD_LOCAL void* thread_initial_fiber = NULL;
+THREAD_LOCAL void* thread_initial_fiber = NULL;
 
 void coro_initialize_for_thread() {
     if (thread_initial_fiber == NULL) {

@@ -138,24 +138,18 @@ cmake -G"Visual Studio 14 Win64"
 * Backtraces on crash, with addr2line
 * Clean up the arch hierachy
 * Check for misnamed linux_ prefixess
-* Thouroughly test clock time and ticks
-* Test the timers
-* sizeof int and sizeof long differences
 * Generate web assets
-* Generate protobuf
-* Pass all unit tests
+* Get rid of protobuf support
+* Ensure all unit tests still pass
 * death tests with exceptions seem to fail
 * Check all RSI ATN TODO _MSC_VER and _WIN32 tags
 * Handle ^C, ^Break in main process and extprocs
-* test blocker pool, maybe use windowswindows-specific pool
 * make sure it still builds on linux
-* keep up-to-date with next/raft/sunos
+* keep up-to-date with next
 * rebuild with MSC and examine all the int32 -> int64 warnings.
 * restore the msvc-specific s2 code
-* ensure that aligned pointers are freed and allocated correctly
 * install as service
 * ensure windows paths are parsed and generated correctly where needed
 * memset 0 / bzero
-* may need to add fflush(stderr) in some places to help debugging
 * make sure HANDLEs (both fd_t and file/process/thread handles) are being properly closed
 * Maybe use IOCP for disk read//write instead of thread pool

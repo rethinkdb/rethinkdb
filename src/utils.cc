@@ -111,8 +111,6 @@ startup_shutdown_t::~startup_shutdown_t() {
 
 
 void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
-    flockfile(stderr);
-
     if (ulength == 0) {
         debugf("(data length is zero)\n");
     }
@@ -276,9 +274,11 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
+#ifndef _WIN32
 void *raw_malloc_page_aligned(size_t size) {
     return raw_malloc_aligned(size, getpagesize());
 }
+#endif
 
 void raw_free_aligned(void *ptr) {
 #ifdef _MSC_VER

@@ -108,7 +108,7 @@ void report_user_error(const char*, ...) ATTR_FORMAT(printf, 1, 2);
 
 // Our usual crash() method does not work well in out-of-memory conditions, because
 // it performs heap-allocations itself. Use `crash_oom()` instead for these cases.
-void crash_oom();
+NORETURN void crash_oom();
 
 // Possibly using buf to store characters, returns a pointer to a strerror-style error string.  This
 // has the same contract as the GNU (char *)-returning strerror_r.  The return value is a pointer to

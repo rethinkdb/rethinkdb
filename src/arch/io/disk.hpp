@@ -120,7 +120,7 @@ file_open_result_t open_file(const char *path, int mode,
                              io_backender_t *backender,
                              scoped_ptr_t<file_t> *out);
 
-void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
+NORETURN void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res);
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
