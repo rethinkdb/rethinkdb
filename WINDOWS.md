@@ -28,7 +28,7 @@ VC/lib/amd64;c:/Program Files (x86)/Windows Kits/10/Lib/10.0.10056.0/ucrt/x64"
 
 Follow the instructions below to build the dependencies.
 
-Pre-built static libraries and headers are available in ipfs://QmYVvWsNPr5ixpJQz1atf6hfeTnYfy6VuEpPosYLpUzniA/windows_deps.zip
+Pre-built static libraries and headers are available in ipfs://QmZupjRrXrb8oDu5ZKVWsc3YxVBChHseTUPkVLz88pCj17/windows_deps.zip
 
 ## boost
 
@@ -103,8 +103,8 @@ cmake -G"Visual Studio 14 Win64"
 ## V8
 
 * Download v8 4.7.17 into `../v8` (see https://code.google.com/p/v8-wiki/wiki/UsingGit)
-* Build it in Debug mode for x64 using VS2015 (see https://code.google.com/p/v8-wiki/wiki/BuildingWithGYP)
- * Pass `-Dtarget_arch=x64` to `gyp_v8`
+* Build it in Debug mode for x64 using VS2015 (see https://github.com/v8/v8/wiki/Building%20with%20Gyp)
+ * Pass `-Dtarget_arch=x64 -Dv8_use_external_startup_data=0` to `gyp_v8`
 * See also https://developers.google.com/v8/get_started
 * Copy `../v8/include/*` to `windows_deps/include`
 * In `windows_deps/include/libplatform/libplatform.h`, change `include/v8-platform.h` to `v8-platform.h`
@@ -120,11 +120,14 @@ cmake -G"Visual Studio 14 Win64"
 
 ## RethinkDB
 
-* Open `RethinkDB.sln`
-* Make sure you are in the Debug/x64 configuration
-* Press F7 to build
-* Press F5 to run
-* Some unit tests should run.
+* In the IDE
+ * Open `RethinkDB.sln`
+ * Make sure you are in the Debug/x64 configuration
+ * Press F7 to build
+ * Press F5 to run
+ * Some unit tests should run.
+* In emacs/vim in cygwin
+ * run `mk/cygwin.sh`
 
 # TODO
 

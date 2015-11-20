@@ -7,7 +7,7 @@
 #pragma comment(lib, "v8_base_1.lib")
 #pragma comment(lib, "v8_base_2.lib")
 #pragma comment(lib, "v8_base_3.lib")
-#pragma comment(lib, "v8_external_snapshot.lib")
+#pragma comment(lib, "v8_snapshot.lib")
 #pragma comment(lib, "v8_libbase.lib")
 #pragma comment(lib, "v8_libplatform.lib")
 #pragma comment(lib, "icui18n.lib")
@@ -81,7 +81,6 @@ private:
 js_instance_t *js_instance_t::instance = NULL;
 
 js_instance_t::js_instance_t() {
-    crash("ATN: TODO v8 crashes, try building it without snapshot");
     v8::V8::InitializeICU();
     platform.init(v8::platform::CreateDefaultPlatform());
     v8::V8::InitializePlatform(platform.get());

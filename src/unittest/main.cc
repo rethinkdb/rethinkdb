@@ -32,8 +32,11 @@ BOOL unittest_ctrl_c(DWORD type) {
 
 #endif
 
-#ifndef _WIN32 // TODO ATN
+#ifdef _WIN32 // TODO ATN
+int unittest_main(int argc, char **argv) {
+#else
 int main(int argc, char **argv) {
+#endif
     startup_shutdown_t startup_shutdown;
 #ifdef _WIN32
     SetConsoleCtrlHandler(unittest_ctrl_c, true);
@@ -47,4 +50,3 @@ int main(int argc, char **argv) {
     int ret = RUN_ALL_TESTS();
     return ret;
 }
-#endif

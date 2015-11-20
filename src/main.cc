@@ -13,6 +13,14 @@
 #include "extproc/extproc_spawner.hpp"
 
 int main(int argc, char *argv[]) {
+
+#ifdef _WIN32
+    extern int unittest_main(int, char**);
+    if (argc >= 2 && !strcmp(argv[1], "test")) {
+        return unittest_main(argc - 1, argv + 1);
+    }
+#endif
+
 #ifndef NDEBUG
 #ifndef _MSC_VER // TODO ATN
     rlimit core_limit;
