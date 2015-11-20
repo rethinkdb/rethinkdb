@@ -17,7 +17,7 @@ class socket_stream_t :
     public read_stream_t,
     public write_stream_t {
 public:
-    socket_stream_t(fd_t fd_, blocking_fd_watcher_t *)
+    socket_stream_t(fd_t fd_, scoped_ptr_t<blocking_fd_watcher_t>)
         : fd(fd_),
           interruptor(nullptr),
           event_watcher(nullptr) { }
