@@ -275,6 +275,7 @@ class PyLang(SrcLang):
                 workingVersion = os.path.splitext(workingVersion)[0]
         self.test_types.append('py')
         self.interpreter_name_exe_names.append('python')
+        self.interpreter_name_exe_names.reverse() # make `python` the first checked so virtualenv can work
     
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
