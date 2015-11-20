@@ -233,10 +233,10 @@ term_t::~term_t() { }
 
 #ifdef INSTRUMENT
 TLS_with_init(int, DBG_depth, 0);
-#define DBG(s, args...) do {                                            \
+#define DBG(s, ...) do {                                                \
         std::string DBG_s = "";                                         \
         for (int DBG_i = 0; DBG_i < TLS_get_DBG_depth(); ++DBG_i) DBG_s += " ";   \
-        debugf("%s" s, DBG_s.c_str(), ##args);                          \
+        debugf("%s" s, DBG_s.c_str(), ##__VA_ARGS__);                   \
     } while (0)
 #define INC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()+1); } while (0)
 #define DEC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()-1); } while (0)

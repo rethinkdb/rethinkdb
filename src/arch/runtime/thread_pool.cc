@@ -20,6 +20,7 @@ BOOL windows_ctrl_handler(DWORD type) {
 #include <sys/time.h>
 #endif
 
+#include "arch/compiler.hpp"
 #include "arch/barrier.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/io/timer_provider.hpp"
@@ -38,9 +39,9 @@ const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif
 #endif  // VALGRIND
 
-DECL_THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
-DECL_THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
-DECL_THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
+THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
+THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
+THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
     // ATN TODO rassert(thread_pool != nullptr);
@@ -146,8 +147,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         backtrace for us. */
 #ifndef VALGRIND
 #ifndef _WIN32
+        scoped_page_aligned_ptr_t<void> stack_base(SIGNAL_HANDLER_STACK_SIZE);
         stack_t signal_stack;
-        signal_stack.ss_sp = raw_malloc_aligned(SIGNAL_HANDLER_STACK_SIZE, getpagesize());
+        signal_stack.ss_sp = stack_base.get();
         signal_stack.ss_flags = 0;
         signal_stack.ss_size = SIGNAL_HANDLER_STACK_SIZE;
         int res = sigaltstack(&signal_stack, NULL);
@@ -192,12 +194,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // broken out of its loop, it might delete something that the other thread
         // needed to access.
         tdata->barrier->wait();
-
-#ifndef VALGRIND
-#ifndef _WIN32
-        raw_free_aligned(signal_stack.ss_sp);
-#endif
-#endif
 
         // If this thread created the generic blocker pool, clean it up
         if (generic_blocker_pool != NULL) {

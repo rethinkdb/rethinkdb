@@ -56,6 +56,8 @@ ATTR_PACKED(struct index_aux_block_info_t {
     uint16_t ser_block_size;
 });
 
+
+
 class in_memory_index_t {
     two_level_array_t<index_block_info_t> infos_;
     block_id_t end_block_id_;

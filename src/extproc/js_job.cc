@@ -53,7 +53,7 @@ public:
     void *AllocateUninitialized(size_t length) {
         return rmalloc(length);
     }
-    void Free(void *data, size_t length) {
+    void Free(void *data, UNUSED size_t length) {
         free(data);
     }
 };
@@ -74,7 +74,6 @@ private:
     v8::Isolate *isolate_;
 
     scoped_ptr_t<v8::Platform> platform;
-
     array_buffer_allocator_t array_buffer_allocator;
 };
 

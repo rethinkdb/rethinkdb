@@ -20,8 +20,8 @@
 #include "errors.hpp"
 #include <boost/crc.hpp>
 
-#include "arch/types.hpp"
 #include "arch/compiler.hpp"
+#include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/static_header.hpp"
@@ -141,7 +141,7 @@ private:
 
     metablock_version_t next_version_number;
 
-    const scoped_aligned_malloc_t<crc_metablock_t> mb_buffer;
+    const scoped_device_block_aligned_ptr_t<crc_metablock_t> mb_buffer;
     // true: we're using the buffer, no one else can
     bool mb_buffer_in_use;
 

@@ -2,6 +2,8 @@
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 
+// TODO ATN: test on msc, gcc 4.6, gcc 4.8, clang and test threaded_coros
+
 #ifdef THREADED_COROUTINES
 #include <vector>
 #include "config/args.hpp"
@@ -9,10 +11,10 @@
 #include "arch/runtime/coroutines.hpp"
 #endif
 
+#include "arch/compiler.hpp"
 #include "errors.hpp"
 #include "concurrency/cache_line_padded.hpp"
 #include "utils.hpp"
-#include "arch/compiler.hpp"
 
 /*
  * We have to make sure that access to thread local storage (TLS) is only performed
@@ -65,7 +67,7 @@
 
 #ifndef THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
-    static DECL_THREAD_LOCAL type TLS_ ## name{initial};                \
+    static THREAD_LOCAL type TLS_ ## name{initial};			\
                                                                         \
     NOINLINE type &TLS_get_ ## name () {                                \
         return TLS_ ## name;                                            \

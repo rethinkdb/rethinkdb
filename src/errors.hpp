@@ -38,12 +38,6 @@
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
-#ifdef _MSC_VER
-#define NORETURN // ATN: TODO: __declspec(noreturn)
-#else
-#define NORETURN __attribute__((__noreturn__))
-#endif
-
 /* Accessors to errno.
  * Please access errno *only* through these access functions.
  * Accessing errno directly is unsafe in the context of
@@ -89,19 +83,7 @@ void set_errno(int new_errno);
 #ifndef NDEBUG
 #define DEBUG_VAR
 #else
-#define DEBUG_VAR __attribute__((unused))
-#endif
-
-#ifdef _MSC_VER // ATN TODO
-#define UNUSED __pragma(warning(suppress: 4100 4101))
-#else
-#define UNUSED __attribute__((unused))
-#endif
-
-#ifdef _MSC_VER
-#define MUST_USE _Check_return_
-#else
-#define MUST_USE __attribute__((warn_unused_result))
+#define DEBUG_VAR UNUSED
 #endif
 
 #define fail_due_to_user_error(msg, ...) do {  \
@@ -140,13 +122,13 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
-#define guarantee(cond, ...) do {    \
+#define guarantee(cond, ...) do {       \
         if (!(cond)) {                  \
             crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
         }                               \
     } while (0)
 
-#define guarantee_xerr(cond, err, msg, ...) do {                            \
+#define guarantee_xerr(cond, err, msg, ...) do {                                \
         int guarantee_xerr_errsv = (err);                                       \
         if (!(cond)) {                                                          \
             if (guarantee_xerr_errsv == 0) {                                    \
@@ -178,15 +160,15 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 
 #ifdef NDEBUG
-#define rassert(cond, msg...) ((void)(0))
-#define rassert_err(cond, msg...) ((void)(0))
+#define rassert(cond, ...) ((void)(0))
+#define rassert_err(cond, ...) ((void)(0))
 #else
-#define rassert(cond, ...) do {                                        \
+#define rassert(cond, ...) do {                                           \
         if (!(cond)) {                                                    \
-            crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__);  \
+            crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__); \
         }                                                                 \
     } while (0)
-#define rassert_err(cond, msg, ...) do {                                \
+#define rassert_err(cond, msg, ...) do {                                    \
         int rassert_err_errsv = get_errno();                                      \
         if (!(cond)) {                                                      \
             if (rassert_err_errsv == 0) {                                   \
@@ -281,7 +263,5 @@ release mode. */
     #define override
     #define final
 #endif
-
-template <class T> class TODO_ATN_delete_me;
 
 #endif /* ERRORS_HPP_ */

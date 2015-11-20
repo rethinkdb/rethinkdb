@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 
 #include "debug.hpp"
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 
 #ifdef _MSC_VER // ATN: TODO: feature macro
@@ -42,6 +43,7 @@ struct const_charslice {
 };
 
 void *raw_malloc_aligned(size_t size, size_t alignment);
+void *raw_malloc_page_aligned(size_t size);
 void raw_free_aligned(void *ptr);
 
 /* Calls `malloc()` and checks its return value to crash if the allocation fails. */

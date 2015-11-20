@@ -10,14 +10,14 @@
 #include "time.hpp"
 
 #ifndef NDEBUG
-#define trace_call(fn, ...) do {                                          \
+#define trace_call(fn, ...) do {                                            \
         debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
-        fn(__VA_ARGS__);                                                           \
+        fn(__VA_ARGS__);                                                    \
         debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
     } while (0)
 #define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
 #else
-#define trace_call(fn, args...) fn(args)
+#define trace_call(fn, ...) fn(__VA_ARGS__)
 // TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
 #endif
 

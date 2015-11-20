@@ -67,7 +67,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : head(this), mb_buffer(malloc_aligned<crc_metablock_t>(METABLOCK_SIZE, DEVICE_BLOCK_SIZE)),
+    : head(this), mb_buffer(METABLOCK_SIZE),
       extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(NULL) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
@@ -97,8 +97,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
-    scoped_aligned_malloc_t<crc_metablock_t> buffer = malloc_aligned<crc_metablock_t>(METABLOCK_SIZE,
-                                                          DEVICE_BLOCK_SIZE);
+    scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
     memset(buffer.get(), 0, METABLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
@@ -169,19 +168,14 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     // slow. Read all of them in one batch, and check them later.
     state = state_reading;
     struct load_buffer_manager_t {
-        explicit load_buffer_manager_t(size_t nmetablocks) {
-            buffer = malloc_aligned<crc_metablock_t>(METABLOCK_SIZE * nmetablocks,
-                                                                   DEVICE_BLOCK_SIZE);
-        }
-        ~load_buffer_manager_t() {
-            buffer.reset();
-        }
+        explicit load_buffer_manager_t(size_t nmetablocks)
+            : buffer(METABLOCK_SIZE * nmetablocks) { }
         crc_metablock_t *get_metablock(unsigned i) {
             return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer.get()) + METABLOCK_SIZE * i);
         }
 
     private:
-        scoped_aligned_malloc_t<crc_metablock_t> buffer;
+        scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer;
     } lbm(metablock_offsets.size());
     struct : public iocallback_t, public cond_t {
         int refcount;

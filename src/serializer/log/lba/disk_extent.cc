@@ -47,7 +47,7 @@ void lba_disk_extent_t::sync(file_account_t *io_account, extent_t::sync_callback
 
 void lba_disk_extent_t::read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb) {
     em->assert_thread();
-    info_out->buffer = malloc_aligned<lba_extent_t>(em->extent_size, DEVICE_BLOCK_SIZE);
+    info_out->buffer = scoped_device_block_aligned_ptr_t<void>(em->extent_size);
     info_out->count = count;
     data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count, info_out->buffer.get(), cb);
 }

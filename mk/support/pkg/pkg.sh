@@ -77,11 +77,11 @@ pkg_fetch_archive () {
     if [[ $download_failed -ne "0" ]]; then
         error "failed to download $pkg: $src_url"
     fi
-    
+
     if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
         error "sha1 for $pkg was incorrect: `getsha1  "$tmp_dir/$archive"` vs. expected: $src_url_sha1"
     fi
-    
+
     local ext
     case "$archive" in
         *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;

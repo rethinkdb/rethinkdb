@@ -12,19 +12,14 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    scoped_aligned_malloc_t<char> data;
+    scoped_device_block_aligned_ptr_t<char> data;
     extent_t *parent;
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;
     bool waiting_for_prev, have_finished_sync, is_last_block;
 
     extent_block_t(extent_t *_parent, size_t _offset)
-        : parent(_parent), offset(_offset) {
-        data = malloc_aligned<char>(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    }
-    ~extent_block_t() {
-		data.reset();
-    }
+        : data(DEVICE_BLOCK_SIZE), parent(_parent), offset(_offset) { }
 
     void write(file_account_t *io_account) {
         waiting_for_prev = true;

@@ -590,8 +590,7 @@ public:
                                    &read_ahead_offset,
                                    &read_ahead_size);
 
-        scoped_aligned_malloc_t<char> read_ahead_buf(
-                malloc_aligned<char>(read_ahead_size, DEVICE_BLOCK_SIZE));
+        scoped_device_block_aligned_ptr_t<char> read_ahead_buf(read_ahead_size);
 
         // Do the disk read!
         co_read(parent->dbfile, read_ahead_offset, read_ahead_size,
@@ -698,8 +697,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
             int64_t ceil_off_end = ceil_aligned(off_in + block_size.ser_value(),
                                                 DEVICE_BLOCK_SIZE);
-            scoped_aligned_malloc_t<char> buf(malloc_aligned<char>(ceil_off_end - floor_off_in,
-                                                     DEVICE_BLOCK_SIZE));
+            scoped_device_block_aligned_ptr_t<char> buf(ceil_off_end - floor_off_in);
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
@@ -1015,7 +1013,7 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
 
 void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
     // A buffer for blocks we're transferring.
-    scoped_aligned_malloc_t<char> gc_blocks;
+    scoped_device_block_aligned_ptr_t<char> gc_blocks;
     size_t total_bytes_read = 0;
 
     // A helper for waiting for all reads to finish
@@ -1059,7 +1057,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
         // once manually when we have issued all reads.
         read_cb.refcount++;
 
-        gc_blocks = malloc_aligned<char>(extent_manager->extent_size, DEVICE_BLOCK_SIZE);
+        gc_blocks = scoped_device_block_aligned_ptr_t<char>(extent_manager->extent_size);
 
         // We're going to send as few discrete reads as possible, minimizing
         // disk->CPU bandwidth usage, instead of simply reading the entire

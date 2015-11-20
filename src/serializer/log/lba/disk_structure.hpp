@@ -84,7 +84,7 @@ private:
     void on_extent_read();
     load_callback_t *start_callback;
     int startup_superblock_count;
-    scoped_aligned_malloc_t<lba_superblock_t> startup_superblock_buffer;
+    scoped_device_block_aligned_ptr_t<lba_superblock_t> startup_superblock_buffer;
 
     /* Use destroy() or shutdown() instead */
     ~lba_disk_structure_t() {}

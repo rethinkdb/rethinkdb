@@ -9,6 +9,7 @@
 
 #include <string>
 
+#include "arch/compiler.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"

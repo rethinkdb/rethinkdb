@@ -20,8 +20,7 @@ public:
     extent_t *data;
     int count;
 
-    lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t
-                      *io_account);
+    lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account);
 
     lba_disk_extent_t(extent_manager_t *_em, file_t *file, int64_t _offset, int _count);
 
@@ -39,8 +38,8 @@ public:
     in_memory_index_t to be filled with data. */
 
     struct read_info_t {
-		scoped_aligned_malloc_t<lba_extent_t> buffer;
-		int count;
+        scoped_device_block_aligned_ptr_t<lba_extent_t> buffer;
+        int count;
     };
 
     void read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb);

@@ -22,7 +22,7 @@ void vlog_internal(const char *src_file, int src_line, log_level_t level, const 
 #define logDBG(fmt, ...) log_internal(__FILE__, __LINE__, log_level_debug, (fmt), ##__VA_ARGS__)
 #define vlogDBG(fmt, args) vlog_internal(__FILE__, __LINE__, log_level_debug, (fmt), (args))
 #else
-#define logDBG(fmt, args...) ((void)0)
+#define logDBG(fmt, ...) ((void)0)
 #define vlogDBG(fmt, args) ((void)0)
 #endif
 

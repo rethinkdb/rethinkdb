@@ -4,6 +4,7 @@
 
 #include "clustering/generic/raft_core.hpp"
 
+#include "arch/compiler.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/exponential_backoff.hpp"
 #include "containers/map_sentries.hpp"

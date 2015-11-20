@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/lazy_erase_vector.hpp"

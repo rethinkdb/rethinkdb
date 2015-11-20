@@ -7,7 +7,7 @@ buf_ptr_t buf_ptr_t::alloc_uninitialized(block_size_t size) {
     const size_t count = compute_aligned_block_size(size);
     buf_ptr_t ret;
     ret.block_size_ = size;
-    ret.ser_buffer_ = malloc_aligned<ser_buffer_t>(count, DEVICE_BLOCK_SIZE);
+    ret.ser_buffer_ = scoped_device_block_aligned_ptr_t<ser_buffer_t>(count);
     return ret;
 }
 
@@ -18,11 +18,11 @@ buf_ptr_t buf_ptr_t::alloc_zeroed(block_size_t size) {
     return ret;
 }
 
-scoped_aligned_malloc_t<ser_buffer_t> help_allocate_copy(const ser_buffer_t *copyee,
-                                                 size_t amount_to_copy,
-                                                 size_t reserved_size) {
+scoped_device_block_aligned_ptr_t<ser_buffer_t> help_allocate_copy(const ser_buffer_t *copyee,
+                                                                   size_t amount_to_copy,
+                                                                   size_t reserved_size) {
     rassert(amount_to_copy <= reserved_size);
-    auto buf = malloc_aligned<ser_buffer_t>(reserved_size, DEVICE_BLOCK_SIZE);
+    auto buf = scoped_device_block_aligned_ptr_t<ser_buffer_t>(reserved_size);
     memcpy(buf.get(), copyee, amount_to_copy);
     memset(reinterpret_cast<char *>(buf.get()) + amount_to_copy,
            0,
@@ -54,7 +54,7 @@ void buf_ptr_t::resize_fill_zero(block_size_t new_size) {
         }
     } else {
         // We actually need to reallocate.
-        scoped_aligned_malloc_t<ser_buffer_t> buf
+        scoped_device_block_aligned_ptr_t<ser_buffer_t> buf
             = help_allocate_copy(ser_buffer_.get(),
                                  std::min(block_size_.ser_value(),
                                           new_size.ser_value()),

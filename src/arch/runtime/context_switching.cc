@@ -94,9 +94,13 @@ bool artificial_stack_context_ref_t::is_nil() {
 }
 
 artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
+<<<<<<< HEAD
     : stack_size(_stack_size) {
     /* Allocate the stack */
     stack = malloc_aligned<char>(stack_size, getpagesize());
+=======
+    : stack(_stack_size), stack_size(_stack_size) {
+>>>>>>> origin/windows2
 
     /* Tell the operating system that it can unmap the stack space
     (except for the first page, which we are definitely going to need).

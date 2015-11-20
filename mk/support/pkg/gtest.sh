@@ -1,4 +1,3 @@
-
 version=1.7.0
 src_url=https://googletest.googlecode.com/files/gtest-$version.zip
 
