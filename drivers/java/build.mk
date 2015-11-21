@@ -20,7 +20,7 @@ CONVERT_TESTS=$(JAVA_SRC_DIR)/convert_tests.py
 
 TEMPLATE_DIR=$(JAVA_SRC_DIR)/templates
 PROTO_FILE=$(TOP)/src/rdb_protocol/ql2.proto
-PROTO_JSON=$(JAVA_SRC_DIR)/proto_basic.json
+PROTO_JSON=$(JAVA_BUILD_DIR)/proto_basic.json
 TERM_INFO=$(JAVA_SRC_DIR)/term_info.json
 JAVA_TERM_INFO=$(JAVA_BUILD_DIR)/java_term_info.json
 GLOBAL_INFO=$(JAVA_SRC_DIR)/global_info.json
