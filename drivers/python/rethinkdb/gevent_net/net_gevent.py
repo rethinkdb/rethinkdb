@@ -10,11 +10,11 @@ import gevent.socket as socket
 from gevent.event import Event, AsyncResult
 from gevent.lock import Semaphore
 
-from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
-from .net import Connection as ConnectionBase
-from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB
+from drivers.python.rethinkdb import ql2_pb2 as p
+from drivers.python.rethinkdb.net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
+from drivers.python.rethinkdb.net import Connection as ConnectionBase
+from drivers.python.rethinkdb.errors import *
+from drivers.python.rethinkdb.ast import RqlQuery, RqlTopLevelQuery, DB
 
 __all__ = ['Connection']
 
