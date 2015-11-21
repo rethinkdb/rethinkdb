@@ -1,20 +1,17 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
 import errno
-import json
-import numbers
 import struct
-import sys
+
 import gevent
 import gevent.socket as socket
 from gevent.event import Event, AsyncResult
 from gevent.lock import Semaphore
 
 from drivers.python.rethinkdb import ql2_pb2 as p
-from drivers.python.rethinkdb.net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
-from drivers.python.rethinkdb.net import Connection as ConnectionBase
 from drivers.python.rethinkdb.errors import *
-from drivers.python.rethinkdb.ast import RqlQuery, RqlTopLevelQuery, DB
+from drivers.python.rethinkdb.net import Connection as ConnectionBase
+from drivers.python.rethinkdb.net import decodeUTF, Query, Response, Cursor, maybe_profile
 
 __all__ = ['Connection']
 
@@ -40,7 +37,8 @@ class GeventCursor(Cursor):
                 if self.error is not None:
                     raise self.error
                 self.new_response.wait()
-            return convert_pseudo(self.items.pop(0), self.query)
+            return self.items.pop(0), self.query
+
 
 # TODO: would be nice to share this code with net.py
 class SocketWrapper(object):
@@ -65,8 +63,8 @@ class SocketWrapper(object):
                 response += char
         except RqlDriverError as ex:
             self.close()
-            error = str(ex)\
-                .replace('receiving from', 'during handshake with')\
+            error = str(ex) \
+                .replace('receiving from', 'during handshake with') \
                 .replace('sending to', 'during handshake with')
             raise RqlDriverError(error)
         except Exception as ex:
@@ -144,12 +142,13 @@ class SocketWrapper(object):
                 self.close()
                 raise
 
+
 class ConnectionInstance(object):
     def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         self._write_mutex = Semaphore()
         self._socket = None
@@ -179,8 +178,8 @@ class ConnectionInstance(object):
         for query, async_res in iter(self._user_queries.values()):
             async_res.set_exception(RqlDriverError(err_message))
 
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
@@ -194,10 +193,10 @@ class ConnectionInstance(object):
     # TODO: make connection recoverable if interrupted by a user's gevent.Timeout?
     def run_query(self, query, noreply):
         self._write_mutex.acquire()
-        
+
         try:
             self._socket.sendall(query.serialize())
-        finally:    
+        finally:
             self._write_mutex.release()
 
         if noreply:
@@ -228,8 +227,7 @@ class ConnectionInstance(object):
                     # we don't lose track of it in case of an exception
                     query, async_res = self._user_queries[token]
                     if res.type == pResponse.SUCCESS_ATOM:
-                        value = convert_pseudo(res.data[0], query)
-                        async_res.set(maybe_profile(value, res))
+                        async_res.set(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
                         cursor = GeventCursor(self, query)
