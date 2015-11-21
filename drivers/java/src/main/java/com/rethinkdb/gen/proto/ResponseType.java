@@ -13,6 +13,7 @@ public enum ResponseType {
     SUCCESS_SEQUENCE(2),
     SUCCESS_PARTIAL(3),
     WAIT_COMPLETE(4),
+    SERVER_INFO(5),
     CLIENT_ERROR(16),
     COMPILE_ERROR(17),
     RUNTIME_ERROR(18);
@@ -29,6 +30,7 @@ public enum ResponseType {
             case 2: return ResponseType.SUCCESS_SEQUENCE;
             case 3: return ResponseType.SUCCESS_PARTIAL;
             case 4: return ResponseType.WAIT_COMPLETE;
+            case 5: return ResponseType.SERVER_INFO;
             case 16: return ResponseType.CLIENT_ERROR;
             case 17: return ResponseType.COMPILE_ERROR;
             case 18: return ResponseType.RUNTIME_ERROR;
