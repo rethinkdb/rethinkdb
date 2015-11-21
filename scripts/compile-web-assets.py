@@ -6,6 +6,9 @@ import os
 import sys
 import itertools
 
+MAX_LITERAL_SIZE = 65535
+MAX_LINE_LENGTH = 82
+
 def main():
     try:
         assets_root = sys.argv[1]
@@ -40,18 +43,19 @@ def write_assets(asset_root, assets):
     print('std::map<std::string, const std::string> static_web_assets = {')
     for i, asset in enumerate(assets):
 
-        print('    { ' + encode('/' + asset) + ', {', end='')
+        print('    { ' + encode('/' + asset) + ', std::string(', end='')
 
         data = open(os.path.join(asset_root, asset), "rb").read()
         position = 0 # track the position to keep lines short
         trigraph = 0 # track consecutive question marks to avoid writing trigraphs
         prev_e = None # track the previous character to avoid tacking on hex digits
+        literal_size = 0 # number of characters in the current string literal
 
         for c in data:
             c = byte(c)
+            literal_size += 1
 
             if position == 0:
-                # start a new line
                 print('\n      "', end='')
                 position = 7
                 trigraph = 0
@@ -74,10 +78,15 @@ def write_assets(asset_root, assets):
             print(e, end='')
             position += len(e)
 
-            if position > 82 or c == b'\n':
+            if position > MAX_LINE_LENGTH or c == b'\n':
                 # end a line if it gets too long and on newlines
                 print('"', end='')
                 position = 0
+                if literal_size > MAX_LITERAL_SIZE - MAX_LINE_LENGTH:
+                    print(',')
+                    print('      ' + str(literal_size) + ') + std::string(', end='')
+                    literal_size = 0
+
 
         if position != 0:
             print('"', end='')
@@ -85,8 +94,11 @@ def write_assets(asset_root, assets):
         if not data:
             print('""', end='')
 
-        print(',')
-        print('      ' + str(len(data)) + ' } },')
+        if literal_size:
+            print(',')
+            print('      ' + str(literal_size) + ' ) },')
+        else:
+            print('"") },')
 
     print('};')
 
