@@ -16,7 +16,7 @@ PY3 = sys.version > '3'
 #json parameters
 json_read_chunk_size = 32 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
-max_nesting_depth = 20
+max_nesting_depth = 100
 try:
     import cPickle as pickle
 except ImportError:
