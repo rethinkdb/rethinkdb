@@ -9,7 +9,6 @@
 
 #include <string>
 
-#include "arch/compiler.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
@@ -31,31 +30,31 @@ private:
     DISABLE_COPYING(value_sizer_t);
 };
 
-ATTR_PACKED(struct btree_statblock_t {
+struct btree_statblock_t {
     //The total number of keys in the btree
     int64_t population;
 
     btree_statblock_t()
         : population(0)
     { }
-});
+} __attribute__((__packed__));
 static const uint32_t BTREE_STATBLOCK_SIZE = sizeof(btree_statblock_t);
 
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-ATTR_PACKED(struct internal_node_t {
+struct internal_node_t {
     block_magic_t magic;
     uint16_t npairs;
     uint16_t frontmost_offset;
     uint16_t pair_offsets[0];
 
     static const block_magic_t expected_magic;
-});
+} __attribute__((__packed__));
 
 // A node_t is either a btree_internal_node or a btree_leaf_node.
-ATTR_PACKED(struct node_t {
+struct node_t {
     block_magic_t magic;
-});
+} __attribute__((__packed__));
 
 namespace node {
 

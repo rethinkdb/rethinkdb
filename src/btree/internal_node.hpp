@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include "arch/compiler.hpp"
 #include "btree/keys.hpp"
 #include "serializer/types.hpp"
 #include "utils.hpp"
@@ -17,10 +16,10 @@ struct internal_node_t;
 #define INTERNAL_EPSILON (sizeof(btree_key_t) + MAX_KEY_SIZE + sizeof(block_id_t))
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-ATTR_PACKED(struct btree_internal_pair {
+struct btree_internal_pair {
     block_id_t lnode;
     btree_key_t key;
-});
+} __attribute__((__packed__));
 
 
 class internal_key_comp;

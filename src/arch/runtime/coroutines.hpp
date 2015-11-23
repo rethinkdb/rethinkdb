@@ -7,7 +7,6 @@
 #include <string>
 #endif
 
-#include "arch/compiler.hpp"
 #include "arch/runtime/callable_action.hpp"
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/runtime_utils.hpp"
@@ -176,7 +175,7 @@ private:
     static coro_t *get_and_init_coro(callable_t &&action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
-        coro->parse_coroutine_type(CURRENT_FUNCTION_PRETTY);
+        coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->grab_spawn_backtrace();
         coro->action_wrapper.reset(std::forward<callable_t>(action));

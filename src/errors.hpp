@@ -6,8 +6,6 @@
 #include <signal.h>
 #include <stdlib.h>
 
-#include "arch/compiler.hpp"
-
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
@@ -33,6 +31,8 @@
 #define DEBUG_ONLY(...)
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
+
+#define NORETURN __attribute__((__noreturn__))
 
 /* Accessors to errno.
  * Please access errno *only* through these access functions.
@@ -79,8 +79,12 @@ void set_errno(int new_errno);
 #ifndef NDEBUG
 #define DEBUG_VAR
 #else
-#define DEBUG_VAR UNUSED
+#define DEBUG_VAR __attribute__((unused))
 #endif
+
+#define UNUSED __attribute__((unused))
+
+#define MUST_USE __attribute__((warn_unused_result))
 
 #define fail_due_to_user_error(msg, ...) do {  \
         report_user_error(msg, ##__VA_ARGS__); \
@@ -99,8 +103,8 @@ void set_errno(int new_errno);
         BREAKPOINT;                                                 \
     } while (0)
 
-void report_fatal_error(const char*, int, const char*, ...) ATTR_FORMAT(printf, 3, 4);
-void report_user_error(const char*, ...) ATTR_FORMAT(printf, 1, 2);
+void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
+void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
 // Our usual crash() method does not work well in out-of-memory conditions, because
 // it performs heap-allocations itself. Use `crash_oom()` instead for these cases.

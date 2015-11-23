@@ -59,7 +59,7 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
 
 static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
-ATTR_PACKED(struct lba_entry_t {
+struct lba_entry_t {
     // Right now there's code that assumes sizeof(lba_entry_t) is a power of two.
     // (It probably assumes that sizeof(lba_entry_t) evenly divides
     // DEVICE_BLOCK_SIZE).
@@ -98,7 +98,7 @@ ATTR_PACKED(struct lba_entry_t {
     static lba_entry_t make_padding_entry() {
         return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding(), 0);
     }
-});
+} __attribute__((__packed__));
 
 
 struct lba_shard_metablock_t {

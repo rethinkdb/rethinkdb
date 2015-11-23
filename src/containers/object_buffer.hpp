@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "errors.hpp"
-#include "arch/compiler.hpp"
 
 // Caveat: do not use this template with an object that has a blocking destructor, if
 //  you are going to allocate multiple times using a single object_buffer_t.  This object
@@ -89,7 +88,7 @@ public:
 private:
     // Force alignment of the data to the alignment of the templatized type,
     // this avoids some optimization errors, see github issue #3300 for an example.
-    ATTR_ALIGNED(alignof(T)) char object_data[sizeof(T)];
+    char object_data[sizeof(T)] __attribute__((aligned(alignof(T))));
 
     enum buffer_state_t {
         EMPTY,

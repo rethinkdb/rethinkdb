@@ -2,13 +2,12 @@
 #ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 #define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
-#include "arch/compiler.hpp"
 #include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 
-ATTR_PACKED(struct index_block_info_t {
+struct index_block_info_t {
     index_block_info_t()
         : offset(flagged_off64_t::unused()),
           recency(repli_timestamp_t::invalid),
@@ -31,12 +30,12 @@ ATTR_PACKED(struct index_block_info_t {
     flagged_off64_t offset;
     repli_timestamp_t recency;
     uint16_t ser_block_size;
-});
+} __attribute__((__packed__));
 
 /* This is a reduced-size block info for auxiliary blocks (currently
 blob blocks used for large values). It doesn't store a replication
 timestamp, because we don't need it for those blocks. */
-ATTR_PACKED(struct index_aux_block_info_t {
+struct index_aux_block_info_t {
     index_aux_block_info_t()
         : offset(flagged_off64_t::unused()),
           ser_block_size(0) { }
@@ -54,7 +53,7 @@ ATTR_PACKED(struct index_aux_block_info_t {
 
     flagged_off64_t offset;
     uint16_t ser_block_size;
-});
+} __attribute__((__packed__));
 
 
 

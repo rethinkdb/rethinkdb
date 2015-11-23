@@ -4,7 +4,6 @@
 
 #include "clustering/generic/raft_core.hpp"
 
-#include "arch/compiler.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/exponential_backoff.hpp"
 #include "containers/map_sentries.hpp"
@@ -27,7 +26,7 @@ inline std::string show_member_id(const raft_member_id_t &mid) {
 #else
 #define RAFT_DEBUG(...) ((void)0)
 #define RAFT_DEBUG_THIS(...) ((void)0)
-#define RAFT_DEBUG_VAR UNUSED
+#define RAFT_DEBUG_VAR __attribute__((unused))
 #endif /* ENABLE_RAFT_DEBUG */
 
 template<class state_t>

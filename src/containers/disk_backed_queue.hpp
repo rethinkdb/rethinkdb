@@ -21,11 +21,11 @@ class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
 
-ATTR_PACKED(struct queue_block_t {
+struct queue_block_t {
     block_id_t next;
     int32_t data_size, live_data_offset;
     char data[0];
-});
+} __attribute__((__packed__));
 
 class value_acquisition_object_t;
 

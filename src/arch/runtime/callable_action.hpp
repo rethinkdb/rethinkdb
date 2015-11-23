@@ -3,7 +3,6 @@
 
 #include <utility>
 
-#include "arch/compiler.hpp"
 #include "errors.hpp"
 
 /* The below classes may be used to create a generic callable object without
@@ -71,7 +70,7 @@ public:
 private:
     bool action_on_heap;
     callable_action_t *action_;
-    ATTR_ALIGNED(sizeof(void*)) char action_data[CALLABLE_CUTOFF_SIZE];
+    char action_data[CALLABLE_CUTOFF_SIZE] __attribute__((aligned(sizeof(void*))));
 
     DISABLE_COPYING(callable_action_wrapper_t);
 };
