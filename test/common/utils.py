@@ -16,22 +16,67 @@ except NameError:
 project_root_dir = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir))
 
 driverPaths = {
-    'javascript': {
+    'JavaScript': {
+        'envName':'JAVASCRIPT_DRIVER',
         'extension':'js',
-        'driverPath':os.path.join(project_root_dir, 'build', 'packages', 'js'),
+        'driverPath':None,
+        'driverRelSourcePath':os.path.join(os.pardir, os.pardir, 'build', 'packages', 'js'),
         'sourcePath':os.path.join(project_root_dir, 'drivers', 'javascript')
     },
-    'python': {
+    'Python': {
+        'envName':'PYTHON_DRIVER',
         'extension':'py',
-        'driverPath':os.path.join(project_root_dir, 'build', 'drivers', 'python', 'rethinkdb'),
+        'driverPath':None,
+        'driverRelSourcePath':os.path.join(os.pardir, os.pardir, 'build', 'drivers', 'python', 'rethinkdb'),
         'sourcePath':os.path.join(project_root_dir, 'drivers', 'python')
     },
-    'ruby': {
+    'Ruby': {
+        'envName':'RUBY_DRIVER',
         'extension':'rb',
-        'driverPath':'build/drivers/ruby/lib',
-        'sourcePath':'drivers/ruby'
+        'driverPath':None,
+        'driverRelSourcePath':os.path.join(os.pardir, os.pardir, 'build', 'drivers', 'ruby', 'lib'),
+        'sourcePath':os.path.join(project_root_dir, 'drivers', 'ruby')
+    },
+    'JRuby': {
+        'envName':'RUBY_DRIVER',
+        'extension':'rb',
+        'driverPath':None,
+        'driverRelSourcePath':os.path.join(os.pardir, os.pardir, 'build', 'drivers', 'ruby', 'lib'),
+        'sourcePath':os.path.join(project_root_dir, 'drivers', 'ruby')
     }
 }
+
+# -- reset driverPaths based on os.environ
+
+def resetDriverPaths():
+    for name, info in driverPaths.items():
+        if info['envName'] in os.environ:
+            if os.environ[info['envName']].lower() == '--installed--':
+                info['driverPath'] = '--installed--'
+                info['sourcePath'] = None
+            else:
+                target = os.path.realpath(os.environ[info['envName']])
+                if not os.path.exists(target):
+                    warnings.warn('Supplied %s driver path (%s) was not valid: %s' % (name, info['envName'], os.environ[info['envName']]))
+                    continue
+                
+                if os.path.isfile(target) and os.path.basename(target) in ('__init__.py',):
+                    target = os.path.dirname(target)
+                
+                if os.path.isdir(target) and 'Makefile' in os.listdir(target):
+                    # source folder
+                    info['driverPath'] = os.path.normpath(os.path.join(target, info['driverRelSourcePath']))
+                    info['sourcePath'] = target
+                else:
+                    # assume it is a useable driver
+                    info['driverPath'] = target
+                    info['sourcePath'] = None
+                os.environ[info['envName']] = info['driverPath']
+        elif info['sourcePath']:
+            info['driverPath'] = os.path.normpath(os.path.join(info['sourcePath'], info['driverRelSourcePath']))
+            os.environ[info['envName']] = info['driverPath']
+
+resetDriverPaths() # pickup inital values
 
 # --
 
@@ -122,83 +167,67 @@ def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, 
     if makeProcess.wait() != 0:
         raise test_exceptions.NotBuiltException(detail='Failed making: %s' % targetFolder, debugInfo=outputFile)
 
-def import_python_driver(targetDir=None):
-    '''import the latest built version of the python driver into the caller's namespace, ensuring that the drivers are built'''
-    import imp # note: deprecated but not gone in 3.4, will have to add importlib at some point
+__loadedPythonDriver = None
+def import_python_driver():
+    '''return the rethinkdb Python driver, defaulting (and building) the in-source driver, but following PYTHON_DRIVER'''
+    global __loadedPythonDriver
     
-    # TODO: modify this to allow for system-installed drivers
+    # -- short-circut if we already have it loaded
     
-    # -- figure out what sort of path we got
-    
-    if targetDir is None:
-        if 'PYTHON_DRIVER_DIR' in os.environ:
-            targetDir = os.environ['PYTHON_DRIVER_DIR']
-        elif 'PYTHON_DRIVER_SRC_DIR' in os.environ:
-            targetDir = os.environ['PYTHON_DRIVER_SRC_DIR']
-        else:
-            targetDir = project_root_dir
-    
-    driverDir = None
-    srcDir = None
-    
-    if not os.path.isdir(targetDir):
-        raise ValueError('import_python_driver got a non-directory path: %s' % str(targetDir))
-    targetDir = os.path.realpath(targetDir)
-    
-    validSourceFolder = lambda path: os.path.basename(path) == 'rethinkdb' and all(map(lambda x: os.path.isfile(os.path.join(path, x)), ['__init__.py', 'ast.py', 'docs.py']))
-    builtDriver = lambda path: validSourceFolder(path) and os.path.isfile(os.path.join(path, 'ql2_pb2.py'))
-    
-    # normalize path
-    if not os.path.dirname(targetDir) == 'rethinkdb' and os.path.isdir(os.path.join(targetDir, 'rethinkdb')):
-        targetDir = os.path.join(targetDir, 'rethinkdb')
-    
-    # - project directory
-    if all(map(lambda x: os.path.isdir(os.path.join(targetDir, x)), ['src', 'drivers', 'admin'])):
-        buildDriver = True
-        driverDir = os.path.join(targetDir, driverPaths['python']['driverPath'])
-        srcDir = os.path.join(targetDir, driverPaths['python']['sourcePath'])
-    
-    # - built driver - it does not matter if this is source, build, or installed, it looks complete
-    elif builtDriver(targetDir):
-        buildDriver = False
-        driverDir = targetDir
-        srcDir = None
-    
-    # - source folder
-    elif validSourceFolder(targetDir) and os.path.isfile(os.path.join(os.path.dirname(targetDir), 'Makefile')):
-        buildDriver = True
-        driverDir = os.path.join(targetDir, os.path.pardir, os.path.relpath(driverPaths['python']['driverPath'], driverPaths['python']['sourcePath']))
-        srcDir = os.path.dirname(targetDir)
-    
-    else:
-        raise ValueError('import_python_driver was unable to determine the locations from: %s' % targetDir)
-    
-    # -- build if needed
-    
-    if buildDriver == True:
-        try:
-            build_in_folder(srcDir, waitNotification='Building the python drivers. This make take a few moments.')
-        except test_exceptions.NotBuiltException as e:
-            raise test_exceptions.NotBuiltException(detail='Failed making Python driver from: %s' % srcDir, debugInfo=e.debugInfo)
+    if __loadedPythonDriver:
+        return __loadedPythonDriver
     
     # --
     
-    if not os.path.isdir(driverDir) or not os.path.basename(driverDir) == 'rethinkdb' or not os.path.isfile(os.path.join(driverDir, '__init__.py')): # ToDo: handle zipped egg case
-        raise ValueError('import_python_driver got an invalid driverDir: %s' % driverDir)
+    loadedDriver = None
+    driverPath =  driverPaths['Python']['driverPath']
+    sourcePath =  driverPaths['Python']['sourcePath']
     
-    # - return the imported module
+    # -- short-circut if the installed driver is called for
+    
+    if driverPath == '--installed--':
+        # - load the driver
+        try:
+            loadedDriver = __import__('rethinkdb')
+            driverPaths['Python']['driverPath'] = os.path.dirname(loadedDriver.__file__)
+            os.environ['PYTHON_DRIVER'] = driverPaths['Python']['driverPath']
+            return loadedDriver
+        except ImportError as e:
+            raise ImportError('Unable to load system-installed `rethinkdb` module - %s' % str(e))
+    
+    # -- build the driver if that is called for
+    
+    if sourcePath:
+        try:
+            build_in_folder(sourcePath, waitNotification='Building the python drivers. This make take a few moments.')
+        except test_exceptions.NotBuiltException as e:
+            raise test_exceptions.NotBuiltException(detail='Failed making Python driver from: %s' % sourcePath, debugInfo=e.debugInfo)
+    
+    # -- validate the built driver
+    
+    if not all(map(lambda x: os.path.isfile(os.path.join(driverPath, x)), ['__init__.py', 'ast.py', 'docs.py'])):
+        raise ValueError('Invalid Python driver: %s' % driverPath)
+        
+    # -- load the driver
     
     keptPaths = sys.path[:]
+    driverName = os.path.basename(driverPath)
     try:
-        moduleFile, pathname, desc = imp.find_module('rethinkdb', [os.path.dirname(driverDir)])
-        driverModule = imp.load_module('rethinkdb', moduleFile, pathname, desc)
-        if moduleFile is not None:
-            moduleFile.close()
-        loadedFrom = os.path.dirname(os.path.realpath(driverModule.__file__))
-        assert loadedFrom.startswith(driverDir), "The wrong version or the rethinkdb Python driver got imported. It should have been in %s but was from %s" % (driverDir, loadedFrom)
-        return driverModule
+        sys.path.insert(0, os.path.dirname(driverPath))
+        loadedDriver = __import__(driverName)
     finally:
         sys.path = keptPaths
+    
+    
+    # -- check that it is from where we assert it to be
+    
+    if not loadedDriver.__file__.startswith(driverPath):
+        raise ImportError('Loaded Python driver was %s, rather than the expected one from %s' % (loadedDriver.__file__, driverPath))
+    
+    # -- return the loaded module
+    
+    __loadedPythonDriver = loadedDriver
+    return __loadedPythonDriver
 
 class PerformContinuousAction(threading.Thread):
     '''Use to continuously perform an action on a table. Either provide an action (reql command without run) on instantiation, or subclass and override runAction'''
