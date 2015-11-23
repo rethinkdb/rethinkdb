@@ -28,9 +28,7 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
-void *raw_malloc_aligned(size_t size, size_t alignment);
-void *raw_malloc_page_aligned(size_t size);
-void raw_free_aligned(void *ptr);
+void *malloc_aligned(size_t size, size_t alignment);
 
 /* Calls `malloc()` and checks its return value to crash if the allocation fails. */
 void *rmalloc(size_t size);
