@@ -16,6 +16,7 @@ PY3 = sys.version > '3'
 #json parameters
 json_read_chunk_size = 32 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
+max_nesting_depth = 20
 try:
     import cPickle as pickle
 except ImportError:
@@ -79,6 +80,7 @@ def print_import_help():
     print("Import JSON format:")
     print("  --max-document-size              the maximum size in bytes that a single JSON document")
     print("                                   can have (defaults to 134217728).")
+    print("  --max-nesting-depth              the maximum nesting depth of the JSON documents")
     print("")
     print("EXAMPLES:")
     print("")
@@ -113,6 +115,7 @@ def parse_options():
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
+    parser.add_option("--max-nesting-depth", dest="max_nesting_depth", default=0, type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -162,6 +165,9 @@ def parse_options():
     if options.max_document_size > 0:
         global json_max_buffer_size
         json_max_buffer_size=options.max_document_size
+    if options.max_nesting_depth > 0:
+        global max_nesting_depth
+        max_nesting_depth = options.max_nesting_depth
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -295,7 +301,7 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
             objs = [pickle.loads(obj) for obj in task[2]]
             conflict_action = 'replace' if replace_conflicts else 'error'
-            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
+            res = r.db(task[0]).table(task[1]).insert(r.expr(objs, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action).run(conn)
         except:
             progress[0] = task
             raise
