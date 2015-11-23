@@ -38,7 +38,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\windows_stub;$(ProjectDir)\windows_deps\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\src\arch\windows_stub;$(ProjectDir)\windows_deps\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -60,15 +60,12 @@
   <ItemGroup>
     <ClInclude Include="src\**\*.hpp" />
     <ClInclude Include="src\**\*.tcc" />
-    <ClInclude Include="windows_stub\**\*.h" />
+    <ClInclude Include="src\**\*.h" />
     <ClInclude Include="build\release\proto\rdb_protocol\ql2.pb.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\**\*.cc" />
-    <!-- TODO ATN Exclude="src\unittest\**\*.cc"/> -->
-    <!-- <ClCompile Include="src\_delete_me.cc" /> -->
     <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
-    <ClCompile Include="windows_stub\pthread.cc" />
     <ClCompile Include="build\release\web_assets\web_assets.cc" />
   </ItemGroup>
   <ItemGroup>
