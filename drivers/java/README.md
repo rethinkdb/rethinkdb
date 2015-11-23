@@ -84,8 +84,8 @@ signing.keyId=<KEY_ID>
 signing.password=
 signing.secretKeyRingFile=<KEYRING_LOCATION>
 
-ossrUsername=<SONATYPE_USERNAME>
-ossrPassword=<SONATYPE_PASSWORD>
+ossrhUsername=<SONATYPE_USERNAME>
+ossrhPassword=<SONATYPE_PASSWORD>
 ```
 
 It goes without saying that this file should not be checked back into

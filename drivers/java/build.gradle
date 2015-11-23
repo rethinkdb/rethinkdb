@@ -8,8 +8,8 @@ tasks.withType(JavaCompile) {
     options.compilerArgs << "-parameters"
 }
 
-version = '2.2-b1'
-ext.isReleaseVersion = !version.endsWith("b1")
+version = '2.2-b2-SNAPSHOT'
+ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 group = "com.rethinkdb"
 archivesBaseName = "rethinkdb-driver"
 
@@ -42,6 +42,8 @@ artifacts {
 }
 
 signing {
+    // Don't sign unless this is a release version
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
@@ -67,7 +69,7 @@ repositories {
             artifact "[organisation]/[module]/jars/[artifact](-[classifier])-[revision](.[ext])"
             ivy "[organisation]/[module]/[artifact](-[classifier])-[revision](.[ext])"
             }
-    } 
+    }
 }
 publishing {
     publications {
@@ -82,14 +84,18 @@ publishing {
 uploadArchives {
   repositories {
     mavenDeployer {
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+      beforeDeployment {
+          MavenDeployment deployment -> signing.signPom(deployment)
+      }
 
       repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: hasProperty('ossrhUsername')?ossrhUsername:'', password: hasProperty('ossrhPassword')?ossrhPassword:'')
+        authentication(userName: project.hasProperty('ossrhUsername') ? ossrhUsername : '',
+                       password: project.hasProperty('ossrhPassword') ? ossrhPassword : '')
       }
 
       snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: hasProperty('ossrhUsername')?ossrhUsername:'', password: hasProperty('ossrhPassword')?ossrhPassword:'')
+        authentication(userName: project.hasProperty('ossrhUsername') ? ossrhUsername : '',
+                       password: project.hasProperty('ossrhPassword') ? ossrhPassword : '')
       }
 
       pom.project {
