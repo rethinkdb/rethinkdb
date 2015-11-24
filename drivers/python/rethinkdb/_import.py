@@ -37,8 +37,10 @@ info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)] [--clients NUM]\n\
+      [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
       [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -115,8 +117,8 @@ def parse_options():
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
 
     # Replication settings
-    parser.add_option("--shards", dest="shards", default=1, type="int")
-    parser.add_option("--replicas", dest="replicas", default=1, type="int")
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=1, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=1, type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -152,6 +154,8 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
+    res["shards"] = options.shards
+    res["replicas"] = options.replicas
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug

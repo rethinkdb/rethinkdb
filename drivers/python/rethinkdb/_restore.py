@@ -6,7 +6,7 @@ from optparse import OptionParser
 from ._backup import *
 
 info = "'rethinkdb restore' loads data into a RethinkDB cluster from an archive"
-usage = "rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--clients NUM] [--force] [-i (DB | DB.TABLE)]..."
+usage = "rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--clients NUM] [--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
 
 def print_restore_help():
     print(info)
@@ -50,8 +50,8 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
 
-    parser.add_option("--shards", dest="shards", default=1, type="int")
-    parser.add_option("--replicas", dest="replicas", default=1, type="int")
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=1, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=1, type="int")
 
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
@@ -97,6 +97,8 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
+    res["shards"] = options.shards
+    res["replicas"] = options.replicas
     res["hard"] = options.hard
     res["force"] = options.force
     res["create_sindexes"] = options.create_sindexes
