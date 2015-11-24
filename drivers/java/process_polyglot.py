@@ -53,7 +53,7 @@ Query = namedtuple(
      'line_num',
      'runopts')
 )
-Def = namedtuple('Def', 'varname term run_if_query testfile line_num')
+Def = namedtuple('Def', 'varname term run_if_query testfile line_num runopts')
 CustomDef = namedtuple('CustomDef', 'line testfile line_num')
 Expect = namedtuple('Expect', 'bif term')
 
@@ -122,7 +122,9 @@ def _try_eval(node, context):
         raise Skip("Java type system prevents attribute errors")
     except Exception:
         logger.error("Failed evaluating %r", ast.dump(node_4_eval))
-    return type(value), value
+        raise
+    else:
+        return type(value), value
 
 
 def try_eval(node, context):
@@ -220,6 +222,7 @@ def create_context(r, table_var_names):
         'wait': lambda time: None,
         'err': fake_type('err'),
         'err_regex': fake_type('err_regex'),
+        'regex': fake_type('regex'),
         'bag': fake_type('bag'),
         # py3 compatibility
         'xrange': range,
@@ -300,6 +303,7 @@ class TestContext(object):
             run_if_query=run_if_query,
             testfile=self.testfile,
             line_num=define_line.linenumber,
+            runopts=self.runopts,
         )
 
     def def_from_define(self, define, run_if_query):
