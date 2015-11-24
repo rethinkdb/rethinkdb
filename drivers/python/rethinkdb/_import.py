@@ -114,6 +114,10 @@ def parse_options():
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
 
+    # Replication settings
+    parser.add_option("--shards", dest="shards", default=1, type="int")
+    parser.add_option("--replicas", dest="replicas", default=1, type="int")
+
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
@@ -515,9 +519,9 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
 # error occurs.  Progress will resume where it left off.
-def create_table(progress, conn, db, table, pkey, sindexes):
+def create_table(progress, conn, db, table, pkey, sindexes, shards, replicas):
     if table not in r.db(db).table_list().run(conn):
-        r.db(db).table_create(table, primary_key=pkey).run(conn)
+        r.db(db).table_create(table, primary_key=pkey, shards=shards, replicas=replicas).run(conn)
 
     if progress[0] is None:
         progress[0] = 0
@@ -543,7 +547,8 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
         rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
-                         file_info["info"]["indexes"] if options["create_sindexes"] else [])
+                         file_info["info"]["indexes"] if options["create_sindexes"] else [],
+                         options["shards"], options["replicas"])
 
         if file_info["format"] == "json":
             json_reader(task_queue,

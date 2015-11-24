@@ -50,6 +50,9 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
 
+    parser.add_option("--shards", dest="shards", default=1, type="int")
+    parser.add_option("--replicas", dest="replicas", default=1, type="int")
+
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
@@ -135,6 +138,8 @@ def do_import(temp_dir, options):
     import_args.extend(["--directory", temp_dir])
     import_args.extend(["--auth", options["auth_key"]])
     import_args.extend(["--clients", str(options["clients"])])
+    import_args.extend(["--shards", str(options["shards"])])
+    import_args.extend(["--replicas", str(options["replicas"])])
 
     for db, table in options["tables"]:
         if table is None:
