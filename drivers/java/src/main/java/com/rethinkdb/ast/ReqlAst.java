@@ -62,7 +62,7 @@ public class ReqlAst {
      * @param <T> The type of result
      * @return The result of this query
      */
-    public <T> T run(Connection<? extends ConnectionInstance> conn) {
+    public <T> T run(Connection conn) {
         return conn.run(this, new OptArgs(), Optional.empty());
     }
 
@@ -76,7 +76,7 @@ public class ReqlAst {
      * @param <T> The type of result
      * @return The result of this query
      */
-    public <T> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts) {
+    public <T> T run(Connection conn, OptArgs runOpts) {
         return conn.run(this, runOpts, Optional.empty());
     }
 
@@ -92,7 +92,7 @@ public class ReqlAst {
      * @param <P> The type of POJO to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T, P> T run(Connection<? extends ConnectionInstance> conn, Class<P> pojoClass) {
+    public <T, P> T run(Connection conn, Class<P> pojoClass) {
         return conn.run(this, new OptArgs(), Optional.of(pojoClass));
     }
 
@@ -109,7 +109,7 @@ public class ReqlAst {
      * @param <P> The type of POJO to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T, P> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<P> pojoClass) {
+    public <T, P> T run(Connection conn, OptArgs runOpts, Class<P> pojoClass) {
         return conn.run(this, runOpts, Optional.of(pojoClass));
     }
 

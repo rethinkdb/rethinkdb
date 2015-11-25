@@ -154,7 +154,8 @@ JavaDef = namedtuple(
      'value',
      'run_if_query',
      'testfile',
-     'line_num')
+     'line_num',
+     'runopts')
 )
 Version = namedtuple("Version", "original java")
 
@@ -333,16 +334,24 @@ def def_to_java(item, reql_vars):
         run_if_query=item.run_if_query,
         testfile=item.testfile,
         line_num=item.line_num,
+        runopts=convert_runopts(reql_vars, java_decl['type'], item.runopts)
     )
+
+
+def convert_runopts(reql_vars, type_, runopts):
+    if runopts is None:
+        return None
+    return {
+        key: JavaVisitor(
+            reql_vars, type_=type_).convert(val)
+        for key, val in runopts.items()
+    }
 
 
 def query_to_java(item, reql_vars):
     if item.runopts is not None:
-        converted_runopts = {
-            key: JavaVisitor(
-                reql_vars, type_=item.query.type).convert(val)
-            for key, val in item.runopts.items()
-        }
+        converted_runopts = convert_runopts(
+            reql_vars, item.query.type, item.runopts)
     else:
         converted_runopts = item.runopts
     try:
