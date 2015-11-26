@@ -33,7 +33,7 @@ public class Connection {
     private Connection(Builder builder) {
         dbname = builder.dbname;
         String authKey = builder.authKey.orElse("");
-        handshake = Util.leByteBuffer(4 + 4 + authKey.length() + 4)
+        handshake = Util.leByteBuffer(Integer.BYTES + Integer.BYTES + authKey.length() + Integer.BYTES)
                 .putInt(Version.V0_4.value)
                 .putInt(authKey.length())
                 .put(authKey.getBytes())

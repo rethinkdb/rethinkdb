@@ -63,7 +63,7 @@ public class Query {
         }
         String queryJson = queryArr.toJSONString();
         byte[] queryBytes = queryJson.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryBytes.length)
+        ByteBuffer bb = Util.leByteBuffer(Long.BYTES + Integer.BYTES + queryBytes.length)
             .putLong(token)
             .putInt(queryBytes.length)
             .put(queryBytes);
