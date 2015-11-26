@@ -133,7 +133,7 @@ private:
     `pre_item_throttler`, but its `count` changes to reflect the total mem size that's
     currently in the queue. */
     new_semaphore_t pre_item_throttler;
-    new_semaphore_acq_t pre_item_throttler_acq;
+    new_semaphore_in_line_t pre_item_throttler_acq;
 
     /* Between sessions, `current_session` is `nullptr` and `session_interrupted` is
     `false`. During a session, `current_session` is valid and `session_interrupted` is

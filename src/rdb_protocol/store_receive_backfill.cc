@@ -40,8 +40,8 @@ public:
     there's too much unsaved data already, then it will block until some of the data is
     flushed. */
     void prepare_for_changes(int num_changes, signal_t *interruptor) {
-        scoped_ptr_t<new_semaphore_acq_t> sem_acq =
-            make_scoped<new_semaphore_acq_t>(&semaphore, num_changes);
+        scoped_ptr_t<new_semaphore_in_line_t> sem_acq =
+            make_scoped<new_semaphore_in_line_t>(&semaphore, num_changes);
         wait_interruptible(sem_acq->acquisition_signal(), interruptor);
         if (unflushed_sem_acq.has()) {
             unflushed_sem_acq->transfer_in(std::move(*sem_acq));
@@ -49,7 +49,7 @@ public:
             unflushed_sem_acq = std::move(sem_acq);
         }
         if (unflushed_sem_acq->count() > MAX_UNSAVED_CHANGES / 4) {
-            scoped_ptr_t<new_semaphore_acq_t> temp;
+            scoped_ptr_t<new_semaphore_in_line_t> temp;
             std::swap(temp, unflushed_sem_acq);
             coro_t::spawn_sometime(std::bind(&unsaved_data_limiter_t::flush, this,
                 std::move(temp), drainer.lock()));
@@ -58,7 +58,7 @@ public:
 
 private:
     void flush(
-            const scoped_ptr_t<new_semaphore_acq_t> &,
+            const scoped_ptr_t<new_semaphore_in_line_t> &,
             auto_drainer_t::lock_t keepalive) {
         try {
             flush_cache(cache, keepalive.get_drain_signal());
@@ -66,7 +66,7 @@ private:
             /* ignore */
         }
         /* Once `flush()` returns, then the `std::bind` will be destroyed, releasing the
-        `new_semaphore_acq_t`. */
+        `new_semaphore_in_line_t`. */
     }
 
     cache_conn_t *cache;
@@ -75,7 +75,7 @@ private:
     will stop the `flush()` coroutines. Then we have to destroy `unflushed_sem_acq`
     before `semaphore` because `unflushed_sem_acq` references `semaphore`. */
     new_semaphore_t semaphore;
-    scoped_ptr_t<new_semaphore_acq_t> unflushed_sem_acq;
+    scoped_ptr_t<new_semaphore_in_line_t> unflushed_sem_acq;
     auto_drainer_t drainer;
 };
 
@@ -123,7 +123,7 @@ public:
     }
 
     receive_backfill_info_t *info;
-    new_semaphore_acq_t sem_acq;
+    new_semaphore_in_line_t sem_acq;
     fifo_enforcer_write_token_t write_token;
     auto_drainer_t::lock_t keepalive;
 

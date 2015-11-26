@@ -189,7 +189,7 @@ public:
             backfill_item_t &&item,
             const counted_t<counted_buf_lock_and_read_t> &buf,
             signal_t *interruptor) {
-        new_semaphore_acq_t sem_acq(&semaphore, item.pairs.size());
+        new_semaphore_in_line_t sem_acq(&semaphore, item.pairs.size());
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_item, this,
@@ -199,7 +199,7 @@ public:
 
     void on_empty_range(
             const key_range_t::right_bound_t &empty_range, signal_t *interruptor) {
-        new_semaphore_acq_t sem_acq(&semaphore, 1);
+        new_semaphore_in_line_t sem_acq(&semaphore, 1);
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         /* Unlike `handle_item()`, `handle_empty_range()` doesn't do any expensive work,
         but we spawn it in a coroutine anyway so that it runs in the right order with
@@ -228,7 +228,7 @@ private:
             to handle that. */
             backfill_item_t &item,   // NOLINT runtime/references
             const counted_t<counted_buf_lock_and_read_t> &buf,
-            const new_semaphore_acq_t &,
+            const new_semaphore_in_line_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
@@ -266,7 +266,7 @@ private:
 
     void handle_empty_range(
             const key_range_t::right_bound_t &threshold,
-            const new_semaphore_acq_t &,
+            const new_semaphore_in_line_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {

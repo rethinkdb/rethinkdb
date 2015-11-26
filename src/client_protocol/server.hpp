@@ -89,7 +89,7 @@ private:
     uint32_t http_timeout_sec;
 };
 
-class new_semaphore_acq_t;
+class new_semaphore_in_line_t;
 class query_handler_t {
 public:
     virtual ~query_handler_t() { }

@@ -134,7 +134,7 @@ void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
 
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
-                            new_semaphore_acq_t _throttler,
+                            new_semaphore_in_line_t _throttler,
                             query_cache_t::entry_t *_entry,
                             signal_t *interruptor) :
         entry(_entry),
