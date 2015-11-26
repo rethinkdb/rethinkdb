@@ -74,9 +74,9 @@ struct throttled_pmap_runner_t {
     const callable_t *c;
     int64_t *outstanding;
     cond_t *to_signal;
-    new_semaphore_acq_t semaphore_acq;
+    new_semaphore_in_line_t semaphore_acq;
     throttled_pmap_runner_t(value_t _i, const callable_t *_c, int64_t *_outstanding,
-                            cond_t *_to_signal, new_semaphore_acq_t &&acq)
+                            cond_t *_to_signal, new_semaphore_in_line_t &&acq)
         : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal),
           semaphore_acq(std::move(acq)) { }
 
@@ -103,7 +103,7 @@ void throttled_pmap(int64_t begin, int64_t end, const callable_t &c, int64_t cap
     cond_t cond;
     int64_t outstanding = (end - begin);
     for (int64_t i = begin; i < end - 1; ++i) {
-        new_semaphore_acq_t acq(&semaphore, 1);
+        new_semaphore_in_line_t acq(&semaphore, 1);
         acq.acquisition_signal()->wait();
         coro_t::spawn_now_dangerously(
             throttled_pmap_runner_t<callable_t, int64_t>(i, &c, &outstanding, &cond,
@@ -111,7 +111,7 @@ void throttled_pmap(int64_t begin, int64_t end, const callable_t &c, int64_t cap
     }
 
     {
-        new_semaphore_acq_t acq(&semaphore, 1);
+        new_semaphore_in_line_t acq(&semaphore, 1);
         acq.acquisition_signal()->wait();
         throttled_pmap_runner_t<callable_t, int64_t> runner(end - 1, &c, &outstanding,
                                                         &cond, std::move(acq));

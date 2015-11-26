@@ -20,7 +20,7 @@ class binary_blob_t;
 class real_superblock_t : public superblock_t {
 public:
     explicit real_superblock_t(buf_lock_t &&sb_buf);
-    real_superblock_t(buf_lock_t &&sb_buf, new_semaphore_acq_t &&write_semaphore_acq);
+    real_superblock_t(buf_lock_t &&sb_buf, new_semaphore_in_line_t &&write_semaphore_acq);
 
     void release();
     buf_lock_t *get() { return &sb_buf_; }
@@ -40,7 +40,7 @@ private:
     sb_buf_ is released.
     Note that this is used to throttle writes compared to reads, but not required
     for correctness. */    
-    new_semaphore_acq_t write_semaphore_acq_;
+    new_semaphore_in_line_t write_semaphore_acq_;
 
     buf_lock_t sb_buf_;
 };
@@ -182,7 +182,7 @@ void get_btree_superblock(
 void get_btree_superblock(
         txn_t *txn,
         access_t access,
-        new_semaphore_acq_t &&write_sem_acq,
+        new_semaphore_in_line_t &&write_sem_acq,
         scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
 void get_btree_superblock_and_txn_for_writing(

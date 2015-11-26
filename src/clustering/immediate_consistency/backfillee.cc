@@ -451,7 +451,7 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
         while (pre_item_sent_threshold != store->get_region().inner.right) {
             /* Wait until there's room in the semaphore for the chunk we're about to
             process */
-            new_semaphore_acq_t sem_acq(
+            new_semaphore_in_line_t sem_acq(
                 &pre_item_throttler, backfill_config.pre_item_chunk_mem_size);
             wait_interruptible(
                 sem_acq.acquisition_signal(), keepalive.get_drain_signal());

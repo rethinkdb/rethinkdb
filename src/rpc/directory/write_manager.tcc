@@ -47,7 +47,7 @@ void directory_write_manager_t<metadata_t>::on_connection_change(
             [this, this_keepalive /* important to capture */,
                     connection, connection_keepalive /* important to capture */,
                     initial_value, initial_state]() {
-                new_semaphore_acq_t acq(&this->semaphore, 1);
+                new_semaphore_in_line_t acq(&this->semaphore, 1);
                 acq.acquisition_signal()->wait();
                 initialization_writer_t writer(initial_value, initial_state);
                 connectivity_cluster->send_message(connection, connection_keepalive,

@@ -247,7 +247,7 @@ private:
                 We acquire the maximum size that we want to put in this chunk first,
                 and then adjust the semaphore acquisition to the actual size of the
                 chunk later. */
-                new_semaphore_acq_t sem_acq(
+                new_semaphore_in_line_t sem_acq(
                     &parent->item_throttler, parent->intro.config.item_chunk_mem_size);
                 wait_interruptible(
                     sem_acq.acquisition_signal(), keepalive.get_drain_signal());
