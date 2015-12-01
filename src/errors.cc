@@ -273,10 +273,10 @@ void install_generic_crash_handler() {
 #ifdef _WIN32
     // TODO ATN: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
-#else
 #ifdef _MSC_VER
     _CrtSetReportHook(windows_runtime_debug_failure_handler);
 #endif
+#else
 #ifndef VALGRIND
     {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);

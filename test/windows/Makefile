@@ -1,5 +1,5 @@
-RT := ../../x64/Debug/RethinkDB.exe test
-LIST := $(RT) --gtest_list_tests | perl -ne 'chop; chop; $$t = "$$1" if /^([^ ].*)/; print "$$t$$1\n" if /^  (.*)/'
+RT := ../../x64/Debug/RethinkDB.exe
+LIST := $(RT) test --gtest_list_tests | perl -ne 'chop; chop; $$t = "$$1" if /^([^ ].*)/; print "$$t$$1\n" if /^  (.*)/'
 
 ifeq ($(V),1)
 OUT := 2>&1 | tee
@@ -7,8 +7,8 @@ else
 OUT := 2>&1 | cat >
 endif
 
-%.out:
-	$(RT) --gtest_filter=$* $(OUT) $@
+%.out: $(RT)
+	$(RT) test --gtest_filter=$* $(OUT) $@
 
 .PHONY: list
 list:
