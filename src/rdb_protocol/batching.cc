@@ -152,7 +152,7 @@ batchspec_t batchspec_t::with_max_dur(int64_t new_max_dur) const {
                        first_scaledown_factor, new_max_dur, start_time);
 }
 
-batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
+batchspec_t batchspec_t::with_at_most(uint64_t raw_max_els) const {
     // Special case: if _max_els is 1, we want min_els to also be 1 for maximum
     // efficiency.
     // If _max_els on the other hand is > 1 but still small, having
@@ -160,9 +160,11 @@ batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
     // code would throw out a lot of documents. So in that case we just keep min_els
     // unchanged (and in fact elevate _max_els to min_els if _max_els < min_els
     // otherwise).
-    int64_t new_min_els = _max_els == 1 ? 1 : min_els;
-    int64_t new_max_els = std::max<int64_t>(new_min_els,
-            std::min(uint64_t(std::numeric_limits<int64_t>::max()), _max_els));
+    int64_t new_min_els = raw_max_els == 1 ? 1 : min_els;
+    uint64_t int64max = std::numeric_limits<int64_t>::max();
+    int64_t input_max_els = std::min(int64max, raw_max_els);
+    int64_t real_max_els = std::min(input_max_els, max_els);
+    int64_t new_max_els = std::max(real_max_els, new_min_els);
     return batchspec_t(
         batch_type,
         new_min_els,
