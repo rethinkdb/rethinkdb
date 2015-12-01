@@ -328,13 +328,12 @@ global_optargs_t json_term_storage_t::global_optargs() {
 
     global_optargs_t res;
     r_sanity_check(query_json.IsArray());
+
+    bool has_db_optarg = false;
     if (query_json.Size() >= 3) {
         src = &query_json[2];
         r_sanity_check(src->IsObject());
-        for (auto it = src->MemberBegin(); it != src->MemberEnd(); ++it) {
-            preprocess_global_optarg(&it->value, &allocator);
-            res.add_optarg(raw_term_t(&it->value), it->name.GetString());
-        }
+        has_db_optarg = src->FindMember("db") != src->MemberEnd();
     } else {
         query_json.PushBack(rapidjson::Value(rapidjson::kObjectType),
                             allocator);
@@ -342,7 +341,7 @@ global_optargs_t json_term_storage_t::global_optargs() {
     }
 
     // Create a default db global optarg
-    if (!res.has_optarg("db")) {
+    if (!has_db_optarg) {
         src->AddMember(rapidjson::Value("db", allocator),
                        rapidjson::Value(rapidjson::kArrayType),
                        allocator);
@@ -351,6 +350,10 @@ global_optargs_t json_term_storage_t::global_optargs() {
         it->value.PushBack(rapidjson::Value(rapidjson::kArrayType), allocator);
         it->value[it->value.Size() - 1].PushBack(rapidjson::Value("test", allocator),
                                                  allocator);
+    }
+
+    // This must be done last, because adding the 'db' optarg may cause reallocation
+    for (auto it = src->MemberBegin(); it != src->MemberEnd(); ++it) {
         preprocess_global_optarg(&it->value, &allocator);
         res.add_optarg(raw_term_t(&it->value), it->name.GetString());
     }
