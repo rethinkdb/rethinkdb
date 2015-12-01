@@ -522,8 +522,10 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
 # error occurs.  Progress will resume where it left off.
 def create_table(progress, conn, db, table, pkey, sindexes):
-    if table not in r.db(db).table_list().run(conn):
-        r.db(db).table_create(table, primary_key=pkey).run(conn)
+    # Make sure that the table is ready if it exists, or create it
+    r.branch(r.db(db).table_list().contains(table),
+        r.db(db).table(table).wait(timeout=30),
+        r.db(db).table_create(table, primary_key=pkey)).run(conn)
 
     if progress[0] is None:
         progress[0] = 0
