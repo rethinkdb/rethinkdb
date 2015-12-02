@@ -639,8 +639,14 @@ public:
     continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         store_key_t key(keyvalue.key());
         // Skip keys that are not in the given primary key range.
-        if (pkey_range.contains_key(
-                ql::datum_t::extract_primary(key))) {
+        // As a special case, we skip calling `extract_primary` if the range
+        // is `universe`. This avoids issues such as
+        // https://github.com/rethinkdb/rethinkdb/issues/5158 where we are unable
+        // to parse the keys of deleted indexes because they are in a deprecated
+        // format.
+        if (pkey_range == key_range_t::universe()
+            || pkey_range.contains_key(
+                   ql::datum_t::extract_primary(key))) {
             collected_keys.push_back(store_key_t(keyvalue.key()));
         }
         ++num_traversed;
