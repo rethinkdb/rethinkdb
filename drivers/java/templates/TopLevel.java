@@ -39,7 +39,7 @@ public class TopLevel {
   %if "TopLevel" in term["include_in"]:
     %for methodname in term['methodnames']:
       %for sig in term['signatures']:
-        %if sig['first_arg'] != 'Db':
+        %if sig['first_arg'] not in ['Db', 'Table']:
     public ${term['classname']} ${methodname}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
                   for arg in sig['args'])}){
