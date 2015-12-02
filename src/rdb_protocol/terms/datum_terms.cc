@@ -94,7 +94,11 @@ public:
     }
 
     deterministic_t is_deterministic() const {
-        return all_are_deterministic(optargs);
+        deterministic_t worst_so_far = deterministic_t::always;
+        for (const auto &arg : optargs) {
+            worst_so_far = worst_determinism(worst_so_far, arg.second->is_deterministic());
+        }
+        return worst_so_far;
     }
 
     void accumulate_captures(var_captures_t *captures) const {

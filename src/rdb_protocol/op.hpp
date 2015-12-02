@@ -18,8 +18,8 @@ namespace ql {
 
 class func_term_t;
 
-// Note that the order of these is relevant; they should always go from least
-// deterministic to most deterministic; see all_are_deterministic.
+// Note that worst_determinism depends on the order of these; if you want to add
+// a new value, make sure worst_determinism is properly defined for it.
 enum class deterministic_t {
     // non-deterministic operations, like ones involving external queries
     no,
@@ -31,6 +31,9 @@ enum class deterministic_t {
     // always deterministic, even across different machines
     always,
 };
+
+// Returns the most restrictive deterministic_t value passed in.
+deterministic_t worst_determinism(deterministic_t a, deterministic_t b);
 
 // Specifies the range of normal arguments a function can take (arguments
 // provided by `r.args` count toward the total).  You may also optionally
@@ -107,10 +110,6 @@ private:
 
     DISABLE_COPYING(args_t);
 };
-
-// Calls determinism on the map entries, returns the most restrictive of them.
-deterministic_t all_are_deterministic(
-        const std::map<std::string, counted_t<const term_t> > &optargs);
 
 // Calls accumulate_captures on the map entries.
 void accumulate_all_captures(
