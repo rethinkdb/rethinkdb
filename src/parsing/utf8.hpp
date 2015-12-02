@@ -11,6 +11,10 @@ class datum_string_t;
 
 namespace utf8 {
 
+// Counts the number of codepoints in a UTF-8 string.
+size_t count_codepoints(const datum_string_t &);
+size_t count_codepoints(const char *start, const char *end);
+
 // Simple UTF-8 validation.
 bool is_valid(const std::string &);
 bool is_valid(const char *, const char *);

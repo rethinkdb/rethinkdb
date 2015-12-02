@@ -68,6 +68,21 @@ inline bool is_valid_internal(Iterator begin, Iterator end, reason_t *reason) {
     return true;
 }
 
+size_t count_codepoints(const char *start, const char *end) {
+    rassert(start <= end);
+    size_t ret = 0;
+    for (; start < end; start++) {
+        if ( !is_continuation(*start) ) {
+            ret++;
+        }
+    }
+    return ret;
+}
+
+size_t count_codepoints(const datum_string_t &str) {
+    return count_codepoints(str.data(), str.data() + str.size());
+}
+
 bool is_valid(const datum_string_t &str) {
     reason_t reason;
     return is_valid_internal(str.data(), str.data() + str.size(), &reason);

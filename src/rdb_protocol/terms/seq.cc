@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "parsing/utf8.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
@@ -128,9 +129,18 @@ private:
         if (args->num_args() == 1) {
             if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v0->as_datum();
-                if (d.get_type() == datum_t::R_BINARY) {
+                switch (static_cast<int>(d.get_type())) { // TODO: See issue 5177
+                case datum_t::R_BINARY:
                     return new_val(datum_t(
                        safe_to_double(d.as_binary().size())));
+                case datum_t::R_STR:
+                    return new_val(datum_t(
+                        safe_to_double(utf8::count_codepoints(d.as_str()))));
+                case datum_t::R_OBJECT:
+                    return new_val(datum_t(
+                        safe_to_double(d.obj_size())));
+                default:
+                    break;
                 }
             }
             return v0->as_seq(env->env)

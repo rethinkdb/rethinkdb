@@ -141,3 +141,7 @@ tests:
 
     - cd: obj.values()
       ot: ([1, 2, 'str', null, {'f':'buzz'}])
+
+    ## count
+    - cd: obj.count()
+      ot: 5
