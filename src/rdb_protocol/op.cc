@@ -271,31 +271,19 @@ const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() cons
     return arg_terms->get_original_args();
 }
 
-deterministic_t all_are_deterministic(
-        const std::map<std::string, counted_t<const term_t> > &optargs) {
-    deterministic_t worst_so_far = deterministic_t::always;
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        deterministic_t det = it->second->is_deterministic();
-        if (det < worst_so_far) {
-            worst_so_far = det;
-        }
-    }
-    return worst_so_far;
+deterministic_t worst_determinism(const deterministic_t a, const deterministic_t b) {
+    return a < b ? a : b;
 }
 
 deterministic_t op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
     deterministic_t worst_so_far = deterministic_t::always;
-    for (size_t i = 0; i < original_args.size(); ++i) {
-        deterministic_t det = original_args[i]->is_deterministic();
-        if (det < worst_so_far) {
-            worst_so_far = det;
-        }
+    for (const auto &arg : original_args) {
+        worst_so_far = worst_determinism(worst_so_far, arg->is_deterministic());
     }
-    deterministic_t optargs_det = all_are_deterministic(optargs);
-    if (optargs_det < worst_so_far) {
-        worst_so_far = optargs_det;
+    for (const auto &arg : optargs) {
+        worst_so_far = worst_determinism(worst_so_far, arg.second->is_deterministic());
     }
     return worst_so_far;
 }
