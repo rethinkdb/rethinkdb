@@ -16,10 +16,9 @@ overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : ev
 }
 
 overlapped_operation_t::~overlapped_operation_t() {
-        debugf_overlapped("[%p] destroy\n", this);
-    if (!completed.is_pulsed()) {
-        abort();
-    }
+    debugf_overlapped("[%p] destroy\n", this);
+    // call wait_abortable, set_cancel or abort before destructing
+    rassert(completed.is_pulsed());
 }
 
 void overlapped_operation_t::set_cancel() {

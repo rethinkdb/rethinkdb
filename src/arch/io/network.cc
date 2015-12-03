@@ -1,10 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
-// ATN TODO: when using an overlapped_operation_t, the overlapped
-// operation must complete before it goes out of scope, such as when
-// using wait_any_t
-
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -319,10 +315,12 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     DWORD error = GetLastError();
     if (res || error == ERROR_IO_PENDING) {
         op.wait_abortable(&read_closed);
-        if (read_closed.is_pulsed()) {
-            throw tcp_conn_read_closed_exc_t();
-        }
         error = op.error;
+    } else {
+        op.set_result(0, error);
+    }
+    if (read_closed.is_pulsed()) {
+        throw tcp_conn_read_closed_exc_t();
     }
     if (error != NO_ERROR) {
         logERR("Could not read from socket: %s", winerr_string(error).c_str());
@@ -538,10 +536,12 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     DWORD error = GetLastError();
     if (res == 0 || error == ERROR_IO_PENDING) {
         op.wait_abortable(&write_closed);
-        if (write_closed.is_pulsed()) {
-            return;
-        }
         error = op.error;
+    } else {
+        op.set_result(0, error);
+    }
+    if (write_closed.is_pulsed()) {
+        return;
     }
     /* ATN TODO:
        if (res == -1 && (get_errno() == EPIPE || get_errno() == ENOTCONN || get_errno() == EHOSTUNREACH ||
@@ -1115,8 +1115,6 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             queue_accept();
         }
 
-        accept_op_t(accept_op_t&&) = default;
-
         void queue_accept() {
             op.reset();
             new_sock = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -1134,6 +1132,12 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             }
         }
 
+        ~accept_op_t() {
+            if (!op.get_completed_signal()->is_pulsed()) {
+                op.abort();
+            }
+        }
+
         fd_t listening_sock;
         int address_family;
         char addresses[ADDRESS_SIZE][2];
@@ -1142,9 +1146,9 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         DWORD bytes_recieved;
     };
 
-    scoped_array_t<boost::optional<accept_op_t>> accept_ops(socks.size());
+    scoped_array_t<object_buffer_t<accept_op_t>> accept_ops(socks.size());
     for (size_t i = 0; i < socks.size(); i++) {
-        accept_ops[i].emplace(socks[i].get(), event_watchers[i].get());
+        accept_ops[i].create(socks[i].get(), event_watchers[i].get());
     }
 
     while(!lock.get_drain_signal()->is_pulsed()) {
@@ -1161,7 +1165,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         }
 
         for (size_t i = 0; i < accept_ops.size(); i++) {
-            accept_op_t *accepted = &*accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
+            accept_op_t *accepted = accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()].get();
             if (accepted->op.get_completed_signal()->is_pulsed()) {
                 if (accepted->op.error != NO_ERROR) {
                     logERR("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());

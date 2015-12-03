@@ -22,6 +22,8 @@ int64_t socket_stream_t::read(void *buf, int64_t count) {
         if (res || error == ERROR_IO_PENDING) {
             op.wait_interruptible(interruptor);
             error = op.error;
+        } else {
+            op.set_result(0, error);
         }
         ret = op.nb_bytes;
     }
@@ -54,6 +56,8 @@ int64_t socket_stream_t::write(const void *buf, int64_t count) {
         if (res || error == ERROR_IO_PENDING) {
             op.wait_interruptible(interruptor);
             error = op.error;
+        } else {
+            op.set_result(0, error);
         }
         ret = op.nb_bytes;
     }
@@ -68,7 +72,8 @@ int64_t socket_stream_t::write(const void *buf, int64_t count) {
 void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
     rassert(event_watcher != nullptr);
     overlapped_operation_t op(event_watcher);
-    // TODO ATN: the docs claim that the overlapped must contain a valid event handle
+    // TODO ATN: the docs claim that the overlapped must contain
+    // a valid event handle, but it seems to work without one
     BOOL res = ConnectNamedPipe(fd, &op.overlapped);
     DWORD error = GetLastError();
     if (res || error == ERROR_PIPE_CONNECTED) {
@@ -77,6 +82,8 @@ void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
     if (error == ERROR_IO_PENDING) {
         op.wait_interruptible(interruptor);
         error = op.error;
+    } else {
+        op.set_result(0, error);
     }
     if (error) {
         crash("ConnectNamedPipe failed: %s", winerr_string(error).c_str());
