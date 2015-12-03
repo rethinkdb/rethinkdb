@@ -102,7 +102,7 @@ configure () {
     check_cxx11
     require "Precompiled web assets"
     if [[ -z "$enable_precompiled_web" ]]; then
-        if test -d precompiled/web; then
+        if test -d precompiled/web_assets; then
             enable_precompiled_web=true
         else
             enable_precompiled_web=false
