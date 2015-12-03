@@ -128,10 +128,15 @@ build-osx: install-osx
 
 ##### Source distribution
 
+.PHONY: clean-dist-dir
+clean-dist-dir:
+	$P RM $(DIST_DIR)
+	rm -rf $(DIST_DIR)
+
 .PHONY: reset-dist-dir
 reset-dist-dir: FORCE | web-assets
-	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
-	rm -rf $(DIST_DIR)
+	test ! -e $(DIST_DIR) || { echo "error: $(DIST_DIR) exists. make clean-dist-dir first"; false; }
+	$P CP $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	cp -pRP $(DIST_FILE_LIST) $(DIST_DIR)
 
@@ -146,18 +151,23 @@ $(DIST_DIR)/configure.default: FORCE | reset-dist-dir
 	echo $(DIST_CONFIGURE_DEFAULT) >> $(DIST_DIR)/configure.default
 	echo $(DIST_CONFIGURE_DEFAULT_FETCH) >> $(DIST_DIR)/configure.default
 
-$(DIST_DIR)/precompiled/web: web-assets | reset-dist-dir
-	$P CP $(WEB_ASSETS_BUILD_DIR) $@
-	mkdir -p $(DIST_DIR)/precompiled
-	rm -rf $@
-	cp -pRP $(WEB_ASSETS_BUILD_DIR) $@
+$(DIST_DIR)/precompiled/%: $(BUILD_ROOT_DIR)/% | reset-dist-dir
+	$P CP
+	mkdir -p $(@D)
+	cp -f $< $@
 
 $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 	$P ECHO "> $@"
 	echo -n $(RETHINKDB_CODE_VERSION) > $@
 
+PRECOMPILED_ASSETS := $(DIST_DIR)/precompiled/web_assets/web_assets.cc
+PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.h
+PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.cc
+
+.PRECIOUS: $(PRECOMPILED_ASSETS)
+
 .PHONY: dist-dir
-dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(DIST_DIR)/precompiled/web
+dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(PRECOMPILED_ASSETS)
 dist-dir: $(DIST_DIR)/VERSION.OVERRIDE $(DIST_SUPPORT) $(DIST_DIR)/configure.default
 ifneq (,$(MISSING_DIST_SUPPORT_PACKAGES))
 	$(error Missing source packages in external. Please configure with '$(patsubst %,--fetch %,$(MISSING_DIST_SUPPORT_PACKAGES))')
