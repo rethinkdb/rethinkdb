@@ -153,7 +153,7 @@ bool calculate_split_points_with_distribution(
 
 store_key_t key_for_uuid(uint64_t first_8_bytes) {
     uuid_u uuid;
-    bzero(uuid.data(), uuid_u::static_size());
+    memset(uuid.data(), 0, uuid_u::static_size());
     for (size_t i = 0; i < 8; i++) {
         /* Copy one byte at a time to avoid endianness issues */
         uuid.data()[i] = (first_8_bytes >> (8 * (7 - i))) & 0xFF;

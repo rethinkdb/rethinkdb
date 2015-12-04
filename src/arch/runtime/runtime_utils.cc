@@ -7,9 +7,14 @@
 #include "arch/runtime/coroutines.hpp"
 #include "logger.hpp"
 
-
 int get_cpu_count() {
+#ifndef _WIN32
     return sysconf(_SC_NPROCESSORS_ONLN);
+#else
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
+#endif
 }
 
 callable_action_wrapper_t::callable_action_wrapper_t() :
@@ -42,6 +47,8 @@ void callable_action_wrapper_t::run() {
     action_->run_action();
 }
 
+#ifndef _WIN32
+
 struct sigaction make_basic_sigaction() {
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -66,4 +73,5 @@ struct sigaction make_sa_sigaction(int sa_flags, void (*sa_sigaction_func)(int, 
     return sa;
 }
 
+#endif
 

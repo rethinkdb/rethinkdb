@@ -69,6 +69,10 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
 
     guarantee(opened_temporary_);
+
+#ifdef _WIN32
+    // TODO WINDOWS
+#else
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
@@ -78,6 +82,7 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     }
 
     warn_fsync_parent_directory(file_name().c_str());
+#endif
 
     opened_temporary_ = false;
 }
@@ -160,7 +165,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
     metablock_t metablock;
-    bzero(&metablock, sizeof(metablock));
+    memset(&metablock, 0, sizeof(metablock));
 
     extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
@@ -919,7 +924,7 @@ void log_serializer_t::on_datablock_manager_shutdown() {
 
 void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     assert_thread();
-    bzero(mb_buffer, sizeof(*mb_buffer));
+    memset(mb_buffer, 0, sizeof(*mb_buffer));
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
@@ -996,7 +1001,7 @@ void debug_print(printf_buffer_t *buf,
 }
 
 void counted_add_ref(ls_block_token_pointee_t *p) {
-    DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    DEBUG_VAR intptr_t res = ++(p->ref_count_);
     rassert(res > 0);
 }
 
@@ -1010,7 +1015,7 @@ void counted_release(ls_block_token_pointee_t *p) {
         ls_block_token_pointee_t *p;
     };
 
-    intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    intptr_t res = --(p->ref_count_);
     rassert(res >= 0);
     if (res == 0) {
         if (get_thread_id() == p->serializer_->home_thread()) {

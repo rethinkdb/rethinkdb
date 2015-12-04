@@ -5,7 +5,10 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
 
 #include "arch/compiler.hpp"
 #include "arch/barrier.hpp"
@@ -17,7 +20,7 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-#ifndef VALGRIND
+#if !defined(VALGRIND) && !defined(_WIN32)
 // This needs to be large enough for abi::__cxa_demangle to not overflow the stack.
 // If this is too small, you may see memory corruption and crashes when attempting
 // to format a backtrace.
@@ -88,6 +91,7 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
+#ifndef _WIN32
     // Block all signals but `SIGSEGV` and `SIGBUS` (will be unblocked by the event
     // queue in case of poll).
     {
@@ -103,6 +107,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_xerr(res == 0, res, "Could not block signal");
     }
+#endif
 
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
 
@@ -122,6 +127,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         running under valgrind, we don't install this handler because Valgrind will print the
         backtrace for us. */
 #ifndef VALGRIND
+#ifndef _WIN32
         scoped_page_aligned_ptr_t<void> stack_base(SIGNAL_HANDLER_STACK_SIZE);
         stack_t signal_stack;
         signal_stack.ss_sp = stack_base.get();
@@ -140,7 +146,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
             res = sigaction(SIGBUS, &sa, NULL);
             guarantee_err(res == 0, "Could not install BUS signal handler");
         }
-
+#endif
 #endif  // VALGRIND
 
         // First thread should initialize generic_blocker_pool before the start barrier
@@ -237,6 +243,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // not really important.
 
     set_thread_pool(this);   // So signal handlers can find us
+#ifndef _WIN32
     {
         struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
@@ -246,6 +253,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
     }
+#endif
 
     // Wait for order to shut down
 
@@ -260,8 +268,8 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
     guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
+#ifndef _WIN32
     // Remove interrupt handlers
-
     {
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
 
@@ -271,6 +279,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
+#endif
     set_thread_pool(NULL);
 
 #ifndef NDEBUG
@@ -319,6 +328,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif  // NDEBUG
 }
 
+#ifndef _WIN32
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,
@@ -361,6 +371,7 @@ void linux_thread_pool_t::fatal_signal_handler(
         crash("Unexpected signal: %d\n", signum);
     }
 }
+#endif
 
 void linux_thread_pool_t::shutdown_thread_pool() {
     int res;
@@ -404,7 +415,7 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     guarantee_xerr(res == 0, res, "could not initialize do_shutdown_mutex");
 
     // Watch an eventfd for shutdown notifications
-    queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
+    queue.watch_event(&shutdown_notify_event, this);
 }
 
 linux_thread_t::~linux_thread_t() {

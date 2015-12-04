@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include "arch/io/io_utils.hpp"
 #include "arch/types.hpp"
+#include "arch/process.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "containers/object_buffer.hpp"
 

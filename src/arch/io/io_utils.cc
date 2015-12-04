@@ -1,24 +1,38 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/io_utils.hpp"
 
+#ifndef _WIN32
 #include <sys/syscall.h>
+#else
+#include "windows.hpp"
+#endif
+
 #include <sys/uio.h>
 #include <unistd.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include "logger.hpp"
 
+#ifndef _WIN32
 int _gettid() {
     return syscall(SYS_gettid);
 }
+#endif
 
 fd_t scoped_fd_t::reset(fd_t f2) {
     if (fd != INVALID_FD) {
+#ifdef _WIN32
+        BOOL res = CloseHandle(fd);
+        guarantee_winerr(res != 0, "CloseHandle failed");
+#else
         int res;
         do {
             res = close(fd);
         } while (res != 0 && get_errno() == EINTR);
         guarantee_err(res == 0, "error returned by close(2)");
+#endif
     }
     fd = f2;
     return f2;

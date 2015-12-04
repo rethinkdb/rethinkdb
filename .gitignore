@@ -44,3 +44,9 @@ last_tested_versions
 /**/.rethinkdbTestTemp-*
 /**/run
 /test_results.*
+
+/windows_deps/
+/x64/
+/RethinkDB.sdf
+/RethinkDB.vcxproj.*
+/precompiled

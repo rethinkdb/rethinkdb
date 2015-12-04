@@ -128,7 +128,7 @@ void lba_disk_structure_t::write_superblock(file_account_t *io_account,
     /* Prepare the new superblock. */
 
     scoped_malloc_t<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
-    bzero(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+    memset(buffer.get(), 0, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
 
     lba_superblock_t *new_superblock = reinterpret_cast<lba_superblock_t *>(buffer.get());
     memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);

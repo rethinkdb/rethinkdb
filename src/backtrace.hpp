@@ -21,6 +21,7 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
+#ifndef _WIN32
 class address_to_line_t {
 public:
     address_to_line_t() { }
@@ -50,6 +51,7 @@ private:
 
     DISABLE_COPYING(address_to_line_t);
 };
+#endif
 
 std::string format_backtrace(bool use_addr2line = true);
 

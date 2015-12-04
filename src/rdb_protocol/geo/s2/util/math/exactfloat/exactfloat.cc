@@ -18,6 +18,11 @@ using std::max;
 using std::swap;
 using std::reverse;
 using std::numeric_limits;
+using std::frexp;
+using std::fabs;
+using std::ldexp;
+using std::copysign;
+using std::ceil;
 
 #ifndef __APPLE__
 using std::signbit;
@@ -104,9 +109,9 @@ static int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
 ExactFloat::ExactFloat(double v) {
   BN_init(&bn_);
   sign_ = signbit(v) ? -1 : 1;
-  if (isnan(v)) {
+  if (std::isnan(v)) {
     set_nan();
-  } else if (isinf(v)) {
+  } else if (std::isinf(v)) {
     set_inf(sign_);
   } else {
     // The following code is much simpler than messing about with bit masks,

@@ -2,6 +2,30 @@
 #ifndef ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 #define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
+#ifdef _WIN32
+
+// TODO WINDOWS: implement this
+
+struct fiber_context_ref_t {
+    bool is_nil();
+};
+
+class fiber_stack_t {
+public:
+    fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
+    bool address_in_stack(const void *addr) const;
+    bool address_is_stack_overflow(const void *addr) const;
+    size_t free_space_below(const void *addr) const;
+    fiber_context_ref_t context;
+};
+
+void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);
+
+typedef fiber_stack_t coro_stack_t;
+typedef fiber_context_ref_t coro_context_ref_t;
+
+#else
+
 #include <pthread.h>
 
 #include "errors.hpp"
@@ -210,5 +234,5 @@ typedef artificial_stack_t coro_stack_t;
 typedef artificial_stack_context_ref_t coro_context_ref_t;
 #endif
 
-
+#endif /* !defined(_WIN32) */
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

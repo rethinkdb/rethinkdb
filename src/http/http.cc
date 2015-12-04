@@ -5,7 +5,6 @@
 #include <zlib.h>
 
 #include <exception>
-
 #include <re2/re2.h>
 
 #include "errors.hpp"
@@ -170,10 +169,6 @@ http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_ty
     : code(rescode)
 {
     set_body(content_type, content);
-}
-
-void http_res_t::add_last_modified(int) {
-    not_implemented();
 }
 
 void http_res_t::add_header_line(const std::string& key, const std::string& val) {
@@ -645,8 +640,13 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
 
 std::string http_format_date(const time_t date) {
     struct tm t;
+#ifndef _WIN32
     struct tm *res1 = gmtime_r(&date, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
+#else
+    errno_t err = gmtime_s(&t, &date);
+    guarantee_xerr(err == 0, err, "gmtime_s failed");
+#endif
 
     static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",

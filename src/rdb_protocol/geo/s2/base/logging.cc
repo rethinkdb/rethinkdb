@@ -26,7 +26,7 @@ DateLogger::DateLogger() {
 }
 
 const char *DateLogger::HumanDate() {
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   _strtime_s(buffer_, sizeof(buffer_));
 #else
   time_t time_value = time(NULL);

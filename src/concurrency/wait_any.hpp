@@ -15,7 +15,7 @@ class wait_any_t : public signal_t {
 public:
     template <typename... Args>
     explicit wait_any_t(Args... args) {
-        UNUSED int arr[] = { (add(args), 1)... };
+        UNUSED int arr[] = { 0, (add(args), 1)... };
     }
 
     ~wait_any_t();

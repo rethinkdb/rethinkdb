@@ -4,7 +4,7 @@
 #include "arch/address.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"

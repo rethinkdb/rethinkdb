@@ -30,7 +30,7 @@
 #include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rapidjson/stringbuffer.h"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"

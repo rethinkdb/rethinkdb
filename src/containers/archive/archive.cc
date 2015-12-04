@@ -2,7 +2,12 @@
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
+
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include <algorithm>
 
@@ -151,4 +156,5 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
 
 INSTANTIATE_SERIALIZABLE_SINCE_v1_13(in6_addr);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(in_addr, s_addr);
+// Keep the struct keyword here to satisfy VC++
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(struct in_addr, s_addr);

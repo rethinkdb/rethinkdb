@@ -2,6 +2,8 @@
 #ifndef EXTPROC_EXTPROC_POOL_HPP_
 #define EXTPROC_EXTPROC_POOL_HPP_
 
+#include <atomic>
+
 #include "arch/timing.hpp"
 #include "utils.hpp"
 #include "containers/scoped.hpp"
@@ -54,7 +56,8 @@ private:
     } ct_interruptors;
 
     // Worker counters for the deallocation window.
-    int worker_cnt, prev_worker_cnt;
+	std::atomic<int> worker_cnt;
+	int prev_worker_cnt;
 
     // Acquire / Release worker notifications.
     void on_worker_acquired();

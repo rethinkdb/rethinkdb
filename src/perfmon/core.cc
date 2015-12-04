@@ -3,7 +3,6 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
-#include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
 #include "utils.hpp"

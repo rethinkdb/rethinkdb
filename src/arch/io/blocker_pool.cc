@@ -27,6 +27,7 @@ void* blocker_pool_t::event_loop(void *arg) {
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
+#ifndef _WIN32
     // Disable signals on this thread. This ensures that signals like SIGINT are
     // handled by one of the main threads.
     {
@@ -37,6 +38,7 @@ void* blocker_pool_t::event_loop(void *arg) {
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_xerr(res == 0, res, "Could not block signal");
     }
+#endif
 
     while (true) {
         // Wait for an IO command or shutdown command. The while-loop guards against spurious
@@ -108,13 +110,13 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
     }
 
     // Register with event queue so we get the completion events
-    queue->watch_resource(ce_signal.get_notify_fd(), poll_event_in, this);
+    queue->watch_event(&ce_signal, this);
 }
 
 blocker_pool_t::~blocker_pool_t() {
 
     // Deregister with the event queue
-    queue->forget_resource(ce_signal.get_notify_fd(), this);
+    queue->forget_event(&ce_signal, this);
 
     /* Send out the order to shut down */
     {

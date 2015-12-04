@@ -3,7 +3,6 @@
 #define ARCH_RUNTIME_MESSAGE_HUB_HPP_
 
 #include <pthread.h>
-#include <strings.h>
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime_utils.hpp"

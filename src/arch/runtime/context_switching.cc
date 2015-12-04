@@ -1,6 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/context_switching.hpp"
 
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 #include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -550,3 +556,4 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 
+#endif // _WIN32

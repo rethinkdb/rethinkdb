@@ -198,7 +198,7 @@ private:
     static void return_coro_to_free_list(coro_t *coro);
     static void maybe_evict_from_free_list();
 
-    static void run() NORETURN;
+    NORETURN static void run();
 
     friend class coro_profiler_t;
     friend struct coro_globals_t;

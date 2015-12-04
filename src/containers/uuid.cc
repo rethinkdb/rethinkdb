@@ -110,7 +110,7 @@ void hash_uuid(uuid_u *uuid) {
 
 void initialize_dev_random_uuid() {
     next_uuid_t next_uuid;
-    get_dev_urandom(next_uuid.data(), uuid_u::static_size());
+    system_random_bytes(next_uuid.data(), uuid_u::static_size());
     TLS_set_next_uuid(next_uuid);
 }
 

@@ -113,7 +113,8 @@ It find_utf8_pred(It start, It end, std::function<bool(char32_t)> &&fn) {
     return pos;
 }
 template <typename It> It find_space(It start, It end) {
-    return find_utf8_pred(std::forward<It>(start), std::forward<It>(end), is_whitespace_character);
+    return find_utf8_pred(std::forward<It>(start), std::forward<It>(end),
+                          std::function<bool(char32_t)>(is_whitespace_character));
 }
 template <typename It>
 It find_non_space(It start, It end) {

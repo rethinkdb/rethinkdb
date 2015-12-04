@@ -125,7 +125,7 @@ def generate_async_message_template(nargs):
         print "    %s::write_impl_t writer;" % mailbox_t_str
     else:
         print "    typename %s::write_impl_t writer(%s);" % (mailbox_t_str, csep("arg#"))
-    print "    send(src, dest.addr, &writer);"
+    print "    send_write(src, dest.addr, &writer);"
     print "}"
     print
 
@@ -142,6 +142,7 @@ if __name__ == "__main__":
     print "#include <functional>"
     print
     print "#include \"containers/archive/versioned.hpp\""
+    print "#include \"containers/archive/boost_types.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print "#include \"rpc/semilattice/joins/macros.hpp\""

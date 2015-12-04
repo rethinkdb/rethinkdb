@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <libgen.h>
 #include <limits.h>
-#include <pwd.h>
-#include <grp.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifndef _WIN32
+#include <pwd.h>
+#include <grp.h>
+#endif
 
 // Needed for determining rethinkdb binary path below
 #if defined(__MACH__)
@@ -27,6 +29,8 @@
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
+#include "arch/filesystem.hpp"
+
 #include "extproc/extproc_spawner.hpp"
 #include "clustering/administration/main/cache_size.hpp"
 #include "clustering/administration/main/names.hpp"
@@ -78,10 +82,7 @@ int check_pid_file(const std::string &pid_filepath) {
         return EXIT_FAILURE;
     }
 
-    // Make a copy of the filename since `dirname` may modify it
-    char pid_dir[PATH_MAX];
-    strncpy(pid_dir, pid_filepath.c_str(), PATH_MAX);
-    if (access(dirname(pid_dir), W_OK) == -1) {
+    if (access(strdirname(pid_filepath).c_str(), W_OK) == -1) {
         logERR("Cannot access the pid-file directory.");
         return EXIT_FAILURE;
     }
@@ -144,6 +145,7 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, opt
     return get_optional_option(opts, name, &source);
 }
 
+#ifndef _WIN32
 // Returns false if the group was not found.  This function replaces a call to
 // getgrnam(3).  That's right, getgrnam_r's interface is such that you have to
 // go through these shenanigans.
@@ -308,6 +310,7 @@ void get_and_set_user_group_and_directory(
     directory_lock->change_ownership(group_id, group_name, user_id, user_name);
     set_user_group(group_id, group_name, user_id, user_name);
 }
+#endif
 
 int check_pid_file(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
@@ -697,6 +700,29 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
+#ifdef _WIN32
+std::string windows_version_string() {
+    // TODO WINDOWS: the return value of GetVersion may be capped,
+    // see https://msdn.microsoft.com/en-us/library/dn481241(v=vs.85).aspx
+    DWORD version = GetVersion();
+    int major = LOBYTE(LOWORD(version));
+    int minor = HIBYTE(LOWORD(version));
+    int build = version < 0x80000000 ?  HIWORD(version) : 0;
+    std::string name;
+    switch (LOWORD(version)) {
+    case 0x000A: name ="Windows 10, Server 2016"; break;
+    case 0x0306: name ="Windows 8.1, Server 2012"; break;
+    case 0x0206: name ="Windows 8, Server 2012"; break;
+    case 0x0106: name ="Windows 7, Server 2008 R2"; break;
+    case 0x0006: name ="Windows Vista, Server 2008"; break;
+    case 0x0205: name ="Windows XP 64-bit, Server 2003"; break;
+    case 0x0105: name ="Windows XP"; break;
+    case 0x0005: name ="Windows 2000"; break;
+    default: name = "Unkown";
+    }
+    return strprintf("%d.%d.%d (%s)", major, minor, build, name.c_str());
+}
+#else
 // WARNING WARNING WARNING blocking
 // if in doubt, DO NOT USE.
 std::string run_uname(const std::string &flags) {
@@ -716,6 +742,7 @@ std::string run_uname(const std::string &flags) {
 std::string uname_msr() {
     return run_uname("msr");
 }
+#endif
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
@@ -729,7 +756,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
     logNTC("Running %s...\n", RETHINKDB_VERSION_STR);
+#ifdef _WIN32
+    logNTC("Running on %s", windows_version_string().c_str());
+#else
     logNTC("Running on %s", uname_msr().c_str());
+#endif
     os_signal_cond_t sigint_cond;
 
     logNTC("Loading data from directory %s\n", base_path.path().c_str());
@@ -872,6 +903,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 }
 
 void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
+
     os_signal_cond_t sigint_cond;
     guarantee(!serve_info->joins.empty());
 
@@ -1263,7 +1295,7 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
     if (max_concurrent_io_requests <= 0
         || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
+        fprintf(stderr, "ERROR: io-threads must be between 1 and %d\n",
                 MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
         return false;
     }
@@ -1327,7 +1359,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+#ifndef _WIN32
         get_and_set_user_group_and_directory(opts, &data_directory_lock);
+#endif
 
         initialize_logfile(opts, base_path);
 
@@ -1365,6 +1399,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
+#ifdef _WIN32
+        crash("TODO WINDOWS: --daemon is not implemented");
+#else
         pid_t pid = fork();
         if (pid < 0) {
             throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
@@ -1394,7 +1431,8 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
         if (freopen("/dev/null", "w", stderr) == NULL) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-    }
+#endif
+	}
     return true;
 }
 
@@ -1412,7 +1450,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
+#ifndef _WIN32
         get_and_set_user_group(opts);
+#endif
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
@@ -1522,7 +1562,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+#ifndef _WIN32
         get_and_set_user_group(opts);
+#endif
 
         // Default to putting the log file in the current working directory
         base_path_t base_path(".");
@@ -1671,11 +1713,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
+#ifndef _WIN32
         if (is_new_directory) {
             get_and_set_user_group_and_directory(opts, &data_directory_lock);
         } else {
             get_and_set_user_group(opts);
         }
+#endif
 
         base_path.make_absolute();
         initialize_logfile(opts, base_path);

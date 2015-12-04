@@ -3,6 +3,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
+#include "utils.hpp"
 
 watchdog_timer_t::blocker_t::blocker_t(watchdog_timer_t *p) : parent(p) {
     parent->assert_thread();

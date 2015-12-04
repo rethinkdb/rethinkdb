@@ -93,7 +93,7 @@ struct coro_globals_t {
 
 };
 
-TLS_with_init(coro_globals_t *, cglobals, NULL);
+TLS_with_init(coro_globals_t *, cglobals, nullptr);
 
 // These must be initialized after TLS_cglobals, because perfmon_multi_membership_t
 // construction depends on coro_t::coroutines_have_been_initialized() which in turn
@@ -111,7 +111,7 @@ coro_runtime_t::coro_runtime_t() {
 coro_runtime_t::~coro_runtime_t() {
     rassert(TLS_get_cglobals());
     delete TLS_get_cglobals();
-    TLS_set_cglobals(NULL);
+    TLS_set_cglobals(nullptr);
 }
 
 #ifndef NDEBUG

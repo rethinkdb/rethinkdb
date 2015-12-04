@@ -2,11 +2,16 @@
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
+#ifndef _WIN32
 #include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
+#else
+#include "windows.hpp"
+#include <inaddr.h>
+#endif
 
 #include <algorithm>
 #include <string>
@@ -61,7 +66,7 @@ class ip_address_t {
 public:
     ip_address_t() : addr_type(RDB_UNSPEC_ADDR) { } // for deserialization
 
-    explicit ip_address_t(const sockaddr *sa);
+    explicit ip_address_t(const struct sockaddr *sa);
     explicit ip_address_t(const std::string &addr_str);
 
     static ip_address_t any(int address_family);
@@ -108,19 +113,19 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
 
 class port_t {
 public:
-    static constexpr int max_port = 65535;
+    static constexpr int max_port = MAX_PORT;
 
     explicit port_t(int _port);
-    explicit port_t(sockaddr const *);
+    explicit port_t(struct sockaddr const *);
 
-    int value() const;
+    uint16_t value() const;
 
     std::string to_string() const;
 
     RDB_MAKE_ME_SERIALIZABLE_1(port_t, value_);
 
 private:
-    int value_;
+    uint16_t value_;
 };
 
 class ip_and_port_t {

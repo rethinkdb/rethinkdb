@@ -8,6 +8,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include <functional>
 
 #include "containers/archive/versioned.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -132,7 +133,7 @@ inline
 void send(mailbox_manager_t *src,
            mailbox_t< void() >::address_t dest) {
     mailbox_t< void() >::write_impl_t writer;
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -204,7 +205,7 @@ template<class arg0_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
     typename mailbox_t< void(arg0_t) >::write_impl_t writer(arg0);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -281,7 +282,7 @@ template<class arg0_t, class arg1_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
     typename mailbox_t< void(arg0_t, arg1_t) >::write_impl_t writer(arg0, arg1);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -363,7 +364,7 @@ template<class arg0_t, class arg1_t, class arg2_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write_impl_t writer(arg0, arg1, arg2);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -450,7 +451,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write_impl_t writer(arg0, arg1, arg2, arg3);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -542,7 +543,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -639,7 +640,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -741,7 +742,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -848,7 +849,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -960,7 +961,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -1077,7 +1078,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -1199,7 +1200,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -1326,7 +1327,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -1458,7 +1459,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 
@@ -1595,7 +1596,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
-    send(src, dest.addr, &writer);
+    send_write(src, dest.addr, &writer);
 }
 
 #endif // RPC_MAILBOX_TYPED_HPP_

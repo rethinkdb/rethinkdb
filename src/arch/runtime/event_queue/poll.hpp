@@ -9,6 +9,7 @@
 
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/system_event.hpp"
 #include "errors.hpp"
 
 // Event queue structure
@@ -22,6 +23,8 @@ public:
     void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void forget_resource(fd_t resource, linux_event_callback_t *cb);
+    void watch_event(system_event_t *, linux_event_callback_t *cb);
+    void forget_event(system_event_t *, linux_event_callback_t *cb);
 
 private:
     linux_queue_parent_t *parent;
@@ -31,6 +34,5 @@ private:
 
     DISABLE_COPYING(poll_event_queue_t);
 };
-
 
 #endif // ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_

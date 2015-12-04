@@ -1,6 +1,10 @@
 #include "time.hpp"
 
+#include <inttypes.h>
+
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
 
 #ifdef __MACH__
 #include <mach/mach_time.h>
@@ -11,6 +15,8 @@
 #include "config/args.hpp"
 #include "errors.hpp"
 
+#ifndef _MSC_VER
+
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
@@ -18,6 +24,19 @@ microtime_t current_microtime() {
     rassert(0 == res);
     return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
 }
+
+#else
+
+microtime_t current_microtime() {
+    FILETIME time;
+    GetSystemTimePreciseAsFileTime(&time);
+    ULARGE_INTEGER nanos100;
+    nanos100.LowPart = time.dwLowDateTime;
+    nanos100.HighPart = time.dwHighDateTime;
+    return nanos100.QuadPart / 10;
+}
+
+#endif
 
 ticks_t secs_to_ticks(time_t secs) {
     return static_cast<ticks_t>(secs) * BILLION;
@@ -41,6 +60,19 @@ timespec clock_monotonic() {
     ret.tv_sec = nanosecs / BILLION;
     ret.tv_nsec = nanosecs % BILLION;
     return ret;
+#elif defined(_WIN32)
+    timespec ret;
+    static LARGE_INTEGER frequency_hz = {0};
+    if (frequency_hz.QuadPart == 0) {
+        BOOL res = QueryPerformanceFrequency(&frequency_hz);
+        guarantee_winerr(res, "QueryPerformanceFrequency failed");
+    }
+    LARGE_INTEGER counter;
+    BOOL res = QueryPerformanceCounter(&counter);
+    guarantee_winerr(res, "QueryPerformanceCounter failed");
+    ret.tv_sec = counter.QuadPart / frequency_hz.QuadPart;
+    ret.tv_nsec = (counter.QuadPart - ret.tv_sec * frequency_hz.QuadPart) * BILLION / frequency_hz.QuadPart;
+    return ret;
 #else
     timespec ret;
     int res = clock_gettime(CLOCK_MONOTONIC, &ret);
@@ -58,6 +90,16 @@ timespec clock_realtime() {
     timespec ret;
     ret.tv_sec = tv.tv_sec;
     ret.tv_nsec = THOUSAND * tv.tv_usec;
+    return ret;
+#elif defined(_MSC_VER)
+    FILETIME time;
+    GetSystemTimePreciseAsFileTime(&time);
+    ULARGE_INTEGER nanos100;
+    nanos100.LowPart = time.dwLowDateTime;
+    nanos100.HighPart = time.dwHighDateTime;
+    timespec ret;
+    ret.tv_sec = nanos100.QuadPart / (MILLION * 10);
+    ret.tv_nsec = (nanos100.QuadPart % (MILLION * 10)) * 100;
     return ret;
 #else
     timespec ret;
@@ -117,7 +159,8 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
 
 ticks_t get_ticks() {
     timespec tv = clock_monotonic();
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    ticks_t ticks = secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    return ticks;
 }
 
 time_t get_secs() {

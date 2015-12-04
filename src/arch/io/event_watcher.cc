@@ -2,6 +2,12 @@
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh) :
     fd(f), error_handler(eh),
     in_watcher(NULL), out_watcher(NULL),
@@ -132,3 +138,4 @@ void linux_event_watcher_t::on_event(int event) {
     }
 }
 
+#endif

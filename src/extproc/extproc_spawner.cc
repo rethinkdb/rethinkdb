@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32
+
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -230,3 +232,5 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     scoped_fd_t closer(fds[1]);
     return fds[0];
 }
+
+#endif

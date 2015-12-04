@@ -7,7 +7,7 @@
 
 #include "client_protocol/server.hpp"
 #include "rapidjson/document.h"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"

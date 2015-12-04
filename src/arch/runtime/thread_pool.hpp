@@ -68,9 +68,13 @@ private:
 #endif
 
     static void *start_thread(void*);
+
+#ifndef _WIN32
     static void interrupt_handler(int signo, siginfo_t *siginfo, void *);
     // Currently handles SIGSEGV and SIGBUS signals.
     static void fatal_signal_handler(int, siginfo_t *, void *) NORETURN;
+#endif
+
     spinlock_t interrupt_message_lock;
     os_signal_cond_t *interrupt_message;
 

@@ -128,17 +128,17 @@ static const char *parse_number(cJSON *item, const char *num) {
 
 /* Render the number nicely from the given item into a string. */
 static char *print_number(cJSON *item) {
-    char *str;
     double d = item->valuedouble;
     guarantee(risfinite(d));
-    int ret;
     if (d == 0.0 && std::signbit(d)) {
-        ret = asprintf(&str, "-0.0");
+        return cJSON_strdup("-0.0");
     } else {
-        ret = asprintf(&str, "%.20g", d);
+        const int max_float_size = 2014;
+        char *str = static_cast<char*>(cJSON_malloc(max_float_size));
+        int ret = snprintf(str, max_float_size, "%.20g", d);
+        guarantee(ret && ret < max_float_size);
+        return str;
     }
-    guarantee(ret);
-    return str;
 }
 
 static unsigned parse_hex4(const char *str)
