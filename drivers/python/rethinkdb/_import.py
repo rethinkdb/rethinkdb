@@ -117,8 +117,8 @@ def parse_options():
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
 
     # Replication settings
-    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=1, type="int")
-    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=1, type="int")
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=None, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=None, type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
