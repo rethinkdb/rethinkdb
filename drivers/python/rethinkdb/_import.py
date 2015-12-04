@@ -802,7 +802,7 @@ def import_directory(options):
 
     spawn_import_clients(options, files_info)
 
-def table_check(progress, conn, db, table, pkey, force):
+def table_check(progress, conn, db, table, pkey, shards, replicas, force):
     if db == "rethinkdb":
         raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
 
@@ -820,9 +820,9 @@ def table_check(progress, conn, db, table, pkey, force):
     else:
         if pkey is None:
             print("no primary key specified, using default primary key when creating table")
-            r.db(db).table_create(table).run(conn)
+            r.db(db).table_create(table, shards=shards, replicas=replicas).run(conn)
         else:
-            r.db(db).table_create(table, primary_key=pkey).run(conn)
+            r.db(db).table_create(table, primary_key=pkey, shards=shards, replicas=replicas).run(conn)
     return pkey
 
 def import_file(options):
@@ -835,7 +835,7 @@ def import_file(options):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
-    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
+    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["shards"], options["replicas"], options["force"])
 
     # Make this up so we can use the same interface as with an import directory
     file_info = {}
