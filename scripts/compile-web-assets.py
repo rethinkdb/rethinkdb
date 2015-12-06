@@ -49,11 +49,11 @@ def write_assets(asset_root, assets):
         position = 0 # track the position to keep lines short
         trigraph = 0 # track consecutive question marks to avoid writing trigraphs
         prev_e = None # track the previous character to avoid tacking on hex digits
-        index = 0
+        literal_size = 0 # number of characters in the current string literal
 
         for c in data:
             c = byte(c)
-            index += 1
+            literal_size += 1
 
             if position == 0:
                 print('\n      "', end='')
@@ -82,10 +82,10 @@ def write_assets(asset_root, assets):
                 # end a line if it gets too long and on newlines
                 print('"', end='')
                 position = 0
-                if index > MAX_LITERAL_SIZE - MAX_LINE_LENGTH:
+                if literal_size > MAX_LITERAL_SIZE - MAX_LINE_LENGTH:
                     print(',')
-                    print('      ' + str(index) + ') + std::string(', end='')
-                    index = 0
+                    print('      ' + str(literal_size) + ') + std::string(', end='')
+                    literal_size = 0
 
 
         if position != 0:
@@ -94,9 +94,9 @@ def write_assets(asset_root, assets):
         if not data:
             print('""', end='')
 
-        if index:
+        if literal_size:
             print(',')
-            print('      ' + str(index) + ' ) },')
+            print('      ' + str(literal_size) + ' ) },')
         else:
             print('"") },')
 

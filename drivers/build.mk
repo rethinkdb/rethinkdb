@@ -1,4 +1,4 @@
-# Copyright 2010-2013 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 DRIVERS_DIR := $(TOP)/drivers
 

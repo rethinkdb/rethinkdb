@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string>
 
+#include "arch/compiler.hpp"
+
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
