@@ -11,15 +11,14 @@
 #ifndef _WIN32
 
 typedef int fd_t;
-#define INVALID_FD fd_t(-1)
+const fd_t INVALID_FD = -1;
 
 #else
 
 typedef HANDLE fd_t;
-#define INVALID_FD INVALID_HANDLE_VALUE
+#define fd_t INVALID_FD = INVALID_HANDLE_VALUE;
 
 #endif
-
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:

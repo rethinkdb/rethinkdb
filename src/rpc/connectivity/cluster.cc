@@ -105,7 +105,7 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
 
 #if defined (__x86_64__) || defined (_WIN64)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__) || defined(__arm__)
+#elif defined (__i386__) || defined(__arm__) || defined(_WIN32)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
@@ -372,7 +372,7 @@ void connectivity_cluster_t::run_t::join_blocking(
     static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
-    pmap(peer.ips().size(),
+    pmap(peer.ips().size(), /* TODO ATN casting from int64_t to int */
          std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
                    this,
                    &peer,
@@ -1335,7 +1335,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         buf.appendf(" to ");
         debug_print(&buf, dest);
         buf.appendf("\n");
-        print_hd(buffer.vector().data(), 0, buffer.vector().size());
+        print_hexdump(buffer.vector().data(), 0, buffer.vector().size());
     }
 #endif
 

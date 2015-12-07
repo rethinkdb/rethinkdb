@@ -1,6 +1,17 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/thread_pool.hpp"
 
+/* TODO ATN: windows ^C handler:
+    SetConsoleCtrlHandler(windows_ctrl_handler, true);
+
+BOOL windows_ctrl_handler(DWORD type) {
+    // NOTE: this function runs in a fresh thread
+    // see HandlerRoutine docs:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms683242(v=vs.85).aspx
+}
+*/
+
+
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
@@ -25,16 +36,19 @@
 // If this is too small, you may see memory corruption and crashes when attempting
 // to format a backtrace.
 const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
+#endif
 #endif  // VALGRIND
 
-THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-THREAD_LOCAL int linux_thread_pool_t::thread_id;
-THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
+THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
+THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
+THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
+    // ATN TODO rassert(thread_pool != nullptr);
     return thread_pool;
 }
 NOINLINE void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {
+    rassert(thread_pool == nullptr || val == nullptr);
     thread_pool = val;
 }
 NOINLINE int linux_thread_pool_t::get_thread_id() {
@@ -44,9 +58,11 @@ NOINLINE void linux_thread_pool_t::set_thread_id(int val) {
     thread_id = val;
 }
 NOINLINE linux_thread_t *linux_thread_pool_t::get_thread() {
+    rassert(thread != nullptr);
     return thread;
 }
 NOINLINE void linux_thread_pool_t::set_thread(linux_thread_t *val) {
+    rassert(thread == nullptr || val == nullptr);
     thread = val;
 }
 

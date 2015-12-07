@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <sys/resource.h>
 #endif
 
@@ -9,10 +9,19 @@
 #include "clustering/administration/main/command_line.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
+#include "extproc/extproc_spawner.hpp"
 
 int main(int argc, char *argv[]) {
+
+#ifdef _WIN32
+    extern int unittest_main(int, char**);
+    if (argc >= 2 && !strcmp(argv[1], "test")) {
+        return unittest_main(argc - 1, argv + 1);
+    }
+#endif
+
 #ifndef NDEBUG
-#ifndef _WIN32
+#ifndef _MSC_VER // TODO ATN
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
     core_limit.rlim_max = 200 * MEGABYTE;
@@ -21,6 +30,10 @@ int main(int argc, char *argv[]) {
 #endif
 
     startup_shutdown_t startup_shutdown;
+
+#ifdef _WIN32
+    extproc_maybe_run_worker(argc, argv);
+#endif
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
@@ -98,3 +111,5 @@ int main(int argc, char *argv[]) {
         }
     }
 }
+
+// #endif // TODO ATN

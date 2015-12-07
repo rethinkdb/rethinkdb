@@ -2,16 +2,85 @@
 #ifndef ARCH_IO_EVENT_WATCHER_HPP_
 #define ARCH_IO_EVENT_WATCHER_HPP_
 
+#ifdef _WIN32
+
+#include "windows.hpp"
+#include "concurrency/cond_var.hpp"
+#include "concurrency/interruptor.hpp"
+#include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/event_queue_types.hpp"
+#include "arch/io/event_watcher.hpp"
+#include "errors.hpp"
+
+#include "backtrace.hpp" // TODO ATN: for debugging
+
+class windows_event_watcher_t;
+
+// An asynchronous operation
+struct overlapped_operation_t {
+    overlapped_operation_t(windows_event_watcher_t *);
+
+    ~overlapped_operation_t();
+
+    void reset() {
+        completed.reset();
+    }
+
+    void set_result(size_t nb_bytes_, DWORD error_);
+
+    // Interrupt and abort a pending operation
+    void abort();
+
+    // Cancel an operation that is not pending
+    void set_cancel();
+
+    void wait_interruptible(const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void wait_abortable(const signal_t *aborter);
+
+    OVERLAPPED overlapped;           // Used by Windows to track the queued operation
+    windows_event_watcher_t *event_watcher; // event_watcher for the associated handle
+    size_t nb_bytes;                 // Number of bytes read or written
+    DWORD error;                     // Success indicator
+
+    signal_t *get_completed_signal() { return &completed; }
+
+private:
+    cond_t completed;                // Signaled when the operation completes or fails
+
+    DISABLE_COPYING(overlapped_operation_t);
+};
+
+class windows_event_watcher_t {
+public:
+    windows_event_watcher_t(fd_t handle, event_callback_t *eh);
+    ~windows_event_watcher_t();
+    void stop_watching_for_errors();
+    void on_error(DWORD error);
+    threadnum_t current_thread() { return current_thread_; }
+    void rethread(threadnum_t new_thread);
+
+    const fd_t handle;
+
+private:
+    event_callback_t *error_handler;
+    threadnum_t original_thread;
+    threadnum_t current_thread_;
+};
+
+typedef windows_event_watcher_t event_watcher_t;
+
+#else
+
 #include "arch/runtime/event_queue.hpp"
 #include "utils.hpp"
 #include "concurrency/signal.hpp"
 
 class linux_event_watcher_t :
     public home_thread_mixin_debug_only_t,
-    private linux_event_callback_t
+    private event_callback_t
 {
 public:
-    linux_event_watcher_t(fd_t f, linux_event_callback_t *eh);
+    linux_event_watcher_t(fd_t f, event_callback_t *eh);
     ~linux_event_watcher_t();
 
     /* To monitor for a specific event happening, instantiate `watch_t`. It will
@@ -34,7 +103,7 @@ public:
 
 private:
     fd_t fd;
-    linux_event_callback_t *error_handler;
+    event_callback_t *error_handler;
 
     watch_t **get_watch_slot(int event);
     watch_t *in_watcher;
@@ -53,5 +122,9 @@ private:
 
     DISABLE_COPYING(linux_event_watcher_t);
 };
+
+typedef linux_event_watcher_t event_watcher_t;
+
+#endif // _WIN32
 
 #endif /* ARCH_IO_EVENT_WATCHER_HPP_ */

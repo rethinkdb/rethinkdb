@@ -7,6 +7,6 @@
 // that this value is up to date.
 #define NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE   1
 
-int rethinkdb_backtrace(void **buffer, int size);
+int rethinkdb_backtrace(void **buffer, int size, void *context = nullptr);
 
 #endif  // RETHINKDB_BACKTRACE_HPP_

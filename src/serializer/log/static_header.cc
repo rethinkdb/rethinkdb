@@ -6,6 +6,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "containers/scoped.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
 #include "utils.hpp"

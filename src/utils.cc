@@ -86,7 +86,7 @@ void run_generic_global_startup_behavior() {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
             get_errno(), errno_string(get_errno()).c_str());
     }
-#endif // !defined(_WIN32)
+#endif
 
 #ifdef _WIN32
     WSADATA wsa_data;
@@ -121,42 +121,45 @@ void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
                               0xBD, 0xBD, 0xBD, 0xBD,
                               0xBD, 0xBD, 0xBD, 0xBD };
     uint8_t zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint8_t ff_sample[16] = { 0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff };
 
     bool skipped_last = false;
+
     while (length > 0) {
         bool skip = length >= 16 && (
                     memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
                     memcmp(buf, ff_sample, 16) == 0);
         if (skip) {
-            if (!skipped_last) fprintf(stderr, "*\n");
+            if (!skipped_last) {
+                debugf("*\n");
+            }
         } else {
-            fprintf(stderr, "%.8x  ", (unsigned int)offset);
+            std::string line = strprintf("%.8x  ", (unsigned int)offset);
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
-                    fprintf(stderr, "%.2hhx ", buf[i]);
+                    line += strprintf("%.2hhx ", buf[i]);
                 } else {
-                    fprintf(stderr, "   ");
+                    line += "   ";
                 }
             }
-            fprintf(stderr, "| ");
+            line += "| ";
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
                     if (isprint(buf[i])) {
-                        fputc(buf[i], stderr);
+                        line += buf[i];
                     } else {
-                        fputc('.', stderr);
+                        line += '.';
                     }
                 } else {
-                    fputc(' ', stderr);
+                    line += ' ';
                 }
             }
-            fprintf(stderr, "\n");
+            debugf("%s\n", line.c_str());
         }
         skipped_last = skip;
 
@@ -280,7 +283,7 @@ void *raw_malloc_page_aligned(size_t size) {
 #endif
 
 void raw_free_aligned(void *ptr) {
-#ifdef _WIN32
+#ifdef _MSC_VER
     _aligned_free(ptr);
 #else
     free(ptr);
@@ -733,4 +736,6 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=""
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
-UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+
+// TODO ATN: this fails?
+//UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

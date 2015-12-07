@@ -9,6 +9,11 @@
 #include "containers/archive/socket_stream.hpp"
 #include "containers/object_buffer.hpp"
 
+#define SUBCOMMAND_START_WORKER "start-worker"
+
+bool extproc_maybe_run_worker(int argc, char **argv);
+
+// TODO ATN: update comment
 // The extproc_spawner_t controls an external process which launches workers
 // This is necessary to avoid some forking problems with tcmalloc, and
 //  should be constructed before the thread pool and extproc pool
@@ -23,17 +28,20 @@ public:
 
     // Spawns a new worker, and returns the socket file descriptor for communication
     //  with the worker process
-    fd_t spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out);
+    fd_t spawn(process_ref_t *pid_out);
 
     static extproc_spawner_t *get_instance();
 
 private:
-    void fork_spawner();
-
     static extproc_spawner_t *instance;
 
-    pid_t spawner_pid;
+#ifndef _WIN32
+    // TODO ATN: on windows, spawn could be static
+    void fork_spawner();
+
+    process_ref_t spawner_pid;
     scoped_fd_t spawner_socket;
+#endif
 };
 
 #endif /* EXTPROC_EXTPROC_SPAWNER_HPP_ */

@@ -43,6 +43,8 @@ public:
 
     bool coop_lock_and_check();
 
+    fd_t maybe_get_fd() { return INVALID_FD; }
+
 private:
     mode_t mode_;
     std::vector<char> *data_;

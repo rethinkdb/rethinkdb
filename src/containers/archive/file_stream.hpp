@@ -2,6 +2,8 @@
 #ifndef CONTAINERS_ARCHIVE_FILE_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_FILE_STREAM_HPP_
 
+// TODO ATN: is this class needed on windows?
+
 #include <stdio.h>
 
 #include "arch/io/io_utils.hpp"

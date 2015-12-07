@@ -40,4 +40,4 @@ void os_signal_cond_t::on_thread_switch() {
     do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
 }
 
-#endif // !defined(_WIN32)
+#endif

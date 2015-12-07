@@ -491,7 +491,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    int64_t token;
+    int64_t token = 0;
     if (req.body.size() < sizeof(token)) {
         *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Client is buggy (request too small).");

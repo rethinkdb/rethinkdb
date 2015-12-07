@@ -16,6 +16,11 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 template <class> class mailbox_t;
 
 template <class T>
+archive_result_t deserialize_cluster(read_stream_t *stream, T *x) {
+    return deserialize<cluster_version_t::CLUSTER>(stream, x);
+}
+
+template <class T>
 class mailbox_addr_t {
 public:
     bool operator<(const mailbox_addr_t<T> &other) const {
@@ -164,7 +169,7 @@ class mailbox_t< void(arg0_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0));
         }
@@ -238,10 +243,10 @@ class mailbox_t< void(arg0_t, arg1_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1));
         }
@@ -317,13 +322,13 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2));
         }
@@ -401,16 +406,16 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3));
         }
@@ -490,19 +495,19 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4));
         }
@@ -584,22 +589,22 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5));
         }
@@ -683,25 +688,25 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6));
         }
@@ -787,28 +792,28 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7));
         }
@@ -896,31 +901,31 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8));
         }
@@ -1010,34 +1015,34 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
+            res = deserialize_cluster(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9));
         }
@@ -1129,37 +1134,37 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
+            res = deserialize_cluster(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
+            res = deserialize_cluster(stream, &arg10);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10));
         }
@@ -1253,40 +1258,40 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
+            res = deserialize_cluster(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
+            res = deserialize_cluster(stream, &arg10);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
+            res = deserialize_cluster(stream, &arg11);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11));
         }
@@ -1382,43 +1387,43 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
+            res = deserialize_cluster(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
+            res = deserialize_cluster(stream, &arg10);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
+            res = deserialize_cluster(stream, &arg11);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg12_t arg12;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg12);
+            res = deserialize_cluster(stream, &arg12);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12));
         }
@@ -1516,46 +1521,46 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream, signal_t *interruptor) {
             arg0_t arg0;
-            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &arg0);
+            archive_result_t res = deserialize_cluster(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg1);
+            res = deserialize_cluster(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg2_t arg2;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg2);
+            res = deserialize_cluster(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg3_t arg3;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg3);
+            res = deserialize_cluster(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg4_t arg4;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg4);
+            res = deserialize_cluster(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg5_t arg5;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg5);
+            res = deserialize_cluster(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg6_t arg6;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg6);
+            res = deserialize_cluster(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg7_t arg7;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg7);
+            res = deserialize_cluster(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg8_t arg8;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg8);
+            res = deserialize_cluster(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg9_t arg9;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg9);
+            res = deserialize_cluster(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg10_t arg10;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg10);
+            res = deserialize_cluster(stream, &arg10);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg11_t arg11;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg11);
+            res = deserialize_cluster(stream, &arg11);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg12_t arg12;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg12);
+            res = deserialize_cluster(stream, &arg12);
             if (bad(res)) { throw fake_archive_exc_t(); }
             arg13_t arg13;
-            res = deserialize<cluster_version_t::CLUSTER>(stream, &arg13);
+            res = deserialize_cluster(stream, &arg13);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(interruptor, std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12), std::move(arg13));
         }

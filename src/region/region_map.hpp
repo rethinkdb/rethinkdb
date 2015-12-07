@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "utils.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
 #include "region/region.hpp"

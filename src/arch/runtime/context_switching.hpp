@@ -4,18 +4,18 @@
 
 #ifdef _WIN32
 
-// TODO WINDOWS: implement this
-
 struct fiber_context_ref_t {
-    bool is_nil();
+	void* fiber = nullptr;
+	bool is_nil() { return fiber == nullptr; }
+	~fiber_context_ref_t();
 };
+
+void coro_initialize_for_thread();
 
 class fiber_stack_t {
 public:
     fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
-    bool address_in_stack(const void *addr) const;
-    bool address_is_stack_overflow(const void *addr) const;
-    size_t free_space_below(const void *addr) const;
+    ~fiber_stack_t();
     fiber_context_ref_t context;
 };
 

@@ -10,9 +10,9 @@
 #include "arch/io/concurrency.hpp"
 #include "arch/runtime/system_event.hpp"
 
-class blocker_pool_t : public linux_event_callback_t {
+class blocker_pool_t : public event_callback_t {
 public:
-    blocker_pool_t(int nthreads, linux_event_queue_t *queue);
+    blocker_pool_t(int nthreads, event_queue_t *queue);
     ~blocker_pool_t();
 
     struct job_t {
@@ -38,7 +38,7 @@ private:
     system_cond_t or_cond;
 
     std::vector<job_t*> completed_events;
-    linux_event_queue_t *queue;
+    event_queue_t *queue;
     system_event_t ce_signal;
     system_mutex_t ce_mutex;
     void on_event(int);

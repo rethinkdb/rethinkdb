@@ -47,7 +47,7 @@ public:
     };
 
 
-    linux_disk_manager_t(linux_event_queue_t *queue,
+    linux_disk_manager_t(event_queue_t *queue,
                          int batch_factor,
                          int max_concurrent_io_requests,
                          perfmon_collection_t *stats) :
@@ -570,7 +570,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) {
     guarantee(open_res.outcome == file_open_result_t::ERROR);
-    fail_due_to_user_error(
+    crash( // TODO ATN: should be fail_due_to_user_error
         "Inaccessible database file: \"%s\": %s"
         "\nSome possible reasons:"
         "\n- the database file couldn't be created or opened for reading and writing"

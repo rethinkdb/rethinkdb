@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 
+#include "containers/archive/boost_types.hpp" // TODO ATN
+
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     remote_replicator_client_intro_t,
     streaming_begin_timestamp, ready_mailbox);

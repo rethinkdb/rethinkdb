@@ -74,7 +74,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logERR("Error in %s at line %d:", file, line);
+    logERR("Error in thread %d in %s at line %d:", get_thread_id().threadnum, file, line);
     vlogERR(msg, args);
     va_end(args);
 
@@ -101,6 +101,7 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
     return buf;
 #endif
 }
+#endif
 
 #ifdef _WIN32
 MUST_USE const std::string winerr_string(DWORD winerr) {

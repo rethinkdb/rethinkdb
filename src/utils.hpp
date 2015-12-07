@@ -61,6 +61,7 @@ enum class query_state_t { FAILED, INDETERMINATE };
 
 class rng_t {
 public:
+// ATN : fix comment
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
@@ -119,7 +120,7 @@ bool parse_time(
     struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
-void print_hd(const void *buf, size_t offset, size_t length);
+void print_hexdump(const void *buf, size_t offset, size_t length);
 
 
 

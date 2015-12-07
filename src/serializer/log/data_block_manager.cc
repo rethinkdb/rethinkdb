@@ -1235,6 +1235,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
 
             if (gc_state->current_entry->block_referenced_by_index(block_index)) {
                 block_id_t block_id = writes[i].buf->ser_header.block_id;
+                rassert(serializer->lba_index->get_block_offset(block_id).get_value() == writes[i].old_offset);
 
                 index_write_ops.push_back(
                         index_write_op_t(block_id,

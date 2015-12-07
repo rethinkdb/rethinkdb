@@ -78,7 +78,11 @@ struct coro_globals_t {
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
-        { }
+        {
+#ifdef _WIN32
+            coro_initialize_for_thread();
+#endif
+        }
 
     ~coro_globals_t() {
         /* We shouldn't be shutting down from within a coroutine */
@@ -183,8 +187,10 @@ void coro_t::run() {
     coro_t *coro = TLS_get_cglobals()->current_coro;
 
 #ifndef NDEBUG
+#ifndef _WIN32 // TODO ATN
     char dummy;  /* Make sure we're on the right stack. */
     rassert(coro->stack.address_in_stack(&dummy));
+#endif
 #endif
 
     while (true) {
@@ -377,10 +383,21 @@ a coroutine's stack. Could also in theory be used by a function to check if it's
 about to overflow the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
+#ifndef _WIN32 // ATN TODO
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
+#else
+    // TODO ATN
+    (void) addr;
+    return false;
+#endif
 }
 
 bool has_n_bytes_free_stack_space(size_t n) {
+#ifdef _WIN32
+    (void) n;
+    // ATN TODO
+    return true;
+#else
     // We assume that `tester` is going to be allocated on the stack.
     // Theoretically this is not guaranteed by the C++ standard, but in practice
     // it should work.
@@ -388,6 +405,7 @@ bool has_n_bytes_free_stack_space(size_t n) {
     const coro_t *current_coro = coro_t::self();
     guarantee(current_coro != nullptr);
     return current_coro->stack.free_space_below(&tester) >= n;
+#endif
 }
 
 bool coroutines_have_been_initialized() {
@@ -444,6 +462,7 @@ void coro_t::grab_spawn_backtrace() {
     void *buffer[buffer_size];
     spawn_backtrace_size = rethinkdb_backtrace(buffer, buffer_size);
     if (spawn_backtrace_size < num_frames_to_skip) {
+#ifndef _WIN32 // TODO ATN: this assert seems to get triggered a lot
         // Something is fishy if this happens... Probably RethinkDB was compiled
         // with some optimizations enabled that inlined some functions or
         // optimized away some stack frames, or the value of
@@ -454,6 +473,7 @@ void coro_t::grab_spawn_backtrace() {
             "If you determine that this is acceptable in your specific case (e.g. "
             "you are just debugging something), feel free to temporarily comment "
             "this assertion.");
+#endif
         spawn_backtrace_size = num_frames_to_skip;
     }
     spawn_backtrace_size -= num_frames_to_skip;

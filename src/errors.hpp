@@ -2,6 +2,9 @@
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
+#include "arch/compiler.hpp"
+#include "windows.hpp"
+
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -252,6 +255,7 @@ release mode. */
 #elif defined(_MSC_VER)
 #define RVALUE_THIS &&
 #else
+// TODO ATN: MSC
 #define RVALUE_THIS
 #endif
 

@@ -15,7 +15,7 @@
 #define RDB_RELOOP_MESSAGES 0
 #endif
 
-linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue,
+linux_message_hub_t::linux_message_hub_t(event_queue_t *queue,
                                          linux_thread_pool_t *thread_pool,
                                          threadnum_t current_thread)
     : queue_(queue),

@@ -21,6 +21,8 @@
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
+#include "containers/archive/boost_types.hpp" // TODO ATN
+
 
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
@@ -335,8 +337,10 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     } while (res == INVALID_FD && get_errno() == EINTR);
 
     fd.reset(res);
+#endif
 
     if (fd.get() == INVALID_FD) {
+        rassert(false, "ATN TODO: errno -- GetLastError");
         throw std::runtime_error(strprintf("Failed to open log file '%s': %s",
                                            logfile_name.c_str(),
                                            errno_string(errno).c_str()).c_str());
@@ -457,8 +461,10 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 
     if (fd.get() == INVALID_FD) {
-        error_out->assign("cannot open or find log file");
-        return false;
+        // TODO ATN: make a distinction between "could not find log file" and "the log file is a black hole"
+        // error_out->assign("cannot open or find log file");
+        // return false;
+        return true;
     }
 #ifndef _WIN32
     int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);

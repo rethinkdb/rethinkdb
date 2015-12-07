@@ -15,22 +15,22 @@
 // Event queue structure
 class poll_event_queue_t {
 public:
-    explicit poll_event_queue_t(linux_queue_parent_t *parent);
+    explicit poll_event_queue_t(queue_parent_t *parent);
     void run();
     ~poll_event_queue_t();
 
     // These should only be called by the event queue itself or by the linux_* classes
-    void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
-    void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
+    void watch_resource(fd_t resource, int events, event_callback_t *cb);
+    void adjust_resource(fd_t resource, int events, event_callback_t *cb);
     void forget_resource(fd_t resource, linux_event_callback_t *cb);
     void watch_event(system_event_t *, linux_event_callback_t *cb);
     void forget_event(system_event_t *, linux_event_callback_t *cb);
 
 private:
-    linux_queue_parent_t *parent;
+    queue_parent_t *parent;
 
     std::vector<pollfd> watched_fds;
-    std::map<fd_t, linux_event_callback_t *> callbacks;
+    std::map<fd_t, event_callback_t *> callbacks;
 
     DISABLE_COPYING(poll_event_queue_t);
 };

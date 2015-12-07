@@ -59,7 +59,7 @@ struct variant_serializer_t<W, N> {
     explicit variant_serializer_t(write_message_t *wm) : wm_(wm) { }
 
     void operator()(const end_of_variant&){
-        unreachable();
+        unreachable("variant_serializer_t: no more types");
     }
 
     static const uint8_t size = N;
@@ -116,7 +116,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<BOOST_VAR
     return variant_deserializer<W, 1, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)>, BOOST_VARIANT_ENUM_PARAMS(T)>::deserialize_variant(n, s, x);
 }
 
-
 template <cluster_version_t W, class T>
 void serialize(write_message_t *wm, const boost::optional<T> &x) {
     const T *ptr = x.get_ptr();
@@ -143,5 +142,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
         return archive_result_t::SUCCESS;
     }
 }
+
+#define RDB_IMPL_DESERIALIZE_OPTIONAL(...) RDB_IMPL_DESERIALIZE_TEMPLATE(boost::optional, __VA_ARGS__)
+#define RDB_IMPL_DESERIALIZE_VARIANT(...) RDB_IMPL_DESERIALIZE_TEMPLATE(boost::variant, __VA_ARGS__)
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

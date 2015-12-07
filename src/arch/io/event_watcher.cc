@@ -1,14 +1,117 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifdef _WIN32 // ATN TODO
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "concurrency/wait_any.hpp"
 
-#ifdef _WIN32
+/* TODO ATN
+#define debugf_overlapped(...) debugf("ATN: overlapped: " __VA_ARGS__) /*/
+#define debugf_overlapped(...) ((void)0) //*/
 
-// TODO WINDOWS
+overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+    debugf_overlapped("[%p] init from watcher %p\n", this, ew);
+    rassert(event_watcher != nullptr);
+    memset(&overlapped, 0, sizeof(overlapped));
+}
+
+overlapped_operation_t::~overlapped_operation_t() {
+    debugf_overlapped("[%p] destroy\n", this);
+    // call wait_abortable, set_cancel or abort before destructing
+    rassert(completed.is_pulsed());
+}
+
+void overlapped_operation_t::set_cancel() {
+    debugf_overlapped("[%p] set_cancel\n", this);
+    set_result(0, ERROR_CANCELLED);
+}
+
+void overlapped_operation_t::abort() {
+    if (completed.is_pulsed()) {
+        debugf_overlapped("[%p] abort: already pulsed\n", this);
+    } else {
+        debugf_overlapped("[%p] abort: cancelling\n", this);
+        BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
+        if (!res) {
+            switch (GetLastError()) {
+            case ERROR_NOT_FOUND:
+            case ERROR_INVALID_HANDLE:
+                debugf_overlapped("[%p] abort: not found or invalid\n", this);
+                break;
+            default:
+                guarantee_winerr(res, "CancelIoEx failed");
+            }
+        }
+        completed.wait_lazily_unordered();
+    }
+    error = ERROR_OPERATION_ABORTED;
+}
+
+void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+    debugf_overlapped("[%p] set_result(%zu, %u)\n", this, nb_bytes_, error_);
+    rassert(!completed.is_pulsed());
+    nb_bytes = nb_bytes_;
+    error = error_;
+    if (error != NO_ERROR) {
+        event_watcher->on_error(error); // ATN TODO: what is the expected value of the argument to on_error
+    }
+    completed.pulse();
+}
+
+windows_event_watcher_t::windows_event_watcher_t(fd_t handle_, event_callback_t *eh) :
+    handle(handle_), error_handler(eh), original_thread(get_thread_id()), current_thread_(get_thread_id()) {
+    linux_thread_pool_t::get_thread()->queue.add_handle(handle);
+}
+
+void windows_event_watcher_t::rethread(threadnum_t new_thread) {
+    current_thread_ = new_thread;
+}
+
+void windows_event_watcher_t::stop_watching_for_errors() {
+    error_handler = nullptr;
+}
+
+void windows_event_watcher_t::on_error(DWORD error) {
+    if (error_handler != nullptr) {
+        event_callback_t *eh = error_handler;
+        error_handler = nullptr;
+        // TODO ATN: what is the expected value of the argument to on_event?
+        eh->on_event(error);
+    }
+}
+
+windows_event_watcher_t::~windows_event_watcher_t() {
+    // ATN TODO: windows re-uses handles, so checking that a handle is closed or
+    // double-closing is impossible.
+}
+
+void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {
+    debugf_overlapped("[%p] wait_interruptible\n", this);
+    try {
+        ::wait_interruptible(&completed, interruptor);
+    } catch (interrupted_exc_t) {
+        debugf_overlapped("[%p] interrupted\n", this);
+        abort();
+        throw;
+    }
+}
+
+void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
+    debugf_overlapped("[%p] wait_abortable\n", this);
+    wait_any_t waiter(&completed, aborter);
+    waiter.wait_lazily_unordered();
+    if (aborter->is_pulsed()) {
+        debugf_overlapped("[%p] aborted\n", this);
+        abort();
+    }
+}
 
 #else
 
-linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh) :
+#include "arch/io/event_watcher.hpp"
+#include "arch/runtime/thread_pool.hpp"
+
+linux_event_watcher_t::linux_event_watcher_t(fd_t f, event_callback_t *eh) :
     fd(f), error_handler(eh),
     in_watcher(NULL), out_watcher(NULL),
 #ifdef __linux

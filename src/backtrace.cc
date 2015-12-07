@@ -1,19 +1,24 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "backtrace.hpp"
 
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
-
+#ifndef _WIN32 // ATN TODO
 #include <cxxabi.h>
 #include <execinfo.h>
+#else
+#define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
+#pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
+#include <DbgHelp.h>
+#include <atomic>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#ifndef _WIN32 // ATN TODO
 #include <sys/wait.h>
+#endif
 
 #include <string>
 
@@ -23,6 +28,7 @@
 #include "rethinkdb_backtrace.hpp"
 #include "utils.hpp"
 
+#ifndef _WIN32
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*
     backtrace() gives us lines in one of the following two forms:
@@ -198,15 +204,16 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
         return std::string(line);
     }
 }
+#endif
 
-std::string format_backtrace(bool use_addr2line) {
-    lazy_backtrace_formatter_t bt;
-    return use_addr2line ? bt.lines() : bt.addrs();
+std::string format_backtrace(void *context) {
+    lazy_backtrace_formatter_t bt(context);
+    return bt.lines();
 }
 
-backtrace_t::backtrace_t() {
+backtrace_t::backtrace_t(void *context) {
     scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
-    int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
+    int size = rethinkdb_backtrace(stack_frames.data(), max_frames, context);
 
 #ifdef CROSS_CORO_BACKTRACES
     if (coro_t::self() != NULL) {
@@ -230,6 +237,9 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 }
 
 void backtrace_frame_t::initialize_symbols() {
+#ifdef _WIN32
+    // ATN TODO CaptureStackBackTrace, SymFromAddr
+#else
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {
@@ -251,6 +261,7 @@ void backtrace_frame_t::initialize_symbols() {
         }
         free(symbols);
     }
+#endif
     symbols_initialized = true;
 }
 
@@ -266,7 +277,11 @@ std::string backtrace_frame_t::get_symbols_line() const {
 
 std::string backtrace_frame_t::get_demangled_name() const {
     rassert(symbols_initialized);
+#ifdef _WIN32 // TODO ATN
+    return function;
+#else
     return demangle_cpp_name(function.c_str());
+#endif
 }
 
 std::string backtrace_frame_t::get_filename() const {
@@ -283,8 +298,8 @@ const void *backtrace_frame_t::get_addr() const {
     return addr;
 }
 
-lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
-    backtrace_t(),
+lazy_backtrace_formatter_t::lazy_backtrace_formatter_t(void *context) :
+    backtrace_t(context),
     timestamp(time(0)),
     timestr(time2str(timestamp)) {
 }
@@ -303,7 +318,56 @@ std::string lazy_backtrace_formatter_t::lines() {
     return cached_lines;
 }
 
+#ifdef _WIN32
+void initialize_dbghelp() {
+    static std::atomic<bool> initialised = false;
+    if (!initialised.exchange(true)) {
+        DWORD options = SymGetOptions();
+        options |= SYMOPT_LOAD_LINES; // Load line information
+        // TODO ATN: SYMOPT for lazy loading
+        SymSetOptions(options);
+
+        // Initialize and load the symbol tables
+        UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+        // TODO ATN: test return value
+    }
+}
+#endif
+
 std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+#ifdef _WIN32
+    (void) use_addr2line; // TODO ATN
+    initialize_dbghelp();
+
+    std::string output;
+    for (size_t i = 0; i < get_num_frames(); i++) {
+        output.append(strprintf("%d: ", static_cast<int>(i+1)));
+        DWORD64 offset;
+        const int MAX_SYMBOL_LENGTH = 2048; // An arbitrary number
+        auto symbol_info = scoped_malloc_t<SYMBOL_INFO>(sizeof(SYMBOL_INFO) - 1 + MAX_SYMBOL_LENGTH);
+        symbol_info->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol_info->MaxNameLen = MAX_SYMBOL_LENGTH;
+        BOOL ret = SymFromAddr(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &offset, symbol_info.get());
+        if (!ret) {
+            output.append(strprintf("0x%p [%s]", get_frame(i).get_addr(), winerr_string(GetLastError()).c_str()));
+        } else {
+            output.append(strprintf("%s", symbol_info->Name));
+            if (offset != 0) {
+                output.append(strprintf("+%llu", offset));
+            }
+        }
+        DWORD line_offset;
+        IMAGEHLP_LINE64 line_info;
+        ret = SymGetLineFromAddr64(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &line_offset, &line_info);
+        if (!ret) {
+            // output.append(" (no line info)");
+        } else {
+            output.append(strprintf(" at %s:%u", line_info.FileName, line_info.LineNumber));
+        }
+        output.append("\n");
+    }
+    return output;
+#else
     address_to_line_t address_to_line;
     std::string output;
     for (size_t i = 0; i < get_num_frames(); i++) {
@@ -342,6 +406,7 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
     }
 
     return output;
+#endif
 }
 
 #endif

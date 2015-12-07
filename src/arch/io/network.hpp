@@ -36,12 +36,13 @@
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon/types.hpp"
+#include "arch/compiler.hpp"
 
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
 class linux_tcp_conn_t :
     public home_thread_mixin_t,
-    private linux_event_callback_t {
+    private event_callback_t {
 public:
     friend class linux_tcp_conn_descriptor_t;
 
@@ -141,7 +142,7 @@ public:
 
     bool getpeername(ip_and_port_t *ip_and_port);
 
-    linux_event_watcher_t *get_event_watcher() {
+    event_watcher_t *get_event_watcher() {
         return event_watcher.get();
     }
 
@@ -212,7 +213,7 @@ private:
     };
 
     /* Note that this only gets called to handle error-events. Read and write
-    events are handled through the linux_event_watcher_t. */
+    events are handled through the event_watcher_t. */
     void on_event(int events);
 
     void on_shutdown_read();
@@ -222,7 +223,7 @@ private:
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
-    scoped_ptr_t<linux_event_watcher_t> event_watcher;
+    scoped_ptr_t<event_watcher_t> event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
@@ -246,7 +247,7 @@ private:
         size_t size;
     };
 
-    struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
+  struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
         write_buffer_t *dealloc;
         const void *buffer;
         size_t size;
@@ -336,7 +337,7 @@ private:
 connections. Create a linux_nonthrowing_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
 
-class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
+class linux_nonthrowing_tcp_listener_t : private event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
         const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);
@@ -388,7 +389,7 @@ private:
     size_t last_used_socket_index;
 
     // Sentries representing our registrations with the event loop, one per socket
-    scoped_array_t<scoped_ptr_t<linux_event_watcher_t> > event_watchers;
+    scoped_array_t<scoped_ptr_t<event_watcher_t> > event_watchers;
 
     bool log_next_error;
 };

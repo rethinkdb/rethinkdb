@@ -18,6 +18,9 @@ TEST(ContextSwitchingTest, ContextRefSemantics) {
 }
 
 TEST(ContextSwitchingTest, CreateArtificialStack) {
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
     coro_stack_t a(&noop, 1024*1024);
     EXPECT_FALSE(a.context.is_nil());
 }
@@ -43,6 +46,9 @@ static void switch_context_test(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
     scoped_ptr_t<coro_context_ref_t> orig_context_local(new coro_context_ref_t);
     original_context = orig_context_local.get();
 
@@ -75,6 +81,10 @@ static void second_switch(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchBetweenContexts) {
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
+
     scoped_ptr_t<coro_context_ref_t> orig_context_local(new coro_context_ref_t);
     original_context = orig_context_local.get();
     test_int = 99;
@@ -102,6 +112,9 @@ NORETURN static void throw_exception_from_coroutine() {
 }
 
 TEST(ContextSwitchingTest, UncaughtException) {
+#ifdef _WIN32
+    coro_initialize_for_thread();
+#endif
     EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
 }
 

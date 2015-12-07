@@ -25,19 +25,42 @@ TEST(LogMessageTest, ParseFormat) {
     EXPECT_EQ(message.message, parsed.message);
 }
 
+// TODO ATN: this is a mess
 void test_chunks(const std::vector<size_t> &sizes) {
-    char filename[] = "/tmp/rethinkdb-unittest-file-reverse-reader-XXXXXX";
+    // TODO ATN: portable tmp path
+    char filename[] = "c:\\windows\\temp\\rethinkdb-unittest-file-reverse-reader-XXXXXX";
+#ifdef _WIN32 // TODO ATN
+    errno_t err = _mktemp_s(filename, sizeof(filename));
+    guarantee_xerr(err == 0, err, "_mktemp_s failed");
+    HANDLE handle = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+    guarantee_winerr(handle != INVALID_HANDLE_VALUE, "CreateFile failed");
+    defer_t close([&filename](){
+        guarantee_err(unlink(filename) == 0);
+    });
+    scoped_fd_t fd(handle);
+#else
     scoped_fd_t fd(mkstemp(filename));
+#endif
     guarantee(fd.get() != INVALID_FD);
+#ifndef _WIN32 // TODO ATN: delete the temp file
     int unlink_res = unlink(filename);
-    guarantee(unlink_res == 0);
+    guarantee_err(unlink_res == 0, "unlink failed");
+#endif
     for (size_t i = 0; i < sizes.size(); ++i) {
         std::string line(sizes[i], 'A' + i);
         line += '\n';
+#ifdef _WIN32
+        DWORD res;
+        BOOL ret = WriteFile(fd.get(), line.data(), line.size(), &res, nullptr);
+        guarantee_winerr(ret, "WriteFile failed");
+#else
         int res = write(fd.get(), line.data(), line.size());
+#endif
         ASSERT_EQ(line.size(), res);
     }
+#ifndef _WIN32
     fsync(fd.get());
+#endif
     file_reverse_reader_t rr(std::move(fd));
     for (ssize_t i = sizes.size() - 1; i >= 0; --i) {
         std::string expected(sizes[i], 'A' + i);

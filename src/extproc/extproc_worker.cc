@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 
+// TODO ATN: do not use windows_event_watcher unless _WIN32
+
 #include "logger.hpp"
 
 #include "extproc/extproc_worker.hpp"
@@ -26,13 +28,18 @@ NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
 
 extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
     spawner(_spawner),
-    worker_pid(-1),
+    worker_pid(process_ref_t::invalid),
     interruptor(NULL) { }
 
 extproc_worker_t::~extproc_worker_t() {
-    if (worker_pid != -1) {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
-
+    if (worker_pid != process_ref_t::invalid) {
+#ifdef _WIN32
+        socket_stream.create(socket.get(), windows_event_watcher.get());
+#else
+        socket_stream.create(socket.get());
+#endif
+        cond_t non_interruptor;
+        socket_stream->set_interruptor(&non_interruptor);
         try {
             run_job(&worker_exit_fn);
 
@@ -60,17 +67,37 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     // This will also repair a killed worker
 
     // We create the streams here, since they are thread-dependant
-    if (worker_pid == -1) {
-        socket.reset(spawner->spawn(&socket_stream, &worker_pid));
-    } else {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+#ifdef _WIN32
+    bool new_worker = false;
+#endif
+    if (worker_pid == process_ref_t::invalid) {
+        socket.reset(spawner->spawn(&worker_pid));
+
+#ifdef _WIN32
+        new_worker = true;
+        windows_event_watcher.create(socket.get(), nullptr);
+#endif
     }
+
+#ifdef _WIN32 // TODO ATN
+    socket_stream.create(socket.get(), windows_event_watcher.get());
+#else
+    socket_stream.create(socket.get());
+#endif
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
     guarantee(interruptor == NULL);
     interruptor = _interruptor;
     guarantee(interruptor != NULL);
     socket_stream.get()->set_interruptor(interruptor);
+
+#ifdef _WIN32
+
+    if (new_worker) {
+        socket_stream->wait_for_pipe_client(_interruptor);
+    }
+#endif
+
 }
 
 void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
@@ -98,7 +125,6 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
                 }
             }
 
-
             uint64_t magic_from_child;
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST_OVERALL>(socket_stream.get(),
@@ -106,6 +132,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
             if (bad(res) || magic_from_child != worker_to_parent_magic) {
                 throw extproc_worker_exc_t("did not receive magic number");
             }
+
         } catch (...) {
             // This would indicate a job is hanging or not reading out all its data
             if (!final_interruptor.is_pulsed() || timeout.is_pulsed()) {
@@ -125,18 +152,27 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 }
 
 void extproc_worker_t::kill_process() {
-    guarantee(worker_pid != -1);
+    // TODO ATN: this guarantee is violated when certain exception occur before worker_pid is set
+    guarantee(worker_pid != process_ref_t::invalid);
 
+#ifdef _WIN32
+    BOOL res = TerminateProcess(worker_pid, EXIT_FAILURE);
+    if (!res) {
+        logWRN("failed to kill worker process: %s", winerr_string(GetLastError()).c_str());
+    }
+    windows_event_watcher.reset();
+#else
     ::kill(worker_pid, SIGKILL);
-    worker_pid = -1;
+#endif
+
+    worker_pid.reset();
 
     // Clean up our socket fd
     socket.reset();
 }
 
-bool extproc_worker_t::is_process_alive()
-{
-    return (worker_pid != -1);
+bool extproc_worker_t::is_process_alive() {
+    return (worker_pid != process_ref_t::invalid);
 }
 
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {

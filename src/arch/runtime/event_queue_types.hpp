@@ -7,15 +7,15 @@
 // Types that are used, in particular, by poll.hpp and epoll.hpp.
 
 // Event queue callback
-struct linux_event_callback_t {
+struct event_callback_t {
     virtual void on_event(int events) = 0;
-    virtual ~linux_event_callback_t() {}
+    virtual ~event_callback_t() {}
 };
 
-struct linux_queue_parent_t {
+struct queue_parent_t {
     virtual void pump() = 0;
     virtual bool should_shut_down() = 0;
-    virtual ~linux_queue_parent_t() {}
+    virtual ~queue_parent_t() {}
 };
 
 

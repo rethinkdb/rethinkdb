@@ -8,12 +8,12 @@
 #include "logger.hpp"
 
 int get_cpu_count() {
-#ifndef _WIN32
+#ifndef _WIN32 // ATN TODO
     return sysconf(_SC_NPROCESSORS_ONLN);
 #else
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-    return sysinfo.dwNumberOfProcessors;
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	return sysinfo.dwNumberOfProcessors;
 #endif
 }
 

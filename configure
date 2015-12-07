@@ -38,6 +38,7 @@ init () {
 
     default_allocator_linux=jemalloc
     default_allocator_osx=system
+    default_allocator_mingw=system
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
 }
@@ -76,6 +77,11 @@ configure () {
             default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
+	*w64-mingw32*)
+	    var OS "Mingw"
+	    default_allocator=$default_allocator_mingw
+	    var PTHREAD_LIBS "-pthread" ;
+            var RT_LIBS "" ;;
         *) error "unsupported operating system: $MACHINE" ;;
     esac
     case "${MACHINE%%-*}" in

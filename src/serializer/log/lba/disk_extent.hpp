@@ -38,7 +38,7 @@ public:
     in_memory_index_t to be filled with data. */
 
     struct read_info_t {
-        scoped_device_block_aligned_ptr_t<void> buffer;
+        scoped_device_block_aligned_ptr_t<lba_extent_t> buffer;
         int count;
     };
 

@@ -1,13 +1,6 @@
 #include "rethinkdb_backtrace.hpp"
 
-#ifdef _WIN32
-
-int rethinkdb_backtrace(void **buffer, int size) {
-    // TODO WINDOWS
-    return 0;
-}
-
-#elif defined(__MACH__)
+#ifdef __MACH__
 
 #include <execinfo.h>
 #include <pthread.h>
@@ -73,7 +66,8 @@ void substitute_pthread_t_stack_fields(pthread_t th, pthread_t_field_locations_t
     *reinterpret_cast<size_t *>(th->__opaque + locations.stacksize_offset) = size;
 }
 
-int rethinkdb_backtrace(void **buffer, int size) {
+int rethinkdb_backtrace(void **buffer, int size, void *context) {
+    // ATN TODO: context is unused
     coro_t *const coro = coro_t::self();
     if (coro == NULL) {
         return backtrace(buffer, size);
@@ -100,12 +94,45 @@ int rethinkdb_backtrace(void **buffer, int size) {
     }
 }
 
+#elif defined(_WIN32)
+
+#include "windows.hpp"
+#define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
+#include <DbgHelp.h>
+
+#include <algorithm>
+#include <vector>
+
+int rethinkdb_backtrace(void **buffer, int size, void *context) {
+    /* TODO ATN: use StackWalkEx when context is not null
+    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
+    HANDLE process = GetCurrentProcess();
+    STACKFRAME_EX frame;
+    CONTEXT context;
+    BOOL res = StackWalkEx(machine_type, process, &frame, &context, nullptr, nullptr, nullptr, nullptr, SYM_STKWALK_DEFAULT);
+    */
+
+    // const int MAX_STACK_TRACE_SIZE = 62; // suggested on MSDN for older versions of windows, but ignored here
+
+    std::vector<void *> addresses(size, nullptr);
+    USHORT frames = CaptureStackBackTrace(0, size, addresses.data(), nullptr);
+    if (frames > NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE) {
+        std::move(addresses.begin() + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE, addresses.begin() + frames, buffer);
+        return frames - NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;
+    } else {
+        return 0;
+    }
+}
+
 #else
 
 #include <execinfo.h>
 
-int rethinkdb_backtrace(void **buffer, int size) {
+#include "errors.hpp"
+
+int rethinkdb_backtrace(void **buffer, int size, UNUSED void* context) {
+    // TODO ATN: check context
     return backtrace(buffer, size);
 }
 
-#endif  // __MACH__
+#endif
