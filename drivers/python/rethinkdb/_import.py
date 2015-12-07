@@ -804,7 +804,7 @@ def import_directory(options):
     spawn_import_clients(options, files_info)
 
 def table_check(progress, conn, db, table, create_args, force):
-    pkey = create_args["primary_key"]
+    pkey = None
 
     if db == "rethinkdb":
         raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
@@ -816,14 +816,17 @@ def table_check(progress, conn, db, table, create_args, force):
         if not force:
             raise RuntimeError("Error: Table already exists, run with --force if you want to import into the existing table")
 
-        extant_pkey = r.db(db).table(table).info().run(conn)["primary_key"]
-        if pkey is not None and pkey != extant_pkey:
-            raise RuntimeError("Error: Table already exists with a different primary key")
-        pkey = extant_pkey
+        if 'primary_key' in create_args:
+            pkey = r.db(db).table(table).info()["primary_key"].run(conn)
+            if create_args["primary_key"] != pkey:
+                raise RuntimeError("Error: Table already exists with a different primary key")
     else:
-        if pkey is None:
+        if 'primary_key' in create_args:
+            pkey = create_args["primary_key"]
+        else:
             print("no primary key specified, using default primary key when creating table")
         r.db(db).table_create(table, **create_args).run(conn)
+
     return pkey
 
 def import_file(options):
