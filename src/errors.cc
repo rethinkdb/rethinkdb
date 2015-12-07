@@ -101,7 +101,6 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
     return buf;
 #endif
 }
-#endif
 
 #ifdef _WIN32
 MUST_USE const std::string winerr_string(DWORD winerr) {

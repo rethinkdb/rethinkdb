@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 #include "arch/timer.hpp"
-#include "arch/runtime/event_queue/windows.hpp"
+#include "arch/runtime/event_queue/iocp.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/event_watcher.hpp"
 
@@ -27,52 +27,52 @@ struct proxied_overlapped_operation_t {
         error(error_), nb_bytes(nb_bytes_), op(op_) { }
 };
 
-windows_event_queue_t::windows_event_queue_t(linux_thread_t *thread_)
+iocp_event_queue_t::iocp_event_queue_t(linux_thread_t *thread_)
     : thread(thread_), timer_cb(nullptr) {
     debugf_queue("[%p] create\n", this);
     completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, static_cast<ULONG_PTR>(windows_message_type_t::OVERLAPPED_OPERATION), 1);
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort failed");
 }
 
-void windows_event_queue_t::add_handle(fd_t handle) {
+void iocp_event_queue_t::add_handle(fd_t handle) {
     debugf_queue("[%p] add_handle(%x)\n", this, handle);
     completion_port = CreateIoCompletionPort(handle, completion_port, static_cast<ULONG_PTR>(windows_message_type_t::OVERLAPPED_OPERATION), 1);
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort: failed to add handle");
 }
 
-void windows_event_queue_t::watch_event(windows_event_t& event, event_callback_t *cb) {
+void iocp_event_queue_t::watch_event(windows_event_t *event, event_callback_t *cb) {
     debugf_queue("[%p] watch_event\n", this);
-    rassert(event.event_queue == nullptr && event.callback == nullptr, "Cannot watch the same event twice"); 
-    event.callback = cb;
-    event.event_queue = this;
+    rassert(event->event_queue == nullptr && event->callback == nullptr, "Cannot watch the same event twice"); 
+    event->callback = cb;
+    event->event_queue = this;
 }
 
-void windows_event_queue_t::forget_event(windows_event_t& event, UNUSED event_callback_t *cb) {
+void iocp_event_queue_t::forget_event(windows_event_t *event, UNUSED event_callback_t *cb) {
     debugf_queue("[%p] forget_event\n", this);
-    if (event.event_queue != nullptr) {
-        event.event_queue = nullptr;
+    if (event->event_queue != nullptr) {
+        event->event_queue = nullptr;
     }
-    event.callback = nullptr;
+    event->callback = nullptr;
 }
 
-void windows_event_queue_t::post_event(event_callback_t *cb) {
+void iocp_event_queue_t::post_event(event_callback_t *cb) {
     debugf_queue("[%p] post_event\n", this);
     rassert(cb != nullptr);
     BOOL res = PostQueuedCompletionStatus(completion_port, 0, ULONG_PTR(windows_message_type_t::EVENT_CALLBACK), reinterpret_cast<OVERLAPPED*>(cb));
     guarantee_winerr(res, "PostQueuedCompletionStatus failed");
 }
 
-void windows_event_queue_t::set_timer(int64_t next_time_in_nanos_, timer_provider_callback_t *cb) {
+void iocp_event_queue_t::set_timer(int64_t next_time_in_nanos_, timer_provider_callback_t *cb) {
     rassert(cb != nullptr);
     next_time_in_nanos = next_time_in_nanos_;
     timer_cb = cb;
 }
 
-void windows_event_queue_t::unset_timer() {
+void iocp_event_queue_t::unset_timer() {
     timer_cb = nullptr;
 }
 
-void windows_event_queue_t::run() {
+void iocp_event_queue_t::run() {
     debugf_queue("[%p] run\n", this);
     while (!thread->should_shut_down()) {
         ULONG nb_bytes;

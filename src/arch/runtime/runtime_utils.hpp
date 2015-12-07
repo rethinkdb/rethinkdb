@@ -16,7 +16,15 @@ const fd_t INVALID_FD = -1;
 #else
 
 typedef HANDLE fd_t;
-#define fd_t INVALID_FD = INVALID_HANDLE_VALUE;
+const fd_t INVALID_FD = INVALID_HANDLE_VALUE;
+
+inline SOCKET fd_to_socket(fd_t handle) {
+    return reinterpret_cast<SOCKET>(handle);
+}
+
+inline fd_t socket_to_fd(SOCKET s) {
+    return reinterpret_cast<fd_t>(s);
+}
 
 #endif
 

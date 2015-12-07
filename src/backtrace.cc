@@ -408,5 +408,3 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
     return output;
 #endif
 }
-
-#endif

@@ -6,7 +6,7 @@
 #include "arch/runtime/event_queue_types.hpp"
 
 class linux_thread_t;
-class windows_event_queue_t;
+class iocp_event_queue_t;
 
 class windows_event_t {
 public:
@@ -16,9 +16,9 @@ public:
 
 private:
     // TODO ATN: break up this friendship
-    friend class windows_event_queue_t;
+    friend class iocp_event_queue_t;
 
-    windows_event_queue_t *event_queue;
+    iocp_event_queue_t *event_queue;
     event_callback_t *callback;
 };
 

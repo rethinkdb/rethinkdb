@@ -39,12 +39,12 @@
 #define winsock_debugf(...) ((void)0) //*/
 
 #ifdef _WIN32
-LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
+LPFN_CONNECTEX get_ConnectEx(fd_t s) {
     static LPFN_CONNECTEX ConnectEx = nullptr;
     if (!ConnectEx) {
         DWORD size = 0;
         GUID id = WSAID_CONNECTEX;
-        DWORD res = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+        DWORD res = WSAIoctl(fd_to_socket(s), SIO_GET_EXTENSION_FUNCTION_POINTER,
                              &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
                              &size, nullptr, nullptr);
         guarantee_winerr(res == 0, "WSAIoctl failed");
@@ -52,12 +52,12 @@ LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
     return ConnectEx;
 }
 
-LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
+LPFN_ACCEPTEX get_AcceptEx(fd_t s) {
     static LPFN_ACCEPTEX AcceptEx = nullptr;
     if (!AcceptEx) {
         DWORD size = 0;
         GUID id = WSAID_ACCEPTEX;
-        DWORD res = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+        DWORD res = WSAIoctl(fd_to_socket(s), SIO_GET_EXTENSION_FUNCTION_POINTER,
                              &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
                              &size, nullptr, nullptr);
         guarantee_winerr(res == 0, "WSAIoctl failed");
@@ -72,7 +72,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     overlapped_operation_t op(event_watcher);
     winsock_debugf("ATN: connecting socket %x\n", socket);
     DWORD bytes_sent; // TODO ATN: is this needed?
-    BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, &bytes_sent, &op.overlapped);
+    BOOL res = get_ConnectEx(socket)(fd_to_socket(socket), sa, sa_len, nullptr, 0, &bytes_sent, &op.overlapped);
     DWORD error = GetLastError();
     if (!res && error != ERROR_IO_PENDING) {
         op.set_cancel();
@@ -123,7 +123,7 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
     sa.sin_addr.s_addr = INADDR_ANY;
     // TODO ATN: on Windows at least, bind can block. Can it block in this use case?
     winsock_debugf("ATN: binding socket for connect %x\n", socket);
-    if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
+    if (bind(fd_to_socket(socket), reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
         logWRN("Failed to bind to local port %d: %s", local_port, winerr_string(GetLastError()).c_str());
     }
 #else
@@ -152,7 +152,7 @@ void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, in
     sa.sin6_port = htons(local_port);
     sa.sin6_addr = in6addr_any;
     winsock_debugf("ATN: binding socket for connect %x\n", socket);
-    if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
+    if (bind(fd_to_socket(socket), reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
         logWRN("Failed to bind to local port %d: %s", local_port, winerr_string(GetLastError()).c_str());
     }
 #else
@@ -176,7 +176,7 @@ fd_t create_socket_wrapper(int address_family) {
 #ifdef _WIN32
     // fd_t res = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
     // TODO ATN: maybe replace this by above, or at least use address_family instead of AF_INET
-    fd_t res = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
+    fd_t res = socket_to_fd(socket(address_family, SOCK_STREAM, IPPROTO_TCP));
     winsock_debugf("ATN: new socket %x\n", res); // TODO ATN
     if (res == INVALID_FD) {
         DWORD err = GetLastError();
@@ -222,13 +222,13 @@ write_perfmon(NULL),
     if (local_port != 0) {
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
-        if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&reuse), sizeof(reuse)) != 0)
+        if (setsockopt(fd_to_socket(sock.get()), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&reuse), sizeof(reuse)) != 0)
             logWRN("Failed to set socket reuse to true: %s", errno_string(get_errno()).c_str());
     }
     {
         // Disable Nagle algorithm just as in the listener case
         int sockoptval = 1;
-        int res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&sockoptval), sizeof(sockoptval));
+        int res = setsockopt(fd_to_socket(sock.get()), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&sockoptval), sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
 
@@ -262,7 +262,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
 void linux_tcp_conn_t::enable_keepalive() {
     int optval = 1;
 #ifdef _WIN32 // TODO ATN
-    int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<char*>(&optval), sizeof(optval));
+    int res = setsockopt(fd_to_socket(sock.get()), SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<char*>(&optval), sizeof(optval));
 #else
     int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
 #endif
@@ -447,7 +447,7 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
 #ifdef _WIN32 // TODO ATN
-    int res = ::shutdown(sock.get(), SD_RECEIVE);
+    int res = ::shutdown(fd_to_socket(sock.get()), SD_RECEIVE);
     if (res != 0 && GetLastError() != WSAENOTCONN) {
         logERR("Could not shutdown socket for reading: %s", winerr_string(GetLastError()).c_str());
     }
@@ -533,7 +533,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     wsabuf.buf = const_cast<char*>(reinterpret_cast<const char*>(buf));
     DWORD flags = 0;
     winsock_debugf("ATN: write on %x\n", sock.get());
-    int res = WSASend(sock.get(), &wsabuf, 1, nullptr, flags, &op.overlapped, nullptr);
+    int res = WSASend(fd_to_socket(sock.get()), &wsabuf, 1, nullptr, flags, &op.overlapped, nullptr);
     DWORD error = GetLastError();
     if (res == 0 || error == ERROR_IO_PENDING) {
         op.wait_abortable(&write_closed);
@@ -703,7 +703,7 @@ void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
 
 #ifdef _WIN32 // TODO ATN
-    int res = ::shutdown(sock.get(), SD_SEND);
+    int res = ::shutdown(fd_to_socket(sock.get()), SD_SEND);
     if (res != 0 && GetLastError() != WSAENOTCONN) {
         logERR("Could not shutdown socket for writing: %s", winerr_string(GetLastError()).c_str());
     }
@@ -783,7 +783,7 @@ bool linux_tcp_conn_t::getpeername(ip_and_port_t *ip_and_port) {
     struct sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
 
-    int res = ::getpeername(sock.get(), reinterpret_cast<sockaddr *>(&addr), &addr_len);
+    int res = ::getpeername(fd_to_socket(sock.get()), reinterpret_cast<sockaddr *>(&addr), &addr_len);
     if (res == 0) {
         *ip_and_port = ip_and_port_t(reinterpret_cast<sockaddr *>(&addr));
         return true;
@@ -819,12 +819,12 @@ linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
 
 void linux_tcp_conn_descriptor_t::make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
     tcp_conn->init(new linux_tcp_conn_t(fd_));
-    fd_ = -1;
+    fd_ = INVALID_FD;
 }
 
 void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_conn_out) {
     *tcp_conn_out = new linux_tcp_conn_t(fd_);
-    fd_ = -1;
+    fd_ = INVALID_FD;
 }
 
 /* Network listener object */
@@ -863,7 +863,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     // Start listening to connections
     for (size_t i = 0; i < socks.size(); ++i) {
         winsock_debugf("ATN: listening on socket %x\n", socks[i].get()); // TODO ATN
-        int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
+        int res = listen(fd_to_socket(socks[i].get()), RDB_LISTEN_BACKLOG);
         guarantee_err(res == 0, "Couldn't listen to the socket"); // TODO ATN: on windows, GetLastError instead of errno
 
 #ifndef _WIN32 // TODO ATN
@@ -903,7 +903,7 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
 #ifdef _WIN32
         // socks[i].reset(WSASocket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
         // TODO ATN: maybe restore above line
-        socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP));
+        socks[i].reset(socket_to_fd(socket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP)));
         winsock_debugf("ATN: new socket for listening: %x\n", socks[i]);
         if (socks[i].get() == INVALID_FD) {
             logERR("socket failed: %s", winerr_string(GetLastError()));
@@ -952,7 +952,7 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     serv_addr.sin_port = htons(*port_out);
     serv_addr.sin_addr = addr;
 
-    int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
+    int res = bind(fd_to_socket(sock), reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
     winsock_debugf("ATN: bound socket %x\n", sock);
     if (res != 0) {
 #ifdef _WIN32 // ATN TODO
@@ -962,7 +962,7 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
         res = get_errno();
 #endif
     } else if (*port_out == ANY_PORT) {
-        res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
+        res = ::getsockname(fd_to_socket(sock), reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
         *port_out = ntohs(serv_addr.sin_port);
     }
@@ -979,7 +979,7 @@ int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
     serv_addr.sin6_addr = addr.get_ipv6_addr();
     serv_addr.sin6_scope_id = addr.get_ipv6_scope_id();
 
-    int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
+    int res = bind(fd_to_socket(sock), reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
     if (res != 0) {
 #ifdef _WIN32
         logWRN("bind(6) failed: %s", winerr_string(GetLastError()).c_str());
@@ -988,7 +988,7 @@ int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
         res = get_errno();
 #endif
     } else if (*port_out == ANY_PORT) {
-        res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
+        res = ::getsockname(fd_to_socket(sock), reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
         *port_out = ntohs(serv_addr.sin6_port);
     }
@@ -1110,7 +1110,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             : listening_sock(sock), op(event_watcher) {
             WSAPROTOCOL_INFO pinfo;
             int pinfo_size = sizeof(pinfo);
-            guarantee_winerr(0 == getsockopt(sock, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size), "getsockopt failed");
+            guarantee_winerr(0 == getsockopt(fd_to_socket(sock), SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size), "getsockopt failed");
             address_family = pinfo.iAddressFamily;
 
             queue_accept();
@@ -1118,11 +1118,11 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
         void queue_accept() {
             op.reset();
-            new_sock = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+            new_sock = socket_to_fd(WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
             winsock_debugf("ATN: new socket for accepting: %x\n", new_sock);
             guarantee_winerr(new_sock != INVALID_FD, "WSASocket failed");
             winsock_debugf("ATN: accepting on socket %x\n", listening_sock);
-            BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
+            BOOL res = get_AcceptEx(listening_sock)(fd_to_socket(listening_sock), fd_to_socket(new_sock), addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
             if (res) {
                 op.set_result(0, NO_ERROR);
             } else {

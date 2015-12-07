@@ -337,7 +337,6 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     } while (res == INVALID_FD && get_errno() == EINTR);
 
     fd.reset(res);
-#endif
 
     if (fd.get() == INVALID_FD) {
         rassert(false, "ATN TODO: errno -- GetLastError");

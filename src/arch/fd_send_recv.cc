@@ -1,8 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef _WIN32 // ATN TODO
-
-#include "arch/fd_send_recv.hpp"
-
 #ifndef _WIN32
 
 #include <sys/types.h>

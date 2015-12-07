@@ -1,9 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32 // ATN TODO
+#ifndef _WIN32
 
 #include "arch/runtime/system_event/pipe_event.hpp"
-
-#ifndef _WIN32
 
 #include <fcntl.h>
 #include <string.h>

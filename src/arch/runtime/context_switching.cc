@@ -56,12 +56,6 @@ void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *
 
 #include "arch/runtime/context_switching.hpp"
 
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
-
 #include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -611,4 +605,4 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 
-#endif // _WIN32
+#endif

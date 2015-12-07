@@ -15,20 +15,6 @@ class os_signal_cond_t : public cond_t { };
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 
-#ifdef _WIN32
-
-// ATN TODO
-
-class os_signal_cond_t : public cond_t {
-    /*
-    int get_source_signo() const;
-    pid_t get_source_pid() const;
-    uid_t get_source_uid() const;
-    */
-};
-
-#else
-
 class os_signal_cond_t : public thread_message_t,
                          public cond_t
 {

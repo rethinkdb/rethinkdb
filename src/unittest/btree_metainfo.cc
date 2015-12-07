@@ -19,8 +19,6 @@ int (&random)() = rand;
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #endif
 
-int (&random)() = rand; // ATN TODO
-
 std::string random_string() {
     std::string s;
     int length = random() % 10;

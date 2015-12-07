@@ -99,7 +99,6 @@
     NOINLINE void TLS_set_ ## name (T&& val) {                          \
         TLS_ ## name = std::forward<T>(val);                            \
     }
-#endif
 
 #else  // THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \

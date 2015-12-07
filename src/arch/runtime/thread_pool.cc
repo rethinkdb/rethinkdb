@@ -37,7 +37,6 @@ BOOL windows_ctrl_handler(DWORD type) {
 // to format a backtrace.
 const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif
-#endif  // VALGRIND
 
 THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
 THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;

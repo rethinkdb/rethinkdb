@@ -1,6 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32
-
 #include <unistd.h>
 
 // TODO ATN: do not use windows_event_watcher unless _WIN32
@@ -192,5 +190,3 @@ read_stream_t *extproc_worker_t::get_read_stream() {
 write_stream_t *extproc_worker_t::get_write_stream() {
     return socket_stream.get();
 }
-
-#endif

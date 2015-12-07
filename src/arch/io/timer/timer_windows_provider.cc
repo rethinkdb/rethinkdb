@@ -16,7 +16,7 @@
 
 const HANDLE DEFAULT_TIMER_QUEUE = nullptr;
 
-timer_windows_provider_t::timer_windows_provider_t(windows_event_queue_t *event_queue_) :
+timer_windows_provider_t::timer_windows_provider_t(iocp_event_queue_t *event_queue_) :
     callback(nullptr), event_queue(event_queue_) {
     debugf_timer("[%p] create\n", this);
     // ATN TODO: assert that there is no other timer provider for this thread

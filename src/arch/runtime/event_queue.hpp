@@ -33,13 +33,13 @@ struct pm_eventloop_singleton_t {
 
 // Use IOCP
 #include "arch/runtime/event_queue/iocp.hpp"
-typedef iocp_event_queue_t linux_event_queue_t;
+typedef iocp_event_queue_t event_queue_t;
 
 #elif defined(__MACH__)
 
 // Use kqueue, which is much faster than poll on OS X
 #include "arch/runtime/event_queue/kqueue.hpp"
-typedef kqueue_event_queue_t linux_event_queue_t;
+typedef kqueue_event_queue_t event_queue_t;
 
 #elif !defined(__linux) || defined(NO_EPOLL)
 
