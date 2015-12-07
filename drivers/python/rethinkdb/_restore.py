@@ -50,8 +50,8 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
 
-    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=None, type="int")
-    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=None, type="int")
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")

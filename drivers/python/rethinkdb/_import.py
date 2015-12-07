@@ -117,8 +117,8 @@ def parse_options():
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
 
     # Replication settings
-    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=None, type="int")
-    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=None, type="int")
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -154,12 +154,12 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
-    res["shards"] = options.shards
-    res["replicas"] = options.replicas
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
+
+    res["create_args"] = {k: options[k] for k in ['shards', 'replicas'] if getattr(options, k) != 0}
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -270,7 +270,8 @@ def parse_options():
             if options.custom_header is not None:
                 raise RuntimeError("Error: --custom-header option is only valid for CSV file formats")
 
-        res["primary_key"] = options.primary_key
+        if options.primary_key is not None:
+          res["create_args"]["primary_key"] = options.primary_key
     else:
         raise RuntimeError("Error: Must specify one of --directory or --file to import")
 
@@ -523,9 +524,9 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
 # error occurs.  Progress will resume where it left off.
-def create_table(progress, conn, db, table, pkey, sindexes, shards, replicas):
+def create_table(progress, conn, db, table, create_args, sindexes):
     if table not in r.db(db).table_list().run(conn):
-        r.db(db).table_create(table, primary_key=pkey, shards=shards, replicas=replicas).run(conn)
+        r.db(db).table_create(table, **create_args).run(conn)
 
     if progress[0] is None:
         progress[0] = 0
@@ -547,12 +548,12 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
     try:
         db = file_info["db"]
         table = file_info["table"]
-        primary_key = file_info["info"]["primary_key"]
+        create_args = dict(options["create_args"])
+        create_args["primary_key"] = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
-                         file_info["info"]["indexes"] if options["create_sindexes"] else [],
-                         options["shards"], options["replicas"])
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
+                         file_info["info"]["indexes"] if options["create_sindexes"] else [])
 
         if file_info["format"] == "json":
             json_reader(task_queue,
@@ -802,7 +803,9 @@ def import_directory(options):
 
     spawn_import_clients(options, files_info)
 
-def table_check(progress, conn, db, table, pkey, shards, replicas, force):
+def table_check(progress, conn, db, table, create_args, force):
+    pkey = create_args["primary_key"]
+
     if db == "rethinkdb":
         raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
 
@@ -820,22 +823,19 @@ def table_check(progress, conn, db, table, pkey, shards, replicas, force):
     else:
         if pkey is None:
             print("no primary key specified, using default primary key when creating table")
-            r.db(db).table_create(table, shards=shards, replicas=replicas).run(conn)
-        else:
-            r.db(db).table_create(table, primary_key=pkey, shards=shards, replicas=replicas).run(conn)
+        r.db(db).table_create(table, **create_args).run(conn)
     return pkey
 
 def import_file(options):
     db = options["import_db_table"][0]
     table = options["import_db_table"][1]
-    pkey = options["primary_key"]
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
-    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["shards"], options["replicas"], options["force"])
+    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, options["create_args"], options["force"])
 
     # Make this up so we can use the same interface as with an import directory
     file_info = {}
