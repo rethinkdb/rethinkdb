@@ -94,7 +94,7 @@ describe('JavaScript Cursor', function() {
         // ensure db exists
         return withConnection()
         .then(function() {
-            r.expr([dbName]).setDifference(r.dbList()).forEach(
+            return r.expr([dbName]).setDifference(r.dbList()).forEach(
                 function(value) { return r.dbCreate(value); }
             ).run(reqlConn)
         })
