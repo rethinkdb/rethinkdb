@@ -93,15 +93,14 @@ def debug(message):
 # This class attempts to abstract some of the details that separate our source languages.
 class SrcLang(object):
     test_types = None
+    language_name = None
     display_name = None
 
     interpreter_name_exe_names = None
     interpreter_version = None
     interpreter_env_name = None
     
-    driver_source_path = None
-    driver_build_env_name = None
-    driver_build_path = None
+    driver_info = None
     
     envVariablesToSet = None
     
@@ -137,9 +136,13 @@ class SrcLang(object):
         return cls._singletons[singletonName]
     
     def __init__(self, version=None):
+        assert self.language_name is not None, 'SrcLang subclass is not properly setup'
+        assert self.language_name in utils.driverPaths, 'SrcLang %s info not in utils.driverPaths' % self.language_name # ToDo: keep all of this in one file
+        
         self.envVariablesToSet = {}
         self.class_setup(version)
         self.instance_setup = True
+        self.driver_info = utils.driverPaths[self.language_name]
         try:
             self.envVariablesToSet['INTERPRETER_PATH'] = self.interpreter_path
         except Exception: pass
@@ -235,16 +238,12 @@ class SrcLang(object):
         return self.__polyglot_language_header
 
 class PyLang(SrcLang):
-    display_name = 'Python'
+    language_name = 'Python'
     
     interpreter_name_exe_names = None
     interpreter_env_name = 'PYTHON'
     minVersion = None
     maxVersion = None
-    
-    driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'python')
-    driver_build_env_name = 'PYTHON_DRIVER_DIR'
-    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'drivers', 'python')
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
     
@@ -257,7 +256,7 @@ class PyLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.display_name + ' ' + version
+        self.display_name = self.language_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -275,6 +274,7 @@ class PyLang(SrcLang):
                 workingVersion = os.path.splitext(workingVersion)[0]
         self.test_types.append('py')
         self.interpreter_name_exe_names.append('python')
+        self.interpreter_name_exe_names.reverse() # make `python` the first checked so virtualenv can work
     
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
@@ -290,16 +290,12 @@ class PyLang(SrcLang):
         return distutils.version.LooseVersion(str(versionNumbers[0]))
 
 class JsLang(SrcLang):
-    display_name = 'JavaScript'
+    language_name = 'JavaScript'
     
     interpreter_name_exe_names = ['node']
     interpreter_env_name = 'NODE'
     minVersion = None # no version requirements yet
     maxVersion = None
-    
-    driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'javascript')
-    driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
-    driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'packages', 'js')
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
@@ -317,7 +313,7 @@ class JsLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.display_name + ' ' + version
+        self.display_name = self.language_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -377,16 +373,12 @@ class JsLang(SrcLang):
         return distutils.version.LooseVersion(versionNumber)
 
 class RbLang(SrcLang):
-    display_name = 'Ruby'
+    language_name = 'Ruby'
     
     interpreter_name_exe_names = None
     interpreter_env_name = 'RUBY'
     minVersion = None
     maxVersion = None
-    
-    driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby')
-    driver_build_env_name = 'RUBY_DRIVER_DIR'
-    driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
     lang_replaces = {
         'None': 'nil',
@@ -401,7 +393,7 @@ class RbLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.display_name + ' ' + version
+        self.display_name = self.language_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -532,13 +524,13 @@ class RbLang(SrcLang):
         return distutils.version.LooseVersion(versionNumber)
     
 class JrbLang(RbLang):
-    display_name = 'JRuby'
+    language_name = 'JRuby'
     
     def class_setup(self, version):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.display_name + ' ' + version
+        self.display_name = self.language_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -1299,7 +1291,7 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
             extension = extension.lstrip('.').strip().lower()
             
             testName, testLangExtensions = os.path.splitext(testName)
-            testLangExtensions = testLangExtensions.lstrip('.').strip().lower()
+            testLangExtensions = testLangExtensions.lstrip('.').strip().lower().replace('_', '.')
             if testLangExtensions:
                 testLangExtensions = testLangExtensions.split(',')
             else:
@@ -1699,7 +1691,16 @@ def main():
     
     # -- parse command line options
     
-    parser = optparse.OptionParser(usage='usage: %prog [options] [patterns]')
+    usage = '''
+usage: %prog [options] [patterns]
+
+Tests by default use the drivers from the appropriate folder in this
+repository. To change this set the appropriate environtmental variable
+from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
+`--INSTALLED--` to use the system-installed version.
+'''.strip()
+    
+    parser = optparse.OptionParser(usage=usage)
     
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
     
@@ -1895,9 +1896,12 @@ def main():
     # -- make sure the drivers are built
     
     for language in options.languages:
+        if not language.driver_info['sourcePath']:
+            continue
+        
         outputFile = tempfile.NamedTemporaryFile(mode='w+')
         notificationDeadline = time.time() + 3
-        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
+        makeProcess = subprocess.Popen(['make', '-C', language.driver_info['sourcePath']], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
@@ -1908,7 +1912,7 @@ def main():
             print(outputFile.read().decode('utf-8'))
             sys.exit(1)
         
-        os.environ[language.driver_build_env_name] = language.driver_build_path
+        os.environ[language.driver_info['envName'] + '_SRC'] = language.driver_info['sourcePath']
     
     r = utils.import_python_driver()
     
@@ -1916,7 +1920,7 @@ def main():
     
     print('Using rethinkdb binary %s' % rethinkdb_exe_path)
     for thisLanguage in options.languages:
-        print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.interpreter_path, thisLanguage.driver_source_path))
+        print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.interpreter_path, thisLanguage.driver_info['driverPath']))
         if outputDir not in utils.pathsToClean:
             print('\toutput folder: %s' % outputDir)
     

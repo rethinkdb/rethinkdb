@@ -77,17 +77,18 @@ pkg_fetch_archive () {
     if [[ $download_failed -ne "0" ]]; then
         error "failed to download $pkg: $src_url"
     fi
-    
+
     if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
         error "sha1 for $pkg was incorrect: `getsha1  "$tmp_dir/$archive"` vs. expected: $src_url_sha1"
     fi
-    
+
     local ext
     case "$archive" in
         *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;
         *.tar.gz)  ext=tar.gz;  in_dir "$tmp_dir" tar -xzf "$archive" ;;
         *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
         *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
+        *.zip)     ext=zip;     in_dir "$tmp_dir" unzip    "$archive" ;;
         *) error "don't know how to extract $archive"
     esac
 

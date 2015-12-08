@@ -68,8 +68,6 @@ private:
 
         void walk(rapidjson::Value *src, backtrace_id_t bt) {
             r_sanity_check(src != nullptr);
-            rapidjson::Value *args = nullptr;
-            rapidjson::Value *optargs = nullptr;
 
             if (src->IsArray()) {
                 size_t size = src->Size();
@@ -86,28 +84,8 @@ private:
                     rcheck_src(bt, term_type_is_valid(type), base_exc_t::LOGIC,
                                strprintf("Unrecognized TermType: %d.", val->GetInt()));
                 }
-                if (size >= 2) {
-                    rapidjson::Value *val = &(*src)[1];
-                    if (val->IsArray()) {
-                        args = val;
-                    } else if (val->IsObject() && type != Term::DATUM) {
-                        optargs = val;
-                    } else {
-                        rcheck_src(bt, type == Term::DATUM, base_exc_t::LOGIC,
-                                   "Second element in a non-DATUM Term is neither "
-                                   "arguments nor optional arguments.");
-                    }
-                }
-                if (size >= 3) {
-                    rapidjson::Value *val = &(*src)[2];
-                    rcheck_src(bt, val->IsObject(), base_exc_t::LOGIC,
-                               "Third element in a non-DATUM Term is not "
-                               "optional arguments.");
-                    optargs = val;
-                }
             } else if (src->IsObject()) {
                 rewrite(src, Term::MAKE_OBJ);
-                optargs = &(*src)[1];
             } else {
                 rewrite(src, Term::DATUM);
             }
@@ -138,6 +116,30 @@ private:
                 base_exc_t::LOGIC,
                 strprintf("Cannot nest writes or meta ops in stream operations.  Use "
                           "FOR_EACH instead."));
+
+            rapidjson::Value *args = nullptr;
+            rapidjson::Value *optargs = nullptr;
+            if (src->Size() >= 3) {
+                rapidjson::Value *val = &(*src)[1];
+                if (val->IsArray()) {
+                    args = val;
+                } else if (val->IsObject() && type != Term::DATUM) {
+                    optargs = val;
+                } else {
+                    rcheck_src(bt, type == Term::DATUM, base_exc_t::LOGIC,
+                               "Second element in a Term is neither "
+                               "arguments nor optional arguments.");
+                }
+            }
+            if (src->Size() >= 4) {
+                rapidjson::Value *val = &(*src)[2];
+                rcheck_src(bt, optargs == nullptr, base_exc_t::LOGIC,
+                           "Second and third element in a term are "
+                           "both optional arguments.");
+                rcheck_src(bt, val->IsObject(), base_exc_t::LOGIC,
+                           "Third element in a Term is not optional arguments.");
+                optargs = val;
+            }
 
             if (args != nullptr) {
                 r_sanity_check(args->IsArray());

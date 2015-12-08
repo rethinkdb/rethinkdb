@@ -39,13 +39,13 @@ tests:
 
     # Error cases
     - cd: r.expr({12:'a'})
-      # JavaScript auto-converts keys for us 
-      js: 
+      # JavaScript auto-converts keys for us
+      js:
       ot: err_regex("ReqlCompileError", "Object keys must be strings.*")
-    
+
     - cd: r.expr({'a':{12:'b'}})
-      # JavaScript auto-converts keys for us 
-      js: 
+      # JavaScript auto-converts keys for us
+      js:
       ot: err_regex("ReqlCompileError", "Object keys must be strings.*")
 
     - js: r({'a':undefined})

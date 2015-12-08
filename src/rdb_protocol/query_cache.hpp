@@ -90,7 +90,7 @@ public:
                       signal_t *interruptor);
 
     // Issue a stop query to the cache
-    void stop_query(const query_params_t &query_params);
+    void stop_query(query_params_t *query_params, signal_t *interruptor);
 
     // Directly stop a query by its entry
     void terminate_internal(entry_t *entry);

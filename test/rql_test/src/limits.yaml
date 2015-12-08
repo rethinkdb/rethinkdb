@@ -56,7 +56,7 @@ tests:
 
   # attempt to read array that violates limit from disk
   - cd: tbl.insert({'id':1, 'array':ten_l})
-    ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+    ot: ({'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1})
   - cd: tbl.get(1)
     runopts:
       array_limit: 4
@@ -126,4 +126,3 @@ tests:
              {'old_val':null, 'new_val':{'id':11}},
              {'old_val':null, 'new_val':{'id':12}},
              {'old_val':null, 'new_val':{'id':13}}])
-

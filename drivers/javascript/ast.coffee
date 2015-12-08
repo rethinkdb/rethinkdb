@@ -52,9 +52,12 @@ hasImplicit = (args) ->
 class TermBase
     showRunWarning: true
     constructor: ->
-        self = (ar (field) -> self.bracket(field))
-        self.__proto__ = @.__proto__
-        return self
+        if {}.__proto__ != undefined
+            self = (ar (field) -> self.bracket(field))
+            self.__proto__ = @.__proto__
+            return self
+        else
+            @
 
     run: (connection, options, callback) ->
         # Valid syntaxes are
@@ -479,7 +482,7 @@ class MakeArray extends RDBOp
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
-    tt: protoTermType.MAKE_OBJECT
+    tt: protoTermType.MAKE_OBJ
     st: '{...}' # This is only used by the `undefined` argument checker
 
     constructor: (obj, nestingDepth=20) ->

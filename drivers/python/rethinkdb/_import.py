@@ -16,6 +16,7 @@ PY3 = sys.version > '3'
 #json parameters
 json_read_chunk_size = 32 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
+max_nesting_depth = 100
 try:
     import cPickle as pickle
 except ImportError:
@@ -37,8 +38,10 @@ info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)] [--clients NUM]\n\
+      [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
       [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -66,7 +69,8 @@ def print_import_help():
     print("Import file:")
     print("  -f [ --file ] FILE               the file to import data from")
     print("  --table DB.TABLE                 the table to import the data into")
-    print("  --format (csv | json)            the format of the file (defaults to json)")
+    print("  --format (csv | json)            the format of the file (defaults to json and accepts")
+    print("                                   newline delimited json)")
     print("  --pkey PRIMARY_KEY               the field to use as the primary key in the table")
     print("")
     print("Import CSV format:")
@@ -78,6 +82,7 @@ def print_import_help():
     print("Import JSON format:")
     print("  --max-document-size              the maximum size in bytes that a single JSON document")
     print("                                   can have (defaults to 134217728).")
+    print("  --max-nesting-depth              the maximum nesting depth of the JSON documents")
     print("")
     print("EXAMPLES:")
     print("")
@@ -112,6 +117,11 @@ def parse_options():
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
+    parser.add_option("--max-nesting-depth", dest="max_nesting_depth", default=0, type="int")
+
+    # Replication settings
+    parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
+    parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -152,6 +162,8 @@ def parse_options():
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
 
+    res["create_args"] = {k: getattr(options, k) for k in ['shards', 'replicas'] if getattr(options, k) != 0}
+
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
     res["no_header"] = False
@@ -161,6 +173,9 @@ def parse_options():
     if options.max_document_size > 0:
         global json_max_buffer_size
         json_max_buffer_size=options.max_document_size
+    if options.max_nesting_depth > 0:
+        global max_nesting_depth
+        max_nesting_depth = options.max_nesting_depth
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -261,7 +276,8 @@ def parse_options():
             if options.custom_header is not None:
                 raise RuntimeError("Error: --custom-header option is only valid for CSV file formats")
 
-        res["primary_key"] = options.primary_key
+        if options.primary_key is not None:
+          res["create_args"]["primary_key"] = options.primary_key
     else:
         raise RuntimeError("Error: Must specify one of --directory or --file to import")
 
@@ -294,7 +310,7 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
             objs = [pickle.loads(obj) for obj in task[2]]
             conflict_action = 'replace' if replace_conflicts else 'error'
-            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
+            res = r.db(task[0]).table(task[1]).insert(r.expr(objs, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action).run(conn)
         except:
             progress[0] = task
             raise
@@ -514,9 +530,11 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
 # error occurs.  Progress will resume where it left off.
-def create_table(progress, conn, db, table, pkey, sindexes):
-    if table not in r.db(db).table_list().run(conn):
-        r.db(db).table_create(table, primary_key=pkey).run(conn)
+def create_table(progress, conn, db, table, create_args, sindexes):
+    # Make sure that the table is ready if it exists, or create it
+    r.branch(r.db(db).table_list().contains(table),
+        r.db(db).table(table).wait(timeout=30),
+        r.db(db).table_create(table, **create_args)).run(conn)
 
     if progress[0] is None:
         progress[0] = 0
@@ -538,10 +556,11 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
     try:
         db = file_info["db"]
         table = file_info["table"]
-        primary_key = file_info["info"]["primary_key"]
+        create_args = dict(options["create_args"])
+        create_args["primary_key"] = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
                          file_info["info"]["indexes"] if options["create_sindexes"] else [])
 
         if file_info["format"] == "json":
@@ -792,7 +811,9 @@ def import_directory(options):
 
     spawn_import_clients(options, files_info)
 
-def table_check(progress, conn, db, table, pkey, force):
+def table_check(progress, conn, db, table, create_args, force):
+    pkey = None
+
     if db == "rethinkdb":
         raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
 
@@ -803,29 +824,29 @@ def table_check(progress, conn, db, table, pkey, force):
         if not force:
             raise RuntimeError("Error: Table already exists, run with --force if you want to import into the existing table")
 
-        extant_pkey = r.db(db).table(table).info().run(conn)["primary_key"]
-        if pkey is not None and pkey != extant_pkey:
-            raise RuntimeError("Error: Table already exists with a different primary key")
-        pkey = extant_pkey
+        if 'primary_key' in create_args:
+            pkey = r.db(db).table(table).info()["primary_key"].run(conn)
+            if create_args["primary_key"] != pkey:
+                raise RuntimeError("Error: Table already exists with a different primary key")
     else:
-        if pkey is None:
-            print("no primary key specified, using default primary key when creating table")
-            r.db(db).table_create(table).run(conn)
+        if 'primary_key' in create_args:
+            pkey = create_args["primary_key"]
         else:
-            r.db(db).table_create(table, primary_key=pkey).run(conn)
+            print("no primary key specified, using default primary key when creating table")
+        r.db(db).table_create(table, **create_args).run(conn)
+
     return pkey
 
 def import_file(options):
     db = options["import_db_table"][0]
     table = options["import_db_table"][1]
-    pkey = options["primary_key"]
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
-    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
+    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, options["create_args"], options["force"])
 
     # Make this up so we can use the same interface as with an import directory
     file_info = {}

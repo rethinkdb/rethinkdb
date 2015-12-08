@@ -1,0 +1,14 @@
+desc: 5092 -- r.uuid with a string argument is deterministic
+table_variable_name: tbl
+tests:
+  - js: tbl.get(0).update({a:r.uuid()})
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')
+  - js: tbl.get(0).update({a:r.uuid(r.args([]))})
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')
+  # We are more cautious than necessary when it comes to `r.args`:
+  - js: tbl.get(0).update({a:r.uuid(r.args(["test"]))})
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')
+  - js: tbl.get(0).update({a:r.uuid("test")})
+    ot: partial({skipped:1})
+  - js: tbl.get(0).update({a:r.uuid(r.uuid())})
+    ot: err('ReqlQueryLogicError','Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?')

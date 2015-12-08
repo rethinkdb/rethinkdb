@@ -281,9 +281,13 @@ public:
 
     iterator begin() { return index.begin(); }
     iterator end() { return index.end(); }
+    // This is sometimes called after `**raw_it` has been invalidated, so we
+    // can't just dispatch to the `erase(diterator)` implementation above.
     void erase(const iterator &raw_it) {
         guarantee(raw_it != index.end());
-        erase(*raw_it);
+        data.erase(*raw_it);
+        index.erase(raw_it);
+        guarantee(data.size() == index.size());
     }
     void clear() {
         data.clear();

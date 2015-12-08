@@ -10,7 +10,7 @@ tests:
 
     # Single doc insert
     - cd: tbl.insert({'id':0,'a':0})
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
     - cd: tbl.count()
       ot: 1
 
@@ -18,7 +18,7 @@ tests:
     - py: tbl.insert({'id':1, 'a':1}, durability='hard')
       js: tbl.insert({id:1, a:1}, {durability:'hard'})
       rb: tbl.insert({ :id => 1, :a => 1 }, { :durability => 'hard' })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
     - cd: tbl.count()
       ot: 2
 
@@ -26,7 +26,7 @@ tests:
     - py: tbl.insert({'id':2, 'a':2}, durability='soft')
       js: tbl.insert({id:2, a:2}, {durability:'soft'})
       rb: tbl.insert({ :id => 2, :a => 2 }, { :durability => 'soft' })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
     - cd: tbl.count()
       ot: 3
 
@@ -40,31 +40,31 @@ tests:
 
     # Cleanup.
     - cd: tbl.get(2).delete()
-      ot: {'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0}
+      ot: {'deleted':1,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':0}
 
     # Multi doc insert
     - cd: tbl.insert([{'id':2,'a':2}, {'id':3,'a':3}])
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':2}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':2}
 
     # Stream insert
     - cd: tbl2.insert(tbl)
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':4}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':4}
 
     # test pkey clash error
     - cd: tbl.insert({'id':2,'b':20})
-      ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0}
+      ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0}
 
     # test error conflict option (object exists)
     - py: tbl.insert({'id':2,'b':20}, conflict='error')
       js: tbl.insert({'id':2,'b':20}, {conflict:'error'})
       rb: tbl.insert({:id => 2, :b => 20}, { :conflict => 'error' })
-      ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0}
+      ot: {'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0,'replaced':0,'unchanged':0,'errors':1,'skipped':0,'inserted':0}
 
     # test error conflict option (object doesn't exist)
     - py: tbl.insert({'id':15,'b':20}, conflict='error')
       js: tbl.insert({'id':15,'b':20}, {conflict:'error'})
       rb: tbl.insert({:id => 15, :b => 20}, { :conflict => 'error' })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     - cd: tbl.get(15)
       ot: {'id':15,'b':20}
@@ -73,7 +73,7 @@ tests:
     - py: tbl.insert({'id':2,'b':20}, conflict='replace')
       js: tbl.insert({'id':2,'b':20}, {conflict:'replace'})
       rb: tbl.insert({:id => 2, :b => 20}, { :conflict => 'replace' })
-      ot: {'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0}
+      ot: {'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0}
 
     - cd: tbl.get(2)
       ot: {'id':2,'b':20}
@@ -82,7 +82,7 @@ tests:
     - py: tbl.insert({'id':20,'b':20}, conflict='replace')
       js: tbl.insert({'id':20,'b':20}, {conflict:'replace'})
       rb: tbl.insert({:id => 20, :b => 20}, { :conflict => 'replace' })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     - cd: tbl.get(20)
       ot: {'id':20,'b':20}
@@ -91,7 +91,7 @@ tests:
     - py: tbl.insert({'id':2,'c':30}, conflict='update')
       js: tbl.insert({'id':2,'c':30}, {conflict:'update'})
       rb: tbl.insert({:id => 2, :c => 30}, { :conflict => 'update' })
-      ot: {'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0}
+      ot: {'deleted':0,'replaced':1,'unchanged':0,'errors':0,'skipped':0,'inserted':0}
 
     - cd: tbl.get(2)
       ot: {'id':2, 'b':20, 'c':30}
@@ -100,7 +100,7 @@ tests:
     - py: tbl.insert({'id':30,'b':20}, conflict='update')
       js: tbl.insert({'id':30,'b':20}, {conflict:'update'})
       rb: tbl.insert({:id => 30, :b => 20}, { :conflict => 'update' })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     - cd: tbl.get(30)
       ot: {'id':30,'b':20}
@@ -120,7 +120,7 @@ tests:
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({})
-      ot: {'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     - cd: tblpkey
       ot: [{'foo':uuid()}]
@@ -129,13 +129,13 @@ tests:
     - py: tblpkey.insert({'b':20}, conflict='replace')
       js: tblpkey.insert({'b':20}, {conflict:'replace'})
       rb: tblpkey.insert({:b => 20}, { :conflict => 'replace' })
-      ot: {'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     # test update conflict pkey generation
     - py: tblpkey.insert({'b':20}, conflict='update')
       js: tblpkey.insert({'b':20}, {conflict:'update'})
       rb: tblpkey.insert({:b => 20}, { :conflict => 'update' })
-      ot: {'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
+      ot: {'deleted':0,'replaced':0,'generated_keys':arrlen(1,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':1}
 
     - cd: r.db('test').table_drop('testpkey')
       ot: partial({'tables_dropped':1})
@@ -144,7 +144,7 @@ tests:
     - py: tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )
       js: tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
-      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':7}
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':7}
 
     # Insert unwritable data
     - cd: tbl.insert({'value':r.minval})

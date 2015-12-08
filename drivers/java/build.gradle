@@ -1,0 +1,131 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'ivy-publish'
+apply plugin: 'signing'
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-parameters"
+}
+
+version = '2.2-b2-SNAPSHOT'
+ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
+group = "com.rethinkdb"
+archivesBaseName = "rethinkdb-driver"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+//create a single Jar with all dependencies baked in
+task fatJar(type: Jar) {
+    archiveName = "rethinkdb-driver-"+version+".jar"
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+repositories {
+    mavenCentral()
+}
+
+artifacts {
+    archives sourcesJar, fatJar, javadocJar
+}
+
+signing {
+    // Don't sign unless this is a release version
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+dependencies {
+    testCompile "junit:junit:4.12"
+    compile 'org.slf4j:slf4j-api:1.7.12'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+}
+
+test {
+    testLogging {
+        events 'started', 'passed'
+    }
+}
+
+buildDir = '../../build/drivers/java/gradle'
+
+
+repositories {
+    ivy {
+        url "${System.properties['user.home']}/.ivy2/local"
+        layout 'pattern', {
+            artifact "[organisation]/[module]/jars/[artifact](-[classifier])-[revision](.[ext])"
+            ivy "[organisation]/[module]/[artifact](-[classifier])-[revision](.[ext])"
+            }
+    }
+}
+publishing {
+    publications {
+        ivyJava(IvyPublication) {
+            from components.java
+        }
+    }
+    repositories {
+      add project.repositories.ivy
+    }
+}
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment {
+          MavenDeployment deployment -> signing.signPom(deployment)
+      }
+
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: project.hasProperty('ossrhUsername') ? ossrhUsername : '',
+                       password: project.hasProperty('ossrhPassword') ? ossrhPassword : '')
+      }
+
+      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+        authentication(userName: project.hasProperty('ossrhUsername') ? ossrhUsername : '',
+                       password: project.hasProperty('ossrhPassword') ? ossrhPassword : '')
+      }
+
+      pom.project {
+        name 'RethinkDB Java driver'
+        packaging 'jar'
+        // optionally artifactId can be defined here
+        description 'Official java driver for RethinkDB'
+        url 'http://rethinkdb.com'
+
+        scm {
+          connection 'scm:git:https://github.com/rethinkdb/rethinkdb'
+          developerConnection 'scm:git:https://github.com/rethinkdb/rethinkdb'
+          url 'https://github.com/rethinkdb/rethinkdb'
+        }
+
+        licenses {
+          license {
+            name 'The Apache License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            id 'josh-rethinkdb'
+            name 'Josh Kuhn'
+            email 'josh@rethinkdb.com'
+          }
+        }
+      }
+    }
+  }
+}

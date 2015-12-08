@@ -7,6 +7,7 @@
 #include <string>
 #endif
 
+#include "arch/compiler.hpp"
 #include "arch/runtime/callable_action.hpp"
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/runtime_utils.hpp"
@@ -15,8 +16,11 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-// Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled
-#if (!defined(NDEBUG) && !defined(__MACH__)) || defined(ENABLE_CORO_PROFILER)
+// Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled.
+// We don't enable it on ARM, because taking backtraces currently isn't working
+// reliably and sometimes causes crashes.
+#if (!defined(NDEBUG) && !defined(__MACH__) && !defined(__arm__)) \
+    || defined(ENABLE_CORO_PROFILER)
 #define CROSS_CORO_BACKTRACES            1
 #endif
 #define CROSS_CORO_BACKTRACES_MAX_SIZE  64
@@ -175,7 +179,7 @@ private:
     static coro_t *get_and_init_coro(callable_t &&action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
-        coro->parse_coroutine_type(__PRETTY_FUNCTION__);
+        coro->parse_coroutine_type(CURRENT_FUNCTION_PRETTY);
 #endif
         coro->grab_spawn_backtrace();
         coro->action_wrapper.reset(std::forward<callable_t>(action));

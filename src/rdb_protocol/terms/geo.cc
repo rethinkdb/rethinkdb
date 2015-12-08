@@ -34,7 +34,9 @@ private:
     // between machines / compilers / libraries.
     // Even seemingly harmless things such as r.line() are affected because they perform
     // geometric validation.
-    deterministic_t is_deterministic() const { return deterministic_t::single_server; }
+    deterministic_t is_deterministic() const {
+        return worst_determinism(op_term_t::is_deterministic(), deterministic_t::single_server);
+    }
     virtual scoped_ptr_t<val_t> eval_geo(
             scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
     scoped_ptr_t<val_t> eval_impl(
@@ -55,7 +57,9 @@ public:
                                std::set<std::string>{"GEOMETRY"}) { }
 private:
     // See comment in geo_term_t about non-determinism
-    deterministic_t is_deterministic() const { return deterministic_t::single_server; }
+    deterministic_t is_deterministic() const {
+        return worst_determinism(obj_or_seq_op_term_t::is_deterministic(), deterministic_t::single_server);
+    }
     virtual scoped_ptr_t<val_t> obj_eval_geo(
             scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const = 0;
     scoped_ptr_t<val_t> obj_eval(
@@ -124,7 +128,9 @@ private:
     // of the S2Point itself depends on the M_PI constant which could be system
     // dependent. Therefore if anything in validate_geojson() starts using
     // the constructed S2Point some day, determinism will need to be reconsidered.
-    deterministic_t is_deterministic() const { return deterministic_t::always; }
+    deterministic_t is_deterministic() const {
+        return op_term_t::is_deterministic(); // NB: skip over geo_term_t
+    }
     scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
         double lon = args->arg(env, 0)->as_num();
         double lat = args->arg(env, 1)->as_num();

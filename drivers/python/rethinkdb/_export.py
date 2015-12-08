@@ -24,12 +24,12 @@ try:
     from multiprocessing import SimpleQueue
 except ImportError:
     from multiprocessing.queues import SimpleQueue
-	
+
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
-      [--format (csv | json)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
+      [--format (csv | json | ndjson)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
       [--clients NUM]"
 
 def print_export_help():
@@ -42,7 +42,8 @@ def print_export_help():
     print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
     print("  -d [ --directory ] DIR           directory to output to (defaults to")
     print("                                   rethinkdb_export_DATE_TIME)")
-    print("  --format (csv | json)            format to write (defaults to json)")
+    print("  --format (csv | json | ndjson)   format to write (defaults to json.")
+    print("                                   ndjson is newline delimited json.)")
     print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
     print("                                   (required for CSV format)")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
@@ -74,7 +75,7 @@ def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
-    parser.add_option("--format", dest="format", metavar="json | csv", default="json", type="string")
+    parser.add_option("--format", dest="format", metavar="json | csv | ndjson", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
@@ -98,8 +99,8 @@ def parse_options():
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid --format option
-    if options.format not in ["csv", "json"]:
-        raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.format)
+    if options.format not in ["csv", "json", "ndjson"]:
+        raise RuntimeError("Error: Unknown format '%s', valid options are 'csv', 'json', and 'ndjson'" % options.format)
     res["format"] = options.format
 
     # Verify valid directory option
@@ -237,11 +238,12 @@ def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_
     # Export is done - since we used estimates earlier, update the actual table size
     progress_info[1].value = progress_info[0].value
 
-def json_writer(filename, fields, task_queue, error_queue):
+def json_writer(filename, fields, task_queue, error_queue, format):
     try:
         with open(filename, "w") as out:
             first = True
-            out.write("[")
+            if format != "ndjson":
+                out.write("[")
             item = task_queue.get()
             while not isinstance(item, StopIteration):
                 row = item[0]
@@ -250,13 +252,19 @@ def json_writer(filename, fields, task_queue, error_queue):
                         if item not in fields:
                             del row[item]
                 if first:
+                    if format == "ndjson":
+                        out.write(json.dumps(row))
+                    else:
+                        out.write("\n" + json.dumps(row))
                     first = False
+                elif format == "ndjson":
                     out.write("\n" + json.dumps(row))
                 else:
                     out.write(",\n" + json.dumps(row))
 
                 item = task_queue.get()
-            out.write("\n]\n")
+            if format != "ndjson":
+                out.write("\n]\n")
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
@@ -301,38 +309,48 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     if format == "json":
         filename = directory + "/%s/%s.json" % (db, table)
         return multiprocessing.Process(target=json_writer,
-                                       args=(filename, fields, task_queue, error_queue))
+                                       args=(filename, fields, task_queue, error_queue, format))
     elif format == "csv":
         filename = directory + "/%s/%s.csv" % (db, table)
         return multiprocessing.Process(target=csv_writer,
                                        args=(filename, fields, delimiter, task_queue, error_queue))
+    elif format == "ndjson":
+        filename = directory + "/%s/%s.ndjson" % (db, table)
+        return multiprocessing.Process(target=json_writer,
+                                       args=(filename, fields, task_queue, error_queue, format))
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
-def get_table_size(progress, conn, db, table, progress_info):
-    table_size = r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
-    progress_info[1].value = int(table_size)
-    progress_info[0].value = 0
+def get_all_table_sizes(host, port, auth_key, db_table_set):
+    def get_table_size(progress, conn, db, table):
+        return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
+
+    conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+
+    ret = dict()
+    for pair in db_table_set:
+        db, table = pair
+        ret[pair] = int(rdb_call_wrapper(conn_fn, "count", get_table_size, db, table))
+
+    return ret
 
 def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, stream_semaphore, exit_event):
+                 error_queue, progress_info, sindex_counter, exit_event):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
         sindex_counter.value += len(table_info["indexes"])
 
-        with stream_semaphore:
-            task_queue = SimpleQueue()
-            writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
-            writer.start()
+        task_queue = SimpleQueue()
+        writer = launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue)
+        writer.start()
 
-            rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
-                             table_info["primary_key"], task_queue, progress_info, exit_event)
+        rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
+                         table_info["primary_key"], task_queue, progress_info, exit_event)
     except (r.ReqlError, r.ReqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -373,41 +391,49 @@ def run_clients(options, db_table_set):
     processes = []
     error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
-    stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
     sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
 
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
     errors = [ ]
 
     try:
+        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set)
+
         progress_info = []
 
+        arg_lists = []
         for db, table in db_table_set:
-            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
-                                  multiprocessing.Value(ctypes.c_longlong, 0)))
-            processes.append(multiprocessing.Process(target=export_table,
-                                                     args=(options["host"],
-                                                           options["port"],
-                                                           options["auth_key"],
-                                                           db, table,
-                                                           options["directory_partial"],
-                                                           options["fields"],
-                                                           options["delimiter"],
-                                                           options["format"],
-                                                           error_queue,
-                                                           progress_info[-1],
-                                                           sindex_counter,
-                                                           stream_semaphore,
-                                                           exit_event)))
-            processes[-1].start()
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, 0),
+                                  multiprocessing.Value(ctypes.c_longlong, sizes[(db, table)])))
+            arg_lists.append((options["host"],
+                              options["port"],
+                              options["auth_key"],
+                              db, table,
+                              options["directory_partial"],
+                              options["fields"],
+                              options["delimiter"],
+                              options["format"],
+                              error_queue,
+                              progress_info[-1],
+                              sindex_counter,
+                              exit_event))
+
 
         # Wait for all tables to finish
-        while len(processes) > 0:
+        while len(processes) > 0 or len(arg_lists) > 0:
             time.sleep(0.1)
+
             while not error_queue.empty():
                 exit_event.set() # Stop rather immediately if an error occurs
                 errors.append(error_queue.get())
+
             processes = [process for process in processes if process.is_alive()]
+
+            if len(processes) < options["clients"] and len(arg_lists) > 0:
+                processes.append(multiprocessing.Process(target=export_table,
+                                                         args=arg_lists.pop(0)))
+                processes[-1].start()
+
             update_progress(progress_info)
 
         # If we were successful, make sure 100% progress is reported

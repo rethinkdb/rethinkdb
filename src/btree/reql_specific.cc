@@ -8,7 +8,7 @@
 /* This is the actual structure stored on disk for the superblock of a table's primary or
 sindex B-tree. Both of them use the exact same format, but the sindex B-trees don't make
 use of the `sindex_block` or `metainfo_blob` fields. */
-struct reql_btree_superblock_t {
+ATTR_PACKED(struct reql_btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
     block_id_t stat_block;
@@ -21,7 +21,7 @@ struct reql_btree_superblock_t {
                                                                - sizeof(sindex_block);
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
-} __attribute__((__packed__));
+});
 
 static const uint32_t REQL_BTREE_SUPERBLOCK_SIZE = sizeof(reql_btree_superblock_t);
 

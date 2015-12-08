@@ -41,7 +41,7 @@ tests:
 
     # - order by
 
-    - cd: ordered = tbl.changes().order_by('id')
+    - cd: tbl.changes().order_by('id')
       ot: err('ReqlQueryLogicError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
 #
 # ToDo: enable this when #4067 is done

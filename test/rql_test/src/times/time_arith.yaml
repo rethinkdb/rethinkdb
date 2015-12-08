@@ -76,7 +76,7 @@ tests:
 # Test comparisons, from both directions (there was a problem where
 # the directions had different behavior).
   - rb: datum_types.map{|x| [[x, t1], [t1, x]].map{|xy| xy[0].do{|x| xy[1].do{|y| [x < y, x <= y, x.eq(y), x.ne(y), x >= y, x > y]}}}}
-    py: datum_types.map(lambda x:r.expr([[x, t1], [t1, x]]).map(lambda xy:xy[0].do(lambda x:xy[1].do(lambda y:[x < y, x <= y, x == y, x != y, x >= y, x > y]))))
+    py: datum_types.map(lambda x:r.expr([[x, t1], [t1, x]]).map(lambda xy:xy[0].do(lambda x2:xy[1].do(lambda y:[x2 < y, x2 <= y, x2 == y, x2 != y, x2 >= y, x2 > y]))))
     js: datum_types.map(function(x) { return r([[x, t1], [t1, x]]).map(function(xy) { return xy.nth(0).do(function(x) { return xy.nth(1).do(function(y) { return [x.lt(y), x.le(y), x.eq(y), x.ne(y), x.ge(y), x.gt(y)]; }); }); }); })
     ot: ([[[true,  true,  false, true,  false, false],
            [false, false, false, true,  true,  true]],

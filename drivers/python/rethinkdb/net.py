@@ -1,20 +1,14 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
+import collections
 import errno
-import json
+import imp
 import numbers
+import os
 import socket
+import ssl
 import struct
 import time
-import ssl
-import collections
-try:
-    from importlib import import_module
-except ImportError:
-    def import_module(name, package=None):
-        # song & dance needed to do relative import in 2.6, which
-        # doesn't have importlib
-        return __import__(name[1:], globals(), locals(), [], 1)
 
 from . import ql2_pb2 as p
 
@@ -614,15 +608,27 @@ class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
         Connection.__init__(self, ConnectionInstance, *args, **kwargs)
 
-
 connection_type = DefaultConnection
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
-    global connection_type
     conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):
     global connection_type
-    mod = import_module('.net_%s' % library, package=__package__)
-    connection_type = mod.Connection
+    
+    # find module file
+    moduleName = 'net_%s' % library
+    modulePath = None
+    driverDir = os.path.realpath(os.path.dirname(__file__))
+    if os.path.isfile(os.path.join(driverDir, library + '_net', moduleName + '.py')):
+        modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
+    else:
+        raise ValueError('Unknown loop type: %r' % library)
+    
+    # load the module
+    moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
+    module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
+    
+    # set the connection type
+    connection_type = module.Connection

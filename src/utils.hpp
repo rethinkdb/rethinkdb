@@ -9,6 +9,7 @@
 #include <string>
 
 #include "debug.hpp"
+#include "arch/compiler.hpp"
 #include "config/args.hpp"
 
 class printf_buffer_t;
@@ -26,11 +27,6 @@ struct const_charslice {
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
     const_charslice() : beg(NULL), end(NULL) { }
 };
-
-/* Forbid the following function definition to be inlined
- * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
- */
-#define NOINLINE __attribute__ ((noinline))
 
 void *malloc_aligned(size_t size, size_t alignment);
 
@@ -77,8 +73,8 @@ uint64_t strtou64_strict(const char *string, const char **end, int base);
 MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
 MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
-std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
-std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
+std::string strprintf(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+std::string vstrprintf(const char *format, va_list ap) ATTR_FORMAT(printf, 1, 0);
 
 
 // formatted time:
