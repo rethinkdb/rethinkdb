@@ -110,9 +110,7 @@ describe('JavaScript Cursor', function() {
         })
         // add simple data
         .then(function() {
-            return r.range(0, numRows).forEach(
-                function(i) { return tbl.insert({'id':i}); }
-            ).run(reqlConn);
+            return tbl.insert(r.range(0, numRows).map({'id':r.row})).run(reqlConn);
         });
     });
 
