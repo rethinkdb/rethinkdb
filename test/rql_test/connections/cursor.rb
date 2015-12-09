@@ -1,4 +1,8 @@
 #!/usr/bin/env ruby
+# Copyright 2014-2015 RethinkDB, all rights reserved.
+
+require 'test/unit'
+require 'test/unit/assertions'
 
 # -- import the rethinkdb driver
 
@@ -7,26 +11,6 @@ require_relative '../importRethinkDB.rb'
 # --
 
 $port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
-
-def expect_eq(left, right, message=nil)
-  if left != right
-    if message.nil?
-      raise RuntimeError, "Actual value #{left} not equal to expected value #{right}."
-    else
-      raise RuntimeError, "Actual value #{left} not equal to expected value #{right}: #{message}"
-    end
-  end
-end
-
-def expect_ne(left, right, message=nil)
-  if left == right
-    if message.nil?
-      raise RuntimeError, "Value #{left} unexpected."
-    else
-      raise RuntimeError, message
-    end
-  end
-end
 
 def expect_error(m, err_type, err_info)
   begin
@@ -38,174 +22,162 @@ def expect_error(m, err_type, err_info)
   raise RuntimeError, "Expected an error, but got success with result: #{res}."
 end
 
-def test_cursor_after_connection_close(conn)
-  cursor = r.range().run(conn)
-  conn.close()
-  count = 0
-  read_cursor = -> {
-    cursor.each{ |i| count += 1 }
-  }
-  expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Connection is closed.")
-  raise "Did not get any cursor results" if count == 0
-end
-
-def test_cursor_after_cursor_close(conn)
-  cursor = r.range().run(conn)
-  cursor.close()
-  count = 0
-  cursor.each{ |i| count += 1 }
-  raise "Did not get any cursor results" if count == 0
-end
-
-def test_cursor_close_in_each(conn)
-  cursor = r.range().run(conn)
-  count = 0
-  cursor.each{ cursor.close() if (count += 1) == 2 }
-  raise "Did not get any cursor results" if count <= 2
-end
-
-def test_cursor_success(conn)
-  cursor = r.range().limit(10000).run(conn)
-  count = 0
-  cursor.each{ count += 1 }
-  expect_eq(count, 10000)
-end
-
-def test_cursor_double_each(conn)
-  cursor = r.range().limit(10000).run(conn)
-  count = 0
-  read_cursor = -> {
-    cursor.each{ count += 1 }
-  }
-  read_cursor.call()
-  expect_eq(count, 10000)
-  expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Can only iterate over a cursor once.")
-  expect_eq(count, 10000)
-end
-
-def get_next(cursor, wait_time)
-  begin
-    case wait_time
-    when nil
-      cursor.next()
+class Cursor_Test < Test::Unit::TestCase
+  @conn = nil
+  
+  def setup
+    if @conn.nil?
+      @conn = r.connect(:host => 'localhost', :port => $port)
     else
-      cursor.next(wait_time)
-    end
-    return 1, 0
-  rescue Timeout::Error => ex
-    raise if ex.message != "Timed out waiting for cursor response."
-    return 0, 1
-  end
-end
-
-def test_cursor_wait_internal(conn, wait_time)
-  num_cursors = 3
-  cursors = Array.new(num_cursors) {
-    r.range().map(r.js("(function (row) {" +
-                       "end = new Date(new Date().getTime() + 2);" +
-                       "while (new Date() < end) { }" +
-                       "return row;" +
-                       "})")).run(conn, :max_batch_rows => 2) }
-  cursor_counts = Array.new(num_cursors) { 0 }
-  cursor_timeouts = Array.new(num_cursors) { 0 }
-
-  while cursor_counts.reduce(:+) < 4000
-    (0...num_cursors).each do |index|
-      (0...rand(10)).each do |x|
-        reads, timeouts = get_next(cursors[index], wait_time)
-        cursor_counts[index] += reads
-        cursor_timeouts[index] += timeouts
+      begin
+        r.expr(1).run(@conn)
+      rescue RethinkDB::ReqlError
+        @conn.close rescue nil
+        @conn = r.connect(:host => 'localhost', :port => $port)
       end
     end
   end
 
-  cursors.each{ |x| x.close() }
-  return cursor_counts.reduce(:+), cursor_timeouts.reduce(:+)
-end
-
-def test_cursor_false_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, false)
-  expect_ne(timeouts, 0, "Did not get timeouts using zero (false) wait.")
-end
-
-def test_cursor_zero_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, 0)
-  expect_ne(timeouts, 0, "Did not get timeouts using zero wait.")
-end
-
-def test_cursor_short_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, 0.001)
-  expect_ne(timeouts, 0, "Did not get timeouts using short (1 millisecond) wait.")
-end
-
-def test_cursor_long_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, 10)
-  expect_eq(timeouts, 0, "Got timeouts using long (10 second) wait.")
-end
-
-def test_cursor_infinite_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, true)
-  expect_eq(timeouts, 0, "Got timeouts using infinite wait.")
-end
-
-def test_cursor_default_wait(conn)
-  reads, timeouts = test_cursor_wait_internal(conn, nil)
-  expect_eq(timeouts, 0, "get timeouts using zero (false) wait.")
-end
-
-def test_changefeed_wait(conn)
-  db = 'cursor_rb'
-  table = 'changefeed_wait'
-  if not r.db_list().run(conn).include? db
-    r.db_create(db).run(conn)
+  def test_cursor_after_connection_close()
+    cursor = r.range().run(@conn)
+    @conn.close()
+    count = 0
+    read_cursor = -> {
+      cursor.each{ |i| count += 1 }
+    }
+    expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Connection is closed.")
+    raise "Did not get any cursor results" if count == 0
   end
-  if not r.db(db).table_list().run(conn).include? table
-    r.db(db).table_create(table).run(conn)
+  
+  def test_cursor_after_cursor_close()
+    cursor = r.range().run(@conn)
+    cursor.close()
+    count = 0
+    cursor.each{ |i| count += 1 }
+    raise "Did not get any cursor results" if count == 0
   end
-
-  changes = r.db(db).table(table).changes().run(conn)
-
-  timeout = nil
-  read_cursor = -> {
-    changes.next(timeout)
-  }
-
-  timeout = 0
-  expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
-  timeout = 0.2
-  expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
-  timeout = 1
-  expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
-  timeout = 5
-  expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
-
-  res = r.db(db).table(table).insert({}).run(conn)
-  expect_eq(res['inserted'], 1)
-  res = changes.next(wait=1)
+  
+  def test_cursor_close_in_each()
+    cursor = r.range().run(@conn)
+    count = 0
+    cursor.each{ cursor.close() if (count += 1) == 2 }
+    raise "Did not get any cursor results" if count <= 2
+  end
+  
+  def test_cursor_success()
+    cursor = r.range().limit(10000).run(@conn)
+    count = 0
+    cursor.each{ count += 1 }
+    assert_equal(count, 10000)
+  end
+  
+  def test_cursor_double_each()
+    cursor = r.range().limit(10000).run(@conn)
+    count = 0
+    read_cursor = -> {
+      cursor.each{ count += 1 }
+    }
+    read_cursor.call()
+    assert_equal(count, 10000)
+    expect_error(read_cursor, RethinkDB::ReqlRuntimeError, "Can only iterate over a cursor once.")
+    assert_equal(count, 10000)
+  end
+  
+  def get_next(cursor, wait_time)
+    begin
+      case wait_time
+      when nil
+        cursor.next()
+      else
+        cursor.next(wait_time)
+      end
+      return 1, 0
+    rescue Timeout::Error => ex
+      raise if ex.message != "Timed out waiting for cursor response."
+      return 0, 1
+    end
+  end
+  
+  def cursor_wait_internal(wait_time)
+    num_cursors = 3
+    cursors = Array.new(num_cursors) {
+      r.range().map(r.js("(function (row) {" +
+                         "end = new Date(new Date().getTime() + 2);" +
+                         "while (new Date() < end) { }" +
+                         "return row;" +
+                         "})")).run(@conn, :max_batch_rows => 2) }
+    cursor_counts = Array.new(num_cursors) { 0 }
+    cursor_timeouts = Array.new(num_cursors) { 0 }
+  
+    while cursor_counts.reduce(:+) < 4000
+      (0...num_cursors).each do |index|
+        (0...rand(10)).each do |x|
+          reads, timeouts = get_next(cursors[index], wait_time)
+          cursor_counts[index] += reads
+          cursor_timeouts[index] += timeouts
+        end
+      end
+    end
+  
+    cursors.each{ |x| x.close() }
+    return cursor_counts.reduce(:+), cursor_timeouts.reduce(:+)
+  end
+  
+  def test_cursor_false_wait()
+    reads, timeouts = cursor_wait_internal(false)
+    assert_not_equal(timeouts, 0, "Did not get timeouts using zero (false) wait.")
+  end
+  
+  def test_cursor_zero_wait()
+    reads, timeouts = cursor_wait_internal(0)
+    assert_not_equal(timeouts, 0, "Did not get timeouts using zero wait.")
+  end
+  
+  def test_cursor_short_wait()
+    reads, timeouts = cursor_wait_internal(0.001)
+    assert_not_equal(timeouts, 0, "Did not get timeouts using short (1 millisecond) wait.")
+  end
+  
+  def test_cursor_long_wait()
+    reads, timeouts = cursor_wait_internal(10)
+    assert_equal(timeouts, 0, "Got timeouts using long (10 second) wait.")
+  end
+  
+  def test_cursor_infinite_wait()
+    reads, timeouts = cursor_wait_internal(true)
+    assert_equal(timeouts, 0, "Got timeouts using infinite wait.")
+  end
+  
+  def test_cursor_default_wait()
+    reads, timeouts = cursor_wait_internal(nil)
+    assert_equal(timeouts, 0, "get timeouts using zero (false) wait.")
+  end
+  
+  def test_changefeed_wait()
+    dbName = 'cursor_rb'
+    tableName = 'changefeed_wait'
+    
+    r.expr([dbName]).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run(@conn)
+    r.expr([tableName]).set_difference(r.db(dbName).table_list()).for_each{|row| r.db(dbName).table_create(row)}.run(@conn)
+  
+    changes = r.db(dbName).table(tableName).changes().run(@conn)
+  
+    timeout = nil
+    read_cursor = -> {
+      changes.next(timeout)
+    }
+  
+    timeout = 0
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 0.2
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 1
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+    timeout = 5
+    expect_error(read_cursor, Timeout::Error, "Timed out waiting for cursor response.")
+  
+    res = r.db(dbName).table(tableName).insert({}).run(@conn)
+    assert_equal(res['inserted'], 1)
+    res = changes.next(wait=1)
+  end
 end
-
-$tests = {
-  :test_cursor_after_connection_close => method(:test_cursor_after_connection_close),
-  :test_cursor_after_cursor_close => method(:test_cursor_after_cursor_close),
-  :test_cursor_close_in_each => method(:test_cursor_close_in_each),
-  :test_cursor_success => method(:test_cursor_success),
-  :test_cursor_double_each => method(:test_cursor_double_each),
-  :test_cursor_false_wait => method(:test_cursor_false_wait),
-  :test_cursor_zero_wait => method(:test_cursor_zero_wait),
-  :test_cursor_short_wait => method(:test_cursor_short_wait),
-  :test_cursor_long_wait => method(:test_cursor_long_wait),
-  :test_cursor_infinite_wait => method(:test_cursor_infinite_wait),
-  :test_cursor_default_wait => method(:test_cursor_default_wait),
-  :test_changefeed_wait => method(:test_changefeed_wait),
-}
-
-$tests.each do |name, m|
-  timeout(10) {
-    puts "Running test #{name}"
-    c = r.connect(:host => 'localhost', :port => $port)
-    m.call(c)
-    c.close()
-    puts " - PASS"
-  }
-end
-
