@@ -66,7 +66,7 @@ private:
 
 // This gets the literal index of a (possibly negative) index relative to a
 // fixed size.
-uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
+static uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
     CT_ASSERT(sizeof(size_t) <= sizeof(uint64_t));
     if (index >= 0) return index;
     if (uint64_t(index * -1) > size) {
@@ -200,14 +200,13 @@ public:
         : bounded_op_term_t(env, term, argspec_t(2, 3)) { }
 private:
 
-    bool canon_helper(size_t size, bool index_open, int64_t fake_index,
+    void canon_helper(size_t size, bool index_open, int64_t fake_index,
                       bool is_left, uint64_t *real_index_out) const {
         bool index_oob = false;
         *real_index_out = canonicalize(this, fake_index, size, &index_oob);
-        if (index_open == is_left) {
+        if (index_open == is_left && !index_oob) {
             *real_index_out += 1; // This is safe because it was an int64_t before.
         }
-        return index_oob;
     }
 
     scoped_ptr_t<val_t> slice_array(datum_t arr,
@@ -215,12 +214,8 @@ private:
                                     bool left_open, int64_t fake_l,
                                     bool right_open, int64_t fake_r) const {
         uint64_t real_l, real_r;
-        if (canon_helper(arr.arr_size(), left_open, fake_l, true, &real_l)) {
-            real_l = 0;
-        }
-        if (canon_helper(arr.arr_size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::empty_array());
-        }
+        canon_helper(arr.arr_size(), left_open, fake_l, true, &real_l);
+        canon_helper(arr.arr_size(), right_open, fake_r, false, &real_r);
 
         datum_array_builder_t out(limits);
         for (uint64_t i = real_l; i < real_r; ++i) {
@@ -237,12 +232,8 @@ private:
                                      bool right_open, int64_t fake_r) const {
         const datum_string_t &data = binary.as_binary();
         uint64_t real_l, real_r;
-        if (canon_helper(data.size(), left_open, fake_l, true, &real_l)) {
-            real_l = 0;
-        }
-        if (canon_helper(data.size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::binary(datum_string_t()));
-        }
+        canon_helper(data.size(), left_open, fake_l, true, &real_l);
+        canon_helper(data.size(), right_open, fake_r, false, &real_r);
 
         real_r = clamp<uint64_t>(real_r, 0, data.size());
 
