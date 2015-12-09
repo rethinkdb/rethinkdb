@@ -100,7 +100,7 @@ long_keys = (0...100).map{|i| (i-10)*2}*2
   tbl.delete.run(runopts)
   # TODO in the future:
   # * Multi-indexes (those follow the same code path but it would be
-  #   good to test htem explicitly just for completeness).
+  #   good to test them explicitly just for completeness).
   # * A mix of truncated and non-truncated keys in one index.
   input = (0...1000).map {|i|
     {
