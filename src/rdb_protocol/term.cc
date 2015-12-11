@@ -121,6 +121,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
     case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
+    case Term::GRANT:              return make_grant_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);

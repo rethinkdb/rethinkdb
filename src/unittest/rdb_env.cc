@@ -286,10 +286,8 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
-    rdb_ctx(&extproc_pool, this),
-    auth_manager(auth_semilattice_metadata_t())
+    rdb_ctx(&extproc_pool, this)
 {
-    rdb_ctx.auth_metadata = auth_manager.get_view();
     env.init(new ql::env_t(&rdb_ctx,
                            ql::return_empty_normal_batches_t::NO,
                            &interruptor,
@@ -585,6 +583,45 @@ bool test_rdb_env_t::instance_t::db_rebalance(
         admin_err_t *error_out) {
     *error_out = admin_err_t{
         "test_rdb_env_t::instance_t doesn't support rebalance()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::grant_global(
+        UNUSED auth::username_t const &username,
+        UNUSED auth::global_permissions_t const &global_permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_global()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::grant_database(
+        UNUSED database_id_t const &database,
+        UNUSED auth::username_t const &username,
+        UNUSED auth::permissions_t const &permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_database()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::grant_table(
+        UNUSED database_id_t const &database,
+        UNUSED namespace_id_t const &table,
+        UNUSED auth::username_t const &username,
+        UNUSED auth::permissions_t const &permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_table()",
         query_state_t::FAILED};
     return false;
 }

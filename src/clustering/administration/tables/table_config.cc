@@ -745,8 +745,8 @@ bool table_config_artificial_table_backend_t::write_row(
             /* The user is deleting a table that doesn't exist. Do nothing. */
             return true;
         }
-    } catch (const admin_op_exc_t &msg) {
-        *error_out = admin_err_t{msg.what(), msg.query_state};
+    } catch (const admin_op_exc_t &admin_op_exc) {
+        *error_out = std::move(admin_op_exc.to_admin_err());
         return false;
     }
 }

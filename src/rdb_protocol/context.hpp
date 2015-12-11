@@ -26,6 +26,12 @@
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
+namespace auth {
+    class username_t;
+    class permissions_t;
+    class global_permissions_t;
+}  // namespace auth
+
 struct admin_err_t;
 
 enum class return_changes_t {
@@ -37,7 +43,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         return_changes_t, int8_t,
         return_changes_t::NO, return_changes_t::ALWAYS);
 
-class auth_semilattice_metadata_t;
 class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
@@ -129,7 +134,7 @@ enum class admin_identifier_format_t {
 
 class base_table_t : public slow_atomic_countable_t<base_table_t> {
 public:
-    virtual ql::datum_t get_id() const = 0;
+    virtual namespace_id_t get_id() const = 0;
     virtual const std::string &get_pkey() const = 0;
 
     virtual ql::datum_t read_row(ql::env_t *env,
@@ -299,6 +304,28 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
 
+    virtual bool grant_global(
+            auth::username_t const &username,
+            auth::global_permissions_t const &global_permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool grant_database(
+            database_id_t const &database,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool grant_table(
+            database_id_t const &database,
+            namespace_id_t const &table,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+
     virtual bool sindex_create(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
@@ -346,9 +373,6 @@ public:
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   mailbox_manager_t *_mailbox_manager,
                   reql_cluster_interface_t *_cluster_interface,
-                  boost::shared_ptr<
-                    semilattice_readwrite_view_t<
-                        auth_semilattice_metadata_t> > _auth_metadata,
                   perfmon_collection_t *global_stats,
                   const std::string &_reql_http_proxy);
 
@@ -356,9 +380,6 @@ public:
 
     extproc_pool_t *extproc_pool;
     reql_cluster_interface_t *cluster_interface;
-
-    boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        auth_metadata;
 
     mailbox_manager_t *manager;
 

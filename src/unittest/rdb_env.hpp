@@ -23,7 +23,6 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -251,6 +250,28 @@ public:
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
 
+        bool grant_global(
+                auth::username_t const &username,
+                auth::global_permissions_t const &global_permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool grant_database(
+                database_id_t const &database,
+                auth::username_t const &username,
+                auth::permissions_t const &permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool grant_table(
+                database_id_t const &database,
+                namespace_id_t const &table,
+                auth::username_t const &username,
+                auth::permissions_t const &permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+
         bool sindex_create(
                 counted_t<const ql::db_t> db,
                 const name_string_t &table,
@@ -283,7 +304,6 @@ public:
     private:
         extproc_pool_t extproc_pool;
         rdb_context_t rdb_ctx;
-        dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
         std::map<name_string_t, database_id_t> databases;
         std::map<std::pair<database_id_t, name_string_t>,
                  scoped_ptr_t<mock_namespace_interface_t> > tables;

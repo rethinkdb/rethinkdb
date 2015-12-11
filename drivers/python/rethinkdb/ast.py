@@ -1102,6 +1102,9 @@ class DB(RqlTopLevelQuery):
     def rebalance(self, *args, **kwargs):
         return Rebalance(self, *args, **kwargs)
 
+    def grant(self, *args, **kwargs):
+        return Grant(self, *args, **kwargs)
+
     def table_create(self, *args, **kwargs):
         return TableCreate(self, *args, **kwargs)
 
@@ -1187,6 +1190,9 @@ class Table(RqlQuery):
 
     def sync(self, *args):
         return Sync(self, *args)
+
+    def grant(self, *args, **kwargs):
+        return Grant(self, *args, **kwargs)
 
     def get_intersecting(self, *args, **kwargs):
         return GetIntersecting(self, *args, **kwargs)
@@ -1511,6 +1517,16 @@ class RebalanceTL(RqlTopLevelQuery):
 class Sync(RqlMethodQuery):
     tt = pTerm.SYNC
     st = 'sync'
+
+
+class Grant(RqlMethodQuery):
+    tt = pTerm.GRANT
+    st = 'grant'
+
+
+class GrantTL(RqlTopLevelQuery):
+    tt = pTerm.GRANT
+    st = 'grant'
 
 
 class Branch(RqlTopLevelQuery):

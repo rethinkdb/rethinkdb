@@ -22,7 +22,7 @@ class artificial_table_t : public base_table_t {
 public:
     explicit artificial_table_t(artificial_table_backend_t *_backend);
 
-    ql::datum_t get_id() const;
+    namespace_id_t get_id() const;
     const std::string &get_pkey() const;
 
     ql::datum_t read_row(ql::env_t *env,
