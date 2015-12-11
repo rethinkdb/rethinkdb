@@ -745,6 +745,20 @@
         "signatures": [["T_TABLE"]],
         "id": 138
     },
+    "GRANT": {
+        "side_effect": true,
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_DB",
+            "T_TABLE"
+        ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR"],
+            ["T_DB", "T_EXPR", "T_EXPR"],
+            ["T_TABLE", "T_EXPR", "T_EXPR"]
+        ],
+        "id": 187
+    },
     "INDEX_CREATE": {
         "side_effect": true,
         "include_in": [

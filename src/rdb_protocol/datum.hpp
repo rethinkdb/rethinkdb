@@ -481,6 +481,10 @@ public:
     datum_object_builder_t() { }
     explicit datum_object_builder_t(const datum_t &copy_from);
 
+    bool empty() const {
+        return map.empty();
+    }
+
     // Returns true if the insertion did _not_ happen because the key was already in
     // the object.
     MUST_USE bool add(const datum_string_t &key, datum_t val);

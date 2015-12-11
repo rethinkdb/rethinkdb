@@ -30,8 +30,10 @@ class real_reql_cluster_interface_t :
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                cluster_semilattice_metadata_t> > semilattices,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                auth_semilattice_metadata_t> > auth_semilattice_view,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                cluster_semilattice_metadata_t> > cluster_semilattice_view,
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
             table_meta_client_t *table_meta_client,
@@ -148,6 +150,28 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
+    bool grant_global(
+            auth::username_t const &username,
+            auth::global_permissions_t const &global_permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_database(
+            database_id_t const &database,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_table(
+            database_id_t const &database,
+            namespace_id_t const &table,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+
     bool sindex_create(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
@@ -180,10 +204,10 @@ public:
     /* `calculate_split_points_with_distribution` needs access to the underlying
     `namespace_interface_t` and `table_meta_client_t`. */
     table_meta_client_t *get_table_meta_client() {
-        return table_meta_client;
+        return m_table_meta_client;
     }
     namespace_repo_t *get_namespace_repo() {
-        return &namespace_repo;
+        return &m_namespace_repo;
     }
 
     /* This is public because it needs to be set after we're created to solve a certain
@@ -191,17 +215,19 @@ public:
     admin_artificial_tables_t *admin_tables;
 
 private:
-    mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        cluster_semilattice_metadata_t> > semilattice_root_view;
-    table_meta_client_t *table_meta_client;
+    mailbox_manager_t *m_mailbox_manager;
+    boost::shared_ptr<semilattice_readwrite_view_t<
+        auth_semilattice_metadata_t> > m_auth_semilattice_view;
+    boost::shared_ptr<semilattice_readwrite_view_t<
+        cluster_semilattice_metadata_t> > m_cluster_semilattice_view;
+    table_meta_client_t *m_table_meta_client;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
-        databases_semilattice_metadata_t > > > cross_thread_database_watchables;
-    rdb_context_t *rdb_context;
+        databases_semilattice_metadata_t > > > m_cross_thread_database_watchables;
+    rdb_context_t *m_rdb_context;
 
-    namespace_repo_t namespace_repo;
-    ql::changefeed::client_t changefeed_client;
-    server_config_client_t *server_config_client;
+    namespace_repo_t m_namespace_repo;
+    ql::changefeed::client_t m_changefeed_client;
+    server_config_client_t *m_server_config_client;
 
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);
@@ -252,6 +278,13 @@ private:
             ql::datum_t *results_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
+
+    bool grant_internal(
+            auth::username_t const &username,
+            std::function<void(boost::optional<auth::user_t> *user)> function,
+            ql::datum_t *result_out,
+            admin_err_t *error_out)
+            THROWS_ONLY(interrupted_exc_t, admin_op_exc_t);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };

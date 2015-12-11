@@ -552,6 +552,11 @@ message Term {
         // written to disk.
         SYNC          = 138; // Table -> OBJECT
 
+        // Set global, database, or table-specific permissions
+        GRANT         = 188; //          -> OBJECT
+                             // Database -> OBJECT
+                             // Table    -> OBJECT
+
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
         INDEX_CREATE = 75; // Table, STRING, Function(1), {multi:BOOL} -> OBJECT

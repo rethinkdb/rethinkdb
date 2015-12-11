@@ -403,7 +403,7 @@ MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
         env, durability_requirement);
 }
 
-ql::datum_t table_t::get_id() const {
+namespace_id_t table_t::get_id() const {
     return tbl->get_id();
 }
 

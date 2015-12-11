@@ -17,6 +17,7 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
+#include "clustering/administration/auth/artificial_table_backend.hpp"
 #include "clustering/administration/logs/logs_backend.hpp"
 #include "clustering/administration/jobs/backend.hpp"
 #include "containers/name_string.hpp"
@@ -38,18 +39,18 @@ class artificial_reql_cluster_interface_t : public reql_cluster_interface_t {
 public:
     artificial_reql_cluster_interface_t(
             /* This is the name of the special database; i.e. `rethinkdb` */
-            name_string_t _database,
+            name_string_t database,
             /* These are the tables that live in the special database. For each pair, the
             first value will be used if `identifier_format` is unspecified or "name", and
             the second value will be used if `identifier_format` is "uuid". */
             const std::map<name_string_t,
                 std::pair<artificial_table_backend_t *, artificial_table_backend_t *>
-                > &_tables,
+                > &tables,
             /* This is the `real_reql_cluster_interface_t` that we're proxying. */
-            reql_cluster_interface_t *_next) :
-        database(_database),
-        tables(_tables),
-        next(_next) { }
+            reql_cluster_interface_t *next) :
+        m_database(database),
+        m_tables(tables),
+        m_next(next) { }
 
     bool db_create(const name_string_t &name,
             signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
@@ -153,6 +154,28 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
+    bool grant_global(
+            auth::username_t const &username,
+            auth::global_permissions_t const &global_permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_database(
+            database_id_t const &database,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_table(
+            database_id_t const &database,
+            namespace_id_t const &table,
+            auth::username_t const &username,
+            auth::permissions_t const &permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+
     bool sindex_create(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
@@ -183,10 +206,10 @@ public:
                 *configs_and_statuses_out);
 
 private:
-    name_string_t database;
+    name_string_t m_database;
     std::map<name_string_t,
-        std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > tables;
-    reql_cluster_interface_t *next;
+        std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > m_tables;
+    reql_cluster_interface_t *m_next;
 };
 
 /* `admin_artificial_tables_t` constructs the `artificial_reql_cluster_interface_t` along
@@ -196,10 +219,10 @@ class admin_artificial_tables_t {
 public:
     admin_artificial_tables_t(
             real_reql_cluster_interface_t *_next_reql_cluster_interface,
+            boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+                auth_semilattice_view,
             boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                auth_semilattice_metadata_t> > _auth_view,
             boost::shared_ptr<semilattice_readwrite_view_t<
                 heartbeat_semilattice_metadata_t> > _heartbeat_view,
             clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
@@ -221,6 +244,7 @@ public:
     The arrays of two backends are used when the contents of the table depends on the
     identifier format; one backend uses names and the other uses UUIDs. */
 
+    scoped_ptr_t<auth::artificial_table_backend_t> auth_backend[2];
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];

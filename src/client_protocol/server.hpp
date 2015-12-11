@@ -27,8 +27,6 @@
 #include "utils.hpp"
 
 class auth_key_t;
-class auth_semilattice_metadata_t;
-template <class> class semilattice_readwrite_view_t;
 
 class rdb_context_t;
 namespace ql {

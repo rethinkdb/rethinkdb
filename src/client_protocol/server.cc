@@ -251,9 +251,6 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
 
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
-    // This must be read here because of home threads and stuff
-    auth_key_t auth_key = rdb_ctx->auth_metadata->get().auth_key.get_ref();
-
     threadnum_t chosen_thread = threadnum_t(next_thread);
     next_thread = (next_thread + 1) % get_num_db_threads();
 
@@ -291,17 +288,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         bool pre_4 = pre_3 || client_magic_number == VersionDummy::V0_3;
         bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
 
-        // With version 0_2 and up, the client drivers specifies the authorization key
-        if (pre_2) {
-            if (!auth_key.str().empty()) {
-                throw client_server_exc_t(
-                    "Authorization required but client does not support it.");
-            }
-        } else if (legal) {
-            auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
-            if (!timing_sensitive_equals(provided_auth, auth_key)) {
-                throw client_server_exc_t("Incorrect authorization key.");
-            }
+        if (legal) {
+            read_auth_key(conn.get(), &ct_keepalive);  // FIXME
         } else {
             throw client_server_exc_t("Received an unsupported protocol version. "
                                       "This port is for RethinkDB queries. Does your "

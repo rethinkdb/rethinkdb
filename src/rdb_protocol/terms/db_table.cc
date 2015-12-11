@@ -5,6 +5,9 @@
 #include <string>
 
 #include "clustering/administration/admin_op_exc.hpp"
+#include "clustering/administration/auth/global_permissions.hpp"
+#include "clustering/administration/auth/permissions.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
@@ -655,6 +658,61 @@ private:
     virtual const char *name() const { return "sync"; }
 };
 
+class grant_term_t : public meta_op_term_t {
+public:
+    grant_term_t(compile_env_t *env, const raw_term_t &term)
+        : meta_op_term_t(env, term, argspec_t(2, 3), optargspec_t({})) { }
+
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
+        auth::username_t username(
+            args->arg(env, args->num_args() - 2)->as_str().to_std());
+
+        bool success = false;
+        ql::datum_t result;
+        admin_err_t error;
+        if (args->num_args() == 2) {
+            auth::global_permissions_t global_permissions(
+                args->arg(env, 1)->as_datum());
+            success = env->env->reql_cluster_interface()->grant_global(
+                username, global_permissions, env->env->interruptor, &result, &error);
+        } else {
+            scoped_ptr_t<val_t> scope = args->arg(env, 0);
+            auth::permissions_t permissions(args->arg(env, 2)->as_datum());
+            if (scope->get_type().is_convertible(val_t::type_t::DB)) {
+                success = env->env->reql_cluster_interface()->grant_database(
+                    scope->as_db()->id,
+                    username,
+                    permissions,
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            } else {
+                counted_t<table_t> table = scope->as_table();
+                success = env->env->reql_cluster_interface()->grant_table(
+                    table->db->id,
+                    table->get_id(),
+                    username,
+                    permissions,
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            }
+        }
+
+        if (!success) {
+            REQL_RETHROW(error);
+        }
+
+        return new_val(std::move(result));
+    }
+
+    virtual const char *name() const {
+        return "grant";
+    }
+};
+
 class table_term_t : public op_term_t {
 public:
     table_term_t(compile_env_t *env, const raw_term_t &term)
@@ -862,6 +920,11 @@ counted_t<term_t> make_rebalance_term(
 counted_t<term_t> make_sync_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<sync_term_t>(env, term);
+}
+
+counted_t<term_t> make_grant_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<grant_term_t>(env, term);
 }
 
 } // namespace ql

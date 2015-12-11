@@ -10,6 +10,8 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "clustering/administration/auth/user.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"
@@ -18,7 +20,6 @@
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 #include "arch/address.hpp"
-#include "containers/auth_key.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/versioned.hpp"
@@ -37,9 +38,14 @@ RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
 class auth_semilattice_metadata_t {
 public:
-    auth_semilattice_metadata_t() { }
+    auth_semilattice_metadata_t()
+        : m_users({{
+            auth::username_t("admin"),
+            versioned_t<boost::optional<auth::user_t>>(
+                boost::make_optional(auth::user_t(auth::admin_t())))}}) {
+    }
 
-    versioned_t<auth_key_t> auth_key;
+    std::map<auth::username_t, versioned_t<boost::optional<auth::user_t>>> m_users;
 };
 
 RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);
