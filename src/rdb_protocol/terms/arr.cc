@@ -2,6 +2,7 @@
 #include "rdb_protocol/terms/arr.hpp"
 
 #include "math.hpp"
+#include "parsing/utf8.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -247,6 +248,29 @@ private:
         return new_val(datum_t::binary(std::move(subdata)));
     }
 
+    scoped_ptr_t<val_t> slice_string(datum_t str,
+                                     bool left_open, int64_t fake_l,
+                                     bool right_open, int64_t fake_r) const {
+        const datum_string_t &data = str.as_str();
+        size_t size = utf8::count_codepoints(data);
+        uint64_t real_l, real_r;
+        canon_helper(size, left_open, fake_l, true, &real_l);
+        canon_helper(size, right_open, fake_r, false, &real_r);
+
+        real_r = clamp<uint64_t>(real_r, 0, size);
+
+        datum_string_t subdata;
+        if (real_l <= real_r) {
+            size_t from = utf8::index_codepoints(data, real_l);
+            size_t to = utf8::index_codepoints(data, real_r);
+            subdata = datum_string_t(to - from, &data.data()[from]);
+        } else {
+            subdata = datum_string_t();
+        }
+
+        return new_val(datum_t(std::move(subdata)));
+    }
+
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         bool left_open = is_left_open(env, args);
@@ -261,9 +285,11 @@ private:
                                    right_open, fake_r);
             } else if (d.get_type() == datum_t::R_BINARY) {
                 return slice_binary(d, left_open, fake_l, right_open, fake_r);
+            } else if (d.get_type() == datum_t::R_STR) {
+                return slice_string(d, left_open, fake_l, right_open, fake_r);
             } else {
                 rfail_target(v, base_exc_t::LOGIC,
-                             "Expected ARRAY or BINARY, but found %s.",
+                             "Expected ARRAY, BINARY, or STRING, but found %s.",
                              d.get_type_name().c_str());
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
