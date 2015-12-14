@@ -9,6 +9,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CB045D34-1C67-473B-ABAB-83F0D630596D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -32,7 +33,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;RETHINKDB_VERSION="2.2-windows-alpha2";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WINVER=0x600;_WIN32_WINNT=WINVER;RETHINKDB_VERSION="2.2-windows-alpha2";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -42,7 +43,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/we4005 /bigobj</AdditionalOptions>
+      <AdditionalOptions>/we4005 /bigobj /Zm50</AdditionalOptions>
       <ShowIncludes>false</ShowIncludes>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
@@ -63,9 +64,9 @@
     <ClInclude Include="precompiled\proto\rdb_protocol\ql2.pb.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="precompiled\web_assets\web_assets.cc" />
     <ClCompile Include="src\**\*.cc" />
     <ClCompile Include="precompiled\proto\rdb_protocol\ql2.pb.cc" />
-    <ClCompile Include="precompiled\web_assets\web_assets.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\rdb_protocol\ql2.proto" />

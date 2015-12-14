@@ -1,5 +1,5 @@
 
-version=4.6.85.31
+version=4.7.80.23
 # See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
 
 pkg_fetch () {
