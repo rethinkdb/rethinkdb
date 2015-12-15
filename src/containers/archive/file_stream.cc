@@ -14,14 +14,14 @@ bool blocking_read_file_stream_t::init(const char *path, int *errsv_out) {
     guarantee(fd_.get() == INVALID_FD);
 
 #ifdef _WIN32 // ATN TODO
-    HANDLE h = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+    HANDLE h = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
                           FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) {
-        rassert(false, "TODO ATN: convert getlasterror values to errno, or add custom error type");
-        // WRONG, does not match errno values: errsv_out = GetLastError();
+        logWRN("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
+        *errsv_out = EIO;
         return false;
     } else {
-        errsv_out = 0;
+        *errsv_out = 0;
         fd_.reset(h);
         return true;
     }

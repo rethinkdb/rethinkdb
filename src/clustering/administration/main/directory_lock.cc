@@ -98,7 +98,7 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
 
 #ifdef _WIN32
     directory_fd.reset(CreateFile((directory_path.path() + "\\" LOCK_FILE_NAME).c_str(),
-                                  GENERIC_READ | GENERIC_WRITE, 0, NULL,
+                                  GENERIC_WRITE, 0, NULL,
                                   CREATE_ALWAYS, FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE, NULL));
     if (directory_fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s", winerr_string(GetLastError()).c_str());

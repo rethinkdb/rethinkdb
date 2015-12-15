@@ -430,7 +430,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         crash("Bad file access mode.");
     }
 
-    // TODO WINDOWS: is all this sharing necessary? According to issue #5165, it doesn't even work
+    // TODO WINDOWS: is all this sharing necessary?
     DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
     fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
@@ -546,9 +546,10 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         // TODO WINDOWS
 #endif
         if (disable_readahead_res != 0) {
+            // TODO ATN
             // Non-critical error. Just print a warning and keep going.
-            logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
-                   "decreased read performance.", path, disable_readahead_res);
+            // logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
+            //        "decreased read performance.", path, disable_readahead_res);
         }
 
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);

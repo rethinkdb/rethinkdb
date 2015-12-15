@@ -547,7 +547,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         ret.append(buf, buf + res);
     }
 #else
-    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, 0, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
     LARGE_INTEGER fileSize;
     BOOL res = GetFileSizeEx(hFile, &fileSize);

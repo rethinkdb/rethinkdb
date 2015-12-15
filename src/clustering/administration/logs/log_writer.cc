@@ -322,7 +322,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     filename = base_path_t(logfile_name);
 
 #ifdef _WIN32
-    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     fd.reset(h);
 
     if (fd.get() == INVALID_FD) {
@@ -616,7 +616,11 @@ void thread_pool_log_writer_t::tail_blocking(
     try {
         scoped_fd_t fd;
 #ifdef _WIN32
-        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+        if (fd.get() == INVALID_FD) {
+            logWRN("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
+            set_errno(EIO);
+        }
 #else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));
