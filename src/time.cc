@@ -28,12 +28,13 @@ microtime_t current_microtime() {
 #else
 
 microtime_t current_microtime() {
+    static const microtime_t filetime_epoch = -11644473600000000; // January 1, 1601
     FILETIME time;
     GetSystemTimePreciseAsFileTime(&time);
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
-    return nanos100.QuadPart / 10;
+    return nanos100.QuadPart / 10 + filetime_epoch;
 }
 
 #endif
