@@ -11,7 +11,7 @@ public class RethinkDB extends TopLevel {
      */
     public static final RethinkDB r = new RethinkDB();
 
-    public Connection.Builder<ConnectionInstance> connection() {
+    public Connection.Builder connection() {
         return Connection.build();
     }
 }

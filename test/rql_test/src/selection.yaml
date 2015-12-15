@@ -128,7 +128,7 @@ tests:
       ot: err("ReqlQueryLogicError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
-      ot: err("ReqlQueryLogicError", 'Expected type SEQUENCE but found SINGLE_SELECTION:', [0])
+      ot: 2
 
     # Get a document that exists
     - cd: tbl.get(20)

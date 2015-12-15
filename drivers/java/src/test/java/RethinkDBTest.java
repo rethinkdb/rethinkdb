@@ -6,7 +6,7 @@ import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Cursor;
 import gen.TestingFramework;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 public class RethinkDBTest{
 
     public static final RethinkDB r = RethinkDB.r;
-    Connection<?> conn;
+    Connection conn;
     public static final String dbName = "javatests";
     public static final String tableName = "atest";
 
@@ -28,7 +28,7 @@ public class RethinkDBTest{
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-        Connection<?> conn = TestingFramework.createConnection();
+        Connection conn = TestingFramework.createConnection();
         try{
             r.dbCreate(dbName).run(conn);
         } catch(ReqlError e){}
@@ -42,7 +42,7 @@ public class RethinkDBTest{
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        Connection<?> conn = TestingFramework.createConnection();
+        Connection conn = TestingFramework.createConnection();
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
             r.dbDrop(dbName).run(conn);

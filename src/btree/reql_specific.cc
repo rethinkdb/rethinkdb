@@ -53,7 +53,7 @@ real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
 
 real_superblock_t::real_superblock_t(
         buf_lock_t &&sb_buf,
-        new_semaphore_acq_t &&write_semaphore_acq)
+        new_semaphore_in_line_t &&write_semaphore_acq)
     : write_semaphore_acq_(std::move(write_semaphore_acq)),
       sb_buf_(std::move(sb_buf)) {}
 
@@ -364,7 +364,7 @@ void get_btree_superblock(
 void get_btree_superblock(
         txn_t *txn,
         UNUSED write_access_t access,
-        new_semaphore_acq_t &&write_sem_acq,
+        new_semaphore_in_line_t &&write_sem_acq,
         scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access_t::write);
     scoped_ptr_t<real_superblock_t> tmp_sb(
@@ -385,7 +385,7 @@ void get_btree_superblock_and_txn_for_writing(
     txn_out->init(txn);
 
     /* Acquire a ticket from the superblock_write_semaphore */
-    new_semaphore_acq_t sem_acq;
+    new_semaphore_in_line_t sem_acq;
     if(superblock_write_semaphore != nullptr) {
         sem_acq.init(superblock_write_semaphore, 1);
         sem_acq.acquisition_signal()->wait();

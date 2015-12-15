@@ -705,7 +705,6 @@ protected:
     std::map<uuid_u, uint64_t> shard_stamps;
 
     // We need this to handle the SINDEX_CONSTANT case.
-    // RSI: can this go away?
     std::vector<rget_item_t> items;
     size_t items_index;
 };

@@ -38,6 +38,12 @@ RAPIDJSON_DIAG_PUSH
 RAPIDJSON_DIAG_OFF(4127) // conditional expression is constant
 #endif
 
+// RethinkDB: Disable -Wtype-limits.
+// Notably on ARM, GCC complains about code such as `unsigned(c) < 256` always being
+// true when Ch is instantiated as `char`.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 RAPIDJSON_NAMESPACE_BEGIN
 
 //! JSON writer
@@ -410,6 +416,9 @@ inline bool Writer<StringBuffer>::WriteDouble(double d) {
 }
 
 RAPIDJSON_NAMESPACE_END
+
+// RethinkDB: Re-enable all warnings
+#pragma GCC diagnostic pop
 
 #ifdef _MSC_VER
 RAPIDJSON_DIAG_POP

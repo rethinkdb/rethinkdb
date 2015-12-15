@@ -240,7 +240,7 @@ private:
         return term;
     }
 
-     virtual const char *name() const { return "difference"; }
+    virtual const char *name() const { return "difference"; }
 };
 
 class with_fields_term_t : public rewrite_term_t {
@@ -259,7 +259,7 @@ private:
         pluck.copy_args_from_term(in, 1);
         return pluck;
     }
-     virtual const char *name() const { return "with_fields"; }
+    virtual const char *name() const { return "with_fields"; }
 };
 
 counted_t<term_t> make_skip_term(

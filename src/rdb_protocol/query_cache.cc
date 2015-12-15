@@ -113,15 +113,19 @@ void query_cache_t::noreply_wait(const query_params_t &query_params,
         }, interruptor);
 }
 
-void query_cache_t::stop_query(const query_params_t &query_params) {
-    r_sanity_check(query_params.type == Query::STOP);
-    guarantee(this == query_params.query_cache);
+void query_cache_t::stop_query(query_params_t *query_params, signal_t *interruptor) {
+    r_sanity_check(query_params->type == Query::STOP);
+    guarantee(this == query_params->query_cache);
     assert_thread();
-    auto entry_it = queries.find(query_params.token);
+    auto entry_it = queries.find(query_params->token);
     if (entry_it != queries.end()) {
         terminate_internal(entry_it->second.get());
         entry_it->second->interrupt_reason = interrupt_reason_t::STOP;
     }
+
+    // Acquire a temporary reference to the query, so we don't respond before the existing
+    // coroutines waiting on the lock finish.
+    get(query_params, interruptor);
 }
 
 void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
@@ -134,7 +138,7 @@ void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
 
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
-                            new_semaphore_acq_t _throttler,
+                            new_semaphore_in_line_t _throttler,
                             query_cache_t::entry_t *_entry,
                             signal_t *interruptor) :
         entry(_entry),

@@ -16,8 +16,11 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-// Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled
-#if (!defined(NDEBUG) && !defined(__MACH__)) || defined(ENABLE_CORO_PROFILER)
+// Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled.
+// We don't enable it on ARM, because taking backtraces currently isn't working
+// reliably and sometimes causes crashes.
+#if (!defined(NDEBUG) && !defined(__MACH__) && !defined(__arm__)) \
+    || defined(ENABLE_CORO_PROFILER)
 #define CROSS_CORO_BACKTRACES            1
 #endif
 #define CROSS_CORO_BACKTRACES_MAX_SIZE  64

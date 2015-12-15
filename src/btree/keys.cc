@@ -110,10 +110,11 @@ void key_range_t::init(bound_t lm, const btree_key_t *l, bound_t rm, const btree
     }
 
     rassert(right.unbounded || left <= right.key(),
-            "left_key(%d)=%.*s, right_key(%d)=%.*s",
-            left.size(), left.size(), left.contents(),
-            right.internal_key.size(), right.internal_key.size(),
-            right.internal_key.contents());
+            "left_key(%d)=%s, right_key(%d)=%s",
+            left.size(),
+            key_to_debug_str(left).c_str(),
+            right.internal_key.size(),
+            key_to_debug_str(right.internal_key).c_str());
 }
 
 bool key_range_t::is_superset(const key_range_t &other) const {

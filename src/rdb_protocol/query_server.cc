@@ -48,7 +48,7 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
             query_ref->fill_response(response_out);
         } break;
         case Query::STOP: {
-            query_params->query_cache->stop_query(*query_params);
+            query_params->query_cache->stop_query(query_params, interruptor);
             response_out->set_type(Response::SUCCESS_SEQUENCE);
         } break;
         case Query::NOREPLY_WAIT: {

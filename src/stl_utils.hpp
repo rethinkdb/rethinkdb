@@ -2,6 +2,7 @@
 #ifndef STL_UTILS_HPP_
 #define STL_UTILS_HPP_
 
+#include <deque>
 #include <map>
 #include <set>
 #include <string>
@@ -28,6 +29,9 @@ void debug_print(printf_buffer_t *buf, const std::set<T> &map);
 
 template <class T>
 void debug_print(printf_buffer_t *buf, const std::vector<T> &vec);
+
+template <class T>
+void debug_print(printf_buffer_t *buf, const std::deque<T> &vec);
 
 template <class T, class U>
 void debug_print(printf_buffer_t *buf, const std::pair<T, U> &p);

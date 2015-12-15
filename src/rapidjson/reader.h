@@ -32,6 +32,10 @@
 // RethinkDB: Disable -Wswitch-enum in this header file
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
+// RethinkDB: Also disable -Wtype-limits.
+// Notably on ARM, GCC complains about code such as `unsigned(e) < 256` always being
+// true when Ch is instantiated as `char`.
+#pragma GCC diagnostic ignored "-Wtype-limits"
 
 #if defined(RAPIDJSON_SIMD) && defined(_MSC_VER)
 #include <intrin.h>

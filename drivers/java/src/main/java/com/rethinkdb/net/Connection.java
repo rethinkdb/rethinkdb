@@ -16,24 +16,24 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-public class Connection<C extends ConnectionInstance> {
+public class Connection {
     // public immutable
     public final String hostname;
     public final int port;
 
     private final AtomicLong nextToken = new AtomicLong();
-    private final Supplier<C> instanceMaker;
+    private final Supplier<ConnectionInstance> instanceMaker;
 
     // private mutable
     private Optional<String> dbname;
     private Optional<Long> connectTimeout;
     private ByteBuffer handshake;
-    private Optional<C> instance = Optional.empty();
+    private Optional<ConnectionInstance> instance = Optional.empty();
 
-    private Connection(Builder<C> builder) {
+    private Connection(Builder builder) {
         dbname = builder.dbname;
         String authKey = builder.authKey.orElse("");
-        handshake = Util.leByteBuffer(4 + 4 + authKey.length() + 4)
+        handshake = Util.leByteBuffer(Integer.BYTES + Integer.BYTES + authKey.length() + Integer.BYTES)
                 .putInt(Version.V0_4.value)
                 .putInt(authKey.length())
                 .put(authKey.getBytes())
@@ -46,8 +46,8 @@ public class Connection<C extends ConnectionInstance> {
         instanceMaker = builder.instanceMaker;
     }
 
-    public static Builder<ConnectionInstance> build() {
-        return new Builder<>(ConnectionInstance::new);
+    public static Builder build() {
+        return new Builder(ConnectionInstance::new);
     }
 
     public Optional<String> db() {
@@ -73,7 +73,7 @@ public class Connection<C extends ConnectionInstance> {
         return connectTimeout;
     }
 
-    public Connection<C> reconnect() {
+    public Connection reconnect() {
         try {
             return reconnect(false, Optional.empty());
         } catch (TimeoutException toe) {
@@ -81,12 +81,12 @@ public class Connection<C extends ConnectionInstance> {
         }
     }
 
-    public Connection<C> reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
+    public Connection reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
         if (!timeout.isPresent()) {
             timeout = connectTimeout;
         }
         close(noreplyWait);
-        C inst = instanceMaker.get();
+        ConnectionInstance inst = instanceMaker.get();
         instance = Optional.of(inst);
         inst.connect(hostname, port, handshake, timeout);
         return this;
@@ -96,7 +96,7 @@ public class Connection<C extends ConnectionInstance> {
         return instance.map(ConnectionInstance::isOpen).orElse(false);
     }
 
-    public C checkOpen() {
+    public ConnectionInstance checkOpen() {
         if (instance.map(c -> !c.isOpen()).orElse(true)) {
             throw new ReqlDriverError("Connection is closed.");
         } else {
@@ -218,30 +218,30 @@ public class Connection<C extends ConnectionInstance> {
         runQueryNoreply(Query.stop(cursor.token));
     }
 
-    public static class Builder<T extends ConnectionInstance> {
-        private final Supplier<T> instanceMaker;
+    public static class Builder {
+        private final Supplier instanceMaker;
         private Optional<String> hostname = Optional.empty();
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
         private Optional<String> authKey = Optional.empty();
         private Optional<Long> timeout = Optional.empty();
 
-        public Builder(Supplier<T> instanceMaker) {
+        public Builder(Supplier instanceMaker) {
             this.instanceMaker = instanceMaker;
         }
-        public Builder<T> hostname(String val)
+        public Builder hostname(String val)
             { hostname = Optional.of(val); return this; }
-        public Builder<T> port(int val)
+        public Builder port(int val)
             { port     = Optional.of(val); return this; }
-        public Builder<T> db(String val)
+        public Builder db(String val)
             { dbname   = Optional.of(val); return this; }
-        public Builder<T> authKey(String val)
+        public Builder authKey(String val)
             { authKey  = Optional.of(val); return this; }
-        public Builder<T> timeout(long val)
+        public Builder timeout(long val)
             { timeout  = Optional.of(val); return this; }
 
-        public Connection<T> connect() throws TimeoutException {
-            Connection<T> conn = new Connection<>(this);
+        public Connection connect() throws TimeoutException {
+            Connection conn = new Connection(this);
             conn.reconnect();
             return conn;
         }

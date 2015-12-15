@@ -11,17 +11,18 @@ r.table('test').wait.run
 r.table('test').index_create('a').run rescue nil
 r.table('test').index_wait('a').run
 
-$stop_id = rand
-$short_keys = [10, 20, -1, -1, 3, -2, 3, -2, 4, 3, $stop_id]
-$long_keys = (0...100).map{|i| (i-10)*2}*2 + [$stop_id]
+$short_keys = [10, 20, -1, -1, 3, -2, 3, -2, 4, 3]
+$long_keys = (0...100).map{|i| (i-10)*2}*2
 
 class Handler < RethinkDB::Handler
   def initialize(max_active, set)
     @state = []
     @active = 0
     @max_active = max_active
-    @stop_id = rand
     @set = set
+    @stop_marker = rand
+    @stop_needed = set.reject{|x| x <= -1 || x >= 1000}.size
+    @stop_counts = Hash.new{0}
   end
   def on_open(caller)
     @active += 1
@@ -30,7 +31,7 @@ class Handler < RethinkDB::Handler
       r.table('test').insert({id: -1, a: -1}).run
       r.table('test').between(0, 5).update({b: rand}).run
       r.table('test').get(-1).delete.run
-      r.table('test').insert({id: $stop_id, a: $stop_id}).run
+      r.table('test').update({stop: @stop_marker}).run
     end
   end
   def on_close
@@ -65,8 +66,14 @@ class Handler < RethinkDB::Handler
   end
   def on_change(old_val, new_val, caller)
     id = new_val['id'] rescue old_val['id']
-    if id == $stop_id
-      caller.close
+    begin
+      done = new_val['stop'] == @stop_marker && old_val['stop'] != @stop_marker
+    rescue
+      done = false
+    end
+    if done
+      @stop_counts[caller.object_id] += 1
+      caller.close if @stop_counts[caller.object_id] == @stop_needed
     else
       @state << [:change, caller.object_id, old_val, new_val]
     end
@@ -91,7 +98,6 @@ end
     r.table('test').get_all(*$short_keys).changes.em_run(h)
     r.table('test').get_all(*$short_keys, index: 'a').changes.em_run(h)
   }
-  r.table('test').get($stop_id).delete.run
 
   puts "Testing changefeeds on long keys..."
   EM.run {

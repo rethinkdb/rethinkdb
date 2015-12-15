@@ -1,15 +1,23 @@
-require 'pp'
-require 'eventmachine'
+#!/usr/bin/env ruby
+# Copyright 2015 RethinkDB, all rights reserved.
+
 require_relative './importRethinkDB.rb'
 
 $port ||= (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 ARGV.clear
 $c = r.connect(port: $port).repl
 
-r.table_create('test').run rescue nil
-r.table('test').index_create('a').run rescue nil
-r.table('test').wait.run
-$tbl = r.table('test')
+dbName = 'test'
+tableName = File.basename(__FILE__).gsub('.', '_')
+
+r.expr([dbName]).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run
+r.expr([tableName]).set_difference(r.db(dbName).table_list()).for_each{|row| r.db(dbName).table_create(row)}.run
+$tbl = r.db(dbName).table(tableName)
+
+$tbl.index_create('a').run rescue nil
+$tbl.wait.run
+$tbl.index_wait.run
+
 $ids = (0...100).to_a
 $scales = [10, 50, 100]
 (0...10).each {|i|

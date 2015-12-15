@@ -298,27 +298,12 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new Wait(args);
     }
-    public Wait wait_(Table table){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(table);
-        return new Wait(args);
-    }
     public Reconfigure reconfigure(){
         Arguments args = new Arguments();
         return new Reconfigure(args);
     }
-    public Reconfigure reconfigure(Table table){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(table);
-        return new Reconfigure(args);
-    }
     public Rebalance rebalance(){
         Arguments args = new Arguments();
-        return new Rebalance(args);
-    }
-    public Rebalance rebalance(Table table){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(table);
         return new Rebalance(args);
     }
     public Funcall do_(Javascript js){

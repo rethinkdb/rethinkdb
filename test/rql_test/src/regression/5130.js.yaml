@@ -1,0 +1,5 @@
+desc: 5130 -- Incorrect determinism calculation of r.point
+table_variable_name: tbl
+tests:
+  - js: tbl.indexCreate("a", function (o) { return r.point(tbl.get(0)('x'), 1); })
+    ot: err("ReqlQueryLogicError", "Could not prove function deterministic.  Index functions must be deterministic.")

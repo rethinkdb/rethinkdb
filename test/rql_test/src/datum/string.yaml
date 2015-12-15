@@ -51,6 +51,16 @@ tests:
     - cd: r.expr('inf').coerce_to('NUMBER')
       ot: err("ReqlQueryLogicError", "Non-finite number: inf", [])
 
+    # count is defined as the number of unicode codepoints
+    - cd: r.expr('hello, world!').count()
+      ot: 13
+    - cd: r.expr('こんにちは').count()
+      py: r.expr(u'こんにちは').count()
+      py3.0: r.expr('こんにちは').count()
+      py3.1: r.expr('こんにちは').count()
+      py3.2: r.expr('こんにちは').count()
+      ot: 5
+
     # This is how these edge cases are handled in Python.
     - cd: r.expr('').split()
       ot: []

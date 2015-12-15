@@ -116,7 +116,7 @@ void send_write(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
                 mailbox_write_callback_t *callback) {
     guarantee(src);
     guarantee(!dest.is_nil());
-    new_semaphore_acq_t acq(src->semaphores.get(), 1);
+    new_semaphore_in_line_t acq(src->semaphores.get(), 1);
     acq.acquisition_signal()->wait();
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;

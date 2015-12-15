@@ -73,6 +73,10 @@ public final class TestingCommon {
             this.lst = lst;
         }
 
+        public String toString(){
+            return "PartialLst(" + lst + ")";
+        }
+
         public boolean equals(Object other) {
             if(!(other instanceof List)) {
                 return false;
@@ -234,6 +238,30 @@ public final class TestingCommon {
         return new FloatCmp(nbr);
     }
 
+    public static class Regex {
+        public final Pattern pattern;
+
+        public Regex(String regexString){
+            this.pattern = Pattern.compile(regexString, Pattern.DOTALL);
+        }
+
+        public String toString(){
+            return "Regex(" + pattern + ")";
+        }
+
+        public boolean equals(Object other){
+            if(!(other instanceof String)){
+                return false;
+            }else{
+                return pattern.matcher((String) other).matches();
+            }
+        }
+    }
+
+    public static Regex regex(String regexString){
+        return new Regex(regexString);
+    }
+
     public static class Err {
         public final Class clazz;
         public final String message;
@@ -259,7 +287,7 @@ public final class TestingCommon {
         }
 
         public boolean equals(Object other) {
-            if(other.getClass() != clazz) {
+            if(!clazz.isInstance(other)) {
                 System.out.println("Classes didn't match: "
                         + clazz + " vs. " + other.getClass());
                 return false;
@@ -296,7 +324,7 @@ public final class TestingCommon {
         }
 
         public boolean equals(Object other) {
-            if(other.getClass() != clazz) {
+            if(!clazz.isInstance(other)) {
                 return false;
             }
             return Pattern.matches(message_rgx, ((Exception)other).getMessage());
@@ -406,6 +434,14 @@ public final class TestingCommon {
             Thread.sleep(length * 1000);
         }catch(InterruptedException ie) {}
         return null;
+    }
+
+    public static Object maybeRun(Object query, Connection conn, OptArgs runopts) {
+        if (query instanceof ReqlAst) {
+            return ((ReqlAst)query).run(conn, runopts);
+        } else {
+            return query;
+        }
     }
 
     public static Object maybeRun(Object query, Connection conn) {
