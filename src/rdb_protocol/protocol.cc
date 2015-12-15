@@ -1022,6 +1022,10 @@ struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
     bool operator()(const rget_read_t &rget) const {
+        // If the `rget_read_t` is part of an `include_initial` changefeed, we can't
+        // snapshot yet, since we first need to get the timestamps in an atomic fashion
+        // (i.e. without any writes happening before we get there).
+        // We'll instead create a snapshot later inside the `rdb_read_visitor_t`.
         return !static_cast<bool>(rget.stamp);
     }
     bool operator()(const intersecting_geo_read_t &) const {      return true;  }
@@ -1040,6 +1044,8 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const rget_read_t &rget) const {
+        // `include_initial` changefeed reads must be routed to the primary, since
+        // that's where changefeeds are managed.
         return static_cast<bool>(rget.stamp);
     }
     bool operator()(const point_read_t &) const {                 return false; }

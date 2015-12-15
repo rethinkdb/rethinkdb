@@ -364,6 +364,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s) {
+        guarantee(!superblock->get()->is_snapshotted());
+
         auto cserver = store->changefeed_server(s.region);
         if (cserver.first != nullptr) {
             if (boost::optional<uint64_t> stamp
@@ -528,6 +530,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     ql::backtrace_id_t::empty());
                 return;
             }
+
+            // We didn't snapshot the dag when we first acquired the superblock because
+            // we first needed to get the changefeed stamps (see
+            // `use_snapshot_visitor_t`).
+            // However now it's safe to use a snapshot for the rest of the read.
+            superblock->get()->snapshot_subdag();
         }
 
         if (rget.transforms.size() != 0 || rget.terminal) {

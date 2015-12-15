@@ -188,6 +188,7 @@ public:
         return txn_ == NULL;
     }
 
+    bool is_snapshotted() const;
     void snapshot_subdag();
 
     void detach_child(block_id_t child_id);
