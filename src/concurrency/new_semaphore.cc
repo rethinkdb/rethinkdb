@@ -18,13 +18,13 @@ void new_semaphore_t::set_capacity(int64_t new_capacity) {
     pulse_waiters();
 }
 
-void new_semaphore_t::add_acquirer(new_semaphore_acq_t *acq) {
+void new_semaphore_t::add_acquirer(new_semaphore_in_line_t *acq) {
     assert_thread();
     waiters_.push_back(acq);
     pulse_waiters();
 }
 
-void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
+void new_semaphore_t::remove_acquirer(new_semaphore_in_line_t *acq) {
     assert_thread();
     rassert(acq->semaphore_ == this);
     if (acq->cond_.is_pulsed()) {
@@ -37,7 +37,7 @@ void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
 
 void new_semaphore_t::pulse_waiters() {
     assert_thread();
-    while (new_semaphore_acq_t *acq = waiters_.head()) {
+    while (new_semaphore_in_line_t *acq = waiters_.head()) {
         if (acq->count_ <= capacity_ - current_ || current_ == 0) {
             current_ += acq->count_;
             waiters_.remove(acq);
@@ -48,11 +48,11 @@ void new_semaphore_t::pulse_waiters() {
     }
 }
 
-new_semaphore_acq_t::~new_semaphore_acq_t() {
+new_semaphore_in_line_t::~new_semaphore_in_line_t() {
     reset();
 }
 
-void new_semaphore_acq_t::reset() {
+void new_semaphore_in_line_t::reset() {
     if (semaphore_ != NULL) {
         semaphore_->remove_acquirer(this);
         semaphore_ = NULL;
@@ -61,15 +61,15 @@ void new_semaphore_acq_t::reset() {
     }
 }
 
-new_semaphore_acq_t::new_semaphore_acq_t()
+new_semaphore_in_line_t::new_semaphore_in_line_t()
     : semaphore_(NULL), count_(0) { }
 
-new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_t *semaphore, int64_t count)
+new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_t *semaphore, int64_t count)
     : semaphore_(NULL), count_(0) {
     init(semaphore, count);
 }
 
-void new_semaphore_acq_t::init(new_semaphore_t *semaphore, int64_t count) {
+void new_semaphore_in_line_t::init(new_semaphore_t *semaphore, int64_t count) {
     guarantee(semaphore_ == NULL);
     rassert(count_ == 0);
     guarantee(count >= 0);
@@ -78,8 +78,8 @@ void new_semaphore_acq_t::init(new_semaphore_t *semaphore, int64_t count) {
     semaphore_->add_acquirer(this);
 }
 
-new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
-    : intrusive_list_node_t<new_semaphore_acq_t>(std::move(movee)),
+new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_in_line_t &&movee)
+    : intrusive_list_node_t<new_semaphore_in_line_t>(std::move(movee)),
       semaphore_(movee.semaphore_),
       count_(movee.count_),
       cond_(std::move(movee.cond_)) {
@@ -88,11 +88,11 @@ new_semaphore_acq_t::new_semaphore_acq_t(new_semaphore_acq_t &&movee)
     movee.cond_.reset();
 }
 
-int64_t new_semaphore_acq_t::count() const {
+int64_t new_semaphore_in_line_t::count() const {
     return count_;
 }
 
-void new_semaphore_acq_t::change_count(int64_t new_count) {
+void new_semaphore_in_line_t::change_count(int64_t new_count) {
     guarantee(semaphore_ != NULL);
     guarantee(new_count >= 0);
 
@@ -110,7 +110,7 @@ void new_semaphore_acq_t::change_count(int64_t new_count) {
     semaphore_->pulse_waiters();
 }
 
-void new_semaphore_acq_t::transfer_in(new_semaphore_acq_t &&other) {
+void new_semaphore_in_line_t::transfer_in(new_semaphore_in_line_t &&other) {
     guarantee(semaphore_ != nullptr);
     guarantee(other.semaphore_ == semaphore_);
     guarantee(cond_.is_pulsed());

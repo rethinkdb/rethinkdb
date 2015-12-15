@@ -98,7 +98,7 @@ private:
         `item_throttler`, but its `count` changes to reflect the total mem size that's
         currently in the queue. */
         new_semaphore_t item_throttler;
-        new_semaphore_acq_t item_throttler_acq;
+        new_semaphore_in_line_t item_throttler_acq;
 
         scoped_ptr_t<session_t> current_session;
 

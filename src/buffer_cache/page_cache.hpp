@@ -315,8 +315,8 @@ private:
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
     // value of *_changes_semaphore_acq_.count(), we use
     // *_changes_semaphore_acq_.change_count() to keep the numbers equal.
-    new_semaphore_acq_t block_changes_semaphore_acq_;
-    new_semaphore_acq_t index_changes_semaphore_acq_;
+    new_semaphore_in_line_t block_changes_semaphore_acq_;
+    new_semaphore_in_line_t index_changes_semaphore_acq_;
 
     DISABLE_COPYING(throttler_acq_t);
 };

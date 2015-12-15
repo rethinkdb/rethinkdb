@@ -46,7 +46,7 @@ public:
     bool noreply;
     bool profile;
 
-    new_semaphore_acq_t throttler;
+    new_semaphore_in_line_t throttler;
 
 private:
     DISABLE_COPYING(query_params_t);
