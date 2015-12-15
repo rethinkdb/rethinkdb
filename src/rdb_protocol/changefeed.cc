@@ -163,7 +163,8 @@ datum_t vals_to_change(
     datum_t new_val,
     bool discard_old_val = false,
     bool discard_new_val = false) {
-    if (discard_old_val && discard_new_val) {
+    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
+        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
         return datum_t();
     } else {
         std::map<datum_string_t, datum_t> ret;
@@ -1731,6 +1732,13 @@ public:
         if (state != state_t::READY && include_initial) {
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
+            if (!ret.has()) {
+                // This is the one place where it's legal to have a document
+                // like `{new_val: null}`.
+                ret = datum_t(
+                    std::map<datum_string_t, datum_t>{{
+                        datum_string_t("new_val"), datum_t::null()}});
+            }
         } else {
             ret = change_val_to_change(pop_change_val());
         }
