@@ -294,7 +294,7 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 .PRECIOUS: $(PROTO_DIR)/. $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
 
 $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
-	$P PROTOC[CPP] $^
+	$P PROTOC
 
 #	# See issue #2965
 	+rm -f $(PROTO_DIR)/$*.pb.h $(PROTO_DIR)/$*.pb.cc
@@ -363,11 +363,21 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-$(BUILD_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(PRECOMPILED_DIR)/web_assets/web_assets.cc | $(BUILD_ROOT_DIR)/web_assets/.
+	$P CP
+	cp -f $< $@
+
+else # Don't use precompiled assets
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
 	$P GENERATE
 	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
 
-$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
+endif
+
+$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_ROOT_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
 	mkdir -p $(dir $@)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
