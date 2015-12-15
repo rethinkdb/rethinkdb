@@ -50,6 +50,16 @@ struct stamped_range_t {
     // MOVABLE_BUT_NOT_COPYABLE(stamped_range_t);
 };
 
+void debug_print(printf_buffer_t *buf, const stamped_range_t &rng) {
+    buf->appendf("stamped_range_t{");
+    debug_print(buf, rng.next_expected_stamp);
+    buf->appendf(", ");
+    debug_print(buf, rng.left_fencepost);
+    buf->appendf(", ");
+    debug_print(buf, rng.ranges);
+    buf->appendf("}");
+}
+
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
                  store_key_t _pkey,
@@ -143,6 +153,11 @@ std::string print(const change_val_t &cv) {
 }
 } // namespace debug
 
+template<class T>
+void debug_print(printf_buffer_t *buf, const T &t) {
+    buf->appendf("%s", debug::print(t).c_str());
+}
+
 datum_t vals_to_change(
     datum_t old_val,
     datum_t new_val,
@@ -183,11 +198,53 @@ public:
     virtual void clear() = 0;
     virtual change_val_t pop() = 0;
     virtual const change_val_t &peek() = 0;
+    virtual void purge_below(std::map<uuid_u, uint64_t> stamps) = 0;
 };
 
-class squashing_queue_t : public maybe_squashing_queue_t {
+class nonsquashing_queue_t final : public maybe_squashing_queue_t {
+    void add(change_val_t change_val) final {
+        queue.push_back(std::move(change_val));
+    }
+    size_t size() const final {
+        return queue.size();
+    }
+    void clear() final {
+        queue.clear();
+    }
+    const change_val_t &peek() final {
+        guarantee(size() != 0);
+        return queue.front();
+    }
+    change_val_t pop() final {
+        guarantee(size() != 0);
+        auto ret = std::move(queue.front());
+        queue.pop_front();
+        return ret;
+    }
+    void purge_below(std::map<uuid_u, uint64_t> stamps) final {
+        std::map<uuid_u, uint64_t> orig, kept;
+        std::deque<change_val_t> old_queue;
+        old_queue.swap(queue);
+        guarantee(queue.empty());
+        for (auto &&cv : old_queue) {
+            auto it = stamps.find(cv.source_stamp.first);
+            orig.insert(std::make_pair(cv.source_stamp.first, 0)).first->second += 1;
+            r_sanity_check(it != stamps.end());
+            // We want `>=` here because the semantics are that the start stamp
+            // is the first stamp we expect.
+            if (cv.source_stamp.second >= it->second) {
+                kept.insert(
+                    std::make_pair(cv.source_stamp.first, 0)).first->second += 1;
+                add(std::move(cv));
+            }
+        }
+    }
+    std::deque<change_val_t> queue;
+};
+
+class squashing_queue_t final : public maybe_squashing_queue_t {
 public:
-    virtual void add(change_val_t change_val) {
+    void add(change_val_t change_val) final {
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
             auto order_it = queue_order.insert(queue_order.end(), change_val.pkey);
@@ -213,21 +270,21 @@ public:
             }
         }
     }
-    virtual size_t size() const {
+    size_t size() const final {
         guarantee(queue.size() == queue_order.size());
         return queue.size();
     }
-    virtual void clear() {
+    void clear() final {
         queue.clear();
         queue_order.clear();
     }
-    virtual const change_val_t &peek() {
+    const change_val_t &peek() final {
         guarantee(size() != 0);
         auto it = queue.find(*queue_order.begin());
         guarantee(it != queue.end());
         return it->second.first;
     }
-    virtual change_val_t pop() {
+    change_val_t pop() final {
         guarantee(size() != 0);
         auto it = queue.find(*queue_order.begin());
         guarantee(it != queue.end());
@@ -236,40 +293,15 @@ public:
         queue_order.pop_front();
         return ret;
     }
+    void purge_below(std::map<uuid_u, uint64_t>) final {
+        // You should never purge a squashing queue.
+        r_sanity_fail();
+    }
 private:
     std::map<store_key_t,
              std::pair<change_val_t, std::list<store_key_t>::iterator> > queue;
     std::list<store_key_t> queue_order;
 };
-
-class nonsquashing_queue_t : public maybe_squashing_queue_t {
-    virtual void add(change_val_t change_val) {
-        queue.push_back(std::move(change_val));
-    }
-    virtual size_t size() const {
-        return queue.size();
-    }
-    virtual void clear() {
-        queue.clear();
-    }
-    virtual const change_val_t &peek() {
-        guarantee(size() != 0);
-        return queue.front();
-    }
-    virtual change_val_t pop() {
-        guarantee(size() != 0);
-        auto ret = std::move(queue.front());
-        queue.pop_front();
-        return ret;
-    }
-    std::deque<change_val_t> queue;
-};
-
-scoped_ptr_t<maybe_squashing_queue_t> make_maybe_squashing_queue(bool squash) {
-    return squash
-        ? scoped_ptr_t<maybe_squashing_queue_t>(new squashing_queue_t())
-        : scoped_ptr_t<maybe_squashing_queue_t>(new nonsquashing_queue_t());
-}
 
 boost::optional<datum_t> apply_ops(
     const datum_t &val,
@@ -1288,6 +1320,14 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
     virtual auto_drainer_t *get_drainer() = 0;
+    feed_t *parent_feed() {
+        if (feed != nullptr) {
+            return feed;
+        } else {
+            guarantee(exc);
+            std::rethrow_exception(exc);
+        }
+    }
 protected:
     subscription_t(feed_t *feed,
                    configured_limits_t limits,
@@ -1317,7 +1357,6 @@ private:
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
     virtual void apply_queued_changes() = 0;
-    virtual bool active() = 0;
 
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
@@ -1325,12 +1364,19 @@ private:
     DISABLE_COPYING(subscription_t);
 };
 
+enum class init_squashing_queue_t { NO, YES };
 class flat_sub_t : public subscription_t {
 public:
     template<class... Args>
-    explicit flat_sub_t(Args &&... args)
+    explicit flat_sub_t(init_squashing_queue_t init_squashing_queue, Args &&... args)
         : subscription_t(std::forward<Args>(args)...),
-          queue(make_maybe_squashing_queue(squash)) { }
+          last_stamp(std::make_pair(nil_uuid(), std::numeric_limits<uint64_t>::max())) {
+        if (init_squashing_queue == init_squashing_queue_t::YES && squash) {
+            queue = make_scoped<squashing_queue_t>();
+        } else {
+            queue = make_scoped<nonsquashing_queue_t>();
+        }
+    }
     virtual void add_el(
         const uuid_u &shard_uuid,
         uint64_t stamp,
@@ -1338,7 +1384,13 @@ public:
         const boost::optional<std::string> &DEBUG_ONLY(sindex),
         boost::optional<indexed_datum_t> old_val,
         boost::optional<indexed_datum_t> new_val) {
-        if (update_stamp(shard_uuid, stamp)) {
+        if (!active()) return;
+        auto stamp_pair = std::make_pair(shard_uuid, stamp);
+        if (stamp_pair == last_stamp || update_stamp(shard_uuid, stamp)) {
+            // If we get the same stamp multiple times in a row, we skip the
+            // update step and always pass it through.  (This supports cases
+            // like `.get_all(1, 1)`).
+            last_stamp = stamp_pair;
             queue->add(change_val_t(
                 std::make_pair(shard_uuid, stamp),
                 pkey,
@@ -1364,10 +1416,12 @@ public:
     bool has_change_val() { return queue->size() != 0; }
     change_val_t pop_change_val() { return queue->pop(); }
     const change_val_t &peek_change_val() { return queue->peek(); }
+    bool active() { return !exc; }
 protected:
     // The queue of changes we've accumulated since the last time we were read from.
-    const scoped_ptr_t<maybe_squashing_queue_t> queue;
+    scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
+    std::pair<uuid_u, uint64_t> last_stamp;
     virtual void apply_queued_changes() { } // Changes are never queued.
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
 };
@@ -1392,6 +1446,8 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
+    void update_range_stamps(uuid_u server_uuid, uint64_t stamp);
+    std::map<uuid_u, uint64_t> get_range_stamps();
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1447,7 +1503,35 @@ private:
     rwlock_t range_subs_lock;
     std::map<uuid_u, std::vector<std::set<limit_sub_t *> > > limit_subs;
     rwlock_t limit_subs_lock;
+
+    // This stores the latest range stamps we've received.  It's OK for this to
+    // be a tiny bit behind what we've sent the subs.
+    struct range_stamps_t {
+        rwlock_t lock;
+        std::map<uuid_u, uint64_t> latest;
+    };
+    // We use a `one_per_thread_t` because when we have lots of subs (the
+    // expensive case), it's easier to fill this in multiple times than to have
+    // every sub do a thread switch to read the value.
+    one_per_thread_t<range_stamps_t> range_stamps;
 };
+
+void feed_t::update_range_stamps(uuid_u server_uuid, uint64_t stamp) {
+    pmap(get_num_threads(),
+         [&](int thread) {
+             on_thread_t th((threadnum_t(thread)));
+             range_stamps_t *rs = range_stamps.get();
+             rwlock_acq_t acq(&rs->lock, access_t::write);
+             rs->latest[server_uuid] = stamp;
+         });
+}
+
+// We have to return by value here because we release the lock right away.
+std::map<uuid_u, uint64_t> feed_t::get_range_stamps() {
+    range_stamps_t *rs = range_stamps.get();
+    rwlock_acq_t acq(&rs->lock, access_t::read);
+    return rs->latest;
+}
 
 class real_feed_t : public feed_t {
 public:
@@ -1613,7 +1697,9 @@ public:
                 const datum_t &squash,
                 bool include_states,
                 datum_t _pkey)
-        : flat_sub_t(feed, std::move(limits), squash, include_states),
+        // For point changefeeds we start squashing right away.
+        : flat_sub_t(init_squashing_queue_t::YES,
+                     feed, std::move(limits), squash, include_states),
           pkey(std::move(_pkey)),
           stamp(0),
           started(false),
@@ -1630,7 +1716,7 @@ public:
 
     bool update_stamp(const uuid_u &, uint64_t new_stamp) final {
         if (new_stamp >= stamp) {
-            stamp = new_stamp;
+            stamp = new_stamp + 1;
             return true;
         }
         return false;
@@ -1749,8 +1835,6 @@ public:
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
-    bool active() final { return started; }
-
     datum_t pkey;
     boost::optional<change_val_t> initial_val;
     uint64_t stamp;
@@ -1779,7 +1863,10 @@ public:
                 const datum_t &squash,
                 bool include_states,
                 keyspec_t::range_t _spec)
-        : flat_sub_t(feed, std::move(limits), squash, include_states),
+        // We don't turn on squashing until later for range subs.  (We need to
+        // wait until we've purged and all the initial values are reconciled.)
+        : flat_sub_t(init_squashing_queue_t::NO,
+                     feed, std::move(limits), squash, include_states),
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
@@ -1814,12 +1901,6 @@ public:
         }
     }
 
-    virtual bool active() {
-        // If we don't have start timestamps, we haven't started, and if we have
-        // exc, we've stopped.
-        return start_stamps.size() != 0 && !exc;
-    }
-
     bool has_ops() { return ops.size() != 0; }
 
     boost::optional<datum_t> apply_ops(datum_t val) {
@@ -1840,13 +1921,12 @@ public:
 
     bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) final {
         guarantee(active());
-        auto it = start_stamps.find(uuid);
-        guarantee(it != start_stamps.end());
-        // Note that we currently *DO NOT* update the stamp for range
-        // subscriptions.  If we get changes with stamps after the start stamp
-        // we eventually receive, they are just discarded.  This will change in
-        // the future when we support `include_initial` on range changefeeds.
-        return new_stamp >= it->second;
+        auto it = next_stamps.find(uuid);
+        if (it == next_stamps.end() || new_stamp >= it->second) {
+            next_stamps[uuid] = new_stamp + 1;
+            return true;
+        }
+        return false;
     }
 
     datum_t pop_el() final {
@@ -1868,6 +1948,16 @@ public:
         return (include_states && state != sent_state)
             || artificial_initial_vals.size() != 0
             || has_change_val();
+    }
+
+    void maybe_enable_squashing() {
+        if (squash) {
+            scoped_ptr_t<maybe_squashing_queue_t> old_queue = std::move(queue);
+            queue = make_scoped<squashing_queue_t>();
+            while (old_queue->size() != 0) {
+                queue->add(old_queue->pop());
+            }
+        }
     }
 
     counted_t<datum_stream_t> to_stream(
@@ -1892,8 +1982,22 @@ public:
         guarantee(resp != nullptr);
         rcheck_datum(resp->stamps, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
-        start_stamps = std::move(*resp->stamps);
-        rcheck_datum(start_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
+        std::map<uuid_u, uint64_t> purge_stamps;
+        for (const auto &pair : *resp->stamps) {
+            auto orig_res = orig_stamps.insert(pair);
+            guarantee(orig_res.second);
+            auto res = next_stamps.insert(pair);
+            // If we already have stamps.
+            if (!res.second) {
+                purge_stamps.insert(pair);
+                // Even though we're purging the early changes, we also need to
+                // make sure we don't get any such changes *after* the purge.
+                next_stamps[pair.first] =
+                    std::max(next_stamps[pair.first], pair.second);
+            }
+        }
+        queue->purge_below(purge_stamps);
+        rcheck_datum(orig_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
                      "Empty start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);
@@ -1907,6 +2011,7 @@ public:
                        "Cannot call `include_initial` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
+            maybe_enable_squashing();
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
         }
     }
@@ -1924,7 +2029,8 @@ public:
         artificial_include_initial = include_initial;
 
         env = make_env(outer_env);
-        start_stamps[uuid] = 0;
+        orig_stamps[uuid] = 0;
+        next_stamps[uuid] = 0;
         if (artificial_include_initial) {
             state = state_t::INITIALIZING;
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
@@ -1937,7 +2043,8 @@ public:
         }
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
-    const std::map<uuid_u, uint64_t> &get_start_stamps() { return start_stamps; }
+    const std::map<uuid_u, uint64_t> &get_next_stamps() { return next_stamps; }
+    const std::map<uuid_u, uint64_t> &get_orig_stamps() { return orig_stamps; }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
@@ -1960,7 +2067,7 @@ private:
     // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
     // read.  We use these to make sure we don't see changes from writes before
     // our subscription.
-    std::map<uuid_u, uint64_t> start_stamps;
+    std::map<uuid_u, uint64_t> orig_stamps, next_stamps;
     keyspec_t::range_t spec;
     boost::optional<std::map<store_key_t, uint64_t> > store_keys;
     boost::optional<key_range_t> store_key_range;
@@ -2208,7 +2315,6 @@ public:
     }
 
     virtual bool has_el() { return els.size() != 0; }
-    virtual bool active() { return need_init == got_init; }
     virtual datum_t pop_el() {
         guarantee(has_el());
         datum_t ret = std::move(els.front());
@@ -2416,6 +2522,7 @@ public:
                 }
             }
         });
+        feed->update_range_stamps(server_uuid, stamp);
         feed->on_point_sub(
             change.pkey,
             *lock,
@@ -2496,7 +2603,7 @@ public:
           cached_ready(false),
           src(std::move(_src)) {
         r_sanity_check(src.has());
-        for (const auto &p : sub->get_start_stamps()) {
+        for (const auto &p : sub->get_orig_stamps()) {
             stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
         }
     }
@@ -2523,17 +2630,21 @@ private:
             if (read_once) {
                 while (sub->has_change_val() && !batcher.should_send_batch()) {
                     change_val_t cv = sub->pop_change_val();
+                    // Note that `discard` updates the `stamped_ranges`.
                     datum_t el = change_val_to_change(
                         cv,
                         cv.old_val && discard(
-                            cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                            cv.pkey,
+                            cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
                         cv.new_val && discard(
-                            cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
+                            cv.pkey,
+                            cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
                     if (el.has()) {
                         batcher.note_el(el);
                         ret.push_back(std::move(el));
                     }
                 }
+                maybe_skip_to_feed();
                 remove_outdated_ranges();
             } else {
                 if (sub->include_states) {
@@ -2558,7 +2669,8 @@ private:
                 } else {
                     ret.reserve(ret.size() + batch.size());
                     for (auto &&datum : batch) {
-                        ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
+                        ret.push_back(
+                            vals_to_change(datum_t(), std::move(datum), true));
                     }
                 }
             } else {
@@ -2621,6 +2733,29 @@ private:
             it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
         }
     }
+    void maybe_skip_to_feed() {
+        const std::map<uuid_u, uint64_t> *sub_stamps = &sub->get_next_stamps();
+        boost::optional<std::map<uuid_u, uint64_t> > feed_range_stamps;
+        for (auto &&pair : stamped_ranges) {
+            auto it = sub_stamps->find(pair.first);
+            r_sanity_check(it != sub_stamps->end());
+            uint64_t sub_stamp = it->second;
+            // If we've consumed all the changes that the subscription has seen,
+            // we can jump ahead to whatever stamp the parent feed says is the
+            // latest it's decided whether or not to pass to the subscription.
+            if (pair.second.next_expected_stamp >= sub_stamp) {
+                if (!feed_range_stamps) {
+                    feed_range_stamps = sub->parent_feed()->get_range_stamps();
+                }
+                auto ft = feed_range_stamps->find(pair.first);
+                if (ft != feed_range_stamps->end()) {
+                    pair.second.next_expected_stamp =
+                        std::max(pair.second.next_expected_stamp,
+                                 ft->second + 1);
+                }
+            }
+        }
+    }
     void update_ranges() {
         active_state = src->truncate_and_get_active_state();
         key_range_t range = last_read_range();
@@ -2662,8 +2797,11 @@ private:
         if (!cached_ready) {
             remove_outdated_ranges();
             for (const auto &pair : stamped_ranges) {
-                if (pair.second.ranges.size() != 0) return cached_ready;
+                if (pair.second.ranges.size() != 0) {
+                    return cached_ready;
+                }
             }
+            sub->maybe_enable_squashing();
             cached_ready = true;
         }
         return cached_ready;
@@ -3004,7 +3142,6 @@ void feed_t::each_range_sub(
     each_sub_in_vec(range_subs, &spot, lock, f);
 }
 
-
 void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i) {
     on_thread_t th((threadnum_t(i)));
     for (auto const &pair : point_subs) {
@@ -3013,6 +3150,7 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
         }
     }
 }
+
 void feed_t::each_point_sub_with_lock(
     rwlock_in_line_t *spot,
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
@@ -3032,6 +3170,7 @@ void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int 
         }
     }
 }
+
 void feed_t::each_limit_sub_with_lock(
     rwlock_in_line_t *spot,
     const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {

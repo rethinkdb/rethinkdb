@@ -5,6 +5,7 @@
 #include "stl_utils.hpp"
 
 #include <algorithm>
+#include <deque>
 #include <map>
 #include <set>
 #include <utility>
@@ -33,6 +34,7 @@ void debug_print_iterators(printf_buffer_t *buf, It beg, It end) {
         if (it != beg) {
             buf->appendf(", ");
         }
+        buf->appendf("\n");
         debug_print(buf, *it);
     }
 }
@@ -56,6 +58,13 @@ void debug_print(printf_buffer_t *buf, const std::vector<T> &vec) {
     buf->appendf("[");
     debug_print_iterators(buf, vec.begin(), vec.end());
     buf->appendf("]");
+}
+
+template <class T>
+void debug_print(printf_buffer_t *buf, const std::deque<T> &deque) {
+    buf->appendf("deque{");
+    debug_print_iterators(buf, deque.begin(), deque.end());
+    buf->appendf("}");
 }
 
 template <class T, class U>
