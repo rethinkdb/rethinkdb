@@ -97,7 +97,7 @@ bool active_ranges_t::totally_exhausted() const {
 
 store_key_t truncate_and_get_left(active_ranges_t *ranges) {
     const store_key_t *smallest_left = &store_key_max;
-    for (auto &&pair: ranges->ranges) {
+    for (auto &&pair : ranges->ranges) {
         for (auto &&hash_pair : pair.second.hash_ranges) {
             if (hash_pair.second.cache.size() != 0) {
                 // If we truncate the cache for a shard, it's always active.
@@ -106,8 +106,10 @@ store_key_t truncate_and_get_left(active_ranges_t *ranges) {
                 hash_pair.second.key_range.left = hash_pair.second.cache[0].key;
                 hash_pair.second.cache.clear();
             }
-            if (hash_pair.second.key_range.left < *smallest_left) {
-                smallest_left = &hash_pair.second.key_range.left;
+            if (hash_pair.second.state == range_state_t::ACTIVE) {
+                if (hash_pair.second.key_range.left < *smallest_left) {
+                    smallest_left = &hash_pair.second.key_range.left;
+                }
             }
         }
     }
