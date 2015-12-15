@@ -646,6 +646,11 @@ void buf_lock_t::reset_buf_lock() {
     swap(tmp);
 }
 
+bool buf_lock_t::is_snapshotted() const {
+    cache()->assert_thread();
+    return snapshot_node_ != nullptr;
+}
+
 void buf_lock_t::snapshot_subdag() {
     cache()->assert_thread();
 #if ALT_DEBUG
