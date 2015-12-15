@@ -105,7 +105,7 @@ class Cursor_Test < Test::Unit::TestCase
                          "end = new Date(new Date().getTime() + 2);" +
                          "while (new Date() < end) { }" +
                          "return row;" +
-                         "})")).run(@conn, :max_batch_rows => 2) }
+                         "})")).run(@conn, :max_batch_rows => 500) }
     cursor_counts = Array.new(num_cursors) { 0 }
     cursor_timeouts = Array.new(num_cursors) { 0 }
   
