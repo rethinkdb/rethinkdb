@@ -794,7 +794,7 @@ class TestCursor(TestWithConnection):
                                                 "end = new Date(new Date().getTime() + 2);" +
                                                 "while (new Date() < end) { }" +
                                                 "return row;" +
-                                           "})")).run(self.conn, max_batch_rows=2)
+                                           "})")).run(self.conn, max_batch_rows=500)
             cursors.append(cur)
             cursor_counts.append(0)
             cursor_timeouts.append(0)
