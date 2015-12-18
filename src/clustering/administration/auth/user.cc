@@ -196,6 +196,10 @@ global_permissions_t user_t::get_global_permissions() const {
     return m_global_permissions;
 }
 
+void user_t::set_global_permissions(global_permissions_t permissions) {
+    m_global_permissions = std::move(permissions);
+}
+
 permissions_t user_t::get_database_permissions(database_id_t const &database_id) const {
     auto iterator = m_database_permissions.find(database_id);
     if (iterator != m_database_permissions.end()) {
@@ -204,6 +208,12 @@ permissions_t user_t::get_database_permissions(database_id_t const &database_id)
         return permissions_t(
             boost::indeterminate, boost::indeterminate, boost::indeterminate);
     }
+}
+
+void user_t::set_database_permissions(
+        database_id_t const &database_id,
+        permissions_t permissions) {
+    m_database_permissions[database_id] = std::move(permissions);
 }
 
 permissions_t user_t::get_table_permissions(namespace_id_t const &table_id) const {
@@ -216,20 +226,14 @@ permissions_t user_t::get_table_permissions(namespace_id_t const &table_id) cons
     }
 }
 
-void user_t::set_global_permissions(global_permissions_t permissions) {
-    m_global_permissions = std::move(permissions);
-}
-
-void user_t::set_database_permissions(
-        database_id_t const &database_id,
-        permissions_t permissions) {
-    m_database_permissions[database_id] = std::move(permissions);
-}
-
 void user_t::set_table_permissions(
         namespace_id_t const &table_id,
         permissions_t permissions) {
     m_table_permissions[table_id] = std::move(permissions);
+}
+
+bool user_t::has_connect_permission() const {
+    return m_global_permissions.get_connect() || false;
 }
 
 ql::datum_t user_t::to_datum(

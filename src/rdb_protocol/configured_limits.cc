@@ -23,11 +23,13 @@ configured_limits_t from_optargs(
         bool has_changefeed_queue_size = args->has_optarg("changefeed_queue_size");
         bool has_array_limit = args->has_optarg("array_limit");
         if (has_changefeed_queue_size || has_array_limit) {
-            env_t env(ctx,
-                      return_empty_normal_batches_t::NO,
-                      interruptor,
-                      global_optargs_t(),
-                      nullptr);
+            env_t env(
+                ctx,
+                return_empty_normal_batches_t::NO,
+                interruptor,
+                global_optargs_t(),
+                boost::none,    // FIXME, query in optarg?
+                nullptr);
             if (has_changefeed_queue_size) {
                 int64_t sz = args->get_optarg(&env, "changefeed_queue_size")->as_int();
                 changefeed_queue_size = check_limit("changefeed queue size", sz);

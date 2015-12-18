@@ -260,6 +260,7 @@ bool do_serve(io_backender_t *io_backender,
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
                               NULL,   /* we'll fill this in later */
+                              semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
         {

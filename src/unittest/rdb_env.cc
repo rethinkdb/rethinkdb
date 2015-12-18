@@ -288,11 +288,14 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
     rdb_ctx(&extproc_pool, this)
 {
-    env.init(new ql::env_t(&rdb_ctx,
-                           ql::return_empty_normal_batches_t::NO,
-                           &interruptor,
-                           ql::global_optargs_t(),
-                           nullptr /* no profile trace */));
+    env.init(
+        new ql::env_t(
+            &rdb_ctx,
+            ql::return_empty_normal_batches_t::NO,
+            &interruptor,
+            ql::global_optargs_t(),
+            boost::none,
+            nullptr /* no profile trace */));
 
     // Set up any databases, tables, and data
     for (auto const &db_name : test_env.databases) {

@@ -149,6 +149,7 @@ message Response {
         OP_FAILED = 4100000;
         OP_INDETERMINATE = 4200000;
         USER = 5000000;
+        PERMISSION_ERROR = 6000000;
     }
     optional ErrorType error_type = 7;
 

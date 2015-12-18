@@ -37,20 +37,23 @@ public:
         admin_identifier_format_t identifier_format);
 
     bool has_password() const;
-    boost::optional<password_t> const & get_password() const;
+    boost::optional<password_t> const &get_password() const;
     void set_password(boost::optional<std::string> password);
 
     global_permissions_t get_global_permissions() const;
-    permissions_t get_database_permissions(database_id_t const &database_id) const;
-    permissions_t get_table_permissions(namespace_id_t const &table_id) const;
-
     void set_global_permissions(global_permissions_t permissions);
+
+    permissions_t get_database_permissions(database_id_t const &database_id) const;
     void set_database_permissions(
         database_id_t const &database_id,
         permissions_t permissions);
+
+    permissions_t get_table_permissions(namespace_id_t const &table_id) const;
     void set_table_permissions(
         namespace_id_t const &table_id,
         permissions_t permissions);
+
+    bool has_connect_permission() const;
 
     ql::datum_t to_datum(
         std::map<namespace_id_t, table_basic_config_t> const &names,

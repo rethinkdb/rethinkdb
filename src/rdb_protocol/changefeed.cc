@@ -466,6 +466,7 @@ void server_t::add_limit_client(
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        boost::optional<auth::username_t> username,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -487,6 +488,7 @@ void server_t::add_limit_client(
             table,
             ctx,
             std::move(optargs),
+            std::move(username),
             client_uuid,
             this,
             it->first,
@@ -878,6 +880,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     rdb_context_t *ctx,
     global_optargs_t optargs,
+    boost::optional<auth::username_t> username,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -897,8 +900,12 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, return_empty_normal_batches_t::NO,
-        drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx,
+        return_empty_normal_batches_t::NO,
+        drainer.get_drain_signal(),
+        std::move(optargs),
+        std::move(username),
+        nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -2164,6 +2171,7 @@ private:
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
+                outer_env->get_username(),
                 nullptr/*don't profile*/);
     }
 
@@ -2505,10 +2513,11 @@ public:
                        spec,
                        std::move(table),
                        env->get_all_optargs(),
+                       env->get_username(),
                        spec.range.sindex
-                       ? region_t::universe()
-                       : region_t(
-                           spec.range.datumspec.covering_range().to_primary_keyrange())),
+                           ? region_t::universe()
+                           : region_t(
+                               spec.range.datumspec.covering_range().to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,

@@ -10,6 +10,7 @@ module RethinkDB
   ReqlOpFailedError = RqlOpFailedError = Class.new(ReqlAvailabilityError)
   ReqlOpIndeterminateError = RqlOpIndeterminateError = Class.new(ReqlAvailabilityError)
   ReqlUserError = RqlUserError = Class.new(ReqlRuntimeError)
+  ReqlPermissionError = Class.new(ReqlRuntimeError)
 
   ReqlDriverError = RqlDriverError = Class.new(ReqlError)
   ReqlAuthError = RqlAuthError = Class.new(ReqlDriverError)

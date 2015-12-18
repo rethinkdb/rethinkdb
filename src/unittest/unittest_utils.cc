@@ -40,6 +40,7 @@ struct make_sindex_read_t {
                 boost::none,
                 boost::none,
                 ql::global_optargs_t(),
+                boost::none,
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),

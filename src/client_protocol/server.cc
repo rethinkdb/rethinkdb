@@ -23,6 +23,7 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "client_protocol/protocols.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -47,8 +48,13 @@ http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
     // We always return empty normal batches after the timeout for HTTP
     // connections; I think we have to do this to keep the conn cache
     // from timing out.
-    query_cache(new ql::query_cache_t(rdb_ctx, client_addr_port,
-                                      ql::return_empty_normal_batches_t::YES)),
+    // FIXME hardcoded "admin" user
+    query_cache(
+        new ql::query_cache_t(
+            rdb_ctx,
+            client_addr_port,
+            ql::return_empty_normal_batches_t::YES,
+            auth::username_t("admin"))),
     counter(&rdb_ctx->stats.client_connections) { }
 
 ql::query_cache_t *http_conn_cache_t::http_conn_t::get_query_cache() {
@@ -273,8 +279,12 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         bool pre_4 = pre_3 || client_magic_number == VersionDummy::V0_3;
         bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
 
+        // FIXME
+        auth::username_t username("jeroen");
+
         if (legal) {
-            read_auth_key(conn.get(), &ct_keepalive);  // FIXME
+            // FIXME, authentication
+            read_auth_key(conn.get(), &ct_keepalive);
         } else {
             throw client_server_exc_t("Received an unsupported protocol version. "
                                       "This port is for RethinkDB queries. Does your "
@@ -289,9 +299,13 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
         }
 
-        ql::query_cache_t query_cache(rdb_ctx, client_addr_port,
-                                      pre_4 ? ql::return_empty_normal_batches_t::YES :
-                                              ql::return_empty_normal_batches_t::NO);
+        ql::query_cache_t query_cache(
+            rdb_ctx,
+            client_addr_port,
+            pre_4
+                ? ql::return_empty_normal_batches_t::YES
+                : ql::return_empty_normal_batches_t::NO,
+            std::move(username));
 
         switch (wire_protocol) {
             case VersionDummy::JSON:

@@ -34,6 +34,7 @@ class ReqlTimeoutError extends ReqlError
 class ReqlAvailabilityError extends ReqlRuntimeError
 class ReqlOpFailedError extends ReqlAvailabilityError
 class ReqlOpIndeterminateError extends ReqlAvailabilityError
+class ReqlPermissionError extends ReqlRuntimeError
 
 
 class ReqlQueryPrinter
@@ -117,6 +118,8 @@ module.exports = {
     ReqlAvailabilityError
     ReqlOpFailedError
     ReqlOpIndeterminateError
+
+    ReqlPermissionError
 
     ReqlDriverError
     RqlDriverError: ReqlDriverError

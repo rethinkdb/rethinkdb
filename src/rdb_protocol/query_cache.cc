@@ -11,10 +11,12 @@ namespace ql {
 query_cache_t::query_cache_t(
             rdb_context_t *_rdb_ctx,
             ip_and_port_t _client_addr_port,
-            return_empty_normal_batches_t _return_empty_normal_batches) :
+            return_empty_normal_batches_t _return_empty_normal_batches,
+            auth::username_t _username) :
         rdb_ctx(_rdb_ctx),
         client_addr_port(_client_addr_port),
         return_empty_normal_batches(_return_empty_normal_batches),
+        username(std::move(_username)),
         next_query_id(0),
         oldest_outstanding_query_id(0) {
     auto res = rdb_ctx->get_query_caches_for_this_thread()->insert(this);
@@ -136,6 +138,10 @@ void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
     entry->persistent_interruptor.pulse_if_not_already_pulsed();
 }
 
+auth::username_t const &query_cache_t::get_username() const {
+    return username;
+}
+
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
                             new_semaphore_in_line_t _throttler,
@@ -191,11 +197,13 @@ void query_cache_t::ref_t::fill_response(response_t *res) {
     }
 
     try {
-        env_t env(query_cache->rdb_ctx,
-                  query_cache->return_empty_normal_batches,
-                  &combined_interruptor,
-                  entry->global_optargs,
-                  trace.get_or_null());
+        env_t env(
+            query_cache->rdb_ctx,
+            query_cache->return_empty_normal_batches,
+            &combined_interruptor,
+            entry->global_optargs,
+            query_cache->get_username(),
+            trace.get_or_null());
 
         if (entry->state == entry_t::state_t::START) {
             run(&env, res);

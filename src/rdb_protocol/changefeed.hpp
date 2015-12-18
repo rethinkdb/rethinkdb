@@ -14,6 +14,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
@@ -386,6 +387,7 @@ public:
         std::string _table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        boost::optional<auth::username_t> username,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -460,6 +462,7 @@ public:
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        boost::optional<auth::username_t> username,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,

@@ -20,7 +20,10 @@ permissions_t::permissions_t(
 }
 
 permissions_t::permissions_t(ql::datum_t const &datum) {
-    // FIXME, check datum is an object?
+    if (datum.get_type() != ql::datum_t::R_OBJECT) {
+        throw admin_op_exc_t(
+            "Expected an object, got " + datum.print(), query_state_t::FAILED);
+    }
 
     ql::datum_t read = datum.get_field("$read", ql::NOTHROW);
     if (read.has()) {

@@ -21,7 +21,10 @@ global_permissions_t::global_permissions_t(
 
 global_permissions_t::global_permissions_t(ql::datum_t const &datum)
     : m_permissions(datum) {
-    // FIXME, check datum is an object?
+    if (datum.get_type() != ql::datum_t::R_OBJECT) {
+        throw admin_op_exc_t(
+            "Expected an object, got " + datum.print(), query_state_t::FAILED);
+    }
 
     ql::datum_t connect = datum.get_field("$connect", ql::NOTHROW);
     if (connect.has()) {
