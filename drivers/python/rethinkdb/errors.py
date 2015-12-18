@@ -16,6 +16,7 @@ __all__ = [
             "ReqlAvailabilityError",
                 "ReqlOpFailedError",
                 "ReqlOpIndeterminateError",
+            "ReqlPermissionError",
         "ReqlDriverError", "RqlDriverError", "RqlClientError",
             "ReqlAuthError"
 ]
@@ -119,6 +120,10 @@ class ReqlOpFailedError(ReqlAvailabilityError):
 
 
 class ReqlOpIndeterminateError(ReqlAvailabilityError):
+    pass
+
+
+class ReqlPermissionError(ReqlRuntimeError):
     pass
 
 

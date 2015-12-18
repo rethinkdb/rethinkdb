@@ -4,12 +4,14 @@
 #include <string>
 #include "debug.hpp"
 
+#include "clustering/administration/metadata.hpp"
+#include "extproc/http_runner.hpp"
 #include "math.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/terms/terms.hpp"
-#include "extproc/http_runner.hpp"
+#include "rpc/semilattice/view.hpp"
 
 namespace ql {
 
@@ -222,6 +224,22 @@ void dispatch_http(env_t *env,
 
 scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                            eval_flags_t) const {
+    boost::optional<auth::username_t> const &username = env->env->get_username();
+    if (static_cast<bool>(username)) {
+        env->env->get_rdb_ctx()->get_auth_watchable()->apply_read(
+            [&](auth_semilattice_metadata_t const *auth_metadata) {
+                auto user = auth_metadata->m_users.find(username.get());
+                rcheck(
+                    user != auth_metadata->m_users.end() &&
+                        static_cast<bool>(user->second.get_ref()) &&
+                        user->second.get_ref()->has_connect_permission(),
+                    ql::base_exc_t::PERMISSION_ERROR,
+                    strprintf(
+                        "User `%s` does not have the required `$connect` permissions",
+                        username.get().to_string().c_str()));
+            });
+    }
+
     http_opts_t opts;
     opts.limits = env->env->limits();
     opts.version = env->env->reql_version();

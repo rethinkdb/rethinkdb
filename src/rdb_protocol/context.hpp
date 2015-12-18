@@ -43,11 +43,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         return_changes_t, int8_t,
         return_changes_t::NO, return_changes_t::ALWAYS);
 
+class auth_semilattice_metadata_t;
 class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
-template <class> class semilattice_readwrite_view_t;
+template <class> class cross_thread_watchable_variable_t;
+template <class> class semilattice_read_view_t;
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
@@ -390,11 +392,14 @@ public:
                   reql_cluster_interface_t *_cluster_interface);
 
     // The "real" constructor used outside of unit tests.
-    rdb_context_t(extproc_pool_t *_extproc_pool,
-                  mailbox_manager_t *_mailbox_manager,
-                  reql_cluster_interface_t *_cluster_interface,
-                  perfmon_collection_t *global_stats,
-                  const std::string &_reql_http_proxy);
+    rdb_context_t(
+        extproc_pool_t *_extproc_pool,
+        mailbox_manager_t *_mailbox_manager,
+        reql_cluster_interface_t *_cluster_interface,
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view,
+        perfmon_collection_t *global_stats,
+        const std::string &_reql_http_proxy);
 
     ~rdb_context_t();
 
@@ -425,10 +430,14 @@ public:
 
     std::set<ql::query_cache_t *> *get_query_caches_for_this_thread();
 
+    clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> get_auth_watchable() const;
+
 private:
     one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
 
-private:
+    std::vector<std::unique_ptr<cross_thread_watchable_variable_t<
+        auth_semilattice_metadata_t>>> m_cross_thread_auth_watchables;
+
     DISABLE_COPYING(rdb_context_t);
 };
 

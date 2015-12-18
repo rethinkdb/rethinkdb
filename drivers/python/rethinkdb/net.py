@@ -101,7 +101,8 @@ class Response(object):
                 pErrorType.NON_EXISTENCE: ReqlNonExistenceError,
                 pErrorType.OP_FAILED: ReqlOpFailedError,
                 pErrorType.OP_INDETERMINATE: ReqlOpIndeterminateError,
-                pErrorType.USER: ReqlUserError
+                pErrorType.USER: ReqlUserError,
+                pErrorType.PERMISSION_ERROR: ReqlPermissionError
             }.get(self.error_type, ReqlRuntimeError)(
                 self.data[0], query.term, self.backtrace)
         return ReqlDriverError(("Unknown Response type %d encountered" +
@@ -632,7 +633,7 @@ def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=
 
 def set_loop_type(library):
     global connection_type
-    
+
     # find module file
     moduleName = 'net_%s' % library
     modulePath = None
@@ -641,10 +642,10 @@ def set_loop_type(library):
         modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
     else:
         raise ValueError('Unknown loop type: %r' % library)
-    
+
     # load the module
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-    
+
     # set the connection type
     connection_type = module.Connection

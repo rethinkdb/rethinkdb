@@ -856,8 +856,13 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         rassert(q.optargs.has_optarg("db"));
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
-                  interruptor, q.optargs, trace.get_or_null());
+    ql::env_t env(
+        ctx,
+        ql::return_empty_normal_batches_t::NO,
+        interruptor,
+        q.optargs,
+        q.m_username,
+        trace.get_or_null());
 
     // Initialize response.
     response_out->response = query_response_t();
@@ -1177,9 +1182,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_keys.empty()) {
-            *payload_out = batched_replace_t(std::move(shard_keys), br.pkey,
-                                             br.f.compile_wire_func(), br.optargs,
-                                             br.return_changes);
+            *payload_out = batched_replace_t(
+                std::move(shard_keys),
+                br.pkey,
+                br.f.compile_wire_func(),
+                br.optargs,
+                br.m_username,
+                br.return_changes);
             return true;
         } else {
             return false;
@@ -1433,7 +1442,7 @@ RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_13_FOR_CLUSTER(
     rget_read_t,
     stamp,
     region,
@@ -1441,25 +1450,50 @@ RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
     hints,
     primary_keys,
     optargs,
+    m_username,
     table_name,
     batchspec,
     transforms,
     terminal,
     sindex,
     sorting);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
-        terminal, sindex, query_geometry);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        nearest_geo_read_t, optargs, center, max_dist, max_results, geo_system,
-        region, table_name, sindex_id);
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+    intersecting_geo_read_t,
+    region,
+    optargs,
+    m_username,
+    table_name,
+    batchspec,
+    transforms,
+    terminal,
+    sindex,
+    query_geometry);
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+    nearest_geo_read_t,
+    optargs,
+    m_username,
+    center,
+    max_dist,
+    max_results,
+    geo_system,
+    region,
+    table_name,
+    sindex_id);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
         distribution_read_t, max_depth, result_limit, region);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
-    changefeed_limit_subscribe_t, addr, uuid, spec, table, region, current_shard);
+RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
+    changefeed_limit_subscribe_t,
+    addr,
+    uuid,
+    spec,
+    table,
+    optargs,
+    m_username,
+    region,
+    current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 

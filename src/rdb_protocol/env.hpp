@@ -8,6 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
+#include "clustering/administration/auth/username.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "containers/lru_cache.hpp"
@@ -47,6 +51,7 @@ public:
           return_empty_normal_batches_t return_empty_normal_batches,
           signal_t *interruptor,
           global_optargs_t optargs,
+          boost::optional<auth::username_t> username,
           profile::trace_t *trace);
 
     // Used in unittest and for some secondary index environments (hence the
@@ -90,6 +95,10 @@ public:
         return global_optargs_.get_optarg(env, key);
     }
 
+    boost::optional<auth::username_t> const &get_username() const {
+        return m_username;
+    }
+
     configured_limits_t limits() const {
         return limits_;
     }
@@ -114,6 +123,9 @@ private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs_;
+
+    // The username of the user that's evaluating this query
+    boost::optional<auth::username_t> m_username;
 
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits_;

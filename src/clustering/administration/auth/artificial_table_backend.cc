@@ -6,9 +6,9 @@
 namespace auth {
 
 artificial_table_backend_t::artificial_table_backend_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
             cluster_semilattice_view,
         table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format)
