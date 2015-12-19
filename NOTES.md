@@ -1,3 +1,48 @@
+# Release 2.2.2 (Modern Times)
+
+Released on 2015-12-21
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.2 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
+in the same cluster.
+
+No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Bug fixes ###
+
+* Server
+ * Fixed an issue causing `include_initial` changefeeds to miss changes (#5216)
+ * Fixed an issue causing `include_initial` changefeeds to stall and never reach the
+   `"ready"` state (#5157)
+ * Fixed an issue causing `include_initial` changefeeds to emit unexpected initial
+   results with a `null` value (#5153)
+ * Improved the efficiency of `skip` in combination with `limit` (#5155)
+ * Fixed an issue with determinism checking in geospatial commands (#5130)
+ * Fixed an invalid memory access that caused segmentation faults on ARM (#5093)
+ * Fixed a crash with "Unreachable code" when migrating from versions of RethinkDB older
+   than 1.16 (#5158)
+ * Fixed an issue where the server would send an extra response to the client after
+   a cursor completed (#5159)
+ * Fixed a build dependency issue with OpenSSL on OS X 10.11 (#4963)
+ * Fixed compiler warnings on ARM (#4541)
+ * Made the APT repository compatible with APT 1.1 (#5174)
+* Drivers
+ * Fixed missing backtraces on `ReQLCompileError` in the JavaScript driver (#4803)
+ * Upgraded the version of CoffeeScript used to compile the JavaScript driver in order
+   to avoid errors in strict mode (#5198)
+ * Fixed a syntax error warning in the Python driver during installation on older Python
+  versions (#4702)
+ * `rethinkdb restore` now waits for tables to be available (#5154)
+
+--
+
 # Release 2.2.1 (Modern Times)
 
 Released on 2015-11-16
