@@ -7,7 +7,8 @@ Bug fix release
 ### Compatibility ###
 
 RethinkDB 2.2.2 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
-in the same cluster.
+in the same cluster. The protocol change was necessary to address correctness issues in
+the changefeed implementation.
 
 No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
 [RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
