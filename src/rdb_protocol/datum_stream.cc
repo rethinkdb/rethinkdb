@@ -95,27 +95,6 @@ bool active_ranges_t::totally_exhausted() const {
     return true;
 }
 
-store_key_t truncate_and_get_left(active_ranges_t *ranges) {
-    const store_key_t *smallest_left = &store_key_max;
-    for (auto &&pair : ranges->ranges) {
-        for (auto &&hash_pair : pair.second.hash_ranges) {
-            if (hash_pair.second.cache.size() != 0) {
-                // If we truncate the cache for a shard, it's always active.
-                hash_pair.second.state = range_state_t::ACTIVE;
-                // This should only ever be called when iterating left to right.
-                hash_pair.second.key_range.left = hash_pair.second.cache[0].key;
-                hash_pair.second.cache.clear();
-            }
-            if (hash_pair.second.state == range_state_t::ACTIVE) {
-                if (hash_pair.second.key_range.left < *smallest_left) {
-                    smallest_left = &hash_pair.second.key_range.left;
-                }
-            }
-        }
-    }
-    return *smallest_left;
-}
-
 key_range_t active_ranges_to_range(const active_ranges_t &ranges) {
     store_key_t start = store_key_t::max();
     store_key_t end = store_key_t::min();
@@ -188,20 +167,50 @@ boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
 enum class is_secondary_t { NO, YES };
 active_ranges_t new_active_ranges(
     const stream_t &stream,
-    key_range_t &&original_range,
+    const key_range_t &original_range,
+    const boost::optional<std::map<region_t, uuid_u> > &shard_ids,
     is_secondary_t is_secondary) {
     active_ranges_t ret;
+    std::set<uuid_u> covered_shards;
     for (auto &&pair : stream.substreams) {
-        std::map<hash_range_t, hash_range_with_cache_t> hash_ranges;
+        uuid_u cfeed_shard_id = nil_uuid();
+        if (shard_ids) {
+            auto shard_id_it = shard_ids->find(pair.first);
+            r_sanity_check(shard_id_it != shard_ids->end());
+            cfeed_shard_id = shard_id_it->second;
+            covered_shards.insert(cfeed_shard_id);
+        }
+
         ret.ranges[pair.first.inner]
            .hash_ranges[hash_range_t{pair.first.beg, pair.first.end}]
             = hash_range_with_cache_t{
+                cfeed_shard_id,
                 is_secondary == is_secondary_t::YES
-                    ? std::move(original_range)
+                    ? original_range
                     : pair.first.inner.intersection(original_range),
                 raw_stream_t(),
                 range_state_t::ACTIVE};
     }
+
+    // Add ranges for missing shards (we get this if some shards didn't return any data)
+    if (shard_ids) {
+        for (const auto &shard_pair : *shard_ids) {
+            if (covered_shards.count(shard_pair.second) > 0) {
+                continue;
+            }
+
+            ret.ranges[shard_pair.first.inner]
+                .hash_ranges[hash_range_t{shard_pair.first.beg, shard_pair.first.end}]
+                 = hash_range_with_cache_t{
+                     shard_pair.second,
+                     is_secondary == is_secondary_t::YES
+                         ? original_range
+                         : shard_pair.first.inner.intersection(original_range),
+                     raw_stream_t(),
+                     range_state_t::ACTIVE};
+        }
+    }
+
     return ret;
 }
 
@@ -313,8 +322,16 @@ raw_stream_t rget_response_reader_t::unshard(
     r_sanity_check(gs != nullptr);
     auto stream = groups_to_batch(gs->get_underlying_map());
     if (!active_ranges) {
+        boost::optional<std::map<region_t, uuid_u> > opt_shard_ids;
+        if (res.stamp_response) {
+            opt_shard_ids = std::map<region_t, uuid_u>();
+            for (const auto &pair : *res.stamp_response->stamp_infos) {
+                opt_shard_ids->insert(
+                    std::make_pair(pair.second.shard_region, pair.first));
+            }
+        }
         active_ranges = new_active_ranges(
-            stream, readgen->original_keyrange(res.reql_version),
+            stream, readgen->original_keyrange(res.reql_version), opt_shard_ids,
             readgen->sindex_name() ? is_secondary_t::YES : is_secondary_t::NO);
         readgen->restrict_active_ranges(sorting, &*active_ranges);
         reql_version = res.reql_version;
@@ -461,7 +478,6 @@ rget_response_reader_t::rget_response_reader_t(
     : table(_table),
       started(false),
       readgen(std::move(_readgen)),
-      last_read_start(store_key_t::min()),
       items_index(0) { }
 
 void rget_response_reader_t::add_transformation(transform_variant_t &&tv) {
@@ -474,12 +490,25 @@ bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
     return true;
 }
 
-boost::optional<active_state_t> rget_response_reader_t::truncate_and_get_active_state() {
-    if (!stamp || !active_ranges || shard_stamps.size() == 0) return boost::none;
+boost::optional<active_state_t> rget_response_reader_t::get_active_state() {
+    if (!stamp || !active_ranges || shard_stamp_infos.empty()) return boost::none;
+    std::map<uuid_u, std::pair<key_range_t, uint64_t> > shard_last_read_stamps;
+    for (const auto &range_pair : active_ranges->ranges) {
+        for (const auto &hash_pair : range_pair.second.hash_ranges) {
+            const auto stamp_it = shard_stamp_infos.find(hash_pair.second.cfeed_shard_id);
+            r_sanity_check(stamp_it != shard_stamp_infos.end());
+
+            key_range_t last_read_range(
+                key_range_t::closed, stamp_it->second.last_read_start,
+                key_range_t::open, std::max(stamp_it->second.last_read_start,
+                                            hash_pair.second.key_range.left));
+            shard_last_read_stamps.insert(std::make_pair(
+                stamp_it->first,
+                std::make_pair(last_read_range, stamp_it->second.stamp)));
+        }
+    }
     return active_state_t{
-        key_range_t(key_range_t::closed, last_read_start,
-                    key_range_t::open, truncate_and_get_left(&*active_ranges)),
-        shard_stamps,
+        std::move(shard_last_read_stamps),
         reql_version,
         DEBUG_ONLY(readgen->sindex_name())};
 }
@@ -577,25 +606,6 @@ bool rget_response_reader_t::is_finished() const {
     return shards_exhausted() && items_index >= items.size();
 }
 
-struct last_read_start_visitor_t : public boost::static_visitor<store_key_t> {
-    store_key_t operator()(const intersecting_geo_read_t &geo) const {
-        return geo.sindex.region ? geo.sindex.region->inner.left : store_key_t::min();
-    }
-    store_key_t operator()(const rget_read_t &rget) const {
-        if (rget.sindex) {
-            return rget.sindex->region
-                ? rget.sindex->region->inner.left
-                : store_key_t::min();
-        } else {
-            return rget.region.inner.left;
-        }
-    }
-    template<class T>
-    store_key_t operator()(const T &) const {
-        r_sanity_fail();
-    }
-};
-
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table->read_with_profile(env, read, &res);
@@ -604,7 +614,6 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
-    last_read_start = boost::apply_visitor(last_read_start_visitor_t(), read.read);
     return std::move(*rget_res);
 }
 
@@ -645,14 +654,14 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
     if (stamp) {
         r_sanity_check(res.stamp_response);
-        rcheck_datum(res.stamp_response->stamps, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(res.stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve start stamps.  (Did you just reshard?)");
-        rcheck_datum(res.stamp_response->stamps->size() != 0,
+        rcheck_datum(res.stamp_response->stamp_infos->size() != 0,
                      base_exc_t::RESUMABLE_OP_FAILED,
                      "Empty start stamps.  Did you just reshard?");
-        for (const auto &pair : *res.stamp_response->stamps) {
+        for (const auto &pair : *res.stamp_response->stamp_infos) {
             // It's OK to blow away old values.
-            shard_stamps[pair.first] = pair.second;
+            shard_stamp_infos[pair.first] = pair.second;
         }
     }
 
@@ -1157,7 +1166,7 @@ bool datum_stream_t::add_stamp(changefeed_stamp_t) {
     return false;
 }
 
-boost::optional<active_state_t> datum_stream_t::truncate_and_get_active_state() {
+boost::optional<active_state_t> datum_stream_t::get_active_state() {
     return boost::none;
 }
 

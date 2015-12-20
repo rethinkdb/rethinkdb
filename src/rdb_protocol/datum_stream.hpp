@@ -53,8 +53,7 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 }
 
 struct active_state_t {
-    key_range_t last_read;
-    std::map<uuid_u, uint64_t> shard_stamps;
+    std::map<uuid_u, std::pair<key_range_t, uint64_t> > shard_last_read_stamps;
     boost::optional<reql_version_t> reql_version; // none for pkey
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
@@ -77,7 +76,7 @@ public:
     virtual std::vector<changespec_t> get_changespecs() = 0;
     virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp);
-    virtual boost::optional<active_state_t> truncate_and_get_active_state();
+    virtual boost::optional<active_state_t> get_active_state();
     void add_grouping(transform_variant_t &&tv,
                       backtrace_id_t bt);
 
@@ -403,6 +402,7 @@ enum class range_state_t { ACTIVE, SATURATED, EXHAUSTED };
 
 void debug_print(printf_buffer_t *buf, const range_state_t &rs);
 struct hash_range_with_cache_t {
+    uuid_u cfeed_shard_id;
     // This is the range of values that we have yet to read from the shard.  We
     // store a range instead of just a `store_key_t` because this range is only
     // a restriction of the indexed range for primary key reads.
@@ -646,7 +646,7 @@ public:
     virtual ~reader_t() { }
     virtual void add_transformation(transform_variant_t &&tv) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp) = 0;
-    virtual boost::optional<active_state_t> truncate_and_get_active_state() = 0;
+    virtual boost::optional<active_state_t> get_active_state() = 0;
     virtual void accumulate(env_t *env, eager_acc_t *acc,
                             const terminal_variant_t &tv) = 0;
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
@@ -665,7 +665,7 @@ public:
         scoped_ptr_t<readgen_t> &&readgen);
     virtual void add_transformation(transform_variant_t &&tv);
     virtual bool add_stamp(changefeed_stamp_t stamp);
-    virtual boost::optional<active_state_t> truncate_and_get_active_state();
+    virtual boost::optional<active_state_t> get_active_state();
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
@@ -699,10 +699,9 @@ protected:
 
     bool started;
     const scoped_ptr_t<const readgen_t> readgen;
-    store_key_t last_read_start;
     boost::optional<active_ranges_t> active_ranges;
     boost::optional<reql_version_t> reql_version;
-    std::map<uuid_u, uint64_t> shard_stamps;
+    std::map<uuid_u, shard_stamp_info_t> shard_stamp_infos;
 
     // We need this to handle the SINDEX_CONSTANT case.
     std::vector<rget_item_t> items;
@@ -765,8 +764,8 @@ public:
     virtual bool add_stamp(changefeed_stamp_t stamp) {
         return reader->add_stamp(std::move(stamp));
     }
-    virtual boost::optional<active_state_t> truncate_and_get_active_state() {
-        return reader->truncate_and_get_active_state();
+    virtual boost::optional<active_state_t> get_active_state() {
+        return reader->get_active_state();
     }
 
 private:
