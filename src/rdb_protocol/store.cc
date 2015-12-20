@@ -363,16 +363,23 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s) {
+    changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s,
+                                         const region_t &current_shard,
+                                         const store_key_t &read_start) {
         guarantee(!superblock->get()->is_snapshotted());
+
+        superblock->get()->read_acq_signal()->wait_lazily_unordered();
 
         auto cserver = store->changefeed_server(s.region);
         if (cserver.first != nullptr) {
             if (boost::optional<uint64_t> stamp
                     = cserver.first->get_stamp(s.addr, cserver.second)) {
                 changefeed_stamp_response_t out;
-                out.stamps = std::map<uuid_u, uint64_t>();
-                (*out.stamps)[cserver.first->get_uuid()] = *stamp;
+                out.stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
+                (*out.stamp_infos)[cserver.first->get_uuid()] = shard_stamp_info_t{
+                    *stamp,
+                    current_shard,
+                    read_start};
                 return out;
             }
         }
@@ -380,10 +387,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        response->response = do_stamp(s);
+        response->response = do_stamp(s, s.region, s.region.inner.left);
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
+        // Need to wait for the superblock to make sure we get the right changefeed
+        // stamp.
+        superblock->get()->read_acq_signal()->wait_lazily_unordered();
+
         response->response = changefeed_point_stamp_response_t();
         auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
         auto cserver = store->changefeed_server(s.key);
@@ -520,8 +531,24 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (rget.stamp) {
             res->stamp_response = changefeed_stamp_response_t();
-            changefeed_stamp_response_t r = do_stamp(*rget.stamp);
-            if (r.stamps) {
+            r_sanity_check(rget.current_shard);
+            r_sanity_check(rget.sorting == sorting_t::UNORDERED);
+            store_key_t read_left;
+            if (rget.sindex) {
+                // We're over-conservative with he `read_left` if we don't have an
+                // sindex region yet (usually on the first read). This should be ok
+                // for our current requirements and simplifies the code.
+                read_left = rget.sindex->region
+                    ? rget.sindex->region->inner.left
+                    : store_key_t::min();
+            } else {
+                read_left = rget.region.inner.left;
+            }
+            changefeed_stamp_response_t r = do_stamp(
+                *rget.stamp,
+                *rget.current_shard,
+                read_left);
+            if (r.stamp_infos) {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(
