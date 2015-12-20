@@ -240,7 +240,7 @@ private:
     mutable T it;
 };
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
+#if defined(__GNUC__) & (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7))
 #define CAN_ALIAS_TEMPLATES 0
 #else
 #define CAN_ALIAS_TEMPLATES 1
@@ -281,8 +281,8 @@ public:
         movee.ptr_ = NULL;
     }
 
-    template <class U>
-    scoped_alloc_t(copyable_unique_t<U> other) noexcept {
+    scoped_alloc_t(copyable_unique_t<scoped_alloc_t<T, alloc, dealloc> > other) noexcept
+        : ptr_(nullptr) {
         scoped_alloc_t tmp(other.release());
         swap(tmp);
     }
