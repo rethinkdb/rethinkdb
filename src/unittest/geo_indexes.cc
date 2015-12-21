@@ -138,11 +138,12 @@ void insert_data(namespace_interface_t *nsi,
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write,
-                   &response,
-                   osource->check_in(
-                       "unittest::insert_data(geo_indexes.cc"),
-                   &interruptor);
+        nsi->write(
+            boost::none,
+            write,
+            &response,
+            osource->check_in("unittest::insert_data(geo_indexes.cc"),
+            &interruptor);
 
         if (!boost::get<point_write_response_t>(&response.response)) {
             ADD_FAILURE() << "got wrong type of result back";
@@ -207,9 +208,12 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
     read_response_t response;
 
     cond_t interruptor;
-    nsi->read(read, &response,
-              osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
-              &interruptor);
+    nsi->read(
+        boost::none,
+        read,
+        &response,
+        osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
+        &interruptor);
 
     nearest_geo_read_response_t *geo_response =
         boost::get<nearest_geo_read_response_t>(&response.response);
@@ -342,9 +346,12 @@ std::vector<datum_t> perform_get_intersecting(
     read_response_t response;
 
     cond_t interruptor;
-    nsi->read(read, &response,
-              osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
-              &interruptor);
+    nsi->read(
+        boost::none,
+        read,
+        &response,
+        osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
+        &interruptor);
 
     rget_read_response_t *geo_response =
         boost::get<rget_read_response_t>(&response.response);

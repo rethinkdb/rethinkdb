@@ -44,7 +44,8 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         m_mailbox_manager,
         table_query_directory,
         multi_table_manager,
-        m_rdb_context),
+        m_rdb_context,
+        m_table_meta_client),
     m_changefeed_client(
         m_mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {

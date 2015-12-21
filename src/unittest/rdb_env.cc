@@ -19,10 +19,14 @@ mock_namespace_interface_t::mock_namespace_interface_t(
 
 mock_namespace_interface_t::~mock_namespace_interface_t() { }
 
-void mock_namespace_interface_t::read(const read_t &query,
-                                      read_response_t *response,
-                                      UNUSED order_token_t tok,
-                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+void mock_namespace_interface_t::read(
+        UNUSED boost::optional<auth::username_t> const &username,
+        const read_t &query,
+        read_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -30,10 +34,14 @@ void mock_namespace_interface_t::read(const read_t &query,
     boost::apply_visitor(v, query.read);
 }
 
-void mock_namespace_interface_t::write(const write_t &query,
-                                       write_response_t *response,
-                                       UNUSED order_token_t tok,
-                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+void mock_namespace_interface_t::write(
+        UNUSED boost::optional<auth::username_t> const &username,
+        const write_t &query,
+        write_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }

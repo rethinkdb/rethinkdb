@@ -83,11 +83,29 @@ public:
                                 *order_source, rdb_context_t *_ctx,
                                 bool initialize_metadata);
 
-    void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void read(
+            UNUSED boost::optional<auth::username_t> const &username,
+            const read_t &read,
+            read_response_t *response,
+            order_token_t tok,
+            signal_t *interruptor)
+            THROWS_ONLY(
+                cannot_perform_query_exc_t,
+                interrupted_exc_t,
+                auth::permission_error_t) {
         return sharder->read(read, response, tok, interruptor);
     }
 
-    void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void write(
+            UNUSED boost::optional<auth::username_t> const &username,
+            const write_t &write,
+            write_response_t *response,
+            order_token_t tok,
+            signal_t *interruptor)
+            THROWS_ONLY(
+                cannot_perform_query_exc_t,
+                interrupted_exc_t,
+                auth::permission_error_t) {
         return sharder->write(write, response, tok, interruptor);
     }
 

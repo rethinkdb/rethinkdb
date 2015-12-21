@@ -9,6 +9,7 @@
 #include <vector>
 #include <set>
 
+#include "clustering/administration/auth/permission_error.hpp"
 #include "clustering/query_routing/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -18,6 +19,7 @@
 
 class multi_table_manager_t;
 class primary_query_client_t;
+class table_meta_client_t;
 
 /* `table_query_client_t` is responsible for sending queries to the cluster. It
 instantiates `primary_query_client_t` and `direct_query_client_t` internally; it covers
@@ -31,7 +33,8 @@ public:
             watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
                 *directory,
             multi_table_manager_t *multi_table_manager,
-            rdb_context_t *);
+            rdb_context_t *,
+            table_meta_client_t *table_meta_client);
 
     /* Returns a signal that will be pulsed when we have either successfully connected
     or tried and failed to connect to every primary replica that was present at the time
@@ -44,9 +47,23 @@ public:
 
     bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
-    void read(const read_t &r, read_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(
+            boost::optional<auth::username_t> const &username,
+            const read_t &r,
+            read_response_t *response,
+            order_token_t order_token,
+            signal_t *interruptor)
+            THROWS_ONLY(
+                interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
-    void write(const write_t &w, write_response_t *response, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(
+            boost::optional<auth::username_t> const &username,
+            const write_t &w,
+            write_response_t *response,
+            order_token_t order_token,
+            signal_t *interruptor)
+            THROWS_ONLY(
+                interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -141,6 +158,7 @@ private:
         *const directory;
     multi_table_manager_t *const multi_table_manager;
     rdb_context_t *const ctx;
+    table_meta_client_t *m_table_meta_client;
 
     rng_t distributor_rng;
 

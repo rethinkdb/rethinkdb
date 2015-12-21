@@ -14,6 +14,7 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "extproc/extproc_pool.hpp"
@@ -39,15 +40,23 @@ public:
                                         ql::env_t *_env);
     virtual ~mock_namespace_interface_t();
 
-    void read(const read_t &query,
-              read_response_t *response,
-              UNUSED order_token_t tok,
-              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(
+        UNUSED boost::optional<auth::username_t> const &username,
+        const read_t &query,
+        read_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
-    void write(const write_t &query,
-               write_response_t *response,
-               UNUSED order_token_t tok,
-               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(
+        UNUSED boost::optional<auth::username_t> const &username,
+        const write_t &query,
+        write_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 

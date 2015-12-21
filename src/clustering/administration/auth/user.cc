@@ -232,6 +232,72 @@ void user_t::set_table_permissions(
     m_table_permissions[table_id] = std::move(permissions);
 }
 
+bool user_t::has_read_permission(
+        database_id_t const &database_id,
+        namespace_id_t const &table_id) const {
+    auto table = m_table_permissions.find(table_id);
+    if (table != m_table_permissions.end()) {
+        boost::tribool table_permission = table->second.get_read();
+        if (!indeterminate(table_permission)) {
+            return table_permission;
+        }
+    }
+
+    auto database = m_database_permissions.find(database_id);
+    if (database != m_database_permissions.end()) {
+        boost::tribool database_permission = database->second.get_read();
+        if (!indeterminate(database_permission)) {
+            return database_permission;
+        }
+    }
+
+    return m_global_permissions.get_read() || false;
+}
+
+bool user_t::has_write_permission(
+        database_id_t const &database_id,
+        namespace_id_t const &table_id) const {
+    auto table = m_table_permissions.find(table_id);
+    if (table != m_table_permissions.end()) {
+        boost::tribool table_permission = table->second.get_write();
+        if (!indeterminate(table_permission)) {
+            return table_permission;
+        }
+    }
+
+    auto database = m_database_permissions.find(database_id);
+    if (database != m_database_permissions.end()) {
+        boost::tribool database_permission = database->second.get_write();
+        if (!indeterminate(database_permission)) {
+            return database_permission;
+        }
+    }
+
+    return m_global_permissions.get_write() || false;
+}
+
+bool user_t::has_config_permission(
+        database_id_t const &database_id,
+        namespace_id_t const &table_id) const {
+    auto table = m_table_permissions.find(table_id);
+    if (table != m_table_permissions.end()) {
+        boost::tribool table_permission = table->second.get_config();
+        if (!indeterminate(table_permission)) {
+            return table_permission;
+        }
+    }
+
+    auto database = m_database_permissions.find(database_id);
+    if (database != m_database_permissions.end()) {
+        boost::tribool database_permission = database->second.get_config();
+        if (!indeterminate(database_permission)) {
+            return database_permission;
+        }
+    }
+
+    return m_global_permissions.get_config() || false;
+}
+
 bool user_t::has_connect_permission() const {
     return m_global_permissions.get_connect() || false;
 }
