@@ -21,11 +21,11 @@ extproc_spawner_t *extproc_spawner_t::instance = NULL;
 // This is the class that runs in the external process, doing all the work
 class worker_run_t {
 public:
-    worker_run_t(fd_t _socket, pid_t _spawner_pid) :
+    worker_run_t(fd_t _socket, process_id_t _spawner_pid) :
         socket(_socket), socket_stream(socket.get(), make_scoped<blocking_fd_watcher_t>()) {
 
 #ifndef _WIN32 // ATN TODO
-        guarantee(spawner_pid == -1);
+        guarantee(spawner_pid == INVALID_PROCESS_ID);
         spawner_pid = _spawner_pid;
 
         // Set ourselves to get interrupted when our parent dies
@@ -52,8 +52,8 @@ public:
 
     ~worker_run_t() {
 #ifndef _WIN32
-        guarantee(spawner_pid != -1);
-        spawner_pid = -1;
+        guarantee(spawner_pid != INVALID_PROCESS_ID);
+        spawner_pid = INVALID_PROCESS_ID;
 #endif
     }
 
@@ -227,7 +227,7 @@ void extproc_spawner_t::fork_spawner() {
 #endif
 
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
-fd_t extproc_spawner_t::spawn(process_ref_t *pid_out) {
+fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
 #ifdef _WIN32
     static std::atomic<uint64_t> unique = 0;
 
@@ -267,7 +267,7 @@ fd_t extproc_spawner_t::spawn(process_ref_t *pid_out) {
                   &process_info);
     // TODO ATN: add to job, ensure it dies when we do but not the reverse
 
-    *pid_out = process_ref_t(process_info.hProcess);
+    *pid_out = process_id_t(GetProcessId(process_info.hProcess));
     CloseHandle(process_info.hThread);
     return fd.release();
 #else
@@ -309,7 +309,7 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
                          nullptr);
     guarantee_winerr(fd != INVALID_FD, "opening '%s'", argv[2]);
 
-    worker_run_t worker(fd, -1);
+    worker_run_t worker(fd, INVALID_PROCESS_ID);
     worker.main_loop();
     ::_exit(EXIT_SUCCESS);
     return true;

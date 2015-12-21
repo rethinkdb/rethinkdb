@@ -45,7 +45,7 @@ private:
     void spawn_internal();
 
     extproc_spawner_t *spawner;
-    process_ref_t worker_pid;
+    process_id_t worker_pid;
     scoped_fd_t socket;
 
     object_buffer_t<socket_stream_t> socket_stream;

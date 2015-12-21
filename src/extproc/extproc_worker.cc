@@ -26,11 +26,11 @@ NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
 
 extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
     spawner(_spawner),
-    worker_pid(process_ref_t::invalid),
+    worker_pid(INVALID_PROCESS_ID),
     interruptor(NULL) { }
 
 extproc_worker_t::~extproc_worker_t() {
-    if (worker_pid != process_ref_t::invalid) {
+    if (worker_pid != INVALID_PROCESS_ID) {
 #ifdef _WIN32
         socket_stream.create(socket.get(), windows_event_watcher.get());
 #else
@@ -68,7 +68,7 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 #ifdef _WIN32
     bool new_worker = false;
 #endif
-    if (worker_pid == process_ref_t::invalid) {
+    if (worker_pid == INVALID_PROCESS_ID) {
         socket.reset(spawner->spawn(&worker_pid));
 
 #ifdef _WIN32
@@ -150,11 +150,17 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 }
 
 void extproc_worker_t::kill_process() {
-    // TODO ATN: this guarantee is violated when certain exception occur before worker_pid is set
-    guarantee(worker_pid != process_ref_t::invalid);
+    // TODO: this guarantee is violated when certain exception occur before worker_pid is set
+    guarantee(worker_pid != INVALID_PROCESS_ID);
 
 #ifdef _WIN32
-    BOOL res = TerminateProcess(worker_pid, EXIT_FAILURE);
+    BOOL res;
+    HANDLE handle = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, true, worker_pid);
+    if (handle == INVALID_HANDLE_VALUE) {
+        res = false;
+    } else {
+        res = TerminateProcess(handle, EXIT_FAILURE);
+    }
     if (!res) {
         logWRN("failed to kill worker process: %s", winerr_string(GetLastError()).c_str());
     }
@@ -163,14 +169,14 @@ void extproc_worker_t::kill_process() {
     ::kill(worker_pid, SIGKILL);
 #endif
 
-    worker_pid.reset();
+    worker_pid = INVALID_PROCESS_ID;
 
     // Clean up our socket fd
     socket.reset();
 }
 
 bool extproc_worker_t::is_process_alive() {
-    return (worker_pid != process_ref_t::invalid);
+    return (worker_pid != INVALID_PROCESS_ID);
 }
 
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {

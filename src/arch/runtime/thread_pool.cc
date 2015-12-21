@@ -43,7 +43,6 @@ THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
 THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
-    // ATN TODO rassert(thread_pool != nullptr);
     return thread_pool;
 }
 NOINLINE void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {

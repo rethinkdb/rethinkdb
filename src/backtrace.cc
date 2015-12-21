@@ -1,24 +1,20 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "backtrace.hpp"
 
-#ifndef _WIN32 // ATN TODO
-#include <cxxabi.h>
-#include <execinfo.h>
-#else
-#define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
-#pragma comment( lib, "dbghelp.lib" ) // ATN TODO: mingw doesn't like this
+#ifdef _WIN32
+#define OPTIONAL // This macro is undefined in "windows.hpp" but necessary for <DbgHelp.h>
 #include <DbgHelp.h>
 #include <atomic>
+#else
+#include <cxxabi.h>
+#include <execinfo.h>
+#include <sys/wait.h>
 #endif
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#ifndef _WIN32 // ATN TODO
-#include <sys/wait.h>
-#endif
 
 #include <string>
 

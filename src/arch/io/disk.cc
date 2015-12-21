@@ -439,6 +439,10 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         return file_open_result_t(file_open_result_t::ERROR, EIO);
     }
 
+    // Supporting unbuffered file i/o on Windows would require aligning all reads
+    // and writes to the sector size of the volume (See docs for FILE_FLAG_NO_BUFFERING)
+    file_open_result_t open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
+
 #else
     // Construct file flags
 
@@ -495,7 +499,6 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     if (fd.get() == INVALID_FD) {
         return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
-#endif
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
@@ -513,9 +516,6 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                     static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #elif defined(__APPLE__)
         const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
-#elif defined(_WIN32)
-        // TODO WINDOWS
-        const int fcntl_res = -1;
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
@@ -542,14 +542,11 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         disable_readahead_res = fcntl_res == -1
                                 ? get_errno()
                                 : 0;
-#elif defined(_WIN32)
-        // TODO WINDOWS
 #endif
         if (disable_readahead_res != 0) {
-            // TODO ATN
             // Non-critical error. Just print a warning and keep going.
-            // logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
-            //        "decreased read performance.", path, disable_readahead_res);
+            logWRN("Failed to disable read-ahead on '%s' (errno %d). You might see "
+                   "decreased read performance.", path, disable_readahead_res);
         }
 
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
@@ -557,6 +554,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     default:
         unreachable();
     }
+#endif
 
     const int64_t file_size = get_file_size(fd.get());
 
@@ -571,7 +569,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) {
     guarantee(open_res.outcome == file_open_result_t::ERROR);
-    crash( // TODO ATN: should be fail_due_to_user_error
+    fail_due_to_user_error(
         "Inaccessible database file: \"%s\": %s"
         "\nSome possible reasons:"
         "\n- the database file couldn't be created or opened for reading and writing"

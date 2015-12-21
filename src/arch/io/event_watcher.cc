@@ -1,13 +1,16 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifdef _WIN32 // ATN TODO
+#ifdef _WIN32
 
 #include "arch/io/event_watcher.hpp"
+
 #include "arch/runtime/thread_pool.hpp"
 #include "concurrency/wait_any.hpp"
 
-/* TODO ATN
-#define debugf_overlapped(...) debugf("ATN: overlapped: " __VA_ARGS__) /*/
-#define debugf_overlapped(...) ((void)0) //*/
+#ifdef TRACE_OVERLAPPED
+#define debugf_overlapped(...) debugf("overlapped: " __VA_ARGS__)
+#else
+#define debugf_overlapped(...) ((void)0)
+#endif
 
 overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
     debugf_overlapped("[%p] init from watcher %p\n", this, ew);
@@ -17,7 +20,7 @@ overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : ev
 
 overlapped_operation_t::~overlapped_operation_t() {
     debugf_overlapped("[%p] destroy\n", this);
-    // call wait_abortable, set_cancel or abort before destructing
+    // Always call wait_abortable, set_cancel, set_result or abort before destructing
     rassert(completed.is_pulsed());
 }
 
@@ -53,7 +56,7 @@ void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
     nb_bytes = nb_bytes_;
     error = error_;
     if (error != NO_ERROR) {
-        event_watcher->on_error(error); // ATN TODO: what is the expected value of the argument to on_error
+        event_watcher->on_error(error);
     }
     completed.pulse();
 }
@@ -71,18 +74,17 @@ void windows_event_watcher_t::stop_watching_for_errors() {
     error_handler = nullptr;
 }
 
-void windows_event_watcher_t::on_error(DWORD error) {
+void windows_event_watcher_t::on_error(UNUSED DWORD error) {
     if (error_handler != nullptr) {
         event_callback_t *eh = error_handler;
         error_handler = nullptr;
-        // TODO ATN: what is the expected value of the argument to on_event?
-        eh->on_event(error);
+        eh->on_event(poll_event_err);
     }
 }
 
 windows_event_watcher_t::~windows_event_watcher_t() {
-    // ATN TODO: windows re-uses handles, so checking that a handle is closed or
-    // double-closing is impossible.
+    // WINDOWS TODO: Is there a way to make sure no more operations are
+    // queued for this handle, or that the handle is closed?
 }
 
 void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {

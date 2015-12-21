@@ -12,28 +12,30 @@
 #include "arch/io/event_watcher.hpp"
 #include "errors.hpp"
 
-#include "backtrace.hpp" // TODO ATN: for debugging
-
 class windows_event_watcher_t;
 
 // An asynchronous operation
 struct overlapped_operation_t {
     overlapped_operation_t(windows_event_watcher_t *);
 
+    // The destructor will crash if the operation is incomplete.
     ~overlapped_operation_t();
 
     void reset() {
         completed.reset();
     }
 
+    // The operation was not queued or is dequeued. Mark it as completed and set the result.
+    // The IOCP event loop automatically calls set_result when dequeing an overlapped_operation_t.
     void set_result(size_t nb_bytes_, DWORD error_);
 
-    // Interrupt and abort a pending operation
+    // The operation was queued. Abort it, wait for it to be dequeued and mark it as completed with an error.
     void abort();
 
-    // Cancel an operation that is not pending
+    // The operation was not queued. Mark it as completed with an error.
     void set_cancel();
 
+    // Wait for the operation to complete.
     void wait_interruptible(const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     void wait_abortable(const signal_t *aborter);
 
@@ -52,12 +54,19 @@ private:
 
 class windows_event_watcher_t {
 public:
+    // Assign a handle to the thread's IOCP. Should only be called once per handle.
     windows_event_watcher_t(fd_t handle, event_callback_t *eh);
+
+    // This destructor is a no-op: handle's cannot be removed from an IOCP
     ~windows_event_watcher_t();
+
+    // After being rethreaded, the original thread still recieves completion events
+    // and it forwards them to the new thread.
+    void rethread(threadnum_t new_thread);
+
     void stop_watching_for_errors();
     void on_error(DWORD error);
     threadnum_t current_thread() { return current_thread_; }
-    void rethread(threadnum_t new_thread);
 
     const fd_t handle;
 

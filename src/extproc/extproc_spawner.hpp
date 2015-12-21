@@ -28,7 +28,7 @@ public:
 
     // Spawns a new worker, and returns the socket file descriptor for communication
     //  with the worker process
-    fd_t spawn(process_ref_t *pid_out);
+    fd_t spawn(process_id_t *pid_out);
 
     static extproc_spawner_t *get_instance();
 

@@ -15,7 +15,6 @@ public:
     void consume_wakey_wakeys() { }
 
 private:
-    // TODO ATN: break up this friendship
     friend class iocp_event_queue_t;
 
     iocp_event_queue_t *event_queue;

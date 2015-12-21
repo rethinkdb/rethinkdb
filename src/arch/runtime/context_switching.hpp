@@ -17,6 +17,8 @@ public:
     fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
     ~fiber_stack_t();
     fiber_context_ref_t context;
+    bool address_in_stack(const void *addr) const;
+    bool address_is_stack_overflow(const void *addr) const;
 };
 
 void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);

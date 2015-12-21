@@ -1,20 +1,14 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 
 #ifdef _WIN32
-// TODO ATN :
-// move win32 to a separate file?
-// compare to other implementations to make sure nothign is missing
-// May be room for optimization: the coroutine api duplicates some of the fibers features
 
 #include "windows.hpp"
 #include "errors.hpp"
 #include "arch/runtime/context_switching.hpp"
 #include "arch/compiler.hpp"
 
-#include "debug.hpp" // ATN TODO
-
 fiber_context_ref_t::~fiber_context_ref_t() {
-    rassert(fiber == nullptr, "leaking a fiber"); // ATN TODO: why not destroy it here?
+    rassert(fiber == nullptr, "leaking a fiber");
 }
 
 THREAD_LOCAL void* thread_initial_fiber = NULL;
@@ -23,30 +17,36 @@ void coro_initialize_for_thread() {
     if (thread_initial_fiber == NULL) {
         thread_initial_fiber = ConvertThreadToFiber(nullptr);
         guarantee_winerr(thread_initial_fiber != NULL, "ConvertThreadToFiber failed");
-        // ATN debugf("Converted thread to fiber %p\n", thread_initial_fiber);
     }
 }
 
 fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
     context.fiber = CreateFiber(
-        stack_size, // ATN TODO: how to handle stack overflow?
+        stack_size,
         [](void* data) { (reinterpret_cast<void(*)(void)>(data))(); },
         reinterpret_cast<void*>(initial_fun));
     guarantee_winerr(context.fiber != nullptr, "CreateFiber failed");
-    // ATN debugf("Created fiber %p\n", context.fiber);
 }
 
 fiber_stack_t::~fiber_stack_t() {
-    // ATN debugf("Deleting fiber %p\n", context.fiber);
     DeleteFiber(context.fiber);
     context.fiber = nullptr;
+}
+
+bool fiber_stack_t::address_in_stack(const void *addr) const {
+    // WINDOWS TODO
+    return true;
+}
+
+bool fiber_stack_t::address_is_stack_overflow(const void *addr) const {
+    // WINDOWS TODO
+    return false;
 }
 
 void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *dest_context_in) {
     rassert(curr_context_out->fiber == nullptr, "switching from non-null context: %p", curr_context_out->fiber);
     rassert(dest_context_in->fiber != nullptr);
     curr_context_out->fiber = GetCurrentFiber();
-    // ATN debugf("Switching from fiber %p to %p\n", curr_context_out->fiber, dest_context_in->fiber);
     void *dest_context = dest_context_in->fiber;
     dest_context_in->fiber = nullptr;
     SwitchToFiber(dest_context);

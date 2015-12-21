@@ -956,13 +956,11 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
     help.add("--io-threads n",
              "how many simultaneous I/O operations can happen at the same time");
-    options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
-                                             options::OPTIONAL_NO_PARAMETER));
-    // `--no-direct-io` is deprecated (it's now the default). Not adding to help.
-    // TODO: Remove it completely after 1.16
+#ifndef _WIN32
     options_out->push_back(options::option_t(options::names_t("--direct-io"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("--direct-io", "use direct I/O for file access");
+#endif
     options_out->push_back(options::option_t(options::names_t("--cache-size"),
                                              options::OPTIONAL));
     help.add("--cache-size mb", "total cache size (in megabytes) for the process. Can "
@@ -1166,6 +1164,7 @@ options::help_section_t get_service_options(std::vector<options::option_t> *opti
     return help;
 }
 
+#ifndef _WIN32
 options::help_section_t get_setuser_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Set User/Group options");
     options_out->push_back(options::option_t(options::names_t("--runuser"),
@@ -1177,6 +1176,7 @@ options::help_section_t get_setuser_options(std::vector<options::option_t> *opti
 
     return help;
 }
+#endif
 
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
@@ -1193,7 +1193,9 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
                                   std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
+#ifndef _WIN32
     help_out->push_back(get_setuser_options(options_out));
+#endif
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
@@ -1206,7 +1208,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
+#ifndef _WIN32
     help_out->push_back(get_setuser_options(options_out));
+#endif
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
@@ -1217,7 +1221,9 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_network_options(true, options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
+#ifndef _WIN32
     help_out->push_back(get_setuser_options(options_out));
+#endif
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
@@ -1231,7 +1237,9 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
+#ifndef _WIN32
     help_out->push_back(get_setuser_options(options_out));
+#endif
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
@@ -1310,11 +1318,6 @@ update_check_t parse_update_checking_option(const std::map<std::string, options:
 }
 
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
-    if (exists_option(opts, "--no-direct-io")) {
-        logWRN("Ignoring 'no-direct-io' option. 'no-direct-io' is deprecated and "
-               "will be removed in future versions of RethinkDB. "
-               "Indirect (buffered) I/O is now used by default.");
-    }
     return exists_option(opts, "--direct-io") ?
         file_direct_io_mode_t::direct_desired :
         file_direct_io_mode_t::buffered_desired;
@@ -1400,7 +1403,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
 #ifdef _WIN32
-        crash("TODO WINDOWS: --daemon is not implemented");
+        // TODO ATN test this
+        // TODO ATN: also test rethinkdb behaviour when run in and out of the console
+        BOOL res = FreeConsole();
+        guarantee_winerr(res || GetLastError() == ERROR_INVALID_PARAMETER, "FreeConsole failed");
 #else
         pid_t pid = fork();
         if (pid < 0) {

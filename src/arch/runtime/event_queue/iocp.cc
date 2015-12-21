@@ -1,7 +1,5 @@
 #if defined (_WIN32)
 
-// TODO ATN
-
 #include <inttypes.h>
 
 #include "arch/timer.hpp"
@@ -9,15 +7,18 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/event_watcher.hpp"
 
-/* TODO ATN
-#define debugf_queue(...) debugf("ATN: queue: " __VA_ARGS__) /*/
-#define debugf_queue(...) ((void)0) //*/
+#ifdef TRACE_IOCP
+#define debugf_queue(...) debugf("iocp: " __VA_ARGS__)
+#else
+#define debugf_queue(...) ((void)0)
+#endif
 
 enum class windows_message_type_t : ULONG_PTR {
     EVENT_CALLBACK,
     OVERLAPPED_OPERATION,
     PROXIED_OVERLAPPED_OPERATION
 };
+
 
 struct proxied_overlapped_operation_t {
     DWORD error;
@@ -49,9 +50,7 @@ void iocp_event_queue_t::watch_event(windows_event_t *event, event_callback_t *c
 
 void iocp_event_queue_t::forget_event(windows_event_t *event, UNUSED event_callback_t *cb) {
     debugf_queue("[%p] forget_event\n", this);
-    if (event->event_queue != nullptr) {
-        event->event_queue = nullptr;
-    }
+    event->event_queue = nullptr;
     event->callback = nullptr;
 }
 
@@ -135,7 +134,7 @@ void iocp_event_queue_t::run() {
                 debugf_queue("[%p] dequeued event callback\n", this);
                 guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
                 event_callback_t *cb = reinterpret_cast<event_callback_t*>(overlapped);
-                cb->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
+                cb->on_event(poll_event_in);
                 break;
             }
 

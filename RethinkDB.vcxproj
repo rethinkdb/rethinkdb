@@ -52,7 +52,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbghelp.lib;iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>

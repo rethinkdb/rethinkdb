@@ -2,8 +2,6 @@
 #ifndef ARCH_SPINLOCK_HPP_
 #define ARCH_SPINLOCK_HPP_
 
-// TODO ATN: in the codebase, what is the difference in usage between a spinlock and a mutex?
-
 #include <pthread.h>
 
 #include <string.h>
@@ -16,8 +14,6 @@
 // spinlock implementation could be an option.
 #if defined(__MACH__)
 #define SPINLOCK_PTHREAD_MUTEX
-#elif defined(_WIN32) // ATN TODO
-#define SPINLOCK_WINDOWS_CRITICAL_SECTION
 #else
 #define SPINLOCK_PTHREAD_SPINLOCK
 #endif
@@ -40,8 +36,6 @@ private:
     pthread_spinlock_t l;
 #elif defined (SPINLOCK_PTHREAD_MUTEX)
     pthread_mutex_t l;
-#else
-	CRITICAL_SECTION l;
 #endif
 
     DISABLE_COPYING(spinlock_t);
