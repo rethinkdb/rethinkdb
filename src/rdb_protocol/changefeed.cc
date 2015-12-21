@@ -1628,7 +1628,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
-        ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
+        ns_if->read(boost::none, read, &read_resp, order_token_t::ignore, interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
         guarantee(resp != NULL);
@@ -1867,6 +1867,7 @@ public:
 
         read_response_t read_resp;
         nif->read(
+            env->get_username(),
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
@@ -2087,6 +2088,7 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
+            outer_env->get_username(),
             read_t(changefeed_stamp_t(addr),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
@@ -2508,6 +2510,7 @@ public:
         include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
+            env->get_username(),
             read_t(changefeed_limit_subscribe_t(
                        addr,
                        uuid,

@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
 #include "rdb_protocol/real_table.hpp"
 
+#include "clustering/administration/auth/permission_error.hpp"
 #include "math.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
@@ -197,10 +198,12 @@ ql::datum_t real_table_t::read_nearest(
     read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
-        namespace_access.get()->read(read, &res, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_username(), read, &res, order_token_t::ignore, env->interruptor);
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", ex.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
 
     nearest_geo_read_response_t *g_res =
@@ -369,13 +372,21 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     r_sanity_check(read.profile == env->profile());
+
     /* Do the actual read. */
     try {
-        namespace_access.get()->read(read, response, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_username(),
+            read,
+            response,
+            order_token_t::ignore,
+            env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
@@ -387,9 +398,14 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     write->profile = env->profile();
+
     /* Do the actual write. */
     try {
-        namespace_access.get()->write(*write, response, order_token_t::ignore,
+        namespace_access.get()->write(
+            env->get_username(),
+            *write,
+            response,
+            order_token_t::ignore,
             env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         ql::base_exc_t::type_t type;
@@ -403,7 +419,10 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
         default: unreachable();
         }
         rfail_datum(type, "Cannot perform write: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
