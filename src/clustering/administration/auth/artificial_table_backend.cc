@@ -13,6 +13,7 @@ artificial_table_backend_t::artificial_table_backend_t(
         table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format)
     : m_auth_semilattice_view(std::move(auth_semilattice_view)),
+      m_auth_subscription([this](){ notify_all(); }, m_auth_semilattice_view),
       m_cluster_semilattice_view(std::move(cluster_semilattice_view)),
       m_table_meta_client(table_meta_client),
       m_identifier_format(identifier_format) {

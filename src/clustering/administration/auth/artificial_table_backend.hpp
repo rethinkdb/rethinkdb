@@ -50,6 +50,8 @@ public:
 private:
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
         m_auth_semilattice_view;
+    semilattice_read_view_t<auth_semilattice_metadata_t>::subscription_t
+        m_auth_subscription;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
         m_cluster_semilattice_view;
     table_meta_client_t *m_table_meta_client;
