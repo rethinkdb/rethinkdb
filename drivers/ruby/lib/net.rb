@@ -812,7 +812,7 @@ module RethinkDB
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
-          sec ? timeout(sec, &b) : b.call
+          sec ? Timeout::timeout(sec, &b) : b.call
         end
         def read_exn(len, timeout_sec=nil)
           maybe_timeout(timeout_sec) {
