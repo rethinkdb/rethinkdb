@@ -1988,20 +1988,21 @@ public:
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != nullptr);
-        rcheck_datum(resp->stamps, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(resp->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
         std::map<uuid_u, uint64_t> purge_stamps;
-        for (const auto &pair : *resp->stamps) {
-            auto orig_res = orig_stamps.insert(pair);
+        for (const auto &pair : *resp->stamp_infos) {
+            const auto id_stamp_pair = std::make_pair(pair.first, pair.second.stamp);
+            auto orig_res = orig_stamps.insert(id_stamp_pair);
             guarantee(orig_res.second);
-            auto res = next_stamps.insert(pair);
+            auto res = next_stamps.insert(id_stamp_pair);
             // If we already have stamps.
             if (!res.second) {
-                purge_stamps.insert(pair);
+                purge_stamps.insert(id_stamp_pair);
                 // Even though we're purging the early changes, we also need to
                 // make sure we don't get any such changes *after* the purge.
-                next_stamps[pair.first] =
-                    std::max(next_stamps[pair.first], pair.second);
+                next_stamps[id_stamp_pair.first] =
+                    std::max(next_stamps[id_stamp_pair.first], id_stamp_pair.second);
             }
         }
         queue->purge_below(purge_stamps);
@@ -2615,6 +2616,7 @@ public:
             stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
         }
     }
+
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         std::vector<datum_t> ret;
@@ -2660,13 +2662,8 @@ private:
                 }
             }
             if (!src->is_exhausted() && !batcher.should_send_batch()) {
-                // We set `MIN_ELS` to 8 here because we're still doing
-                // inefficient unsharding for changefeed reads, and this
-                // improves the worst-case performance by a lot in exchange for
-                // an increase in latency.  (8 used to be the global default
-                // MIN_ELS value.)
-                batchspec_t new_bs = bs.with_min_els(8);
-                new_bs = new_bs.with_lazy_sorting_override(sorting_t::ASCENDING);
+                // Sorting must be UNORDERED for our last_read range calculation to work.
+                batchspec_t new_bs = bs.with_lazy_sorting_override(sorting_t::UNORDERED);
                 std::vector<datum_t> batch = src->next_batch(env, new_bs);
                 update_ranges();
                 r_sanity_check(active_state);
@@ -2724,23 +2721,7 @@ private:
         // If we get here then there's a gap in the ranges.
         r_sanity_fail();
     }
-    void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
-        // Safe because we never generate `store_key_t::max()`.
-        if (range.right.unbounded) {
-            range.right.unbounded = false;
-            range.right.internal_key = store_key_t::max();
-        }
-        auto it = stamped_ranges.find(uuid);
-        r_sanity_check(it != stamped_ranges.end());
-        if (it->second.ranges.size() == 0) {
-            it->second.left_fencepost = range.left;
-            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
-        } else if (it->second.ranges.back().second == stamp) {
-            it->second.ranges.back().first.right = range.right;
-        } else {
-            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
-        }
-    }
+
     void maybe_skip_to_feed() {
         const std::map<uuid_u, uint64_t> *sub_stamps = &sub->get_next_stamps();
         boost::optional<std::map<uuid_u, uint64_t> > feed_range_stamps;
@@ -2764,13 +2745,33 @@ private:
             }
         }
     }
+
     void update_ranges() {
-        active_state = src->truncate_and_get_active_state();
-        key_range_t range = last_read_range();
-        for (const auto &pair : last_read_stamps()) {
-            add_range(pair.first, pair.second, range);
+        active_state = src->get_active_state();
+        r_sanity_check(active_state);
+        for (const auto &pair : active_state->shard_last_read_stamps) {
+            add_range(pair.first, pair.second.first, pair.second.second);
         }
     }
+
+    void add_range(uuid_u uuid, key_range_t read_range, uint64_t stamp) {
+        // Safe because we never generate `store_key_t::max()`.
+        if (read_range.right.unbounded) {
+            read_range.right.unbounded = false;
+            read_range.right.internal_key = store_key_t::max();
+        }
+        auto it = stamped_ranges.find(uuid);
+        r_sanity_check(it != stamped_ranges.end());
+        if (it->second.ranges.size() == 0) {
+            it->second.left_fencepost = read_range.left;
+            it->second.ranges.push_back(std::make_pair(std::move(read_range), stamp));
+        } else if (it->second.ranges.back().second == stamp) {
+            it->second.ranges.back().first.right = read_range.right;
+        } else {
+            it->second.ranges.push_back(std::make_pair(std::move(read_range), stamp));
+        }
+    }
+
     void remove_outdated_ranges() {
         for (auto &&pair : stamped_ranges) {
             auto *ranges = &pair.second.ranges;
@@ -2786,19 +2787,12 @@ private:
         }
     }
 
-    const key_range_t &last_read_range() const {
-        r_sanity_check(active_state);
-        return active_state->last_read;
-    }
-    const std::map<uuid_u, uint64_t> &last_read_stamps() const {
-        r_sanity_check(active_state);
-        return active_state->shard_stamps;
-    }
     const reql_version_t &reql_version() const {
         r_sanity_check(active_state);
         r_sanity_check(active_state->reql_version);
         return *(active_state->reql_version);
     }
+
     bool ready() {
         // It's OK to cache this because we only ever call `ready` once we're
         // done doing reads.

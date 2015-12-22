@@ -729,21 +729,21 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
 
 void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
                     changefeed_stamp_response_t *out) {
-    out->stamps = std::map<uuid_u, uint64_t>();
+    out->stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
     for (auto &&resp : resps) {
         // In the error case abort early.
-        if (!resp->stamps) {
-            out->stamps = boost::none;
+        if (!resp->stamp_infos) {
+            out->stamp_infos = boost::none;
             return;
         }
-        for (auto &&stamp : *resp->stamps) {
+        for (auto &&info_pair : *resp->stamp_infos) {
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
             // `include_initial` changefeeds.
-            auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
-            if (!pair.second) {
-                out->stamps = boost::none;
+            bool inserted = out->stamp_infos->insert(info_pair).second;
+            if (!inserted) {
+                out->stamp_infos = boost::none;
                 return;
             }
         }
@@ -1022,6 +1022,10 @@ struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
     bool operator()(const rget_read_t &rget) const {
+        // If the `rget_read_t` is part of an `include_initial` changefeed, we can't
+        // snapshot yet, since we first need to get the timestamps in an atomic fashion
+        // (i.e. without any writes happening before we get there).
+        // We'll instead create a snapshot later inside the `rdb_read_visitor_t`.
         return !static_cast<bool>(rget.stamp);
     }
     bool operator()(const intersecting_geo_read_t &) const {      return true;  }
@@ -1040,6 +1044,8 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const rget_read_t &rget) const {
+        // `include_initial` changefeed reads must be routed to the primary, since
+        // that's where changefeeds are managed.
         return static_cast<bool>(rget.stamp);
     }
     bool operator()(const point_read_t &) const {                 return false; }
@@ -1360,7 +1366,9 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_subscribe_response_t, server_uuids, addrs);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_limit_subscribe_response_t, shards, limit_addrs);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    shard_stamp_info_t, stamp, shard_region, last_read_start);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamp_infos);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_point_stamp_response_t::valid_response_t, stamp, initial_val);

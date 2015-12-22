@@ -140,7 +140,8 @@ public:
              store_key_t last_key,
              sorting_t _sorting,
              batcher_t *_batcher)
-        : grouped_acc_t<stream_t>(stream_t(std::move(region), std::move(last_key))),
+        : grouped_acc_t<stream_t>(
+              stream_t(std::move(region), std::move(last_key))),
           sorting(_sorting), key_le(sorting), batcher(_batcher) { }
     append_t() // Only use this for unsharding.
         : grouped_acc_t<stream_t>(stream_t()),

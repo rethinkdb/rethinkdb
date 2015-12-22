@@ -16,7 +16,7 @@ init () {
     min_lessc_version=1.3.1
     max_lessc_version=1.6.2
     min_coffee_version=1.7.0
-    max_coffee_version=1.7.1
+    max_coffee_version=1.10.0
     min_browserify_version=3.0.0
     max_browserify_version=12.0.1
     min_python_version=2.6.0
