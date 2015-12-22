@@ -30,9 +30,11 @@ global_permissions_t::global_permissions_t(ql::datum_t const &datum)
     if (connect.has()) {
         if (connect.get_type() == ql::datum_t::R_BOOL) {
             set_connect(connect.as_bool());
+        } else if (connect.get_type() == ql::datum_t::R_NULL) {
+            set_connect(boost::indeterminate);
         } else {
             throw admin_op_exc_t(
-                "Expected a boolean for `$connect`, got " + connect.print(),
+                "Expected a boolean for or null `$connect`, got " + connect.print(),
                 query_state_t::FAILED);
         }
     } else {

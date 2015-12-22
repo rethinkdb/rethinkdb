@@ -29,9 +29,11 @@ permissions_t::permissions_t(ql::datum_t const &datum) {
     if (read.has()) {
         if (read.get_type() == ql::datum_t::R_BOOL) {
             set_read(read.as_bool());
+        } else if (read.get_type() == ql::datum_t::R_NULL) {
+            set_read(boost::indeterminate);
         } else {
             throw admin_op_exc_t(
-                "Expected a boolean for `$read`, got " + read.print(),
+                "Expected a boolean or null for `$read`, got " + read.print(),
                 query_state_t::FAILED);
         }
     } else {
@@ -42,9 +44,11 @@ permissions_t::permissions_t(ql::datum_t const &datum) {
     if (write.has()) {
         if (write.get_type() == ql::datum_t::R_BOOL) {
             set_write(write.as_bool());
+        } else if (write.get_type() == ql::datum_t::R_NULL) {
+            set_write(boost::indeterminate);
         } else {
             throw admin_op_exc_t(
-                "Expected a boolean for `$write`, got " + write.print(),
+                "Expected a boolean or null for `$write`, got " + write.print(),
                 query_state_t::FAILED);
         }
     } else {
@@ -55,9 +59,11 @@ permissions_t::permissions_t(ql::datum_t const &datum) {
     if (config.has()) {
         if (config.get_type() == ql::datum_t::R_BOOL) {
             set_config(config.as_bool());
+        } else if (config.get_type() == ql::datum_t::R_NULL) {
+            set_config(boost::indeterminate);
         } else {
             throw admin_op_exc_t(
-                "Expected a boolean for `$config`, got " + config.print(),
+                "Expected a boolean or null for `$config`, got " + config.print(),
                 query_state_t::FAILED);
         }
     } else {
