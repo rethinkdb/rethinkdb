@@ -111,7 +111,8 @@ void dummy_raft_cluster_t::set_live(const raft_member_id_t &member_id, live_t li
         }
         if (i->live == live_t::dead && live != live_t::dead) {
             i->member.init(new raft_networked_member_t<dummy_raft_state_t>(
-                member_id, &mailbox_manager, &i->member_directory, i, ""));
+                member_id, &mailbox_manager, &i->member_directory, i, "",
+                raft_start_election_immediately_t::NO));
             i->member_drainer.init(new auto_drainer_t);
         }
     }

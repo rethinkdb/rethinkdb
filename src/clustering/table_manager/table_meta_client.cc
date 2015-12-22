@@ -336,6 +336,7 @@ void table_meta_client_t::drop(
                 boost::optional<table_basic_config_t>(),
                 boost::optional<raft_member_id_t>(),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+                boost::optional<raft_start_election_immediately_t>(),
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, &interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
@@ -554,8 +555,14 @@ void table_meta_client_t::create_or_emergency_repair(
     }
 
     raft_config_t raft_config;
+    server_id_t initial_leader;
     for (const server_id_t &server_id : all_servers) {
         if (voting_servers.count(server_id) == 1) {
+            if (raft_config.voting_members.empty()) {
+                // This is the first voting member we've seen; arbitrarily
+                // choose it as the initial leader
+                initial_leader = server_id;
+            }
             raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
         } else {
             raft_config.non_voting_members.insert(raft_state.member_ids.at(server_id));
@@ -582,6 +589,10 @@ void table_meta_client_t::create_or_emergency_repair(
     size_t num_acked = 0;
     pmap(bcards.begin(), bcards.end(),
     [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
+        boost::optional<raft_start_election_immediately_t> start_immediately(
+            pair.first == initial_leader
+                ? raft_start_election_immediately_t::YES
+                : raft_start_election_immediately_t::NO);
         try {
             /* Send the message for the server and wait for a reply */
             disconnect_watcher_t dw(mailbox_manager,
@@ -596,6 +607,7 @@ void table_meta_client_t::create_or_emergency_repair(
                 boost::optional<table_basic_config_t>(),
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
+                start_immediately,
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);

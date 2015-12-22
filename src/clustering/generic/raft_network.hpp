@@ -35,7 +35,8 @@ public:
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *peers,
         raft_storage_interface_t<state_t> *storage,
-        const std::string &log_prefix);
+        const std::string &log_prefix,
+        const raft_start_election_immediately_t start_election_immediately);
 
     clone_ptr_t<watchable_t<raft_business_card_t<state_t> > > get_business_card() {
         return business_card.get_watchable();

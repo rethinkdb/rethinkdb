@@ -50,19 +50,13 @@ raft_persistent_state_t<state_t>::make_initial(
     return ps;
 }
 
-/* TODO: Under the current implementation, if many `raft_member_t`s are created at about
-the same time, the first election is likely to deadlock. This will make the unit tests
-take longer and increase the latency of things like table creation. We should add a way
-for the thing that creates the `raft_member_t`s to "hint" one of them to start an
-election right away, while the others wait until the election timeout has passed; this
-should make the election work correctly the first time in the typical case. */
-
 template<class state_t>
 raft_member_t<state_t>::raft_member_t(
         const raft_member_id_t &_this_member_id,
         raft_storage_interface_t<state_t> *_storage,
         raft_network_interface_t<state_t> *_network,
-        const std::string &_log_prefix) :
+        const std::string &_log_prefix,
+        const raft_start_election_immediately_t start_election_immediately) :
     this_member_id(_this_member_id),
     storage(_storage),
     network(_network),
@@ -81,10 +75,15 @@ raft_member_t<state_t>::raft_member_t(
     readiness_for_config_change(false),
     drainer(new auto_drainer_t),
     /* Initialize `watchdog` in the `NOT_TRIGGERED` state, so that it will wait for an
-    election timeout to elapse before starting a new election. */
+    election timeout to elapse before starting a new election, unless
+    _start_election_immediately is true, in which case we start an election
+    immediately. */
     watchdog(new watchdog_timer_t(
         election_timeout_min_ms, election_timeout_max_ms,
-        [this]() { this->on_watchdog(); } )),
+        [this]() { this->on_watchdog(); },
+        start_election_immediately == raft_start_election_immediately_t::YES
+            ? watchdog_timer_t::state_t::TRIGGERED
+            : watchdog_timer_t::state_t::NOT_TRIGGERED)),
     /* Initialize `watchdog_leader_only` in the `TRIGGERED` state, so that we will accept
     valid RequestVote RPCs. */
     watchdog_leader_only(new watchdog_timer_t(
