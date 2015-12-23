@@ -64,7 +64,7 @@ public class Converter {
                                     entry.getKey(),
                                     convertPseudotypes(entry.getValue(), fmt)
                             ),
-                            HashMap::putAll
+                            HashMap<String, Object>::putAll
                     );
         } else {
             return obj;
