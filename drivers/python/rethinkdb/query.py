@@ -7,6 +7,7 @@ __all__ = [
     'db', 'db_create', 'db_drop', 'db_list',
     'table', 'table_create', 'table_drop', 'table_list',
     'wait', 'reconfigure', 'rebalance',
+    'group', 'reduce', 'count', 'sum', 'avg', 'min', 'max', 'distinct', 'contains',
     'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
@@ -121,6 +122,43 @@ def map(*args):
         return ast.Map(*(args[:-1] + (ast.func_wrap(args[-1]), )))
     else:
         return ast.Map()
+
+
+# aggregation
+def group(*args):
+    return ast.Group(*[ast.func_wrap(arg) for arg in args])
+
+
+def reduce(*args):
+    return ast.Reduce(*[ast.func_wrap(arg) for arg in args])
+
+
+def count(*args):
+    return ast.Count(*[ast.func_wrap(arg) for arg in args])
+
+
+def sum(*args):
+    return ast.Sum(*[ast.func_wrap(arg) for arg in args])
+
+
+def avg(*args):
+    return ast.Avg(*[ast.func_wrap(arg) for arg in args])
+
+
+def min(*args):
+    return ast.Min(*[ast.func_wrap(arg) for arg in args])
+
+
+def max(*args):
+    return ast.Max(*[ast.func_wrap(arg) for arg in args])
+
+
+def distinct(*args):
+    return ast.Distinct(*[ast.func_wrap(arg) for arg in args])
+
+
+def contains(*args):
+    return ast.Contains(*[ast.func_wrap(arg) for arg in args])
 
 
 # orderBy orders
