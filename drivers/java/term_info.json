@@ -319,7 +319,10 @@
         "id": 87
     },
     "CONTAINS": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR", ["T_EXPR", "T_FUNC1"], "*"]
         ],
@@ -385,7 +388,10 @@
         "id": 182
     },
     "REDUCE": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR", "T_FUNC2"]
         ],
@@ -427,7 +433,10 @@
         "id": 41
     },
     "DISTINCT": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [["T_EXPR"]],
         "optargs": {
             "index": "T_STR"
@@ -435,7 +444,10 @@
         "id": 42
     },
     "COUNT": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1173,7 +1185,10 @@
         "id": 137
     },
     "GROUP": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR", ["T_EXPR", "T_FUNC1"], "*"]
         ],
@@ -1184,7 +1199,10 @@
         "id": 144
     },
     "SUM": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1193,7 +1211,10 @@
         "id": 145
     },
     "AVG": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1202,7 +1223,10 @@
         "id": 146
     },
     "MIN": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1214,7 +1238,10 @@
         "id": 147
     },
     "MAX": {
-        "include_in": ["T_EXPR"],
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
