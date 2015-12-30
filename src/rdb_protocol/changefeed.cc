@@ -1313,7 +1313,6 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *env,
         const uuid_u &uuid,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_vals,
@@ -1808,7 +1807,6 @@ public:
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *,
         const uuid_u &,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
@@ -1870,6 +1868,7 @@ public:
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
+                env_t *outer_env,
                 keyspec_t::range_t _spec)
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
@@ -1879,6 +1878,7 @@ public:
           state(state_t::READY),
           sent_state(state_t::NONE),
           artificial_include_initial(false) {
+        env = make_env(outer_env);
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -2009,7 +2009,6 @@ public:
         rcheck_datum(orig_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
                      "Empty start stamps.  Did you just reshard?");
 
-        env = make_env(outer_env);
         if (maybe_src) {
             // Nothing can happen between constructing the new `scoped_ptr_t` and
             // releasing the old one.
@@ -2025,7 +2024,6 @@ public:
         }
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *outer_env,
         const uuid_u &uuid,
         const std::string &pkey_name,
         const std::vector<datum_t> &initial_vals,
@@ -2037,7 +2035,6 @@ public:
 
         artificial_include_initial = include_initial;
 
-        env = make_env(outer_env);
         orig_stamps[uuid] = 0;
         next_stamps[uuid] = 0;
         if (artificial_include_initial) {
@@ -2381,7 +2378,7 @@ public:
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     NORETURN virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *, const uuid_u &, const std::string &, const std::vector<datum_t> &,
+        const uuid_u &, const std::string &, const std::vector<datum_t> &,
         bool, scoped_ptr_t<subscription_t> &&, backtrace_id_t) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
@@ -3291,6 +3288,7 @@ scoped_ptr_t<subscription_t> new_sub(
     configured_limits_t limits,
     const datum_t &squash,
     bool include_states,
+    env_t *env,
     const keyspec_t::spec_t &spec) {
 
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
@@ -3298,13 +3296,15 @@ scoped_ptr_t<subscription_t> new_sub(
             feed_t *_feed,
             configured_limits_t _limits,
             const datum_t *_squash,
-            bool _include_states)
+            bool _include_states,
+            env_t *_env)
             : feed(_feed),
               limits(std::move(_limits)),
               squash(_squash),
-              include_states(_include_states) { }
+              include_states(_include_states),
+              env(_env) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, limits, *squash, include_states, range);
+            return new range_sub_t(feed, limits, *squash, include_states, env, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
             return new limit_sub_t(feed, limits, *squash, include_states, limit);
@@ -3316,10 +3316,11 @@ scoped_ptr_t<subscription_t> new_sub(
         configured_limits_t limits;
         const datum_t *squash;
         bool include_states;
+        env_t *env;
     };
     return scoped_ptr_t<subscription_t>(
         boost::apply_visitor(
-            spec_visitor_t(feed, std::move(limits), &squash, include_states),
+            spec_visitor_t(feed, std::move(limits), &squash, include_states, env),
             spec));
 }
 
@@ -3393,7 +3394,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // want to change this behavior to make it more efficient, make
                 // sure `feed_t::stop_subs` remains correct.
                 on_thread_t th2(old_thread);
-                sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+                sub = new_sub(feed, std::move(limits), squash, include_states, env, spec);
             }
             namespace_interface_access_t access =
                 namespace_source(uuid, env->interruptor);
@@ -3501,9 +3502,10 @@ counted_t<datum_stream_t> artificial_t::subscribe(
         std::move(limits),
         datum_t::boolean(false),
         include_states,
+        env,
         spec);
     return sub->to_artificial_stream(
-        env, uuid, primary_key_name, initial_values,
+        uuid, primary_key_name, initial_values,
         include_initial, std::move(sub), bt);
 }
 

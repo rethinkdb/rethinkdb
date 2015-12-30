@@ -86,6 +86,7 @@ $copts = {include_initial: true, include_states: true, squash: true}
     EM.run {
       $handler = $tbl.between(r.minval, r.maxval, index: $index) \
         .order_by(index: r.desc($index)) \
+        .map{|x| x.merge({'foo' => 'bar'})}
         .changes($copts).em_run(Printer, $ropts)
       $sleep_dur = 0.005
       EM.defer {
