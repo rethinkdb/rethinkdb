@@ -24,7 +24,13 @@ setuptools.setup(
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",
     maintainer_email="bugs@rethinkdb.com",
-    packages=['rethinkdb', 'rethinkdb.tornado_net', 'rethinkdb.twisted_net', 'rethinkdb.backports.ssl_match_hostname'] + conditionalPackages,
+    packages=[
+        'rethinkdb',
+        'rethinkdb.tornado_net',
+        'rethinkdb.twisted_net',
+        'rethinkdb.gevent_net',
+        'rethinkdb.backports.ssl_match_hostname'
+    ] + conditionalPackages,
     package_dir={'rethinkdb':'rethinkdb'},
     package_data={ 'rethinkdb':['backports/ssl_match_hostname/*.txt'] },
     entry_points={

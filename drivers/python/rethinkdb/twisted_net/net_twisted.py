@@ -1,6 +1,7 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
-import struct, time
+import time
+import struct
 
 from twisted.python import log
 from twisted.internet import reactor, defer
@@ -11,7 +12,6 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
-from .ast import ReQLDecoder
 from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
