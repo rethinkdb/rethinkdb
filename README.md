@@ -37,7 +37,7 @@ Or, get started right away with our ten-minute guide in these languages:
 * [**Ruby**](https://rethinkdb.com/docs/guide/ruby/)
 * [**Java**](https://rethinkdb.com/docs/guide/java/) 
 
-Besides our three official drivers, we also have many [third-party drivers](https://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
+Besides our four official drivers, we also have many [third-party drivers](https://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
 * **C#/.NET:** [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
