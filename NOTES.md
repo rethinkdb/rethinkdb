@@ -1,3 +1,27 @@
+# Release 2.2.3 (Modern Times)
+
+Released on 2016-01-01
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.3 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
+in the same cluster.
+
+No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Bug fixes ###
+
+* Fixed a bug in the changefeed code that caused crashes with the message
+  `Guarantee failed: [env.has()]` (#5238)
+
+--
+
 # Release 2.2.2 (Modern Times)
 
 Released on 2015-12-21
