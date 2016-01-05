@@ -382,20 +382,23 @@ describe("JavaScript Callback style", function() {
         });
 
         describe('with a table', function() {
-            // remove the table to ensure clean settings
-            before(function(done) {
-                r.db(dbName).tableDrop(tableName).run(reqlConn, function(err) {
-                    r.expr([dbName]).setDifference(r.dbList()).forEach(r.dbCreate(r.row)).run(reqlConn, function(err) {
-                        assert.strictEqual(err, null);
-                        r.db(dbName).tableCreate(tableName).run(reqlConn, noError(done));
+            // ensure the db and table exist, and the table is clean
+            beforeEach(function() {
+                this.timeout(10000)
+                
+                // ensure db presense
+                return r.expr([dbName]).setDifference(r.dbList()).forEach(r.dbCreate(r.row)).run(reqlConn)
+                // ensure table presence
+                .then(function() {
+                    return r.expr([tableName]).setDifference(r.db(dbName).tableList()).forEach(r.db(dbName).tableCreate(r.row)).run(reqlConn);
+                })
+                // clean the table
+                .then(function() {
+                    return r.db(dbName).table(tableName).delete().run(reqlConn);
+                }).then(function() {
+                    tbl = r.db(dbName).table(tableName)
                     });
                 });
-            });
-
-            // ensure the table is clean
-            beforeEach(function() {
-                return tbl.delete();
-            });
 
             describe('read', function() {
                 it("accepts readMode='outdated'", function(done){
@@ -442,8 +445,11 @@ describe("JavaScript Callback style", function() {
 
 describe('toString', function() {
     it("does pretty-printing", function(done){
-        assert.equal(r.db('db1').table('tbl1').map(function(x){ return x; }).toString(),
-                    'r.db("db1").table("tbl1").map(function(var_1) { return var_1; })')
+        functString = r.db('db1').table('tbl1').map(function(x){ return x; }).toString()
+        assert(
+            /r.db\("db1"\).table\("tbl1"\).map\(function\(var_\d+\) { return var_\d+; }\)/.test(functString),
+            'toString did not give the expected value: ' + functString
+        );
         done();
     });
 });

@@ -856,23 +856,44 @@ class TestCursor(TestWithConnection):
         self.assertEqual(timeouts, 0,
             "Got timeouts using default (infinite) wait.")
 
-    # This test relies on the internals of the TornadoCursor implementation
     @gen.coroutine
     def test_rate_limit(self):
-        # Get the first batch
-        cursor = yield r.range().run(self.conn)
-        cursor_initial_size = len(cursor.items)
+        '''Test that we prefetch two batches, and then don't fetch any more without consuming them'''
 
-        # Wait for the second (pre-fetched) batch to arrive
-        yield cursor.new_response
-        cursor_new_size = len(cursor.items)
+        batchSize = 20
+        initalSize = int(batchSize * 1.5)
 
-        self.assertLess(cursor_initial_size, cursor_new_size)
+        @gen.coroutine
+        def wait_until_count(cursor, count):
+            while len(cursor.items) < count:
+                yield gen.sleep(0.1)
 
-        # Wait and observe that no third batch arrives
-        yield self.asyncAssertRaises(gen.TimeoutError,
-            gen.with_timeout(ioloop.IOLoop.current().time() + 2, cursor.new_response))
-        self.assertEqual(cursor_new_size, len(cursor.items))
+        cursor = yield r.range().run(self.conn, first_batch_scaledown_factor=2, min_batch_rows=batchSize, max_batch_rows=batchSize)
+
+        # wait until we have the first batch
+        yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, batchSize/2))
+        self.assertGreaterEqual(len(cursor.items), batchSize/2)
+        
+        # wait until we have the second batch
+        yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, initalSize))
+        self.assertEqual(
+            list(cursor.items),
+            list(range(initalSize)),
+            'Did not get the expected range of %d: %s' % (initalSize, str(cursor.items))
+        )
+        
+        # wait a few seconds to make sure we don't get more items
+        yield gen.sleep(2)
+        self.assertEqual(
+            list(cursor.items),
+            list(range(initalSize)),
+            'Got extra items after first two batches: %s' % str(cursor.items)
+        )
+        
+        # consume the first two batches and check that we get more data
+        for _ in range(initalSize):
+            cursor.next()
+        cursor.next(wait=2)
 
     # Test that an error on a cursor (such as from closing the connection)
     # properly wakes up waiters immediately
@@ -882,24 +903,25 @@ class TestCursor(TestWithConnection):
             .map(lambda row:
                 r.branch(row <= 5000, # High enough for multiple batches
                          row,
-                         r.js('while(true){ }'))) \
+                         r.js('while(true){ }', timeout=10))) \
             .run(self.conn)
 
         @gen.coroutine
-        def read_cursor(cursor, hanging):
+        def read_cursor(cursor, hanging, cursor_closed):
             try:
                 while True:
                     yield cursor.next(wait=1)
             except r.ReqlTimeoutError:
                 pass
             hanging.set_result(True)
+            yield cursor_closed
             yield cursor.next()
 
         @gen.coroutine
-        def read_wrapper(cursor, done, hanging):
+        def read_wrapper(cursor, done, hanging, cursor_closed):
             try:
                 yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
-                    'Connection is closed.', read_cursor(cursor, hanging))
+                    'Connection is closed.', read_cursor(cursor, hanging, cursor_closed))
                 done.set_result(None)
             except Exception as ex:
                 if cursor_hanging.running():
@@ -907,12 +929,14 @@ class TestCursor(TestWithConnection):
                 done.set_exception(ex)
 
         cursor_hanging = Future()
+        cursor_closed = Future()
         done = Future()
-        ioloop.IOLoop.current().add_callback(read_wrapper, cursor, done, cursor_hanging)
+        ioloop.IOLoop.current().add_callback(read_wrapper, cursor, done, cursor_hanging, cursor_closed)
 
         # Wait for the cursor to hit the hang point before we close and cause an error
         yield cursor_hanging
         yield self.conn.close()
+        cursor_closed.set_result(True)
         yield done
 
 class TestChangefeeds(TestWithConnection):

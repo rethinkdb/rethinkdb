@@ -94,7 +94,7 @@ describe('JavaScript Cursor', function() {
         // ensure db exists
         return withConnection()
         .then(function() {
-            r.expr([dbName]).setDifference(r.dbList()).forEach(
+            return r.expr([dbName]).setDifference(r.dbList()).forEach(
                 function(value) { return r.dbCreate(value); }
             ).run(reqlConn)
         })
@@ -110,9 +110,7 @@ describe('JavaScript Cursor', function() {
         })
         // add simple data
         .then(function() {
-            return r.range(0, numRows).forEach(
-                function(i) { return tbl.insert({'id':i}); }
-            ).run(reqlConn);
+            return tbl.insert(r.range(0, numRows).map({'id':r.row})).run(reqlConn);
         });
     });
 
