@@ -105,7 +105,12 @@ struct msg_t {
     msg_t &operator=(const msg_t &) = default;
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
+    typedef boost::variant<stop_t,
+                           change_t,
+                           limit_start_t,
+                           limit_change_t,
+                           limit_stop_t> op_t;
+    op_t op;
 
     // Accursed reference collapsing!
     template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
