@@ -1446,8 +1446,8 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void update_range_stamps(uuid_u server_uuid, uint64_t stamp);
-    std::map<uuid_u, uint64_t> get_range_stamps();
+    void update_stamps(uuid_u server_uuid, uint64_t stamp);
+    std::map<uuid_u, uint64_t> get_stamps();
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1504,31 +1504,32 @@ private:
     std::map<uuid_u, std::vector<std::set<limit_sub_t *> > > limit_subs;
     rwlock_t limit_subs_lock;
 
-    // This stores the latest range stamps we've received.  It's OK for this to
+    // This stores the latest stamps we've received.  It's OK for this to
     // be a tiny bit behind what we've sent the subs.
-    struct range_stamps_t {
+    struct stamps_t {
         rwlock_t lock;
         std::map<uuid_u, uint64_t> latest;
     };
     // We use a `one_per_thread_t` because when we have lots of subs (the
     // expensive case), it's easier to fill this in multiple times than to have
     // every sub do a thread switch to read the value.
-    one_per_thread_t<range_stamps_t> range_stamps;
+    one_per_thread_t<stamps_t> stamps;
 };
 
-void feed_t::update_range_stamps(uuid_u server_uuid, uint64_t stamp) {
+void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
     pmap(get_num_threads(),
          [&](int thread) {
              on_thread_t th((threadnum_t(thread)));
-             range_stamps_t *rs = range_stamps.get();
+             stamps_t *rs = stamps.get();
              rwlock_acq_t acq(&rs->lock, access_t::write);
+             rassert(stamp >= rs->latest[server_uuid]);
              rs->latest[server_uuid] = stamp;
          });
 }
 
 // We have to return by value here because we release the lock right away.
-std::map<uuid_u, uint64_t> feed_t::get_range_stamps() {
-    range_stamps_t *rs = range_stamps.get();
+std::map<uuid_u, uint64_t> feed_t::get_stamps() {
+    stamps_t *rs = stamps.get();
     rwlock_acq_t acq(&rs->lock, access_t::read);
     return rs->latest;
 }
@@ -2528,7 +2529,6 @@ public:
                 }
             }
         });
-        feed->update_range_stamps(server_uuid, stamp);
         feed->on_point_sub(
             change.pkey,
             *lock,
@@ -2556,6 +2556,16 @@ private:
     uuid_u server_uuid;
     uint64_t stamp;
 };
+
+void msg_visit(feed_t *feed,
+               const auto_drainer_t::lock_t *lock,
+               uuid_u server_uuid,
+               uint64_t stamp,
+               const msg_t::op_t &op) {
+    msg_visitor_t visitor(feed, lock, server_uuid, stamp);
+    boost::apply_visitor(visitor, op);
+    feed->update_stamps(server_uuid, stamp);
+}
 
 void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
@@ -2591,8 +2601,8 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
                 if (detached) return;
                 const stamped_msg_t &curmsg = queue->map.top();
-                msg_visitor_t visitor(this, &lock, curmsg.server_uuid, curmsg.stamp);
-                boost::apply_visitor(visitor, curmsg.submsg.op);
+                msg_visit(this, &lock,
+                          curmsg.server_uuid, curmsg.stamp, curmsg.submsg.op);
                 queue->map.pop();
                 queue->next += 1;
             }
@@ -2684,7 +2694,7 @@ private:
                     // available.  This shouldn't matter too much because this
                     // case should be rare in practice, and napping more than
                     // once should be extremely rare.
-                    nap(50);
+                    nap(50, env->interruptor);
                 }
             }
         }
@@ -2721,7 +2731,7 @@ private:
 
     void maybe_skip_to_feed() {
         const std::map<uuid_u, uint64_t> *sub_stamps = &sub->get_next_stamps();
-        boost::optional<std::map<uuid_u, uint64_t> > feed_range_stamps;
+        boost::optional<std::map<uuid_u, uint64_t> > feed_stamps;
         for (auto &&pair : stamped_ranges) {
             auto it = sub_stamps->find(pair.first);
             r_sanity_check(it != sub_stamps->end());
@@ -2730,11 +2740,11 @@ private:
             // we can jump ahead to whatever stamp the parent feed says is the
             // latest it's decided whether or not to pass to the subscription.
             if (pair.second.next_expected_stamp >= sub_stamp) {
-                if (!feed_range_stamps) {
-                    feed_range_stamps = sub->parent_feed()->get_range_stamps();
+                if (!feed_stamps) {
+                    feed_stamps = sub->parent_feed()->get_stamps();
                 }
-                auto ft = feed_range_stamps->find(pair.first);
-                if (ft != feed_range_stamps->end()) {
+                auto ft = feed_stamps->find(pair.first);
+                if (ft != feed_stamps->end()) {
                     pair.second.next_expected_stamp =
                         std::max(pair.second.next_expected_stamp,
                                  ft->second + 1);
@@ -3518,8 +3528,7 @@ void artificial_t::send_all(const msg_t &msg) {
         }
     }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();
-    msg_visitor_t visitor(feed.get(), &lock, uuid, stamp++);
-    boost::apply_visitor(visitor, msg.op);
+    msg_visit(feed.get(), &lock, uuid, stamp++, msg.op);
 }
 
 bool artificial_t::can_be_removed() {
