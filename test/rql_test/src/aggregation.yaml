@@ -535,30 +535,41 @@ tests:
     # Infix
 
     - cd: r.group([ 1, 1, 2 ], r.row).count().ungroup()
+      rb: r.group([ 1, 1, 2 ]) {|row| row}.count().ungroup()
       ot: [ {'group': 1, 'reduction': 2}, {'group': 2, 'reduction': 1} ]
     - cd:
         - r.count([ 1, 2 ])
         - r.count([ 1, 2 ], r.row.gt(0))
+      rb:
+        - r.count([ 1, 2 ])
+        - r.count([ 1, 2 ]) {|row| row.gt(0)}
       ot: 2
     - cd:
         - r.sum([ 1, 2 ])
         - r.sum([ 1, 2 ], r.row)
+      rb: r.sum([ 1, 2 ])
       ot: 3
     - cd:
         - r.avg([ 1, 2 ])
         - r.avg([ 1, 2 ], r.row)
+      rb: r.avg([ 1, 2 ])
       ot: 1.5
     - cd:
         - r.min([ 1, 2 ])
         - r.min([ 1, 2 ], r.row)
+      rb: r.min([ 1, 2 ])
       ot: 1
     - cd:
         - r.max([ 1, 2 ])
         - r.max([ 1, 2 ], r.row)
+      rb: r.max([ 1, 2 ])
       ot: 2
     - cd: r.distinct([ 1, 1 ])
       ot: [ 1 ]
     - cd:
         - r.contains([ 1, 2 ])
         - r.contains([ 1, 2 ], r.row.gt(0))
+      rb:
+        - r.contains([ 1, 2 ])
+        - r.contains([ 1, 2 ]) {|row| row.gt(0)}
       ot: true
