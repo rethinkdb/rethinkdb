@@ -342,7 +342,15 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif  // NDEBUG
 }
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+void linux_thread_pool_t::interrupt_handler(DWORD type) {
+    // Send message to main thread that triggers os_signal_cond_t
+    // Sleep and hope rethinkdb cleans up before it gets killed by windows
+}
+
+#else
+
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,

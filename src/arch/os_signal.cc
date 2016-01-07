@@ -23,21 +23,23 @@ os_signal_cond_t::~os_signal_cond_t() {
     }
 }
 
-int os_signal_cond_t::get_source_signo() const {
-    return source_signo;
-}
-
-pid_t os_signal_cond_t::get_source_pid() const {
-    return source_pid;
-}
-
-uid_t os_signal_cond_t::get_source_uid() const {
-    return source_uid;
-}
-
 void os_signal_cond_t::on_thread_switch() {
     // TODO: There's probably an outside chance of a use-after-free bug here.
     do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
+}
+
+std::string os_signal_cond_t::format() {
+    switch (source_signo) {
+    case SIGINT:
+        return strprintf("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                         source_pid, source_uid);
+    case SIGTERM:
+        return strprintf("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                         source_pid, source_uid);
+    default:
+        return strprintf("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                         source_signo, source_pid, source_uid);
+    }
 }
 
 #endif
