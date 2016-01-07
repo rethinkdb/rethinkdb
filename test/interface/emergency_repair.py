@@ -93,7 +93,7 @@ def bad_repair(name, repair_type, msg):
 def wait_for_table(name, wait_for="ready_for_writes"):
     """Blocks until the given table is ready for writes."""
     try:
-        res = r.table(name).wait(wait_for=wait_for, timeout=10).run(conn)
+        res = r.table(name).wait(wait_for=wait_for, timeout=30).run(conn)
         assert res["ready"] == 1
     except r.ReqlRuntimeError, e:
         utils.print_with_time(pprint.pformat(r.table(name).status().run(conn)))

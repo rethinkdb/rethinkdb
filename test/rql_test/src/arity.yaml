@@ -52,9 +52,11 @@ tests:
       ot:
         py3.3: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
         py3.4: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
+        py3.5: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
         py: err_regex('TypeError', ".* takes at least 1 (?:positional )?argument \(0 given\)", [])
         js: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 0.", [])
         rb: err("ArgumentError", 'wrong number of arguments (0 for 1)', [])
+        rb2: err("ArgumentError", 'wrong number of arguments (0 for 1..2)', [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:

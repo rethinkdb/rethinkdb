@@ -194,7 +194,7 @@ tests:
       ot: partial({'tables_created':1})
 
     - cd: r.table('default_test').insert(arr)
-      ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(3,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
+      ot: ({'deleted':0,'replaced':0,'generated_keys':arrlen(3,uuid()),'unchanged':0,'errors':0,'skipped':0,'inserted':3})
 
     - def: tbl = r.table('default_test').order_by('a').pluck('a')
 
