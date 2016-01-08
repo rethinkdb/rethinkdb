@@ -152,7 +152,12 @@ module RethinkDB
       return false
     end
     def handle(m, *args)
-      @handler.handle(m, args, self)
+      begin
+        @handler.handle(m, args, self)
+      rescue Exception => e
+        @handler.stop
+        raise e
+      end
     end
     def handle_open
       if !@opened
