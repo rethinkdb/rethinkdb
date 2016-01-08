@@ -1,0 +1,28 @@
+desc: Fix transformations and states on artificial tables.
+table_variable_name: tbl
+tests:
+  - def: dtbl = r.db('rethinkdb').table('_debug_scratch')
+
+  - rb: dtbl.changes(include_states: true).limit(1)
+    ot: [{'state':'ready'}]
+
+  - rb: dtbl.changes(include_initial: true, include_states: true).limit(2)
+    ot: [{'state':'initializing'},{'state':'ready'}]
+
+  - rb: dtbl.insert({})['inserted']
+    ot: 1
+
+  - rb: dtbl.filter{false}.changes(include_states: true).limit(1)
+    ot: [{'state':'ready'}]
+
+  - rb: dtbl.filter{false}.changes(include_initial: true, include_states: true).limit(2)
+    ot: [{'state':'initializing'},{'state':'ready'}]
+
+  - rb: dtbl.map{1}.changes(include_states: true).limit(1)
+    ot: [{'state':'ready'}]
+
+  - rb: dtbl.map{1}.changes(include_initial: true).limit(1)
+    ot: [{'new_val':1}]
+
+  - rb: dtbl.map{1}.changes(include_initial: true, include_states: true).limit(3)
+    ot: [{'state':'initializing'},{'new_val':1},{'state':'ready'}]
