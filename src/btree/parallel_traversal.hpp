@@ -12,6 +12,7 @@
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
+#include "btree/node.hpp"
 
 class buf_lock_t;
 class buf_parent_t;

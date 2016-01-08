@@ -198,7 +198,7 @@ kv_location_set(keyvalue_location_t *kv_location,
     }
 
     scoped_malloc_t<rdb_value_t> new_value(
-            value_ref.data(), value_ref.data() + value_ref.size());
+            value_ref.data(), value_ref.size());
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);

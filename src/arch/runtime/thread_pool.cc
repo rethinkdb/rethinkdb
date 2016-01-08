@@ -122,8 +122,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         running under valgrind, we don't install this handler because Valgrind will print the
         backtrace for us. */
 #ifndef VALGRIND
+        scoped_page_aligned_ptr_t<void> stack_base(SIGNAL_HANDLER_STACK_SIZE);
         stack_t signal_stack;
-        signal_stack.ss_sp = malloc_aligned(SIGNAL_HANDLER_STACK_SIZE, getpagesize());
+        signal_stack.ss_sp = stack_base.get();
         signal_stack.ss_flags = 0;
         signal_stack.ss_size = SIGNAL_HANDLER_STACK_SIZE;
         int res = sigaltstack(&signal_stack, NULL);
@@ -168,10 +169,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // broken out of its loop, it might delete something that the other thread
         // needed to access.
         tdata->barrier->wait();
-
-#ifndef VALGRIND
-        free(signal_stack.ss_sp);
-#endif
 
         // If this thread created the generic blocker pool, clean it up
         if (generic_blocker_pool != NULL) {

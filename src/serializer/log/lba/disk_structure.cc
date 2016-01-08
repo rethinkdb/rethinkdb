@@ -29,11 +29,11 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file,
         superblock_extent = new extent_t(em, file, superblock_extent_offset,
             superblock_offset + superblock_size - superblock_extent_offset);
 
-        startup_superblock_buffer = reinterpret_cast<lba_superblock_t *>(malloc_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+        startup_superblock_buffer = scoped_device_block_aligned_ptr_t<lba_superblock_t>(superblock_size);
         superblock_extent->read(
             superblock_offset - superblock_extent_offset,
             superblock_size,
-            startup_superblock_buffer,
+            startup_superblock_buffer.get(),
             this);
     } else {
         superblock_extent = NULL;
@@ -59,7 +59,7 @@ void lba_disk_structure_t::on_extent_read() {
                 startup_superblock_buffer->entries[i].lba_entries_count));
     }
 
-    free(startup_superblock_buffer);
+    startup_superblock_buffer.reset();
 
     start_callback->on_lba_load();
 }

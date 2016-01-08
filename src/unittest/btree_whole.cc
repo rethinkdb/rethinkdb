@@ -144,7 +144,7 @@ public:
 
             short_value_buffer_t buf(value);
             char *data = reinterpret_cast<char *>(buf.data());
-            scoped_malloc_t<void> value_data(data, data+buf.size());
+            scoped_malloc_t<void> value_data(data, buf.size());
 
             kv_location.value = std::move(value_data);
 

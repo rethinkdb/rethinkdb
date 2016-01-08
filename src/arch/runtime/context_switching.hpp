@@ -60,16 +60,16 @@ public:
     bool address_is_stack_overflow(const void *addr) const;
 
     /* Returns the base of the stack */
-    void *get_stack_base() const { return static_cast<char*>(stack) + stack_size; }
+    void *get_stack_base() const { return stack.get() + stack_size; }
 
     /* Returns the end of the stack */
-    void *get_stack_bound() const { return stack; }
+    void *get_stack_bound() const { return stack.get(); }
 
     /* Returns how many more bytes below the given address can be used */
     size_t free_space_below(const void *addr) const;
 
 private:
-    void *stack;
+    scoped_page_aligned_ptr_t<char> stack;
     size_t stack_size;
 #ifdef VALGRIND
     int valgrind_stack_id;
