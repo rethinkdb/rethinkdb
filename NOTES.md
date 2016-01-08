@@ -1,6 +1,6 @@
 # Release 2.2.3 (Modern Times)
 
-Released on 2016-01-01
+Released on 2016-01-11
 
 Bug fix release
 
@@ -19,6 +19,10 @@ older version.
 
 * Fixed a bug in the changefeed code that caused crashes with the message
   `Guarantee failed: [env.has()]` (#5238)
+* Fixed a crash in `r.http` when using pagination (#5256)
+* Fixed a bug that made `orderBy.limit` changefeeds prevent other changefeeds on the same
+  table from becoming ready (#5247)
+* Replaced a call to the deprecated `Object#timeout` function in the Ruby driver (#5232)
 
 --
 
