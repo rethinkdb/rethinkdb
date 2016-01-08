@@ -1927,6 +1927,9 @@ public:
         // `r.current_index` term we'll need to make this smarter.
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
+    boost::optional<datum_t> maybe_apply_ops(datum_t val) {
+        return has_ops() ? apply_ops(std::move(val)) : std::move(val);
+    }
 
     bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) final {
         guarantee(active());
@@ -1941,7 +1944,10 @@ public:
     datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
-            return state_datum(state);
+            if (artificial_include_initial && artificial_initial_vals.size() == 0) {
+                state = state_t::READY;
+            }
+            return state_datum(sent_state);
         }
         if (artificial_initial_vals.size() != 0) {
             datum_t d = artificial_initial_vals.back();
@@ -2040,11 +2046,14 @@ public:
         next_stamps[uuid] = 0;
         if (artificial_include_initial) {
             state = state_t::INITIALIZING;
+            datum_string_t pk(pkey_name);
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                for (size_t i = 0;
-                     i < spec.datumspec.copies(it->get_field(datum_string_t(pkey_name)));
-                     ++i) {
-                    artificial_initial_vals.push_back(*it);
+                if (boost::optional<datum_t> d = maybe_apply_ops(*it)) {
+                    for (size_t i = 0;
+                         i < spec.datumspec.copies(it->get_field(pk));
+                         ++i) {
+                        artificial_initial_vals.push_back(*d);
+                    }
                 }
             }
         }
