@@ -749,6 +749,7 @@ void header_parser_singleton_t::initialize() {
     }
 
     instance->current_field.clear();
+    instance->link_headers.clear();
     http_parser_init(&instance->parser, HTTP_RESPONSE);
     instance->parser.data = instance;
 }
@@ -772,7 +773,7 @@ header_parser_singleton_t::parse(const std::string &header) {
     // Return an empty object if we didn't receive any headers
     if (instance->header_fields.size() == 0 &&
         instance->link_headers.size() == 0) {
-        return ql::datum_t();
+        return ql::datum_t::empty_object();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
         instance->header_fields[datum_string_t("link")] =
