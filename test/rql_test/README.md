@@ -25,11 +25,11 @@ make -C ../..
 sudo npm install -g mocha
 ```
 
-You also need `twisted` library for Python, with OpenSSL support. You might get it from your system's repositories or install it using `pip` (make sure you install it for correct Python version):
+You also need `twisted` library for Python, with OpenSSL support. Many systems have these installed, but if not they can be installed using `pip` (make sure you install it for correct Python version):
 
 ```
-pip install twisted
-pip install pyopenssl
+sudo pip install twisted
+sudo pip install pyopenssl
 ```
 
 ### Basic Usage
