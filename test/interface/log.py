@@ -61,14 +61,15 @@ with driver.Process(name="./the_server") as server:
         log_file.write("    \n")
         log_file.flush()
     log_2 = list(r.db("rethinkdb").table("logs").order_by("timestamp").run(conn))
-    assert log_1 == log_2, (log_1, log_2)
+    assert log_1 == log_2, pprint.pformat({'log_1':log_1, 'log_2':log_2})
+    time.sleep(1)
     log_3 = list(r.db("rethinkdb").table("logs").order_by("timestamp").run(conn))
     log_4 = list(r.db("rethinkdb").table("logs").order_by("timestamp").run(conn))
     assert len(log_3) > 0
     assert log_2 == log_3[:-1], pprint.pformat({'log_2':log_2, 'log_3':log_3})
     assert log_3[-1]["level"] == "error", log_3[-1]["level"]
     assert log_3[-1]["message"] == "Failed to parse one or more lines from the log file, the contents of the `logs` system table will be incomplete. The following parse error occurred: cannot parse log message (2) while parsing \"    \"", log_3[-1]["message"]
-    assert log_3 == log_4, (log_3, log_4)
+    assert log_3 == log_4, pprint.pformat({'log_3':log_3, 'log_4':log_4})
 
     utils.print_with_time("Cleaning up")
 utils.print_with_time("Done.")
