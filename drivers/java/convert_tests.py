@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument(
         "--test-output-dir",
         help="Directory to render tests to",
-        default="./src/test/java/gen",
+        default="./src/test/java/com/rethinkdb/gen",
     )
     parser.add_argument(
         "--template-dir",

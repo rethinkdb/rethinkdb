@@ -1,4 +1,4 @@
-package gen;
+package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.*;
@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
 import java.util.Collections;
 import java.nio.charset.StandardCharsets;
 
-import static gen.TestingCommon.*;
-import gen.TestingFramework;
+import static com.rethinkdb.gen.TestingCommon.*;
+import com.rethinkdb.gen.TestingFramework;
 
 public class ${module_name} {
     // ${description}
