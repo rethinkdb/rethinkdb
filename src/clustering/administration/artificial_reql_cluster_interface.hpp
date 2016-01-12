@@ -52,10 +52,18 @@ public:
         m_tables(tables),
         m_next(next) { }
 
-    bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+    bool db_create(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool db_drop(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool db_list(
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -69,12 +77,23 @@ public:
             scoped_ptr_t<ql::val_t> *selection_out,
             admin_err_t *error_out);
 
-    bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+    bool table_create(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
-            const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+            const std::string &primary_key,
+            write_durability_t durability,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool table_drop(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -83,6 +102,7 @@ public:
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
@@ -118,6 +138,7 @@ public:
             admin_err_t *error_out);
 
     bool table_reconfigure(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -126,6 +147,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_reconfigure(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -134,6 +156,7 @@ public:
             admin_err_t *error_out);
 
     bool table_emergency_repair(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -143,40 +166,46 @@ public:
             admin_err_t *error_out);
 
     bool table_rebalance(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_rebalance(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
     bool grant_global(
-            auth::username_t const &username,
+            boost::optional<auth::username_t> const &granter_username,
+            auth::username_t const &grantee_username,
             auth::global_permissions_t const &global_permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool grant_database(
+            boost::optional<auth::username_t> const &granter_username,
             database_id_t const &database,
-            auth::username_t const &username,
+            auth::username_t const &grantee_username,
             auth::permissions_t const &permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool grant_table(
+            boost::optional<auth::username_t> const &granter_username,
             database_id_t const &database,
             namespace_id_t const &table,
-            auth::username_t const &username,
+            auth::username_t const &grantee_username,
             auth::permissions_t const &permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
     bool sindex_create(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -184,12 +213,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_drop(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_rename(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,

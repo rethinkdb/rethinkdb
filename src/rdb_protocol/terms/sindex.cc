@@ -221,8 +221,13 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_create(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                name, config, env->env->interruptor, &error)) {
+                env->env->get_username(),
+                table->db,
+                name_string_t::guarantee_valid(table->name.c_str()),
+                name,
+                config,
+                env->env->interruptor,
+                &error)) {
             REQL_RETHROW(error);
         }
 
@@ -245,8 +250,12 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_drop(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                name, env->env->interruptor, &error)) {
+                env->env->get_username(),
+                table->db,
+                name_string_t::guarantee_valid(table->name.c_str()),
+                name,
+                env->env->interruptor,
+                &error)) {
             REQL_RETHROW(error);
         }
 
@@ -424,8 +433,14 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_rename(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                old_name, new_name, overwrite, env->env->interruptor, &error)) {
+                env->env->get_username(),
+                table->db,
+                name_string_t::guarantee_valid(table->name.c_str()),
+                old_name,
+                new_name,
+                overwrite,
+                env->env->interruptor,
+                &error)) {
             REQL_RETHROW(error);
         }
 

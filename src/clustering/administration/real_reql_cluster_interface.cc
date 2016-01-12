@@ -66,11 +66,17 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     }
 }
 
-bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
-        signal_t *interruptor_on_caller, ql::datum_t *result_out,
+bool real_reql_cluster_interface_t::db_create(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        signal_t *interruptor_on_caller,
+        ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+
+    require_config_permission(username);
+
     cluster_semilattice_metadata_t metadata;
     ql::datum_t new_config;
     {
@@ -109,100 +115,114 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
     return true;
 }
 
-bool real_reql_cluster_interface_t::db_drop_uuid(database_id_t db_id,
-                                                 const name_string_t &name,
-                                                 signal_t *interruptor_on_caller,
-                                                 ql::datum_t *result_out,
-                                                 admin_err_t *error_out) {
-    /* Delete all of the tables in the database */
-    cluster_semilattice_metadata_t metadata;
+bool real_reql_cluster_interface_t::db_drop_uuid(
+            boost::optional<auth::username_t> const &username,
+            database_id_t database_id,
+            const name_string_t &name,
+            signal_t *interruptor_on_home,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) {
+    assert_thread();
+    guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
 
-    std::map<namespace_id_t, table_basic_config_t> tables;
-    m_table_meta_client->list_names(&tables);
-    size_t tables_dropped = 0;
-    ql::datum_t old_config;
-    {
-        cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
-        on_thread_t thread_switcher(home_thread());
-
-        metadata = m_cluster_semilattice_view->get();
-        for (const auto &pair : tables) {
-            if (pair.second.database == db_id) {
-                try {
-                    m_table_meta_client->drop(pair.first, &interruptor_on_home);
-                    ++tables_dropped;
-                } catch (const no_such_table_exc_t &) {
-                    /* The table was dropped by something else between the time when we
-                       called `list_names()` and when we went to actually delete it. This is
-                       OK. */
-                } CATCH_OP_ERRORS(name, pair.second.name, error_out,
-                                  "The database was not dropped, but some of the tables in it may or "
-                                  "may not have been dropped.",
-                                  "The database was not dropped, but some of the tables in it may or "
-                                  "may not have been dropped.")
-            }
-        }
-
-        auto db_id_it = metadata.databases.databases.find(db_id);
-        if (db_id_it != metadata.databases.databases.end()
-            && !db_id_it->second.is_deleted()) {
-            db_id_it->second.mark_deleted();
-            m_cluster_semilattice_view->join(metadata);
-            metadata = m_cluster_semilattice_view->get();
-        } else {
-            *(error_out) = admin_err_t{
-                strprintf("The database was already deleted."),
-                query_state_t::FAILED};
-            return false;
+    std::map<namespace_id_t, table_basic_config_t> table_names;
+    m_table_meta_client->list_names(&table_names);
+    std::set<namespace_id_t> table_ids;
+    for (auto const &table_name : table_names) {
+        if (table_name.second.database == database_id) {
+            table_ids.insert(table_name.first);
         }
     }
-    wait_for_metadata_to_propagate(metadata, interruptor_on_caller);
 
-    old_config = convert_db_config_and_name_to_datum(name, db_id);
+    require_config_permission(username, database_id, table_ids);
+
+    // Here we actually delete the tables
+    size_t tables_dropped = 0;
+    for (const auto &table_id : table_ids) {
+        try {
+            m_table_meta_client->drop(table_id, interruptor_on_home);
+            ++tables_dropped;
+        } catch (const no_such_table_exc_t &) {
+             /* The table was dropped by something else between the time when we called
+             `list_names()` and when we went to actually delete it. This is OK. */
+        } CATCH_OP_ERRORS(name, table_names.at(table_id).name, error_out,
+            "The database was not dropped, but some of the tables in it may or may not "
+                "have been dropped.",
+            "The database was not dropped, but some of the tables in it may or may not "
+                "have been dropped.")
+    }
+
+    cluster_semilattice_metadata_t metadata = m_cluster_semilattice_view->get();
+    auto iter = metadata.databases.databases.find(database_id);
+    if (iter != metadata.databases.databases.end() && !iter->second.is_deleted()) {
+        iter->second.mark_deleted();
+        m_cluster_semilattice_view->join(metadata);
+        metadata = m_cluster_semilattice_view->get();
+    } else {
+        *error_out = admin_err_t{
+            "The database was already deleted.", query_state_t::FAILED};
+        return false;
+    }
+    wait_for_metadata_to_propagate(metadata, interruptor_on_home);
 
     if (result_out != nullptr) {
+        ql::datum_t old_config =
+            convert_db_config_and_name_to_datum(name, database_id);
+
         ql::datum_object_builder_t result_builder;
         result_builder.overwrite("dbs_dropped", ql::datum_t(1.0));
-        result_builder.overwrite("tables_dropped",
-                                 ql::datum_t(static_cast<double>(tables_dropped)));
-        result_builder.overwrite("config_changes",
-                                 make_replacement_pair(old_config, ql::datum_t::null()));
+        result_builder.overwrite(
+            "tables_dropped", ql::datum_t(static_cast<double>(tables_dropped)));
+        result_builder.overwrite(
+            "config_changes",
+            make_replacement_pair(std::move(old_config), ql::datum_t::null()));
         *result_out = std::move(result_builder).to_datum();
     }
 
     return true;
 }
 
-bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
-        signal_t *interruptor_on_caller, ql::datum_t *result_out,
+bool real_reql_cluster_interface_t::db_drop(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        signal_t *interruptor_on_caller,
+        ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cluster_semilattice_metadata_t metadata;
-    database_id_t db_id;
+
     {
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
 
-        metadata = m_cluster_semilattice_view->get();
-
-        if (!search_db_metadata_by_name(metadata.databases, name, &db_id, error_out)) {
+        cluster_semilattice_metadata_t metadata = m_cluster_semilattice_view->get();
+        database_id_t database_id;
+        if (!search_db_metadata_by_name(
+                metadata.databases,
+                name,
+                &database_id,
+                error_out)) {
             return false;
         }
-    }
-    if (!db_drop_uuid(db_id,
-                      name,
-                      interruptor_on_caller,
-                      result_out,
-                      error_out)) {
-        return false;
+
+        if (!db_drop_uuid(
+                username,
+                database_id,
+                name,
+                &interruptor_on_home,
+                result_out,
+                error_out)) {
+            return false;
+        }
     }
 
     return true;
 }
 
 bool real_reql_cluster_interface_t::db_list(
-        UNUSED signal_t *interruptor_on_caller, std::set<name_string_t> *names_out,
+        UNUSED signal_t *interruptor_on_caller,
+        std::set<name_string_t> *names_out,
         UNUSED admin_err_t *error_out) {
     databases_semilattice_metadata_t db_metadata;
     get_databases_metadata(&db_metadata);
@@ -214,8 +234,10 @@ bool real_reql_cluster_interface_t::db_list(
     return true;
 }
 
-bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
-        UNUSED signal_t *interruptor_on_caller, counted_t<const ql::db_t> *db_out,
+bool real_reql_cluster_interface_t::db_find(
+        const name_string_t &name,
+        UNUSED signal_t *interruptor_on_caller,
+        counted_t<const ql::db_t> *db_out,
         admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -232,13 +254,18 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::db_config(
         const counted_t<const ql::db_t> &db,
-        ql::backtrace_id_t bt,
+        ql::backtrace_id_t backtrace_id,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         admin_err_t *error_out) {
     try {
-        make_single_selection(admin_tables->db_config_backend.get(),
-            name_string_t::guarantee_valid("db_config"), db->id, bt, env,
+        // FIXME permissions
+        make_single_selection(
+            admin_tables->db_config_backend.get(),
+            name_string_t::guarantee_valid("db_config"),
+            db->id,
+            backtrace_id,
+            env,
             selection_out);
         return true;
     } catch (const no_such_table_exc_t &) {
@@ -252,7 +279,9 @@ bool real_reql_cluster_interface_t::db_config(
     }
 }
 
-bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
+bool real_reql_cluster_interface_t::table_create(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
         const std::string &primary_key,
@@ -262,6 +291,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+
+    require_config_permission(username, db->id);
 
     namespace_id_t table_id;
     cluster_semilattice_metadata_t metadata;
@@ -344,11 +375,16 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
     return true;
 }
 
-bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor_on_caller,
-        ql::datum_t *result_out, admin_err_t *error_out) {
+bool real_reql_cluster_interface_t::table_drop(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor_on_caller,
+        ql::datum_t *result_out,
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     cluster_semilattice_metadata_t metadata;
     try {
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -357,6 +393,8 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        require_config_permission(username, db->id, table_id);
 
         /* Fetch the old config via the `table_config_backend` rather than via
         `table_meta_client_t` because this will return an error document instead of
@@ -384,8 +422,10 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
 
-bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
-        UNUSED signal_t *interruptor_on_caller, std::set<name_string_t> *names_out,
+bool real_reql_cluster_interface_t::table_list(
+        counted_t<const ql::db_t> db,
+        UNUSED signal_t *interruptor_on_caller,
+        std::set<name_string_t> *names_out,
         UNUSED admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
@@ -400,10 +440,12 @@ bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
 }
 
 bool real_reql_cluster_interface_t::table_find(
-        const name_string_t &name, counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        counted_t<const ql::db_t> db,
         UNUSED boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor_on_caller,
-        counted_t<base_table_t> *table_out, admin_err_t *error_out) {
+        counted_t<base_table_t> *table_out,
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     namespace_id_t table_id;
@@ -429,6 +471,7 @@ bool real_reql_cluster_interface_t::table_find(
 }
 
 bool real_reql_cluster_interface_t::table_estimate_doc_counts(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         ql::env_t *env,
@@ -436,13 +479,15 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t interruptor_on_home(env->interruptor, home_thread());
 
+    cross_thread_signal_t interruptor_on_home(env->interruptor, home_thread());
     try {
         on_thread_t thread_switcher(home_thread());
 
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        require_read_permission(username, db->id, table_id);
 
         table_config_and_shards_t config;
         m_table_meta_client->get_config(table_id, &interruptor_on_home, &config);
@@ -489,6 +534,8 @@ bool real_reql_cluster_interface_t::table_config(
     try {
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        // FIXME permissions
         make_single_selection(
             admin_tables->table_config_backend[
                 static_cast<int>(admin_identifier_format_t::name)].get(),
@@ -665,6 +712,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         const table_generate_config_params_t &params,
@@ -679,6 +727,9 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         reconfigure_internal(db, table_id, params, dry_run, &interruptor_on_home,
             result_out);
         return true;
@@ -692,6 +743,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &params,
         bool dry_run,
@@ -703,18 +755,23 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    std::map<namespace_id_t, table_basic_config_t> tables;
-    m_table_meta_client->list_names(&tables);
+    std::map<namespace_id_t, table_basic_config_t> table_names;
+    m_table_meta_client->list_names(&table_names);
+    std::set<namespace_id_t> table_ids;
+    for (auto const &table_name : table_names) {
+        if (table_name.second.database == db->id) {
+            table_ids.insert(table_name.first);
+        }
+    }
+
+    require_config_permission(username, db->id, table_ids);
 
     ql::datum_t combined_stats = ql::datum_t::empty_object();
-    for (const auto &pair : tables) {
-        if (pair.second.database != db->id) {
-            continue;
-        }
+    for (const auto &table_id : table_ids) {
         ql::datum_t stats;
         try {
             reconfigure_internal(
-                db, pair.first, params, dry_run, &interruptor_on_home, &stats);
+                db, table_id, params, dry_run, &interruptor_on_home, &stats);
         } catch (const no_such_table_exc_t &) {
             /* The table got deleted during the reconfiguration. It would be weird if
             `r.db('foo').reconfigure()` produced an error complaining that some table
@@ -724,7 +781,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         } catch (const admin_op_exc_t &admin_op_exc) {
             *error_out = std::move(admin_op_exc.to_admin_err());
             return false;
-        } CATCH_OP_ERRORS(db->name, pair.second.name, error_out,
+        } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been reconfigured.",
             "The tables may or may not have been reconfigured.")
         std::set<std::string> dummy_conditions;
@@ -826,6 +883,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
 }
 
 bool real_reql_cluster_interface_t::table_emergency_repair(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         emergency_repair_mode_t mode,
@@ -835,11 +893,15 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     try {
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         emergency_repair_internal(db, table_id, mode, dry_run,
             &interruptor_on_home, result_out);
         return true;
@@ -908,6 +970,7 @@ void real_reql_cluster_interface_t::rebalance_internal(
 }
 
 bool real_reql_cluster_interface_t::table_rebalance(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         signal_t *interruptor_on_caller,
@@ -915,11 +978,15 @@ bool real_reql_cluster_interface_t::table_rebalance(
         admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
+
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     try {
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         rebalance_internal(table_id, &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
@@ -932,6 +999,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
 }
 
 bool real_reql_cluster_interface_t::db_rebalance(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
@@ -941,17 +1009,22 @@ bool real_reql_cluster_interface_t::db_rebalance(
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    std::map<namespace_id_t, table_basic_config_t> tables;
-    m_table_meta_client->list_names(&tables);
+    std::map<namespace_id_t, table_basic_config_t> table_names;
+    m_table_meta_client->list_names(&table_names);
+    std::set<namespace_id_t> table_ids;
+    for (auto const &table_name : table_names) {
+        if (table_name.second.database == db->id) {
+            table_ids.insert(table_name.first);
+        }
+    }
+
+    require_config_permission(username, db->id, table_ids);
 
     ql::datum_t combined_stats = ql::datum_t::empty_object();
-    for (const auto &pair : tables) {
-        if (pair.second.database != db->id) {
-            continue;
-        }
+    for (const auto &table_id : table_ids) {
         ql::datum_t stats;
         try {
-            rebalance_internal(pair.first, &interruptor_on_home, &stats);
+            rebalance_internal(table_id, &interruptor_on_home, &stats);
         } catch (const no_such_table_exc_t &) {
             /* This table was deleted while we were iterating over the tables list. So
             just ignore it to avoid making a confusing error message. */
@@ -959,7 +1032,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
         } catch (const admin_op_exc_t &admin_op_exc) {
             *error_out = std::move(admin_op_exc.to_admin_err());
             return false;
-        } CATCH_OP_ERRORS(db->name, pair.second.name, error_out,
+        } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been rebalanced.",
             "The tables may or may not have been rebalanced.")
         std::set<std::string> dummy_conditions;
@@ -972,37 +1045,39 @@ bool real_reql_cluster_interface_t::db_rebalance(
 }
 
 bool real_reql_cluster_interface_t::grant_internal(
-        auth::username_t const &username,
+        boost::optional<auth::username_t> const &granter_username,
+        auth::username_t const &grantee_username,
         std::function<void(boost::optional<auth::user_t> *user)> function,
         ql::datum_t *result_out,
         admin_err_t *error_out)
         THROWS_ONLY(interrupted_exc_t, admin_op_exc_t) {
+    if (!static_cast<bool>(granter_username) || !granter_username->is_admin()) {
+        // FIXME
+    }
+
     std::map<namespace_id_t, table_basic_config_t> names;
     m_table_meta_client->list_names(&names);
-
     cluster_semilattice_metadata_t cluster_metadata = m_cluster_semilattice_view->get();
 
     auth_semilattice_metadata_t auth_metadata = m_auth_semilattice_view->get();
-
-    auto user = auth_metadata.m_users.find(username);
-    if (user == auth_metadata.m_users.end() ||
-            !static_cast<bool>(user->second.get_ref())) {
+    auto grantee = auth_metadata.m_users.find(grantee_username);
+    if (grantee == auth_metadata.m_users.end() ||
+            !static_cast<bool>(grantee->second.get_ref())) {
         *error_out = admin_err_t{
-            strprintf("User `%s` not found", username.to_string().c_str()),
+            strprintf("User `%s` not found", grantee_username.to_string().c_str()),
             query_state_t::FAILED
         };
         return false;
     }
 
-    ql::datum_t old_user = user->second.get_ref()->to_datum(
-        names, cluster_metadata, username);
+    ql::datum_t old_user = grantee->second.get_ref()->to_datum(
+        names, cluster_metadata, grantee_username);
 
-    user->second.apply_write(function);
-
+    grantee->second.apply_write(function);
     m_auth_semilattice_view->join(auth_metadata);
 
-    ql::datum_t new_user = user->second.get_ref()->to_datum(
-        names, cluster_metadata, username);
+    ql::datum_t new_user = grantee->second.get_ref()->to_datum(
+        names, cluster_metadata, grantee_username);
 
     // FIXME, wait for propagation
 
@@ -1015,7 +1090,8 @@ bool real_reql_cluster_interface_t::grant_internal(
 }
 
 bool real_reql_cluster_interface_t::grant_global(
-        auth::username_t const &username,
+        boost::optional<auth::username_t> const &granter_username,
+        auth::username_t const &grantee_username,
         auth::global_permissions_t const &global_permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1023,18 +1099,20 @@ bool real_reql_cluster_interface_t::grant_global(
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
-        username,
-        [&](boost::optional<auth::user_t> *user) {
-            guarantee(static_cast<bool>(*user));
-            user->get().set_global_permissions(global_permissions);
+        granter_username,
+        grantee_username,
+        [&](boost::optional<auth::user_t> *grantee) {
+            guarantee(static_cast<bool>(*grantee));
+            grantee->get().set_global_permissions(global_permissions);
         },
         result_out,
         error_out);
 }
 
 bool real_reql_cluster_interface_t::grant_database(
+        boost::optional<auth::username_t> const &granter_username,
         database_id_t const &database,
-        auth::username_t const &username,
+        auth::username_t const &grantee_username,
         auth::permissions_t const &permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1045,19 +1123,21 @@ bool real_reql_cluster_interface_t::grant_database(
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
-        username,
-        [&](boost::optional<auth::user_t> *user) {
-            guarantee(static_cast<bool>(*user));
-            user->get().set_database_permissions(database, permissions);
+        granter_username,
+        grantee_username,
+        [&](boost::optional<auth::user_t> *grantee) {
+            guarantee(static_cast<bool>(*grantee));
+            grantee->get().set_database_permissions(database, permissions);
         },
         result_out,
         error_out);
 }
 
 bool real_reql_cluster_interface_t::grant_table(
+        boost::optional<auth::username_t> const &granter_username,
         database_id_t const &database,
         namespace_id_t const &table,
-        auth::username_t const &username,
+        auth::username_t const &grantee_username,
         auth::permissions_t const &permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1068,30 +1148,36 @@ bool real_reql_cluster_interface_t::grant_table(
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
-        username,
-        [&](boost::optional<auth::user_t> *user) {
-            guarantee(static_cast<bool>(*user));
-            user->get().set_table_permissions(table, permissions);
+        granter_username,
+        grantee_username,
+        [&](boost::optional<auth::user_t> *grantee) {
+            guarantee(static_cast<bool>(*grantee));
+            grantee->get().set_table_permissions(table, permissions);
         },
         result_out,
         error_out);
 }
 
 bool real_reql_cluster_interface_t::sindex_create(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
         const sindex_config_t &config,
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+
     try {
-        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
-            "real_reql_cluster_interface_t should never get queries for system tables");
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
 
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_create_t{name, config});
         m_table_meta_client->set_config(
@@ -1111,19 +1197,24 @@ bool real_reql_cluster_interface_t::sindex_create(
 }
 
 bool real_reql_cluster_interface_t::sindex_drop(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+
     try {
-        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
-            "real_reql_cluster_interface_t should never get queries for system tables");
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
 
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_drop_t{name});
         m_table_meta_client->set_config(
@@ -1143,6 +1234,7 @@ bool real_reql_cluster_interface_t::sindex_drop(
 }
 
 bool real_reql_cluster_interface_t::sindex_rename(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -1150,14 +1242,18 @@ bool real_reql_cluster_interface_t::sindex_rename(
         bool overwrite,
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+
     try {
-        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
-            "real_reql_cluster_interface_t should never get queries for system tables");
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
 
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
+
+        require_config_permission(username, db->id, table_id);
+
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_rename_t{
                 name, new_name, overwrite});
@@ -1272,3 +1368,95 @@ void real_reql_cluster_interface_t::make_single_selection(
         bt);
 }
 
+template <typename F>
+void require_permission_internal(
+        rdb_context_t *rdb_context,
+        boost::optional<auth::username_t> const &username,
+        F function,
+        std::string const &permission_name) {
+    if (static_cast<bool>(username)) {
+        rdb_context->get_auth_watchable()->apply_read(
+            [&](auth_semilattice_metadata_t const *auth_metadata) {
+                auto user = auth_metadata->m_users.find(username.get());
+                if (user == auth_metadata->m_users.end() ||
+                        !static_cast<bool>(user->second.get_ref()) ||
+                        !function(user->second.get_ref().get())) {
+                    throw auth::permission_error_t(username.get(), permission_name);
+                }
+           });
+    }
+}
+
+void real_reql_cluster_interface_t::require_config_permission(
+        boost::optional<auth::username_t> const &username) const {
+    require_permission_internal(
+        m_rdb_context,
+        username,
+        [&](auth::user_t const &user) -> bool {
+            return user.has_config_permission();
+        },
+        "config");
+};
+
+void real_reql_cluster_interface_t::require_config_permission(
+        boost::optional<auth::username_t> const &username,
+        database_id_t const &database_id) const {
+    require_permission_internal(
+        m_rdb_context,
+        username,
+        [&](auth::user_t const &user) -> bool {
+            return user.has_config_permission(database_id);
+        },
+        "config");
+}
+
+void real_reql_cluster_interface_t::require_config_permission(
+        boost::optional<auth::username_t> const &username,
+        database_id_t const &database_id,
+        namespace_id_t const &table_id) const {
+    require_permission_internal(
+        m_rdb_context,
+        username,
+        [&](auth::user_t const &user) -> bool {
+            return user.has_config_permission(database_id, table_id);
+        },
+        "config");
+}
+
+void real_reql_cluster_interface_t::require_config_permission(
+        boost::optional<auth::username_t> const &username,
+        database_id_t const &database_id,
+        std::set<namespace_id_t> const &table_ids) const {
+    require_permission_internal(
+        m_rdb_context,
+        username,
+        [&](auth::user_t const &user) -> bool {
+            // First check the permissions on the database
+            if (!user.has_config_permission(database_id)) {
+                return false;
+            }
+
+            // Next, for every table, check if the user has permissions on that table
+            for (auto const &table_id : table_ids) {
+                if (!user.has_config_permission(database_id, table_id)) {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+        "config");
+}
+
+void real_reql_cluster_interface_t::require_read_permission(
+        boost::optional<auth::username_t> const &username,
+        database_id_t const &database_id,
+        namespace_id_t const &table_id) const {
+    require_permission_internal(
+        m_rdb_context,
+        username,
+        [&](auth::user_t const &user) -> bool {
+            return user.has_read_permission(database_id, table_id);
+        },
+        "read");
+}
