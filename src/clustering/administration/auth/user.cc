@@ -276,6 +276,23 @@ bool user_t::has_write_permission(
     return m_global_permissions.get_write() || false;
 }
 
+bool user_t::has_config_permission() const {
+    return m_global_permissions.get_config() || false;
+}
+
+bool user_t::has_config_permission(
+        database_id_t const &database_id) const {
+    auto database = m_database_permissions.find(database_id);
+    if (database != m_database_permissions.end()) {
+        boost::tribool database_permission = database->second.get_config();
+        if (!indeterminate(database_permission)) {
+            return database_permission;
+        }
+    }
+
+    return has_config_permission();
+}
+
 bool user_t::has_config_permission(
         database_id_t const &database_id,
         namespace_id_t const &table_id) const {
@@ -287,15 +304,7 @@ bool user_t::has_config_permission(
         }
     }
 
-    auto database = m_database_permissions.find(database_id);
-    if (database != m_database_permissions.end()) {
-        boost::tribool database_permission = database->second.get_config();
-        if (!indeterminate(database_permission)) {
-            return database_permission;
-        }
-    }
-
-    return m_global_permissions.get_config() || false;
+    return has_config_permission(database_id);
 }
 
 bool user_t::has_connect_permission() const {

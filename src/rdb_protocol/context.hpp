@@ -223,10 +223,18 @@ public:
     `base_table_t` is because their implementations fits better with the implementations
     of the other methods of `reql_cluster_interface_t` than `base_table_t`. */
 
-    virtual bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
-    virtual bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
+    virtual bool db_create(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool db_drop(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
     virtual bool db_list(
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out) = 0;
@@ -240,13 +248,24 @@ public:
             scoped_ptr_t<ql::val_t> *selection_out,
             admin_err_t *error_out) = 0;
 
-    /* `table_create()` won't return until the table is ready for reading */
-    virtual bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+    /* `table_create()` won't return until the table is ready for writing */
+    virtual bool table_create(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
-            const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
-    virtual bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
+            const std::string &primary_key,
+            write_durability_t durability,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool table_drop(
+            boost::optional<auth::username_t> const &username,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
     virtual bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor, std::set<name_string_t> *names_out,
             admin_err_t *error_out) = 0;
@@ -255,6 +274,7 @@ public:
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out) = 0;
     virtual bool table_estimate_doc_counts(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
@@ -290,6 +310,7 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_reconfigure(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -298,6 +319,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool db_reconfigure(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -306,6 +328,7 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_emergency_repair(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -315,40 +338,46 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_rebalance(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool db_rebalance(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
 
     virtual bool grant_global(
-            auth::username_t const &username,
+            boost::optional<auth::username_t> const &granter_username,
+            auth::username_t const &grantee_username,
             auth::global_permissions_t const &global_permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool grant_database(
+            boost::optional<auth::username_t> const &granter_username,
             database_id_t const &database,
-            auth::username_t const &username,
+            auth::username_t const &grantee_username,
             auth::permissions_t const &permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool grant_table(
+            boost::optional<auth::username_t> const &granter_username,
             database_id_t const &database,
             namespace_id_t const &table,
-            auth::username_t const &username,
+            auth::username_t const &grantee_username,
             auth::permissions_t const &permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
 
     virtual bool sindex_create(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -356,12 +385,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out) = 0;
     virtual bool sindex_drop(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out) = 0;
     virtual bool sindex_rename(
+            boost::optional<auth::username_t> const &username,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,

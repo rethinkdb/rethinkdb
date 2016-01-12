@@ -8,19 +8,27 @@
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-bool artificial_reql_cluster_interface_t::db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) {
+bool artificial_reql_cluster_interface_t::db_create(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        admin_err_t *error_out) {
     if (name == m_database) {
         *error_out = admin_err_t{
             strprintf("Database `%s` already exists.", m_database.c_str()),
             query_state_t::FAILED};
         return false;
     }
-    return m_next->db_create(name, interruptor, result_out, error_out);
+    return m_next->db_create(username, name, interruptor, result_out, error_out);
 }
 
-bool artificial_reql_cluster_interface_t::db_drop(const name_string_t &name,
-        signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) {
+bool artificial_reql_cluster_interface_t::db_drop(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        admin_err_t *error_out) {
     if (name == m_database) {
         *error_out = admin_err_t{
             strprintf("Database `%s` is special; you can't delete it.",
@@ -28,7 +36,7 @@ bool artificial_reql_cluster_interface_t::db_drop(const name_string_t &name,
             query_state_t::FAILED};
         return false;
     }
-    return m_next->db_drop(name, interruptor, result_out, error_out);
+    return m_next->db_drop(username, name, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_list(
@@ -67,10 +75,15 @@ bool artificial_reql_cluster_interface_t::db_config(
 }
 
 bool artificial_reql_cluster_interface_t::table_create(
-        const name_string_t &name, counted_t<const ql::db_t> db,
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
-        const std::string &primary_key, write_durability_t durability,
-        signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) {
+        const std::string &primary_key,
+        write_durability_t durability,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        admin_err_t *error_out) {
     if (db->name == m_database) {
         *error_out = admin_err_t{
             strprintf("Database `%s` is special; you can't create new tables "
@@ -78,13 +91,25 @@ bool artificial_reql_cluster_interface_t::table_create(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_create(name, db, config_params, primary_key,
-        durability, interruptor, result_out, error_out);
+    return m_next->table_create(
+        username,
+        name,
+        db,
+        config_params,
+        primary_key,
+        durability,
+        interruptor,
+        result_out,
+        error_out);
 }
 
-bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor,
-        ql::datum_t *result_out, admin_err_t *error_out) {
+bool artificial_reql_cluster_interface_t::table_drop(
+        boost::optional<auth::username_t> const &username,
+        const name_string_t &name,
+        counted_t<const ql::db_t> db,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        admin_err_t *error_out) {
     if (db->name == m_database) {
         *error_out = admin_err_t{
             strprintf("Database `%s` is special; you can't drop tables in it.",
@@ -92,7 +117,7 @@ bool artificial_reql_cluster_interface_t::table_drop(const name_string_t &name,
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_drop(name, db, interruptor, result_out, error_out);
+    return m_next->table_drop(username, name, db, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
@@ -142,6 +167,7 @@ bool artificial_reql_cluster_interface_t::table_find(
 }
 
 bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         ql::env_t *env,
@@ -182,7 +208,8 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
             return false;
         }
     } else {
-        return m_next->table_estimate_doc_counts(db, name, env, doc_counts_out, error_out);
+        return m_next->table_estimate_doc_counts(
+            username, db, name, env, doc_counts_out, error_out);
     }
 }
 
@@ -245,6 +272,7 @@ bool artificial_reql_cluster_interface_t::db_wait(
 }
 
 bool artificial_reql_cluster_interface_t::table_reconfigure(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         const table_generate_config_params_t &params,
@@ -259,11 +287,12 @@ bool artificial_reql_cluster_interface_t::table_reconfigure(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_reconfigure(db, name, params, dry_run, interruptor,
-        result_out, error_out);
+    return m_next->table_reconfigure(
+        username, db, name, params, dry_run, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_reconfigure(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &params,
         bool dry_run,
@@ -277,11 +306,12 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->db_reconfigure(db, params, dry_run, interruptor,
-        result_out, error_out);
+    return m_next->db_reconfigure(
+        username, db, params, dry_run, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_emergency_repair(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         emergency_repair_mode_t mode,
@@ -296,11 +326,12 @@ bool artificial_reql_cluster_interface_t::table_emergency_repair(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_emergency_repair(db, name, mode, dry_run, interruptor,
-        result_out, error_out);
+    return m_next->table_emergency_repair(
+        username, db, name, mode, dry_run, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_rebalance(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         signal_t *interruptor,
@@ -313,10 +344,12 @@ bool artificial_reql_cluster_interface_t::table_rebalance(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_rebalance(db, name, interruptor, result_out, error_out);
+    return m_next->table_rebalance(
+        username, db, name, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::db_rebalance(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -328,22 +361,29 @@ bool artificial_reql_cluster_interface_t::db_rebalance(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->db_rebalance(db, interruptor, result_out, error_out);
+    return m_next->db_rebalance(username, db, interruptor, result_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::grant_global(
-        auth::username_t const &username,
+        boost::optional<auth::username_t> const &granter_username,
+        auth::username_t const &grantee_username,
         auth::global_permissions_t const &global_permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     return m_next->grant_global(
-        username, global_permissions, interruptor, result_out, error_out);
+        granter_username,
+        grantee_username,
+        global_permissions,
+        interruptor,
+        result_out,
+        error_out);
 }
 
 bool artificial_reql_cluster_interface_t::grant_database(
+        boost::optional<auth::username_t> const &granter_username,
         database_id_t const &database,
-        auth::username_t const &username,
+        auth::username_t const &grantee_username,
         auth::permissions_t const &permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -356,13 +396,20 @@ bool artificial_reql_cluster_interface_t::grant_database(
         return false;
     }
     return m_next->grant_database(
-        database, username, permissions, interruptor, result_out, error_out);
+        granter_username,
+        database,
+        grantee_username,
+        permissions,
+        interruptor,
+        result_out,
+        error_out);
 }
 
 bool artificial_reql_cluster_interface_t::grant_table(
+        boost::optional<auth::username_t> const &granter_username,
         database_id_t const &database,
         namespace_id_t const &table,
-        auth::username_t const &username,
+        auth::username_t const &grantee_username,
         auth::permissions_t const &permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -375,10 +422,18 @@ bool artificial_reql_cluster_interface_t::grant_table(
         return false;
     }
     return m_next->grant_table(
-        database, table, username, permissions, interruptor, result_out, error_out);
+        granter_username,
+        database,
+        table,
+        grantee_username,
+        permissions,
+        interruptor,
+        result_out,
+        error_out);
 }
 
 bool artificial_reql_cluster_interface_t::sindex_create(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -392,10 +447,12 @@ bool artificial_reql_cluster_interface_t::sindex_create(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->sindex_create(db, table, name, config, interruptor, error_out);
+    return m_next->sindex_create(
+        username, db, table, name, config, interruptor, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::sindex_drop(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -408,10 +465,11 @@ bool artificial_reql_cluster_interface_t::sindex_drop(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->sindex_drop(db, table, name, interruptor, error_out);
+    return m_next->sindex_drop(username, db, table, name, interruptor, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::sindex_rename(
+        boost::optional<auth::username_t> const &username,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -427,7 +485,7 @@ bool artificial_reql_cluster_interface_t::sindex_rename(
         return false;
     }
     return m_next->sindex_rename(
-        db, table, name, new_name, overwrite, interruptor, error_out);
+        username, db, table, name, new_name, overwrite, interruptor, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::sindex_list(

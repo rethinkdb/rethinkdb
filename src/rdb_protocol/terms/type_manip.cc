@@ -394,7 +394,12 @@ private:
                 admin_err_t error;
                 std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
-                        table->db, name, env->env, &doc_counts, &error)) {
+                        env->env->get_username(),
+                        table->db,
+                        name,
+                        env->env,
+                        &doc_counts,
+                        &error)) {
                     REQL_RETHROW(error);
                 }
                 datum_array_builder_t arr(configured_limits_t::unlimited);

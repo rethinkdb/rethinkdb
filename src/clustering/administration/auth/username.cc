@@ -16,6 +16,10 @@ username_t::username_t(std::string username)
     // FIXME
 }
 
+bool username_t::is_admin() const {
+    return m_username == "admin";
+}
+
 std::string const &username_t::to_string() const {
     return m_username;
 }

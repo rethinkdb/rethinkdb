@@ -56,12 +56,18 @@ public:
     bool has_read_permission(
         database_id_t const &database_id,
         namespace_id_t const &table_id) const;
+
     bool has_write_permission(
         database_id_t const &database_id,
         namespace_id_t const &table_id) const;
+
+    bool has_config_permission() const;
+    bool has_config_permission(
+        database_id_t const &database_id) const;
     bool has_config_permission(
         database_id_t const &database_id,
         namespace_id_t const &table_id) const;
+
     bool has_connect_permission() const;
 
     ql::datum_t to_datum(

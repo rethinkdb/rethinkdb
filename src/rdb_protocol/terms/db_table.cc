@@ -138,8 +138,12 @@ private:
         name_string_t db_name = get_name(args->arg(env, 0), "Database");
         admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->db_create(db_name,
-                env->env->interruptor, &result, &error)) {
+        if (!env->env->reql_cluster_interface()->db_create(
+                env->env->get_username(),
+                db_name,
+                env->env->interruptor,
+                &result,
+                &error)) {
             REQL_RETHROW(error);
         }
         return new_val(result);
@@ -200,9 +204,16 @@ private:
         /* Create the table */
         admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
-                config_params, primary_key, durability,
-                env->env->interruptor, &result, &error)) {
+        if (!env->env->reql_cluster_interface()->table_create(
+                env->env->get_username(),
+                tbl_name,
+                db,
+                config_params,
+                primary_key,
+                durability,
+                env->env->interruptor,
+                &result,
+                &error)) {
             REQL_RETHROW(error);
         }
         return new_val(result);
@@ -221,8 +232,12 @@ private:
 
         admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->db_drop(db_name,
-                env->env->interruptor, &result, &error)) {
+        if (!env->env->reql_cluster_interface()->db_drop(
+                env->env->get_username(),
+                db_name,
+                env->env->interruptor,
+                &result,
+                &error)) {
             REQL_RETHROW(error);
         }
 
@@ -252,8 +267,13 @@ private:
 
         admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->table_drop(tbl_name, db,
-                env->env->interruptor, &result, &error)) {
+        if (!env->env->reql_cluster_interface()->table_drop(
+                env->env->get_username(),
+                tbl_name,
+                db,
+                env->env->interruptor,
+                &result,
+                &error)) {
             REQL_RETHROW(error);
         }
 
@@ -548,12 +568,23 @@ private:
             /* Perform the operation */
             if (static_cast<bool>(name_if_table)) {
                 success = env->env->reql_cluster_interface()->table_reconfigure(
-                        db, *name_if_table, config_params, dry_run,
-                        env->env->interruptor, &result, &error);
+                    env->env->get_username(),
+                    db,
+                    *name_if_table,
+                    config_params,
+                    dry_run,
+                    env->env->interruptor,
+                    &result,
+                    &error);
             } else {
                 success = env->env->reql_cluster_interface()->db_reconfigure(
-                        db, config_params, dry_run, env->env->interruptor,
-                        &result, &error);
+                    env->env->get_username(),
+                    db,
+                    config_params,
+                    dry_run,
+                    env->env->interruptor,
+                    &result,
+                    &error);
             }
             if (!success) {
                 REQL_RETHROW(error);
@@ -597,8 +628,14 @@ private:
             datum_t result;
             admin_err_t error;
             bool success = env->env->reql_cluster_interface()->table_emergency_repair(
-                db, *name_if_table, mode, dry_run,
-                env->env->interruptor, &result, &error);
+                env->env->get_username(),
+                db,
+                *name_if_table,
+                mode,
+                dry_run,
+                env->env->interruptor,
+                &result,
+                &error);
             if (!success) {
                 REQL_RETHROW(error);
             }
@@ -627,10 +664,19 @@ private:
         admin_err_t error;
         if (static_cast<bool>(name_if_table)) {
             success = env->env->reql_cluster_interface()->table_rebalance(
-                db, *name_if_table, env->env->interruptor, &result, &error);
+                env->env->get_username(),
+                db,
+                *name_if_table,
+                env->env->interruptor,
+                &result,
+                &error);
         } else {
             success = env->env->reql_cluster_interface()->db_rebalance(
-                db, env->env->interruptor, &result, &error);
+                env->env->get_username(),
+                db,
+                env->env->interruptor,
+                &result,
+                &error);
         }
         if (!success) {
             REQL_RETHROW(error);
@@ -666,7 +712,7 @@ public:
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
-        auth::username_t username(
+        auth::username_t grantee_username(
             args->arg(env, args->num_args() - 2)->as_str().to_std());
 
         bool success = false;
@@ -676,14 +722,20 @@ private:
             auth::global_permissions_t global_permissions(
                 args->arg(env, 1)->as_datum());
             success = env->env->reql_cluster_interface()->grant_global(
-                username, global_permissions, env->env->interruptor, &result, &error);
+                env->env->get_username(),
+                grantee_username,
+                global_permissions,
+                env->env->interruptor,
+                &result,
+                &error);
         } else {
             scoped_ptr_t<val_t> scope = args->arg(env, 0);
             auth::permissions_t permissions(args->arg(env, 2)->as_datum());
             if (scope->get_type().is_convertible(val_t::type_t::DB)) {
                 success = env->env->reql_cluster_interface()->grant_database(
+                    env->env->get_username(),
                     scope->as_db()->id,
-                    username,
+                    grantee_username,
                     permissions,
                     env->env->interruptor,
                     &result,
@@ -691,9 +743,10 @@ private:
             } else {
                 counted_t<table_t> table = scope->as_table();
                 success = env->env->reql_cluster_interface()->grant_table(
+                    env->env->get_username(),
                     table->db->id,
                     table->get_id(),
-                    username,
+                    grantee_username,
                     permissions,
                     env->env->interruptor,
                     &result,
