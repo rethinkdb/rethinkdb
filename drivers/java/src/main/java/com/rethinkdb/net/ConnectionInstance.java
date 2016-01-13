@@ -1,8 +1,10 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.gen.exc.*;
+import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.exc.ReqlError;
 
+import javax.net.ssl.SSLContext;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Optional;
@@ -25,8 +27,9 @@ public class ConnectionInstance {
             String hostname,
             int port,
             ByteBuffer handshake,
+            Optional<SSLContext> sslContext,
             Optional<Long> timeout) throws TimeoutException {
-        SocketWrapper sock = new SocketWrapper(hostname, port, timeout);
+        SocketWrapper sock = new SocketWrapper(hostname, port, sslContext, timeout);
         sock.connect(handshake);
         socket = Optional.of(sock);
     }

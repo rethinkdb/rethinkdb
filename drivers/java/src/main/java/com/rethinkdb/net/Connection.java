@@ -9,6 +9,7 @@ import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 
+import javax.net.ssl.SSLContext;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +28,8 @@ public class Connection {
     // private mutable
     private Optional<String> dbname;
     private Optional<Long> connectTimeout;
-    private ByteBuffer handshake;
+    private Optional<SSLContext> sslContext;
+    private final ByteBuffer handshake;
     private Optional<ConnectionInstance> instance = Optional.empty();
 
     private Connection(Builder builder) {
@@ -41,6 +43,7 @@ public class Connection {
         handshake.flip();
         hostname = builder.hostname.orElse("localhost");
         port = builder.port.orElse(28015);
+        sslContext = builder.sslContext;
         connectTimeout = builder.timeout;
 
         instanceMaker = builder.instanceMaker;
@@ -88,7 +91,7 @@ public class Connection {
         close(noreplyWait);
         ConnectionInstance inst = instanceMaker.get();
         instance = Optional.of(inst);
-        inst.connect(hostname, port, handshake, timeout);
+        inst.connect(hostname, port, handshake, sslContext, timeout);
         return this;
     }
 
@@ -224,6 +227,7 @@ public class Connection {
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
         private Optional<String> authKey = Optional.empty();
+        private Optional<SSLContext> sslContext = Optional.empty();
         private Optional<Long> timeout = Optional.empty();
 
         public Builder(Supplier instanceMaker) {
@@ -237,6 +241,8 @@ public class Connection {
             { dbname   = Optional.of(val); return this; }
         public Builder authKey(String val)
             { authKey  = Optional.of(val); return this; }
+        public Builder sslContext(SSLContext val)
+        { sslContext  = Optional.of(val); return this; }
         public Builder timeout(long val)
             { timeout  = Optional.of(val); return this; }
 
