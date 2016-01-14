@@ -46,8 +46,8 @@ public:
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
     // same thread that initial_message was delivered to, and interrupt_message will be set to
     // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
-    // set_interrupt_message() again. Returns the previous value of interrupt_message.
-    static MUST_USE os_signal_cond_t *set_interrupt_message(os_signal_cond_t *interrupt_message);
+    // exchange_interrupt_message() again. Returns the previous value of interrupt_message.
+    MUST_USE os_signal_cond_t *exchange_interrupt_message(os_signal_cond_t *interrupt_message);
 
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
     // is a thread message that will be delivered to thread zero after all of the event queues

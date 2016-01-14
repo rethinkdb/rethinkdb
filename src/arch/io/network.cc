@@ -831,9 +831,6 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     event_watchers(),
     log_next_error(true)
 {
-    // TODO ATN: this is for testing
-    // local_addresses = std::set<ip_address_t>{ ip_address_t::any(AF_INET) }; // TODO: maybe use gethostbyname
-
     // If no addresses were supplied, default to 'any'
     if (local_addresses.empty()) {
         local_addresses.insert(ip_address_t::any(AF_INET6));

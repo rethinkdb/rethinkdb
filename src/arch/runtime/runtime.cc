@@ -9,6 +9,10 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "do_on_thread.hpp"
 
+bool in_thread_pool() {
+    return linux_thread_pool_t::get_thread_pool() != nullptr;
+}
+
 threadnum_t get_thread_id() {
     if (i_am_in_blocker_pool_thread()) {
         return threadnum_t(-1);

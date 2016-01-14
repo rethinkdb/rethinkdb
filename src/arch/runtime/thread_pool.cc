@@ -82,13 +82,18 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
-os_signal_cond_t *linux_thread_pool_t::set_interrupt_message(os_signal_cond_t *m) {
+os_signal_cond_t *linux_thread_pool_t::exchange_interrupt_message(os_signal_cond_t *m) {
+    debugf("ATN: exchange_interrupt_message\n");
     os_signal_cond_t *o;
     {
-        spinlock_acq_t acq(&get_thread_pool()->interrupt_message_lock);
+        spinlock_acq_t acq(&interrupt_message_lock);
+        debugf("ATN: got lock\n");
 
-        o = get_thread_pool()->interrupt_message;
-        get_thread_pool()->interrupt_message = m;
+        o = interrupt_message;
+        debugf("ATN: got message\n");
+
+        interrupt_message = m;
+        debugf("ATN: set message\n");
     }
 
     return o;
@@ -346,13 +351,19 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #ifdef _WIN32
 
 void linux_thread_pool_t::interrupt_handler(DWORD type) {
+    debugf("ATN: in handler\n");
     // The  handler should run on a new thread created by the OS
     rassert(get_thread_pool() == nullptr, "The interrupt handler was called on the wrong thread.");
 
+    debugf("ATN: get pool\n");
     linux_thread_pool_t *self = global_thread_pool.load();
 
-    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
+    debugf("ATN: get message\n");
+    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(NULL);
+    debugf("ATN: got message %p\n", interrupt_signal);
+
     if (interrupt_signal != NULL) {
+        debugf("ATN: signaling thread\n");
         interrupt_signal->source_type = type;
         self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
     }
@@ -376,7 +387,7 @@ void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void 
     to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
-    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
+    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(NULL);
     if (interrupt_signal != NULL) {
         interrupt_signal->source_signo = signo;
         interrupt_signal->source_pid = siginfo->si_pid;
