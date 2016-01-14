@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
+    debugf("ATN: startup shutdown\n");
     startup_shutdown_t startup_shutdown;
 
 #ifdef _WIN32

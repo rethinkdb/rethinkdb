@@ -1,6 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32
-
 #include "arch/os_signal.hpp"
 
 #include "arch/runtime/thread_pool.hpp"
@@ -8,9 +6,13 @@
 #include "do_on_thread.hpp"
 
 os_signal_cond_t::os_signal_cond_t() :
+#ifdef _WIN32
+    source_type(0)
+#else
     source_pid(-1),
     source_uid(-1),
     source_signo(0)
+#endif
 {
     DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(this);
     rassert(old == NULL);
@@ -29,17 +31,26 @@ void os_signal_cond_t::on_thread_switch() {
 }
 
 std::string os_signal_cond_t::format() {
+#ifdef _WIN32
+    switch (source_type) {
+    case CTRL_C_EVENT:
+        return "Control-C";
+    case CTRL_BREAK_EVENT:
+        return "Control-Break";
+    default:
+        return strprintf("console signal %ud", source_type);
+    }
+#else
     switch (source_signo) {
     case SIGINT:
-        return strprintf("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+        return strprintf("SIGINT from pid %d, uid %d",
                          source_pid, source_uid);
     case SIGTERM:
-        return strprintf("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+        return strprintf("SIGTERM from pid %d, uid %d",
                          source_pid, source_uid);
     default:
-        return strprintf("Server got signal %d from pid %d, uid %d; shutting down...\n",
+        return strprintf("signal %d from pid %d, uid %d",
                          source_signo, source_pid, source_uid);
     }
-}
-
 #endif
+}

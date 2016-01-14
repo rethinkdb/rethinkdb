@@ -1,17 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/thread_pool.hpp"
 
-/* TODO ATN: windows ^C handler:
-    SetConsoleCtrlHandler(windows_ctrl_handler, true);
-
-BOOL windows_ctrl_handler(DWORD type) {
-    // NOTE: this function runs in a fresh thread
-    // see HandlerRoutine docs:
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms683242(v=vs.85).aspx
-}
-*/
-
-
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
@@ -37,6 +26,14 @@ BOOL windows_ctrl_handler(DWORD type) {
 // to format a backtrace.
 const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif
+
+#ifdef _WIN32
+std::atomic<linux_thread_pool_t *> linux_thread_pool_t::global_thread_pool = nullptr;
+#endif
+
+linux_thread_pool_t *linux_thread_pool_t::get_global_thread_pool() {
+    return global_thread_pool.load();
+}
 
 THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
 THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
@@ -257,7 +254,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // not really important.
 
     set_thread_pool(this);   // So signal handlers can find us
-#ifndef _WIN32
+#ifdef _WIN32
+    global_thread_pool.store(this);
+#else
     {
         struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
@@ -282,7 +281,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
     guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
-#ifndef _WIN32
+#ifdef _WIN32
+    global_thread_pool.store(nullptr);
+#else
     // Remove interrupt handlers
     {
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
@@ -345,8 +346,16 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #ifdef _WIN32
 
 void linux_thread_pool_t::interrupt_handler(DWORD type) {
-    // Send message to main thread that triggers os_signal_cond_t
-    // Sleep and hope rethinkdb cleans up before it gets killed by windows
+    // The  handler should run on a new thread created by the OS
+    rassert(get_thread_pool() == nullptr, "The interrupt handler was called on the wrong thread.");
+
+    linux_thread_pool_t *self = global_thread_pool.load();
+
+    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
+    if (interrupt_signal != NULL) {
+        interrupt_signal->source_type = type;
+        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
+    }
 }
 
 #else

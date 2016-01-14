@@ -6,6 +6,7 @@
 
 #include <map>
 #include <string>
+#include <atomic>
 
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
@@ -62,6 +63,10 @@ public:
 
     ~linux_thread_pool_t();
 
+#ifdef _WIN32
+    static void interrupt_handler(DWORD type);
+#endif
+
 private:
 #ifndef NDEBUG
     bool coroutine_summary;
@@ -69,9 +74,7 @@ private:
 
     static void *start_thread(void*);
 
-#ifdef _WIN32
-    static void interrupt_handler(DWORD type);
-#else
+#ifndef _WIN32
     static void interrupt_handler(int signo, siginfo_t *siginfo, void *);
     // Currently handles SIGSEGV and SIGBUS signals.
     static void fatal_signal_handler(int, siginfo_t *, void *) NORETURN;
@@ -100,6 +103,10 @@ public:
     int n_threads;
     bool do_set_affinity;
 
+#ifdef _WIN32
+    static linux_thread_pool_t *get_global_thread_pool();
+#endif
+
     // Non-inlinable getters and setters for the thread local variables.
     // See thread_local.hpp for an explanation of why these must not be
     // inlined.
@@ -111,6 +118,11 @@ public:
     static void set_thread(linux_thread_t *val);
 
 private:
+
+#ifdef _WIN32
+    static std::atomic<linux_thread_pool_t *> global_thread_pool;
+#endif
+
     // The thread_pool that started the thread we are currently in
     static THREAD_LOCAL linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in

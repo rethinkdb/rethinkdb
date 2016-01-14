@@ -598,7 +598,7 @@ bool do_serve(io_backender_t *io_backender,
                     /* This is the end of the startup process. `stop_cond` will be pulsed
                     when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
-                    logNTC(stop_cond->format().c_str());
+                    logNTC("Server got %s; shutting down...", stop_cond->format().c_str());
                 }
 
                 cond_t non_interruptor;

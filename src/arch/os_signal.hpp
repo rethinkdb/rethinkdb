@@ -15,8 +15,8 @@ public:
     std::string format();
 
 private:
-    friend class thread_pool_t;
-#ifndef _WIN32
+    friend class linux_thread_pool_t;
+#ifdef _WIN32
     DWORD source_type;
 #else
     pid_t source_pid;
