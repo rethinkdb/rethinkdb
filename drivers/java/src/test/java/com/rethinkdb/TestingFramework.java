@@ -15,24 +15,31 @@ public class TestingFramework {
 
     private static final String DEFAULT_CONFIG_RESOURCE = "default-config.properties";
     private static final String OVERRIDE_FILE_NAME = "test-config-override.properties";
-    private static final String HOST_NAME = "hostName";
-    private static final String PORT      = "port";
 
-    private static Configuration configuration;
+    // properties used to populate configuration
+    private static final String PROP_HOSTNAME = "hostName";
+    private static final String PROP_PORT = "port";
+    private static final String PROP_AUTHKEY = "authKey";
+
+    private static Connection.Builder defaultConnectionBuilder;
 
     /**
-     * Read the test configuration. Put a propertiy file called "test-config-override.properties" in the working
+     * Provision a connection builder based on the test configuration.
+     * <p>
+     * Put a propertiy file called "test-config-override.properties" in the working
      * directory of the tests to override default values.
-     * <P>
+     * <p>
      * Example:
      * <pre>
      *     hostName=myHost
      *     port=12345
      * </pre>
      * </P>
+     *
+     * @return Default connection builder.
      */
-    public static Configuration getConfig() {
-        if (configuration == null) {
+    public static Connection.Builder defaultConnectionBuilder() {
+        if (defaultConnectionBuilder == null) {
             Properties config = new Properties();
 
             try (InputStream is = TestingFramework.class.getClassLoader().getResourceAsStream(DEFAULT_CONFIG_RESOURCE)) {
@@ -52,46 +59,34 @@ public class TestingFramework {
                 }
             }
 
-            configuration = new Configuration();
-            configuration.setHostName(config.getProperty("hostName").trim());
-            configuration.setPort(Integer.parseInt(config.getProperty("port").trim()));
+            // provision connection builder based on configuration
+            defaultConnectionBuilder = RethinkDB.r.connection();
+            // mandatory fields
+            defaultConnectionBuilder = defaultConnectionBuilder.hostname(config.getProperty(PROP_HOSTNAME).trim());
+            defaultConnectionBuilder = defaultConnectionBuilder.port(Integer.parseInt(config.getProperty(PROP_PORT).trim()));
+            // optinal fields
+            final String authKey = config.getProperty(PROP_AUTHKEY);
+            if (authKey != null) {
+                defaultConnectionBuilder.authKey(config.getProperty(PROP_AUTHKEY).trim());
+            }
         }
-        return configuration;
+
+        return defaultConnectionBuilder;
     }
 
     /**
      * @return A new connection from the configuration.
      */
     public static Connection createConnection() throws Exception {
-        return RethinkDB.r.connection()
-                .hostname( getConfig().getHostName() )
-                .port( getConfig().getPort() )
-                .connect();
+        return createConnection(defaultConnectionBuilder());
     }
 
     /**
-     * Test framework configuration.
+     * @return A new connection from a specific builder to be used in tests where a specific connection is needed,
+     * i.e. connection secured with SSL.
      */
-    public static class Configuration {
-
-        private String hostName;
-        private int port;
-
-        public String getHostName() {
-            return hostName;
-        }
-
-        public void setHostName( String hostName ) {
-            this.hostName = hostName;
-        }
-
-        public int getPort() {
-            return port;
-        }
-
-        public void setPort( int port ) {
-            this.port = port;
-        }
+    public static Connection createConnection(Connection.Builder builder) throws Exception {
+        return builder.connect();
     }
 
 }

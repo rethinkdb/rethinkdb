@@ -649,10 +649,10 @@ class EmptyTemplate(Exception):
 class Renderer(object):
     '''Manages rendering templates'''
 
-    def __init__(self, template_dir, invoking_filenames, source_files):
+    def __init__(self, template_dir, invoking_filenames, source_files=None):
         self.template_dir = template_dir
         self.invoking_filenames = invoking_filenames
-        self.source_files = source_files
+        self.source_files = source_files or []
         self.tl = TemplateLookup(directories=[template_dir])
         self.template_context = {
             'camel': camel,  # CamelCase function
