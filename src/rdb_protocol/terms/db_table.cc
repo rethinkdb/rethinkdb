@@ -503,9 +503,9 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
+        // Don't allow a reconfigure call without explicit database
         if (args->num_args() == 0) {
-	  rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
+	  rfail(base_exc_t::LOGIC, "`reconfigure` can only be called on a table or database.");
         }
 
         // Parse the 'dry_run' optarg
@@ -614,7 +614,7 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
+        // Don't allow a rebalance call without explicit database
         if (args->num_args() == 0) {
 	  rfail(base_exc_t::LOGIC, "`rebalance` can only be called on a table or database.");
         }
