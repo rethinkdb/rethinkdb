@@ -76,41 +76,25 @@ public class DatumString {
     @Test(timeout=120000)
     public void test() throws Exception {
 
+        // datum/string.yaml line #7
+        // japanese_hello = u'こんにちは'
+        logger.info("Possibly executing: String japanese_hello = (String) ('こんにちは');");
+        String japanese_hello = (String) ("こんにちは");
+
         {
-            // datum/string.yaml line #8
+            // datum/string.yaml line #16
             /* "str" */
             String expected_ = "str";
             /* r.expr('str') */
-            logger.info("About to run line #8: r.expr('str')");
+            logger.info("About to run line #16: r.expr('str')");
             Object obtained = runOrCatch(r.expr("str"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #8");
+            logger.info("Finished running line #16");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #8:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #13
-            /* "str" */
-            String expected_ = "str";
-            /* r.expr("str") */
-            logger.info("About to run line #13: r.expr('str')");
-            Object obtained = runOrCatch(r.expr("str"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #13");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #13:" + ae.toString());
+                logger.error("Whoops, got exception on line #16:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -120,9 +104,9 @@ public class DatumString {
 
         {
             // datum/string.yaml line #21
-            /* 'str' */
+            /* "str" */
             String expected_ = "str";
-            /* r.expr(u'str') */
+            /* r.expr("str") */
             logger.info("About to run line #21: r.expr('str')");
             Object obtained = runOrCatch(r.expr("str"),
                                           new OptArgs()
@@ -140,61 +124,40 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #30
-            /* 'こんにちは' */
+            // datum/string.yaml line #28
+            /* 'str' */
+            String expected_ = "str";
+            /* r.expr(u'str') */
+            logger.info("About to run line #28: r.expr('str')");
+            Object obtained = runOrCatch(r.expr("str"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #28");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #28:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #35
+            /* u'こんにちは' */
             String expected_ = "こんにちは";
-            /* r.expr(u'こんにちは') */
-            logger.info("About to run line #30: r.expr('こんにちは')");
-            Object obtained = runOrCatch(r.expr("こんにちは"),
+            /* r.expr(japanese_hello) */
+            logger.info("About to run line #35: r.expr(japanese_hello)");
+            Object obtained = runOrCatch(r.expr(japanese_hello),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #30");
+            logger.info("Finished running line #35");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #30:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #37
-            /* 'STRING' */
-            String expected_ = "STRING";
-            /* r.expr('foo').type_of() */
-            logger.info("About to run line #37: r.expr('foo').typeOf()");
-            Object obtained = runOrCatch(r.expr("foo").typeOf(),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #37");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #37:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #41
-            /* 'foo' */
-            String expected_ = "foo";
-            /* r.expr('foo').coerce_to('string') */
-            logger.info("About to run line #41: r.expr('foo').coerceTo('string')");
-            Object obtained = runOrCatch(r.expr("foo").coerceTo("string"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #41");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #41:" + ae.toString());
+                logger.error("Whoops, got exception on line #35:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -204,17 +167,15 @@ public class DatumString {
 
         {
             // datum/string.yaml line #43
-            /* -1.2 */
-            Double expected_ = -1.2;
-            /* r.expr('-1.2').coerce_to('NUMBER') */
-            logger.info("About to run line #43: r.expr('-1.2').coerceTo('NUMBER')");
-            Object obtained = runOrCatch(r.expr("-1.2").coerceTo("NUMBER"),
+            /* 'STRING' */
+            String expected_ = "STRING";
+            /* r.expr('foo').type_of() */
+            logger.info("About to run line #43: r.expr('foo').typeOf()");
+            Object obtained = runOrCatch(r.expr("foo").typeOf(),
                                           new OptArgs()
                                           ,conn);
             try {
-                assertEquals((double) expected_,
-                             ((Number) obtained).doubleValue(),
-                             0.00000000001);
+                assertEquals(expected_, obtained);
             logger.info("Finished running line #43");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #43:" + ae.toString());
@@ -226,33 +187,12 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #45
-            /* err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", r.array());
-            /* r.expr('--1.2').coerce_to('NUMBER') */
-            logger.info("About to run line #45: r.expr('--1.2').coerceTo('NUMBER')");
-            Object obtained = runOrCatch(r.expr("--1.2").coerceTo("NUMBER"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #45");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #45:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // datum/string.yaml line #47
-            /* err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", r.array());
-            /* r.expr('-1.2-').coerce_to('NUMBER') */
-            logger.info("About to run line #47: r.expr('-1.2-').coerceTo('NUMBER')");
-            Object obtained = runOrCatch(r.expr("-1.2-").coerceTo("NUMBER"),
+            /* 'foo' */
+            String expected_ = "foo";
+            /* r.expr('foo').coerce_to('string') */
+            logger.info("About to run line #47: r.expr('foo').coerceTo('string')");
+            Object obtained = runOrCatch(r.expr("foo").coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -269,15 +209,17 @@ public class DatumString {
 
         {
             // datum/string.yaml line #49
-            /* 10 */
-            Long expected_ = 10L;
-            /* r.expr('0xa').coerce_to('NUMBER') */
-            logger.info("About to run line #49: r.expr('0xa').coerceTo('NUMBER')");
-            Object obtained = runOrCatch(r.expr("0xa").coerceTo("NUMBER"),
+            /* -1.2 */
+            Double expected_ = -1.2;
+            /* r.expr('-1.2').coerce_to('NUMBER') */
+            logger.info("About to run line #49: r.expr('-1.2').coerceTo('NUMBER')");
+            Object obtained = runOrCatch(r.expr("-1.2").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
             try {
-                assertEquals(expected_, obtained);
+                assertEquals((double) expected_,
+                             ((Number) obtained).doubleValue(),
+                             0.00000000001);
             logger.info("Finished running line #49");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #49:" + ae.toString());
@@ -290,11 +232,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #51
-            /* err("ReqlQueryLogicError", "Non-finite number: inf", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Non-finite number: inf", r.array());
-            /* r.expr('inf').coerce_to('NUMBER') */
-            logger.info("About to run line #51: r.expr('inf').coerceTo('NUMBER')");
-            Object obtained = runOrCatch(r.expr("inf").coerceTo("NUMBER"),
+            /* err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", r.array());
+            /* r.expr('--1.2').coerce_to('NUMBER') */
+            logger.info("About to run line #51: r.expr('--1.2').coerceTo('NUMBER')");
+            Object obtained = runOrCatch(r.expr("--1.2").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -310,12 +252,33 @@ public class DatumString {
         }
 
         {
+            // datum/string.yaml line #53
+            /* err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", r.array());
+            /* r.expr('-1.2-').coerce_to('NUMBER') */
+            logger.info("About to run line #53: r.expr('-1.2-').coerceTo('NUMBER')");
+            Object obtained = runOrCatch(r.expr("-1.2-").coerceTo("NUMBER"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #53");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #53:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
             // datum/string.yaml line #55
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('').split() */
-            logger.info("About to run line #55: r.expr('').split()");
-            Object obtained = runOrCatch(r.expr("").split(),
+            /* 10 */
+            Long expected_ = 10L;
+            /* r.expr('0xa').coerce_to('NUMBER') */
+            logger.info("About to run line #55: r.expr('0xa').coerceTo('NUMBER')");
+            Object obtained = runOrCatch(r.expr("0xa").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -332,11 +295,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #57
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('').split(null) */
-            logger.info("About to run line #57: r.expr('').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null),
+            /* err("ReqlQueryLogicError", "Non-finite number: inf", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Non-finite number: inf", r.array());
+            /* r.expr('inf').coerce_to('NUMBER') */
+            logger.info("About to run line #57: r.expr('inf').coerceTo('NUMBER')");
+            Object obtained = runOrCatch(r.expr("inf").coerceTo("NUMBER"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -352,33 +315,12 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #59
-            /* [''] */
-            List expected_ = r.array("");
-            /* r.expr('').split(' ') */
-            logger.info("About to run line #59: r.expr('').split(' ')");
-            Object obtained = runOrCatch(r.expr("").split(" "),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #59");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #59:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // datum/string.yaml line #61
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('').split('') */
-            logger.info("About to run line #61: r.expr('').split('')");
-            Object obtained = runOrCatch(r.expr("").split(""),
+            /* 13 */
+            Long expected_ = 13L;
+            /* r.expr('hello, world!').count() */
+            logger.info("About to run line #61: r.expr('hello, world!').count()");
+            Object obtained = runOrCatch(r.expr("hello, world!").count(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -395,11 +337,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #63
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('').split(null, 5) */
-            logger.info("About to run line #63: r.expr('').split((ReqlExpr) null, 5L)");
-            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null, 5L),
+            /* 5 */
+            Long expected_ = 5L;
+            /* r.expr(japanese_hello).count() */
+            logger.info("About to run line #63: r.expr(japanese_hello).count()");
+            Object obtained = runOrCatch(r.expr(japanese_hello).count(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -415,33 +357,12 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #65
-            /* [''] */
-            List expected_ = r.array("");
-            /* r.expr('').split(' ', 5) */
-            logger.info("About to run line #65: r.expr('').split(' ', 5L)");
-            Object obtained = runOrCatch(r.expr("").split(" ", 5L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #65");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #65:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // datum/string.yaml line #67
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('').split('', 5) */
-            logger.info("About to run line #67: r.expr('').split('', 5L)");
-            Object obtained = runOrCatch(r.expr("").split("", 5L),
+            /* 'ello' */
+            String expected_ = "ello";
+            /* r.expr('hello').slice(1) */
+            logger.info("About to run line #67: r.expr('hello').slice(1L)");
+            Object obtained = runOrCatch(r.expr("hello").slice(1L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -457,19 +378,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #70
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('aaaa bbbb  cccc ').split() */
-            logger.info("About to run line #70: r.expr('aaaa bbbb  cccc ').split()");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(),
+            // datum/string.yaml line #69
+            /* 'o' */
+            String expected_ = "o";
+            /* r.expr('hello').slice(-1) */
+            logger.info("About to run line #69: r.expr('hello').slice(-1L)");
+            Object obtained = runOrCatch(r.expr("hello").slice(-1L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #70");
+            logger.info("Finished running line #69");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #70:" + ae.toString());
+                logger.error("Whoops, got exception on line #69:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -478,19 +399,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #72
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('aaaa bbbb  cccc ').split(null) */
-            logger.info("About to run line #72: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null),
+            // datum/string.yaml line #71
+            /* 'el' */
+            String expected_ = "el";
+            /* r.expr('hello').slice(-4,3) */
+            logger.info("About to run line #71: r.expr('hello').slice(-4L, 3L)");
+            Object obtained = runOrCatch(r.expr("hello").slice(-4L, 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #72");
+            logger.info("Finished running line #71");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #72:" + ae.toString());
+                logger.error("Whoops, got exception on line #71:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -499,19 +420,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #74
-            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
-            List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
-            /* r.expr('aaaa bbbb  cccc ').split(' ') */
-            logger.info("About to run line #74: r.expr('aaaa bbbb  cccc ').split(' ')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" "),
+            // datum/string.yaml line #73
+            /* 'hello' */
+            String expected_ = "hello";
+            /* r.expr('hello').slice(-99) */
+            logger.info("About to run line #73: r.expr('hello').slice(-99L)");
+            Object obtained = runOrCatch(r.expr("hello").slice(-99L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #74");
+            logger.info("Finished running line #73");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #74:" + ae.toString());
+                logger.error("Whoops, got exception on line #73:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -520,19 +441,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #76
-            /* ['a', 'a', 'a', 'a', ' ', 'b', 'b', 'b', 'b', ' ', ' ', 'c', 'c', 'c', 'c', ' '] */
-            List expected_ = r.array("a", "a", "a", "a", " ", "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " ");
-            /* r.expr('aaaa bbbb  cccc ').split('') */
-            logger.info("About to run line #76: r.expr('aaaa bbbb  cccc ').split('')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(""),
+            // datum/string.yaml line #75
+            /* 'hello' */
+            String expected_ = "hello";
+            /* r.expr('hello').slice(0) */
+            logger.info("About to run line #75: r.expr('hello').slice(0L)");
+            Object obtained = runOrCatch(r.expr("hello").slice(0L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #76");
+            logger.info("Finished running line #75");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #76:" + ae.toString());
+                logger.error("Whoops, got exception on line #75:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -541,61 +462,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #78
-            /* ['aaaa ', '', '', '', '  cccc '] */
-            List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('b') */
-            logger.info("About to run line #78: r.expr('aaaa bbbb  cccc ').split('b')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b"),
+            // datum/string.yaml line #77
+            /* u'んにちは' */
+            String expected_ = "んにちは";
+            /* r.expr(japanese_hello).slice(1) */
+            logger.info("About to run line #77: r.expr(japanese_hello).slice(1L)");
+            Object obtained = runOrCatch(r.expr(japanese_hello).slice(1L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #78");
+            logger.info("Finished running line #77");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #78:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #80
-            /* ['aaaa ', '', '  cccc '] */
-            List expected_ = r.array("aaaa ", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('bb') */
-            logger.info("About to run line #80: r.expr('aaaa bbbb  cccc ').split('bb')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #80");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #80:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #82
-            /* ['aaaa', 'cccc '] */
-            List expected_ = r.array("aaaa", "cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ') */
-            logger.info("About to run line #82: r.expr('aaaa bbbb  cccc ').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  "),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #82");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #82:" + ae.toString());
+                logger.error("Whoops, got exception on line #77:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -605,11 +484,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #84
-            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
-            List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
-            logger.info("About to run line #84: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
+            /* u'ん' */
+            String expected_ = "ん";
+            /* r.expr(japanese_hello).slice(1,2) */
+            logger.info("About to run line #84: r.expr(japanese_hello).slice(1L, 2L)");
+            Object obtained = runOrCatch(r.expr(japanese_hello).slice(1L, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -625,54 +504,12 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #86
-            /* ['aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
-            logger.info("About to run line #86: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #86");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #86:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #88
-            /* ['aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
-            logger.info("About to run line #88: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #88");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #88:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // datum/string.yaml line #91
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('aaaa bbbb  cccc ').split(null, 3) */
-            logger.info("About to run line #91: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
+            /* u'にちは' */
+            String expected_ = "にちは";
+            /* r.expr(japanese_hello).slice(-3) */
+            logger.info("About to run line #91: r.expr(japanese_hello).slice(-3L)");
+            Object obtained = runOrCatch(r.expr(japanese_hello).slice(-3L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -688,19 +525,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #93
-            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
-            List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
-            /* r.expr('aaaa bbbb  cccc ').split(' ', 5) */
-            logger.info("About to run line #93: r.expr('aaaa bbbb  cccc ').split(' ', 5L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 5L),
+            // datum/string.yaml line #100
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('').split() */
+            logger.info("About to run line #100: r.expr('').split()");
+            Object obtained = runOrCatch(r.expr("").split(),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #93");
+            logger.info("Finished running line #100");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #93:" + ae.toString());
+                logger.error("Whoops, got exception on line #100:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -709,19 +546,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #95
-            /* ['a', 'a', 'a', 'a', ' ', 'bbbb  cccc '] */
-            List expected_ = r.array("a", "a", "a", "a", " ", "bbbb  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('', 5) */
-            logger.info("About to run line #95: r.expr('aaaa bbbb  cccc ').split('', 5L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 5L),
+            // datum/string.yaml line #102
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('').split(null) */
+            logger.info("About to run line #102: r.expr('').split((ReqlExpr) null)");
+            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #95");
+            logger.info("Finished running line #102");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #95:" + ae.toString());
+                logger.error("Whoops, got exception on line #102:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -730,19 +567,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #97
-            /* ['aaaa ', '', '', '', '  cccc '] */
-            List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('b', 5) */
-            logger.info("About to run line #97: r.expr('aaaa bbbb  cccc ').split('b', 5L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 5L),
+            // datum/string.yaml line #104
+            /* [''] */
+            List expected_ = r.array("");
+            /* r.expr('').split(' ') */
+            logger.info("About to run line #104: r.expr('').split(' ')");
+            Object obtained = runOrCatch(r.expr("").split(" "),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #97");
+            logger.info("Finished running line #104");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #97:" + ae.toString());
+                logger.error("Whoops, got exception on line #104:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -751,19 +588,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #99
-            /* ['aaaa ', '', '  cccc '] */
-            List expected_ = r.array("aaaa ", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('bb', 3) */
-            logger.info("About to run line #99: r.expr('aaaa bbbb  cccc ').split('bb', 3L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 3L),
+            // datum/string.yaml line #106
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('').split('') */
+            logger.info("About to run line #106: r.expr('').split('')");
+            Object obtained = runOrCatch(r.expr("").split(""),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #99");
+            logger.info("Finished running line #106");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #99:" + ae.toString());
+                logger.error("Whoops, got exception on line #106:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -772,82 +609,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #101
-            /* ['aaaa', 'cccc '] */
-            List expected_ = r.array("aaaa", "cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            logger.info("About to run line #101: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 2L),
+            // datum/string.yaml line #108
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('').split(null, 5) */
+            logger.info("About to run line #108: r.expr('').split((ReqlExpr) null, 5L)");
+            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null, 5L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #101");
+            logger.info("Finished running line #108");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #101:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #103
-            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
-            List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
-            logger.info("About to run line #103: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #103");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #103:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #105
-            /* ['aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            logger.info("About to run line #105: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #105");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #105:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #107
-            /* ['aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
-            logger.info("About to run line #107: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #107");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #107:" + ae.toString());
+                logger.error("Whoops, got exception on line #108:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -857,11 +631,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #110
-            /* ['aaaa', 'bbbb', 'cccc '] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(null, 2) */
-            logger.info("About to run line #110: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
+            /* [''] */
+            List expected_ = r.array("");
+            /* r.expr('').split(' ', 5) */
+            logger.info("About to run line #110: r.expr('').split(' ', 5L)");
+            Object obtained = runOrCatch(r.expr("").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -878,11 +652,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #112
-            /* ["a", "b"] */
-            List expected_ = r.array("a", "b");
-            /* r.expr("a  b  ").split(null, 2) */
-            logger.info("About to run line #112: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('').split('', 5) */
+            logger.info("About to run line #112: r.expr('').split('', 5L)");
+            Object obtained = runOrCatch(r.expr("").split("", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -898,19 +672,61 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #114
+            // datum/string.yaml line #115
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('aaaa bbbb  cccc ').split() */
+            logger.info("About to run line #115: r.expr('aaaa bbbb  cccc ').split()");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #115");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #115:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #117
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('aaaa bbbb  cccc ').split(null) */
+            logger.info("About to run line #117: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #117");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #117:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #119
             /* ['aaaa', 'bbbb', '', 'cccc', ''] */
             List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
-            /* r.expr('aaaa bbbb  cccc ').split(' ', 4) */
-            logger.info("About to run line #114: r.expr('aaaa bbbb  cccc ').split(' ', 4L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 4L),
+            /* r.expr('aaaa bbbb  cccc ').split(' ') */
+            logger.info("About to run line #119: r.expr('aaaa bbbb  cccc ').split(' ')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" "),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #114");
+            logger.info("Finished running line #119");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #114:" + ae.toString());
+                logger.error("Whoops, got exception on line #119:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -919,19 +735,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #116
-            /* ['a', 'a', 'a', 'a', ' bbbb  cccc '] */
-            List expected_ = r.array("a", "a", "a", "a", " bbbb  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('', 4) */
-            logger.info("About to run line #116: r.expr('aaaa bbbb  cccc ').split('', 4L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 4L),
+            // datum/string.yaml line #121
+            /* ['a', 'a', 'a', 'a', ' ', 'b', 'b', 'b', 'b', ' ', ' ', 'c', 'c', 'c', 'c', ' '] */
+            List expected_ = r.array("a", "a", "a", "a", " ", "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " ");
+            /* r.expr('aaaa bbbb  cccc ').split('') */
+            logger.info("About to run line #121: r.expr('aaaa bbbb  cccc ').split('')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(""),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #116");
+            logger.info("Finished running line #121");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #116:" + ae.toString());
+                logger.error("Whoops, got exception on line #121:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -940,19 +756,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #118
+            // datum/string.yaml line #123
             /* ['aaaa ', '', '', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('b', 4) */
-            logger.info("About to run line #118: r.expr('aaaa bbbb  cccc ').split('b', 4L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 4L),
+            /* r.expr('aaaa bbbb  cccc ').split('b') */
+            logger.info("About to run line #123: r.expr('aaaa bbbb  cccc ').split('b')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #118");
+            logger.info("Finished running line #123");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #118:" + ae.toString());
+                logger.error("Whoops, got exception on line #123:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -961,19 +777,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #120
+            // datum/string.yaml line #125
             /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
-            logger.info("About to run line #120: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
+            /* r.expr('aaaa bbbb  cccc ').split('bb') */
+            logger.info("About to run line #125: r.expr('aaaa bbbb  cccc ').split('bb')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #120");
+            logger.info("Finished running line #125");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #120:" + ae.toString());
+                logger.error("Whoops, got exception on line #125:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -982,19 +798,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #122
+            // datum/string.yaml line #127
             /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1) */
-            logger.info("About to run line #122: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 1L),
+            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ') */
+            logger.info("About to run line #127: r.expr('aaaa bbbb  cccc ').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #122");
+            logger.info("Finished running line #127");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #122:" + ae.toString());
+                logger.error("Whoops, got exception on line #127:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1003,61 +819,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #124
+            // datum/string.yaml line #129
             /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
             List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
-            logger.info("About to run line #124: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
+            logger.info("About to run line #129: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #124");
+            logger.info("Finished running line #129");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #124:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #126
-            /* ['aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
-            logger.info("About to run line #126: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #126");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #126:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #128
-            /* ['aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            logger.info("About to run line #128: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #128");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #128:" + ae.toString());
+                logger.error("Whoops, got exception on line #129:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1067,11 +841,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #131
-            /* ['aaaa', 'bbbb  cccc '] */
-            List expected_ = r.array("aaaa", "bbbb  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(null, 1) */
-            logger.info("About to run line #131: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
+            logger.info("About to run line #131: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1088,11 +862,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #133
-            /* ['aaaa', 'bbbb', ' cccc '] */
-            List expected_ = r.array("aaaa", "bbbb", " cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split(' ', 2) */
-            logger.info("About to run line #133: r.expr('aaaa bbbb  cccc ').split(' ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 2L),
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
+            logger.info("About to run line #133: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1108,19 +882,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #135
-            /* ['a', 'a', 'aa bbbb  cccc '] */
-            List expected_ = r.array("a", "a", "aa bbbb  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('', 2) */
-            logger.info("About to run line #135: r.expr('aaaa bbbb  cccc ').split('', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 2L),
+            // datum/string.yaml line #136
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('aaaa bbbb  cccc ').split(null, 3) */
+            logger.info("About to run line #136: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #135");
+            logger.info("Finished running line #136");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #135:" + ae.toString());
+                logger.error("Whoops, got exception on line #136:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1129,19 +903,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #137
-            /* ['aaaa ', '', 'bb  cccc '] */
-            List expected_ = r.array("aaaa ", "", "bb  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('b', 2) */
-            logger.info("About to run line #137: r.expr('aaaa bbbb  cccc ').split('b', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 2L),
+            // datum/string.yaml line #138
+            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
+            List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
+            /* r.expr('aaaa bbbb  cccc ').split(' ', 5) */
+            logger.info("About to run line #138: r.expr('aaaa bbbb  cccc ').split(' ', 5L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #137");
+            logger.info("Finished running line #138");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #137:" + ae.toString());
+                logger.error("Whoops, got exception on line #138:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1150,19 +924,61 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #139
+            // datum/string.yaml line #140
+            /* ['a', 'a', 'a', 'a', ' ', 'bbbb  cccc '] */
+            List expected_ = r.array("a", "a", "a", "a", " ", "bbbb  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('', 5) */
+            logger.info("About to run line #140: r.expr('aaaa bbbb  cccc ').split('', 5L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 5L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #140");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #140:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #142
+            /* ['aaaa ', '', '', '', '  cccc '] */
+            List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('b', 5) */
+            logger.info("About to run line #142: r.expr('aaaa bbbb  cccc ').split('b', 5L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 5L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #142");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #142:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #144
             /* ['aaaa ', '', '  cccc '] */
             List expected_ = r.array("aaaa ", "", "  cccc ");
-            /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
-            logger.info("About to run line #139: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
+            /* r.expr('aaaa bbbb  cccc ').split('bb', 3) */
+            logger.info("About to run line #144: r.expr('aaaa bbbb  cccc ').split('bb', 3L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #139");
+            logger.info("Finished running line #144");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #139:" + ae.toString());
+                logger.error("Whoops, got exception on line #144:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1171,19 +987,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #141
+            // datum/string.yaml line #146
             /* ['aaaa', 'cccc '] */
             List expected_ = r.array("aaaa", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            logger.info("About to run line #141: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            logger.info("About to run line #146: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
             Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #141");
+            logger.info("Finished running line #146");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #141:" + ae.toString());
+                logger.error("Whoops, got exception on line #146:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1192,61 +1008,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #143
-            /* ['aaaa ', '', '  cccc b d bb e bbbb f'] */
-            List expected_ = r.array("aaaa ", "", "  cccc b d bb e bbbb f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
-            logger.info("About to run line #143: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
+            // datum/string.yaml line #148
+            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
+            List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
+            logger.info("About to run line #148: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #143");
+            logger.info("Finished running line #148");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #143:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #145
-            /* ['aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            logger.info("About to run line #145: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #145");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #145:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #147
-            /* ['aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
-            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            logger.info("About to run line #147: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #147");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #147:" + ae.toString());
+                logger.error("Whoops, got exception on line #148:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1256,11 +1030,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #150
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('  ').split() */
-            logger.info("About to run line #150: r.expr('  ').split()");
-            Object obtained = runOrCatch(r.expr("  ").split(),
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
+            logger.info("About to run line #150: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1277,11 +1051,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #152
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('  ').split(null) */
-            logger.info("About to run line #152: r.expr('  ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null),
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
+            logger.info("About to run line #152: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1297,19 +1071,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #154
-            /* ['', '', ''] */
-            List expected_ = r.array("", "", "");
-            /* r.expr('  ').split(' ') */
-            logger.info("About to run line #154: r.expr('  ').split(' ')");
-            Object obtained = runOrCatch(r.expr("  ").split(" "),
+            // datum/string.yaml line #155
+            /* ['aaaa', 'bbbb', 'cccc '] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split(null, 2) */
+            logger.info("About to run line #155: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #154");
+            logger.info("Finished running line #155");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #154:" + ae.toString());
+                logger.error("Whoops, got exception on line #155:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1318,19 +1092,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #156
-            /* [] */
-            List expected_ = r.array();
-            /* r.expr('  ').split(null, 5) */
-            logger.info("About to run line #156: r.expr('  ').split((ReqlExpr) null, 5L)");
-            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null, 5L),
+            // datum/string.yaml line #157
+            /* ["a", "b"] */
+            List expected_ = r.array("a", "b");
+            /* r.expr("a  b  ").split(null, 2) */
+            logger.info("About to run line #157: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
+            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #156");
+            logger.info("Finished running line #157");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #156:" + ae.toString());
+                logger.error("Whoops, got exception on line #157:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1339,19 +1113,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #158
-            /* ['', '', ''] */
-            List expected_ = r.array("", "", "");
-            /* r.expr('  ').split(' ', 5) */
-            logger.info("About to run line #158: r.expr('  ').split(' ', 5L)");
-            Object obtained = runOrCatch(r.expr("  ").split(" ", 5L),
+            // datum/string.yaml line #159
+            /* ['aaaa', 'bbbb', '', 'cccc', ''] */
+            List expected_ = r.array("aaaa", "bbbb", "", "cccc", "");
+            /* r.expr('aaaa bbbb  cccc ').split(' ', 4) */
+            logger.info("About to run line #159: r.expr('aaaa bbbb  cccc ').split(' ', 4L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 4L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #158");
+            logger.info("Finished running line #159");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #158:" + ae.toString());
+                logger.error("Whoops, got exception on line #159:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1361,11 +1135,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #161
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('  aaaa bbbb  cccc ').split() */
-            logger.info("About to run line #161: r.expr('  aaaa bbbb  cccc ').split()");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(),
+            /* ['a', 'a', 'a', 'a', ' bbbb  cccc '] */
+            List expected_ = r.array("a", "a", "a", "a", " bbbb  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('', 4) */
+            logger.info("About to run line #161: r.expr('aaaa bbbb  cccc ').split('', 4L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 4L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1382,11 +1156,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #163
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('  aaaa bbbb  cccc ').split(null) */
-            logger.info("About to run line #163: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null),
+            /* ['aaaa ', '', '', '', '  cccc '] */
+            List expected_ = r.array("aaaa ", "", "", "", "  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('b', 4) */
+            logger.info("About to run line #163: r.expr('aaaa bbbb  cccc ').split('b', 4L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 4L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1403,11 +1177,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #165
-            /* ['', '', 'aaaa', 'bbbb', '', 'cccc', ''] */
-            List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc", "");
-            /* r.expr('  aaaa bbbb  cccc ').split(' ') */
-            logger.info("About to run line #165: r.expr('  aaaa bbbb  cccc ').split(' ')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" "),
+            /* ['aaaa ', '', '  cccc '] */
+            List expected_ = r.array("aaaa ", "", "  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
+            logger.info("About to run line #165: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1424,11 +1198,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #167
-            /* ['  aaaa ', '', '', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('b') */
-            logger.info("About to run line #167: r.expr('  aaaa bbbb  cccc ').split('b')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b"),
+            /* ['aaaa', 'cccc '] */
+            List expected_ = r.array("aaaa", "cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1) */
+            logger.info("About to run line #167: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1445,11 +1219,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #169
-            /* ['  aaaa ', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('bb') */
-            logger.info("About to run line #169: r.expr('  aaaa bbbb  cccc ').split('bb')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb"),
+            /* ['aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
+            List expected_ = r.array("aaaa ", "", "  cccc b d ", " e ", "", " f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
+            logger.info("About to run line #169: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1466,11 +1240,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #171
-            /* ['  aaaa', 'cccc '] */
-            List expected_ = r.array("  aaaa", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ') */
-            logger.info("About to run line #171: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  "),
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
+            logger.info("About to run line #171: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1487,11 +1261,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #173
-            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
-            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
-            logger.info("About to run line #173: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
+            logger.info("About to run line #173: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1507,19 +1281,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #175
-            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
-            logger.info("About to run line #175: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
+            // datum/string.yaml line #176
+            /* ['aaaa', 'bbbb  cccc '] */
+            List expected_ = r.array("aaaa", "bbbb  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split(null, 1) */
+            logger.info("About to run line #176: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #175");
+            logger.info("Finished running line #176");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #175:" + ae.toString());
+                logger.error("Whoops, got exception on line #176:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1528,19 +1302,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #177
-            /* ['  aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
-            logger.info("About to run line #177: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
+            // datum/string.yaml line #178
+            /* ['aaaa', 'bbbb', ' cccc '] */
+            List expected_ = r.array("aaaa", "bbbb", " cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split(' ', 2) */
+            logger.info("About to run line #178: r.expr('aaaa bbbb  cccc ').split(' ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #177");
+            logger.info("Finished running line #178");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #177:" + ae.toString());
+                logger.error("Whoops, got exception on line #178:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1550,11 +1324,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #180
-            /* ['aaaa', 'bbbb', 'cccc'] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc");
-            /* r.expr('  aaaa bbbb  cccc ').split(null, 3) */
-            logger.info("About to run line #180: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
+            /* ['a', 'a', 'aa bbbb  cccc '] */
+            List expected_ = r.array("a", "a", "aa bbbb  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('', 2) */
+            logger.info("About to run line #180: r.expr('aaaa bbbb  cccc ').split('', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1571,11 +1345,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #182
-            /* ['', '', 'aaaa', 'bbbb', '', 'cccc '] */
-            List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' ', 5) */
-            logger.info("About to run line #182: r.expr('  aaaa bbbb  cccc ').split(' ', 5L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 5L),
+            /* ['aaaa ', '', 'bb  cccc '] */
+            List expected_ = r.array("aaaa ", "", "bb  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('b', 2) */
+            logger.info("About to run line #182: r.expr('aaaa bbbb  cccc ').split('b', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("b", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1592,11 +1366,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #184
-            /* ['  aaaa ', '', '', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('b', 5) */
-            logger.info("About to run line #184: r.expr('  aaaa bbbb  cccc ').split('b', 5L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 5L),
+            /* ['aaaa ', '', '  cccc '] */
+            List expected_ = r.array("aaaa ", "", "  cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split('bb', 2) */
+            logger.info("About to run line #184: r.expr('aaaa bbbb  cccc ').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1613,11 +1387,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #186
-            /* ['  aaaa ', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('bb', 3) */
-            logger.info("About to run line #186: r.expr('  aaaa bbbb  cccc ').split('bb', 3L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 3L),
+            /* ['aaaa', 'cccc '] */
+            List expected_ = r.array("aaaa", "cccc ");
+            /* r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2) */
+            logger.info("About to run line #186: r.expr('aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1634,11 +1408,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #188
-            /* ['  aaaa', 'cccc '] */
-            List expected_ = r.array("  aaaa", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            logger.info("About to run line #188: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
+            /* ['aaaa ', '', '  cccc b d bb e bbbb f'] */
+            List expected_ = r.array("aaaa ", "", "  cccc b d bb e bbbb f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
+            logger.info("About to run line #188: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1655,11 +1429,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #190
-            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
-            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
-            logger.info("About to run line #190: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
+            /* ['aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
+            logger.info("About to run line #190: r.expr('aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1676,11 +1450,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #192
-            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            logger.info("About to run line #192: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
+            /* ['aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("aaaa", "cccc b d bb e", "f");
+            /* r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
+            logger.info("About to run line #192: r.expr('aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1696,19 +1470,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #194
-            /* ['  aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
-            logger.info("About to run line #194: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
+            // datum/string.yaml line #195
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('  ').split() */
+            logger.info("About to run line #195: r.expr('  ').split()");
+            Object obtained = runOrCatch(r.expr("  ").split(),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #194");
+            logger.info("Finished running line #195");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #194:" + ae.toString());
+                logger.error("Whoops, got exception on line #195:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1718,11 +1492,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #197
-            /* ['aaaa', 'bbbb', 'cccc '] */
-            List expected_ = r.array("aaaa", "bbbb", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(null, 2) */
-            logger.info("About to run line #197: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('  ').split(null) */
+            logger.info("About to run line #197: r.expr('  ').split((ReqlExpr) null)");
+            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1739,11 +1513,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #199
-            /* ["a", "b"] */
-            List expected_ = r.array("a", "b");
-            /* r.expr("a  b  ").split(null, 2) */
-            logger.info("About to run line #199: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
+            /* ['', '', ''] */
+            List expected_ = r.array("", "", "");
+            /* r.expr('  ').split(' ') */
+            logger.info("About to run line #199: r.expr('  ').split(' ')");
+            Object obtained = runOrCatch(r.expr("  ").split(" "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1760,11 +1534,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #201
-            /* ['', '', 'aaaa', 'bbbb', ' cccc '] */
-            List expected_ = r.array("", "", "aaaa", "bbbb", " cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' ', 4) */
-            logger.info("About to run line #201: r.expr('  aaaa bbbb  cccc ').split(' ', 4L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 4L),
+            /* [] */
+            List expected_ = r.array();
+            /* r.expr('  ').split(null, 5) */
+            logger.info("About to run line #201: r.expr('  ').split((ReqlExpr) null, 5L)");
+            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null, 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1781,11 +1555,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #203
-            /* ['  aaaa ', '', '', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('b', 4) */
-            logger.info("About to run line #203: r.expr('  aaaa bbbb  cccc ').split('b', 4L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 4L),
+            /* ['', '', ''] */
+            List expected_ = r.array("", "", "");
+            /* r.expr('  ').split(' ', 5) */
+            logger.info("About to run line #203: r.expr('  ').split(' ', 5L)");
+            Object obtained = runOrCatch(r.expr("  ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1801,103 +1575,103 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #205
+            // datum/string.yaml line #206
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('  aaaa bbbb  cccc ').split() */
+            logger.info("About to run line #206: r.expr('  aaaa bbbb  cccc ').split()");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #206");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #206:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #208
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('  aaaa bbbb  cccc ').split(null) */
+            logger.info("About to run line #208: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #208");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #208:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #210
+            /* ['', '', 'aaaa', 'bbbb', '', 'cccc', ''] */
+            List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc", "");
+            /* r.expr('  aaaa bbbb  cccc ').split(' ') */
+            logger.info("About to run line #210: r.expr('  aaaa bbbb  cccc ').split(' ')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" "),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #210");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #210:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #212
+            /* ['  aaaa ', '', '', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('b') */
+            logger.info("About to run line #212: r.expr('  aaaa bbbb  cccc ').split('b')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #212");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #212:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #214
             /* ['  aaaa ', '', '  cccc '] */
             List expected_ = r.array("  aaaa ", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
-            logger.info("About to run line #205: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
+            /* r.expr('  aaaa bbbb  cccc ').split('bb') */
+            logger.info("About to run line #214: r.expr('  aaaa bbbb  cccc ').split('bb')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #205");
+            logger.info("Finished running line #214");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #205:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #207
-            /* ['  aaaa', 'cccc '] */
-            List expected_ = r.array("  aaaa", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1) */
-            logger.info("About to run line #207: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 1L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #207");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #207:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #209
-            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
-            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
-            logger.info("About to run line #209: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #209");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #209:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #211
-            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
-            logger.info("About to run line #211: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #211");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #211:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // datum/string.yaml line #213
-            /* ['  aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            logger.info("About to run line #213: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #213");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #213:" + ae.toString());
+                logger.error("Whoops, got exception on line #214:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1907,11 +1681,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #216
-            /* ['aaaa', 'bbbb  cccc '] */
-            List expected_ = r.array("aaaa", "bbbb  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(null, 1) */
-            logger.info("About to run line #216: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
+            /* ['  aaaa', 'cccc '] */
+            List expected_ = r.array("  aaaa", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ') */
+            logger.info("About to run line #216: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1928,11 +1702,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #218
-            /* ['', '', 'aaaa bbbb  cccc '] */
-            List expected_ = r.array("", "", "aaaa bbbb  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' ', 2) */
-            logger.info("About to run line #218: r.expr('  aaaa bbbb  cccc ').split(' ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 2L),
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
+            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb') */
+            logger.info("About to run line #218: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1949,11 +1723,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #220
-            /* ['  aaaa ', '', 'bb  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "bb  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('b', 2) */
-            logger.info("About to run line #220: r.expr('  aaaa bbbb  cccc ').split('b', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 2L),
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ') */
+            logger.info("About to run line #220: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1970,11 +1744,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #222
-            /* ['  aaaa ', '', '  cccc '] */
-            List expected_ = r.array("  aaaa ", "", "  cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
-            logger.info("About to run line #222: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ') */
+            logger.info("About to run line #222: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ')");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  "),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1990,19 +1764,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #224
-            /* ['  aaaa', 'cccc '] */
-            List expected_ = r.array("  aaaa", "cccc ");
-            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
-            logger.info("About to run line #224: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
+            // datum/string.yaml line #225
+            /* ['aaaa', 'bbbb', 'cccc'] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc");
+            /* r.expr('  aaaa bbbb  cccc ').split(null, 3) */
+            logger.info("About to run line #225: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #224");
+            logger.info("Finished running line #225");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #224:" + ae.toString());
+                logger.error("Whoops, got exception on line #225:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2011,19 +1785,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #226
-            /* ['  aaaa ', '', '  cccc b d bb e bbbb f'] */
-            List expected_ = r.array("  aaaa ", "", "  cccc b d bb e bbbb f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
-            logger.info("About to run line #226: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
+            // datum/string.yaml line #227
+            /* ['', '', 'aaaa', 'bbbb', '', 'cccc '] */
+            List expected_ = r.array("", "", "aaaa", "bbbb", "", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' ', 5) */
+            logger.info("About to run line #227: r.expr('  aaaa bbbb  cccc ').split(' ', 5L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #226");
+            logger.info("Finished running line #227");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #226:" + ae.toString());
+                logger.error("Whoops, got exception on line #227:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2032,19 +1806,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #228
-            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
-            logger.info("About to run line #228: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
+            // datum/string.yaml line #229
+            /* ['  aaaa ', '', '', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('b', 5) */
+            logger.info("About to run line #229: r.expr('  aaaa bbbb  cccc ').split('b', 5L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 5L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #228");
+            logger.info("Finished running line #229");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #228:" + ae.toString());
+                logger.error("Whoops, got exception on line #229:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2053,19 +1827,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #230
-            /* ['  aaaa', 'cccc b d bb e', 'f'] */
-            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
-            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
-            logger.info("About to run line #230: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
+            // datum/string.yaml line #231
+            /* ['  aaaa ', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('bb', 3) */
+            logger.info("About to run line #231: r.expr('  aaaa bbbb  cccc ').split('bb', 3L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #230");
+            logger.info("Finished running line #231");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #230:" + ae.toString());
+                logger.error("Whoops, got exception on line #231:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2075,11 +1849,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #233
-            /* "ABC-DEF-GHJ" */
-            String expected_ = "ABC-DEF-GHJ";
-            /* r.expr("abc-dEf-GHJ").upcase() */
-            logger.info("About to run line #233: r.expr('abc-dEf-GHJ').upcase()");
-            Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").upcase(),
+            /* ['  aaaa', 'cccc '] */
+            List expected_ = r.array("  aaaa", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
+            logger.info("About to run line #233: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -2096,11 +1870,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #235
-            /* "abc-def-ghj" */
-            String expected_ = "abc-def-ghj";
-            /* r.expr("abc-dEf-GHJ").downcase() */
-            logger.info("About to run line #235: r.expr('abc-dEf-GHJ').downcase()");
-            Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").downcase(),
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
+            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6) */
+            logger.info("About to run line #235: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 6L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 6L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -2116,19 +1890,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #240
-            /* ["f", "\u00e9", "o", "o"] */
-            List expected_ = r.array("f", "é", "o", "o");
-            /* r.expr(u"f\u00e9oo").split("") */
-            logger.info("About to run line #240: r.expr('féoo').split('')");
-            Object obtained = runOrCatch(r.expr("féoo").split(""),
+            // datum/string.yaml line #237
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
+            logger.info("About to run line #237: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #240");
+            logger.info("Finished running line #237");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #240:" + ae.toString());
+                logger.error("Whoops, got exception on line #237:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2137,19 +1911,19 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #249
-            /* ["f", "e\u0301", "o", "o"] */
-            List expected_ = r.array("f", "é", "o", "o");
-            /* r.expr(u"fe\u0301oo").split("") */
-            logger.info("About to run line #249: r.expr('féoo').split('')");
-            Object obtained = runOrCatch(r.expr("féoo").split(""),
+            // datum/string.yaml line #239
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3) */
+            logger.info("About to run line #239: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 3L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 3L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #249");
+            logger.info("Finished running line #239");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #249:" + ae.toString());
+                logger.error("Whoops, got exception on line #239:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2158,19 +1932,355 @@ public class DatumString {
         }
 
         {
-            // datum/string.yaml line #262
-            /* ["foo", "bar", "baz", "quux", "fred", "barney", "wilma"] */
-            List expected_ = r.array("foo", "bar", "baz", "quux", "fred", "barney", "wilma");
-            /* r.expr(u"foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split() */
-            logger.info("About to run line #262: r.expr('foo bar\\tbaz\\nquux\\rfred\\u000bbarney\\u000cwilma').split()");
-            Object obtained = runOrCatch(r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split(),
+            // datum/string.yaml line #242
+            /* ['aaaa', 'bbbb', 'cccc '] */
+            List expected_ = r.array("aaaa", "bbbb", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(null, 2) */
+            logger.info("About to run line #242: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #262");
+            logger.info("Finished running line #242");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #262:" + ae.toString());
+                logger.error("Whoops, got exception on line #242:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #244
+            /* ["a", "b"] */
+            List expected_ = r.array("a", "b");
+            /* r.expr("a  b  ").split(null, 2) */
+            logger.info("About to run line #244: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
+            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #244");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #244:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #246
+            /* ['', '', 'aaaa', 'bbbb', ' cccc '] */
+            List expected_ = r.array("", "", "aaaa", "bbbb", " cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' ', 4) */
+            logger.info("About to run line #246: r.expr('  aaaa bbbb  cccc ').split(' ', 4L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 4L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #246");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #246:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #248
+            /* ['  aaaa ', '', '', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('b', 4) */
+            logger.info("About to run line #248: r.expr('  aaaa bbbb  cccc ').split('b', 4L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 4L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #248");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #248:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #250
+            /* ['  aaaa ', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
+            logger.info("About to run line #250: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #250");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #250:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #252
+            /* ['  aaaa', 'cccc '] */
+            List expected_ = r.array("  aaaa", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1) */
+            logger.info("About to run line #252: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 1L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 1L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #252");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #252:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #254
+            /* ['  aaaa ', '', '  cccc b d ', ' e ', '', ' f'] */
+            List expected_ = r.array("  aaaa ", "", "  cccc b d ", " e ", "", " f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5) */
+            logger.info("About to run line #254: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 5L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 5L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #254");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #254:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #256
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1) */
+            logger.info("About to run line #256: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 1L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 1L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #256");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #256:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #258
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
+            logger.info("About to run line #258: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #258");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #258:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #261
+            /* ['aaaa', 'bbbb  cccc '] */
+            List expected_ = r.array("aaaa", "bbbb  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(null, 1) */
+            logger.info("About to run line #261: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #261");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #261:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #263
+            /* ['', '', 'aaaa bbbb  cccc '] */
+            List expected_ = r.array("", "", "aaaa bbbb  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' ', 2) */
+            logger.info("About to run line #263: r.expr('  aaaa bbbb  cccc ').split(' ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" ", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #263");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #263:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #265
+            /* ['  aaaa ', '', 'bb  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "bb  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('b', 2) */
+            logger.info("About to run line #265: r.expr('  aaaa bbbb  cccc ').split('b', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("b", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #265");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #265:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #267
+            /* ['  aaaa ', '', '  cccc '] */
+            List expected_ = r.array("  aaaa ", "", "  cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split('bb', 2) */
+            logger.info("About to run line #267: r.expr('  aaaa bbbb  cccc ').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split("bb", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #267");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #267:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #269
+            /* ['  aaaa', 'cccc '] */
+            List expected_ = r.array("  aaaa", "cccc ");
+            /* r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2) */
+            logger.info("About to run line #269: r.expr('  aaaa bbbb  cccc ').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split(" bbbb  ", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #269");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #269:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #271
+            /* ['  aaaa ', '', '  cccc b d bb e bbbb f'] */
+            List expected_ = r.array("  aaaa ", "", "  cccc b d bb e bbbb f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2) */
+            logger.info("About to run line #271: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split('bb', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split("bb", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #271");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #271:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #273
+            /* ['  aaaa', 'cccc b d bb e bbbb f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e bbbb f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2) */
+            logger.info("About to run line #273: r.expr('  aaaa bbbb  cccc b d bb e bbbb f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb f").split(" bbbb  ", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #273");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #273:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #275
+            /* ['  aaaa', 'cccc b d bb e', 'f'] */
+            List expected_ = r.array("  aaaa", "cccc b d bb e", "f");
+            /* r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2) */
+            logger.info("About to run line #275: r.expr('  aaaa bbbb  cccc b d bb e bbbb  f').split(' bbbb  ', 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc b d bb e bbbb  f").split(" bbbb  ", 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #275");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #275:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -2180,11 +2290,11 @@ public class DatumString {
 
         {
             // datum/string.yaml line #278
-            /* ["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"] */
-            List expected_ = r.array("foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b");
-            /* r.expr(u"foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split() */
-            logger.info("About to run line #278: r.expr('foo\\u00a0bar\\u2001baz\\u2060quux\\u2028fred\\u2028barney\\u2029wilma\\u0085betty\\u200b').split()");
-            Object obtained = runOrCatch(r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split(),
+            /* "ABC-DEF-GHJ" */
+            String expected_ = "ABC-DEF-GHJ";
+            /* r.expr("abc-dEf-GHJ").upcase() */
+            logger.info("About to run line #278: r.expr('abc-dEf-GHJ').upcase()");
+            Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").upcase(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -2192,6 +2302,111 @@ public class DatumString {
             logger.info("Finished running line #278");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #278:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #280
+            /* "abc-def-ghj" */
+            String expected_ = "abc-def-ghj";
+            /* r.expr("abc-dEf-GHJ").downcase() */
+            logger.info("About to run line #280: r.expr('abc-dEf-GHJ').downcase()");
+            Object obtained = runOrCatch(r.expr("abc-dEf-GHJ").downcase(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #280");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #280:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #285
+            /* ["f", "\u00e9", "o", "o"] */
+            List expected_ = r.array("f", "é", "o", "o");
+            /* r.expr(u"f\u00e9oo").split("") */
+            logger.info("About to run line #285: r.expr('féoo').split('')");
+            Object obtained = runOrCatch(r.expr("féoo").split(""),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #285");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #285:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #294
+            /* ["f", "e\u0301", "o", "o"] */
+            List expected_ = r.array("f", "é", "o", "o");
+            /* r.expr(u"fe\u0301oo").split("") */
+            logger.info("About to run line #294: r.expr('féoo').split('')");
+            Object obtained = runOrCatch(r.expr("féoo").split(""),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #294");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #294:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #307
+            /* ["foo", "bar", "baz", "quux", "fred", "barney", "wilma"] */
+            List expected_ = r.array("foo", "bar", "baz", "quux", "fred", "barney", "wilma");
+            /* r.expr(u"foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split() */
+            logger.info("About to run line #307: r.expr('foo bar\\tbaz\\nquux\\rfred\\u000bbarney\\u000cwilma').split()");
+            Object obtained = runOrCatch(r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #307");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #307:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // datum/string.yaml line #323
+            /* ["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"] */
+            List expected_ = r.array("foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b");
+            /* r.expr(u"foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split() */
+            logger.info("About to run line #323: r.expr('foo\\u00a0bar\\u2001baz\\u2060quux\\u2028fred\\u2028barney\\u2029wilma\\u0085betty\\u200b').split()");
+            Object obtained = runOrCatch(r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #323");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #323:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
