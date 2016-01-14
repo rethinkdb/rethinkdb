@@ -248,7 +248,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     }
 
     logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());
-    logERR("backtrace:\n%s", format_backtrace(exception->ContextRecord).c_str());
+    logERR("backtrace:\n%s", format_backtrace().c_str());
 
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;

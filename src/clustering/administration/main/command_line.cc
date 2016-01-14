@@ -1403,10 +1403,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
 #ifdef _WIN32
-        // TODO ATN test this
-        // TODO ATN: also test rethinkdb behaviour when run in and out of the console
-        BOOL res = FreeConsole();
-        guarantee_winerr(res || GetLastError() == ERROR_INVALID_PARAMETER, "FreeConsole failed");
+        // TODO WINDOWS
+        fail_due_to_user_error("--daemon not implemented on windows");
 #else
         pid_t pid = fork();
         if (pid < 0) {

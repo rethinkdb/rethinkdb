@@ -119,8 +119,9 @@ directory_lock_t::~directory_lock_t() {
     // Only delete the directory if we created it and haven't finished initialization
     if (created && !initialize_done) {
 #ifdef _WIN32
-        // On windows, the directory lock is a file inside the directory
-        // TODO ATN: but this unlocks the directory!
+        // TODO WINDOWS: the lock is a file inside the directory,
+        // so we can't delete the directory without deleting it,
+        // but by deleting it now we unlock the directory too early
         directory_fd.reset();
 #endif
         remove_directory_recursive(directory_path.path().c_str());

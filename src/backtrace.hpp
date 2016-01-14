@@ -53,7 +53,7 @@ private:
 };
 #endif
 
-std::string format_backtrace(void *context = NULL);
+std::string format_backtrace();
 
 // An individual backtrace frame
 class backtrace_frame_t {
@@ -78,7 +78,7 @@ private:
 // A backtrace, consisting of backtrace_frame_t
 class backtrace_t {
 public:
-    backtrace_t(void *);
+    backtrace_t();
     size_t get_num_frames() const { return frames.size(); }
     const backtrace_frame_t &get_frame(const size_t i) const { return frames[i]; }
 private:
@@ -89,7 +89,7 @@ private:
 // Stores the backtrace from when it was constructed for later printing.
 class lazy_backtrace_formatter_t : public backtrace_t {
 public:
-    lazy_backtrace_formatter_t(void *context = nullptr);
+    lazy_backtrace_formatter_t();
     std::string addrs(); // A well-formatted backtrace with source lines (slow)
     std::string lines(); // A raw backtrace with assembly addresses (fast)
 private:
