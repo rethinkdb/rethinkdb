@@ -79,7 +79,7 @@ This document describes guidelines that people new to the codebase tend not to i
 
   > Reason: If it would be buggy to copy the objects (often segfaulty), and it's easy to write code that accidentally does that.
   
-1. Explicitly compare pointers to `NULL` (actually, `nullptr`), explicitly compare integers to 0, use `.has()` on `counted_t` and `scoped_ptr_t`, don't just decay them to boolean.
+1. Explicitly compare pointers to `nullptr`, explicitly compare integers to 0, use `.has()` on `counted_t` and `scoped_ptr_t`, don't just decay them to boolean.
 
   > Reason: Saying "Use your best judgement" when it comes to readibility apparently doesn't work very well -- seeing that this is a pointer or integer helps readibility.
   
