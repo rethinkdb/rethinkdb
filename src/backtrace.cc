@@ -202,14 +202,14 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
 }
 #endif
 
-std::string format_backtrace(void *context) {
-    lazy_backtrace_formatter_t bt(context);
+std::string format_backtrace() {
+    lazy_backtrace_formatter_t bt();
     return bt.lines();
 }
 
-backtrace_t::backtrace_t(void *context) {
+backtrace_t::backtrace_t() {
     scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
-    int size = rethinkdb_backtrace(stack_frames.data(), max_frames, context);
+    int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
 
 #ifdef CROSS_CORO_BACKTRACES
     if (coro_t::self() != NULL) {
@@ -233,9 +233,7 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 }
 
 void backtrace_frame_t::initialize_symbols() {
-#ifdef _WIN32
-    // ATN TODO CaptureStackBackTrace, SymFromAddr
-#else
+#ifndef _WIN32
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {
@@ -273,7 +271,7 @@ std::string backtrace_frame_t::get_symbols_line() const {
 
 std::string backtrace_frame_t::get_demangled_name() const {
     rassert(symbols_initialized);
-#ifdef _WIN32 // TODO ATN
+#ifdef _WIN32
     return function;
 #else
     return demangle_cpp_name(function.c_str());
@@ -294,8 +292,8 @@ const void *backtrace_frame_t::get_addr() const {
     return addr;
 }
 
-lazy_backtrace_formatter_t::lazy_backtrace_formatter_t(void *context) :
-    backtrace_t(context),
+lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
+    backtrace_t(),
     timestamp(time(0)),
     timestr(time2str(timestamp)) {
 }
@@ -320,19 +318,20 @@ void initialize_dbghelp() {
     if (!initialised.exchange(true)) {
         DWORD options = SymGetOptions();
         options |= SYMOPT_LOAD_LINES; // Load line information
-        // TODO ATN: SYMOPT for lazy loading
+        options |= SYMOPT_DEFERRED_LOADS; // Lazy symbol loading
         SymSetOptions(options);
 
         // Initialize and load the symbol tables
-        UNUSED BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
-        // TODO ATN: test return value
+        BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+        if (!ret) {
+            logWRN("Unable to load symbols: %s", winerr_string(GetLastError()).c_str());
+        }
     }
 }
 #endif
 
 std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
 #ifdef _WIN32
-    (void) use_addr2line; // TODO ATN
     initialize_dbghelp();
 
     std::string output;

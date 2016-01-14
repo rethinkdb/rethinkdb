@@ -948,7 +948,7 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     serv_addr.sin_addr = addr;
 
     int res = bind(fd_to_socket(sock), reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
-    winsock_debugf("ATN: bound socket %x\n", sock);
+    winsock_debugf("bound socket %x\n", sock);
     if (res != 0) {
 #ifdef _WIN32
         logWRN("bind failed: %s", winerr_string(GetLastError()).c_str());
