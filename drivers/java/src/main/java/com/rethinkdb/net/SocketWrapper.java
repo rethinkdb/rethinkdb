@@ -34,6 +34,7 @@ public class SocketWrapper {
     protected InputStream readStream = null;
 
     // options
+    private Optional<InputStream> certFile = Optional.empty();
     private Optional<SSLContext> sslContext = Optional.empty();
     private Optional<Long> timeout = Optional.empty();
     private final String hostname;
@@ -62,7 +63,7 @@ public class SocketWrapper {
             socket.setKeepAlive(true);
 
             // should we secure the connection?
-            if (sslContext.isPresent()){
+            if (sslContext.isPresent()) {
                 socketFactory = sslContext.get().getSocketFactory();
                 SSLSocketFactory sslSf = (SSLSocketFactory) socketFactory;
                 sslSocket = (SSLSocket) sslSf.createSocket(socket,
