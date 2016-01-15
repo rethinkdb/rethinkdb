@@ -314,7 +314,7 @@ void raft_member_t<state_t>::check_invariants(
     std::vector<scoped_ptr_t<new_mutex_acq_t> > mutex_acqs;
     for (raft_member_t<state_t> *member : members) {
         signal_timer_t timeout;
-        timeout.start(10000 * 20); // TODO WINDOWS: timeout
+        timeout.start(10000);
         try {
             scoped_ptr_t<new_mutex_acq_t> mutex_acq(
                 new new_mutex_acq_t(&member->mutex, &timeout));

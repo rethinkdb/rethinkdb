@@ -239,7 +239,7 @@ public:
             const cpu_contract_ids_t &contract_ids,
             contract_ack_t::state_t state) {
         signal_timer_t timeout;
-        timeout.start(1000 * 20); // TODO WINDOWS: timeout
+        timeout.start(1000);
         try {
             for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
                 executor->get_acks()->run_key_until_satisfied(
