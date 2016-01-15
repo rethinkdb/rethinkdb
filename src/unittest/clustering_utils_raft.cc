@@ -410,8 +410,9 @@ void do_writes_raft(dummy_raft_cluster_t *cluster, int expect, int ms) {
     microtime_t start = current_microtime();
 #endif /* ENABLE_RAFT_DEBUG */
 
-#ifdef _WIN32 // TODO ATN: why does it take so long?
-    ms *= 10;
+#ifdef _WIN32
+    // TODO WINDOWS: timeout
+    ms *= 20;
 #endif
 
     std::set<uuid_u> committed_changes;

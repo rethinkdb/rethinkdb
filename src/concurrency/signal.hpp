@@ -108,7 +108,6 @@ protected:
     void reset();
 
 private:
-public: // TODO ATN: for debugging
     static void call(subscription_t *subscription) THROWS_NOTHING {
         subscription->run();
     }

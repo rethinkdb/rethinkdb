@@ -151,7 +151,7 @@ void let_stuff_happen() {
 #ifdef VALGRIND
     nap(2000);
 #elif defined(_WIN32)
-    // TODO ATN
+    // TODO WINDOWS: timeout
     nap(1000);
 #else
     nap(100);

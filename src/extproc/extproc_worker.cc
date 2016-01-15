@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <unistd.h>
 
-// TODO ATN: do not use windows_event_watcher unless _WIN32
-
 #include "logger.hpp"
 
 #include "extproc/extproc_worker.hpp"
@@ -77,7 +75,7 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 #endif
     }
 
-#ifdef _WIN32 // TODO ATN
+#ifdef _WIN32
     socket_stream.create(socket.get(), windows_event_watcher.get());
 #else
     socket_stream.create(socket.get());
@@ -90,7 +88,6 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     socket_stream.get()->set_interruptor(interruptor);
 
 #ifdef _WIN32
-
     if (new_worker) {
         socket_stream->wait_for_pipe_client(_interruptor);
     }

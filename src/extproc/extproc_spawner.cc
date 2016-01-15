@@ -24,7 +24,9 @@ public:
     worker_run_t(fd_t _socket, process_id_t _spawner_pid) :
         socket(_socket), socket_stream(socket.get(), make_scoped<blocking_fd_watcher_t>()) {
 
-#ifndef _WIN32 // ATN TODO
+#ifdef _WIN32
+        // TODO WINDOWS: make sure the worker process gets killed
+#else
         guarantee(spawner_pid == INVALID_PROCESS_ID);
         spawner_pid = _spawner_pid;
 
@@ -92,7 +94,7 @@ public:
     }
 
 private:
-#ifndef _WIN32 // TODO ATN
+#ifndef _WIN32
     static pid_t spawner_pid;
 
     static void check_ppid_for_death(int) {
@@ -169,7 +171,8 @@ extproc_spawner_t::extproc_spawner_t() {
     instance = this;
 
 #ifdef _WIN32
-    // TODO ATN: CreateJobObject
+    // TODO WINDOWS: ensure the workers die if the parent process does,
+    // perhaps using CreateJobObject and JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #else
     spawner_pid = process_ref_t::invalid;
     fork_spawner();
@@ -182,7 +185,7 @@ extproc_spawner_t::~extproc_spawner_t() {
     instance = NULL;
 
 #ifdef _WIN32
-    // TODO ATN: cleanup worker processes
+    // TODO WINDOWS: cleanup worker processes
 #else
     // This should trigger the spawner to exit
     spawner_socket.reset();
@@ -255,17 +258,20 @@ fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
     memset(&startup_info, 0, sizeof(startup_info));
     startup_info.cb = sizeof(startup_info);
     PROCESS_INFORMATION process_info;
-    CreateProcess(rethinkdb_path,
-                  &mutable_command_line[0],
-                  nullptr,
-                  nullptr,
-                  false,
-                  NORMAL_PRIORITY_CLASS,
-                  nullptr,
-                  nullptr,
-                  &startup_info,
-                  &process_info);
-    // TODO ATN: add to job, ensure it dies when we do but not the reverse
+    BOOL res2 = CreateProcess(rethinkdb_path,
+                              &mutable_command_line[0],
+                              nullptr,
+                              nullptr,
+                              false,
+                              NORMAL_PRIORITY_CLASS,
+                              nullptr,
+                              nullptr,
+                              &startup_info,
+                              &process_info);
+
+    guarantee_winerr(res2, "CreateProcess failed");
+
+    // TODO WINDOWS: add new process to job group
 
     *pid_out = process_id_t(GetProcessId(process_info.hProcess));
     CloseHandle(process_info.hThread);

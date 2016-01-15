@@ -737,5 +737,4 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 
-// TODO ATN: this fails?
-//UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

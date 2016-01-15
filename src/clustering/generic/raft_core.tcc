@@ -13,7 +13,7 @@
 /* After finding myself repeatedly adding debug logging to Raft and then tearing it out
 when I didn't need it anymore, I automated the process. Define `ENABLE_RAFT_DEBUG` to
 print messages to stderr whenever important events happen in Raft. */
-#define ENABLE_RAFT_DEBUG // TODO ATN
+// #define ENABLE_RAFT_DEBUG
 #ifdef ENABLE_RAFT_DEBUG
 #include "debug.hpp"
 inline std::string show_member_id(const raft_member_id_t &mid) {
@@ -314,7 +314,7 @@ void raft_member_t<state_t>::check_invariants(
     std::vector<scoped_ptr_t<new_mutex_acq_t> > mutex_acqs;
     for (raft_member_t<state_t> *member : members) {
         signal_timer_t timeout;
-        timeout.start(10000 * 20); // TODO ATN
+        timeout.start(10000 * 20); // TODO WINDOWS: timeout
         try {
             scoped_ptr_t<new_mutex_acq_t> mutex_acq(
                 new new_mutex_acq_t(&member->mutex, &timeout));

@@ -13,7 +13,10 @@
 
 bool extproc_maybe_run_worker(int argc, char **argv);
 
-// TODO ATN: update comment
+#ifdef _WIN32
+// The extproc_spawner_t does not use an external process to launch workers,
+// the workers are launched by calling CreateProcess from the main process
+#else
 // The extproc_spawner_t controls an external process which launches workers
 // This is necessary to avoid some forking problems with tcmalloc, and
 //  should be constructed before the thread pool and extproc pool
@@ -21,6 +24,7 @@ bool extproc_maybe_run_worker(int argc, char **argv);
 //  thread has a lock on the thread cache, but this thread disappears when the
 //  fork is performed.  Therefore, when the forked process attempts an allocation,
 //  it will deadlock trying to acquire this lock that no one will ever unlock.
+#endif
 class extproc_spawner_t {
 public:
     extproc_spawner_t();
@@ -36,7 +40,6 @@ private:
     static extproc_spawner_t *instance;
 
 #ifndef _WIN32
-    // TODO ATN: on windows, spawn could be static
     void fork_spawner();
 
     process_ref_t spawner_pid;

@@ -70,7 +70,6 @@ private:
 
 public:
     struct address_t {
-	public: // ATN RSI
         bool operator<(const address_t &other) const {
             return peer != other.peer
                 ? peer < other.peer

@@ -102,8 +102,8 @@ public:
 
         RAFT_DEBUG("running final test config change\n");
         signal_timer_t final_interruptor;
-        // TODO ATN: was 10000
-        final_interruptor.start(100000); // Allow up to 10 seconds to finish the final verification
+        // TODO WINDOWS: timeout
+        final_interruptor.start(10000 * 20); // Allow up to 10 seconds to finish the final verification
         raft_member_id_t leader = cluster.find_leader(&final_interruptor);
         raft_config_t final_config;
         final_config.voting_members.insert(leader);

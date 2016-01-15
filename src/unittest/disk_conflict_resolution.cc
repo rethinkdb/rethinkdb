@@ -14,7 +14,7 @@ namespace unittest {
 /* We need for multiple test_driver_t objects to share a file
    descriptor in order to test the conflict resolution logic, but
    it doesn't matter what that file descriptor is. */
-#ifdef _WIN32 // ATN TODO
+#ifdef _WIN32
 static const fd_t IRRELEVANT_DEFAULT_FD = GetStdHandle(STD_INPUT_HANDLE);
 #else
 static const fd_t IRRELEVANT_DEFAULT_FD = 0;

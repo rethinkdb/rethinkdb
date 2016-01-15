@@ -9,8 +9,6 @@
 #include "containers/scoped.hpp"
 #include "arch/io/event_watcher.hpp"
 
-// TODO ATN
-
 class blocking_fd_watcher_t { };
 
 class socket_stream_t :
@@ -27,10 +25,6 @@ public:
           interruptor(nullptr) {
         rassert(ew != nullptr);
     }
-
-    // TODO ATN: reject null
-    socket_stream_t(fd_t fd_, std::nullptr_t) = delete;
-    socket_stream_t(fd_t fd_, int) = delete;
 
     socket_stream_t(const socket_stream_t &) = default;
 

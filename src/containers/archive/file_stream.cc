@@ -13,7 +13,7 @@ blocking_read_file_stream_t::~blocking_read_file_stream_t() { }
 bool blocking_read_file_stream_t::init(const char *path, int *errsv_out) {
     guarantee(fd_.get() == INVALID_FD);
 
-#ifdef _WIN32 // ATN TODO
+#ifdef _WIN32
     HANDLE h = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
                           FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) {
@@ -57,7 +57,8 @@ int64_t blocking_read_file_stream_t::read(void *p, int64_t n) {
     DWORD read_bytes;
     BOOL res = ReadFile(fd_.get(), p, n, &read_bytes, NULL);
     if (!res) {
-        rassert(false, "TODO ATN: errno is not set");
+        logERR("ReadFile failed: %s", winerr_string(GetLastError()).c_str());
+        set_errno(EIO);
         return -1;
     } else {
         return read_bytes;

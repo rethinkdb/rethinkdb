@@ -2,8 +2,6 @@
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 
-// TODO ATN: test on msc, gcc 4.6, gcc 4.8, clang and test threaded_coros
-
 #ifdef THREADED_COROUTINES
 #include <vector>
 #include "config/args.hpp"
@@ -65,11 +63,12 @@
 
 #define TLS(type, name) TLS_with_init(type, name, )
 
-// TODO ATN: assert trivial destructor
 #ifdef _MSC_VER
 #define TLS_with_constructor(type, name) TLS(type, name)
 #else
 #define TLS_with_constructor(type, name)                                \
+    static_assert(std::is_trivially_destructible<type>::value,          \
+                  "must be trivially destructible: " #type);            \
     typedef char TLS_ ## name ## _t[sizeof(type)];                      \
     TLS(TLS_ ## name ## _t, name ## _)                                  \
     TLS_with_init(bool, name ## _initialised, false)                    \
@@ -86,7 +85,6 @@
     }
 #endif
 
-// TODO ATN: assert pod
 #ifndef THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
     static THREAD_LOCAL type TLS_ ## name{initial};			\

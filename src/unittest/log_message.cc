@@ -25,24 +25,20 @@ TEST(LogMessageTest, ParseFormat) {
     EXPECT_EQ(message.message, parsed.message);
 }
 
-// TODO ATN: this is a mess
 void test_chunks(const std::vector<size_t> &sizes) {
-    // TODO ATN: portable tmp path
+#ifdef _WIN32
     char filename[] = "c:\\windows\\temp\\rethinkdb-unittest-file-reverse-reader-XXXXXX";
-#ifdef _WIN32 // TODO ATN
     errno_t err = _mktemp_s(filename, sizeof(filename));
     guarantee_xerr(err == 0, err, "_mktemp_s failed");
     HANDLE handle = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
     guarantee_winerr(handle != INVALID_HANDLE_VALUE, "CreateFile failed");
-    defer_t close([&filename](){
-        guarantee_err(unlink(filename) == 0);
-    });
     scoped_fd_t fd(handle);
 #else
+    char filename[] = "/tmp/rethinkdb-unittest-file-reverse-reader-XXXXXX";
     scoped_fd_t fd(mkstemp(filename));
 #endif
     guarantee(fd.get() != INVALID_FD);
-#ifndef _WIN32 // TODO ATN: delete the temp file
+#ifndef _WIN32
     int unlink_res = unlink(filename);
     guarantee_err(unlink_res == 0, "unlink failed");
 #endif

@@ -20,16 +20,13 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-#ifndef NDEBUG
-#ifndef _MSC_VER // TODO ATN
+#if !defined(NDEBUG) && !defined(_WIN32)
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
     core_limit.rlim_max = 200 * MEGABYTE;
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
-#endif
 
-    debugf("ATN: startup shutdown\n");
     startup_shutdown_t startup_shutdown;
 
 #ifdef _WIN32
@@ -112,5 +109,3 @@ int main(int argc, char *argv[]) {
         }
     }
 }
-
-// #endif // TODO ATN

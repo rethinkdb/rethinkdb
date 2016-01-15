@@ -262,7 +262,6 @@ int windows_runtime_debug_failure_handler(int type, char *message, int *retval) 
 }
 
 BOOL windows_ctrl_handler(DWORD type) {
-    debugf("ATN: got control interrupt %d\n", type);
     if (type != CTRL_C_EVENT && type != CTRL_BREAK_EVENT) {
         return false;
     }
@@ -270,7 +269,6 @@ BOOL windows_ctrl_handler(DWORD type) {
     thread_pool_t *thread_pool = linux_thread_pool_t::get_global_thread_pool();
 
     if (thread_pool != nullptr) {
-        debugf("ATN: calling handler\n");
         thread_pool->interrupt_handler(type);
     }
 
@@ -279,7 +277,6 @@ BOOL windows_ctrl_handler(DWORD type) {
 #endif
 
 void install_generic_crash_handler() {
-    debugf("ATN installling crash handlers\n");
 #ifdef _WIN32
     // TODO WINDOWS: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
