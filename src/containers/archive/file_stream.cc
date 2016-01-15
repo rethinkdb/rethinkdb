@@ -1,4 +1,5 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
 #include "containers/archive/file_stream.hpp"
 
 #include <sys/types.h>
@@ -72,3 +73,4 @@ int64_t blocking_read_file_stream_t::read(void *p, int64_t n) {
     return res;
 #endif
 }
+

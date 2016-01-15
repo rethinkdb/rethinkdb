@@ -1,5 +1,5 @@
-#ifndef ARCH_WINDOWS_STUB_UIO_H_
-#define ARCH_WINDOWS_STUB_UIO_H_
+#ifndef SRC_ARCH_WINDOWS_STUB_SYS_UIO_H_
+#define SRC_ARCH_WINDOWS_STUB_SYS_UIO_H_
 
 // A windows stub for <uio.h>
 
@@ -10,4 +10,4 @@ struct iovec {
 	size_t iov_len;
 };
 
-#endif
+#endif  // SRC_ARCH_WINDOWS_STUB_SYS_UIO_H_

@@ -20,6 +20,7 @@ table_manager_t::table_manager_t(
         const multi_table_manager_timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_raft_member_id,
         raft_storage_interface_t<table_raft_state_t> *raft_storage,
+        const raft_start_election_immediately_t start_election_immediately,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace) :
     table_id(_table_id),
@@ -30,7 +31,7 @@ table_manager_t::table_manager_t(
     connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_storage,
-        "Table " + uuid_to_str(table_id)),
+        "Table " + uuid_to_str(table_id), start_election_immediately),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
     raft_bcard_copier(&table_manager_bcard_t::raft_business_card,
         raft.get_business_card(), &table_manager_bcard),

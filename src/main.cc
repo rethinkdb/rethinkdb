@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <sys/resource.h>
 #endif
 

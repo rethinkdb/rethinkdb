@@ -163,7 +163,7 @@ const char PATH_SEPARATOR = '/';
 // va_copy portability definitions
 #ifdef COMPILER_MSVC
 
-#if _MSC_VER < 14
+#if _MSC_VER < 1400
 // MSVC doesn't have va_copy yet.
 // This is believed to work for 32-bit msvc.  This may not work at all for
 // other platforms.

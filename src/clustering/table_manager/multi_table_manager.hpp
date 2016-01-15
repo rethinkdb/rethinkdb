@@ -227,6 +227,7 @@ private:
             const multi_table_manager_timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
             raft_storage_interface_t<table_raft_state_t> *raft_storage,
+            const raft_start_election_immediately_t start_election_immediately,
             multistore_ptr_t *multistore_ptr,
             perfmon_collection_t *perfmon_collection_namespace);
 
@@ -334,6 +335,8 @@ private:
         const boost::optional<raft_member_id_t> &raft_member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_raft_state,
+        const boost::optional<raft_start_election_immediately_t>
+            &start_election_immediately,
         const mailbox_t<void()>::address_t &ack_addr);
 
     void on_get_status(

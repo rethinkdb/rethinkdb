@@ -71,7 +71,7 @@ bool operator<(const uuid_u& x, const uuid_u& y) {
 
 TLS_with_init(bool, next_uuid_initialized, false);
 typedef std::array<uint8_t, uuid_u::kStaticSize> next_uuid_t;
-TLS(next_uuid_t, next_uuid);
+TLS_with_init(next_uuid_t, next_uuid, {0});
 
 uuid_u get_and_increment_uuid() {
     uuid_u result;

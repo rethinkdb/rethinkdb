@@ -228,7 +228,7 @@ private:
 template<class T>
 class copyable_unique_t {
 public:
-    copyable_unique_t(T&& x)
+    explicit copyable_unique_t(T&& x)
         : it(std::move(x)) { }
     copyable_unique_t(const copyable_unique_t<T> &other)
         : it(std::move(other.it)) { }
@@ -240,7 +240,9 @@ private:
     mutable T it;
 };
 
-#if defined(__GNUC__) & (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7))
+#ifdef __clang__
+#define CAN_ALIAS_TEMPLATES 1
+#elif __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
 #define CAN_ALIAS_TEMPLATES 0
 #else
 #define CAN_ALIAS_TEMPLATES 1
@@ -261,9 +263,7 @@ public:
 
     scoped_alloc_t() : ptr_(NULL) { }
     explicit scoped_alloc_t(size_t n) : ptr_(static_cast<T *>(alloc(n))) { }
-    scoped_alloc_t(const char *beg, const char *end) {
-        rassert(beg <= end);
-        size_t n = end - beg;
+    scoped_alloc_t(const void *beg, size_t n) {
         ptr_ = static_cast<T *>(alloc(n));
         memcpy(ptr_, beg, n);
     }
@@ -281,8 +281,8 @@ public:
         movee.ptr_ = NULL;
     }
 
-    scoped_alloc_t(copyable_unique_t<scoped_alloc_t<T, alloc, dealloc> > other) noexcept
-        : ptr_(nullptr) {
+    template <class U>
+    scoped_alloc_t(copyable_unique_t<U> other) noexcept : ptr_(nullptr) { // NOLINT
         scoped_alloc_t tmp(other.release());
         swap(tmp);
     }
@@ -314,7 +314,7 @@ protected:
 private:
     friend class released_t;
 
-    scoped_alloc_t(void*) = delete;
+    explicit scoped_alloc_t(void*) = delete;
 
     void swap(scoped_alloc_t &other) noexcept {
         T *tmp = ptr_;
@@ -339,7 +339,7 @@ void *raw_malloc_aligned(size_t size) {
 #define TEMPLATE_ALIAS(type_t, ...)                                     \
     struct type_t : public __VA_ARGS__ {                                \
         template <class ... arg_ts>                                     \
-        type_t(arg_ts&&... args) :                                      \
+        type_t(arg_ts&&... args) : /* NOLINT */                         \
             __VA_ARGS__(std::forward<arg_ts>(args)...) { }              \
     }
 

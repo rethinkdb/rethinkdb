@@ -10,6 +10,9 @@
 #include <string>
 #include <boost/optional.hpp>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "debug.hpp"
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
@@ -21,9 +24,9 @@ typedef SSIZE_T ssize_t;
 #endif
 
 #ifdef _WIN32
-#define PATH_SEPERATOR "\\"
+#define PATH_SEPARATOR "\\"
 #else
-#define PATH_SEPERATOR "/"
+#define PATH_SEPARATOR "/"
 #endif
 
 class printf_buffer_t;
@@ -67,16 +70,15 @@ public:
     uint64_t randuint64(uint64_t n);
     double randdouble();
 
-#ifndef _WIN32
-    typedef std::array<unsigned short, 3> state_t;
-#else
+#ifdef _WIN32
     typedef std::ranlux48 state_t;
+#else
+    typedef std::array<uint16_t, 3> state_t;
 #endif
 
-    explicit rng_t(int seed);
-    rng_t() : rng_t(-1) { }
+    explicit rng_t(int seed = -1);
     rng_t(rng_t&&) = default;
-    rng_t(const state_t& s) : state(s) { };
+    explicit rng_t(const state_t& s) : state(s) { }
 private:
     state_t state;
     DISABLE_COPYING(rng_t);
@@ -119,7 +121,7 @@ bool parse_time(
     struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
-void print_hexdump(const void *buf, size_t offset, size_t length);
+void print_hd(const void *buf, size_t offset, size_t length);
 
 
 
@@ -194,7 +196,7 @@ static inline std::string time2str(const time_t &t) {
     const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN
     char timebuf[TIMEBUF_SIZE];
 #ifdef _WIN32
-    errno_t ret = ctime_s(timebuf, sizeof timebuf, &t);
+    errno_t ret = ctime_s(timebuf, sizeof(timebuf), &t);
     guarantee_err(ret == 0, "time2str: invalid time");
     return timebuf;
 #else
@@ -230,8 +232,8 @@ serializer_filepath_t manual_serializer_filepath(const std::string& permanent_pa
 class serializer_filepath_t {
 public:
     serializer_filepath_t(const base_path_t& directory, const std::string& relative_path)
-        : permanent_path_(directory.path() + PATH_SEPERATOR + relative_path),
-          temporary_path_(directory.path() + PATH_SEPERATOR + TEMPORARY_DIRECTORY_NAME + PATH_SEPERATOR + relative_path + ".create") {
+        : permanent_path_(directory.path() + PATH_SEPARATOR + relative_path),
+          temporary_path_(directory.path() + PATH_SEPARATOR + TEMPORARY_DIRECTORY_NAME + PATH_SEPARATOR + relative_path + ".create") {
         guarantee(!relative_path.empty());
     }
 

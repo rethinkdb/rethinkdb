@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include <openssl/crypto.h>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <limits>
 
@@ -23,11 +23,12 @@ using std::fabs;
 using std::ldexp;
 using std::copysign;
 using std::ceil;
+using std::isnan;
+using std::isinf;
 
 #ifndef __APPLE__
 using std::signbit;
 #endif
-
 
 // Define storage for constants.
 const int ExactFloat::kMinExp;

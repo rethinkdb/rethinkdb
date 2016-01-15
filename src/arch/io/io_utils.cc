@@ -1,10 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/io_utils.hpp"
 
-#ifndef _WIN32
-#include <sys/syscall.h>
-#else
+#ifdef _WIN32
 #include "windows.hpp"
+#else
+#include <sys/syscall.h>
 #endif
 
 #include <sys/uio.h>

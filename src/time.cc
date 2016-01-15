@@ -15,7 +15,18 @@
 #include "config/args.hpp"
 #include "errors.hpp"
 
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+
+microtime_t current_microtime() {
+    FILETIME time;
+    GetSystemTimePreciseAsFileTime(&time);
+    ULARGE_INTEGER nanos100;
+    nanos100.LowPart = time.dwLowDateTime;
+    nanos100.HighPart = time.dwHighDateTime;
+    return nanos100.QuadPart / 10;
+}
+
+#else
 
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
@@ -23,18 +34,6 @@ microtime_t current_microtime() {
     DEBUG_VAR int res = gettimeofday(&t, NULL);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
-}
-
-#else
-
-microtime_t current_microtime() {
-    static const microtime_t filetime_epoch = -11644473600000000; // January 1, 1601
-    FILETIME time;
-    GetSystemTimePreciseAsFileTime(&time);
-    ULARGE_INTEGER nanos100;
-    nanos100.LowPart = time.dwLowDateTime;
-    nanos100.HighPart = time.dwHighDateTime;
-    return nanos100.QuadPart / 10 + filetime_epoch;
 }
 
 #endif
@@ -63,7 +62,7 @@ timespec clock_monotonic() {
     return ret;
 #elif defined(_WIN32)
     timespec ret;
-    static LARGE_INTEGER frequency_hz = {0};
+    static THREAD_LOCAL LARGE_INTEGER frequency_hz = {0};
     if (frequency_hz.QuadPart == 0) {
         BOOL res = QueryPerformanceFrequency(&frequency_hz);
         guarantee_winerr(res, "QueryPerformanceFrequency failed");

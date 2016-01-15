@@ -163,7 +163,8 @@ datum_t vals_to_change(
     datum_t new_val,
     bool discard_old_val = false,
     bool discard_new_val = false) {
-    if (discard_old_val && discard_new_val) {
+    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
+        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
         return datum_t();
     } else {
         std::map<datum_string_t, datum_t> ret;
@@ -1312,7 +1313,6 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         backtrace_id_t bt) = 0;
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *env,
         const uuid_u &uuid,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_vals,
@@ -1446,8 +1446,8 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void update_range_stamps(uuid_u server_uuid, uint64_t stamp);
-    std::map<uuid_u, uint64_t> get_range_stamps();
+    void update_stamps(uuid_u server_uuid, uint64_t stamp);
+    std::map<uuid_u, uint64_t> get_stamps();
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1504,31 +1504,32 @@ private:
     std::map<uuid_u, std::vector<std::set<limit_sub_t *> > > limit_subs;
     rwlock_t limit_subs_lock;
 
-    // This stores the latest range stamps we've received.  It's OK for this to
+    // This stores the latest stamps we've received.  It's OK for this to
     // be a tiny bit behind what we've sent the subs.
-    struct range_stamps_t {
+    struct stamps_t {
         rwlock_t lock;
         std::map<uuid_u, uint64_t> latest;
     };
     // We use a `one_per_thread_t` because when we have lots of subs (the
     // expensive case), it's easier to fill this in multiple times than to have
     // every sub do a thread switch to read the value.
-    one_per_thread_t<range_stamps_t> range_stamps;
+    one_per_thread_t<stamps_t> stamps;
 };
 
-void feed_t::update_range_stamps(uuid_u server_uuid, uint64_t stamp) {
+void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
     pmap(get_num_threads(),
          [&](int thread) {
              on_thread_t th((threadnum_t(thread)));
-             range_stamps_t *rs = range_stamps.get();
+             stamps_t *rs = stamps.get();
              rwlock_acq_t acq(&rs->lock, access_t::write);
+             rassert(stamp >= rs->latest[server_uuid]);
              rs->latest[server_uuid] = stamp;
          });
 }
 
 // We have to return by value here because we release the lock right away.
-std::map<uuid_u, uint64_t> feed_t::get_range_stamps() {
-    range_stamps_t *rs = range_stamps.get();
+std::map<uuid_u, uint64_t> feed_t::get_stamps() {
+    stamps_t *rs = stamps.get();
     rwlock_acq_t acq(&rs->lock, access_t::read);
     return rs->latest;
 }
@@ -1731,6 +1732,13 @@ public:
         if (state != state_t::READY && include_initial) {
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
+            if (!ret.has()) {
+                // This is the one place where it's legal to have a document
+                // like `{new_val: null}`.
+                ret = datum_t(
+                    std::map<datum_string_t, datum_t>{{
+                        datum_string_t("new_val"), datum_t::null()}});
+            }
         } else {
             ret = change_val_to_change(pop_change_val());
         }
@@ -1800,7 +1808,6 @@ public:
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *,
         const uuid_u &,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
@@ -1862,6 +1869,7 @@ public:
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
+                env_t *outer_env,
                 keyspec_t::range_t _spec)
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
@@ -1871,6 +1879,7 @@ public:
           state(state_t::READY),
           sent_state(state_t::NONE),
           artificial_include_initial(false) {
+        env = make_env(outer_env);
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -1980,27 +1989,27 @@ public:
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != nullptr);
-        rcheck_datum(resp->stamps, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(resp->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
         std::map<uuid_u, uint64_t> purge_stamps;
-        for (const auto &pair : *resp->stamps) {
-            auto orig_res = orig_stamps.insert(pair);
+        for (const auto &pair : *resp->stamp_infos) {
+            const auto id_stamp_pair = std::make_pair(pair.first, pair.second.stamp);
+            auto orig_res = orig_stamps.insert(id_stamp_pair);
             guarantee(orig_res.second);
-            auto res = next_stamps.insert(pair);
+            auto res = next_stamps.insert(id_stamp_pair);
             // If we already have stamps.
             if (!res.second) {
-                purge_stamps.insert(pair);
+                purge_stamps.insert(id_stamp_pair);
                 // Even though we're purging the early changes, we also need to
                 // make sure we don't get any such changes *after* the purge.
-                next_stamps[pair.first] =
-                    std::max(next_stamps[pair.first], pair.second);
+                next_stamps[id_stamp_pair.first] =
+                    std::max(next_stamps[id_stamp_pair.first], id_stamp_pair.second);
             }
         }
         queue->purge_below(purge_stamps);
         rcheck_datum(orig_stamps.size() != 0, base_exc_t::RESUMABLE_OP_FAILED,
                      "Empty start stamps.  Did you just reshard?");
 
-        env = make_env(outer_env);
         if (maybe_src) {
             // Nothing can happen between constructing the new `scoped_ptr_t` and
             // releasing the old one.
@@ -2016,7 +2025,6 @@ public:
         }
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *outer_env,
         const uuid_u &uuid,
         const std::string &pkey_name,
         const std::vector<datum_t> &initial_vals,
@@ -2028,7 +2036,6 @@ public:
 
         artificial_include_initial = include_initial;
 
-        env = make_env(outer_env);
         orig_stamps[uuid] = 0;
         next_stamps[uuid] = 0;
         if (artificial_include_initial) {
@@ -2372,7 +2379,7 @@ public:
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     NORETURN virtual counted_t<datum_stream_t> to_artificial_stream(
-        env_t *, const uuid_u &, const std::string &, const std::vector<datum_t> &,
+        const uuid_u &, const std::string &, const std::vector<datum_t> &,
         bool, scoped_ptr_t<subscription_t> &&, backtrace_id_t) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
@@ -2522,7 +2529,6 @@ public:
                 }
             }
         });
-        feed->update_range_stamps(server_uuid, stamp);
         feed->on_point_sub(
             change.pkey,
             *lock,
@@ -2550,6 +2556,16 @@ private:
     uuid_u server_uuid;
     uint64_t stamp;
 };
+
+void msg_visit(feed_t *feed,
+               const auto_drainer_t::lock_t *lock,
+               uuid_u server_uuid,
+               uint64_t stamp,
+               const msg_t::op_t &op) {
+    msg_visitor_t visitor(feed, lock, server_uuid, stamp);
+    boost::apply_visitor(visitor, op);
+    feed->update_stamps(server_uuid, stamp);
+}
 
 void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     // We stop receiving messages when detached (we're only receiving
@@ -2585,8 +2601,8 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
                 if (detached) return;
                 const stamped_msg_t &curmsg = queue->map.top();
-                msg_visitor_t visitor(this, &lock, curmsg.server_uuid, curmsg.stamp);
-                boost::apply_visitor(visitor, curmsg.submsg.op);
+                msg_visit(this, &lock,
+                          curmsg.server_uuid, curmsg.stamp, curmsg.submsg.op);
                 queue->map.pop();
                 queue->next += 1;
             }
@@ -2607,6 +2623,7 @@ public:
             stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
         }
     }
+
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         std::vector<datum_t> ret;
@@ -2652,13 +2669,8 @@ private:
                 }
             }
             if (!src->is_exhausted() && !batcher.should_send_batch()) {
-                // We set `MIN_ELS` to 8 here because we're still doing
-                // inefficient unsharding for changefeed reads, and this
-                // improves the worst-case performance by a lot in exchange for
-                // an increase in latency.  (8 used to be the global default
-                // MIN_ELS value.)
-                batchspec_t new_bs = bs.with_min_els(8);
-                new_bs = new_bs.with_lazy_sorting_override(sorting_t::ASCENDING);
+                // Sorting must be UNORDERED for our last_read range calculation to work.
+                batchspec_t new_bs = bs.with_lazy_sorting_override(sorting_t::UNORDERED);
                 std::vector<datum_t> batch = src->next_batch(env, new_bs);
                 update_ranges();
                 r_sanity_check(active_state);
@@ -2682,7 +2694,7 @@ private:
                     // available.  This shouldn't matter too much because this
                     // case should be rare in practice, and napping more than
                     // once should be extremely rare.
-                    nap(50);
+                    nap(50, env->interruptor);
                 }
             }
         }
@@ -2716,26 +2728,10 @@ private:
         // If we get here then there's a gap in the ranges.
         r_sanity_fail();
     }
-    void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
-        // Safe because we never generate `store_key_t::max()`.
-        if (range.right.unbounded) {
-            range.right.unbounded = false;
-            range.right.internal_key = store_key_t::max();
-        }
-        auto it = stamped_ranges.find(uuid);
-        r_sanity_check(it != stamped_ranges.end());
-        if (it->second.ranges.size() == 0) {
-            it->second.left_fencepost = range.left;
-            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
-        } else if (it->second.ranges.back().second == stamp) {
-            it->second.ranges.back().first.right = range.right;
-        } else {
-            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
-        }
-    }
+
     void maybe_skip_to_feed() {
         const std::map<uuid_u, uint64_t> *sub_stamps = &sub->get_next_stamps();
-        boost::optional<std::map<uuid_u, uint64_t> > feed_range_stamps;
+        boost::optional<std::map<uuid_u, uint64_t> > feed_stamps;
         for (auto &&pair : stamped_ranges) {
             auto it = sub_stamps->find(pair.first);
             r_sanity_check(it != sub_stamps->end());
@@ -2744,11 +2740,11 @@ private:
             // we can jump ahead to whatever stamp the parent feed says is the
             // latest it's decided whether or not to pass to the subscription.
             if (pair.second.next_expected_stamp >= sub_stamp) {
-                if (!feed_range_stamps) {
-                    feed_range_stamps = sub->parent_feed()->get_range_stamps();
+                if (!feed_stamps) {
+                    feed_stamps = sub->parent_feed()->get_stamps();
                 }
-                auto ft = feed_range_stamps->find(pair.first);
-                if (ft != feed_range_stamps->end()) {
+                auto ft = feed_stamps->find(pair.first);
+                if (ft != feed_stamps->end()) {
                     pair.second.next_expected_stamp =
                         std::max(pair.second.next_expected_stamp,
                                  ft->second + 1);
@@ -2756,13 +2752,33 @@ private:
             }
         }
     }
+
     void update_ranges() {
-        active_state = src->truncate_and_get_active_state();
-        key_range_t range = last_read_range();
-        for (const auto &pair : last_read_stamps()) {
-            add_range(pair.first, pair.second, range);
+        active_state = src->get_active_state();
+        r_sanity_check(active_state);
+        for (const auto &pair : active_state->shard_last_read_stamps) {
+            add_range(pair.first, pair.second.first, pair.second.second);
         }
     }
+
+    void add_range(uuid_u uuid, key_range_t read_range, uint64_t stamp) {
+        // Safe because we never generate `store_key_t::max()`.
+        if (read_range.right.unbounded) {
+            read_range.right.unbounded = false;
+            read_range.right.internal_key = store_key_t::max();
+        }
+        auto it = stamped_ranges.find(uuid);
+        r_sanity_check(it != stamped_ranges.end());
+        if (it->second.ranges.size() == 0) {
+            it->second.left_fencepost = read_range.left;
+            it->second.ranges.push_back(std::make_pair(std::move(read_range), stamp));
+        } else if (it->second.ranges.back().second == stamp) {
+            it->second.ranges.back().first.right = read_range.right;
+        } else {
+            it->second.ranges.push_back(std::make_pair(std::move(read_range), stamp));
+        }
+    }
+
     void remove_outdated_ranges() {
         for (auto &&pair : stamped_ranges) {
             auto *ranges = &pair.second.ranges;
@@ -2778,19 +2794,12 @@ private:
         }
     }
 
-    const key_range_t &last_read_range() const {
-        r_sanity_check(active_state);
-        return active_state->last_read;
-    }
-    const std::map<uuid_u, uint64_t> &last_read_stamps() const {
-        r_sanity_check(active_state);
-        return active_state->shard_stamps;
-    }
     const reql_version_t &reql_version() const {
         r_sanity_check(active_state);
         r_sanity_check(active_state->reql_version);
         return *(active_state->reql_version);
     }
+
     bool ready() {
         // It's OK to cache this because we only ever call `ready` once we're
         // done doing reads.
@@ -3278,6 +3287,7 @@ scoped_ptr_t<subscription_t> new_sub(
     configured_limits_t limits,
     const datum_t &squash,
     bool include_states,
+    env_t *env,
     const keyspec_t::spec_t &spec) {
 
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
@@ -3285,13 +3295,15 @@ scoped_ptr_t<subscription_t> new_sub(
             feed_t *_feed,
             configured_limits_t _limits,
             const datum_t *_squash,
-            bool _include_states)
+            bool _include_states,
+            env_t *_env)
             : feed(_feed),
               limits(std::move(_limits)),
               squash(_squash),
-              include_states(_include_states) { }
+              include_states(_include_states),
+              env(_env) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, limits, *squash, include_states, range);
+            return new range_sub_t(feed, limits, *squash, include_states, env, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
             return new limit_sub_t(feed, limits, *squash, include_states, limit);
@@ -3303,10 +3315,11 @@ scoped_ptr_t<subscription_t> new_sub(
         configured_limits_t limits;
         const datum_t *squash;
         bool include_states;
+        env_t *env;
     };
     return scoped_ptr_t<subscription_t>(
         boost::apply_visitor(
-            spec_visitor_t(feed, std::move(limits), &squash, include_states),
+            spec_visitor_t(feed, std::move(limits), &squash, include_states, env),
             spec));
 }
 
@@ -3380,7 +3393,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // want to change this behavior to make it more efficient, make
                 // sure `feed_t::stop_subs` remains correct.
                 on_thread_t th2(old_thread);
-                sub = new_sub(feed, std::move(limits), squash, include_states, spec);
+                sub = new_sub(feed, std::move(limits), squash, include_states, env, spec);
             }
             namespace_interface_access_t access =
                 namespace_source(uuid, env->interruptor);
@@ -3488,9 +3501,10 @@ counted_t<datum_stream_t> artificial_t::subscribe(
         std::move(limits),
         datum_t::boolean(false),
         include_states,
+        env,
         spec);
     return sub->to_artificial_stream(
-        env, uuid, primary_key_name, initial_values,
+        uuid, primary_key_name, initial_values,
         include_initial, std::move(sub), bt);
 }
 
@@ -3503,8 +3517,7 @@ void artificial_t::send_all(const msg_t &msg) {
         }
     }
     auto_drainer_t::lock_t lock = feed->get_drainer_lock();
-    msg_visitor_t visitor(feed.get(), &lock, uuid, stamp++);
-    boost::apply_visitor(visitor, msg.op);
+    msg_visit(feed.get(), &lock, uuid, stamp++, msg.op);
 }
 
 bool artificial_t::can_be_removed() {

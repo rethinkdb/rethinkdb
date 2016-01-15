@@ -516,6 +516,9 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                     static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #elif defined(__APPLE__)
         const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+#elif defined(_WIN32)
+        // TODO WINDOWS
+        const int fcntl_res = -1;
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
@@ -542,6 +545,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         disable_readahead_res = fcntl_res == -1
                                 ? get_errno()
                                 : 0;
+#elif defined(_WIN32)
+        // TODO WINDOWS
 #endif
         if (disable_readahead_res != 0) {
             // Non-critical error. Just print a warning and keep going.

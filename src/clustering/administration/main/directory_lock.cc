@@ -1,11 +1,11 @@
 #include "clustering/administration/main/directory_lock.hpp"
 
-#ifndef _MSC_VER
-#include <dirent.h>
-#include <sys/file.h>
-#else
+#ifdef _MSC_VER
 #include <filesystem>
 #include <direct.h>
+#else
+#include <dirent.h>
+#include <sys/file.h>
 #endif
 
 #include <sys/stat.h>

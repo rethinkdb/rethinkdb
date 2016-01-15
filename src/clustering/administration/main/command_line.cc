@@ -718,7 +718,7 @@ std::string windows_version_string() {
     case 0x0205: name ="Windows XP 64-bit, Server 2003"; break;
     case 0x0105: name ="Windows XP"; break;
     case 0x0005: name ="Windows 2000"; break;
-    default: name = "Unkown";
+    default: name = "Unknown";
     }
     return strprintf("%d.%d.%d (%s)", major, minor, build, name.c_str());
 }

@@ -23,6 +23,11 @@ try:
 except ImportError:
     import repr as reprlib
 
+# == constants
+    
+TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
+CANCELED_EXIT_CODE = -278
+
 # -- repr subclass
 
 class ReprReplace(reprlib.Repr):
@@ -63,21 +68,11 @@ devNull = open(os.devnull)
 
 # -- signal and atexit handlers
 
-runningProcessGroupsIds = []
-def cleanupProcessGroups():
-    '''fired by atexit or a signal handler, this should make sure we don't leave processes running'''
-    
-    for processGroupId in runningProcessGroupsIds:
-        try:
-            utils.kill_process_group(processGroupId)
-        except Exception as e:
-            raise Warning('Unable to shut down server: %s' % str(e))
-atexit.register(cleanupProcessGroups)
-
 cancelRun = False
 def setCancelRun(*args):
     global cancelRun
     cancelRun = True
+    print('') # put the ^C on a seperate line
 signal.signal(signal.SIGINT, setCancelRun)
 # ToDo: cover all relevant signals
 # ToDo: allow for double-SIGINT to fast-kill
@@ -552,13 +547,14 @@ class JrbLang(RbLang):
     
 
 interpreters = {
-    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
+    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2'), JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
     'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
     'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), JrbLang('9.0')],
     'jrb':    [JrbLang('9.0')],
     
     'js0':    [JsLang('0.10'), JsLang('0.12')],
     'js4':    [JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
+    'js5':    [JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
     
     'py2':    [PyLang('2.6'), PyLang('2.7')],
     'py2.6':  [PyLang('2.6')],
@@ -927,10 +923,6 @@ def check_language(option, opt_str, value, parser):
 
 class Test(object):
     
-    # == constants
-    
-    TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
-    
     # == class/instance variables
     
     timeout = 300 # seconds to timeout, this can be changed per-test
@@ -1141,7 +1133,7 @@ class Test(object):
     def endTest(self, result=None, errorMessage=None, errorDetails=None):
         '''Interrupts a running test'''
         
-        if not self.__status in ('running', 'setting up'):
+        if not self.__status in ('running', 'setting up') and result != 'canceled':
             raise RuntimeError('endTest called on a test that was %s' % self.__status)
         
         self.errorMessage = errorMessage
@@ -1155,12 +1147,17 @@ class Test(object):
         elif self.__status == 'running':
             self.testDuration = time.time() - self.testStartTime
             self.result = result or 'failed'
-        
-        if result == 'timed out':
-            self.returncode = self.TIMED_OUT_EXIT_CODE
+        else:
+            self.result = result
         
         self.cleanupTest()
-        self.returncode = None
+        
+        if result == 'timed out':
+            self.returncode = TIMED_OUT_EXIT_CODE
+        elif result == 'canceled':
+            self.returncode = CANCELED_EXIT_CODE
+        else:
+            self.returncode = None
     
     def cleanupTest(self):
         '''Perform after-test cleanup'''
@@ -1168,7 +1165,7 @@ class Test(object):
         # -- kill everything in the process group
         
         if self.__testProcess is not None and self.__testProcess.pid is not None:
-            utils.kill_process_group(self.__testProcess.pid)
+            utils.kill_process_group(self.__testProcess)
         
         # -- close the output file
         
@@ -1501,18 +1498,26 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = None
     
     def run(self):
-        try:
-            while cancelRun is False:
+        
+        class CancelRunError(Exception):
+            pass
+        
+        while cancelRun is False:
+            test = None
+            testOutputDir = None
                 
+            try:
                 # -- get a test
                 
-                test = None
                 try:
                     test = self.workQueue.get_nowait()
                 except Queue.Empty:
                     break
+                                
+                # -- ensure we have a clean server avalible
                 
-                # -- ensure we have an available, clean server
+                if cancelRun:
+                    raise CancelRunError()
                 
                 if self.existingServer:
                     self.check_server()
@@ -1521,8 +1526,27 @@ class WorkerThread(threading.Thread):
                 
                 self.clean_server()
                 
-                # -- create test ouput folder
+                # -- pre-process the test
                 
+                if cancelRun:
+                    raise CancelRunError()
+                
+                if self.outputQueue:
+                    self.outputQueue.put(('setting up', test, time.time()))
+                try:
+                    test.setupTest()
+                except Exception as e:
+                    debug(traceback.format_exc())
+                    test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
+                    self.outputQueue.put((test.status, test, time.time()))
+                    continue
+                
+                # -- start the test
+                
+                if cancelRun:
+                    raise CancelRunError()
+                
+                # - create test ouput folder
                 testOutputDir = os.path.join(self.outputDir, test.name)
                 if os.path.exists(testOutputDir):
                     # delete the old item
@@ -1532,70 +1556,56 @@ class WorkerThread(threading.Thread):
                         os.unlink(testOutputDir)
                 os.makedirs(testOutputDir)
                 
-                # -- set consoleFile
-                
+                # - set consoleFile
                 test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(testOutputDir, 'console.txt')
                 
-                # -- pre-process the test
-                
-                if self.outputQueue:
-                    self.outputQueue.put(('setting up', test))
-                
-                try:
-                    test.setupTest()
-                except Exception as e:
-                    debug(traceback.format_exc())
-                    test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
-                    self.outputQueue.put((test.status, test))
-                    continue
-                
-                # -- run the test
+                # - run the test
+                if cancelRun:
+                    raise CancelRunError()
                 
                 try:
-                    self.outputQueue.put(('running', test))
+                    self.outputQueue.put(('running', test, time.time()))
                     test.startTest(server=self.server)
                 except Exception as e:
                     debug(traceback.format_exc())
                     test.endTest(errorMessage='Failed starting test', errorDetails=traceback.format_exc())
-                    self.outputQueue.put((test.status, test))
+                    self.outputQueue.put((test.status, test, time.time()))
                     continue
                 
-                # - monitor the test running
+                # -- monitor the running test
                 
                 restartServer = False
                 copyServerContents = False
-                
-                if test.status == 'running':
-                    deadline = time.time() + test.timeout
+                deadline = time.time() + test.timeout
                     
-                    while time.time() < deadline:
-                        if cancelRun is True:
-                            test.endTest(result='canceled')
+                while time.time() < deadline:
+                    if cancelRun:
+                        raise CancelRunError()
+                    try:
+                        if test.checkTestDone():
+                            if test.returncode != 0 and self.existingServer is None:
+                                restartServer = True
                             break
                         try:
-                            if test.checkTestDone():
-                                if test.returncode != 0 and self.existingServer is None:
-                                    restartServer = True
-                                break
-                            try:
-                                self.server.check()
-                            except Exception as e:
-                                test.endTest(result='crashed server', errorMessage='Server crashed during testing')
-                                restartServer = True
-                                copyServerContents = True
-                                break
-                            time.sleep(.1)
+                            self.server.check()
                         except Exception as e:
-                            debug(traceback.format_exc())
-                            test.endTest(errorMessage='Exception while monitoring', errorDetails=traceback.format_exc())
-                            self.outputQueue.put((test.status, test))
+                            test.endTest(result='crashed server', errorMessage='Server crashed during testing')
+                            restartServer = True
+                            copyServerContents = True
                             break
-                    else:
-                        # ToDo: sample running processes
-                        test.endTest(result='timed out', errorMessage='Timed out after %d seconds' % test.timeout)
+                        time.sleep(.1)
+                    except Exception as e:
+                        debug(traceback.format_exc())
+                        test.endTest(errorMessage='Exception while monitoring', errorDetails=traceback.format_exc())
+                        self.outputQueue.put((test.status, test, time.time()))
+                        break
+                else:
+                    # ToDo: sample running processes
+                    test.endTest(result='timed out', errorMessage='Timed out after %d seconds' % test.timeout)
+                
+                # -- post-test
                 
                 # - check the server
-                
                 if test.result != 'crashed server':
                     try:
                         self.server.check()
@@ -1610,9 +1620,9 @@ class WorkerThread(threading.Thread):
                             test.errorMessage = 'Server found crashed after test'
                         else:
                             test.errorMessage += ', and the server crashed while running'
-                
+                    
                 # - copy the server contents or just the server log
-                if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
+                if self.server.logfile_path and testOutputDir: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
                         shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
                         
@@ -1628,14 +1638,7 @@ class WorkerThread(threading.Thread):
                     else:
                         shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
                 
-                if restartServer:
-                    try:
-                        self.server.close()
-                    except Exception: pass
-                    self.server = None
-                
-                # -- write test metadata file
-                
+                # - write test metadata file
                 with open(os.path.join(testOutputDir, 'metadata.json'), 'w+') as metadataFile:
                     command = ''
                     try:
@@ -1655,26 +1658,43 @@ class WorkerThread(threading.Thread):
                     }
                     json.dump(metaData, metadataFile, indent=1)
                 
-                # -- return result
-                
-                self.outputQueue.put((test.status, test))
+                # - return result
+                self.outputQueue.put((test.status, test, time.time()))
                 self.workQueue.task_done() # not really important
+                
+                test = None
+                testOutputDir = None
+        
+            except CancelRunError:
+                if test:
+                    test.endTest(result='canceled')
+                    self.outputQueue.put((test.status, test, time.time()))
+                    self.workQueue.task_done() # not really important
+                    break
             
-            # - shut down the server
+            except Exception as e:
+                debug(traceback.format_exc())
+                warnings.warn("Worker failure: %s" % unicode(e))
+                restartServer = True
             
-            if self.server is not None:
-                try:
-                    self.server.close()
-                except Exception: pass # ToDo: mark the last test bad if this fell over
+            # -- shutdown the server if necessary
+            if restartServer:
+                if self.existingServer:
+                    self.clean_server()
+                elif self.server:
+                    try:
+                        self.server.close()
+                    except Exception: pass
                 self.server = None
         
-        except Exception as e:
-            debug(traceback.format_exc())
-            raise Warning("Worker failure: " + unicode(e))
-        
-        finally:
-            if self.existingServer:
-                self.clean_server()
+        # -- shutdown server before worker exit
+        if self.existingServer:
+            self.clean_server()
+        elif self.server:
+            try:
+                self.server.close()
+            except Exception: pass
+        self.server = None
 
 def main():
     global print_debug
@@ -1961,11 +1981,11 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
             message = None
             test = None
             try:
-                message, test = outputQueue.get_nowait()
+                message, test, eventTime = outputQueue.get_nowait()
             except Queue.Empty:
                 break
             
-            timeString = 'T+ %.1f sec' % (time.time() - startTime)
+            timeString = 'T+ %.1f sec' % (eventTime - startTime)
             
             if message == 'queued':
                 pass
@@ -1987,7 +2007,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
                     durationString = '%.1f sec setup' % test.setupDuration
                                 
                 if test.result is None:
-                    raise Warning('Got None for test.result, this should not happen')
+                    warnings.warn('Got None for test.result for %r, this should not happen' % test.name)
                     continue
                 
                 if test.result == 'succeeded':

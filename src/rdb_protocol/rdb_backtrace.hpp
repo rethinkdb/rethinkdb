@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_BACKTRACE_HPP_
-#define RDB_PROTOCOL_BACKTRACE_HPP_
+#ifndef RDB_PROTOCOL_RDB_BACKTRACE_HPP_
+#define RDB_PROTOCOL_RDB_BACKTRACE_HPP_
 
 #include <vector>
 #include <stdexcept>

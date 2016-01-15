@@ -83,6 +83,26 @@ size_t count_codepoints(const datum_string_t &str) {
     return count_codepoints(str.data(), str.data() + str.size());
 }
 
+size_t index_codepoints(const char *start, const char *end, size_t n) {
+    // first, skip to the byte after the codepoint before the target character
+    const char *at;
+    for (at = start; at < end && n > 0; at++) {
+        if ( !is_continuation(*at) ) {
+            n--;
+        }
+    }
+
+    // if the codepoint before the target character is multibyte,
+    // skip past the end of it
+    for (; at < end && is_continuation(*at); at++) { }
+
+    return at-start;
+}
+
+size_t index_codepoints(const datum_string_t &str, size_t n) {
+    return index_codepoints(str.data(), str.data() + str.size(), n);
+}
+
 bool is_valid(const datum_string_t &str) {
     reason_t reason;
     return is_valid_internal(str.data(), str.data() + str.size(), &reason);

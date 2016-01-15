@@ -8,15 +8,10 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
-#ifndef _WIN32
-
-typedef int fd_t;
-const fd_t INVALID_FD = -1;
-
-#else
+#ifdef _WIN32
 
 typedef HANDLE fd_t;
-const fd_t INVALID_FD = INVALID_HANDLE_VALUE;
+#define INVALID_FD INVALID_HANDLE_VALUE
 
 inline SOCKET fd_to_socket(fd_t handle) {
     return reinterpret_cast<SOCKET>(handle);
@@ -26,7 +21,13 @@ inline fd_t socket_to_fd(SOCKET s) {
     return reinterpret_cast<fd_t>(s);
 }
 
+#else
+
+typedef int fd_t;
+const fd_t INVALID_FD = -1;
+
 #endif
+
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:

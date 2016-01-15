@@ -19,7 +19,7 @@ pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl, ReQLDecoder, ReQLEncoder
+from .ast import DB, Repl, ReQLDecoder, ReQLEncoder
 
 try:
     from ssl import match_hostname, CertificateError

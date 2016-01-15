@@ -12,6 +12,7 @@
 #include "btree/keys.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/varint.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -408,7 +409,6 @@ scoped_ptr_t<accumulator_t> make_append(region_t region,
                                         sorting_t sorting,
                                         batcher_t *batcher);
 scoped_ptr_t<accumulator_t> make_unsharding_append();
-scoped_ptr_t<accumulator_t> make_limit_append(size_t n, sorting_t sorting);
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 scoped_ptr_t<eager_acc_t> make_to_array();
 scoped_ptr_t<eager_acc_t> make_eager_terminal(const terminal_variant_t &t);

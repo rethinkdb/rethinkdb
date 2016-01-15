@@ -1,5 +1,5 @@
-#ifndef ARCH_WINDOWS_STUB_UNISTD_H_
-#define ARCH_WINDOWS_STUB_UNISTD_H_
+#ifndef SRC_ARCH_WINDOWS_STUB_UNISTD_H_
+#define SRC_ARCH_WINDOWS_STUB_UNISTD_H_
 
 // A stub for <unistd.h> on windows
 
@@ -56,4 +56,4 @@ inline ssize_t pwrite(HANDLE h, const void *buf, size_t count, off_t offset) {
 #define close _close
 #define getpid _getpid
 
-#endif
+#endif  // SRC_ARCH_WINDOWS_STUB_UNISTD_H_

@@ -103,13 +103,21 @@ struct point_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 
+struct shard_stamp_info_t {
+    uint64_t stamp;
+    region_t shard_region;
+    // The starting points of the reads (assuming left to right traversal)
+    store_key_t last_read_start;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(shard_stamp_info_t);
+
 struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
     // servers and don't synchronize with each other.)  If this is empty it
     // means the feed was aborted.
-    boost::optional<std::map<uuid_u, uint64_t> > stamps;
+    boost::optional<std::map<uuid_u, shard_stamp_info_t> > stamp_infos;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 

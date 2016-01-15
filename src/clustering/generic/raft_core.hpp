@@ -65,6 +65,21 @@ code, by making it clearer what the meaning of a particular number is. */
 typedef uint64_t raft_term_t;
 typedef uint64_t raft_log_index_t;
 
+/* `raft_start_election_immediately_t` is used as a hint to the `raft_member_t`
+constructor, and is used to speed up new raft clusters' first elections.
+
+On new clusters, it should be set to YES on precisely one of the raft members. If we're
+joining an existing cluster, it should be set to NO to avoid disposing a running leader. */
+enum class raft_start_election_immediately_t {
+    NO,
+    YES
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    raft_start_election_immediately_t,
+    int8_t,
+    raft_start_election_immediately_t::NO,
+    raft_start_election_immediately_t::YES);
+
 /* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
 way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
@@ -572,7 +587,8 @@ public:
         raft_network_interface_t<state_t> *network,
         /* We'll print log messages of the form `<log_prefix>: <message>`. If
         `log_prefix` is empty, we won't print any messages. */
-        const std::string &log_prefix);
+        const std::string &log_prefix,
+        const raft_start_election_immediately_t start_election_immediately);
 
     ~raft_member_t();
 

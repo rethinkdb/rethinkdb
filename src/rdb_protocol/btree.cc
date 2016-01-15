@@ -198,7 +198,7 @@ kv_location_set(keyvalue_location_t *kv_location,
     }
 
     scoped_malloc_t<rdb_value_t> new_value(
-            value_ref.data(), value_ref.data() + value_ref.size());
+            value_ref.data(), value_ref.size());
 
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
@@ -348,6 +348,7 @@ void do_a_replace_from_batched_replace(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
     // We need to get in line for this while still holding the superblock so
     // that stamp read operations can't queue-skip.
+    info.superblock->get()->write_acq_signal()->wait_lazily_unordered();
     rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_cfeed_stamp();
 
     rdb_live_deletion_context_t deletion_context;

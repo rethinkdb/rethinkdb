@@ -207,7 +207,7 @@ def import_python_driver():
     
     if not all(map(lambda x: os.path.isfile(os.path.join(driverPath, x)), ['__init__.py', 'ast.py', 'docs.py'])):
         raise ValueError('Invalid Python driver: %s' % driverPath)
-        
+    
     # -- load the driver
     
     keptPaths = sys.path[:]
@@ -217,7 +217,7 @@ def import_python_driver():
         loadedDriver = __import__(driverName)
     finally:
         sys.path = keptPaths
-    
+
     
     # -- check that it is from where we assert it to be
     
@@ -380,101 +380,267 @@ def wait_for_port(port, host='localhost', timeout=5):
         time.sleep(.1)
     raise Exception('Timed out after %d seconds waiting for port %d on %s to be open' % (timeout, port, host))
 
-def kill_process_group(processGroupId, timeout=20, shutdown_grace=5, only_warn=True):
+class RunningProcesses:
+    
+    class Process:
+        pid = None
+        ppid = None
+        pgid = None
+        status = None
+        command = None
+        
+        def __init__(self, pid, ppid, pgid, status, command):
+            self.pid = pid
+            self.ppid = ppid
+            self.pgid = pgid
+            self.status = status
+            self.command = command
+        
+        def __hash__(self):
+            return hash((self.pid, self.command))
+        
+        def __eq__(self, other):
+            if not isinstance(other, self.__class__):
+                return False
+            return self.__hash__() == other.__hash__()
+        
+        def __str__(self):
+            return 'pid: %d ppid: %d pgid: %d status: %r command: %s' % (self.pid, self.ppid, self.pgid, self.status, self.command)
+        
+        def __repr__(self):
+            return 'Process<%s>' % self.__str__()
+    
+    psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pid=,ppid=,pgid=,state=,command=', '-www']
+    
+    parentId = None
+    parentProcess = None # process
+    processes = {}         # (pid, command) -> process
+    processesByParent = {} # pid -> set([process,...]}
+    processesByGroup = {}  # pgid -> set([process,...]}
+    
+    def __init__(self, parentPid):
+        
+        # -- validate input
+    
+        try:
+            self.parentPid = int(parentPid)
+            if parentPid < 0:
+                raise Exception()
+        except Exception:
+            raise ValueError('invalid parentPid: %r' % parentPid)
+        
+        # -- get the inital list
+        
+        self.list()
+    
+    def list(self):
+        
+        # - reset known processes status to ''
+        for process in self.processes.items():
+            item.status = ''
+        
+        # - get ouptut from `ps`
+        psProcess = subprocess.Popen(self.psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        psOutput = psProcess.communicate()[0].decode('utf-8')
+        #assert psProcess.returncode == 0, 'Bad output from ps process (%d): %s\n%s' % (psProcess.returncode, ' '.join(self.psCommand), psOutput)
+        
+        # - parse the list
+        for line in psOutput.splitlines():
+            try:
+                pid, ppid, pgid, state, command = line.split(None, 4)
+                pid = int(pid)
+                ppid = int(ppid)
+                pgid = int(pgid)
+            except ValueError: continue
+            
+            if (pid, command) in self.processes:
+                thisProcess = self.processes[(pid, command)]
+                thisProcess.pgid = pgid
+                thisProcess.state = state
+            else:
+                thisProcess = self.Process(pid, ppid, pgid, state, command)
+            
+            # check for our parent process
+            if thisProcess.pid == self.parentPid:
+                self.parentProcess = thisProcess
+            
+            # catalog by parent
+            if thisProcess.ppid not in self.processesByParent:
+                self.processesByParent[thisProcess.ppid] = set()
+            self.processesByParent[thisProcess.ppid].add(thisProcess)
+            
+            # catalog by pgid
+            if thisProcess.pgid not in self.processesByGroup:
+                self.processesByGroup[thisProcess.pgid] = set()
+            self.processesByGroup[thisProcess.pgid].add(thisProcess)
+        
+        # - create the target list of running processes decended from our parent process
+        targetProcesses = []
+        candidates = set()
+        candidateGroups = set()
+        if self.parentProcess:
+            candidates.add(self.parentProcess)
+            if self.parentProcess.status and self.parentProcess.status[0] in ('D', 'I', 'R', 'S'):
+                targetProcesses.append(self.parentProcess)
+            if self.parentProcess.pid == self.parentProcess.pgid:
+                candidateGroups.add(self.parentProcess.pgid)
+        
+        visited = set()
+        while True:
+            for candidate in candidates.copy():
+                candidates.remove(candidate)
+                
+                # shortcut if we have seen this node
+                if candidate in visited: continue
+                visited.add(candidate)
+                
+                # add this to the target list if it is running
+                if candidate.status and candidate.status[0] in ('D', 'I', 'R', 'S') and candidate not in targetProcesses:
+                    targetProcesses.append(candidate)
+                
+                # add any children to the list
+                if candidate.pid in self.processesByParent:
+                    candidates.update(self.processesByParent[candidate.pid])
+                
+                # add the group if it is safe
+                if self.parentProcess and candidate.pgid != self.parentProcess.pgid:
+                    candidateGroups.add(candidate.pgid)
+            
+            # add items from the groups found above
+            for candidateGroupId in candidateGroups:
+                candidates.update(self.processesByGroup[candidateGroupId])
+            candidateGroups = set()
+            
+            if not candidates:
+                targetProcesses.reverse() # so children go before their parents
+                return targetProcesses
+
+def kill_process_group(parent, timeout=20, sigkill_grace=2, only_warn=True):
     '''make sure that the given process group id is not running'''
     
     # -- validate input
     
-    try:
-        processGroupId = int(processGroupId)
-        if processGroupId < 0:
-            raise Exception()
-    except Exception:
-        raise ValueError('kill_process_group requires a valid process group id, got: %s' % str(processGroupId))
+    parentPopen = None
+    parentPid = None
+    
+    if isinstance(parent, subprocess.Popen):
+        parentPopen = parent
+        parentPid = parent.pid
+    elif hasattr(parent, 'process') and hasattr(parent.process, 'pid'): # presumably driver.Process
+        parentPopen = parent.process
+        parentPid = parent.process.pid
+    else:
+        try:
+            parentPid = int(parent)
+            if parentPid <= 0:
+                raise Exception()
+        except Exception:
+            raise ValueError('invalid parent: %r' % parent)
     
     try:
         timeout = float(timeout)
         if timeout < 0:
             raise Exception()
     except Exception:
-        raise ValueError('kill_process_group requires a valid timeout, got: %s' % str(timeout))
+        raise ValueError('invalid timeout: %r' % timeout)
     
     try:
-        shutdown_grace = float(shutdown_grace)
-        if shutdown_grace < 0:
+        sigkill_grace = float(sigkill_grace)
+        if sigkill_grace < 0:
             raise Exception()
     except Exception:
-        raise ValueError('kill_process_group requires a valid shutdown_grace value, got: %s' % str(shutdown_grace))
+        raise ValueError('invalid sigkill_grace: %r' % sigkill_grace)
     
-    # --
+    # -- Deadlines
     
-    # ToDo: check for child processes outside the process group
+    startTime = time.time()
     
-    deadline = time.time() + timeout
-    graceDeadline = time.time() + shutdown_grace
+    # deadline for a clean shutdown after SIGTERM'ing parent
+    cleanDeadline = startTime + (timeout * 0.5)
     
-    psRegex = re.compile('^\s*(%d\s|\d+\s+%d\s)' % (processGroupId, processGroupId))
-    psOutput = ''
-    psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pgid=', '-o', 'pid=', '-o', 'command=', '-www']
-    psFilter = lambda output: [x for x in output.decode('utf-8').splitlines() if psRegex.match(x)]
-    psLines = []
-    try:
-        # -- allow processes to gracefully exit
-        
-        if shutdown_grace > 0:
-            os.killpg(processGroupId, signal.SIGTERM)
-            
-            while time.time() < graceDeadline:
-                os.killpg(processGroupId, 0) # 0 checks to see if the process is there
-                
-                # - check with `ps` that it too thinks there is something there
-                try:
-                    os.waitpid(processGroupId, os.WNOHANG)
-                except Exception: pass
-                psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-                psLines = psFilter(psOutput)
-                if len(psLines) == 0:
-                    return
-                
-                time.sleep(.1)
-        
-        # -- slam the remaining processes
-        
-        while time.time() < deadline:
-            os.killpg(processGroupId, signal.SIGKILL)
-            
-            # - check with `ps` that it too thinks there is something there
-            try:
-                os.waitpid(processGroupId, os.WNOHANG)
-            except Exception: pass
-            psOutput, _ = subprocess.Popen(psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-            psLines = psFilter(psOutput)
-            if len(psLines) == 0:
-                return
-            
-            time.sleep(.2)
+    # deadline for all processes to respond to SIGINTs
+    softDeadline = cleanDeadline + (timeout * 0.5) # deadline before resporting to SIGKILL
     
-    except OSError as e:
-        if e.errno == 3: # No such process
-            return
-        elif e.errno == 1: # Operation not permitted: not our process
-            return
-        else:
-            mesg = 'Unhandled OSError while killing process group %s. `ps` output:\n%s\n' % (repr(processGroupId), '\n'.join(psLines))
-            if only_warn:
-                warnings.warn(mesg)
+    # deadline before giving up altogether
+    hardDeadline = softDeadline + sigkill_grace
+    
+    # - collect the running processes
+    processes = RunningProcesses(parentPid)
+    
+    # -- Terminate the parent process
+    if timeout > 0:
+        if parentPopen:
+            if parentPopen.poll() is None:
+                parentPopen.terminate()
             else:
-                raise RuntimeError(mesg)
+                cleanDeadline = 0 # nothing to wait for
+        else:
+            try:
+                os.kill(parentPid, signal.SIGTERM)
+            except OSError as e:
+                if e.errno == 3: # No such process
+                    cleanDeadline = 0 # nothing to wait for
+                elif e.errno == 1: # Operation not permitted: not our process
+                    raise Exception('Asked to kill a process that was not ours: %d' % parentPid)
+                else:
+                    raise
     
-    # --
+    # - wait for the processes to gracefully terminate
+    while time.time() < cleanDeadline:
+        if parentPopen:
+            if parentPopen.poll() is not None:
+                break
+        else:
+            try:
+                result = os.waitpid(parentPid, os.WNOHANG)
+                if result != (0, 0):
+                    break
+            except OSError as e:
+                if e.errno == 10: # No such child
+                    break
+        time.sleep(0.1)
     
-    timeElapsed = timeout - (deadline - time.time())
-    mesg = 'Unable to kill all of the processes for process group %d after %.2f seconds:\n%s\n' % (processGroupId, timeElapsed, psOutput.decode('utf-8'))
-    if only_warn:
-        warnings.warn(mesg)
+    # -- SIGINT all of the running processes
+    while time.time() < softDeadline:
+        time.sleep(0.1)
+        runningProcesses = processes.list()
+        if len(runningProcesses) == 0:
+            return # everything is done
+        for runner in runningProcesses:
+            try:
+                os.kill(runner.pid, signal.SIGINT)
+            except OSError: pass # ToDo: figure out what to do here
+    
+    # -- SIGKILL whatever is left - multiple SIGKILLs should not make a difference, but sometimes they do
+    while True:
+        runningProcesses = processes.list()
+        if len(runningProcesses) == 0:
+            return # everything is done
+        for runner in runningProcesses:
+            try:
+                os.killpg(runner.pid, signal.SIGKILL)
+            except OSError: pass # ToDo: figure out what to do here
+    
+        if time.time() < hardDeadline:
+            time.sleep(0.2)
+        else:
+            break
+    
+    # -- try to collect the return code/process
+    if parentPopen:
+        parentPopen.poll()
     else:
-        raise RuntimeError(mesg)
-    # ToDo: better categorize the error
+        try:
+            os.waitpid(parentPid, os.WNOHANG)
+        except Exception: pass
+
+    # -- return failure if anything still remains
+    runningProcesses = processes.list()
+    if runningProcesses:
+        timeElapesed = time.time() - startTime
+        message = 'Unable to kill all of the processes under pid %d after %.2f seconds:\n\t%s\n' % (parentPid, timeElapesed, '\n\t'.join([str(x) for x in runningProcesses]))
+    else:
+        return
 
 def nonblocking_readline(source, seek=0):
     

@@ -138,22 +138,22 @@ NORETURN void generic_crash_handler(int signum) {
 #endif
 
 NORETURN void rdb_terminate_handler() {
-#ifndef _WIN32
-    std::type_info *t = abi::__cxa_current_exception_type();
-#else
+#ifdef _WIN32
     bool t = std::uncaught_exception();
+#else
+    std::type_info *t = abi::__cxa_current_exception_type();
 #endif
     if (t) {
-#ifndef _WIN32
+#ifdef _WIN32
+        // On windows, uncaught exceptions are handled in windows_crash_handler
+        std::string name = "unknown";
+#else
         std::string name;
         try {
             name = demangle_cpp_name(t->name());
         } catch (const demangle_failed_exc_t &) {
             name = t->name();
         }
-#else
-        // On windows, uncaught exceptions are handled in windows_crash_handler
-        std::string name = "unknown";
 #endif
         try {
             /* This will rethrow whatever unexpected exception was thrown. */

@@ -157,7 +157,7 @@ void pool_diskmgr_t::action_t::run() {
         LARGE_INTEGER offset_;
         offset_.QuadPart = offset;
         DWORD res = SetFilePointer(fd, offset_.LowPart, &offset_.HighPart, FILE_BEGIN);
-        if (res == 0xFFFFFFFF && GetLastError() != ERROR_SUCCESS) {
+        if (res == INVALID_SET_FILE_POINTER && GetLastError() != ERROR_SUCCESS) {
             logERR("SetFilePointer failed: %s", winerr_string(GetLastError()).c_str());
             io_result = -EIO;
             return;

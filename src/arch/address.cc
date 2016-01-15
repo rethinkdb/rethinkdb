@@ -9,7 +9,7 @@
 
 #ifdef _WIN32
 #include "windows.hpp"
-#include <ws2tcpip.h>
+#include <ws2tcpip.h> // NOLINT
 #else
 #include <netinet/in.h>
 #endif
@@ -69,12 +69,12 @@ void do_getaddrinfo(const char *node,
     }
 }
 
-/* Format an `in_addr` in dotted deciaml notation. */
+/* Format an `in_addr` in dotted decimal notation. */
 template <class addr_t>
 std::string ip_to_string(addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
 #ifdef _WIN32
-    const char *result = inet_ntop(address_family, (void*)&addr,
+    const char *result = inet_ntop(address_family, (void*)&addr, // NOLINT
                                    buffer, INET6_ADDRSTRLEN);
 #else
     const char *result = inet_ntop(address_family, &addr,

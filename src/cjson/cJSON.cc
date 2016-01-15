@@ -126,6 +126,27 @@ static const char *parse_number(cJSON *item, const char *num) {
     return num + offset;
 }
 
+int ATTR_FORMAT(printf, 2, 3) cJSON_asprintf(char **out, const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    int ret;
+#ifdef _WIN32
+    char dummy;
+    int size = vsnprintf(&dummy, 1, format, ap);
+    if (size < 0) {
+        ret = size;
+    } else {
+        *out = reinterpret_cast<char*>(cJSON_malloc(size + 1));
+        ret = vsnprintf(*out, size + 1, format, ap);
+        rassert(ret == size);
+    }
+#else
+    ret = vasprintf(out, format, ap);
+#endif
+    va_end(ap);
+    return ret;
+}
+
 /* Render the number nicely from the given item into a string. */
 static char *print_number(cJSON *item) {
     double d = item->valuedouble;
@@ -133,10 +154,9 @@ static char *print_number(cJSON *item) {
     if (d == 0.0 && std::signbit(d)) {
         return cJSON_strdup("-0.0");
     } else {
-        const int max_float_size = 2014;
-        char *str = static_cast<char*>(cJSON_malloc(max_float_size));
-        int ret = snprintf(str, max_float_size, "%.20g", d);
-        guarantee(ret && ret < max_float_size);
+        char *str;
+        int ret = cJSON_asprintf(&str, "%.20g", d);
+        guarantee(ret);
         return str;
     }
 }

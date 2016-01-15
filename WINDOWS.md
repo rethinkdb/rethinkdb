@@ -13,7 +13,7 @@
 
 Many commands can be run from the cygwin command line, but some dependencies need to be built from cmd.exe.
 
-Some environment variables I've neeed are:
+Some environment variables I've needed are:
 
 * PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64":$PATH
 * PATH="/cygdrive/c/Program Files (x86)/Windows Kits/8.1/bin/x64/":$PATH

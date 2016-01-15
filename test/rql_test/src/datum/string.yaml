@@ -1,8 +1,16 @@
 desc: Tests of converstion to and from the RQL string type
 tests:
 
+    - def:
+        cd: japanese_hello = 'こんにちは'
+        # Python supports unicode strings with the u'' pattern, except 3.0-3.2
+        py: japanese_hello = u'こんにちは'
+        py3.0: japanese_hello = 'こんにちは'
+        py3.1: japanese_hello = 'こんにちは'
+        py3.2: japanese_hello = 'こんにちは'
+
     # Simple strings
-    - cd: 
+    - cd:
         - r('str')
         - r.expr('str')
       py: r.expr('str')
@@ -15,7 +23,6 @@ tests:
 
     # Unicode
 
-    # Python supports unicode strings with the u'' pattern, except 3.0-3.2
     - cd:
       py:
         cd: r.expr(u'str')
@@ -25,14 +32,13 @@ tests:
       py3.2: r.expr('str')
       ot: 'str'
 
-    - cd: r.expr('こんにちは')
-      py:
-        cd: r.expr(u'こんにちは')
-        ot: u'こんにちは'
-      py3.0: r.expr('こんにちは')
-      py3.1: r.expr('こんにちは')
-      py3.2: r.expr('こんにちは')
-      ot: 'こんにちは'
+    - cd: r.expr(japanese_hello)
+      ot:
+       cd: 'こんにちは'
+       py: u'こんにちは'
+       py3.0: 'こんにちは'
+       py3.1: 'こんにちは'
+       py3.2: 'こんにちは'
 
     - cd: r.expr('foo').type_of()
       ot: 'STRING'
@@ -54,12 +60,41 @@ tests:
     # count is defined as the number of unicode codepoints
     - cd: r.expr('hello, world!').count()
       ot: 13
-    - cd: r.expr('こんにちは').count()
-      py: r.expr(u'こんにちは').count()
-      py3.0: r.expr('こんにちは').count()
-      py3.1: r.expr('こんにちは').count()
-      py3.2: r.expr('こんにちは').count()
+    - cd: r.expr(japanese_hello).count()
       ot: 5
+
+    # slice is defined on unicode codepoints
+    - cd: r.expr('hello').slice(1)
+      ot: 'ello'
+    - cd: r.expr('hello').slice(-1)
+      ot: 'o'
+    - cd: r.expr('hello').slice(-4,3)
+      ot: 'el'
+    - cd: r.expr('hello').slice(-99)
+      ot: 'hello'
+    - cd: r.expr('hello').slice(0)
+      ot: 'hello'
+    - cd: r.expr(japanese_hello).slice(1)
+      ot:
+        cd: 'んにちは'
+        py: u'んにちは'
+        py3.0: 'んにちは'
+        py3.1: 'んにちは'
+        py3.2: 'んにちは'
+    - cd: r.expr(japanese_hello).slice(1,2)
+      ot:
+        cd: 'ん'
+        py: u'ん'
+        py3.0: 'ん'
+        py3.1: 'ん'
+        py3.2: 'ん'
+    - cd: r.expr(japanese_hello).slice(-3)
+      ot:
+        cd: 'にちは'
+        py: u'にちは'
+        py3.0: 'にちは'
+        py3.1: 'にちは'
+        py3.2: 'にちは'
 
     # This is how these edge cases are handled in Python.
     - cd: r.expr('').split()

@@ -1,4 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
 #include "arch/os_signal.hpp"
 
 #include "arch/runtime/thread_pool.hpp"

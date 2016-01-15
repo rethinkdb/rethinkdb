@@ -6,7 +6,6 @@ import socket
 import struct
 
 from . import ql2_pb2 as p
-from .ast import ReQLDecoder
 from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *

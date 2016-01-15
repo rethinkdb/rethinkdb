@@ -1,17 +1,13 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
 import errno
-import json
-import numbers
 import socket
 import struct
-import sys
 from tornado import gen, iostream
 from tornado.ioloop import IOLoop
 from tornado.concurrent import Future
 
 from . import ql2_pb2 as p
-from .ast import ReQLDecoder
 from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
@@ -130,7 +126,7 @@ class ConnectionInstance(object):
         message = decodeUTF(response[:-1]).split('\n')[0]
 
         if message != 'SUCCESS':
-            self.close(False, None)
+            yield self.close(False, None)
             if message == "ERROR: Incorrect authorization key":
                 raise ReqlAuthError(self._parent.host, self._parent.port)
             else:
@@ -223,7 +219,7 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                self.close(False, None, ex)
+                yield self.close(False, None, ex)
 
 
 # Wrap functions from the base connection class that may throw - these will

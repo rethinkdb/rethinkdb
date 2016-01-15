@@ -16,18 +16,18 @@
 
 #ifdef _WIN32
 #include "windows.hpp"
-#include <io.h>
-#include <direct.h>
-#include <random>
+#include <io.h>     // NOLINT
+#include <direct.h> // NOLINT
 #ifndef __MINGW32__
 #include <filesystem>
 #endif
 #else
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/resource.h>
 #include <ftw.h>
 #endif
+
+#include <random>
 
 #include <google/protobuf/stubs/common.h>
 
@@ -86,7 +86,7 @@ void run_generic_global_startup_behavior() {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
             get_errno(), errno_string(get_errno()).c_str());
     }
-#endif
+#endif // !defined(_WIN32)
 
 #ifdef _WIN32
     WSADATA wsa_data;
@@ -179,13 +179,13 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
         t = boost::posix_time::to_tm(as_ptime);
     } else {
-#ifndef _WIN32
+#ifdef _WIN32
+        errno_t res = localtime_s(&t, &time.tv_sec);
+        guarantee_xerr(res == 0, res, "localtime_s() failed.");
+#else
         struct tm *res1;
         res1 = localtime_r(&time.tv_sec, &t);
         guarantee_err(res1 == &t, "localtime_r() failed.");
-#else
-        errno_t res = localtime_s(&t, &time.tv_sec);
-        guarantee_xerr(res == 0, res, "localtime_s() failed.");
 #endif
     }
     buf->appendf(
@@ -256,7 +256,12 @@ with_priority_t::~with_priority_t() {
 
 void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-#ifndef _WIN32
+#ifdef _WIN32
+    ptr = _aligned_malloc(size, alignment);
+    if (ptr == NULL) {
+        crash_oom();
+    }
+#else
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
@@ -266,11 +271,6 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
         } else {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
-    }
-#else
-    ptr = _aligned_malloc(size, alignment);
-    if (ptr == NULL) {
-        crash_oom();
     }
 #endif
     return ptr;
@@ -283,7 +283,7 @@ void *raw_malloc_page_aligned(size_t size) {
 #endif
 
 void raw_free_aligned(void *ptr) {
-#ifdef _MSC_VER
+#ifdef _WIN32
     _aligned_free(ptr);
 #else
     free(ptr);
@@ -315,11 +315,7 @@ bool risfinite(double arg) {
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
-#ifdef _MSC_VER
         seed = std::random_device{}();
-#else
-        seed = get_secs();
-#endif
     }
 #else
     seed = 314159;
@@ -335,26 +331,26 @@ rng_t::rng_t(int seed) {
 
 int rng_t::randint(int n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifndef _WIN32
-    long x = nrand48(state.data());  // NOLINT(runtime/int)
+#ifdef _WIN32
+    unsigned long x = state(); // NOLINT(runtime/int)
 #else
-    unsigned long x = state();
+    long x = nrand48(state.data());  // NOLINT(runtime/int)
 #endif
     return x % static_cast<unsigned int>(n);
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifndef _WIN32
+#ifdef _WIN32
+    std::uniform_int_distribution<uint64_t> dist(0, n);
+    return dist(state);
+#else
     uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
     uint64_t x = x_high;
     x <<= 32;
     x += x_low;
     return x % n;
-#else
-    std::uniform_int_distribution<uint64_t> dist(0, n);
-    return dist(state);
 #endif
 }
 
@@ -367,12 +363,7 @@ double rng_t::randdouble() {
 TLS_with_constructor(rng_t, rng)
 
 void system_random_bytes(void *out, int64_t nbytes) {
-#ifndef _WIN32
-    blocking_read_file_stream_t urandom;
-    guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
-    int64_t readres = force_read(&urandom, out, nbytes);
-    guarantee(readres == nbytes);
-#else
+#ifdef _WIN32
     HCRYPTPROV hProv;
     BOOL res = CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
     guarantee_winerr(res, "CryptAcquireContext failed");
@@ -380,6 +371,11 @@ void system_random_bytes(void *out, int64_t nbytes) {
     DWORD err = GetLastError();
     CryptReleaseContext(hProv, 0);
     guarantee_xwinerr(res, err, "CryptGenRandom failed");
+#else
+    blocking_read_file_stream_t urandom;
+    guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
+    int64_t readres = force_read(&urandom, out, nbytes);
+    guarantee(readres == nbytes);
 #endif
 }
 
@@ -511,7 +507,33 @@ char int_to_hex(int x) {
 }
 
 bool blocking_read_file(const char *path, std::string *contents_out) {
-#ifndef _WIN32
+#ifdef _WIN32
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    LARGE_INTEGER fileSize;
+    BOOL res = GetFileSizeEx(hFile, &fileSize);
+    if (!res) {
+        CloseHandle(hFile);
+        return false;
+    }
+    DWORD remaining = fileSize.QuadPart;
+    std::string ret;
+    ret.resize(remaining);
+    size_t index = 0;
+    while (remaining > 0) {
+        DWORD consumed;
+        res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
+        if (!res) {
+            CloseHandle(hFile);
+            return false;
+        }
+        remaining -= consumed;
+        index += consumed;
+    }
+    CloseHandle(hFile);
+    *contents_out = std::move(ret);
+    return true;
+#else
     scoped_fd_t fd;
 
     {
@@ -546,32 +568,6 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
 
         ret.append(buf, buf + res);
     }
-#else
-    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, 0, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return false;
-    LARGE_INTEGER fileSize;
-    BOOL res = GetFileSizeEx(hFile, &fileSize);
-    if (!res) {
-        CloseHandle(hFile);
-        return false;
-    }
-    DWORD remaining = fileSize.QuadPart;
-    std::string ret;
-    ret.resize(remaining);
-    size_t index = 0;
-    while (remaining > 0) {
-        DWORD consumed;
-        res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
-        if (!res) {
-            CloseHandle(hFile);
-            return false;
-        }
-        remaining -= consumed;
-        index += consumed;
-    }
-    CloseHandle(hFile);
-    *contents_out = std::move(ret);
-    return true;
 #endif
 }
 
@@ -604,10 +600,10 @@ std::string errno_string(int errsv) {
 #ifdef _MSC_VER
 
 int remove_directory_helper(const char *path) {
-    logNTC("In recursion: removing file %s\n", path);
+    logNTC("In recursion: removing file '%s'\n", path);
     DWORD attrs = GetFileAttributes(path);
     if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-        logWRN("Trying to delete non-existent file `%s'", path);
+        logWRN("Trying to delete non-existent file '%s'", path);
         return 0;
     } else {
         guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES, "GetFileAttributes failed");
@@ -618,16 +614,14 @@ int remove_directory_helper(const char *path) {
     } else {
         res = DeleteFile(path);
     }
-    if (!res) {
-        crash("failed to remove: %s: %s", path, winerr_string(GetLastError()).c_str());
-    }
+    guarantee_winerr(res, "failed to remove: '%s': %s", path, winerr_string(GetLastError()).c_str());
     return 0;
 }
 
 #else
 
 int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED int, UNUSED struct FTW *) {
-    logNTC("In recursion: removing file %s\n", path);
+    logNTC("In recursion: removing file '%s'\n", path);
     int res = ::remove(path);
     guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
@@ -636,7 +630,19 @@ int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED
 #endif
 
 void remove_directory_recursive(const char *dirpath) {
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+    using namespace std::tr2; // NOLINT
+    std::function<void(sys::path)> go = [go](sys::path dir){
+        for (auto it : sys::directory_iterator(dir)) {
+            if (sys::is_directory(it.status())) {
+                go(it.path());
+            }
+            remove_directory_helper(it.path().string().c_str());
+        }
+        remove_directory_helper(dir.string().c_str());
+    };
+    go(dirpath);
+#else
     // max_openfd is ignored on OS X (which claims the parameter
     // specifies the maximum traversal depth) and used by Linux to
     // limit the number of file descriptors that are open (by opening
@@ -646,31 +652,17 @@ void remove_directory_recursive(const char *dirpath) {
     logNTC("Recursively removing directory %s\n", dirpath);
     int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
-#else
-    using namespace std::tr2;
-    auto go = [](sys::path dir){
-        for (auto it : sys::directory_iterator(dir)) {
-            remove_directory_helper(it.path().string().c_str());
-        }
-        remove_directory_helper(dir.string().c_str());
-    };
-    go(dirpath);
 #endif
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
 
 void base_path_t::make_absolute() {
-#ifndef _WIN32
-    char absolute_path[PATH_MAX];
-    char *res = realpath(path_.c_str(), absolute_path);
-    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
-    path_.assign(absolute_path);
-#else
+#ifdef _WIN32
     char absolute_path[MAX_PATH];
-    DWORD size = GetFullPathName(path_.c_str(), sizeof absolute_path, absolute_path, NULL);
+    DWORD size = GetFullPathName(path_.c_str(), sizeof(absolute_path), absolute_path, NULL);
     guarantee_winerr(size != 0, "GetFullPathName failed");
-    if (size < sizeof absolute_path) {
+    if (size < sizeof(absolute_path)) {
       path_.assign(absolute_path);
       return;
     }
@@ -680,6 +672,11 @@ void base_path_t::make_absolute() {
     guarantee_winerr(size != 0, "GetFullPathName failed");
     guarantee(new_size < size, "GetFullPathName: name too long");
     path_ = std::move(long_absolute_path);
+#else
+    char absolute_path[PATH_MAX];
+    char *res = realpath(path_.c_str(), absolute_path);
+    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
+    path_.assign(absolute_path);
 #endif
 }
 
@@ -693,11 +690,11 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 }
 
 bool is_rw_directory(const base_path_t& path) {
-#ifndef _WIN32
-    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
+#ifdef _WIN32
+    if (_access(path.path().c_str(), 06 /* read and write */) != 0)
         return false;
 #else
-    if (_access(path.path().c_str(), 06 /* read and write */) != 0)
+    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
         return false;
 #endif
     struct stat details;
@@ -714,12 +711,12 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     remove_directory_recursive(path.path().c_str());
 
     int res;
-#ifndef _WIN32
+#ifdef _WIN32
+    res = _mkdir(path.path().c_str());
+#else
     do {
         res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
-#else
-    res = _mkdir(path.path().c_str());
 #endif
     guarantee_err(res == 0, "mkdir of temporary directory %s failed",
                   path.path().c_str());

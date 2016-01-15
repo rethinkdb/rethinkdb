@@ -109,11 +109,11 @@ temp_directory_t::temp_directory_t() {
     char path[MAX_PATH + 1 + sizeof(tmpl) + 6 + 1];
     DWORD res = GetTempPath(sizeof(path), path);
     guarantee_winerr(res != NULL && res < MAX_PATH + 1, "GetTempPath failed");
-    strcpy(path + res, tmpl);
+    strcpy(path + res, tmpl); // NOLINT
     char *end = path + strlen(path);
     int tries = 0;
     while (true) {
-        sprintf(end, "%06d", randint(1000000));
+        snprintf(end, 7, "%06d", randint(1000000)); // NOLINT(runtime/printf)
         BOOL res = CreateDirectory(path, nullptr);
         if (res) {
             directory = base_path_t(std::string(path));

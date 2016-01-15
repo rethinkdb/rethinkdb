@@ -605,4 +605,4 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 
-#endif
+#endif // _WIN32
