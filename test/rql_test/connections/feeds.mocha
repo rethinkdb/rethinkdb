@@ -1,3 +1,7 @@
+#!/usr/bin/env node
+
+// Copyright 2015-2016 RethinkDB, all rights reserved.
+
 ////
 // Tests for feeds on the JavaScript driver
 /////
@@ -307,7 +311,7 @@ describe('JavaScript changefeed', function() {
     });
 
     describe('EventEmitter interface', function() {
-        var shortTimeout = 200;
+        var shortTimeout = 500;
         var checkDelay = 5
 
         // ensure we have a clean reqlConn for the next test
