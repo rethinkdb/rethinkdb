@@ -162,7 +162,10 @@ def parse_options():
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
 
-    res["create_args"] = {k: getattr(options, k) for k in ['shards', 'replicas'] if getattr(options, k) != 0}
+    res["create_args"] = { }
+    for k in ['shards', 'replicas']:
+        if getattr(options, k) != 0:
+            res["create_args"][k] = getattr(options, k)
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
