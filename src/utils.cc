@@ -632,12 +632,13 @@ int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED
 void remove_directory_recursive(const char *dirpath) {
 #ifdef _MSC_VER
     using namespace std::tr2; // NOLINT
-    std::function<void(sys::path)> go = [go](sys::path dir){
+    std::function<void(sys::path)> go = [&go](sys::path dir){
         for (auto it : sys::directory_iterator(dir)) {
             if (sys::is_directory(it.status())) {
                 go(it.path());
+            } else {
+                remove_directory_helper(it.path().string().c_str());
             }
-            remove_directory_helper(it.path().string().c_str());
         }
         remove_directory_helper(dir.string().c_str());
     };
