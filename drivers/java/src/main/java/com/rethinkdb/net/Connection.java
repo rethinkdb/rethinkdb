@@ -9,7 +9,18 @@ import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
@@ -17,6 +28,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class Connection {
+    /**
+     * Default SSL/TLS protocol version
+     * <p>
+     * This property is defined as String {@value #DEFAULT_SSL_PROTOCOL}
+     */
+    private static final String DEFAULT_SSL_PROTOCOL = "TLSv1.2";
+
     // public immutable
     public final String hostname;
     public final int port;
@@ -27,12 +45,13 @@ public class Connection {
     // private mutable
     private Optional<String> dbname;
     private Optional<Long> connectTimeout;
-    private ByteBuffer handshake;
+    private Optional<SSLContext> sslContext;
+    private final ByteBuffer handshake;
     private Optional<ConnectionInstance> instance = Optional.empty();
 
     private Connection(Builder builder) {
         dbname = builder.dbname;
-        String authKey = builder.authKey.orElse("");
+        final String authKey = builder.authKey.orElse("");
         handshake = Util.leByteBuffer(Integer.BYTES + Integer.BYTES + authKey.length() + Integer.BYTES)
                 .putInt(Version.V0_4.value)
                 .putInt(authKey.length())
@@ -41,8 +60,29 @@ public class Connection {
         handshake.flip();
         hostname = builder.hostname.orElse("localhost");
         port = builder.port.orElse(28015);
-        connectTimeout = builder.timeout;
+        // is certFile provided? if so, it has precedence over SSLContext
+        if (builder.certFile.isPresent()) {
+            try {
+                final CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                final X509Certificate caCert = (X509Certificate) cf.generateCertificate(builder.certFile.get());
+                
+                final TrustManagerFactory tmf = TrustManagerFactory
+                        .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+                ks.load(null); // You don't need the KeyStore instance to come from a file.
+                ks.setCertificateEntry("caCert", caCert);
+                tmf.init(ks);
 
+                final SSLContext ssc = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
+                ssc.init(null, tmf.getTrustManagers(), null);
+                sslContext = Optional.of(ssc);
+            } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+                throw new ReqlDriverError(e);
+            }
+        } else {
+            sslContext = builder.sslContext;
+        }
+        connectTimeout = builder.timeout;
         instanceMaker = builder.instanceMaker;
     }
 
@@ -88,7 +128,7 @@ public class Connection {
         close(noreplyWait);
         ConnectionInstance inst = instanceMaker.get();
         instance = Optional.of(inst);
-        inst.connect(hostname, port, handshake, timeout);
+        inst.connect(hostname, port, handshake, sslContext, timeout);
         return this;
     }
 
@@ -134,7 +174,7 @@ public class Connection {
         return checkOpen().readResponse(query);
     }
 
-    void runQueryNoreply(Query query){
+    void runQueryNoreply(Query query) {
         ConnectionInstance inst = checkOpen();
         ByteBuffer serialized_query = query.serialize();
         inst.socket
@@ -158,21 +198,17 @@ public class Connection {
         if (res.isAtom()) {
             try {
                 Converter.FormatOptions fmt = new Converter.FormatOptions(query.globalOptions);
-                Object value = ((List) Converter.convertPseudotypes(res.data,fmt)).get(0);
+                Object value = ((List) Converter.convertPseudotypes(res.data, fmt)).get(0);
                 return Util.convertToPojo(value, pojoClass);
-            }
-            catch (IndexOutOfBoundsException ex) {
+            } catch (IndexOutOfBoundsException ex) {
                 throw new ReqlDriverError("Atom response was empty!", ex);
             }
-        }
-        else if (res.isPartial() || res.isSequence()) {
+        } else if (res.isPartial() || res.isSequence()) {
             Cursor cursor = Cursor.create(this, query, res, pojoClass);
             return (T) cursor;
-        }
-        else if(res.isWaitComplete()) {
+        } else if (res.isWaitComplete()) {
             return null;
-        }
-        else {
+        } else {
             throw res.makeError(query);
         }
     }
@@ -181,7 +217,7 @@ public class Connection {
         runQuery(Query.noreplyWait(newToken()));
     }
 
-    private void setDefaultDB(OptArgs globalOpts){
+    private void setDefaultDB(OptArgs globalOpts) {
         if (!globalOpts.containsKey("db") && dbname.isPresent()) {
             // Only override the db global arg if the user hasn't
             // specified one already and one is specified on the connection
@@ -196,15 +232,15 @@ public class Connection {
     public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass) {
         setDefaultDB(globalOpts);
         Query q = Query.start(newToken(), term, globalOpts);
-        if(globalOpts.containsKey("noreply")) {
+        if (globalOpts.containsKey("noreply")) {
             throw new ReqlDriverError(
-                    "Don't provide the noreply option as an optarg. "+
+                    "Don't provide the noreply option as an optarg. " +
                             "Use `.runNoReply` instead of `.run`");
         }
         return runQuery(q, pojoClass);
     }
 
-    public void runNoReply(ReqlAst term, OptArgs globalOpts){
+    public void runNoReply(ReqlAst term, OptArgs globalOpts) {
         setDefaultDB(globalOpts);
         globalOpts.with("noreply", true);
         runQueryNoreply(Query.start(newToken(), term, globalOpts));
@@ -224,21 +260,48 @@ public class Connection {
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
         private Optional<String> authKey = Optional.empty();
+        private Optional<InputStream> certFile = Optional.empty();
+        private Optional<SSLContext> sslContext = Optional.empty();
         private Optional<Long> timeout = Optional.empty();
 
         public Builder(Supplier instanceMaker) {
             this.instanceMaker = instanceMaker;
         }
-        public Builder hostname(String val)
-            { hostname = Optional.of(val); return this; }
-        public Builder port(int val)
-            { port     = Optional.of(val); return this; }
-        public Builder db(String val)
-            { dbname   = Optional.of(val); return this; }
-        public Builder authKey(String val)
-            { authKey  = Optional.of(val); return this; }
-        public Builder timeout(long val)
-            { timeout  = Optional.of(val); return this; }
+
+        public Builder hostname(String val) {
+            hostname = Optional.of(val);
+            return this;
+        }
+
+        public Builder port(int val) {
+            port = Optional.of(val);
+            return this;
+        }
+
+        public Builder db(String val) {
+            dbname = Optional.of(val);
+            return this;
+        }
+
+        public Builder authKey(String val) {
+            authKey = Optional.of(val);
+            return this;
+        }
+
+        public Builder certFile(InputStream val) {
+            certFile = Optional.of(val);
+            return this;
+        }
+
+        public Builder sslContext(SSLContext val) {
+            sslContext = Optional.of(val);
+            return this;
+        }
+
+        public Builder timeout(long val) {
+            timeout = Optional.of(val);
+            return this;
+        }
 
         public Connection connect() throws TimeoutException {
             Connection conn = new Connection(this);
