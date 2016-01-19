@@ -10,5 +10,7 @@ Gem::Specification.new do |s|
   s.files     = Dir['lib/*.rb']
   
   s.required_ruby_version = '>= 1.9.0'
-end
 
+  s.add_development_dependency 'rspec'
+  s.add_development_dependency 'simplecov'
+end
