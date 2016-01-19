@@ -18,7 +18,7 @@ private:
     friend class iocp_event_queue_t;
 
     iocp_event_queue_t *event_queue;
-    event_callback_t *callback;
+    linux_event_callback_t *callback;
 };
 
 #endif

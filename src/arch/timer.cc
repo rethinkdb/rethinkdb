@@ -29,7 +29,7 @@ bool left_is_higher_priority(const timer_token_t *left, const timer_token_t *rig
     return left->next_time_in_nanos < right->next_time_in_nanos;
 }
 
-timer_handler_t::timer_handler_t(event_queue_t *queue)
+timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
     : timer_provider(queue),
       expected_oneshot_time_in_nanos(0) {
     // Right now, we have no tokens.  So we don't ask the timer provider to do anything for us.

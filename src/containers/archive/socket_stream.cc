@@ -134,7 +134,7 @@ bool blocking_fd_watcher_t::wait_for_write(signal_t *interruptor) {
     return true;
 }
 
-void blocking_fd_watcher_t::init_callback(UNUSED event_callback_t *cb) {}
+void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
 
 
 // -------------------- linux_event_fd_watcher_t --------------------
@@ -147,7 +147,7 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
     guarantee_err(res == 0, "Could not make fd non-blocking.");
 }
 
-void linux_event_fd_watcher_t::init_callback(event_callback_t *cb) {
+void linux_event_fd_watcher_t::init_callback(linux_event_callback_t *cb) {
     guarantee(!event_callback_);
     guarantee(cb);
     event_callback_ = cb;

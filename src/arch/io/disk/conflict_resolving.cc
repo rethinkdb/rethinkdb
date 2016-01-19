@@ -23,7 +23,8 @@ conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t 
 conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
 #ifndef NDEBUG
     /* Make sure there are no requests still out. */
-    for (auto fd_t_chunk_queues = all_chunk_queues.begin();
+    for (std::map<fd_t, std::map<int64_t, std::deque<action_t *> > >::iterator
+             fd_t_chunk_queues = all_chunk_queues.begin();
          fd_t_chunk_queues != all_chunk_queues.end();
          ++fd_t_chunk_queues) {
         rassert(fd_t_chunk_queues->second.empty());

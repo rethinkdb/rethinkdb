@@ -15,9 +15,9 @@ class iocp_event_queue_t {
 public:
     explicit iocp_event_queue_t(linux_thread_t*);
 
-    void watch_event(windows_event_t*, event_callback_t*);
-    void forget_event(windows_event_t*, event_callback_t*);
-    void post_event(event_callback_t *cb);
+    void watch_event(windows_event_t*, linux_event_callback_t*);
+    void forget_event(windows_event_t*, linux_event_callback_t*);
+    void post_event(linux_event_callback_t *cb);
 
     void add_handle(fd_t handle);
 

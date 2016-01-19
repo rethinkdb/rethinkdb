@@ -53,7 +53,7 @@ private:
 };
 #endif
 
-std::string format_backtrace();
+std::string format_backtrace(bool use_addr2line = true);
 
 // An individual backtrace frame
 class backtrace_frame_t {

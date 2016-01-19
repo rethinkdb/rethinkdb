@@ -228,7 +228,6 @@ struct serialize_universal_size_t;
         : public std::integral_constant<size_t, sizeof(typ)> { }
 
 
-
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(char);          // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed char);  // NOLINT(runtime/int)
@@ -275,15 +274,5 @@ template <cluster_version_t W>
 void serialize(write_message_t *wm, const in6_addr &addr);
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
-
-#ifdef _MSC_VER
-#define RDB_IMPL_DESERIALIZE_TEMPLATE(T, ...)                           \
-    template <cluster_version_t W>                                      \
-    MUST_USE archive_result_t deserialize(read_stream_t *s, T<__VA_ARGS__> *x) { \
-        deserialize<W, __VA_ARGS__>(s, x);                              \
-    }
-#else
-#define RDB_IMPL_DESERIALIZE_TEMPLATE
-#endif
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

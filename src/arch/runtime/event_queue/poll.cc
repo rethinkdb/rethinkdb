@@ -71,7 +71,7 @@ DEBUG_VAR
     return out_mode;
 }
 
-poll_event_queue_t::poll_event_queue_t(queue_parent_t *_parent)
+poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *_parent)
     : parent(_parent) {
 }
 
@@ -125,7 +125,7 @@ void poll_event_queue_t::run() {
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
             if (watched_fds[i].revents != 0) {
-                event_callback_t *cb = callbacks[watched_fds[i].fd];
+                linux_event_callback_t *cb = callbacks[watched_fds[i].fd];
                 cb->on_event(poll_to_user(watched_fds[i].revents));
                 count++;
             }
@@ -153,7 +153,7 @@ void poll_event_queue_t::run() {
 poll_event_queue_t::~poll_event_queue_t() {
 }
 
-void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, event_callback_t *cb) {
+void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
     rassert(cb);
 
     pollfd pfd;
@@ -165,7 +165,7 @@ void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, event_cal
     callbacks[resource] = cb;
 }
 
-void poll_event_queue_t::adjust_resource(fd_t resource, int events, event_callback_t *cb) {
+void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_callback_t *cb) {
     // Find and adjust the event
     callbacks[resource] = cb;
     for (unsigned int i = 0; i < watched_fds.size(); i++) {
@@ -177,7 +177,7 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, event_callba
     }
 }
 
-void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR event_callback_t *cb) {
+void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_callback_t *cb) {
     rassert(cb);
 
     // Erase the callback from the map

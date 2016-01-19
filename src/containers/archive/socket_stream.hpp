@@ -63,7 +63,7 @@ public:
     fd_watcher_t() {}
     virtual ~fd_watcher_t() {}
 
-    virtual void init_callback(event_callback_t *cb) = 0;
+    virtual void init_callback(linux_event_callback_t *cb) = 0;
 
     virtual bool is_read_open() = 0;
     virtual bool is_write_open() = 0;
@@ -96,7 +96,7 @@ public:
     virtual void on_shutdown_write();
     virtual MUST_USE bool wait_for_read(signal_t *interruptor);
     virtual MUST_USE bool wait_for_write(signal_t *interruptor);
-    virtual void init_callback(event_callback_t *cb);
+    virtual void init_callback(linux_event_callback_t *cb);
 
 private:
     bool read_open_, write_open_;
@@ -106,13 +106,13 @@ private:
  * its corresponding fd use non-blocking I/O.
  */
 class linux_event_fd_watcher_t :
-    public fd_watcher_t, private event_callback_t {
+    public fd_watcher_t, private linux_event_callback_t {
 public:
     // does not take ownership of fd
     explicit linux_event_fd_watcher_t(fd_t fd);
     virtual ~linux_event_fd_watcher_t();
 
-    virtual void init_callback(event_callback_t *cb);
+    virtual void init_callback(linux_event_callback_t *cb);
     virtual void on_event(int events);
 
     virtual bool is_read_open();
@@ -132,7 +132,7 @@ private:
     cond_t read_closed_, write_closed_;
 
     // We forward to this callback on error events.
-    event_callback_t *event_callback_;
+    linux_event_callback_t *event_callback_;
 
     // The linux_event_watcher that we use to wait for IO events.
     linux_event_watcher_t event_watcher_;
@@ -143,7 +143,7 @@ private:
 class socket_stream_t :
     public read_stream_t,
     public write_stream_t,
-    private event_callback_t {
+    private linux_event_callback_t {
 public:
     explicit socket_stream_t(fd_t fd);
     explicit socket_stream_t(fd_t fd, scoped_ptr_t<fd_watcher_t> &&watcher);

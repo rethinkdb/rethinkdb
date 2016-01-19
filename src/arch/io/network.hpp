@@ -42,7 +42,7 @@
 
 class linux_tcp_conn_t :
     public home_thread_mixin_t,
-    private event_callback_t {
+    private linux_event_callback_t {
 public:
     friend class linux_tcp_conn_descriptor_t;
 
@@ -337,7 +337,7 @@ private:
 connections. Create a linux_nonthrowing_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
 
-class linux_nonthrowing_tcp_listener_t : private event_callback_t {
+class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
         const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);

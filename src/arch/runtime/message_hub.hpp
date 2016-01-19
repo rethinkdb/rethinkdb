@@ -25,11 +25,11 @@ class linux_thread_pool_t;
 Each message hub stores messages that are going from that message hub's home thread to
 other threads. It keeps a separate queue for messages destined for each other thread. */
 
-class linux_message_hub_t : private event_callback_t {
+class linux_message_hub_t : private linux_event_callback_t {
 public:
     typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
 
-    linux_message_hub_t(event_queue_t *queue, linux_thread_pool_t *thread_pool,
+    linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool,
                         threadnum_t current_thread);
 
     /* For each thread, transfer messages from our msg_local_list for that thread to our
@@ -61,7 +61,7 @@ private:
 
     msg_list_t &get_priority_msg_list(int priority);
 
-    event_queue_t *const queue_;
+    linux_event_queue_t *const queue_;
     linux_thread_pool_t *const thread_pool_;
 
     /* Queue for messages going from this->current_thread to other threads */

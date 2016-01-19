@@ -202,7 +202,7 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
 }
 #endif
 
-std::string format_backtrace() {
+std::string format_backtrace(bool use_addr2line) {
     lazy_backtrace_formatter_t bt;
     return bt.lines();
 }

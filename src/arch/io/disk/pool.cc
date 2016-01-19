@@ -31,7 +31,7 @@ void debug_print(printf_buffer_t *buf,
                  action.get_succeeded() ? 0 : action.get_io_errno());
 }
 
-pool_diskmgr_t::pool_diskmgr_t(event_queue_t *queue,
+pool_diskmgr_t::pool_diskmgr_t(linux_event_queue_t *queue,
                                passive_producer_t<action_t *> *_source,
                                int max_concurrent_io_requests)
     : queue_depth(blocker_pool_queue_depth(max_concurrent_io_requests)),

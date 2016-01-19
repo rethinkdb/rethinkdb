@@ -41,20 +41,20 @@ void iocp_event_queue_t::add_handle(fd_t handle) {
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort: failed to add handle");
 }
 
-void iocp_event_queue_t::watch_event(windows_event_t *event, event_callback_t *cb) {
+void iocp_event_queue_t::watch_event(windows_event_t *event, linux_event_callback_t *cb) {
     debugf_queue("[%p] watch_event\n", this);
     rassert(event->event_queue == nullptr && event->callback == nullptr, "Cannot watch the same event twice"); 
     event->callback = cb;
     event->event_queue = this;
 }
 
-void iocp_event_queue_t::forget_event(windows_event_t *event, UNUSED event_callback_t *cb) {
+void iocp_event_queue_t::forget_event(windows_event_t *event, UNUSED linux_event_callback_t *cb) {
     debugf_queue("[%p] forget_event\n", this);
     event->event_queue = nullptr;
     event->callback = nullptr;
 }
 
-void iocp_event_queue_t::post_event(event_callback_t *cb) {
+void iocp_event_queue_t::post_event(linux_event_callback_t *cb) {
     debugf_queue("[%p] post_event\n", this);
     rassert(cb != nullptr);
     BOOL res = PostQueuedCompletionStatus(completion_port, 0, ULONG_PTR(windows_message_type_t::EVENT_CALLBACK), reinterpret_cast<OVERLAPPED*>(cb));
@@ -133,7 +133,7 @@ void iocp_event_queue_t::run() {
             case windows_message_type_t::EVENT_CALLBACK: {
                 debugf_queue("[%p] dequeued event callback\n", this);
                 guarantee_xwinerr(error == NO_ERROR, error, "GetQueuedCompletionStatus failed");
-                event_callback_t *cb = reinterpret_cast<event_callback_t*>(overlapped);
+                linux_event_callback_t *cb = reinterpret_cast<linux_event_callback_t*>(overlapped);
                 cb->on_event(poll_event_in);
                 break;
             }

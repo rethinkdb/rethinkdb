@@ -47,7 +47,7 @@ public:
     };
 
 
-    linux_disk_manager_t(event_queue_t *queue,
+    linux_disk_manager_t(linux_event_queue_t *queue,
                          int batch_factor,
                          int max_concurrent_io_requests,
                          perfmon_collection_t *stats) :

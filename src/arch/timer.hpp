@@ -17,7 +17,7 @@ struct timer_callback_t {
  * timer should use this class (through the thread pool). */
 class timer_handler_t : private timer_provider_callback_t {
 public:
-    explicit timer_handler_t(event_queue_t *queue);
+    explicit timer_handler_t(linux_event_queue_t *queue);
     ~timer_handler_t();
 
     timer_token_t *add_timer_internal(int64_t ms, timer_callback_t *callback, bool once);

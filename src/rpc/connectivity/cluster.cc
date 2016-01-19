@@ -105,7 +105,7 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
 
 #if defined (__x86_64__) || defined (_WIN64)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__) || defined(__arm__) || defined(_WIN32)
+#elif defined (__i386__) || defined(__arm__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
@@ -1335,7 +1335,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         buf.appendf(" to ");
         debug_print(&buf, dest);
         buf.appendf("\n");
-        print_hexdump(buffer.vector().data(), 0, buffer.vector().size());
+        print_hd(buffer.vector().data(), 0, buffer.vector().size());
     }
 #endif
 

@@ -203,16 +203,16 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int port,
                                    signal_t *interruptor,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-write_perfmon(NULL),
-    sock(create_socket_wrapper(peer.get_address_family())),
-    event_watcher(new event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    read_buffer(IO_BUFFER_SIZE),
-    write_handler(this),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-                                       write_coro_pool(1, &write_queue, &write_handler),
-                                       current_write_buffer(get_write_buffer()),
-    drainer(new auto_drainer_t) {
+        write_perfmon(NULL),
+        sock(create_socket_wrapper(peer.get_address_family())),
+        event_watcher(new event_watcher_t(sock.get(), this)),
+        read_in_progress(false), write_in_progress(false),
+        read_buffer(IO_BUFFER_SIZE),
+        write_handler(this),
+        write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+        write_coro_pool(1, &write_queue, &write_handler),
+        current_write_buffer(get_write_buffer()),
+        drainer(new auto_drainer_t) {
 
 #ifndef _WIN32
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
@@ -240,16 +240,16 @@ write_perfmon(NULL),
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-    write_perfmon(NULL),
-    sock(s),
-    event_watcher(new event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    read_buffer(IO_BUFFER_SIZE),
-    write_handler(this),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-    write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer()),
-    drainer(new auto_drainer_t) {
+       write_perfmon(NULL),
+       sock(s),
+       event_watcher(new event_watcher_t(sock.get(), this)),
+       read_in_progress(false), write_in_progress(false),
+       read_buffer(IO_BUFFER_SIZE),
+       write_handler(this),
+       write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+       write_coro_pool(1, &write_queue, &write_handler),
+       current_write_buffer(get_write_buffer()),
+       drainer(new auto_drainer_t) {
     rassert(sock.get() != INVALID_FD);
 
 #ifndef _WIN32
@@ -820,8 +820,8 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 
 /* Network listener object */
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-                                                                   const std::set<ip_address_t> &bind_addresses, int _port,
-                                                                   const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &cb) :
+         const std::set<ip_address_t> &bind_addresses, int _port,
+         const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &cb) :
     callback(cb),
     local_addresses(bind_addresses),
     port(_port),
@@ -864,7 +864,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(std::bind(
-                                     &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
+        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
 }
@@ -1253,8 +1253,8 @@ int linux_tcp_bound_socket_t::get_port() const {
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
-                                           const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-    listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+        listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
 {
     if (!listener->begin_listening()) {
         throw address_in_use_exc_t("localhost", listener->get_port());
@@ -1262,9 +1262,9 @@ linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_ad
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(
-                                           linux_tcp_bound_socket_t *bound_socket,
-                                           const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-    listener(bound_socket->listener.release())
+    linux_tcp_bound_socket_t *bound_socket,
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+        listener(bound_socket->listener.release())
 {
     listener->callback = callback;
     if (!listener->begin_listening()) {
@@ -1277,10 +1277,10 @@ int linux_tcp_listener_t::get_port() const {
 }
 
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(
-                                                                                     const std::set<ip_address_t> &bind_addresses,
-                                                                                     int port,
-                                                                                     const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-    listener(bind_addresses, port, callback)
+    const std::set<ip_address_t> &bind_addresses,
+    int port,
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+        listener(bind_addresses, port, callback)
 { }
 
 int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
