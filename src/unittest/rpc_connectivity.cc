@@ -525,10 +525,10 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, PeerIDSemantics, 3) {
 
 class meanwhile_t {
 public:
-    meanwhile_t() { }
+    meanwhile_t() DEBUG_ONLY(: started(false)) { }
 
     template <class callable_t>
-    explicit meanwhile_t(callable_t&& run) {
+    explicit meanwhile_t(callable_t&& run) DEBUG_ONLY(: started(false)) {
         start(std::forward<callable_t>(run));
     }
 
@@ -554,7 +554,7 @@ public:
 
 private:
 #ifndef NDEBUG
-    bool started = false;
+    bool started;
 #endif
     cond_t interrupt;
     cond_t done;
