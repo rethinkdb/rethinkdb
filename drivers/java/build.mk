@@ -81,7 +81,7 @@ $(JAVA_JAVA_TERM_INFO): $(JAVA_TERM_INFO) $(METAJAVA) | $(JAVA_BUILD_DIR)/.
 # This generates source files needed for the driver. Should be fairly
 # autonomous, but may need some manual intervention in some cases.
 update-driver: $(JAVA_JAVA_TERM_INFO) $(JAVA_GLOBAL_INFO) $(METAJAVA) \
-	| $(JAVA_MODEL_DIR)/. $(JAVA_AST_DIR)/. $(JAVA_PROTO_DIR)/. $(JAVA_EXC_DIR)/.
+	| $(JAVA_MODEL_DIR) $(JAVA_AST_DIR) $(JAVA_PROTO_DIR) $(JAVA_EXC_DIR)
 	$P GENERATING JAVA CLASSES
 	$(PYTHON) $(METAJAVA) generate-java-classes	\
 		--global-info=$(JAVA_GLOBAL_INFO)       \

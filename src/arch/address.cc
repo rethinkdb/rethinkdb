@@ -71,7 +71,7 @@ void do_getaddrinfo(const char *node,
 
 /* Format an `in_addr` in dotted decimal notation. */
 template <class addr_t>
-std::string ip_to_string(addr_t &addr, int address_family) {
+std::string ip_to_string(const addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
 #ifdef _WIN32
     const char *result = inet_ntop(address_family, (void*)&addr, // NOLINT
