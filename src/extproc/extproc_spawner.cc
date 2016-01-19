@@ -139,7 +139,7 @@ public:
     }
 
     void main_loop() {
-        process_ref_t spawner_pid = current_process();
+        process_id_t spawner_pid = current_process();
 
         while(true) {
             fd_t worker_socket;
@@ -174,7 +174,7 @@ extproc_spawner_t::extproc_spawner_t() {
     // TODO WINDOWS: ensure the workers die if the parent process does,
     // perhaps using CreateJobObject and JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #else
-    spawner_pid = process_ref_t::invalid;
+    spawner_pid = INVALID_PROCESS_ID;
     fork_spawner();
 #endif
 }
@@ -293,7 +293,7 @@ fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
     archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(&stream_out,
                                                                  pid_out);
     guarantee_deserialization(archive_res, "pid_out");
-    guarantee(*pid_out != process_ref_t::invalid);
+    guarantee(*pid_out != INVALID_PROCESS_ID);
 
     scoped_fd_t closer(fds[1]);
     return fds[0];

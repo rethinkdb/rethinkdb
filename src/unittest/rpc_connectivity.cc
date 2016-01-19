@@ -568,8 +568,8 @@ public:
         handler_ = handler;
         timer.start(ms);
         waiter.start([this](signal_t *interruptor) {
-            wait_any_t waiter(&timer, interruptor);
-            waiter.wait();
+            wait_any_t both(&timer, interruptor);
+            both.wait();
             if (timer.is_pulsed()) {
                 handler_();
             }

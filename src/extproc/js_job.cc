@@ -17,13 +17,6 @@
 
 #include "debug.hpp"
 
-#if V8_MAJOR_VERSION >= 4
-#define V8_NEEDS_BUFFER_ALLOCATOR 1
-#else
-#define V8_NEEDS_BUFFER_ALLOCATOR 0
-#endif
-
-
 const js_id_t MIN_ID = 1;
 const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
@@ -39,7 +32,7 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
 
-#if V8_NEEDS_BUFFER_ALLOCATOR
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
 class array_buffer_allocator_t : public v8::ArrayBuffer::Allocator {
 public:
     void *Allocate(size_t length) {
@@ -72,7 +65,7 @@ private:
     v8::Isolate *isolate_;
 
     scoped_ptr_t<v8::Platform> platform;
-#if V8_NEEDS_BUFFER_ALLOCATOR
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
     array_buffer_allocator_t array_buffer_allocator;
 #endif
 };
@@ -84,7 +77,7 @@ js_instance_t::js_instance_t() {
     platform.init(v8::platform::CreateDefaultPlatform());
     v8::V8::InitializePlatform(platform.get());
     v8::V8::Initialize();
-#if V8_NEEDS_BUFFER_ALLOCATOR
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
     v8::Isolate::CreateParams params;
     params.array_buffer_allocator = &array_buffer_allocator;
     isolate_ = v8::Isolate::New(params);

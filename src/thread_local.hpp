@@ -67,7 +67,7 @@
 #define TLS_with_constructor(type, name) TLS(type, name)
 #else
 #define TLS_with_constructor(type, name)                                \
-    static_assert(std::is_trivially_destructible<type>::value,          \
+    static_assert(std::has_trivial_destructor<type>::value,             \
                   "must be trivially destructible: " #type);            \
     typedef char TLS_ ## name ## _t[sizeof(type)];                      \
     TLS(TLS_ ## name ## _t, name ## _)                                  \

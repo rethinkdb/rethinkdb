@@ -107,15 +107,15 @@ public:
     static linux_thread_pool_t *get_global_thread_pool();
 #endif
 
-    // Non-inlinable getters and setters for the thread local variables.
+    // Getters and setters for the thread local variables.
     // See thread_local.hpp for an explanation of why these must not be
     // inlined.
-    static linux_thread_pool_t *get_thread_pool();
-    static void set_thread_pool(linux_thread_pool_t *val);
-    static int get_thread_id();
-    static void set_thread_id(int val);
-    static linux_thread_t *get_thread();
-    static void set_thread(linux_thread_t *val);
+    static NOINLINE linux_thread_pool_t *get_thread_pool();
+    static NOINLINE void set_thread_pool(linux_thread_pool_t *val);
+    static NOINLINE int get_thread_id();
+    static NOINLINE void set_thread_id(int val);
+    static NOINLINE linux_thread_t *get_thread();
+    static NOINLINE void set_thread(linux_thread_t *val);
 
 private:
 

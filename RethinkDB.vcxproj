@@ -33,7 +33,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;WINVER=0x600;_WIN32_WINNT=WINVER;RETHINKDB_VERSION="2.2.1-windows-dev";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WINVER=0x600;_WIN32_WINNT=WINVER;RETHINKDB_VERSION="2.2.1-windows-dev";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING;V8_NEEDS_BUFFER_ALLOCATOR</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

@@ -26,6 +26,14 @@ inline fd_t socket_to_fd(SOCKET s) {
 typedef int fd_t;
 const fd_t INVALID_FD = -1;
 
+inline int fd_to_socket(fd_t fd) {
+    return fd;
+}
+
+inline fd_t socket_to_fd(int fd) {
+    return fd;
+}
+
 #endif
 
 

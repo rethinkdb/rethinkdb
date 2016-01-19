@@ -42,7 +42,7 @@ private:
 #ifndef _WIN32
     void fork_spawner();
 
-    process_ref_t spawner_pid;
+    process_id_t spawner_pid;
     scoped_fd_t spawner_socket;
 #endif
 };
