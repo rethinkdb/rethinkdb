@@ -120,8 +120,7 @@
 // libc++ with type traights support, visual studio and libstdc++ >= 4.8
 using std::is_trivially_destructible;
 #else
-template <class T>
-using is_trivially_destructible = std::has_trivial_destructor<T>;
+#define is_trivially_destructible std::has_trivial_destructor
 #endif
 
 #endif /* THREAD_LOCAL_HPP_ */
