@@ -30,9 +30,7 @@
 typedef timer_signal_provider_t timer_provider_t;
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_KQUEUE
 #include "arch/io/timer/timer_kqueue_provider.hpp"
-#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_WINDOWS
-#include "arch/io/timer/timer_windows_provider.hpp"
-typedef timer_windows_provider_t timer_provider_t;
+typedef timer_kqueue_provider_t timer_provider_t;
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD
 #include "arch/io/timer/timerfd_provider.hpp"
 typedef timerfd_provider_t timer_provider_t;
