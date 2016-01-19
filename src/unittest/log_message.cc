@@ -1,9 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
 
 #include "clustering/administration/logs/log_writer.hpp"
 #include "unittest/gtest.hpp"
@@ -27,10 +22,8 @@ TEST(LogMessageTest, ParseFormat) {
 
 void test_chunks(const std::vector<size_t> &sizes) {
 #ifdef _WIN32
-    char filename[] = "c:\\windows\\temp\\rethinkdb-unittest-file-reverse-reader-XXXXXX";
-    errno_t err = _mktemp_s(filename, sizeof(filename));
-    guarantee_xerr(err == 0, err, "_mktemp_s failed");
-    HANDLE handle = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+    std::string filename = strprintf("c:\\windows\\temp\\rethinkdb-unittest-file-reverse-reader-%09d", randint(1000000000));
+    HANDLE handle = CreateFile(filename.c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE, NULL);
     guarantee_winerr(handle != INVALID_HANDLE_VALUE, "CreateFile failed");
     scoped_fd_t fd(handle);
 #else
@@ -81,5 +74,3 @@ TPTEST(LogMessageTest, FileReverseReader) {
 }
 
 }  // namespace unittest
-
-#endif

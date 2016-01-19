@@ -1,10 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
-
 #include <functional>
 
 #include "arch/runtime/thread_pool.hpp"
@@ -543,8 +537,9 @@ public:
         rassert(!started);
         started = true;
 #endif
-        coro_t::spawn_sometime([&](){
-            run(&interrupt);
+        run_ = run;
+        coro_t::spawn_sometime([this](){
+            run_(&interrupt);
             done.pulse();
         });
     }
@@ -562,17 +557,20 @@ private:
 #endif
     cond_t interrupt;
     cond_t done;
+    std::function<void(signal_t*)> run_;
 };
 
 class on_timeout_t {
 public:
     template <class callable_t>
-    on_timeout_t(int64_t ms, callable_t f) {
+    on_timeout_t(int64_t ms, callable_t handler) {
+        handler_ = handler;
         timer.start(ms);
-        waiter.start([&](signal_t *interruptor){
-            wait_any_t(&timer, interruptor);
+        waiter.start([this](signal_t *interruptor) {
+            wait_any_t waiter(&timer, interruptor);
+            waiter.wait();
             if (timer.is_pulsed()) {
-                f();
+                handler_();
             }
         });
     }
@@ -580,20 +578,21 @@ public:
     bool timed_out() {
         return timer.is_pulsed();
     }
+
 private:
+    std::function<void()> handler_;
     signal_timer_t timer;
     meanwhile_t waiter;
 };
 
 // Make sure each side of the connection is closed
 void check_tcp_closed(tcp_conn_stream_t *stream) {
-    // Allow 6 seconds before timing out
 
-    // TODO ATN: broken
-    // on_timeout_t timeout(6000, [stream](){
-    //     stream->shutdown_read();
-    //     stream->shutdown_write();
-    // });
+    // Allow 6 seconds before timing out
+    on_timeout_t timeout(6000, [stream](){
+        stream->shutdown_read();
+        stream->shutdown_write();
+    });
 
     char buffer[1024];
     int64_t res;
@@ -889,5 +888,3 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
 }
 
 }   /* namespace unittest */
-
-#endif
