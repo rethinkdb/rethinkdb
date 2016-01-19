@@ -16,7 +16,7 @@ class windows_event_watcher_t;
 
 // An asynchronous operation
 struct overlapped_operation_t {
-    overlapped_operation_t(windows_event_watcher_t *);
+    explicit overlapped_operation_t(windows_event_watcher_t *);
 
     // The destructor will crash if the operation is incomplete.
     ~overlapped_operation_t();

@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include "arch/process.hpp"
 #include "arch/io/io_utils.hpp"
-#include "arch/process.hpp"
 #include "concurrency/wait_any.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/object_buffer.hpp"

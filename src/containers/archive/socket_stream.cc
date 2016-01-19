@@ -87,7 +87,6 @@ void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
 #else
 
 #include "containers/archive/socket_stream.hpp"
-#include "errors.hpp"
 
 #include <fcntl.h>
 #include <sys/types.h>

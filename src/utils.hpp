@@ -8,7 +8,6 @@
 #include <array>
 #include <functional>
 #include <string>
-#include <boost/optional.hpp>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>

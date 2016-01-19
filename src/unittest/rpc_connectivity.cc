@@ -1,13 +1,14 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <functional>
 
-#include "arch/runtime/thread_pool.hpp"
-#include "arch/timing.hpp"
 #ifdef _WIN32
 #include "windows.hpp"
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
+#include <ws2tcpip.h> // NOLINT
+#include <iphlpapi.h> // NOLINT
 #endif
+
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
 #include "containers/scoped.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -524,10 +525,10 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, PeerIDSemantics, 3) {
 
 class meanwhile_t {
 public:
-    meanwhile_t() { };
+    meanwhile_t() { }
 
     template <class callable_t>
-    meanwhile_t(callable_t&& run) {
+    explicit meanwhile_t(callable_t&& run) {
         start(std::forward<callable_t>(run));
     }
 

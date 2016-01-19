@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <google/protobuf/stubs/common.h>
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -28,8 +29,6 @@
 #endif
 
 #include <random>
-
-#include <google/protobuf/stubs/common.h>
 
 #include "errors.hpp"
 #include <boost/date_time.hpp>
@@ -128,38 +127,35 @@ void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
                               0xff, 0xff, 0xff, 0xff };
 
     bool skipped_last = false;
-
     while (length > 0) {
         bool skip = length >= 16 && (
                     memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
                     memcmp(buf, ff_sample, 16) == 0);
         if (skip) {
-            if (!skipped_last) {
-                debugf("*\n");
-            }
+            if (!skipped_last) fprintf(stderr, "*\n");
         } else {
-            std::string line = strprintf("%.8x  ", (unsigned int)offset);
+            fprintf(stderr, "%.8x  ", (unsigned int)offset);
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
-                    line += strprintf("%.2hhx ", buf[i]);
+                    fprintf(stderr, "%.2hhx ", buf[i]);
                 } else {
-                    line += "   ";
+                    fprintf(stderr, "   ");
                 }
             }
-            line += "| ";
+            fprintf(stderr, "| ");
             for (ssize_t i = 0; i < 16; ++i) {
                 if (i < length) {
                     if (isprint(buf[i])) {
-                        line += buf[i];
+                        fputc(buf[i], stderr);
                     } else {
-                        line += '.';
+                        fputc('.', stderr);
                     }
                 } else {
-                    line += ' ';
+                    fputc(' ', stderr);
                 }
             }
-            debugf("%s\n", line.c_str());
+            fprintf(stderr, "\n");
         }
         skipped_last = skip;
 

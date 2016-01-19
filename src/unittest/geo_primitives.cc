@@ -104,6 +104,7 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
     } catch (const geo_exception_t &e) {
         ADD_FAILURE() << "Caught a geo exception: " << e.what();
     }
+}
 
 }   /* namespace unittest */
 

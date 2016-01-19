@@ -2,9 +2,6 @@
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
-#include "arch/compiler.hpp"
-#include "windows.hpp"
-
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>

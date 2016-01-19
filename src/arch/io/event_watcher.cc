@@ -1,9 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifdef _WIN32
 
 #include "arch/io/event_watcher.hpp"
-
 #include "arch/runtime/thread_pool.hpp"
+
+#ifdef _WIN32
+
 #include "concurrency/wait_any.hpp"
 
 #ifdef TRACE_OVERLAPPED
@@ -109,9 +110,6 @@ void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
 }
 
 #else
-
-#include "arch/io/event_watcher.hpp"
-#include "arch/runtime/thread_pool.hpp"
 
 linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh) :
     fd(f), error_handler(eh),

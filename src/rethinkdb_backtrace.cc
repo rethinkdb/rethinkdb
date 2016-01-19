@@ -95,12 +95,12 @@ int rethinkdb_backtrace(void **buffer, int size) {
 
 #elif defined(_WIN32)
 
-#include "windows.hpp"
-#define OPTIONAL
-#include <DbgHelp.h>
-
 #include <algorithm>
 #include <vector>
+
+#include "windows.hpp"
+#define OPTIONAL
+#include <DbgHelp.h> // NOLINT
 
 int rethinkdb_backtrace(void **buffer, int size) {
     std::vector<void *> addresses(size, nullptr);

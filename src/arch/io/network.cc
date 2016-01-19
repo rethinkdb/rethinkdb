@@ -2,22 +2,23 @@
 
 #include "arch/io/network.hpp"
 
-#ifndef _WIN32
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/types.h>
+
+#ifdef _WIN32
+#include "windows.hpp"
+#include <ws2tcpip.h> // NOLINT
+#include <iphlpapi.h> // NOLINT
+#else
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#else
-#include "windows.hpp"
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
 #endif
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/types.h>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
@@ -81,7 +82,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
         logERR("connect failed: %s", winerr_string(error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO);
     }
-    winsock_debugf("waiting for connection on %x\n",socket);
+    winsock_debugf("waiting for connection on %x\n", socket);
     op.wait_interruptible(interuptor);
     if (op.error != NO_ERROR) {
         logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());

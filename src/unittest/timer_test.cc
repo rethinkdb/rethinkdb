@@ -10,10 +10,10 @@
 namespace unittest {
 
 const int waits = 10;
-const int simultaneous = 4;
+const int simultaneous = 2;
 const int repeat = 10;
 
-int wait_array[][waits] =
+int wait_array[simultaneous][waits] =
     { { 1, 1, 2, 3, 5, 13, 20, 30, 40, 8 },
       { 5, 3, 2, 40, 30, 20, 8, 13, 1, 1 } };
 
@@ -29,7 +29,7 @@ const int max_average_error_ms = 2;
 void walk_wait_times(int i, uint64_t *mse) {
     uint64_t se = 0;
     for (int j = 0; j < waits; ++j) {
-        int expected_ms = wait_array[i % sizeof(wait_array)][j];
+        int expected_ms = wait_array[i][j];
         ticks_t t1 = get_ticks();
         nap(expected_ms);
         ticks_t t2 = get_ticks();
