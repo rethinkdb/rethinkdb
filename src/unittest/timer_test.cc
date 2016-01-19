@@ -10,10 +10,10 @@
 namespace unittest {
 
 const int waits = 10;
-const int simultaneous = 2;
+const int simultaneous = 4;
 const int repeat = 10;
 
-int wait_array[simultaneous][waits] =
+int wait_array[][waits] =
     { { 1, 1, 2, 3, 5, 13, 20, 30, 40, 8 },
       { 5, 3, 2, 40, 30, 20, 8, 13, 1, 1 } };
 

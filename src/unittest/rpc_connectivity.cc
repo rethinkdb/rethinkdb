@@ -605,9 +605,9 @@ void check_tcp_closed(tcp_conn_stream_t *stream) {
         res = stream->write("a", 1);
     } while(res != -1);
 
-    // if (timeout.timed_out()) {
-    //     FAIL() << "test took too long to detect connection was down";
-    // }
+    if (timeout.timed_out()) {
+        FAIL() << "timed out";
+    }
 
     ASSERT_FALSE(stream->is_write_open());
     ASSERT_FALSE(stream->is_read_open());
