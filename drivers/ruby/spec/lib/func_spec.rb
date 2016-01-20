@@ -52,18 +52,38 @@ RSpec.describe RethinkDB::RQL do
     end
   end
 
+  context '#do' do
+    context 'with non-RQL body' do
+      subject { RethinkDB::RQL }
+
+      it 'does not raise exception with empty argunemt list' do
+        expect{ subject do; end }.not_to raise_exception
+      end
+    end
+
+    context 'with RQL body' do
+      context 'and empty arguments' do
+        it do
+          expect{ subject.do }.to raise_exception(RethinkDB::ReqlDriverCompileError)
+        end
+      end
+    end
+  end
+
   context '#row' do
-    subject { RethinkDB::RQL }
 
     context 'with non-RQL body' do
+      subject { RethinkDB::RQL }
       it do
         expect{ subject.new(nil).row }.to raise_exception(NoMethodError, /undefined method `row'/)
       end
     end
 
     context 'with RQL body' do
-      it do
-        expect{ subject.new(RethinkDB::RQL).row }.to raise_exception(NoMethodError, /Sorry, r.row is not available/)
+      context 'without args' do
+        it do
+          expect{ subject.row }.to raise_exception(NoMethodError, /Sorry, r.row is not available/)
+        end
       end
     end
   end
