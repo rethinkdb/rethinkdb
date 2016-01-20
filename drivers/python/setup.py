@@ -1,4 +1,12 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
+"""
+Please see the following links for more information::
+
+- `Python API documentation <http://rethinkdb.com/api/python/>`_
+- `GitHub Project <https://github.com/rethinkdb/rethinkdb>`_
+- `Python Driver Source <https://github.com/rethinkdb/rethinkdb/tree/next/drivers/python>`_
+
+"""
 
 import os, setuptools, sys
 
@@ -21,6 +29,7 @@ setuptools.setup(
     zip_safe=True,
     version=version,
     description="Python driver library for the RethinkDB database server.",
+    long_description=__doc__,
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",
     maintainer_email="bugs@rethinkdb.com",
