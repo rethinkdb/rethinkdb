@@ -57,11 +57,42 @@ RSpec.describe RethinkDB::RQL do
   end
 
   context 'rql methods' do
-    subject { RethinkDB::RQL.new }
+    let(:r) { RethinkDB::RQL.new }
 
     it 'raises ReqlDriverCompileError on bitop operators' do
-      r = subject
       expect { r.var(1) < r.var(true) | r.var(nil) }.to raise_error(RethinkDB::ReqlDriverCompileError)
+    end
+
+    context 'method with hash offset' do
+      context 'body' do
+        let(:body) { r.filter(a: 1).body }
+
+        it 'has correct length' do
+          expect(body.length).to eq(2)
+        end
+
+        it 'has correct first argument' do
+          expect(body.first).to eq(39)
+        end
+
+        it 'has correct second argument' do
+          hash = body.last.first
+          expect(hash).to have_key("a")
+        end
+      end
+
+      context 'and with optargs' do
+        let(:body) { r.filter({a: 1}, {test: true}).body }
+
+        it 'has correct length' do
+          expect(body.length).to eq(3)
+        end
+
+        it 'has correct last argument' do
+          expect(body.last).to be_kind_of(Hash)
+          expect(body.last["test"]).to eq(true)
+        end
+      end
     end
   end
 end
