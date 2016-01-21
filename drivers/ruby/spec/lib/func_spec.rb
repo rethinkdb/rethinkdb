@@ -54,10 +54,9 @@ RSpec.describe RethinkDB::RQL do
 
   context '#do' do
     context 'with non-RQL body' do
-      subject { RethinkDB::RQL }
-
-      it 'does not raise exception with empty argunemt list' do
-        expect{ subject do; end }.not_to raise_exception
+      it 'does not raise exception with empty argument list' do
+        subject.instance_variable_set(:@body, nil)
+        expect{ subject.do() }.not_to raise_exception
       end
     end
 
@@ -66,6 +65,13 @@ RSpec.describe RethinkDB::RQL do
         it do
           expect{ subject.do }.to raise_exception(RethinkDB::ReqlDriverCompileError)
         end
+      end
+    end
+
+    context 'with arguments' do
+      it do
+        expect_any_instance_of(RethinkDB::RQL).to receive(:funcall).with(5, 1, 2, 3, 4)
+        subject.do(1,2,3,4,5)
       end
     end
   end
