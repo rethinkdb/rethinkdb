@@ -30,24 +30,32 @@ RSpec.describe RethinkDB::RQL do
 
   context '#connect' do
     subject { RethinkDB::RQL }
+    let(:connection) { double('connection').as_null_object }
+
+    before do
+      allow(RethinkDB::Connection).to receive(:new).and_return(connection)
+    end
 
     context 'with block' do
       let(:opts) { {a: 1} }
+      let(:block) { -> { } }
       it 'raises exception with not-RQL' do
         expect{ subject.new(1).connect }.to raise_exception(NoMethodError)
       end
 
       it 'calls block' do
-        block = -> { double(:block) }
-        expect(block).to receive(:call).with(an_instance_of(RethinkDB::Connection)) { true }
+        expect(block).to receive(:call) { true }
         subject.new(RethinkDB::RQL).connect(opts, &block)
       end
 
       it 'closes connection on exception' do
-        block = -> { double(:block) }
-        allow(block).to receive(:call) { raise RuntimeError }
-        expect_any_instance_of(RethinkDB::Connection).to receive(:close)
-        begin subject.new(RethinkDB::RQL).connect(opts, &block); rescue; end
+        expect(block).to receive(:call) { raise RuntimeError }
+        expect(connection).to receive(:close)
+
+        begin
+          subject.new(RethinkDB::RQL).connect(opts, &block)
+        rescue
+        end
       end
     end
   end
