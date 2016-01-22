@@ -163,4 +163,34 @@ RSpec.describe RethinkDB::RPP do
       end
     end
   end
+
+  context '.pp_int_datum' do
+    let(:q)   { double('q') }
+    let(:dat) { double('dat').as_null_object }
+
+    it 'calls inspect and text' do
+      expect(dat).to receive(:inspect)
+      expect(q).to receive(:text)
+      subject.pp_int_datum(q, dat, false)
+    end
+  end
+
+  context '.pp_int_func' do
+    let(:q) { spy('q') }
+    let(:correct_args) { [32, [[42, [RethinkDB::RQL.var(42)]], 69]]}
+
+    before do
+      allow(q).to receive(:group).and_yield
+    end
+
+    it 'should be unprintable function' do
+      expect(q).to receive(:text).with(/unprintable function/)
+      subject.pp_int_func(q, [], nil)
+    end
+
+    it 'should call text with space' do
+      subject.pp_int_func(q, correct_args, nil)
+      expect(q).to have_received(:text).with(' ')
+    end
+  end
 end
