@@ -107,5 +107,60 @@ RSpec.describe RethinkDB::RPP do
         subject.pp_int_optargs(q, [], nil, true)
       end
     end
+
+    context 'block to group' do
+      let(:q) { spy("q") }
+
+      before do
+        allow(q).to receive(:group).and_yield
+      end
+
+      it 'should call q#text' do
+        subject.pp_int_optargs(q, [1, 2, 3], nil, false)
+        expect(q).to have_received(:text).exactly(5).times
+      end
+
+      it 'should call q#breakable' do
+        subject.pp_int_optargs(q, [1, 2, 3], nil, false)
+        expect(q).to have_received(:text).exactly(5).times
+      end
+
+      context 'with yielding #nest' do
+        before do
+          allow(q).to receive(:nest).and_yield
+        end
+
+        it 'should call q#text' do
+          subject.pp_int_optargs(q, [1, 2, 3], nil, false)
+          expect(q).to have_received(:text).exactly(8).times
+        end
+
+        it 'should call q#breakable' do
+          subject.pp_int_optargs(q, [1, 2, 3], nil, false)
+          expect(q).to have_received(:text).exactly(8).times
+        end
+
+        it 'should call #pp_int' do
+          expect(subject).to receive(:pp_int).exactly(3).times
+          subject.pp_int_optargs(q, [1, 2, 3], nil, false)
+        end
+      end
+    end
+  end
+
+  context '.pp_int_args' do
+    let(:q) { double('q').as_null_object }
+
+    context 'with pre_dot' do
+      it 'receives opening clause' do
+        expect(q).to receive(:text).with('r(')
+        subject.pp_int_args(q, [], nil, true)
+      end
+
+      it 'receives closing clause' do
+        expect(q).to receive(:text).with(')')
+        subject.pp_int_args(q, [], nil, true)
+      end
+    end
   end
 end
