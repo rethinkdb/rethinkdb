@@ -132,6 +132,7 @@ struct keyspec_t {
         sorting_t sorting;
         datumspec_t datumspec;
     };
+    struct empty_t { };
     struct limit_t {
         range_t range;
         size_t limit;
@@ -160,7 +161,7 @@ struct keyspec_t {
     keyspec_t(const keyspec_t &) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    typedef boost::variant<range_t, limit_t, point_t> spec_t;
+    typedef boost::variant<range_t, empty_t, limit_t, point_t> spec_t;
     spec_t spec;
     counted_t<base_table_t> table;
     std::string table_name;
@@ -168,6 +169,7 @@ struct keyspec_t {
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::empty_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 

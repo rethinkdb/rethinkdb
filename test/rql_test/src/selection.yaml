@@ -159,7 +159,19 @@ tests:
     - cd: tblpkey.get(10)
       ot: {'foo':10,'a':10}
 
+    # Get all
+    - cd: tbl.get_all()
+      ot: []
+    - cd: tbl.get_all(20)
+      ot: [{"id":20,"a":0}]
+    - cd: tbl.get_all().type_of()
+      ot: "SELECTION<STREAM>"
+    - cd: tbl.get_all(20).type_of()
+      ot: "SELECTION<STREAM>"
+
     # Between
+    - cd: tbl.between(2, 1).type_of()
+      ot: 'TABLE_SLICE'
     - cd: tbl.between(1, 2).type_of()
       ot: 'TABLE_SLICE'
     - py: tbl.between(1, 2, index='id').type_of()
@@ -177,6 +189,8 @@ tests:
       rb: tbl.between(2, 1, :index => 'id').type_of()
       ot: 'TABLE_SLICE'
 
+    - cd: tbl.between(21, 20).count()
+      ot: 0
     - cd: tbl.between(20, 29).count()
       ot: 9
     - cd: tbl.between(-10, 9).count()

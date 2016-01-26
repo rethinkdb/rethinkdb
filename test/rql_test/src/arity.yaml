@@ -197,9 +197,6 @@ tests:
         - r.expr([]).splice_at(1, 2, 3)
         - r.expr([]).change_at(1, 2, 3)
 
-    - ot: err('ReqlCompileError', "Expected 2 or more arguments but found 1.", [])
-      cd: tbl.get_all()
-
     - cd: tbl.map()
       ot:
         cd: err('ReqlCompileError', "Expected 2 or more arguments but found 1.", [])

@@ -392,6 +392,7 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
                    env->limits().array_size_limit()));
     }
     void operator()(const changefeed::keyspec_t::point_t &) const { }
+    void operator()(const changefeed::keyspec_t::empty_t &) const { }
     env_t *env;
 };
 

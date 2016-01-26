@@ -72,6 +72,9 @@ bool cfeed_artificial_table_backend_t::read_changes(
         bool operator()(const ql::changefeed::keyspec_t::point_t &) const {
             return true;
         }
+        bool operator()(const ql::changefeed::keyspec_t::empty_t &) const {
+            return true;
+        }
     };
     if (!boost::apply_visitor(visitor_t(), spec)) {
         *error_out = admin_err_t{

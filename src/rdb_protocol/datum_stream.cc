@@ -314,6 +314,13 @@ private:
     bool finished;
 };
 
+changefeed::keyspec_t empty_reader_t::get_changespec() const {
+    return changefeed::keyspec_t(
+        changefeed::keyspec_t::empty_t(),
+        table,
+        table_name);
+}
+
 raw_stream_t rget_response_reader_t::unshard(
     sorting_t sorting,
     rget_read_response_t &&res) {

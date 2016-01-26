@@ -415,7 +415,7 @@ private:
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
-            const counted_t<const ql::db_t> &db,
+	    const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
         // Handle 'wait_for' optarg
         table_readiness_t readiness = table_readiness_t::finished;
@@ -731,7 +731,7 @@ private:
 class get_all_term_t : public op_term_t {
 public:
     get_all_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
+        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({ "index" })) { }
 private:
     datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
@@ -758,6 +758,7 @@ private:
             auto key = get_key_arg(args->arg(env, i));
             keys.insert(std::make_pair(std::move(key), 0)).first->second += 1;
         }
+
         return new_val(
             make_counted<selection_t>(
                 table,
