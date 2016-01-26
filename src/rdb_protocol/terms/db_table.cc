@@ -96,7 +96,7 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
     }
 }
 
-  // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
     meta_op_term_t(compile_env_t *env, const raw_term_t &term,
@@ -417,11 +417,6 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
 	    const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
-        if (args->num_args() == 0) {
-            rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
-        }
-
         // Handle 'wait_for' optarg
         table_readiness_t readiness = table_readiness_t::finished;
         if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
@@ -503,11 +498,7 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
-        if (args->num_args() == 0) {
-	  rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
-        }
-	
+
         // Parse the 'dry_run' optarg
         bool dry_run = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "dry_run")) {
@@ -611,14 +602,9 @@ public:
         : table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t,
+            scope_env_t *env, UNUSED args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
-        if (args->num_args() == 0) {
-	  rfail(base_exc_t::LOGIC, "`rebalance` can only be called on a table or database.");
-        }
-
         ql::datum_t result;
         bool success;
         admin_err_t error;
