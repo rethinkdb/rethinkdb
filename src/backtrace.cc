@@ -130,7 +130,8 @@ address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL
         const char *args[] = {"addr2line", "-s", "-e", executable, NULL};
 
         execvp("addr2line", const_cast<char *const *>(args));
-        exit(EXIT_FAILURE);
+        // A normal `exit` can get stuck here it seems. Maybe some `atexit` handler?
+        quick_exit(EXIT_FAILURE);
     }
 }
 
