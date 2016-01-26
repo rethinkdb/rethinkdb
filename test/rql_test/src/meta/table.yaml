@@ -249,9 +249,9 @@ tests:
       ot: partial({'rebalanced':1})
 
     - cd: r.wait()
-      ot: partial({'ready':1})
+      ot: err('ReqlQueryLogicError','`wait` can only be called on a table or database.', [])
     - cd: r.rebalance()
-      ot: partial({'rebalanced':1})
+      ot: err('ReqlQueryLogicError','`rebalance` can only be called on a table or database.', [])
 
     - cd: db.table_drop('a')
       ot: partial({'tables_dropped':1})
@@ -334,7 +334,7 @@ tests:
     - py: r.wait(wait_for='all_replicas_ready', timeout=5)
       js: r.wait({waitFor:'all_replicas_ready', timeout:5})
       rb: r.wait(:wait_for=>'all_replicas_ready', :timeout => 5)
-      ot: partial({'ready':2})
+      ot: err('ReqlQueryLogicError','`wait` can only be called on a table or database.')
 
     - cd: db.table_drop('testA')
       ot: partial({'tables_dropped':1})
