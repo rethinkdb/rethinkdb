@@ -1279,48 +1279,6 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #251
-            /* partial({'ready':1}) */
-            Partial expected_ = partial(r.hashMap("ready", 1L));
-            /* r.wait() */
-            logger.info("About to run line #251: r.wait_()");
-            Object obtained = runOrCatch(r.wait_(),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #251");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #251:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #253
-            /* partial({'rebalanced':1}) */
-            Partial expected_ = partial(r.hashMap("rebalanced", 1L));
-            /* r.rebalance() */
-            logger.info("About to run line #253: r.rebalance()");
-            Object obtained = runOrCatch(r.rebalance(),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #253");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #253:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // meta/table.yaml line #256
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
@@ -1801,27 +1759,6 @@ public class MetaTable {
             logger.info("Finished running line #329");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #329:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #334
-            /* partial({'ready':2}) */
-            Partial expected_ = partial(r.hashMap("ready", 2L));
-            /* r.wait(wait_for='all_replicas_ready', timeout=5) */
-            logger.info("About to run line #334: r.wait_().optArg('wait_for', 'all_replicas_ready').optArg('timeout', 5L)");
-            Object obtained = runOrCatch(r.wait_().optArg("wait_for", "all_replicas_ready").optArg("timeout", 5L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #334");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #334:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

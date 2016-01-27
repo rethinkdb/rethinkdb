@@ -1484,7 +1484,7 @@ class WorkerThread(threading.Thread):
             
             if self.existingServer is None:
                 r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
-                r.wait().run(self.reqlConnection)
+                r.db('test').wait().run(self.reqlConnection)
             
         except Exception as e:
             if self.existingServer:

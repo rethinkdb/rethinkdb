@@ -1244,10 +1244,6 @@ rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
 
-rethinkdb.wait = aropt (opts) -> new Wait opts
-rethinkdb.reconfigure = (opts) -> new Reconfigure opts
-rethinkdb.rebalance = () -> new Rebalance {}
-
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
