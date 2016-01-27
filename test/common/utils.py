@@ -436,8 +436,8 @@ class RunningProcesses:
     def list(self):
         
         # - reset known processes status to ''
-        for process in self.processes.items():
-            item.status = ''
+        for process in self.processes.values():
+            process.status = ''
         
         # - get ouptut from `ps`
         psProcess = subprocess.Popen(self.psCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -459,6 +459,7 @@ class RunningProcesses:
                 thisProcess.state = state
             else:
                 thisProcess = self.Process(pid, ppid, pgid, state, command)
+                self.processes[(pid, command)] = thisProcess
             
             # check for our parent process
             if thisProcess.pid == self.parentPid:
