@@ -334,16 +334,36 @@ void multi_table_manager_t::on_action(
             case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
         }
-        /* If we are inactive and are told to become active, we ignore the
-        timestamp. The `base_table_config_t` in our inactive state might be
-        a left-over from an emergency repair that none of the currently active
-        servers has seen. In that case we would have no chance to become active
-        again for this table until another emergency repair happened
-        (which might be impossible, if the table is otherwise still available). */
-        bool ignore_timestamp =
-            table->status == table_t::status_t::INACTIVE
-            && action_status == action_status_t::ACTIVE;
-        if (!ignore_timestamp && !timestamp.supersedes(current_timestamp)) {
+        /* Rejecting old actions is absolutely critical for correctness.
+        ACTIVE actions contain the Raft member ID. If we accepted an INACTIVE and then
+        an ACTIVE action in the wrong order, we might swipe away our Raft state due to
+        the INACTIVE action, and then become active again *with an old Raft ID* that
+        we had been active with before. This will violate Raft invariants, and can lead
+        to split-brain configurations and data loss. */
+        if (!timestamp.supersedes(current_timestamp)) {
+            /* If we are inactive and are told to become active, we print a special
+            message. The `base_table_config_t` in our inactive state might be
+            a left-over from an emergency repair that none of the currently active
+            servers has seen. In that case we would have no chance to become active
+            again for this table until another emergency repair happened
+            (which might be impossible, if the table is otherwise still available). */
+            bool outdated_activation =
+                table->status == table_t::status_t::INACTIVE &&
+                action_status == action_status_t::ACTIVE &&
+                timestamp.epoch != current_timestamp.epoch;
+            if (outdated_activation) {
+                logWRN("Table %s (%s): Not adding a replica on this server because the "
+                       "active configuration conflicts with a more recent inactive "
+                       "configuration. "
+                       "If you see replicas get stuck in the `transitioning` state "
+                       "after reconfiguring this table, you can try recovering by "
+                       "running `.reconfigure({emergencyRepair: '_debug_recommit'})` on "
+                       "it. Please make sure that the cluster is idle when running this "
+                       "operation. RethinkDB does not guarantee consistency during "
+                       "the emergency repair.",
+                       uuid_to_str(table_id).c_str(),
+                       table->basic_configs_entry->get_value().first.name.c_str());
+            }
             if (!ack_addr.is_nil()) {
                 send(mailbox_manager, ack_addr);
             }
@@ -545,20 +565,27 @@ void multi_table_manager_t::do_sync(
         boost::optional<raft_member_id_t> raft_member_id;
         boost::optional<raft_persistent_state_t<table_raft_state_t> >
             initial_raft_state;
-        table.active->get_raft()->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
-                timestamp.log_index = st->log_index;
-                auto it = st->state.member_ids.find(other_server_id);
-                if (it != st->state.member_ids.end()) {
-                    action_status = action_status_t::ACTIVE;
-                    raft_member_id = boost::make_optional(it->second);
-                    initial_raft_state = boost::make_optional(
-                        table.active->get_raft()->get_state_for_init());
-                } else {
-                    action_status = action_status_t::INACTIVE;
-                    basic_config = boost::make_optional(st->state.config.config.basic);
-                }
-            });
+        {
+            cond_t non_interruptor;
+            raft_member_t<table_raft_state_t>::change_lock_t raft_change_lock(
+                table.active->get_raft(), &non_interruptor);
+            table.active->get_raft()->get_committed_state()->apply_read(
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
+                    timestamp.log_index = st->log_index;
+                    auto it = st->state.member_ids.find(other_server_id);
+                    if (it != st->state.member_ids.end()) {
+                        action_status = action_status_t::ACTIVE;
+                        raft_member_id = boost::make_optional(it->second);
+                        initial_raft_state = boost::make_optional(
+                            table.active->get_raft()->get_state_for_init(
+                                raft_change_lock));
+                    } else {
+                        action_status = action_status_t::INACTIVE;
+                        basic_config =
+                            boost::make_optional(st->state.config.config.basic);
+                    }
+                });
+        }
 
         if (static_cast<bool>(table_bcard)) {
             /* If the peer already has an entry in the directory, we can use that to

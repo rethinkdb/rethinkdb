@@ -247,15 +247,20 @@ contract_t calculate_contract(
     if (static_cast<bool>(old_c.temp_voters)) {
         /* Before we change `voters`, we have to make sure that we'll preserve the
         invariant that every acked write is on a majority of `voters`. This is mostly the
-        job of the primary; it will not report `primary_running` unless it is requiring
+        job of the primary; it will not report `primary_ready` unless it is requiring
         acks from a majority of both `voters` and `temp_voters` before acking writes to
         the client, *and* it has ensured that every write that was acked before that
         policy was implemented has been backfilled to a majority of `temp_voters`. So we
-        can't switch voters unless the primary reports `primary_running`. */
+        can't switch voters unless the primary reports `primary_ready`.
+        See `primary_execution_t::is_contract_ackable` for the detailed semantics of
+        the `primary_ready` state. */
         if (static_cast<bool>(old_c.primary) &&
                 acks.count(old_c.primary->server) == 1 &&
                 acks.at(old_c.primary->server).state ==
                     contract_ack_t::state_t::primary_ready) {
+            /* The `acks` we just checked are based on `old_c`, so we really shouldn't
+            commit any different set of `temp_voters`. */
+            guarantee(new_c.temp_voters == old_c.temp_voters);
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
             new_c.temp_voters = boost::none;
@@ -487,7 +492,9 @@ contract_t calculate_contract(
                     /* The hand over is complete. Now it's safe to stop the old primary.
                     The new primary will be started later, after a majority of the
                     replicas acknowledge that they are no longer listening for writes
-                    from the old primary. */
+                    from the old primary.
+                    See `primary_execution_t::is_contract_ackable` for a detailed
+                    explanation of what the `primary_ready` state implies. */
                     new_c.primary = boost::none;
                 } else if (visible_voters.count(config.primary_replica) == 0) {
                     /* Something went wrong with the new primary before the hand-over was
