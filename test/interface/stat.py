@@ -140,7 +140,7 @@ def get_and_check_global_stats(tables, servers, conn):
 
     assert len(global_stats) == 1 + len(tables) + numServers + (len(tables) * numServers)
     return global_stats
-    
+
 def get_individual_stats(global_stats, conn):
     res = [ ]
     for row in global_stats:
@@ -223,7 +223,7 @@ serve_options += ['--cache-size', '0']
 with  driver.Cluster(initial_servers=server_names, command_prefix=command_prefix, extra_options=serve_options) as cluster:
 
     conn = r.connect(cluster[0].host, cluster[0].driver_port)
-    
+
     utils.print_with_time('Creating %d tables...' % len(table_names))
     stop_event = multiprocessing.Event()
 
@@ -289,14 +289,20 @@ with  driver.Cluster(initial_servers=server_names, command_prefix=command_prefix
                     assert row['query_engine']['written_docs_total'] > 0
                     assert row['storage_engine']['disk']['read_bytes_total'] > 0
                     assert row['storage_engine']['disk']['written_bytes_total'] > 0
-                
+
         check_non_zero_totals(all_stats)
         check_non_zero_totals(also_stats)
-        
+
     finally:
         stop_event.set()
         for table in tables:
             table['workload'].join()
+
+    utils.print_with_time("Checking that you can not read non-existing rows...")
+    res = r.db("rethinkdb").table("stats").get(["invalid"]);
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("stats").get(["invalid", "invalid"]);
+    assert res["errors"] == 1, res
 
     utils.print_with_time("Checking that stats table is not writable...")
     length = r.db("rethinkdb").table("stats").count().run(conn)
