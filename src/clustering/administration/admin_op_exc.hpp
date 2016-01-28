@@ -72,7 +72,11 @@ may not have been performed. */
     catch (const failed_table_op_exc_t &) {                                           \
         *(error_out) = admin_err_t{                                                   \
             strprintf("The server(s) hosting table `%s.%s` are currently "            \
-                      "unreachable. " no_msg, (db).c_str(), (name).c_str()),          \
+                      "unreachable. " no_msg " If you do not expect the server(s) "   \
+                      "to recover, you can use `emergency_repair` to restore "        \
+                      "availability of the table. "                                   \
+                      "<http://rethinkdb.com/api/javascript/reconfigure/"             \
+                      "#emergency-repair-mode>", (db).c_str(), (name).c_str()),       \
             query_state_t::FAILED};                                                   \
         return false;                                                                 \
     } catch (const maybe_failed_table_op_exc_t &) {                                   \
