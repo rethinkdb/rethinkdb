@@ -151,11 +151,9 @@ template <class T>
 bool parse_stats_request(const ql::datum_t &info,
                          scoped_ptr_t<stats_request_t> *request_out) {
     if (info.get(0).as_str() == T::get_name()) {
-        if (!T::parse(info, request_out)) {
-            return false;
-        }
+        return T::parse(info, request_out);
     }
-    return true;
+    return false;
 }
 
 bool stats_artificial_table_backend_t::read_row(
@@ -175,9 +173,9 @@ bool stats_artificial_table_backend_t::read_row(
     }
 
     scoped_ptr_t<stats_request_t> request;
-    if (!parse_stats_request<cluster_stats_request_t>(primary_key, &request) ||
-        !parse_stats_request<table_stats_request_t>(primary_key, &request) ||
-        !parse_stats_request<server_stats_request_t>(primary_key, &request) ||
+    if (!parse_stats_request<cluster_stats_request_t>(primary_key, &request) &&
+        !parse_stats_request<table_stats_request_t>(primary_key, &request) &&
+        !parse_stats_request<server_stats_request_t>(primary_key, &request) &&
         !parse_stats_request<table_server_stats_request_t>(primary_key, &request)) {
         *row_out = ql::datum_t();
         return true;
