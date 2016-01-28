@@ -1189,6 +1189,8 @@ class YamlTest(Test):
         self.srcPath = path
         self.shards = shards
         super(YamlTest, self).__init__(name, None, driverLang=driverLang, timeout=timeout)
+        if print_debug:
+            self.envVariablesToSet.update({'VERBOSE':'true'})
     
     @property
     def interpreter_path(self):

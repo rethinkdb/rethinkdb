@@ -607,7 +607,7 @@ def partial(expected, ordered=False, partial=True):
         'partial can only work on dicts, lists, or tuples, got: %s (%r)' % (type(expected).__name__, expected)
     return OptionsBox(expected, options)
 
-def fetch(cursor, limit=None, timeout=1):
+def fetch(cursor, limit=None, timeout=0.2):
     '''Pull items from a cursor'''
 
     # -- input validation
