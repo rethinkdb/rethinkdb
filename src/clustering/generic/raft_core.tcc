@@ -150,7 +150,9 @@ raft_member_t<state_t>::~raft_member_t() {
 }
 
 template<class state_t>
-raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
+raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init(
+        const change_lock_t &change_lock_proof) {
+    change_lock_proof.mutex_acq.guarantee_is_holding(&mutex);
     /* This implementation deviates from the Raft paper in that we initialize new peers
     joining the cluster by copying the log, snapshot, etc. from an existing peer, instead
     of starting the new peer with a blank state. */
@@ -230,7 +232,7 @@ raft_member_t<state_t>::propose_config_change(
     /* Raft paper, Section 6: "... the cluster first switches to a [joint consensus
     configuration]" */
     raft_complex_config_t new_complex_config;
-    new_complex_config.config = committed_state.get_ref().config.config;
+    new_complex_config.config = latest_state.get_ref().config.config;
     new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
 
     raft_log_entry_t<state_t> new_entry;
@@ -439,10 +441,10 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
     if (request.term > ps().current_term) {
-        update_term(request.term, raft_member_id_t(), &mutex_acq);
         if (mode != mode_t::follower) {
             candidate_or_leader_become_follower(&mutex_acq);
         }
+        update_term(request.term, raft_member_id_t(), &mutex_acq);
         /* Continue processing the RPC as follower */
     }
 
@@ -491,6 +493,8 @@ void raft_member_t<state_t>::on_request_vote_rpc(
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
+    guarantee(ps().log.get_latest_index() >= ps().commit_index);
+    guarantee(request.last_log_index >= ps().commit_index);
 
     RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " granted\n",
             show_member_id(request.candidate_id).c_str(), request.term);
@@ -655,10 +659,12 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     but different terms), delete the existing entry and all that follow it" */
     bool conflict = false;
     raft_log_index_t first_nonmatching_index;
-    for (first_nonmatching_index =
-                std::max(request.entries.prev_index, ps().log.prev_index) + 1;
-            first_nonmatching_index <= std::min(
-                ps().log.get_latest_index(), request.entries.get_latest_index());
+    const raft_log_index_t min_index =
+        std::max(request.entries.prev_index, ps().log.prev_index) + 1;
+    const raft_log_index_t max_index =
+        std::min(ps().log.get_latest_index(), request.entries.get_latest_index());
+    for (first_nonmatching_index = min_index;
+            first_nonmatching_index <= max_index;
             ++first_nonmatching_index) {
         if (ps().log.get_entry_term(first_nonmatching_index) !=
                 request.entries.get_entry_term(first_nonmatching_index)) {
@@ -667,8 +673,35 @@ void raft_member_t<state_t>::on_append_entries_rpc(
         }
     }
 
-    /* Raft paper, Figure 2: "Append any new entries not already in the log" */
-    if (first_nonmatching_index != request.entries.get_latest_index() + 1) {
+    /* Raft paper, Figure 2: "Append any new entries not already in the log"
+
+    Our implementation performs both the truncation of a conflicting log suffix and
+    appending any new entries in the same atomic operation through
+    `write_log_replace_tail`.
+
+    There are three valid cases that we need to consider:
+    * Our own log is an extension of the log the leader sent us, or the logs are equal.
+     In that case we will have `conflict == false` and
+     `first_nonmatching_index == request.entries.get_latest_index()`
+     and `first_nonmatching_index <= ps().log.get_latest_index()`.
+     There is nothing to do for us.
+    * The log the leader sent us is an extension of our own log.
+     We will have `conflict == false` and
+     `first_nonmatching_index == ps().log.get_latest_index() + 1`.
+     In this case `write_log_replace_tail` is going to append the entries from `request`
+     starting at `first_nonmatching_index`.
+    * The log the leader sent us and our own log have some matching prefix (potentially
+     of length zero), followed by entries that are different between both logs.
+     We will have `conflict == true` and
+     `ps().log.prev_index < first_nonmatching_index <= ps().log.get_latest_index()`.
+     In this case we truncate our own log starting at `first_nonmatching_index`, and
+     replace it by the suffix of the `request` log starting at `first_nonmatching_index`.
+    */
+    if (conflict || first_nonmatching_index > ps().log.get_latest_index()) {
+        /* The Leader Completeness property ensures that the leader has all committed log
+        entries. We must never truncate our log to become shorter than the current
+        `commit_index`. */
+        guarantee(first_nonmatching_index > ps().commit_index);
         storage->write_log_replace_tail(
             request.entries, first_nonmatching_index);
     }
@@ -934,10 +967,17 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
     if (request_term > ps().current_term) {
         RAFT_DEBUG_THIS("Install/Append from %s for %" PRIu64 "\n",
             show_member_id(request_leader_id).c_str(), request_term);
-        update_term(request_term, raft_member_id_t(), mutex_acq);
         if (mode != mode_t::follower) {
             candidate_or_leader_become_follower(mutex_acq);
         }
+        /* Note that we become a follower before we update the term.
+        We do this so that if we're currently a candidate in `candidate_run_election`,
+        we don't change the Raft state in the middle of its execution.
+        Doing so might not actually do any harm in our current implementation, but
+        it's probably safer to avoid the risk.
+        `candidate_or_leader_become_follower` will force `candidate_run_election` to
+        finish before we get here. */
+        update_term(request_term, raft_member_id_t(), mutex_acq);
         /* Continue processing the RPC as follower */
     }
 
@@ -1277,8 +1317,12 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 `election_timeout_max_ms`. */
                 election_timeout_min_ms +
                     randuint64(election_timeout_max_ms - election_timeout_min_ms));
+            /* `candidate_run_election` might temporarily reset `mutex_acq`, but it
+            should always re-acquire it before it returns. */
             bool elected = candidate_run_election(
                 &mutex_acq, &election_timeout, interruptor);
+            guarantee(mutex_acq.has());
+            mutex_acq->guarantee_is_holding(&mutex);
             if (elected) {
                 guarantee(mode == mode_t::leader);
                 break;   /* exit the loop */
@@ -1462,6 +1506,13 @@ bool raft_member_t<state_t>::candidate_run_election(
         we_won_the_election.pulse();
     }
 
+    typename raft_rpc_request_t<state_t>::request_vote_t request;
+    request.term = this->ps().current_term;
+    request.candidate_id = this_member_id;
+    request.last_log_index = this->ps().log.get_latest_index();
+    request.last_log_term =
+        this->ps().log.get_entry_term(this->ps().log.get_latest_index());
+
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
     each of the other servers in the cluster." */
     std::set<raft_member_id_t> peers = latest_state.get_ref().config.get_all_members();
@@ -1474,7 +1525,7 @@ bool raft_member_t<state_t>::candidate_run_election(
 
         auto_drainer_t::lock_t request_vote_keepalive(request_vote_drainer.get());
         coro_t::spawn_sometime([this, &votes_for_us, &we_won_the_election, peer,
-                request_vote_keepalive /* important to capture */]() {
+                &request, request_vote_keepalive /* important to capture */]() {
             try {
                 exponential_backoff_t backoff(100, 1000);
                 while (true) {
@@ -1486,15 +1537,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                         },
                         request_vote_keepalive.get_drain_signal());
 
-                    /* We're not holding the lock, but it's still safe to access these
-                    member variables because they can't change while we're in candidate
-                    state. */
-                    typename raft_rpc_request_t<state_t>::request_vote_t request;
-                    request.term = this->ps().current_term;
-                    request.candidate_id = this_member_id;
-                    request.last_log_index = this->ps().log.get_latest_index();
-                    request.last_log_term =
-                        this->ps().log.get_entry_term(this->ps().log.get_latest_index());
+                    guarantee(this->mode == mode_t::candidate);
                     raft_rpc_request_t<state_t> request_wrapper;
                     request_wrapper.request = request;
 
@@ -1945,7 +1988,6 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
                 if (this->ps().current_term == local_current_term) {
-                    this->update_term(term, raft_member_id_t(), &mutex_acq_2);
                     /* It's unlikely that `mode` will be `follower` at this point, but
                     it's possible. Suppose that we are a candidate for term T, and we
                     receive an RPC reply for term T+1, so we call `..._note_term()` and
@@ -1957,6 +1999,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                     if (mode != mode_t::follower) {
                         this->candidate_or_leader_become_follower(&mutex_acq_2);
                     }
+                    this->update_term(term, raft_member_id_t(), &mutex_acq_2);
                 }
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
             } catch (const interrupted_exc_t &) {

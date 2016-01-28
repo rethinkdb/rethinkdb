@@ -71,7 +71,11 @@ raft_member_id_t dummy_raft_cluster_t::join() {
     bool found_init_state = false;
     for (const auto &pair : members) {
         if (pair.second->member_drainer.has()) {
-            init_state = pair.second->member->get_raft()->get_state_for_init();
+            cond_t non_interruptor;
+            raft_member_t<dummy_raft_state_t>::change_lock_t raft_change_lock(
+                pair.second->member->get_raft(), &non_interruptor);
+            init_state =
+                pair.second->member->get_raft()->get_state_for_init(raft_change_lock);
             found_init_state = true;
             break;
         }
