@@ -98,8 +98,8 @@ message Query {
 // A backtrace frame (see `backtrace` in Response below)
 message Frame {
     enum FrameType {
-        POS = 1; // Error occured in a positional argument.
-        OPT = 2; // Error occured in an optional argument.
+        POS = 1; // Error occurred in a positional argument.
+        OPT = 2; // Error occurred in an optional argument.
     }
     optional FrameType type = 1;
     optional int64 pos = 2; // The index of the positional argument.
@@ -186,7 +186,7 @@ message Response {
 
     // If [type] is [CLIENT_ERROR], [TYPE_ERROR], or [RUNTIME_ERROR], then a
     // backtrace will be provided.  The backtrace says where in the query the
-    // error occured.  Ideally this information will be presented to the user as
+    // error occurred.  Ideally this information will be presented to the user as
     // a pretty-printed version of their query with the erroneous section
     // underlined.  A backtrace is a series of 0 or more [Frame]s, each of which
     // specifies either the index of a positional argument or the name of an

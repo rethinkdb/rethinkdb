@@ -912,7 +912,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             : ql::make_unsharding_append());
         acc->unshard(&env, results);
         // The semantics here are that we aborted before ever iterating since no
-        // iteration occured (since we don't actually have a btree here).
+        // iteration occurred (since we don't actually have a btree here).
         acc->finish(continue_bool_t::ABORT, &out->result);
     } catch (const ql::exc_t &ex) {
         *out = query_response_t(ex);
