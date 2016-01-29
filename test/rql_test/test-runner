@@ -1622,7 +1622,7 @@ class WorkerThread(threading.Thread):
                             test.errorMessage = 'Server found crashed after test'
                         else:
                             test.errorMessage += ', and the server crashed while running'
-                    
+                
                 # - copy the server contents or just the server log
                 if self.server.logfile_path and testOutputDir: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
