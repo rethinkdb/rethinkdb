@@ -1,3 +1,27 @@
+# Release 2.1.6 (Forbidden Planet)
+
+Released on 2016-02-01
+
+Legacy bug fix release
+
+### Legacy support release ###
+This release maintains full compatibility with RethinkDB 2.1.5, while fixing a
+[critical bug][issue-5289-details] in RethinkDB's clustering system.
+
+We recommend installing this version only if upgrading to RethinkDB 2.2.4 is not
+an option, for example if you depend on a driver that still uses the old protocol buffer
+client protocol.
+
+[issue-5289-details]: https://github.com/rethinkdb/rethinkdb/issues/5289#issuecomment-175394540
+
+### Bug fixes ###
+
+* Fixed a bug in the clustering system that could lead to data loss, inconsistent
+  reads, and server crashes after reconfiguring a table during incomplete connectivity
+  (#5289, #4949)
+
+--
+
 # Release 2.1.5-2 (Forbidden Planet)
 
 Released on 2015-10-08
