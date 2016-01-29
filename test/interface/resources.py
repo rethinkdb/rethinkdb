@@ -37,7 +37,7 @@ class ResourcesTestCase(rdb_unittest.RdbTestCase):
             self.fail("Did not raise a 403 error code when requesting a bad url")
         
         # - check that the bad access was recorded
-    
+        
         deadline = time.time() + 2
         foundIt = False
         while time.time() < deadline:
