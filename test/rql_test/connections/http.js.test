@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, subprocess
+import atexit, os, sys, subprocess
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import utils
@@ -37,6 +37,7 @@ r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(co
 # -- start target server
 
 targetServer = http_support.HttpTargetServer()
+atexit.register(targetServer.endServer)
 
 os.environ['HTTPBIN_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpbinPort
 os.environ['HTTP_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpPort

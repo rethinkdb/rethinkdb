@@ -18,7 +18,10 @@ except NameError:
 class yamlValue(unicode):
     linenumber = None
     def __new__(cls, value, linenumber=None):
-        real = unicode.__new__(cls, value.decode('utf-8'))
+        if isinstance(value, unicode):
+            real = unicode.__new__(cls, value)
+        else:
+            real = unicode.__new__(cls, value, "utf-8")
         if linenumber is not None:
             real.linenumber = int(linenumber)
         return real
@@ -52,7 +55,7 @@ def parseYAML(source):
                 debug('\tempty/comment line')
                 continue
             
-            # - parse line 
+            # - parse line
             
             parsedLine = yamlLineRegex.match(line)
             if not parsedLine:
