@@ -1,3 +1,57 @@
+# Release 2.2.4 (Modern Times)
+
+Released on 2016-02-01
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.4 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
+in the same cluster.
+
+No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Bug fixes ###
+
+* Fixed a bug in the clustering system that could lead to data loss, inconsistent
+  reads, and server crashes after reconfiguring a table during incomplete connectivity
+  (#5289, #4949)
+* Fixed a segmentation fault that occurred when requesting certain documents from the
+  `logs` system table (#5327)
+* Changefeeds on system tables now support `map`, `filter` and related commands (#5241)
+* Backtraces are now printed even if the `addr2line` tool is not installed (#5321)
+* The Java driver now supports SSL connections thanks to a contribution by @pires (#5284)
+* Fixed the "Serialized query" debug output in the Java driver (#5306)
+* Fixed an incompatibility of the `rethinkdb import` script with Python 2.6 (#5294)
+
+--
+
+# Release 2.1.6 (Forbidden Planet)
+
+Released on 2016-02-01
+
+Legacy bug fix release
+
+### Legacy support release ###
+This release maintains full compatibility with RethinkDB 2.1.5, while fixing a critical
+bug in RethinkDB's clustering system.
+
+We recommend installing this version only if upgrading to RethinkDB 2.2.4 is not
+an option, for example if you depend on a driver that still uses the old protocol buffer
+client protocol.
+
+### Bug fixes ###
+
+* Fixed a bug in the clustering system that could lead to data loss, inconsistent
+  reads, and server crashes after reconfiguring a table during incomplete connectivity
+  (#5289, #4949)
+
+--
+
 # Release 2.2.3 (Modern Times)
 
 Released on 2016-01-11
