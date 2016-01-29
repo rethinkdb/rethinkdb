@@ -2,7 +2,11 @@
 
 Released on 2016-02-01
 
-Bug fix release
+This bug fix release addresses a [critical bug][issue-5289-details] in RethinkDB's
+clustering system, that can lead to data loss and invalid query results under certain
+rare circumstances.
+
+[issue-5289-details]: https://github.com/rethinkdb/rethinkdb/issues/5289#issuecomment-175394540
 
 ### Compatibility ###
 
@@ -37,12 +41,14 @@ Released on 2016-02-01
 Legacy bug fix release
 
 ### Legacy support release ###
-This release maintains full compatibility with RethinkDB 2.1.5, while fixing a critical
-bug in RethinkDB's clustering system.
+This release maintains full compatibility with RethinkDB 2.1.5, while fixing a
+[critical bug][issue-5289-details] in RethinkDB's clustering system.
 
 We recommend installing this version only if upgrading to RethinkDB 2.2.4 is not
 an option, for example if you depend on a driver that still uses the old protocol buffer
 client protocol.
+
+[issue-5289-details]: https://github.com/rethinkdb/rethinkdb/issues/5289#issuecomment-175394540
 
 ### Bug fixes ###
 
