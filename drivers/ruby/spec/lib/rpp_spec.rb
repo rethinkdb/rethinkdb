@@ -177,7 +177,7 @@ RSpec.describe RethinkDB::RPP do
 
   context '.pp_int_func' do
     let(:q) { spy('q') }
-    let(:correct_args) { [32, [[42, [RethinkDB::RQL.var(42)]], 69]]}
+    let(:correct_args) { [32, [[42, [RethinkDB::RQL.new.var(42)]], 69]]}
 
     before do
       allow(q).to receive(:group).and_yield
@@ -191,6 +191,58 @@ RSpec.describe RethinkDB::RPP do
     it 'should call text with space' do
       subject.pp_int_func(q, correct_args, nil)
       expect(q).to have_received(:text).with(' ')
+    end
+  end
+
+  context '.can_prefix' do
+    context 'table' do
+      it do
+        expect(subject.can_prefix('table', nil)).to eq(false)
+      end
+
+      context 'with array args' do
+        it 'false with empty array' do
+          expect(subject.can_prefix('table', [])).to eq(false)
+        end
+
+        it 'false with array with not first array' do
+          expect(subject.can_prefix('table', [nil])).to eq(false)
+        end
+
+        it 'false wiith nested array and not TermType::DB' do
+          expect(subject.can_prefix('table', [[nil]])).to eq(false)
+        end
+
+        it 'true with proper args' do
+          expect(subject.can_prefix('table', [[RethinkDB::Term::TermType::DB]])).to eq(true)
+        end
+      end
+    end
+
+    context 'table drop' do
+      it do
+        expect(subject.can_prefix('table_drop', nil)).to eq(false)
+      end
+    end
+
+    context 'table create' do
+      it do
+        expect(subject.can_prefix('table_create', nil)).to eq(false)
+      end
+    end
+
+    ["db", "db_create", "db_drop", "json", "funcall",
+             "args", "branch", "http", "binary", "javascript", "random",
+             "time", "iso8601", "epoch_time", "now", "geojson", "point",
+             "circle", "line", "polygon", "asc", "desc", "literal",
+             "range", "error"].each do |name|
+      it do
+        expect(subject.can_prefix(name, nil)).to eq(false)
+      end
+    end
+
+    it 'true with prefixable name' do
+      expect(subject.can_prefix('asdf', nil)).to eq(true)
     end
   end
 end
