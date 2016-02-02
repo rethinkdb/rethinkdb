@@ -140,6 +140,6 @@ tests:
      - py: tbl.reconfigure(shards=3, replicas=1)
        rb: tbl.reconfigure(shards:3, replicas:1)
        js: tbl.reconfigure({shards:3, replicas:1})
-     - cd: fetch(rtblPluck, 1)
+     - cd: fetch(rtblPluck, 1, 2)
        ot: partial([{'old_val':partial({'db':'test'}), 'new_val':partial({'db':'test'})}])
 
