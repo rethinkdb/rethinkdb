@@ -411,6 +411,7 @@ continue_bool_t mock_store_t::send_backfill(
         } else {
             /* The next thing in lexicographical order is a key in our local copy, not a
             pre item. */
+            bool sent_item = false;
             if (it->second.first >
                     start_point.lookup(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
@@ -432,10 +433,23 @@ continue_bool_t mock_store_t::send_backfill(
                 memory_tracker->note_item();
                 item.pairs.push_back(std::move(pair));
                 item_consumer->on_item(metainfo_, std::move(item));
+                sent_item = true;
             }
             table_cursor = key_range_t::right_bound_t(it->first);
             bool ok = table_cursor.increment();
             guarantee(ok);
+            if (!sent_item) {
+                /* It is crucial that we send an empty range if we've traversed a range
+                but haven't transmitted any items for the range. Not doing so could
+                make us miss changes on the backfill receiver.
+                The reason is that we need to tell the backfill receiver when it has
+                to start accepting streaming writes for a new region.
+                If we just update `table_cursor`, but don't send an empty range, the
+                receiver will keep clipping writes from that range but we'll never send
+                the new values in that range either, since we've already moved past it.
+                */
+                item_consumer->on_empty_range(metainfo_, table_cursor);
+            }
         }
     }
     if (rng_.randint(2) == 0) {
@@ -486,7 +500,7 @@ continue_bool_t mock_store_t::receive_backfill(
                     pair.recency, vector_to_datum(std::vector<char>(*pair.value)));
             }
         } else {
-           cursor = empty_range;
+            cursor = empty_range;
         }
 
         metainfo_mask.inner.right = cursor;
