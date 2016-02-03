@@ -423,7 +423,9 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     db_config_backend.init(new db_config_artificial_table_backend_t(
         metadata_field(&cluster_semilattice_metadata_t::databases,
-            _semilattice_view)));
+                       _semilattice_view),
+        _next_reql_cluster_interface));
+
     backends[name_string_t::guarantee_valid("db_config")] =
         std::make_pair(db_config_backend.get(), db_config_backend.get());
 

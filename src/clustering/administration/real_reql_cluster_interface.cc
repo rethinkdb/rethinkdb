@@ -103,27 +103,23 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
     return true;
 }
 
-bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
-        signal_t *interruptor_on_caller, ql::datum_t *result_out,
-        admin_err_t *error_out) {
-    guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
-        "real_reql_cluster_interface_t should never get queries for system tables");
+bool real_reql_cluster_interface_t::db_drop_uuid(database_id_t db_id,
+                                                 const name_string_t &name,
+                                                 signal_t *interruptor_on_caller,
+                                                 ql::datum_t *result_out,
+                                                 admin_err_t *error_out) {
+    /* Delete all of the tables in the database */
     cluster_semilattice_metadata_t metadata;
+
+    std::map<namespace_id_t, table_basic_config_t> tables;
+    table_meta_client->list_names(&tables);
+    size_t tables_dropped = 0;
     ql::datum_t old_config;
-    size_t tables_dropped;
     {
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
-        metadata = semilattice_root_view->get();
-        database_id_t db_id;
-        if (!search_db_metadata_by_name(metadata.databases, name, &db_id, error_out)) {
-            return false;
-        }
 
-        /* Delete all of the tables in the database */
-        std::map<namespace_id_t, table_basic_config_t> tables;
-        table_meta_client->list_names(&tables);
-        tables_dropped = 0;
+        metadata = semilattice_root_view->get();
         for (const auto &pair : tables) {
             if (pair.second.database == db_id) {
                 try {
@@ -131,33 +127,70 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
                     ++tables_dropped;
                 } catch (const no_such_table_exc_t &) {
                     /* The table was dropped by something else between the time when we
-                    called `list_names()` and when we went to actually delete it. This is
-                    OK. */
+                       called `list_names()` and when we went to actually delete it. This is
+                       OK. */
                 } CATCH_OP_ERRORS(name, pair.second.name, error_out,
-                    "The database was not dropped, but some of the tables in it may or "
-                        "may not have been dropped.",
-                    "The database was not dropped, but some of the tables in it may or "
-                        "may not have been dropped.")
+                                  "The database was not dropped, but some of the tables in it may or "
+                                  "may not have been dropped.",
+                                  "The database was not dropped, but some of the tables in it may or "
+                                  "may not have been dropped.")
             }
         }
 
-        old_config = convert_db_config_and_name_to_datum(name, db_id);
-
-        metadata.databases.databases.at(db_id).mark_deleted();
-
-        semilattice_root_view->join(metadata);
-        metadata = semilattice_root_view->get();
-
+        auto db_id_it = metadata.databases.databases.find(db_id);
+        if (db_id_it != metadata.databases.databases.end()
+            && !db_id_it->second.is_deleted()) {
+            db_id_it->second.mark_deleted();
+            semilattice_root_view->join(metadata);
+            metadata = semilattice_root_view->get();
+        } else {
+            *(error_out) = admin_err_t{
+                strprintf("The database was already deleted."),
+                query_state_t::FAILED};
+            return false;
+        }
     }
     wait_for_metadata_to_propagate(metadata, interruptor_on_caller);
 
-    ql::datum_object_builder_t result_builder;
-    result_builder.overwrite("dbs_dropped", ql::datum_t(1.0));
-    result_builder.overwrite("tables_dropped",
-        ql::datum_t(static_cast<double>(tables_dropped)));
-    result_builder.overwrite("config_changes",
-        make_replacement_pair(old_config, ql::datum_t::null()));
-    *result_out = std::move(result_builder).to_datum();
+    old_config = convert_db_config_and_name_to_datum(name, db_id);
+
+    if (result_out != nullptr) {
+        ql::datum_object_builder_t result_builder;
+        result_builder.overwrite("dbs_dropped", ql::datum_t(1.0));
+        result_builder.overwrite("tables_dropped",
+                                 ql::datum_t(static_cast<double>(tables_dropped)));
+        result_builder.overwrite("config_changes",
+                                 make_replacement_pair(old_config, ql::datum_t::null()));
+        *result_out = std::move(result_builder).to_datum();
+    }
+
+    return true;
+}
+
+bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
+        signal_t *interruptor_on_caller, ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cluster_semilattice_metadata_t metadata;
+    database_id_t db_id;
+    {
+        cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+        on_thread_t thread_switcher(home_thread());
+
+        metadata = semilattice_root_view->get();
+
+        if (!search_db_metadata_by_name(metadata.databases, name, &db_id, error_out)) {
+            return false;
+        }
+    }
+    if (!db_drop_uuid(db_id,
+                      name,
+                      interruptor_on_caller,
+                      result_out,
+                      error_out)) {
+        return false;
+    }
 
     return true;
 }

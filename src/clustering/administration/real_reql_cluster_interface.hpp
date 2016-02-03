@@ -43,6 +43,12 @@ public:
 
     bool db_create(const name_string_t &name,
             signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+    bool db_drop_uuid(
+            database_id_t db_id,
+            const name_string_t &name,
+            signal_t *interruptor_on_home,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool db_drop(const name_string_t &name,
             signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
     bool db_list(

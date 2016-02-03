@@ -20,13 +20,16 @@ ql::datum_t convert_db_config_and_name_to_datum(
         name_string_t db_name,
         namespace_id_t id);
 
+class real_reql_cluster_interface_t;
+
 class db_config_artificial_table_backend_t :
     public caching_cfeed_artificial_table_backend_t
 {
 public:
     db_config_artificial_table_backend_t(
             boost::shared_ptr< semilattice_readwrite_view_t<
-                databases_semilattice_metadata_t> > _database_sl_view);
+            databases_semilattice_metadata_t> > _database_sl_view,
+            real_reql_cluster_interface_t *_reql_cluster_interface);
     ~db_config_artificial_table_backend_t();
 
     std::string get_primary_key_name();
@@ -53,6 +56,7 @@ private:
     boost::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
     semilattice_read_view_t<databases_semilattice_metadata_t>::subscription_t subs;
+    real_reql_cluster_interface_t *reql_cluster_interface;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_ */
