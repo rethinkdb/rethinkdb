@@ -71,6 +71,18 @@ class AsyncioCursor(Cursor):
         Cursor.__init__(self, *args, **kwargs)
         self.new_response = asyncio.Future()
 
+    @asyncio.coroutine
+    def __aiter__(self):
+        return self;
+
+    @asyncio.coroutine
+    def __anext__(self):
+        data = self._get_next(None)
+        if data:
+            return data
+        else:
+            raise asyncio.StopAsyncIteration
+
     def _extend(self, res):
         Cursor._extend(self, res)
         self.new_response.set_result(True)
