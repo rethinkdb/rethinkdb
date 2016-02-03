@@ -149,7 +149,11 @@ RSpec.describe RethinkDB::RPP do
   end
 
   context '.pp_int_args' do
-    let(:q) { double('q').as_null_object }
+    let(:q) { spy("q") }
+
+    before do
+      allow(q).to receive(:group).and_yield
+    end
 
     context 'with pre_dot' do
       it 'receives opening clause' do
@@ -160,6 +164,43 @@ RSpec.describe RethinkDB::RPP do
       it 'receives closing clause' do
         expect(q).to receive(:text).with(')')
         subject.pp_int_args(q, [], nil, true)
+      end
+    end
+
+    context 'with non-empty args' do
+      context 'with one element' do
+        let(:args) { [1] }
+
+        it 'does not call q.text in block' do
+          subject.pp_int_args(q, args, nil)
+          expect(q).to have_received(:text).once # called explicitly before block
+        end
+
+        it 'does not call q.breakable' do
+          subject.pp_int_args(q, args, nil)
+          expect(q).not_to have_received(:breakable)
+        end
+
+        it 'does call pp_int' do
+          expect(subject).to receive(:pp_int).with(q, 1, nil)
+          subject.pp_int_args(q, args, nil)
+        end
+      end
+
+      context 'with more args' do
+        let(:args) { [1, 2, 3] }
+
+        it 'calls q.breakable' do
+          subject.pp_int_args(q, args, nil)
+          expect(q).to have_received(:breakable).twice
+        end
+
+        it 'calls pp_int for each arg' do
+          expect(subject).to receive(:pp_int).with(q, 1, nil)
+          expect(subject).to receive(:pp_int).with(q, 2, nil)
+          expect(subject).to receive(:pp_int).with(q, 3, nil)
+          subject.pp_int_args(q, args, nil)
+        end
       end
     end
   end
@@ -177,10 +218,12 @@ RSpec.describe RethinkDB::RPP do
 
   context '.pp_int_func' do
     let(:q) { spy('q') }
-    let(:correct_args) { [32, [[42, [RethinkDB::RQL.new.var(42)]], 69]]}
+    let(:var) { RethinkDB::RQL.new.var(42) }
+    let(:correct_args) { [32, [[42, [var]], 69]]}
 
     before do
       allow(q).to receive(:group).and_yield
+      allow(q).to receive(:nest).with(2).and_yield
     end
 
     it 'should be unprintable function' do
@@ -191,6 +234,17 @@ RSpec.describe RethinkDB::RPP do
     it 'should call text with space' do
       subject.pp_int_func(q, correct_args, nil)
       expect(q).to have_received(:text).with(' ')
+    end
+
+    it 'should call nest with 2 and yield' do
+      subject.pp_int_func(q, correct_args, nil)
+      expect(q).to have_received(:nest).with(2)
+      expect(q).to have_received(:breakable).twice
+    end
+
+    it 'should call pp_int' do
+      expect(subject).to receive(:pp_int).with(q, 69, nil)
+      subject.pp_int_func(q, correct_args, nil)
     end
   end
 
@@ -243,6 +297,40 @@ RSpec.describe RethinkDB::RPP do
 
     it 'true with prefixable name' do
       expect(subject.can_prefix('asdf', nil)).to eq(true)
+    end
+  end
+
+  context '.pp' do
+    it 'should return error message on exception' do
+      allow(subject).to receive(:pp_int) { raise RuntimeError }
+      expect{ subject.pp(nil) }.not_to raise_error
+      expect(subject.pp(nil)).to match("AN ERROR OCCURED DURING PRETTY-PRINTING")
+      expect(subject.pp(nil)).to match("RuntimeError")
+    end
+
+    context 'with fake PP' do
+      let(:fake_pp) { spy('pp') }
+      let(:var) { RethinkDB::RQL.new.var(42) }
+
+      before do
+        allow(PrettyPrint).to receive(:new).and_return(fake_pp)
+        subject.pp(var)
+      end
+
+      it 'should call flush' do
+        expect(fake_pp).to have_received(:flush)
+      end
+
+      it 'should call output' do
+        expect(fake_pp).to have_received(:output)
+      end
+
+      context 'with fake output' do
+        it 'should strip leading \x7' do
+          allow(fake_pp).to receive(:output).and_return("\x7\x7[abc]")
+          expect(subject.pp(var)).to eq("[abc]\n")
+        end
+      end
     end
   end
 end
