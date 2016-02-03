@@ -1,14 +1,16 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.*;
+import com.rethinkdb.ast.*;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.proto.ErrorType;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.proto.ResponseNote;
-import com.rethinkdb.ast.Query;
 import com.rethinkdb.model.Backtrace;
 import com.rethinkdb.model.Profile;
 import org.json.simple.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
@@ -27,8 +29,10 @@ class Response {
     public final Optional<Backtrace> backtrace;
     public final Optional<ErrorType> errorType;
 
+    static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public static Response parseFrom(long token, ByteBuffer buf) {
+        Response.logger.debug("JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
         InputStreamReader codepointReader =
             new InputStreamReader(new ByteArrayInputStream(buf.array()));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);

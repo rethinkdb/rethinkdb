@@ -6,6 +6,7 @@ import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Cursor;
+import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
@@ -13,6 +14,8 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -321,6 +324,75 @@ public class RethinkDBTest{
         List<TestPojo> result = cursor.toList();
 
         TestPojo pojoSelected = result.get(0);
+    }
+
+    @Test(timeout=20000)
+    public void testConcurrentWrites() throws TimeoutException, InterruptedException {
+        final int total = 500;
+        final AtomicInteger writeCounter = new AtomicInteger(0);
+        final Waiter waiter = new Waiter();
+        for (int i = 0; i < total; i++)
+            new Thread(() -> {
+                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
+                waiter.assertEquals(1L, result.get("inserted"));
+                writeCounter.getAndIncrement();
+                waiter.resume();
+            }).start();
+
+        waiter.await(2500, total);
+
+        assertEquals(total, writeCounter.get());
+    }
+
+    @Test(timeout=20000)
+    public void testConcurrentReads() throws TimeoutException {
+        final int total = 500;
+        final AtomicInteger readCounter = new AtomicInteger(0);
+
+        // write to the database and retrieve the id
+        final TestPojo pojo = new TestPojo("readzz", new TestPojoInner(10L, true));
+        final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).optArg("return_changes", true).run(conn);
+        final String id = ((List) result.get("generated_keys")).get(0).toString();
+
+        final Waiter waiter = new Waiter();
+        for (int i = 0; i < total; i++)
+            new Thread(() -> {
+                // make sure there's only one
+                final Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+                assertEquals(1, cursor.toList().size());
+                // read that one
+                final TestPojo readPojo = r.db(dbName).table(tableName).get(id).run(conn, TestPojo.class);
+                waiter.assertNotNull(readPojo);
+                // assert inserted values
+                waiter.assertEquals("readzz", readPojo.getStringProperty());
+                waiter.assertEquals(10L, readPojo.getPojoProperty().getLongProperty());
+                waiter.assertEquals(true, readPojo.getPojoProperty().getBooleanProperty());
+                readCounter.getAndIncrement();
+                waiter.resume();
+            }).start();
+
+        waiter.await(10000, total);
+
+        assertEquals(total, readCounter.get());
+    }
+
+    @Test(timeout=20000)
+    public void testConcurrentCursor() throws TimeoutException, InterruptedException {
+        final int total = 500;
+        final Waiter waiter = new Waiter();
+        for (int i = 0; i < total; i++)
+            new Thread(() -> {
+                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
+                waiter.assertEquals(1L, result.get("inserted"));
+                waiter.resume();
+            }).start();
+
+        waiter.await(2500, total);
+
+        final Cursor<TestPojo> all = r.db(dbName).table(tableName).run(conn);
+        assertEquals(total, all.toList().size());
     }
 }
 

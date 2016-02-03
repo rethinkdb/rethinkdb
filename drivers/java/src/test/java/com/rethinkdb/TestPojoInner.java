@@ -7,6 +7,9 @@ public class TestPojoInner {
     private Long longProperty;
     private Boolean booleanProperty;
 
+    public TestPojoInner() {
+    }
+
     public TestPojoInner(Long longProperty, Boolean booleanProperty) {
         this.longProperty = longProperty;
         this.booleanProperty = booleanProperty;

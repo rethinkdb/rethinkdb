@@ -67,7 +67,7 @@ public class Query {
             .putLong(token)
             .putInt(queryBytes.length)
             .put(queryBytes);
-        logger.debug("Serialized query: {}", Util.bufferToString(bb));
+        logger.debug("JSON Send: Token: {} {}", token, queryJson);
         return bb;
     }
 }

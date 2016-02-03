@@ -5,7 +5,6 @@ import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
 
 import java.util.HashMap;
