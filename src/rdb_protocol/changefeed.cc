@@ -2217,7 +2217,6 @@ public:
 
     feed_type_t cfeed_type() const final { return feed_type_t::orderby_limit; }
 
-    // RSI: use include_offsets
     void maybe_start() {
         // When we later support not always returning the initial set, that
         // logic should go here.
@@ -2357,7 +2356,6 @@ public:
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
         } else {
-            // RSI: pick up here, continue using new return value of note_change_impl.
             limit_change_t lc = note_change_impl(old_key, new_val);
             if (lc.old_d.has() || lc.new_d.has()) {
                 push_el(std::move(lc));
