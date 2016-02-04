@@ -73,7 +73,7 @@ class AsyncioCursor(Cursor):
 
     @asyncio.coroutine
     def __aiter__(self):
-        return self;
+        return self
 
     @asyncio.coroutine
     def __anext__(self):
