@@ -851,37 +851,52 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::backtrace_id_t::empty()),
               point_0(a->subscribe(
                           env,
-                          true,
-                          false,
-                          ql::configured_limits_t(),
-                          keyspec_t::point_t{ql::datum_t(0.0)},
+                          ql::changefeed::streamspec_t{
+                              make_counted<ql::vector_datum_stream_t>(
+                                  bt, std::vector<ql::datum_t>(), boost::none),
+                              "test",
+                              false,
+                              false,
+                              ql::configured_limits_t(),
+                              ql::datum_t::boolean(false),
+                              keyspec_t::point_t{ql::datum_t(0.0)}},
                           "id",
                           std::vector<ql::datum_t>(),
                           bt)),
               point_10(a->subscribe(
                            env,
-                           true,
-                           false,
-                           ql::configured_limits_t(),
-                           keyspec_t::point_t{ql::datum_t(10.0)},
+                           ql::changefeed::streamspec_t{
+                               make_counted<ql::vector_datum_stream_t>(
+                                   bt, std::vector<ql::datum_t>(), boost::none),
+                               "test",
+                               false,
+                               false,
+                               ql::configured_limits_t(),
+                               ql::datum_t::boolean(false),
+                               keyspec_t::point_t{ql::datum_t(10.0)}},
                            "id",
                            std::vector<ql::datum_t>(),
                            bt)),
               range(a->subscribe(
                         env,
-                        true,
-                        false,
-                        ql::configured_limits_t(),
-                        keyspec_t::range_t{
-                            std::vector<ql::transform_variant_t>(),
-                            boost::optional<std::string>(),
-                            sorting_t::UNORDERED,
-                            ql::datumspec_t(
-                                ql::datum_range_t(
-                                    ql::datum_t(0.0),
-                                    key_range_t::closed,
-                                    ql::datum_t(10.0),
-                                    key_range_t::open))},
+                        ql::changefeed::streamspec_t{
+                            make_counted<ql::vector_datum_stream_t>(
+                                bt, std::vector<ql::datum_t>(), boost::none),
+                            "test",
+                            false,
+                            false,
+                            ql::configured_limits_t(),
+                            ql::datum_t::boolean(false),
+                            keyspec_t::range_t{
+                                std::vector<ql::transform_variant_t>(),
+                                    boost::optional<std::string>(),
+                                    sorting_t::UNORDERED,
+                                    ql::datumspec_t(
+                                        ql::datum_range_t(
+                                            ql::datum_t(0.0),
+                                            key_range_t::closed,
+                                            ql::datum_t(10.0),
+                                            key_range_t::open))}},
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

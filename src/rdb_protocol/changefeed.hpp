@@ -168,6 +168,16 @@ struct keyspec_t {
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
+struct streamspec_t {
+    counted_t<datum_stream_t> maybe_src; // Non-null iff `include_initial`.
+    std::string table_name;
+    bool include_offsets;
+    bool include_states;
+    configured_limits_t limits;
+    datum_t squash;
+    keyspec_t::spec_t spec;
+};
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::empty_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
@@ -196,14 +206,9 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
-        counted_t<datum_stream_t> maybe_src,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states,
-        const namespace_id_t &table,
-        backtrace_id_t bt,
-        const std::string &table_name,
-        const keyspec_t::spec_t &spec);
+        const streamspec_t &ss,
+        const namespace_id_t &uuid,
+        backtrace_id_t bt);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
@@ -562,10 +567,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial,
-        bool include_states,
-        configured_limits_t limits,
-        const keyspec_t::spec_t &spec,
+        const streamspec_t &ss,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
         backtrace_id_t bt);

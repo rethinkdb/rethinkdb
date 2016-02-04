@@ -30,28 +30,6 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states) {
-        counted_t<datum_stream_t> maybe_src;
-        if (include_initial) {
-            // We want to provide an empty stream in this case because we get
-            // the initial values from the stamp read instead.
-            maybe_src = make_counted<vector_datum_stream_t>(
-                bt, std::vector<datum_t>(), boost::none);
-        }
-        return tbl->tbl->read_changes(
-            env,
-            maybe_src,
-            std::move(limits),
-            squash,
-            include_states,
-            changefeed::keyspec_t::point_t{key},
-            bt,
-            tbl->display_name());
-    }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
@@ -62,7 +40,11 @@ public:
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
-    virtual const counted_t<table_t> &get_tbl() { return tbl; }
+    backtrace_id_t get_bt() const final { return bt; }
+    changefeed::keyspec_t::spec_t get_spec() const final {
+        return changefeed::keyspec_t::point_t{key};
+    }
+    const counted_t<table_t> &get_tbl() final { return tbl; }
 private:
     env_t *env;
     backtrace_id_t bt;
@@ -90,31 +72,6 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states) {
-        changefeed::keyspec_t::spec_t spec =
-            ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
-        counted_t<datum_stream_t> maybe_src;
-        if (include_initial) {
-            // We want to provide an empty stream in this case because we get
-            // the initial values from the stamp read instead.
-            maybe_src = make_counted<vector_datum_stream_t>(
-                bt, std::vector<datum_t>(), boost::none);
-        }
-        auto s = slice->get_tbl()->tbl->read_changes(
-            env,
-            maybe_src,
-            std::move(limits),
-            squash,
-            include_states,
-            std::move(spec),
-            bt,
-            slice->get_tbl()->display_name());
-        return s;
-    }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
@@ -127,7 +84,11 @@ public:
         return slice->get_tbl()->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
-    virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
+    backtrace_id_t get_bt() const final { return bt; }
+    changefeed::keyspec_t::spec_t get_spec() const final {
+        return ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
+    }
+    const counted_t<table_t> &get_tbl() final { return slice->get_tbl(); }
 private:
     env_t *env;
     backtrace_id_t bt;

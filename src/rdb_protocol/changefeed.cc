@@ -162,7 +162,10 @@ datum_t vals_to_change(
     datum_t old_val,
     datum_t new_val,
     bool discard_old_val = false,
-    bool discard_new_val = false) {
+    bool discard_new_val = false,
+    bool include_offsets = false,
+    boost::optional<size_t> old_offset = boost::none,
+    boost::optional<size_t> new_offset = boost::none) {
     if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
         && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
         return datum_t();
@@ -170,9 +173,19 @@ datum_t vals_to_change(
         std::map<datum_string_t, datum_t> ret;
         if (!discard_old_val) {
             ret[datum_string_t("old_val")] = std::move(old_val);
+            if (include_offsets) {
+                ret[datum_string_t("old_offset")] = old_offset
+                    ? datum_t(static_cast<double>(*old_offset))
+                    : datum_t::null();
+            }
         }
         if (!discard_new_val) {
             ret[datum_string_t("new_val")] = std::move(new_val);
+            if (include_offsets) {
+                ret[datum_string_t("new_offset")] = new_offset
+                    ? datum_t(static_cast<double>(*new_offset))
+                    : datum_t::null();
+            }
         }
         guarantee(ret.size() != 0);
         return datum_t(std::move(ret));
@@ -2173,11 +2186,16 @@ private:
 };
 
 class limit_sub_t : public subscription_t {
+    struct limit_change_t {
+        datum_t old_d, new_d;
+        boost::optional<size_t> old_offset, new_offset;
+    };
 public:
     // Throws QL exceptions.
     limit_sub_t(feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
+                bool _include_offsets,
                 bool include_states,
                 keyspec_t::limit_t _spec)
         : subscription_t(feed, limits, squash, include_states),
@@ -2188,7 +2206,8 @@ public:
           gt(limit_order_t(spec.range.sorting)),
           item_queue(gt),
           active_data(gt),
-          include_initial(false) {
+          include_initial(false),
+          include_offsets(_include_offsets) {
         feed->add_limit_sub(this, uuid);
     }
 
@@ -2198,6 +2217,7 @@ public:
 
     feed_type_t cfeed_type() const final { return feed_type_t::orderby_limit; }
 
+    // RSI: use include_offsets
     void maybe_start() {
         // When we later support not always returning the initial set, that
         // logic should go here.
@@ -2205,10 +2225,13 @@ public:
             ASSERT_NO_CORO_WAITING;
             if (include_initial) {
                 if (include_states) els.push_back(initializing_datum());
+                size_t i = 0;
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                     els.push_back(
                         datum_t(std::map<datum_string_t, datum_t>{
-                                {datum_string_t("new_val"), (**it)->second.second}}));
+                                {datum_string_t("new_val"), (**it)->second.second},
+                                {datum_string_t("new_offset"),
+                                 datum_t(static_cast<double>(i++))}}));
                 }
             }
             if (include_states) els.push_back(ready_datum());
@@ -2233,10 +2256,10 @@ public:
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
 
-            std::vector<std::pair<datum_t, datum_t> > pairs;
-            pairs.reserve(changes.size()); // Important to keep iterators valid.
+            std::vector<limit_change_t> limit_changes;
+            limit_changes.reserve(changes.size()); // Important to keep iterators valid.
             // This has to be a multimap because of multi-indexes.
-            std::multimap<datum_t, decltype(pairs.begin()),
+            std::multimap<datum_t, decltype(limit_changes.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
                 new_val_index(
                     [](const datum_t &a, const datum_t &b) {
@@ -2250,28 +2273,29 @@ public:
             // We do things this way rather than simply diffing the active sets
             // because it's easier to avoid irrational intermediate states.
             for (const auto &change_pair : changes) {
-                std::pair<datum_t, datum_t> pair
+                limit_change_t lc
                     = note_change_impl(change_pair.first, change_pair.second);
-                if (pair.first.has() || pair.second.has()) {
-                    auto it = new_val_index.find(pair.first);
-                    decltype(pairs.begin()) pairs_it;
+                if (lc.old_d.has() || lc.new_d.has()) {
+                    auto it = new_val_index.find(lc.old_d);
+                    decltype(limit_changes.begin()) limit_changes_it;
                     if (it == new_val_index.end()) {
-                        pairs.push_back(pair);
-                        pairs_it = pairs.end()-1;
+                        limit_changes.push_back(lc);
+                        limit_changes_it = limit_changes.end()-1;
                     } else {
-                        pairs_it = it->second;
-                        pairs_it->second = pair.second;
+                        limit_changes_it = it->second;
+                        limit_changes_it->new_d = lc.new_d;
                         new_val_index.erase(it);
                     }
-                    new_val_index.insert(std::make_pair(pair.second, pairs_it));
+                    new_val_index.insert(std::make_pair(lc.new_d, limit_changes_it));
                 }
             }
 
-            for (auto &&pair : pairs) {
-                if (!((pair.first.has() && pair.second.has()
-                       && pair.first == pair.second)
-                      || (!pair.first.has() && !pair.second.has()))) {
-                    push_el(std::move(pair.first), std::move(pair.second));
+            for (auto &&lc : limit_changes) {
+                if (!((lc.old_d.has() && lc.new_d.has()
+                       && lc.old_d == lc.new_d
+                       && lc.old_offset == lc.new_offset)
+                      || (!lc.old_d.has() && !lc.new_d.has()))) {
+                    push_el(std::move(lc));
                 }
             }
 
@@ -2303,15 +2327,20 @@ public:
         maybe_start();
     }
 
-    void push_el(datum_t old_val, datum_t new_val) {
+    void push_el(limit_change_t lc) {
         // Empty changes should have been caught above us.
-        guarantee(old_val.has() || new_val.has());
-        if (old_val.has() && new_val.has()) {
-            rassert(old_val != new_val);
+        guarantee(lc.old_d.has() || lc.new_d.has());
+        if (lc.old_d.has() && lc.new_d.has()) {
+            rassert(lc.old_d != lc.new_d || lc.old_offset != lc.new_offset);
         }
         datum_t el = vals_to_change(
-            old_val.has() ? old_val : datum_t::null(),
-            new_val.has() ? new_val : datum_t::null());
+            lc.old_d.has() ? std::move(lc.old_d) : datum_t::null(),
+            lc.new_d.has() ? std::move(lc.new_d) : datum_t::null(),
+            false,
+            false,
+            include_offsets,
+            std::move(lc.old_offset),
+            std::move(lc.new_offset));
         els.push_back(std::move(el));
     }
 
@@ -2328,9 +2357,10 @@ public:
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
         } else {
-            std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
-            if (pair.first.has() || pair.second.has()) {
-                push_el(std::move(pair.first), std::move(pair.second));
+            // RSI: pick up here, continue using new return value of note_change_impl.
+            limit_change_t lc = note_change_impl(old_key, new_val);
+            if (lc.old_d.has() || lc.new_d.has()) {
+                push_el(std::move(lc));
             }
         }
         if (need_init == got_init) {
@@ -2338,19 +2368,37 @@ public:
         }
     }
 
-    std::pair<datum_t, datum_t> note_change_impl(
+    template<class T>
+    boost::optional<size_t> slow_active_offset(const T &it) {
+        size_t i = 0;
+        for (auto ft = active_data.begin();
+             ft != active_data.end();
+             ++ft, ++i) {
+            if (*ft == it) return active_data.size() - (i + 1);
+        }
+        return boost::none;
+    }
+
+    limit_change_t note_change_impl(
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
         boost::optional<item_t> old_send, new_send;
+        boost::optional<size_t> old_offset, new_offset;
         if (old_key) {
             auto it = item_queue.find_id(*old_key);
             guarantee(it != item_queue.end());
+            if (include_offsets) {
+                old_offset = slow_active_offset(it);
+            }
             size_t erased = active_data.erase(it);
             if (erased != 0) {
                 // The old value was in the set.
+                guarantee(old_offset);
                 old_send = **it;
+            } else {
+                guarantee(!old_offset);
             }
             item_queue.erase(it);
         }
@@ -2366,8 +2414,10 @@ public:
                 insert = !gt(it, *active_data.begin());
             }
             if (insert) {
-                active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
+                active_data.insert(it);
+                new_offset = slow_active_offset(it);
+                guarantee(new_offset);
                 new_send = **it;
             }
         }
@@ -2375,7 +2425,11 @@ public:
             // The old value wasn't in the set, but the new value is, and a
             // value has to leave the set to make room.
             auto last = *active_data.begin();
-            guarantee(new_send && !old_send);
+            guarantee(new_send && !old_send && !old_offset);
+            if (include_offsets) {
+                // We subtract two here because `new_val` was already inserted.
+                old_offset = active_data.size() - 2;
+            }
             old_send = **last;
             active_data.erase(last);
         } else if (active_data.size() < spec.limit) {
@@ -2393,6 +2447,9 @@ public:
                 guarantee(it != item_queue.begin());
                 --it;
                 active_data.insert(it);
+                if (include_offsets) {
+                    new_offset = active_data.size() - 1;
+                }
                 new_send = **it;
             }
         }
@@ -2401,10 +2458,11 @@ public:
 
         datum_t old_d = old_send ? (*old_send).second.second : datum_t();
         datum_t new_d = new_send ? (*new_send).second.second : datum_t();
-        if (old_d.has() && new_d.has() && old_d == new_d) {
+        if (old_d.has() && new_d.has() && old_d == new_d && old_offset == new_offset) {
             old_d = new_d = datum_t();
+            old_offset = new_offset = boost::none;
         }
-        return std::make_pair(old_d, new_d);
+        return limit_change_t{old_d, new_d, old_offset, new_offset};
     }
 
     virtual bool has_el() { return els.size() != 0; }
@@ -2485,6 +2543,7 @@ public:
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
     bool include_initial;
+    bool include_offsets;
 
     auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
@@ -3408,59 +3467,48 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed,
-    configured_limits_t limits,
-    const datum_t &squash,
-    bool include_states,
     env_t *env,
-    const keyspec_t::spec_t &spec) {
-
+    feed_t *feed,
+    const streamspec_t &ss) {
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
-        explicit spec_visitor_t(
-            feed_t *_feed,
-            configured_limits_t _limits,
-            const datum_t *_squash,
-            bool _include_states,
-            env_t *_env)
-            : feed(_feed),
-              limits(std::move(_limits)),
-              squash(_squash),
-              include_states(_include_states),
-              env(_env) { }
+        explicit spec_visitor_t(env_t *_env, feed_t *_feed, const streamspec_t *_ss)
+            : env(_env), feed(_feed), ss(_ss) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, limits, *squash, include_states, env, range);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for range subs.");
+            return new range_sub_t(
+                feed, ss->limits, ss->squash, ss->include_states, env, range);
         }
         subscription_t *operator()(const keyspec_t::empty_t &) const {
-            return new empty_sub_t(feed, limits, *squash, include_states);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for empty subs.");
+            return new empty_sub_t(
+                feed, ss->limits, ss->squash, ss->include_states);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, limits, *squash, include_states, limit);
+            return new limit_sub_t(
+                feed, ss->limits, ss->squash, ss->include_offsets,
+                ss->include_states, limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, limits, *squash, include_states, point.key);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for point subs.");
+            return new point_sub_t(
+                feed, ss->limits, ss->squash, ss->include_states, point.key);
         }
-        feed_t *feed;
-        configured_limits_t limits;
-        const datum_t *squash;
-        bool include_states;
         env_t *env;
+        feed_t *feed;
+        const streamspec_t *ss;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(
-            spec_visitor_t(feed, std::move(limits), &squash, include_states, env),
-            spec));
+        boost::apply_visitor(spec_visitor_t(env, feed, &ss), ss.spec));
 }
 
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
-    counted_t<datum_stream_t> maybe_src,
-    configured_limits_t limits,
-    const datum_t &squash,
-    bool include_states,
+    const streamspec_t &ss,
     const namespace_id_t &uuid,
-    backtrace_id_t bt,
-    const std::string &table_name,
-    const keyspec_t::spec_t &spec) {
+    backtrace_id_t bt) {
     bool is_second_try = false;
     uuid_u last_feed_uuid;
     for (;;) {
@@ -3521,16 +3569,16 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // want to change this behavior to make it more efficient, make
                 // sure `feed_t::stop_subs` remains correct.
                 on_thread_t th2(old_thread);
-                sub = new_sub(feed, std::move(limits), squash, include_states, env, spec);
+                sub = new_sub(env, feed, ss);
             }
             namespace_interface_access_t access =
                 namespace_source(uuid, env->interruptor);
-            return sub->to_stream(env, table_name, access.get(),
-                                  addr, std::move(maybe_src), std::move(sub), bt);
+            return sub->to_stream(env, ss.table_name, access.get(),
+                                  addr, ss.maybe_src, std::move(sub), bt);
         } catch (const cannot_perform_query_exc_t &e) {
             rfail_datum(base_exc_t::OP_FAILED,
                         "cannot subscribe to table `%s`: %s",
-                        table_name.c_str(), e.what());
+                        ss.table_name.c_str(), e.what());
         } catch (const base_exc_t &e) {
             if (e.get_type() == base_exc_t::RESUMABLE_OP_FAILED) {
                 if (is_second_try) {
@@ -3611,10 +3659,7 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
-    bool include_initial,
-    bool include_states,
-    configured_limits_t limits,
-    const keyspec_t::spec_t &spec,
+    const streamspec_t &ss,
     const std::string &primary_key_name,
     const std::vector<datum_t> &initial_values,
     backtrace_id_t bt) {
@@ -3624,16 +3669,11 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
-    scoped_ptr_t<subscription_t> sub = new_sub(
-        feed.get(),
-        std::move(limits),
-        datum_t::boolean(false),
-        include_states,
-        env,
-        spec);
+    r_sanity_check(ss.squash == datum_t::boolean(false));
+    scoped_ptr_t<subscription_t> sub = new_sub(env, feed.get(), ss);
     return sub->to_artificial_stream(
         uuid, primary_key_name, initial_values,
-        include_initial, std::move(sub), bt);
+        ss.maybe_src.has(), std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {

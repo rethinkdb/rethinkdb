@@ -152,14 +152,11 @@ public:
     virtual ~single_selection_t() { }
 
     virtual datum_t get() = 0;
-    virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states) = 0;
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) = 0;
+    virtual backtrace_id_t get_bt() const = 0;
+    virtual changefeed::keyspec_t::spec_t get_spec() const = 0;
     virtual const counted_t<table_t> &get_tbl() = 0;
 protected:
     single_selection_t() = default;

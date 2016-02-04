@@ -404,6 +404,7 @@ public:
             optargspec_t({"squash",
                           "changefeed_queue_size",
                           "include_initial",
+                          "include_offsets",
                           "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -431,6 +432,11 @@ private:
             include_initial = v->as_bool();
         }
 
+        bool include_offsets = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_offsets")) {
+            include_offsets = v->as_bool();
+        }
+
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         configured_limits_t limits = env->env->limits_with_changefeed_queue_size(
                 args->optarg(env, "changefeed_queue_size"));
@@ -448,14 +454,17 @@ private:
                 streams.push_back(
                     changespec.keyspec.table->read_changes(
                         env->env,
-                        include_initial ? std::move(changespec.stream)
-                                        : counted_t<datum_stream_t>(),
-                        limits,
-                        squash,
-                        include_states,
-                        std::move(changespec.keyspec.spec),
-                        backtrace(),
-                        changespec.keyspec.table_name));
+                        changefeed::streamspec_t{
+                            include_initial
+                                ? std::move(changespec.stream)
+                                : counted_t<datum_stream_t>(),
+                            changespec.keyspec.table_name,
+                            include_offsets,
+                            include_states,
+                            limits,
+                            squash,
+                            std::move(changespec.keyspec.spec)},
+                        backtrace()));
             }
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
@@ -469,13 +478,26 @@ private:
                         streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            auto sel = v->as_single_selection();
             return new_val(
                 env->env,
-                v->as_single_selection()->read_changes(
-                    include_initial,
-                    limits,
-                    squash,
-                    include_states));
+                sel->get_tbl()->tbl->read_changes(
+                    env->env,
+                    changefeed::streamspec_t{
+                        include_initial
+                            // We want to provide an empty stream in this case
+                            // because we get the initial values from the stamp
+                            // read instead.
+                            ? make_counted<vector_datum_stream_t>(
+                                sel->get_bt(), std::vector<datum_t>(), boost::none)
+                            : counted_t<vector_datum_stream_t>(),
+                        sel->get_tbl()->display_name(),
+                        include_offsets,
+                        include_states,
+                        limits,
+                        squash,
+                        sel->get_spec()},
+                    sel->get_bt()));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::LOGIC,

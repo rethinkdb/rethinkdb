@@ -144,13 +144,8 @@ public:
         read_mode_t read_mode) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
-        counted_t<ql::datum_stream_t> maybe_src,
-        ql::configured_limits_t limits,
-        const ql::datum_t &squash,
-        bool include_states,
-        ql::changefeed::keyspec_t::spec_t &&spec,
-        ql::backtrace_id_t bt,
-        const std::string &table_name) = 0;
+        const ql::changefeed::streamspec_t &ss,
+        ql::backtrace_id_t bt) = 0;
     virtual counted_t<ql::datum_stream_t> read_intersecting(
         ql::env_t *env,
         const std::string &sindex,

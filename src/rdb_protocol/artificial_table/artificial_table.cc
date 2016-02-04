@@ -80,26 +80,13 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
     ql::env_t *env,
-    counted_t<ql::datum_stream_t> maybe_src,
-    ql::configured_limits_t limits,
-    const ql::datum_t &,
-    bool include_states,
-    ql::changefeed::keyspec_t::spec_t &&spec,
-    ql::backtrace_id_t bt,
-    UNUSED const std::string &table_name) {
+    const ql::changefeed::streamspec_t &ss,
+    ql::backtrace_id_t bt) {
 
     counted_t<ql::datum_stream_t> stream;
     admin_err_t error;
     if (!backend->read_changes(
-            env,
-            maybe_src.has(),
-            include_states,
-            std::move(limits),
-            bt,
-            std::move(spec),
-            env->interruptor,
-            &stream,
-            &error)) {
+            env, ss, bt, env->interruptor, &stream, &error)) {
         REQL_RETHROW_DATUM(error);
     }
     return stream;
