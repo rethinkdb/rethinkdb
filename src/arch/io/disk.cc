@@ -433,15 +433,28 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     // TODO WINDOWS: is all this sharing necessary?
     DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
-    fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
+    DWORD attributes = FILE_ATTRIBUTE_NORMAL;
+
+    // Supporting fully unbuffered file i/o on Windows would require
+    // aligning all reads and writes to the sector size of the volume
+    // (See docs for FILE_FLAG_NO_BUFFERING).
+    //
+    // Instead we only use FILE_FLAG_WRITE_THROUGH
+    DWORD flags =
+        backender->get_direct_io_mode() == file_direct_io_mode_t::direct_desired
+        ? FILE_FLAG_WRITE_THROUGH
+        : 0;
+
+    fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, flags | attributes, NULL));
     if (fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
         return file_open_result_t(file_open_result_t::ERROR, EIO);
     }
 
-    // Supporting unbuffered file i/o on Windows would require aligning all reads
-    // and writes to the sector size of the volume (See docs for FILE_FLAG_NO_BUFFERING)
-    file_open_result_t open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
+    file_open_result_t open_res = file_open_result_t(flags & FILE_FLAG_WRITE_THROUGH
+                                                     ? file_open_result_t::DIRECT
+                                                     : file_open_result_t::BUFFERED,
+                                                     0);
 
 #else
     // Construct file flags
@@ -598,8 +611,11 @@ int perform_datasync(fd_t fd) {
 
 #elif defined(_WIN32)
 
-    // TODO WINDOWS
-    (void) fd;
+    BOOL res = FlushFileBuffers(fd);
+    if (!res) {
+        logWRN("FlushFileBuffers failed: %s", winerr_string(GetLastError()).c_str());
+        return EIO;
+    }
     return 0;
 
 #elif defined(__linux__)

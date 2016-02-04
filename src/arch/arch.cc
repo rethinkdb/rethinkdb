@@ -2,8 +2,6 @@
 #include "arch/arch.hpp"
 
 #include "arch/runtime/coroutines.hpp"
-#include "logger.hpp"
-#include "containers/scoped.hpp"
 
 struct io_coroutine_adapter_t : public iocallback_t {
     coro_t *cont;

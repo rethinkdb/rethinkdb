@@ -73,13 +73,9 @@ void do_getaddrinfo(const char *node,
 template <class addr_t>
 std::string ip_to_string(const addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
-#ifdef _WIN32
+    // On Windows, inet_ntop doesn't take a const addr
     const char *result = inet_ntop(address_family, (void*)&addr, // NOLINT
                                    buffer, INET6_ADDRSTRLEN);
-#else
-    const char *result = inet_ntop(address_family, &addr,
-                                   buffer, INET6_ADDRSTRLEN);
-#endif
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
 }

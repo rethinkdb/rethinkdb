@@ -455,12 +455,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 
     if (fd.get() == INVALID_FD) {
-#ifdef _WIN32
-        return true;
-#else
         error_out->assign("cannot open or find log file");
         return false;
-#endif
     }
 #ifndef _WIN32
     int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);
