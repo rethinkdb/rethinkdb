@@ -5,7 +5,7 @@ tests:
       ot: partial({'created':1})
     - cd: tbl.index_wait('a')
 
-    - py: feed = tbl.order_by(index='a').limit(10).changes(squash=2)
+    - py: feed = tbl.order_by(index='a').limit(10).changes(squash=2).limit(9)
       rb: feed = tbl.orderby(index:'a').limit(10).changes(squash:2).limit(9)
       js: feed = tbl.orderBy({index:'a'}).limit(10).changes({squash:2}).limit(9)
       runopts:
@@ -25,7 +25,7 @@ tests:
     # should be replaced with a noreplyWait
     - cd: wait(2)
     
-    - cd: fetch(feed)
+    - cd: feed
       ot: bag([
             {"new_val":{"a":5, "id":0}, "old_val":nil},
             {"new_val":{"a":5, "id":2}, "old_val":nil},

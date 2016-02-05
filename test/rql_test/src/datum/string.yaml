@@ -2,7 +2,7 @@ desc: Tests of converstion to and from the RQL string type
 tests:
 
     # Simple strings
-    - cd:
+    - cd: 
         - r('str')
         - r.expr('str')
       py: r.expr('str')

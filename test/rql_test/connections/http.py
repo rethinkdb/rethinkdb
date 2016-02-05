@@ -2,7 +2,7 @@
 
 '''Tests the http term'''
 
-import atexit, datetime, os, re, subprocess, sys, tempfile, time, unittest
+import datetime, os, re, subprocess, sys, tempfile, time, unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common'))
 import driver, utils
@@ -11,12 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import http_support
 
 r = utils.import_python_driver()
-
-_httpbin_server = None
-def closeServer():
-    global _httpbin_server
-    _httpbin_server.endServer()
-    _httpbin_server = None
 
 class WithServer(unittest.TestCase):
     
@@ -29,19 +23,11 @@ class WithServer(unittest.TestCase):
     _server_log = None
     
     def setUp(self):
-        global _httpbin_server
         
         # -- startup local httpbin server
         
-        if _httpbin_server is None:
-            _httpbin_server = http_support.HttpTargetServer()
-        else:
-            try:
-                _httpbin_server.checkOnServer()
-            except Exception:
-                _httpbin_server = http_support.HttpTargetServer()
-        
-        self.targetServer = _httpbin_server
+        if self.targetServer is None or self.targetServer.poll() is not None:
+             self.targetServer = http_support.HttpTargetServer()
         
         # -- startup the RethinkDB server
         

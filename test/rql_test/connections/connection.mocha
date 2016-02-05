@@ -397,9 +397,9 @@ describe("JavaScript Callback style", function() {
                     return r.db(dbName).table(tableName).delete().run(reqlConn);
                 }).then(function() {
                     tbl = r.db(dbName).table(tableName)
+                    });
                 });
-            });
-            
+
             describe('read', function() {
                 it("accepts readMode='outdated'", function(done){
                     tbl.run(reqlConn, {readMode: "outdated"}, noError(done));

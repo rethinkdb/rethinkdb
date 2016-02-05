@@ -5,7 +5,7 @@
 class TestingFrameworkException(Exception):
     '''Generic exception for this testing framework, mostly a base class for others'''
     
-    _message = 'A generic testing framework error occurred'
+    _message = 'A generic testing framework error occured'
     detail = None
     debugInfo = None
     

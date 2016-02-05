@@ -126,3 +126,4 @@ tests:
              {'old_val':null, 'new_val':{'id':11}},
              {'old_val':null, 'new_val':{'id':12}},
              {'old_val':null, 'new_val':{'id':13}}])
+

@@ -785,7 +785,7 @@ class Process(object):
         assert self.process is not None
         assert self.check() is None, 'When asked to kill a process it was already stopped!'
         
-        utils.kill_process_group(self, timeout=0)
+        utils.kill_process_group(self.pid, shutdown_grace=0)
         self.returncode = self.process.wait()
         self.processs = None
         self.killed = True
@@ -797,22 +797,20 @@ class Process(object):
         
         if self.running:
             if self.process.poll() is None:
-                utils.kill_process_group(self, timeout=20)
+                utils.kill_process_group(self.pid, timeout=120)
                 self.returncode = self.process.poll()
                 if self.returncode is None:
                     try:
                         self.returncode = self.process.wait()
                     except OSError:
-                        sys.stderr.write('The subprocess module lost the connection to the %s %s, assuming it closed cleanly (2)\n' % (self.server_type, self.name))
-                        sys.stderr.flush()
+                        warnings.warn('The subprocess module lost the connection to the %s %s, assuming it closed cleanly' % (self.server_type, self.name))
                         self.returncode = 0
                 assert self.returncode is not None, '%s %s failed to exit!' % (self.server_type.capitalize(), self.name)
         if self.process:
             try:
                 self.returncode = self.process.wait()
             except OSError:
-                sys.stderr.write('The subprocess module lost the connection to the %s %s, assuming it closed cleanly (3)\n' % (self.server_type, self.name))
-                sys.stderr.flush()
+                warnings.warn('The subprocess module lost the connection to the %s %s, assuming it closed cleanly' % (self.server_type, self.name))
                 self.returncode = 0
         
         if self in runningServers:

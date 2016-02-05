@@ -859,17 +859,17 @@ class TestCursor(TestWithConnection):
     @gen.coroutine
     def test_rate_limit(self):
         '''Test that we prefetch two batches, and then don't fetch any more without consuming them'''
-        
+
         batchSize = 20
         initalSize = int(batchSize * 1.5)
-        
+
         @gen.coroutine
         def wait_until_count(cursor, count):
             while len(cursor.items) < count:
                 yield gen.sleep(0.1)
-        
+
         cursor = yield r.range().run(self.conn, first_batch_scaledown_factor=2, min_batch_rows=batchSize, max_batch_rows=batchSize)
-        
+
         # wait until we have the first batch
         yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, batchSize/2))
         self.assertGreaterEqual(len(cursor.items), batchSize/2)

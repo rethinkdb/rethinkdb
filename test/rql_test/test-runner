@@ -23,11 +23,6 @@ try:
 except ImportError:
     import repr as reprlib
 
-# == constants
-    
-TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
-CANCELED_EXIT_CODE = -278
-
 # -- repr subclass
 
 class ReprReplace(reprlib.Repr):
@@ -68,11 +63,21 @@ devNull = open(os.devnull)
 
 # -- signal and atexit handlers
 
+runningProcessGroupsIds = []
+def cleanupProcessGroups():
+    '''fired by atexit or a signal handler, this should make sure we don't leave processes running'''
+    
+    for processGroupId in runningProcessGroupsIds:
+        try:
+            utils.kill_process_group(processGroupId)
+        except Exception as e:
+            raise Warning('Unable to shut down server: %s' % str(e))
+atexit.register(cleanupProcessGroups)
+
 cancelRun = False
 def setCancelRun(*args):
     global cancelRun
     cancelRun = True
-    print('') # put the ^C on a seperate line
 signal.signal(signal.SIGINT, setCancelRun)
 # ToDo: cover all relevant signals
 # ToDo: allow for double-SIGINT to fast-kill
@@ -88,14 +93,15 @@ def debug(message):
 # This class attempts to abstract some of the details that separate our source languages.
 class SrcLang(object):
     test_types = None
-    language_name = None
     display_name = None
 
     interpreter_name_exe_names = None
     interpreter_version = None
     interpreter_env_name = None
     
-    driver_info = None
+    driver_source_path = None
+    driver_build_env_name = None
+    driver_build_path = None
     
     envVariablesToSet = None
     
@@ -131,13 +137,9 @@ class SrcLang(object):
         return cls._singletons[singletonName]
     
     def __init__(self, version=None):
-        assert self.language_name is not None, 'SrcLang subclass is not properly setup'
-        assert self.language_name in utils.driverPaths, 'SrcLang %s info not in utils.driverPaths' % self.language_name # ToDo: keep all of this in one file
-        
         self.envVariablesToSet = {}
         self.class_setup(version)
         self.instance_setup = True
-        self.driver_info = utils.driverPaths[self.language_name]
         try:
             self.envVariablesToSet['INTERPRETER_PATH'] = self.interpreter_path
         except Exception: pass
@@ -233,12 +235,16 @@ class SrcLang(object):
         return self.__polyglot_language_header
 
 class PyLang(SrcLang):
-    language_name = 'Python'
+    display_name = 'Python'
     
     interpreter_name_exe_names = None
     interpreter_env_name = 'PYTHON'
     minVersion = None
     maxVersion = None
+    
+    driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'python')
+    driver_build_env_name = 'PYTHON_DRIVER_DIR'
+    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'drivers', 'python')
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.py')
     
@@ -251,7 +257,7 @@ class PyLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.language_name + ' ' + version
+        self.display_name = self.display_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -269,7 +275,6 @@ class PyLang(SrcLang):
                 workingVersion = os.path.splitext(workingVersion)[0]
         self.test_types.append('py')
         self.interpreter_name_exe_names.append('python')
-        self.interpreter_name_exe_names.reverse() # make `python` the first checked so virtualenv can work
     
     def get_interpreter_version(self, executablePath):
         versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
@@ -285,12 +290,16 @@ class PyLang(SrcLang):
         return distutils.version.LooseVersion(str(versionNumbers[0]))
 
 class JsLang(SrcLang):
-    language_name = 'JavaScript'
+    display_name = 'JavaScript'
     
     interpreter_name_exe_names = ['node']
     interpreter_env_name = 'NODE'
     minVersion = None # no version requirements yet
     maxVersion = None
+    
+    driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'javascript')
+    driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
+    driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'build', 'packages', 'js')
     
     _polyglot_language_header_path = os.path.join(os.path.dirname(__file__), 'drivers', 'driver.js')
     
@@ -308,7 +317,7 @@ class JsLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.language_name + ' ' + version
+        self.display_name = self.display_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -368,12 +377,16 @@ class JsLang(SrcLang):
         return distutils.version.LooseVersion(versionNumber)
 
 class RbLang(SrcLang):
-    language_name = 'Ruby'
+    display_name = 'Ruby'
     
     interpreter_name_exe_names = None
     interpreter_env_name = 'RUBY'
     minVersion = None
     maxVersion = None
+    
+    driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby')
+    driver_build_env_name = 'RUBY_DRIVER_DIR'
+    driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir, 'drivers', 'ruby', 'lib')
     
     lang_replaces = {
         'None': 'nil',
@@ -388,7 +401,7 @@ class RbLang(SrcLang):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.language_name + ' ' + version
+        self.display_name = self.display_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -519,13 +532,13 @@ class RbLang(SrcLang):
         return distutils.version.LooseVersion(versionNumber)
     
 class JrbLang(RbLang):
-    language_name = 'JRuby'
+    display_name = 'JRuby'
     
     def class_setup(self, version):
         if self.instance_setup is True:
             return
         
-        self.display_name = self.language_name + ' ' + version
+        self.display_name = self.display_name + ' ' + version
         self.test_types = []
         self.interpreter_name_exe_names = []
         
@@ -547,14 +560,13 @@ class JrbLang(RbLang):
     
 
 interpreters = {
-    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2'), JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
+    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
     'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
     'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), JrbLang('9.0')],
     'jrb':    [JrbLang('9.0')],
     
     'js0':    [JsLang('0.10'), JsLang('0.12')],
     'js4':    [JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
-    'js5':    [JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
     
     'py2':    [PyLang('2.6'), PyLang('2.7')],
     'py2.6':  [PyLang('2.6')],
@@ -923,6 +935,10 @@ def check_language(option, opt_str, value, parser):
 
 class Test(object):
     
+    # == constants
+    
+    TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
+    
     # == class/instance variables
     
     timeout = 300 # seconds to timeout, this can be changed per-test
@@ -1133,7 +1149,7 @@ class Test(object):
     def endTest(self, result=None, errorMessage=None, errorDetails=None):
         '''Interrupts a running test'''
         
-        if not self.__status in ('running', 'setting up') and result != 'canceled':
+        if not self.__status in ('running', 'setting up'):
             raise RuntimeError('endTest called on a test that was %s' % self.__status)
         
         self.errorMessage = errorMessage
@@ -1147,17 +1163,12 @@ class Test(object):
         elif self.__status == 'running':
             self.testDuration = time.time() - self.testStartTime
             self.result = result or 'failed'
-        else:
-            self.result = result
-        
-        self.cleanupTest()
         
         if result == 'timed out':
-            self.returncode = TIMED_OUT_EXIT_CODE
-        elif result == 'canceled':
-            self.returncode = CANCELED_EXIT_CODE
-        else:
-            self.returncode = None
+            self.returncode = self.TIMED_OUT_EXIT_CODE
+        
+        self.cleanupTest()
+        self.returncode = None
     
     def cleanupTest(self):
         '''Perform after-test cleanup'''
@@ -1165,7 +1176,7 @@ class Test(object):
         # -- kill everything in the process group
         
         if self.__testProcess is not None and self.__testProcess.pid is not None:
-            utils.kill_process_group(self.__testProcess)
+            utils.kill_process_group(self.__testProcess.pid)
         
         # -- close the output file
         
@@ -1189,8 +1200,6 @@ class YamlTest(Test):
         self.srcPath = path
         self.shards = shards
         super(YamlTest, self).__init__(name, None, driverLang=driverLang, timeout=timeout)
-        if print_debug:
-            self.envVariablesToSet.update({'VERBOSE':'true'})
     
     @property
     def interpreter_path(self):
@@ -1290,7 +1299,7 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
             extension = extension.lstrip('.').strip().lower()
             
             testName, testLangExtensions = os.path.splitext(testName)
-            testLangExtensions = testLangExtensions.lstrip('.').strip().lower().replace('_', '.')
+            testLangExtensions = testLangExtensions.lstrip('.').strip().lower()
             if testLangExtensions:
                 testLangExtensions = testLangExtensions.split(',')
             else:
@@ -1486,7 +1495,7 @@ class WorkerThread(threading.Thread):
             
             if self.existingServer is None:
                 r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
-                r.db('test').wait().run(self.reqlConnection)
+                r.wait().run(self.reqlConnection)
             
         except Exception as e:
             if self.existingServer:
@@ -1500,26 +1509,18 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = None
     
     def run(self):
-        
-        class CancelRunError(Exception):
-            pass
-        
-        while cancelRun is False:
-            test = None
-            testOutputDir = None
+        try:
+            while cancelRun is False:
                 
-            try:
                 # -- get a test
                 
+                test = None
                 try:
                     test = self.workQueue.get_nowait()
                 except Queue.Empty:
                     break
-                                
-                # -- ensure we have a clean server avalible
                 
-                if cancelRun:
-                    raise CancelRunError()
+                # -- ensure we have an available, clean server
                 
                 if self.existingServer:
                     self.check_server()
@@ -1528,27 +1529,8 @@ class WorkerThread(threading.Thread):
                 
                 self.clean_server()
                 
-                # -- pre-process the test
+                # -- create test ouput folder
                 
-                if cancelRun:
-                    raise CancelRunError()
-                
-                if self.outputQueue:
-                    self.outputQueue.put(('setting up', test, time.time()))
-                try:
-                    test.setupTest()
-                except Exception as e:
-                    debug(traceback.format_exc())
-                    test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
-                    self.outputQueue.put((test.status, test, time.time()))
-                    continue
-                
-                # -- start the test
-                
-                if cancelRun:
-                    raise CancelRunError()
-                
-                # - create test ouput folder
                 testOutputDir = os.path.join(self.outputDir, test.name)
                 if os.path.exists(testOutputDir):
                     # delete the old item
@@ -1558,56 +1540,70 @@ class WorkerThread(threading.Thread):
                         os.unlink(testOutputDir)
                 os.makedirs(testOutputDir)
                 
-                # - set consoleFile
+                # -- set consoleFile
+                
                 test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(testOutputDir, 'console.txt')
                 
-                # - run the test
-                if cancelRun:
-                    raise CancelRunError()
+                # -- pre-process the test
+                
+                if self.outputQueue:
+                    self.outputQueue.put(('setting up', test))
                 
                 try:
-                    self.outputQueue.put(('running', test, time.time()))
+                    test.setupTest()
+                except Exception as e:
+                    debug(traceback.format_exc())
+                    test.endTest(errorMessage='Failed setting up test %s' % str(test.name), errorDetails=traceback.format_exc())
+                    self.outputQueue.put((test.status, test))
+                    continue
+                
+                # -- run the test
+                
+                try:
+                    self.outputQueue.put(('running', test))
                     test.startTest(server=self.server)
                 except Exception as e:
                     debug(traceback.format_exc())
                     test.endTest(errorMessage='Failed starting test', errorDetails=traceback.format_exc())
-                    self.outputQueue.put((test.status, test, time.time()))
+                    self.outputQueue.put((test.status, test))
                     continue
                 
-                # -- monitor the running test
+                # - monitor the test running
                 
                 restartServer = False
                 copyServerContents = False
-                deadline = time.time() + test.timeout
+                
+                if test.status == 'running':
+                    deadline = time.time() + test.timeout
                     
-                while time.time() < deadline:
-                    if cancelRun:
-                        raise CancelRunError()
-                    try:
-                        if test.checkTestDone():
-                            if test.returncode != 0 and self.existingServer is None:
-                                restartServer = True
+                    while time.time() < deadline:
+                        if cancelRun is True:
+                            test.endTest(result='canceled')
                             break
                         try:
-                            self.server.check()
+                            if test.checkTestDone():
+                                if test.returncode != 0 and self.existingServer is None:
+                                    restartServer = True
+                                break
+                            try:
+                                self.server.check()
+                            except Exception as e:
+                                test.endTest(result='crashed server', errorMessage='Server crashed during testing')
+                                restartServer = True
+                                copyServerContents = True
+                                break
+                            time.sleep(.1)
                         except Exception as e:
-                            test.endTest(result='crashed server', errorMessage='Server crashed during testing')
-                            restartServer = True
-                            copyServerContents = True
+                            debug(traceback.format_exc())
+                            test.endTest(errorMessage='Exception while monitoring', errorDetails=traceback.format_exc())
+                            self.outputQueue.put((test.status, test))
                             break
-                        time.sleep(.1)
-                    except Exception as e:
-                        debug(traceback.format_exc())
-                        test.endTest(errorMessage='Exception while monitoring', errorDetails=traceback.format_exc())
-                        self.outputQueue.put((test.status, test, time.time()))
-                        break
-                else:
-                    # ToDo: sample running processes
-                    test.endTest(result='timed out', errorMessage='Timed out after %d seconds' % test.timeout)
-                
-                # -- post-test
+                    else:
+                        # ToDo: sample running processes
+                        test.endTest(result='timed out', errorMessage='Timed out after %d seconds' % test.timeout)
                 
                 # - check the server
+                
                 if test.result != 'crashed server':
                     try:
                         self.server.check()
@@ -1624,7 +1620,7 @@ class WorkerThread(threading.Thread):
                             test.errorMessage += ', and the server crashed while running'
                 
                 # - copy the server contents or just the server log
-                if self.server.logfile_path and testOutputDir: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
+                if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
                         shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
                         
@@ -1640,7 +1636,14 @@ class WorkerThread(threading.Thread):
                     else:
                         shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
                 
-                # - write test metadata file
+                if restartServer:
+                    try:
+                        self.server.close()
+                    except Exception: pass
+                    self.server = None
+                
+                # -- write test metadata file
+                
                 with open(os.path.join(testOutputDir, 'metadata.json'), 'w+') as metadataFile:
                     command = ''
                     try:
@@ -1660,43 +1663,26 @@ class WorkerThread(threading.Thread):
                     }
                     json.dump(metaData, metadataFile, indent=1)
                 
-                # - return result
-                self.outputQueue.put((test.status, test, time.time()))
-                self.workQueue.task_done() # not really important
+                # -- return result
                 
-                test = None
-                testOutputDir = None
-        
-            except CancelRunError:
-                if test:
-                    test.endTest(result='canceled')
-                    self.outputQueue.put((test.status, test, time.time()))
-                    self.workQueue.task_done() # not really important
-                    break
+                self.outputQueue.put((test.status, test))
+                self.workQueue.task_done() # not really important
             
-            except Exception as e:
-                debug(traceback.format_exc())
-                warnings.warn("Worker failure: %s" % unicode(e))
-                restartServer = True
+            # - shut down the server
             
-            # -- shutdown the server if necessary
-            if restartServer:
-                if self.existingServer:
-                    self.clean_server()
-                elif self.server:
-                    try:
-                        self.server.close()
-                    except Exception: pass
+            if self.server is not None:
+                try:
+                    self.server.close()
+                except Exception: pass # ToDo: mark the last test bad if this fell over
                 self.server = None
         
-        # -- shutdown server before worker exit
-        if self.existingServer:
-            self.clean_server()
-        elif self.server:
-            try:
-                self.server.close()
-            except Exception: pass
-        self.server = None
+        except Exception as e:
+            debug(traceback.format_exc())
+            raise Warning("Worker failure: " + unicode(e))
+        
+        finally:
+            if self.existingServer:
+                self.clean_server()
 
 def main():
     global print_debug
@@ -1713,16 +1699,7 @@ def main():
     
     # -- parse command line options
     
-    usage = '''
-usage: %prog [options] [patterns]
-
-Tests by default use the drivers from the appropriate folder in this
-repository. To change this set the appropriate environtmental variable
-from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
-`--INSTALLED--` to use the system-installed version.
-'''.strip()
-    
-    parser = optparse.OptionParser(usage=usage)
+    parser = optparse.OptionParser(usage='usage: %prog [options] [patterns]')
     
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
     
@@ -1918,12 +1895,9 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     # -- make sure the drivers are built
     
     for language in options.languages:
-        if not language.driver_info['sourcePath']:
-            continue
-        
         outputFile = tempfile.NamedTemporaryFile(mode='w+')
         notificationDeadline = time.time() + 3
-        makeProcess = subprocess.Popen(['make', '-C', language.driver_info['sourcePath']], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
+        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
@@ -1934,7 +1908,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
             print(outputFile.read().decode('utf-8'))
             sys.exit(1)
         
-        os.environ[language.driver_info['envName'] + '_SRC'] = language.driver_info['sourcePath']
+        os.environ[language.driver_build_env_name] = language.driver_build_path
     
     r = utils.import_python_driver()
     
@@ -1942,7 +1916,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     
     print('Using rethinkdb binary %s' % rethinkdb_exe_path)
     for thisLanguage in options.languages:
-        print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.interpreter_path, thisLanguage.driver_info['driverPath']))
+        print('\t%s interpreter: %s, driver: %s' % (thisLanguage.display_name, thisLanguage.interpreter_path, thisLanguage.driver_source_path))
         if outputDir not in utils.pathsToClean:
             print('\toutput folder: %s' % outputDir)
     
@@ -1983,11 +1957,11 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
             message = None
             test = None
             try:
-                message, test, eventTime = outputQueue.get_nowait()
+                message, test = outputQueue.get_nowait()
             except Queue.Empty:
                 break
             
-            timeString = 'T+ %.1f sec' % (eventTime - startTime)
+            timeString = 'T+ %.1f sec' % (time.time() - startTime)
             
             if message == 'queued':
                 pass
@@ -2009,7 +1983,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
                     durationString = '%.1f sec setup' % test.setupDuration
                                 
                 if test.result is None:
-                    warnings.warn('Got None for test.result for %r, this should not happen' % test.name)
+                    raise Warning('Got None for test.result, this should not happen')
                     continue
                 
                 if test.result == 'succeeded':

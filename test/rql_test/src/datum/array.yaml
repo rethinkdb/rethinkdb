@@ -1,6 +1,6 @@
 desc: Tests conversion to and from the RQL array type
 tests:
-    - cd:
+    - cd: 
         - r.expr([])
         - r([])
       py: r.expr([])

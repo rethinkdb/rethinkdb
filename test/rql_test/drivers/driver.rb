@@ -178,7 +178,7 @@ def int_cmp(value)
 end
 
 def float_cmp(value)
-  raise "float_cmp got a non Float input: " + value.to_s unless value.kind_of?(Float)
+  raise "int_cmp got a non Float input: " + value.to_s unless value.kind_of?(Float)
   return Number.new(value)
 end
 
@@ -259,11 +259,7 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
         return -1
       end
     end
-    if partial
-      if result.length < expected.length
-        return -1
-      end
-    elsif expected.length != result.length
+    if not(partial) && expected.length != result.length
       return -1
     end
     
@@ -271,13 +267,19 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
       haystack = result.each
       for needle in expected
         begin
-          while cmp_test(needle, haystack.next, testopts=testopts, ordered=ordered, partial=partial) != 0
-            if not partial
-              return -1
-            end
-          end
+          straw = haystack.next
         rescue StopIteration
           return -1 # ran out of straw before finding all the needles
+        end
+        while cmp_test(needle, straw, testopts=testopts, ordered=ordered, partial=partial) != 0
+          if not partial
+            return -1
+          end
+          begin
+            straw = haystack.next
+          rescue StopIteration
+            return -1 # ran out of straw before finding all the needles
+          end
         end
       end
       if not partial

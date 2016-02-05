@@ -104,8 +104,8 @@ var withTableFeed = function() {
     .then(function() {
         return tbl.changes().run(reqlConn);
     }).then(function(newFeed) {
-        tableFeed = newFeed;
-    });
+            tableFeed = newFeed;
+        });
 }
 
 // delete all items in tbl
