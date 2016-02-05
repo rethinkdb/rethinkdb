@@ -66,6 +66,10 @@ public:
                              datum_t arg2,
                              eval_flags_t eval_flags = NO_FLAGS) const;
 
+    virtual bool is_simple_selector() const {
+        return false;
+    }
+
 protected:
     explicit func_t(backtrace_id_t bt);
 
@@ -103,6 +107,8 @@ public:
     std::string print_js_function() const;
 
     void visit(func_visitor_t *visitor) const;
+
+    bool is_simple_selector() const final;
 
 private:
     template <cluster_version_t> friend class wire_func_serialization_visitor_t;
