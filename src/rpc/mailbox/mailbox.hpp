@@ -178,9 +178,7 @@ private:
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
-                                auto_drainer_t::lock_t connection_keepalive,
-                                threadnum_t dest_thread,
+    void mailbox_read_coroutine(threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset,
@@ -188,7 +186,7 @@ private:
 };
 
 /* Note: disconnect_watcher_t keeps the connection alive for as long as it
-exists, blocking reconnects from getting through. Avoid keeping the 
+exists, blocking reconnects from getting through. Avoid keeping the
 disconnect_watcher_t around for long after it gets pulsed. */
 class disconnect_watcher_t : public signal_t, private signal_t::subscription_t {
 public:

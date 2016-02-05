@@ -129,10 +129,12 @@ void connectivity_cluster_t::connection_t::kill_connection() {
     }
 }
 
-connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
-                                                   const peer_id_t &_peer_id,
-                                                   keepalive_tcp_conn_stream_t *_conn,
-                                                   const peer_address_t &_peer_address) THROWS_NOTHING :
+connectivity_cluster_t::connection_t::connection_t(
+        run_t *_parent,
+        const peer_id_t &_peer_id,
+        const server_id_t &_server_id,
+        keepalive_tcp_conn_stream_t *_conn,
+        const peer_address_t &_peer_address) THROWS_NOTHING :
     conn(_conn),
     peer_address(_peer_address),
     flusher([&](signal_t *) {
@@ -153,6 +155,7 @@ connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(_parent),
     peer_id(_peer_id),
+    server_id(_server_id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
@@ -250,7 +253,7 @@ connectivity_cluster_t::run_t::run_t(
     `connection_map` on each thread and notifying any listeners that we're now
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
-    connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+    connection_to_ourself(this, parent->me, _server_id, NULL, routing_table[parent->me]),
 
     heartbeat_sl_view(_heartbeat_sl_view),
 
@@ -1175,7 +1178,8 @@ void connectivity_cluster_t::run_t::handle(
         /* `connection_t` is the public interface of this coroutine. Its
         constructor registers it in the `connectivity_cluster_t`'s connection
         map. */
-        connection_t conn_structure(this, other_id, conn, *other_peer_addr.get());
+        connection_t conn_structure(
+            this, other_id, remote_server_id, conn, *other_peer_addr.get());
 
         /* `heartbeat_manager` will periodically send a heartbeat message to
         other servers, and it will also close the connection if we don't
@@ -1229,6 +1233,13 @@ void connectivity_cluster_t::run_t::handle(
 
         if (conn->is_read_open()) {
             logWRN("Received invalid data on a cluster connection. Disconnecting.");
+            conn->shutdown_read();
+        }
+        if (conn->is_write_open()) {
+            /* Shutdown the write direction as well, to make sure that any active
+            `send_message` calls get interrupted and don't stop us from destructing
+            the `conn_structure`. */
+            conn->shutdown_write();
         }
 
         /* The `conn_structure` destructor removes us from the connection map. It also
@@ -1312,6 +1323,12 @@ void connectivity_cluster_t::send_message(connection_t *connection,
                                      message_tag_t tag,
                                      cluster_send_message_write_callback_t *callback) {
     // We could be on _any_ thread.
+
+    /* If the connection is being closed, just drop the message now. It's not going
+    to actually get sent anyway. That way we avoid getting in line for the send_mutex. */
+    if (connection_keepalive.get_drain_signal()->is_pulsed()) {
+        return;
+    }
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */

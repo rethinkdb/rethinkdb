@@ -79,6 +79,7 @@ public:
     backtrace_t();
     size_t get_num_frames() const { return frames.size(); }
     const backtrace_frame_t &get_frame(const size_t i) const { return frames[i]; }
+    std::string print_frames(bool use_addr2line) const;
 private:
     static const int max_frames = 100;
     std::vector<backtrace_frame_t> frames;
@@ -88,15 +89,13 @@ private:
 class lazy_backtrace_formatter_t : public backtrace_t {
 public:
     lazy_backtrace_formatter_t();
-    std::string addrs(); // A well-formatted backtrace with source lines (slow)
-    std::string lines(); // A raw backtrace with assembly addresses (fast)
+    std::string addrs(); // A raw backtrace with assembly addresses (fast)
+    std::string lines(); // A well-formatted backtrace with source lines (slow)
 private:
     std::string cached_addrs, cached_lines;
 
     time_t timestamp;
     std::string timestr;
-
-    std::string print_frames(bool use_addr2line);
 
     DISABLE_COPYING(lazy_backtrace_formatter_t);
 };
