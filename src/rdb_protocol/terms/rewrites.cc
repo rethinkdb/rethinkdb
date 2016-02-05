@@ -164,6 +164,7 @@ private:
         auto x = minidriver_t::dummy_var_t::IGNORED;
 
         minidriver_t::reql_t term = r.expr(val).replace(r.fun(x, r.null()));
+
         term.copy_optargs_from_term(in);
         return term;
      }

@@ -192,10 +192,13 @@ class Cursor(object):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
-    def __str__(self):
-        val_str = ', '.join(map(repr, self.items[:10]))
+    def __summary_string(self, token, end_token):
+        if len(self.items) > 10:
+            val_str = token.join(map(repr, [self.items[i] for i in range(0,10)]))
+        else:
+            val_str = token.join(map(repr, self.items))
         if len(self.items) > 10 or self.error is None:
-            val_str += ', ...'
+            val_str += end_token
 
         if self.error is None:
             err_str = 'streaming'
@@ -204,7 +207,21 @@ class Cursor(object):
         else:
             err_str = 'error: %s' % repr(self.error)
 
-        return "%s (%s):\n[%s]" % (object.__str__(self), err_str, val_str)
+        return val_str, err_str
+
+    def __str__(self):
+        val_str, err_str = self.__summary_string(",\n", ", ...\n")
+        return "%s (%s):\n[\n%s]" % (object.__repr__(self), err_str, val_str)
+
+    def __repr__(self):
+        val_str, err_str = self.__summary_string(", ", ", ...")
+        return "<%s.%s object at %s (%s):\n [%s]>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            hex(id(self)),
+            err_str,
+            val_str
+        )
 
     def _error(self, message):
         # Set an error and extend with a dummy response to trigger any waiters
