@@ -95,7 +95,7 @@ def expr(val, nesting_depth=20):
 class RqlQuery(object):
     # Instantiate this AST node with the given pos and opt args
     def __init__(self, *args, **optargs):
-        self.args = [expr(e) for e in args]
+        self._args = [expr(e) for e in args]
 
         self.optargs = {}
         for k, v in dict_items(optargs):
@@ -126,7 +126,7 @@ class RqlQuery(object):
 
     # Compile this query to a json-serializable object
     def build(self):
-        res = [self.tt, self.args]
+        res = [self.tt, self._args]
         if len(self.optargs) > 0:
             res.append(self.optargs)
         return res
@@ -568,7 +568,7 @@ class RqlBoolOperQuery(RqlQuery):
 
     def compose(self, args, optargs):
         t_args = [T('r.expr(', args[i], ')')
-                  if needs_wrap(self.args[i]) else args[i]
+                  if needs_wrap(self._args[i]) else args[i]
                   for i in xrange(len(args))]
 
         if self.infix:
@@ -580,7 +580,7 @@ class RqlBoolOperQuery(RqlQuery):
 class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
         t_args = [T('r.expr(', args[i], ')')
-                  if needs_wrap(self.args[i]) else args[i]
+                  if needs_wrap(self._args[i]) else args[i]
                   for i in xrange(len(args))]
         return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
 
@@ -617,7 +617,7 @@ class RqlMethodQuery(RqlQuery):
         if len(args) == 0:
             return T('r.', self.st, '()')
 
-        if needs_wrap(self.args[0]):
+        if needs_wrap(self._args[0]):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
@@ -639,7 +639,7 @@ class RqlBracketQuery(RqlMethodQuery):
 
     def compose(self, args, optargs):
         if self.bracket_operator:
-            if needs_wrap(self.args[0]):
+            if needs_wrap(self._args[0]):
                 args[0] = T('r.expr(', args[0], ')')
             return T(args[0], '[', T(*args[1:], intsp=[',']), ']')
         else:
@@ -805,7 +805,7 @@ class MakeObj(RqlQuery):
     # the `self` parameter. This is not a problem for other RqlQuery sub-
     # classes unless we add a 'self' optional argument to one of them.
     def __init__(self, obj_dict):
-        self.args = []
+        self._args = []
 
         self.optargs = {}
         for k, v in dict_items(obj_dict):
@@ -903,7 +903,7 @@ class Not(RqlQuery):
     tt = pTerm.NOT
 
     def compose(self, args, optargs):
-        if isinstance(self.args[0], Datum):
+        if isinstance(self._args[0], Datum):
             args[0] = T('r.expr(', args[0], ')')
         return T('(~', args[0], ')')
 
@@ -990,7 +990,7 @@ class Slice(RqlBracketQuery):
     # Slice has a special bracket syntax, implemented here
     def compose(self, args, optargs):
         if self.bracket_operator:
-            if needs_wrap(self.args[0]):
+            if needs_wrap(self._args[0]):
                 args[0] = T('r.expr(', args[0], ')')
             return T(args[0], '[', args[1], ':', args[2], ']')
         else:
@@ -1115,7 +1115,7 @@ class FunCall(RqlQuery):
             return T('r.do(', T(T(*(args[1:]), intsp=', '), args[0],
                                 intsp=', '), ')')
 
-        if isinstance(self.args[1], Datum):
+        if isinstance(self._args[1], Datum):
             args[1] = T('r.expr(', args[1], ')')
 
         return T(args[1], '.do(', args[0], ')')
@@ -1183,7 +1183,7 @@ class Table(RqlQuery):
 
     def compose(self, args, optargs):
         args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
-        if isinstance(self.args[0], DB):
+        if isinstance(self._args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
         else:
             return T('r.table(', T(*(args), intsp=', '), ')')
@@ -1596,17 +1596,17 @@ class Binary(RqlTopLevelQuery):
             self.base64_data = base64.b64encode(data)
 
             # Kind of a hack to get around composing
-            self.args = []
+            self._args = []
             self.optargs = {}
 
     def compose(self, args, optargs):
-        if len(self.args) == 0:
+        if len(self._args) == 0:
             return T('r.', self.st, '(bytes(<data>))')
         else:
             return RqlTopLevelQuery.compose(self, args, optargs)
 
     def build(self):
-        if len(self.args) == 0:
+        if len(self._args) == 0:
             return {'$reql_type$': 'BINARY',
                     'data': self.base64_data.decode('utf-8')}
         else:
@@ -1810,7 +1810,7 @@ class Func(RqlQuery):
             vrids.append(var_id)
 
         self.vrs = vrs
-        self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
+        self._args = [MakeArray(*vrids), expr(lmbd(*vrs))]
         self.optargs = {}
 
     def compose(self, args, optargs):
