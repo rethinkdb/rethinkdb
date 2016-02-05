@@ -421,6 +421,19 @@ class RqlQuery(object):
         else:
             return Map(self)
 
+    def fold(self, *args, **kwargs):
+        if len(args) > 0:
+            # `func_wrap` only the last argument before optional arguments
+            # Also `func_wrap` keyword arguments
+
+            # Nice syntax not supported by python2.6
+            kwfuncargs = {}
+            for arg_name in kwargs:
+                kwfuncargs[arg_name] = func_wrap(kwargs[arg_name])
+            return Fold(self, *(args[:-1] + (func_wrap(args[-1]), )), **kwfuncargs)
+        else:
+            return Fold(self)
+
     def filter(self, *args, **kwargs):
         return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)
 
@@ -1243,6 +1256,9 @@ class Map(RqlMethodQuery):
     tt = pTerm.MAP
     st = 'map'
 
+class Fold(RqlMethodQuery):
+    tt = pTerm.FOLD
+    st = 'fold'
 
 class Filter(RqlMethodQuery):
     tt = pTerm.FILTER

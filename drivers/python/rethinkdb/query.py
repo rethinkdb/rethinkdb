@@ -109,7 +109,6 @@ def map(*args):
     else:
         return ast.Map()
 
-
 # aggregation
 def group(*args):
     return ast.Group(*[ast.func_wrap(arg) for arg in args])

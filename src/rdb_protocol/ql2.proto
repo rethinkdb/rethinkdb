@@ -418,6 +418,8 @@ message Term {
                         // The arity of the function should be
                         // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
+        FOLD      = 187; // Sequence, Datum, Function(2), {Function(3), Function(1)
+
         // Filter a sequence with either a function or a shortcut
         // object (see API docs for details).  The body of FILTER is
         // wrapped in an implicit `.default(false)`, and you can

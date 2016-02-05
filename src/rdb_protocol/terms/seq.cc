@@ -172,7 +172,9 @@ public:
     map_term_t(compile_env_t *env, const raw_term_t &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
         streams.reserve(args->num_args() - 1);
         for (size_t i = 0; i < args->num_args() - 1; ++i) {
@@ -204,6 +206,91 @@ private:
         }
     }
     virtual const char *name() const { return "map"; }
+};
+
+class fold_term_t : public grouped_seq_op_term_t {
+public:
+    fold_term_t(compile_env_t *env, const raw_term_t &term)
+      : grouped_seq_op_term_t(env,
+                              term,
+                              argspec_t(3),
+                              optargspec_t({"emit", "final_emit"})) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+
+        datum_t base = args->arg(env, 1)->as_datum();
+
+        counted_t<const func_t> acc_func =
+            args->arg(env, 2)->as_func();
+        boost::optional<std::size_t> acc_func_arity = acc_func->arity();
+
+        if (static_cast<bool>(acc_func_arity)) {
+            rcheck(acc_func_arity.get() == 0 || acc_func_arity.get() == 2,
+                   base_exc_t::LOGIC,
+                   strprintf("The accumulator function passed to `fold`"
+                             " should expect 2 arguments"));
+        }
+
+        scoped_ptr_t<val_t> emit_arg = args->optarg(env, "emit");
+        scoped_ptr_t<val_t> final_emit_arg = args->optarg(env, "final_emit");
+
+        if (!emit_arg.has()) {
+            // Handle case without emit function.
+            datum_t result = base;
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            {
+                datum_t row;
+                std::vector<datum_t> acc_args;
+                while (row = stream->next(env->env, batchspec), row.has()) {
+                    acc_args.push_back(std::move(result));
+                    acc_args.push_back(std::move(row));
+
+                    result = acc_func->call(env->env, acc_args)->as_datum();
+
+                    r_sanity_check(result.has());
+                    acc_args.clear();
+                }
+            }
+
+            if (final_emit_arg.has()) {
+                datum_t final_result;
+                std::vector<datum_t> final_args{std::move(result)};
+
+                counted_t<const func_t> final_emit_func = final_emit_arg->as_func();
+                final_result = final_emit_func->call(env->env, final_args)->as_datum();
+                r_sanity_check(final_result.has());
+                return new_val(final_result);
+            } else {
+                return new_val(result);
+            }
+        } else {
+            counted_t<const func_t> emit_func = emit_arg->as_func();
+            counted_t<datum_stream_t> fold_stream;
+            if (final_emit_arg.has()) {
+                counted_t<const func_t> final_emit_func = final_emit_arg->as_func();
+                fold_stream
+                    = make_counted<fold_datum_stream_t>(std::move(stream),
+                                                        base,
+                                                        std::move(acc_func),
+                                                        std::move(emit_func),
+                                                        std::move(final_emit_func),
+                                                        backtrace());
+            } else {
+                fold_stream
+                    = make_counted<fold_datum_stream_t>(std::move(stream),
+                                                        base,
+                                                        std::move(acc_func),
+                                                        std::move(emit_func),
+                                                        counted_t<const func_t>(),
+                                                        backtrace());
+            }
+            return new_val(env->env, fold_stream);
+        }
+    }
+    virtual const char *name() const { return "fold"; }
 };
 
 class concatmap_term_t : public grouped_seq_op_term_t {
@@ -359,6 +446,7 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
         case result_hint_t::NO_HINT:
             rfail(base_exc_t::LOGIC, "Cannot call `changes` after `concat_map`.");
             // fallthru
+
         default: unreachable();
         }
     }
@@ -653,6 +741,10 @@ counted_t<term_t> make_map_term(
     return make_counted<map_term_t>(env, term);
 }
 
+counted_t<term_t> make_fold_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<fold_term_t>(env, term);
+}
 counted_t<term_t> make_filter_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<filter_term_t>(env, term);

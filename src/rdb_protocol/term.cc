@@ -77,6 +77,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::CHANGES:            return make_changes_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
+    case Term::FOLD:               return make_fold_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCAT_MAP:         return make_concatmap_term(env, t);
     case Term::GROUP:              return make_group_term(env, t);

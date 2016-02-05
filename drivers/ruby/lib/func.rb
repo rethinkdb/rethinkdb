@@ -22,6 +22,7 @@ module RethinkDB
       :insert => 1,
       :delete => -1,
       :reduce => -1,
+      :fold => -1,
       :between => 2,
       :table => -1,
       :table_create => -1,

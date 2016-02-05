@@ -182,6 +182,7 @@ class RDBVal extends TermBase
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: (args...) -> new Reduce {}, @, args.map(funcWrap)...
     map: varar 1, null, (args..., funcArg) -> new Map {}, @, args..., funcWrap(funcArg)
+    fold: aropt (baseArg, accFuncArg, opts) -> new Fold opts, @, baseArg, funcWrap(accFuncArg)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
     distinct: aropt (opts) -> new Distinct opts, @
@@ -764,6 +765,10 @@ class Reduce extends RDBOp
 class Map extends RDBOp
     tt: protoTermType.MAP
     mt: 'map'
+
+class Fold extends RDBOp
+    tt: protoTermType.FOLD
+    mt: 'fold'
 
 class Filter extends RDBOp
     tt: protoTermType.FILTER
