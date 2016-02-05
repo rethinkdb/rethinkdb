@@ -299,7 +299,9 @@ void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(tcp_conn
 const_charslice linux_tcp_conn_t::peek() const THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
+    if (read_closed.is_pulsed()) {
+        throw tcp_conn_read_closed_exc_t();
+    }
 
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
@@ -314,7 +316,9 @@ const_charslice linux_tcp_conn_t::peek(size_t size, signal_t *closer) THROWS_ONL
 void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);
-    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
+    if (read_closed.is_pulsed()) {
+        throw tcp_conn_read_closed_exc_t();
+    }
 
     peek(len, closer);
     read_buffer.erase_front(len);
@@ -436,7 +440,9 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             rassert(res <= static_cast<ssize_t>(size));
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
-            if (write_perfmon) write_perfmon->record(res);
+            if (write_perfmon) {
+                write_perfmon->record(res);
+            }
         }
     }
 }
@@ -448,7 +454,9 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     cond_t to_signal_when_done;
 
     /* Flush out any data that's been buffered, so that things don't get out of order */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
     /* Don't bother acquiring the write semaphore because we're going to block
     until the write is done anyway */
@@ -465,7 +473,9 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     no-op, so the cond will still get pulsed. */
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
@@ -475,6 +485,11 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *c
     const char *buf = reinterpret_cast<const char *>(vbuf);
 
     while (size > 0) {
+        /* Stop putting more things on the write queue if it's already closed. */
+        if (write_closed.is_pulsed()) {
+            throw tcp_conn_write_closed_exc_t();
+        }
+
         /* Insert the largest chunk that fits in this block */
         size_t chunk = std::min(size, WRITE_CHUNK_SIZE - current_write_buffer->size);
 
@@ -482,13 +497,17 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *c
         current_write_buffer->size += chunk;
 
         rassert(current_write_buffer->size <= WRITE_CHUNK_SIZE);
-        if (current_write_buffer->size == WRITE_CHUNK_SIZE) internal_flush_write_buffer();
+        if (current_write_buffer->size == WRITE_CHUNK_SIZE) {
+            internal_flush_write_buffer();
+        }
 
         buf += chunk;
         size -= chunk;
     }
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
@@ -505,7 +524,9 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
     /* Wait until we know that the write buffer has gone out over the network.
     If the write half of the connection is closed, then the call to
@@ -520,16 +541,22 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
     write_queue.push(&op);
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::shutdown_write() {
@@ -563,8 +590,12 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
 
     // Tell the readers and writers to stop.  The auto drainer will
     // wait for them to stop.
-    if (is_read_open()) shutdown_read();
-    if (is_write_open()) shutdown_write();
+    if (is_read_open()) {
+        shutdown_read();
+    }
+    if (is_write_open()) {
+        shutdown_write();
+    }
 }
 
 void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
