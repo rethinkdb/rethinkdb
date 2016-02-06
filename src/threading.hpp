@@ -1,6 +1,8 @@
 #ifndef THREADING_HPP_
 #define THREADING_HPP_
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <functional>
 #include <vector>
 
