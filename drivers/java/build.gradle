@@ -8,7 +8,7 @@ tasks.withType(JavaCompile) {
     options.compilerArgs << "-parameters"
 }
 
-version = '2.2-beta-2-SNAPSHOT'
+version = '2.2-beta-3-SNAPSHOT'
 ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 group = "com.rethinkdb"
 archivesBaseName = "rethinkdb-driver"
