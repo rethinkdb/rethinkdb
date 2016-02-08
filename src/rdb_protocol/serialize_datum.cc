@@ -532,9 +532,6 @@ serialization_result_t datum_serialize(
         const datum_t &datum,
         check_datum_serialization_errors_t check_errors,
         const size_tree_node_t &precomputed_size) {
-#ifndef NDEBUG
-    const size_t pre_serialization_size = wm->size();
-#endif
     serialization_result_t res = serialization_result_t::SUCCESS;
 
     switch (datum.get_type()) {
@@ -612,7 +609,6 @@ serialization_result_t datum_serialize(
         unreachable();
     }
 
-    rassert(wm->size() == pre_serialization_size + precomputed_size.size);
     return res;
 }
 
