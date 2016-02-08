@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "arch/runtime/coroutines.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -54,25 +55,34 @@ struct rget_item_t {
 };
 RDB_DECLARE_SERIALIZABLE(rget_item_t);
 
+// `sindex_compare_t` may block if there are a large number of things being compared.
 class sindex_compare_t {
 public:
     explicit sindex_compare_t(sorting_t _sorting)
-        : sorting(_sorting) { }
+        : sorting(_sorting), iterations_since_last_yield(0) { }
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key.has() && r.sindex_key.has());
 
-        if (l.sindex_key == r.sindex_key) {
+        ++iterations_since_last_yield;
+        const size_t YIELD_INTERVAL = 10000;
+        if (iterations_since_last_yield % YIELD_INTERVAL == 0) {
+            coro_t::yield();
+        }
+
+        int cmp = l.sindex_key.cmp(r.sindex_key);
+        if (cmp == 0) {
             return reversed(sorting)
                 ? datum_t::extract_primary(l.key) > datum_t::extract_primary(r.key)
                 : datum_t::extract_primary(l.key) < datum_t::extract_primary(r.key);
         } else {
             return reversed(sorting)
-                ? l.sindex_key > r.sindex_key
-                : l.sindex_key < r.sindex_key;
+                ? cmp > 0
+                : cmp < 0;
         }
     }
 private:
     sorting_t sorting;
+    size_t iterations_since_last_yield;
 };
 
 void debug_print(printf_buffer_t *, const rget_item_t &);

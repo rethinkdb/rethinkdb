@@ -114,9 +114,15 @@ void write_response_internal(ql::response_t *response,
                     size_t offset = per_thread * m;
                     size_t end = (m == num_threads - 1) ?
                         response->data().size() : (per_thread * (m + 1));
+
                     for (size_t i = offset; i < end; ++i) {
+                        const size_t YIELD_INTERVAL = 2000;
+                        if ((i + 1) % YIELD_INTERVAL == 0) {
+                            coro_t::yield();
+                        }
                         response->data()[i].write_json(&thread_writer);
                     }
+
                     thread_writer.EndArray();
                 });
 
