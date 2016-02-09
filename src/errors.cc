@@ -89,7 +89,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
-#ifdef _GNU_SOURCE
+#ifdef __GLIBC__
     return strerror_r(errsv, buf, buflen);
 #elif defined(_WIN32)
     UNUSED errno_t res = strerror_s(buf, buflen, errsv);

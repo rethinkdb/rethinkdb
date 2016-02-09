@@ -109,17 +109,22 @@ public:
     public:
         /* Returns the peer ID of the other server. Peer IDs change when a node
         restarts, but not when it loses and then regains contact. */
-        peer_id_t get_peer_id() {
+        peer_id_t get_peer_id() const {
             return peer_id;
         }
 
+        /* Returns the server id of the other server. */
+        server_id_t get_server_id() const {
+            return server_id;
+        }
+
         /* Returns the address of the other server. */
-        peer_address_t get_peer_address() {
+        peer_address_t get_peer_address() const {
             return peer_address;
         }
 
         /* Returns `true` if this is the loopback connection */
-        bool is_loopback() {
+        bool is_loopback() const {
             return conn == NULL;
         }
 
@@ -134,6 +139,7 @@ public:
         connection_t(
             run_t *,
             const peer_id_t &peer_id,
+            const server_id_t &server_id,
             keepalive_tcp_conn_stream_t *,
             const peer_address_t &peer_address) THROWS_NOTHING;
         ~connection_t() THROWS_NOTHING;
@@ -161,6 +167,7 @@ public:
         run_t *parent;
 
         peer_id_t peer_id;
+        server_id_t server_id;
 
         one_per_thread_t<auto_drainer_t> drainers;
     };

@@ -142,6 +142,20 @@ protected:
 
     virtual deterministic_t is_deterministic() const;
 
+    bool recursive_is_simple_selector() const {
+        for (const auto &term : get_original_args()) {
+            if (!term->is_simple_selector()) {
+                return false;
+            }
+        }
+        for (const auto &optarg_pair : optargs) {
+            if (!optarg_pair.second->is_simple_selector()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 private:
     friend class args_t;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.

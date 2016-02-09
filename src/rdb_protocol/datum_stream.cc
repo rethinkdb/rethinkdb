@@ -415,7 +415,12 @@ raw_stream_t rget_response_reader_t::unshard(
 
     // Do the unsharding.
     if (sorting != sorting_t::UNORDERED) {
+        size_t num_iters = 0;
         for (;;) {
+            const size_t YIELD_INTERVAL = 2000;
+            if (++num_iters % YIELD_INTERVAL == 0) {
+                coro_t::yield();
+            }
             pseudoshard_t *best_shard = &pseudoshards[0];
             const store_key_t *best_key = best_shard->best_unpopped_key();
             for (size_t i = 1; i < pseudoshards.size(); ++i) {
@@ -1979,6 +1984,92 @@ bool map_datum_stream_t::is_exhausted() const {
         if (stream->is_exhausted()) {
             return batch_cache_exhausted();
         }
+    }
+    return false;
+}
+
+fold_datum_stream_t::fold_datum_stream_t(
+    counted_t<datum_stream_t> &&_stream,
+    datum_t _base,
+    counted_t<const func_t> &&_acc_func,
+    counted_t<const func_t> &&_emit_func,
+    counted_t<const func_t> &&_final_emit_func,
+    backtrace_id_t bt)
+    : eager_datum_stream_t(bt),
+      stream(std::move(_stream)),
+      acc_func(std::move(_acc_func)),
+      emit_func(std::move(_emit_func)),
+      final_emit_func(std::move(_final_emit_func)),
+      acc(_base) {
+
+    if (final_emit_func.has()) {
+        do_final_emit = true;
+    } else {
+        do_final_emit = false;
+    }
+
+    is_array_fold = stream->is_array();
+    union_type = stream->cfeed_type();
+    is_infinite_fold = stream->is_infinite();
+}
+
+std::vector<datum_t>
+fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    rcheck(!is_infinite_fold
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an aggregation function "
+           "(`reduce`, `count`, etc.) or coerce it to an array.");
+
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    // TODO: Create an inner batchspec as in `map_datum_stream_t`
+    // when we add folding over multiple streams.
+
+    while (!is_exhausted() && !batcher.should_send_batch()) {
+        datum_t row = stream->next(env, batchspec);
+        datum_t new_acc = acc_func->call(
+            env,
+            std::vector<datum_t>{acc, row})->as_datum();
+
+        r_sanity_check(new_acc.has());
+
+        datum_t emit_elem = emit_func->call(
+            env,
+            std::vector<datum_t>{acc, row, new_acc})->as_datum();
+
+        r_sanity_check(emit_elem.has());
+
+        batcher.note_el(emit_elem);
+
+        for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
+            batch.push_back(std::move(emit_elem.get(i)));
+        }
+
+        acc = std::move(new_acc);
+    }
+
+    if (is_exhausted() && do_final_emit) {
+        std::vector<datum_t> final_emit_args;
+        final_emit_args.push_back(acc);
+        datum_t final_emit_elem = final_emit_func->call(
+            env,
+            final_emit_args)->as_datum();
+        batch.push_back(std::move(final_emit_elem));
+
+        // So that calling `next_batch` on an exhausted stream returns nothing,
+        // as expected.
+        do_final_emit = false;
+    }
+
+    return batch;
+}
+
+bool fold_datum_stream_t::is_exhausted() const {
+    if (stream->is_exhausted()) {
+        return batch_cache_exhausted();
     }
     return false;
 }

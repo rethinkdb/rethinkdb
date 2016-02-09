@@ -26,6 +26,10 @@ public:
                "Variable name not found.");
     }
 
+    bool is_simple_selector() const {
+        return true;
+    }
+
 private:
     virtual void accumulate_captures(var_captures_t *captures) const {
         captures->vars_captured.insert(varname);
@@ -54,6 +58,11 @@ public:
                ? "r.row is not defined in this context."
                : "Cannot use r.row in nested queries.  Use functions instead.");
     }
+
+    bool is_simple_selector() const {
+        return true;
+    }
+
 private:
     virtual void accumulate_captures(var_captures_t *captures) const {
         captures->implicit_is_captured = true;

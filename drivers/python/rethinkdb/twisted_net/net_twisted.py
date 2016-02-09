@@ -161,6 +161,12 @@ class CursorItems(DeferredQueue):
     def __len__(self):
         return len(self.pending)
 
+    def __getitem__(self, index):
+        return self.pending[index]
+
+    def __iter__(self):
+        return iter(self.pending)
+
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('items_type', CursorItems)

@@ -49,7 +49,7 @@ public class Connection {
     private final ByteBuffer handshake;
     private Optional<ConnectionInstance> instance = Optional.empty();
 
-    private Connection(Builder builder) {
+    public Connection(Builder builder) {
         dbname = builder.dbname;
         final String authKey = builder.authKey.orElse("");
         handshake = Util.leByteBuffer(Integer.BYTES + Integer.BYTES + authKey.length() + Integer.BYTES)
@@ -65,7 +65,7 @@ public class Connection {
             try {
                 final CertificateFactory cf = CertificateFactory.getInstance("X.509");
                 final X509Certificate caCert = (X509Certificate) cf.generateCertificate(builder.certFile.get());
-                
+
                 final TrustManagerFactory tmf = TrustManagerFactory
                         .getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());

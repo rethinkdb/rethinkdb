@@ -397,10 +397,13 @@ void multi_table_manager_t::on_action(
 
             /* Open files for the new table. We do this after writing the record, because
             this way if we crash we won't leak the file. */
+            /* Don't interrupt here. We've already set the `table->status` to ACTIVE, and
+            it not having a `multistore_ptr` with that status would be illegal. */
+            cond_t non_interruptor;
             persistence_interface->create_multistore(
                 table_id,
                 &table->multistore_ptr,
-                interruptor,
+                &non_interruptor,
                 &perfmon_collections->serializers_collection);
 
             /* Create the `active_table_t`, which contains the `raft_member_t` and does

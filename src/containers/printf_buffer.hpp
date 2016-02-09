@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 // Cannot include utils.hpp, we are included by utils.hpp.
 #include "errors.hpp"

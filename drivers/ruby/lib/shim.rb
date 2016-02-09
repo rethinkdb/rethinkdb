@@ -26,7 +26,7 @@ module RethinkDB
           tz = x['timezone']
           return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
         elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
-          return Hash[x['data']]
+          return Hash[recursive_munge(x['data'], parse_time, parse_group, parse_binary)]
         elsif parse_binary && x['$reql_type$'] == 'BINARY'
           return Binary.new(Base64.decode64(x['data'])).force_encoding('BINARY')
         else
