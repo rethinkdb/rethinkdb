@@ -24,10 +24,7 @@ $ticks = 0
 # the boundary of the set as well as its middle.
 $n = 6
 $lim = 10
-$log = []
-$state = []
 $stopping = false
-$hist = {}
 def tick
   if ($ticks += 1) >= 100
     if !$stopping
@@ -42,12 +39,12 @@ def tick
         # them all.  We can stop being stupid once we have write
         # timestamps.
         sleep 10
-        $h.stop
+        $hs.each{|h| h.stop}
         EM.stop
       }
     end
   else
-    $t.insert({a: rand($n)}).run(noreply: true)
+    $t.insert({a: rand($n), b: rand}).run(noreply: true)
     $t.get_all(rand($n), index: 'a').update({b: rand}).run(noreply: true)
     $t.get_all(rand($n), index: 'a').update({a: rand($n)}).run(noreply: true)
     $t.get_all(rand($n), index: 'a').delete.run(noreply: true)
@@ -59,33 +56,47 @@ def assert_eq(a, b)
 end
 
 class H < RethinkDB::Handler
+  attr_accessor :log, :state, :hist, :query
+  def initialize(query)
+    @query = query
+    @log = []
+    @state = []
+    @hist = {}
+  end
   def on_val(v)
-    $log << v
+    @log << v
     if v['old_val']
-      assert_eq($state[v['old_offset']], v['old_val'])
-      $state.delete_at(v['old_offset'])
+      assert_eq(@state[v['old_offset']], v['old_val'])
+      @state.delete_at(v['old_offset'])
     end
     if v['new_val']
-      $state.insert(v['new_offset'], v['new_val'])
+      @state.insert(v['new_offset'], v['new_val'])
     end
-    $hist[$state.size] = ($hist[$state.size] || 0) + 1
-    tick
+    @hist[@state.size] = (@hist[@state.size] || 0) + 1
+    tick if self == $hs[0]
   end
   def on_open
-    tick
+    tick if self == $hs[0]
   end
 end
-$h = H.new
+$hs = [H.new($t.order_by(index: 'a').limit($lim)),
+       H.new($t.order_by(index: 'a').filter{|x| x['a'] > $n/2}.limit($lim)),
+       H.new($t.order_by(index: 'a')['b'].limit($lim))]
 
 EM.run {
   opts = {include_initial: true, include_offsets: true}
-  $t.insert([{a: 0}, {a: 1}]).em_run {
-    $t.order_by(index: 'a').limit($lim).changes(opts).em_run($h)
+  $t.insert([{a: 0, b: rand}, {a: 1, b: rand}]).em_run {
+    $hs.each {|h|
+      h.query.changes(opts).em_run(h)
+    }
   }
 }
 
-$expected = $t.order_by(index: 'a').limit($lim).run.to_a
-PP.pp $state
-PP.pp $expected
-PP.pp $hist
-assert_eq($state, $expected)
+$hs.each {|h|
+  $expected = h.query.run.to_a
+  PP.pp h.state
+  PP.pp $expected
+  PP.pp h.hist
+  assert_eq(h.state, $expected)
+}
+nil
