@@ -21,7 +21,7 @@ public:
 
     void add_handle(fd_t handle);
 
-    void set_timer(int64_t next_time_in_nanos, timer_provider_callback_t *cb);
+    void reset_timer(int64_t next_time_in_nanos, timer_provider_callback_t *cb);
     void unset_timer();
 
     void run();

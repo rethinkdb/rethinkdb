@@ -25,12 +25,15 @@ struct overlapped_operation_t {
         completed.reset();
     }
 
-    // The operation was not queued or is dequeued. Mark it as completed and set the result.
-    // The IOCP event loop automatically calls set_result when dequeing an overlapped_operation_t.
+    // The operation was not queued or is dequeued. Mark it as
+    // completed and set the result.  The IOCP event loop
+    // automatically calls set_result when dequeing an
+    // overlapped_operation_t.
     void set_result(size_t nb_bytes_, DWORD error_);
 
-    // The operation was queued. Abort it, wait for it to be dequeued and mark it as completed with an error.
-    void abort();
+    // The operation was queued. Abort it, wait for it to be dequeued
+    // and mark it as completed with an error.
+    void abort_op();
 
     // The operation was not queued. Mark it as completed with an error.
     void set_cancel();

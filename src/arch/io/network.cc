@@ -1101,7 +1101,7 @@ struct accept_op_t {
     }
 
     ~accept_op_t() {
-        op.abort();
+        op.abort_op();
     }
 
     fd_t listening_sock;

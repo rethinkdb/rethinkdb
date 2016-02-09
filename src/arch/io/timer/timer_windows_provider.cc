@@ -27,7 +27,7 @@ timer_windows_provider_t::~timer_windows_provider_t() {
 
 void timer_windows_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
     debugf_timer("[%p] scheduled in %" PRIi64 "ns\n", this, next_time_in_nanos - get_ticks());
-    event_queue->set_timer(next_time_in_nanos, cb);
+    event_queue->reset_timer(next_time_in_nanos, cb);
 }
 
 void timer_windows_provider_t::unschedule_oneshot() {

@@ -3,9 +3,9 @@
 
 #include <map>
 
-#include "utils.hpp"
 #include "debug.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 /* `range_map_t` maps from ranges delimited by `edge_t` to values of type `value_t`. The
 ranges must be contiguous and non-overlapping; adjacent ranges with the same value will

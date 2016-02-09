@@ -8,6 +8,7 @@
 #include "concurrency/wait_any.hpp"
 
 #ifdef TRACE_OVERLAPPED
+#include "debug.hpp"
 #define debugf_overlapped(...) debugf("overlapped: " __VA_ARGS__)
 #else
 #define debugf_overlapped(...) ((void)0)
@@ -21,7 +22,7 @@ overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : ev
 
 overlapped_operation_t::~overlapped_operation_t() {
     debugf_overlapped("[%p] destroy\n", this);
-    // Always call wait_abortable, set_cancel, set_result or abort before destructing
+    // Always call wait_abortable, set_cancel, set_result or abort_op before destructing
     rassert(completed.is_pulsed());
 }
 
@@ -30,25 +31,31 @@ void overlapped_operation_t::set_cancel() {
     set_result(0, ERROR_CANCELLED);
 }
 
-void overlapped_operation_t::abort() {
+void overlapped_operation_t::abort_op() {
     if (completed.is_pulsed()) {
-        debugf_overlapped("[%p] abort: already pulsed\n", this);
+        debugf_overlapped("[%p] abort_op: already pulsed\n", this);
     } else {
-        debugf_overlapped("[%p] abort: cancelling\n", this);
+        debugf_overlapped("[%p] abort_op: cancelling\n", this);
         BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
         if (!res) {
             switch (GetLastError()) {
             case ERROR_NOT_FOUND:
             case ERROR_INVALID_HANDLE:
-                debugf_overlapped("[%p] abort: not found or invalid\n", this);
+                debugf_overlapped("[%p] abort_op: not found or invalid\n", this);
+                // Assume the operation has already completed asynchonously and is
+                // currently queued on the completion port
                 break;
             default:
                 guarantee_winerr(res, "CancelIoEx failed");
             }
         }
+
+        // After a successful CancelIoEx, the operation gets queued
+        // onto the completion port. In most cases the error code will
+        // be ERROR_OPERATION_ABORTED. However the operation might
+        // also complete succesfully or fail with another error.
         completed.wait_lazily_unordered();
     }
-    error = ERROR_OPERATION_ABORTED;
 }
 
 void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
@@ -76,6 +83,7 @@ void windows_event_watcher_t::stop_watching_for_errors() {
 }
 
 void windows_event_watcher_t::on_error(UNUSED DWORD error) {
+    rassert(current_thread_ == get_thread_id());
     if (error_handler != nullptr) {
         linux_event_callback_t *eh = error_handler;
         error_handler = nullptr;
@@ -92,9 +100,9 @@ void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {
     debugf_overlapped("[%p] wait_interruptible\n", this);
     try {
         ::wait_interruptible(&completed, interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         debugf_overlapped("[%p] interrupted\n", this);
-        abort();
+        abort_op();
         throw;
     }
 }
@@ -105,7 +113,7 @@ void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
     waiter.wait_lazily_unordered();
     if (aborter->is_pulsed()) {
         debugf_overlapped("[%p] aborted\n", this);
-        abort();
+        abort_op();
     }
 }
 

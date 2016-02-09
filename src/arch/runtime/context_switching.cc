@@ -11,12 +11,12 @@ fiber_context_ref_t::~fiber_context_ref_t() {
     rassert(fiber == nullptr, "leaking a fiber");
 }
 
-THREAD_LOCAL void* thread_initial_fiber = NULL;
+THREAD_LOCAL void* thread_initial_fiber = nullptr;
 
 void coro_initialize_for_thread() {
-    if (thread_initial_fiber == NULL) {
+    if (thread_initial_fiber == nullptr) {
         thread_initial_fiber = ConvertThreadToFiber(nullptr);
-        guarantee_winerr(thread_initial_fiber != NULL, "ConvertThreadToFiber failed");
+        guarantee_winerr(thread_initial_fiber != nullptr, "ConvertThreadToFiber failed");
     }
 }
 
