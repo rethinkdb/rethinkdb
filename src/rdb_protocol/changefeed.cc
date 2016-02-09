@@ -2372,7 +2372,9 @@ public:
         for (auto ft = active_data.begin();
              ft != active_data.end();
              ++ft, ++i) {
-            if (*ft == it) return active_data.size() - (i + 1);
+            if (*ft == it) {
+                return active_data.size() - (i + 1);
+            }
         }
         return boost::none;
     }
