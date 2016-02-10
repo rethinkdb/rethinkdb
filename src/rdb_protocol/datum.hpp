@@ -348,6 +348,16 @@ public:
     const shared_buf_ref_t<char> *get_buf_ref() const;
 
 private:
+    // We have a special version of `call_with_enough_stack` for datums that only uses
+    // `call_with_enough_stack` if there a chance of additional recursion (based on
+    // the type of this datum). Since some of the datum functions get called a lot,
+    // this is valuable since we can often save the overhead of the extra function
+    // call.
+    template<class result_t, class callable_t>
+    inline result_t call_with_enough_stack_datum(callable_t &&fun) const;
+    template<class callable_t>
+    inline void call_with_enough_stack_datum(callable_t &&fun) const;
+
     friend void pseudo::sanitize_time(datum_t *time);
     // Must only be used during pseudo type sanitization.
     // The key must already exist.

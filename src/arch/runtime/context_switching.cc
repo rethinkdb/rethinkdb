@@ -182,11 +182,19 @@ bool artificial_stack_t::address_is_stack_overflow(const void *addr) const {
 }
 
 size_t artificial_stack_t::free_space_below(const void *addr) const {
-    guarantee(address_in_stack(addr) && !address_is_stack_overflow(addr));
+    rassert(address_in_stack(addr) && !address_is_stack_overflow(addr));
+
     // The bottom page is protected and used to detect stack overflows. Everything
     // above that is usable space.
-    return reinterpret_cast<uintptr_t>(addr)
-            - (reinterpret_cast<uintptr_t>(get_stack_bound()) + getpagesize());
+    const uintptr_t lowest_valid_address =
+        reinterpret_cast<uintptr_t>(get_stack_bound()) + getpagesize();
+
+    // This check is pretty much equivalent to checking `address_is_stack_overflow`, but
+    // we avoid the extra call to `getpagesize()` inside of `address_is_stack_overflow`
+    // in release mode.
+    guarantee(lowest_valid_address <= reinterpret_cast<uintptr_t>(addr));
+
+    return reinterpret_cast<uintptr_t>(addr) - lowest_valid_address;
 }
 
 extern "C" {
