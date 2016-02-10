@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <openssl/ssl.h>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/main/version_check.hpp"
@@ -85,6 +87,12 @@ struct service_address_ports_t {
     int port_offset;
 };
 
+struct tls_configs_t {
+    SSL_CTX *web;
+    SSL_CTX *driver;
+    SSL_CTX *cluster;
+};
+
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names);
 
 class serve_info_t {
@@ -95,7 +103,8 @@ public:
                  update_check_t _do_version_checking,
                  service_address_ports_t _ports,
                  boost::optional<std::string> _config_file,
-                 std::vector<std::string> &&_argv) :
+                 std::vector<std::string> &&_argv,
+                 tls_configs_t _tls_configs) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
         web_assets(std::move(_web_assets)),
@@ -103,7 +112,9 @@ public:
         ports(_ports),
         config_file(_config_file),
         argv(std::move(_argv))
-    { }
+    {
+        tls_configs = _tls_configs;
+    }
 
     void look_up_peers() {
         peers = look_up_peers_addresses(joins);
@@ -119,6 +130,7 @@ public:
     /* The original arguments, so we can display them in `server_status`. All the
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;
+    tls_configs_t tls_configs;
 };
 
 /* This has been factored out from `command_line.hpp` because it takes a very

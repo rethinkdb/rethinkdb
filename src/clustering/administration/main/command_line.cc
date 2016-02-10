@@ -12,6 +12,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/opensslv.h>
+
 // Needed for determining rethinkdb binary path below
 #if defined(__MACH__)
 #include <mach-o/dyld.h>
@@ -645,6 +649,163 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
         port_offset);
 }
 
+bool load_tls_key_and_cert(SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
+    if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        return false;      
+    }
+
+    if(SSL_CTX_use_certificate_file(tls_ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        return false;      
+    }
+
+    if(1 != SSL_CTX_check_private_key(tls_ctx)) {
+        logNTC("private key and certificate do not match");
+        return false;
+    }
+
+    return true;
+}
+
+bool configure_web_tls(const std::map<std::string, options::values_t> &opts, SSL_CTX *web_tls) {
+    boost::optional<std::string> key_file = get_optional_option(opts, "--web-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(opts, "--web-tls-cert");
+
+    if (!(key_file && cert_file)) {
+        logERR("must specify both --web-tls-key and --web-tls-cert");
+        return false;
+    }
+
+    return load_tls_key_and_cert(web_tls, *key_file, *cert_file);
+}
+
+bool configure_driver_tls(const std::map<std::string, options::values_t> &opts, SSL_CTX *driver_tls) {
+    boost::optional<std::string> key_file = get_optional_option(opts, "--driver-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(opts, "--driver-tls-cert");
+    boost::optional<std::string> ca_file = get_optional_option(opts, "--driver-tls-ca");
+
+    if (!(key_file && cert_file)) {
+        logERR("must specify both --driver-tls-key and --driver-tls-cert");
+        return false;
+    }
+
+    if (!load_tls_key_and_cert(driver_tls, *key_file, *cert_file)) {
+        return false;
+    }
+
+    if (ca_file) {
+        if (!SSL_CTX_load_verify_locations(driver_tls, ca_file->c_str(), NULL)) {
+            ERR_print_errors_fp(stderr);
+            return false; 
+        }
+
+        // Mutual authentication.
+        SSL_CTX_set_verify(driver_tls, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    }
+
+    return true;
+}
+
+bool configure_cluster_tls(const std::map<std::string, options::values_t> &opts, SSL_CTX *cluster_tls) {
+    boost::optional<std::string> key_file = get_optional_option(opts, "--cluster-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(opts, "--cluster-tls-cert");
+    boost::optional<std::string> ca_file = get_optional_option(opts, "--cluster-tls-ca");
+
+    if (!(key_file && cert_file && ca_file)) {
+        logERR("must specify each of --cluster-tls-key, --cluster-tls-cert, and --cluster-tls-ca");
+        return false;
+    }
+
+    if (!load_tls_key_and_cert(cluster_tls, *key_file, *cert_file)) {
+        return false;
+    }
+
+    if (!SSL_CTX_load_verify_locations(cluster_tls, ca_file->c_str(), NULL)) {
+        ERR_print_errors_fp(stderr);
+        return false; 
+    }
+
+    // Mutual authentication.
+    SSL_CTX_set_verify(cluster_tls, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+
+    return true;
+}
+
+bool initialize_tls_ctx(SSL_CTX **tls_ctx) {
+    *tls_ctx = SSL_CTX_new(SSLv23_method());
+    if (NULL == *tls_ctx) {
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+
+    // Only allow TLS v1.2 and prefer server ciphers.
+    SSL_CTX_set_options(*tls_ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE);
+
+    /* This is pretty important. We want to use the most secure TLS cipher
+    suite that we can. This simple list only allows ciphers suites which employ
+    ECDHE (Elliptic Curve Diffie-Hellman with Ephemeral keys) for encryption
+    key agreement for Perfect Forward Secrecy and we want to use AESGCM for
+    efficient authenticated encryption. */
+    if (0 == SSL_CTX_set_cipher_list(*tls_ctx, "ECDHE+AESGCM")) {
+        logNTC("No secure cipher suites available\n");
+        return false;
+    }
+
+    /* These values correspond to the standard NIST/FIPS curves and are also
+    commonly known as P-521, P-384, and P-256 respectively. Some people
+    speculate that these curves are compromised in some way by the NSA but most
+    people agree that they are safe to use. Any real risk in using elliptic
+    curves is associated with ECDSA (Elliptic Curve Digital Signature
+    Algorithm) where you must be careful to generate signatures correctly using
+    a secure PRNG. As we are using them only for ECDHE, I stand by this
+    selection. Feel free to add any more that we want - for example 'secp256k1'
+    (widely used and popularized by the Bitcoin cryptocurrency) and Daniel J.
+    Bernstein's 'Curve25519' (though not currently supported by OpenSSL) would
+    be other good choices. */
+    if (0 == SSL_CTX_set1_curves_list(*tls_ctx, "secp521r1:secp384r1:prime256v1")) {
+        logNTC("Not able to set ECDHE curves for perfect forward secrecy\n");
+        return false;
+    }
+
+    /* Enabling this option allows the server to select the appropriate curve
+    that is shared with the client. */
+    if (0 == SSL_CTX_set_ecdh_auto(*tls_ctx, 1)) {
+        logNTC("Not able to set ECDHE curve selection mode\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool configure_tls(const std::map<std::string, options::values_t> &opts, tls_configs_t *tls_configs) {
+    // Setup OpenSSL context.
+    SSL_library_init();
+    SSL_load_error_strings();
+
+    logNTC("%s\n", SSLeay_version(SSLEAY_VERSION));
+
+    if(!exists_option(opts, "--no-http-admin") && exists_option(opts, "--web-tls")) {
+        if (!(initialize_tls_ctx(&(tls_configs->web)) && configure_web_tls(opts, tls_configs->web))) {
+            return false;
+        }
+    }
+
+    if (exists_option(opts, "--driver-tls")) {
+        if (!(initialize_tls_ctx(&(tls_configs->driver)) && configure_driver_tls(opts, tls_configs->driver))) {
+            return false;
+        }
+    }
+
+    if (exists_option(opts, "--cluster-tls")) {
+        if (!(initialize_tls_ctx(&(tls_configs->cluster)) && configure_cluster_tls(opts, tls_configs->cluster))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
@@ -1146,6 +1307,51 @@ options::help_section_t get_setuser_options(std::vector<options::option_t> *opti
     return help;
 }
 
+options::help_section_t get_tls_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("TLS options");
+
+    // Web TLS options.
+    options_out->push_back(options::option_t(options::names_t("--web-tls"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->push_back(options::option_t(options::names_t("--web-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--web-tls-cert"),
+                                             options::OPTIONAL));
+    help.add("--web-tls", "secure the web administration console with TLS");
+    help.add("--web-tls-key", "private key to use for web administration console TLS");
+    help.add("--web-tls-cert", "certificate to use for web administration console TLS");
+
+    // Client Driver TLS options.
+    options_out->push_back(options::option_t(options::names_t("--driver-tls"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-cert"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-ca"),
+                                             options::OPTIONAL));
+    help.add("--driver-tls", "secure client driver connections with TLS");
+    help.add("--driver-tls-key", "private key to use for client driver connection TLS");
+    help.add("--driver-tls-cert", "certificate to use for client driver connection TLS");
+    help.add("--driver-tls-ca", "CA certificate bundle used to verify client certificates; TLS client authentication disabled if omitted");
+
+    // Client Driver TLS options.
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-cert"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-ca"),
+                                             options::OPTIONAL));
+    help.add("--cluster-tls", "secure intra-cluster connections with TLS");
+    help.add("--cluster-tls-key", "private key to use for intra-cluster connection TLS");
+    help.add("--cluster-tls-cert", "certificate to use for intra-cluster connection TLS");
+    help.add("--cluster-tls-ca", "CA certificate bundle used to verify cluster peer certificates");
+
+    return help;
+}
+
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
     options_out->push_back(options::option_t(options::names_t("--help", "-h"),
@@ -1165,6 +1371,7 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_tls_options(options_out));
 }
 
 void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
@@ -1178,6 +1385,7 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_tls_options(options_out));
 }
 
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
@@ -1189,6 +1397,7 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_tls_options(options_out));
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -1203,6 +1412,7 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_tls_options(options_out));
 }
 
 std::map<std::string, options::values_t> parse_config_file_flat(const std::string &config_filepath,
@@ -1462,13 +1672,19 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1546,13 +1762,19 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 update_check_t::do_not_perform,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                tls_configs);
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
@@ -1713,13 +1935,19 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 

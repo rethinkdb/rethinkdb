@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <openssl/ssl.h>
+
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
@@ -186,7 +188,8 @@ public:
               int port,
               int client_port,
               boost::shared_ptr<semilattice_read_view_t<
-                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view)
+                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
+              SSL_CTX *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
@@ -266,6 +269,8 @@ public:
         a single connection per server. */
         server_id_t server_id;
         std::set<server_id_t> servers;
+
+        SSL_CTX *tls_ctx;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to

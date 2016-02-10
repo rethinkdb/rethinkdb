@@ -13,7 +13,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
         const server_id_t &my_server_id,
         http_app_t *reql_app,
-        std::string path)
+        std::string path,
+        SSL_CTX *tls_ctx)
 {
 
     file_app.init(new file_http_app_t(path));
@@ -34,7 +35,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     root_routes["ajax"] = ajax_routing_app.get();
     root_routing_app.init(new routing_http_app_t(file_app.get(), root_routes));
 
-    server.init(new http_server_t(local_addresses, port, root_routing_app.get()));
+    server.init(new http_server_t(tls_ctx, local_addresses, port, root_routing_app.get()));
 }
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {

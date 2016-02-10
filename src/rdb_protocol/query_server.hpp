@@ -4,6 +4,8 @@
 
 #include <set>
 
+#include <openssl/ssl.h>
+
 #include "arch/address.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "client_protocol/server.hpp"
@@ -23,7 +25,8 @@ public:
                        int port,
                        rdb_context_t *_rdb_ctx,
                        server_config_client_t *_server_config_client,
-                       const server_id_t &_server_id);
+                       const server_id_t &_server_id,
+                       SSL_CTX *tls_ctx);
 
     http_app_t *get_http_app();
     int get_port() const;

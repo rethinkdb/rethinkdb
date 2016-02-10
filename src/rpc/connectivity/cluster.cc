@@ -218,10 +218,12 @@ connectivity_cluster_t::run_t::run_t(
         int port,
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
-            _heartbeat_sl_view)
+            _heartbeat_sl_view,
+        SSL_CTX *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),
+    tls_ctx(_tls_ctx),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -297,7 +299,7 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->make_overcomplicated(&conn);
+    nconn->make_connection(tls_ctx, &conn);
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
@@ -335,7 +337,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            keepalive_tcp_conn_stream_t conn(selected_addr->ip(), selected_addr->port().value(),
+            keepalive_tcp_conn_stream_t conn(tls_ctx, selected_addr->ip(), selected_addr->port().value(),
                                              drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
                 handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);

@@ -13,6 +13,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <openssl/ssl.h>
+
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
@@ -106,7 +108,8 @@ public:
         const std::set<ip_address_t> &local_addresses,
         int port,
         query_handler_t *_handler,
-        uint32_t http_timeout_sec);
+        uint32_t http_timeout_sec,
+        SSL_CTX* tls_ctx);
     ~query_server_t();
 
     int get_port() const;
@@ -148,6 +151,8 @@ private:
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     int next_thread;
+
+    SSL_CTX *tls_ctx;
 };
 
 #endif /* CLIENT_PROTOCOL_SERVER_HPP_ */

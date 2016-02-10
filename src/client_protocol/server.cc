@@ -193,11 +193,13 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
                                const std::set<ip_address_t> &local_addresses,
                                int port,
                                query_handler_t *_handler,
-                               uint32_t http_timeout_sec) :
+                               uint32_t http_timeout_sec,
+                               SSL_CTX *_tls_ctx) :
         rdb_ctx(_rdb_ctx),
         handler(_handler),
         http_conn_cache(http_timeout_sec),
-        next_thread(0) {
+        next_thread(0),
+        tls_ctx(_tls_ctx) {
     rassert(rdb_ctx != NULL);
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
@@ -259,7 +261,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     on_thread_t rethreader(chosen_thread);
 
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->make_overcomplicated(&conn);
+    nconn->make_connection(tls_ctx, &conn);
     conn->enable_keepalive();
 
     ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));

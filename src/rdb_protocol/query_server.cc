@@ -12,8 +12,9 @@ rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addre
                                        int port,
                                        rdb_context_t *_rdb_ctx,
                                        server_config_client_t *_server_config_client,
-                                       const server_id_t &_server_id) :
-    server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec),
+                                       const server_id_t &_server_id,
+                                       SSL_CTX *tls_ctx) :
+    server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec, tls_ctx),
     rdb_ctx(_rdb_ctx),
     server_config_client(_server_config_client),
     server_id(_server_id),
