@@ -273,10 +273,10 @@ git_clone_tag () {
 
 # Download a file to stdout
 geturl () {
-    if [[ -n "${WGET:-}" ]]; then
-        $WGET --quiet --output-document=- "$@"
+    if [[ -n "${CURL:-}" ]]; then
+        $CURL --silent --fail --location "$@"
     else
-        ${CURL:-curl} --silent --fail --location "$@"
+        ${WGET:-wget} --quiet --output-document=- "$@"
     fi
 }
 
