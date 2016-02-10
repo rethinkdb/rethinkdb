@@ -657,16 +657,31 @@ will establish a TCP connection to the peer at the given host:port and then we
 wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         linux_tcp_conn_t(host, port, interruptor, local_port) {
-    establish_conn(tls_ctx, SSL_connect);
+
+    conn = SSL_new(tls_ctx);
+
+    try {
+        establish_conn(SSL_connect);
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        /* Rethrow the error, but first free the memory allocated for the conn
+        since the destructor will not be called due to the constructor throwing
+        this exception. */
+        SSL_free(conn);
+        throw err;
+    }
 }
 
 /* This is the server version of the constructor */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock) :
         linux_tcp_conn_t(sock) {
+
+    conn = SSL_new(tls_ctx);
+
     try {
-        establish_conn(tls_ctx, SSL_accept);
+        establish_conn(SSL_accept);
     } catch (const tcp_conn_t::connect_failed_exc_t &err) {
-        /* Ignore */
+        /* Ignore the error. The destructor will be called to free the memory
+        allocated for conn. */
         logNTC("linux_secure_tcp_conn_t server constructor exception: %s\n", err.info.c_str());
     }
 }
@@ -674,29 +689,25 @@ linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock) :
 linux_secure_tcp_conn_t::~linux_secure_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
-    logNTC("linux_secure_tcp_conn_t destructor\n");
-
     if (is_open()) shutdown();
+
+    SSL_free(conn);
 }
 
 /* Creates a new OpenSSL connection using the underlying fd and the given
 OpenSSL context. The given handshake function is used to perform the handshake
 for the client or server using SSL_connect or SSL_accept respectively. */
-void linux_secure_tcp_conn_t::establish_conn(SSL_CTX *tls_ctx, int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t) {
-    conn = SSL_new(tls_ctx);
-
+void linux_secure_tcp_conn_t::establish_conn(int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t) {
     // Add support for partial writes.
     SSL_set_mode(conn, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
     if (NULL == conn) {
-        logNTC("error setting connection mode\n");
         unsigned long err_code = ERR_get_error();
         throw linux_tcp_conn_t::connect_failed_exc_t(err_code, ERR_error_string(err_code, NULL));
     }
 
     // Set the underlying IO.
     if (0 == SSL_set_fd(conn, sock.get())) {
-        logNTC("error setting connection fd\n");
         unsigned long err_code = ERR_get_error();
         throw linux_tcp_conn_t::connect_failed_exc_t(err_code, ERR_error_string(err_code, NULL));
     }
@@ -704,12 +715,9 @@ void linux_secure_tcp_conn_t::establish_conn(SSL_CTX *tls_ctx, int (*handshake)(
     // Perform TLS handshake.
     while (true) {
         ERR_clear_error();
-
-        logNTC("trying handshake\n");
         int ret = handshake(conn);
 
         if (ret > 0) {
-            logNTC("handshake successful\n");
             return; // Successful TLS handshake.
         }
 
@@ -738,26 +746,21 @@ void linux_secure_tcp_conn_t::establish_conn(SSL_CTX *tls_ctx, int (*handshake)(
             /* Go around the loop and try to complete the handshake */
             continue;
         case SSL_ERROR_SYSCALL:
-            logNTC("IO error reading from tls conn\n");
             // An error with the underlying IO.
             io_err = ERR_peek_last_error();
             if (io_err != 0) {
-                logNTC("from the openssl error queue\n");
                 // The Openssl error queue has data on the error.
                 throw linux_tcp_conn_t::connect_failed_exc_t(io_err, ERR_error_string(io_err, NULL));
             }
 
             // if ret is 0 that indicates an EOF in violation of the protocol.
             if (0 == ret) {
-                throw linux_tcp_conn_t::connect_failed_exc_t(io_err, "TLS protocol violation");
+                throw linux_tcp_conn_t::connect_failed_exc_t(io_err, "TLS protocol violation - EOF");
             }
-
-            logNTC("from underlying IO: %d - %s\n", get_errno(), errno_string(get_errno()).c_str());
 
             // Otherwise consult errno.
             throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
         default:
-            logNTC("unknown error reading from tls conn\n");
             // Some other error.
             io_err = ERR_peek_last_error();
             throw linux_tcp_conn_t::connect_failed_exc_t(io_err, ERR_error_string(io_err, NULL));
@@ -825,14 +828,12 @@ size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_
             io_err = ERR_get_error();
             if (io_err != 0) {
                 // The Openssl error queue has data on the error.
-                logERR("Could not read from socket: %s", ERR_error_string(io_err, NULL));
                 on_shutdown();
                 throw tcp_conn_read_closed_exc_t();
             }
 
             // if ret is 0 that indicates an EOF in violation of the protocol.
             if (0 == ret) {
-                logERR("TLS protocol violation: EOF");
                 on_shutdown();
                 throw tcp_conn_read_closed_exc_t();
             }
@@ -848,13 +849,11 @@ size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_
             default:
                 /* Unknown error. This is not expected, but it will probably happen sometime so we
                 shouldn't crash. */
-                logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
                 on_shutdown();
                 throw tcp_conn_read_closed_exc_t();
             }
         default:
             // Some other error.
-            logERR("Could not read from TLS connection: %s", ERR_error_string(ERR_get_error(), NULL));
             on_shutdown();
             throw tcp_conn_read_closed_exc_t();
         }
@@ -938,14 +937,12 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             io_err = ERR_get_error();
             if (io_err != 0) {
                 // The Openssl error queue has data on the error.
-                logERR("Could not write to socket: %s", ERR_error_string(io_err, NULL));
                 on_shutdown();
                 return;
             }
 
             // if ret is 0 that indicates an EOF in violation of the protocol.
             if (0 == ret) {
-                logERR("TLS protocol violation: EOF");
                 on_shutdown();
                 return;
             }
@@ -960,13 +957,11 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             default:
                 /* Unknown error. This is not expected, but it will probably happen sometime so we
                 shouldn't crash. */
-                logERR("Could not write to socket: %s", errno_string(get_errno()).c_str());
                 on_shutdown();
                 return;
             }
         default:
             // Some other error.
-            logERR("Could not write to TLS connection: %s", ERR_error_string(ERR_get_error(), NULL));
             on_shutdown();
             return;
         }
@@ -974,8 +969,6 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
 }
 
 void linux_secure_tcp_conn_t::shutdown() {
-    logNTC("linux_secure_tcp_conn_t shutdown\n");
-
     assert_thread();
 
     int ret;
@@ -1003,7 +996,6 @@ void linux_secure_tcp_conn_t::shutdown() {
             waiter.wait_lazily_unordered();
             /* Go around the loop and try to write again */
         } else {
-            logERR("Could not shutdown TLS connection: %s", ERR_error_string(ERR_get_error(), NULL));
             break;
         }
     }
@@ -1035,7 +1027,6 @@ void linux_secure_tcp_conn_t::shutdown() {
                 waiter.wait_lazily_unordered();
                 /* Go around the loop and try to write again */
             } else {
-                logERR("Could not shutdown TLS connection: %s", ERR_error_string(ERR_get_error(), NULL));
                 break;
             }
         }
@@ -1047,8 +1038,6 @@ void linux_secure_tcp_conn_t::shutdown() {
         logERR("Could not shutdown socket for reading and writing: %s", errno_string(get_errno()).c_str());
     }
 
-    SSL_free(conn);
-
     on_shutdown();
 }
 
@@ -1056,8 +1045,6 @@ void linux_secure_tcp_conn_t::shutdown() {
 so we use only a single shutdown method which attempts to shutdown the TLS
 before shutting down the underlying tcp connection */
 void linux_secure_tcp_conn_t::on_shutdown() {
-    logNTC("linux_secure_tcp_conn_t on_shutdown\n");
-
     assert_thread();
 
     rassert(!closed.is_pulsed());

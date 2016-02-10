@@ -337,7 +337,7 @@ private:
     // Server connection constructor.
     explicit linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock);
 
-    void establish_conn(SSL_CTX *tls_ctx, int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t);
+    void establish_conn(int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t);
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
     ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
