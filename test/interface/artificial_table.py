@@ -26,8 +26,7 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
     
     command_line = [
         os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir, 'rql_test', 'test-runner'),
-        '--cluster-port', str(server.cluster_port),
-        '--driver-port', str(server.driver_port),
+        '--driver-port', '%s:%d' % (server.host, server.driver_port),
         '--table', 'rethinkdb._debug_scratch']
     command_line.extend('polyglot/' + name for name in [
         'control', 'joins', 'match',

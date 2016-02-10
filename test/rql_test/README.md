@@ -58,7 +58,7 @@ at exit.
 
 * `-i`/`--interpreter` specifies the drivers to use. See the "Language tests" section for more detail.
 
-* `-c`/`--cluster-port` and `-d`/`--driver-port` can be used to specify an already-running server to use rather than the default which is to startup one or more servers. Not all tests support this.
+* `-d`/`--driver-port` can be used to specify an already-running server to use rather than instances started for the tests. Not all tests support this. A hostname can also be supplied in the format `hostname:port`, otherwise `localhost` is assumed.
 
 * `-t`/`--table` specifies an existing table to use on user-supplied servers to use at the primary table. Not all tests support this.
 
