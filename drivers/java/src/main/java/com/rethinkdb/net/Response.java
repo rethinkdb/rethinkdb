@@ -135,7 +135,7 @@ class Response {
 
     /* Whether the response is any kind of feed */
     boolean isFeed() {
-        return notes.stream().allMatch(ResponseNote::isFeed);
+        return notes.stream().anyMatch(ResponseNote::isFeed);
     }
 
     /* Whether the response is any kind of error */
