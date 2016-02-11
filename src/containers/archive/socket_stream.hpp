@@ -8,6 +8,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
 #include "arch/io/event_watcher.hpp"
+#include "arch/runtime/runtime.hpp"
 
 class blocking_fd_watcher_t { };
 
@@ -24,6 +25,7 @@ public:
           event_watcher(ew),
           interruptor(nullptr) {
         rassert(ew != nullptr);
+        rassert(ew->current_thread() == get_thread_id());
     }
 
     socket_stream_t(const socket_stream_t &) = default;

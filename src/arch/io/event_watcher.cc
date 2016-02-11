@@ -17,6 +17,7 @@
 overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
     debugf_overlapped("[%p] init from watcher %p\n", this, ew);
     rassert(event_watcher != nullptr);
+    rassert(event_watcher->current_thread() == get_thread_id());
     memset(&overlapped, 0, sizeof(overlapped));
 }
 
