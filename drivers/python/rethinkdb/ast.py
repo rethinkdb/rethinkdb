@@ -791,7 +791,7 @@ class ReQLDecoder(py_json.JSONDecoder):
 # R_ARRAYs and R_OBJECTs would require verifying that at all nested levels
 # our arrays and objects are composed only of basic types.
 class Datum(RqlQuery):
-    args = []
+    _args = []
     optargs = {}
 
     def __init__(self, val):
@@ -1790,7 +1790,7 @@ def _ivar_scan(query):
         return False
     if isinstance(query, ImplicitVar):
         return True
-    if any([_ivar_scan(arg) for arg in query.args]):
+    if any([_ivar_scan(arg) for arg in query._args]):
         return True
     if any([_ivar_scan(arg) for k, arg in dict_items(query.optargs)]):
         return True
@@ -1830,7 +1830,7 @@ class Func(RqlQuery):
         self.optargs = {}
 
     def compose(self, args, optargs):
-            return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)],
+            return T('lambda ', T(*[v.compose([v._args[0].compose(None, None)],
                                               []) for v in self.vrs],
                                   intsp=', '), ': ', args[1])
 

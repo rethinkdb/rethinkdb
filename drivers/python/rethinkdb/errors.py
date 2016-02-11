@@ -170,7 +170,7 @@ class QueryPrinter(object):
         return ''.join(self.compose_carrots(self.root, self.frames))
 
     def compose_term(self, term):
-        args = [self.compose_term(a) for a in term.args]
+        args = [self.compose_term(a) for a in term._args]
         optargs = {}
         for k, v in dict_items(term.optargs):
             optargs[k] = self.compose_term(v)
@@ -184,7 +184,7 @@ class QueryPrinter(object):
         cur_frame = frames[0]
         args = [self.compose_carrots(arg, frames[1:])
                 if cur_frame == i else self.compose_term(arg)
-                for i, arg in enumerate(term.args)]
+                for i, arg in enumerate(term._args)]
 
         optargs = {}
         for k, v in dict_items(term.optargs):
