@@ -211,36 +211,46 @@ class IterableResult
                 ).nodeify(cb)
         return @_closeCbPromise
 
-    _each: varar(1, 2, (cb, onFinished) ->
-        unless typeof cb is 'function'
-            throw new err.ReqlDriverError "First argument to each must be a function."
-        if onFinished? and typeof onFinished isnt 'function'
-            throw new err.ReqlDriverError "Optional second argument to each must be a function."
+    _each: varar(1, 2, (cb, err) ->
+        if not err? then
+            # Promise style replacing eachAsync
+            unless typeof cb is 'function'
+                throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
 
-        self = @
-        nextCb = (err, data) =>
-            if err?
-                if err.message is 'No more rows in the cursor.'
-                    onFinished?()
-                else
-                    cb(err)
-            else if cb(null, data) isnt false
-                @_next nextCb
+            nextCb = =>
+                @_next().then(cb).then(nextCb).catch (err) ->
+                    return if err?.message is 'No more rows in the cursor.'
+                    throw err
+
+            return nextCb()
+
+        else
+            if cb.length is 2 then
+                # Callback style w/ async handler
+                s
             else
-                onFinished?()
-        @_next nextCb
+                #Callback style
+                unless typeof cb is 'function'
+                    throw new err.ReqlDriverError "First argument to each must be a function."
+                if typeof err isnt 'function'
+                    throw new err.ReqlDriverError "Optional second argument to each must be a function."
+                else
+                    self = @
+                    nextCb = (err, data) =>
+                        if err?
+                            if err.message is 'No more rows in the cursor.'
+                                onFinished?()
+                            else
+                                err(err)
+                        else if cb(data) isnt false
+                            @_next nextCb
+                        else
+                            onFinished?()
+                    @_next nextCb
     )
 
     _eachAsync: (cb) ->
-        unless typeof cb is 'function'
-            throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
-
-        nextCb = =>
-            @_next().then(cb).then(nextCb).catch (err) ->
-                return if err?.message is 'No more rows in the cursor.'
-                throw err
-
-        return nextCb()
+        return @_each cb
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
