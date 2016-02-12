@@ -652,23 +652,43 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     event_watcher->stop_watching_for_errors();
 }
 
+/* tls_conn_wrapper_t wraps a TLS connection and safely releases it in
+exceptional cases if it is not reclaimed before execution leaves its scope. */
+class tls_conn_wrapper_t {
+public:
+    tls_conn_wrapper_t(SSL *_conn) {
+        conn = _conn;
+    }
+
+    ~tls_conn_wrapper_t() {
+        SSL_free(conn);
+    }
+
+    // Transfer ownership of the connection to the caller.
+    void reclaim() {
+        conn = NULL;
+    }
+
+private:
+    SSL *conn;
+};
+
 /* This is the client version of the constructor. The base class constructor
 will establish a TCP connection to the peer at the given host:port and then we
 wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         linux_tcp_conn_t(host, port, interruptor, local_port) {
 
+
     conn = SSL_new(tls_ctx);
 
-    try {
-        establish_conn(SSL_connect);
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
-        /* Rethrow the error, but first free the memory allocated for the conn
-        since the destructor will not be called due to the constructor throwing
-        this exception. */
-        SSL_free(conn);
-        throw err;
-    }
+    /* If establish_conn() throws an exception, the conn_wrapper deallocates
+    the connection when unwinding the stack. */
+    tls_conn_wrapper_t conn_wrapper(conn);
+
+    establish_conn(SSL_connect);
+
+    conn_wrapper.reclaim();
 }
 
 /* This is the server version of the constructor */
@@ -680,8 +700,7 @@ linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock) :
     try {
         establish_conn(SSL_accept);
     } catch (const tcp_conn_t::connect_failed_exc_t &err) {
-        /* Ignore the error. The destructor will be called to free the memory
-        allocated for conn. */
+        // Ignore.
         logNTC("linux_secure_tcp_conn_t server constructor exception: %s\n", err.info.c_str());
     }
 }
