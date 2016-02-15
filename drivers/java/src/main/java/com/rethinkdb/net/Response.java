@@ -48,7 +48,8 @@ class Response {
         if(jsonResp.containsKey("e")){
             res.setErrorType(((Long)jsonResp.get("e")).intValue());
         }
-        return res.setProfile((JSONArray) jsonResp.getOrDefault("p", null))
+        return res.setNotes(responseNotes)
+                .setProfile((JSONArray) jsonResp.getOrDefault("p", null))
                 .setBacktrace((JSONArray) jsonResp.getOrDefault("b", null))
                 .setData((JSONArray) jsonResp.getOrDefault("r", new JSONArray()))
                 .build();
