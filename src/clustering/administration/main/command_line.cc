@@ -13,6 +13,7 @@
 #include <sys/types.h>
 
 #include <openssl/ssl.h>
+#include <openssl/pem.h>
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
 
@@ -732,7 +733,25 @@ bool configure_cluster_tls(const std::map<std::string, options::values_t> &opts,
     return true;
 }
 
-bool initialize_tls_ctx(SSL_CTX **tls_ctx) {
+class fp_wrapper_t {
+public:
+    fp_wrapper_t(const char *filename, const char *mode) {
+        fp = fopen(filename, mode);
+    }
+
+    ~fp_wrapper_t() {
+        fclose(fp);
+    }
+
+    FILE *get() {
+        return fp;
+    }
+
+private:
+    FILE *fp;
+};
+
+bool initialize_tls_ctx(const std::map<std::string, options::values_t> &opts, SSL_CTX **tls_ctx) {
     *tls_ctx = SSL_CTX_new(SSLv23_method());
     if (NULL == *tls_ctx) {
         ERR_print_errors_fp(stderr);
@@ -740,14 +759,18 @@ bool initialize_tls_ctx(SSL_CTX **tls_ctx) {
     }
 
     // Only allow TLS v1.2 and prefer server ciphers.
-    SSL_CTX_set_options(*tls_ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE);
+    SSL_CTX_set_options(*tls_ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE);
 
     /* This is pretty important. We want to use the most secure TLS cipher
-    suite that we can. This simple list only allows ciphers suites which employ
+    suite that we can. Our default list only allows ciphers suites which employ
     ECDHE (Elliptic Curve Diffie-Hellman with Ephemeral keys) for encryption
     key agreement for Perfect Forward Secrecy and we want to use AESGCM for
-    efficient authenticated encryption. */
-    if (0 == SSL_CTX_set_cipher_list(*tls_ctx, "ECDHE+AESGCM")) {
+    efficient authenticated encryption. An option exists for system admins to
+    configure their own ciphers list if their SSL/TLS lib doesn't support these
+    options or if they want to use other cipher suites. */
+    boost::optional<std::string> ciphers_opt = get_optional_option(opts, "--tls-ciphers");
+    std::string ciphers = ciphers_opt ? *ciphers_opt : "ECDHE+AESGCM";
+    if (0 == SSL_CTX_set_cipher_list(*tls_ctx, ciphers.c_str())) {
         logNTC("No secure cipher suites available\n");
         return false;
     }
@@ -759,11 +782,14 @@ bool initialize_tls_ctx(SSL_CTX **tls_ctx) {
     curves is associated with ECDSA (Elliptic Curve Digital Signature
     Algorithm) where you must be careful to generate signatures correctly using
     a secure PRNG. As we are using them only for ECDHE, I stand by this
-    selection. Feel free to add any more that we want - for example 'secp256k1'
-    (widely used and popularized by the Bitcoin cryptocurrency) and Daniel J.
-    Bernstein's 'Curve25519' (though not currently supported by OpenSSL) would
-    be other good choices. */
-    if (0 == SSL_CTX_set1_curves_list(*tls_ctx, "secp521r1:secp384r1:prime256v1")) {
+    selection. These are just our defaults, but a system admin may specify a
+    set of preferred curves with a command line option - for example
+    'secp256k1' (widely used and popularized by the Bitcoin cryptocurrency) and
+    Daniel J. Bernstein's 'Curve25519' (though not currently supported by
+    OpenSSL) would be other good choices. */
+    boost::optional<std::string> curves_opt = get_optional_option(opts, "--tls-ec-curves");
+    std::string curves = curves_opt ? *curves_opt : "secp521r1:secp384r1:prime256v1";
+    if (0 == SSL_CTX_set1_curves_list(*tls_ctx, curves.c_str())) {
         logNTC("Not able to set ECDHE curves for perfect forward secrecy\n");
         return false;
     }
@@ -773,6 +799,28 @@ bool initialize_tls_ctx(SSL_CTX **tls_ctx) {
     if (0 == SSL_CTX_set_ecdh_auto(*tls_ctx, 1)) {
         logNTC("Not able to set ECDHE curve selection mode\n");
         return false;
+    }
+
+    /* If the client and server do not support ECDHE but do support DHE, an
+    admin must specify a file containing parameters for DHE. */
+    boost::optional<std::string> dhparams_filename = get_optional_option(opts, "--tls-dhparams");
+    if (dhparams_filename) {
+        fp_wrapper_t dhparams_fp(dhparams_filename->c_str(), "r");
+        if (NULL == dhparams_fp.get()) {
+            logNTC("unable to open %s for reading: %s", dhparams_filename->c_str(), errno_string(get_errno()).c_str());
+            return false;
+        }
+
+        DH *dhparams = PEM_read_DHparams(dhparams_fp.get(), NULL, NULL, NULL);
+        if (NULL == dhparams) {
+            logNTC("unable to read DH parameters from %s: %s", dhparams_filename->c_str(), ERR_error_string(ERR_get_error(), NULL));
+            return false;
+        }
+
+        if (1 != SSL_CTX_set_tmp_dh(*tls_ctx, dhparams)) {
+            logNTC("unable to set DH parameters: %s", ERR_error_string(ERR_get_error(), NULL));
+            return false;
+        }
     }
 
     return true;
@@ -786,19 +834,22 @@ bool configure_tls(const std::map<std::string, options::values_t> &opts, tls_con
     logNTC("%s\n", SSLeay_version(SSLEAY_VERSION));
 
     if(!exists_option(opts, "--no-http-admin") && exists_option(opts, "--web-tls")) {
-        if (!(initialize_tls_ctx(&(tls_configs->web)) && configure_web_tls(opts, tls_configs->web))) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs->web)) && configure_web_tls(opts, tls_configs->web))) {
+            SSL_CTX_free(tls_configs->web);
             return false;
         }
     }
 
     if (exists_option(opts, "--driver-tls")) {
-        if (!(initialize_tls_ctx(&(tls_configs->driver)) && configure_driver_tls(opts, tls_configs->driver))) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs->driver)) && configure_driver_tls(opts, tls_configs->driver))) {
+            SSL_CTX_free(tls_configs->driver);
             return false;
         }
     }
 
     if (exists_option(opts, "--cluster-tls")) {
-        if (!(initialize_tls_ctx(&(tls_configs->cluster)) && configure_cluster_tls(opts, tls_configs->cluster))) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs->cluster)) && configure_cluster_tls(opts, tls_configs->cluster))) {
+            SSL_CTX_free(tls_configs->cluster);
             return false;
         }
     }
@@ -1318,8 +1369,8 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
     options_out->push_back(options::option_t(options::names_t("--web-tls-cert"),
                                              options::OPTIONAL));
     help.add("--web-tls", "secure the web administration console with TLS");
-    help.add("--web-tls-key", "private key to use for web administration console TLS");
-    help.add("--web-tls-cert", "certificate to use for web administration console TLS");
+    help.add("--web-tls-key key_filename", "private key to use for web administration console TLS");
+    help.add("--web-tls-cert cert_filename", "certificate to use for web administration console TLS");
 
     // Client Driver TLS options.
     options_out->push_back(options::option_t(options::names_t("--driver-tls"),
@@ -1331,9 +1382,9 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
     options_out->push_back(options::option_t(options::names_t("--driver-tls-ca"),
                                              options::OPTIONAL));
     help.add("--driver-tls", "secure client driver connections with TLS");
-    help.add("--driver-tls-key", "private key to use for client driver connection TLS");
-    help.add("--driver-tls-cert", "certificate to use for client driver connection TLS");
-    help.add("--driver-tls-ca", "CA certificate bundle used to verify client certificates; TLS client authentication disabled if omitted");
+    help.add("--driver-tls-key key_filename", "private key to use for client driver connection TLS");
+    help.add("--driver-tls-cert cert_filename", "certificate to use for client driver connection TLS");
+    help.add("--driver-tls-ca ca_filename", "CA certificate bundle used to verify client certificates; TLS client authentication disabled if omitted");
 
     // Client Driver TLS options.
     options_out->push_back(options::option_t(options::names_t("--cluster-tls"),
@@ -1345,9 +1396,20 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
     options_out->push_back(options::option_t(options::names_t("--cluster-tls-ca"),
                                              options::OPTIONAL));
     help.add("--cluster-tls", "secure intra-cluster connections with TLS");
-    help.add("--cluster-tls-key", "private key to use for intra-cluster connection TLS");
-    help.add("--cluster-tls-cert", "certificate to use for intra-cluster connection TLS");
-    help.add("--cluster-tls-ca", "CA certificate bundle used to verify cluster peer certificates");
+    help.add("--cluster-tls-key key_filename", "private key to use for intra-cluster connection TLS");
+    help.add("--cluster-tls-cert cert_filename", "certificate to use for intra-cluster connection TLS");
+    help.add("--cluster-tls-ca ca_filename", "CA certificate bundle used to verify cluster peer certificates");
+
+    // Generic TLS options, for customizing cipher suites.
+    options_out->push_back(options::option_t(options::names_t("--tls-ciphers"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--tls-ec-curves"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--tls-dhparams"),
+                                             options::OPTIONAL));
+    help.add("--tls-ciphers cipher_list", "specify a list of TLS ciphers to use; default is 'ECDHE+AESGCM'");
+    help.add("--tls-ec-curves curve_list", "specify a list of elliptic curves to use for ECDHE; default is 'secp521r1:secp384r1:prime256v1'");
+    help.add("--tls-dhparams dhparams_filename", "provide parameters for DHE key agreement; REQUIRED if using DHE cipher suites; at least 2048-bit recommended");
 
     return help;
 }
