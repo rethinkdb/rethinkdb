@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, copy, inspect, itertools, os, re, sys, time, warnings
+import atexit, copy, inspect, itertools, os, pprint, re, sys, time, warnings
 from datetime import datetime, tzinfo, timedelta # used by time tests
 
 stashedPath = copy.copy(sys.path)
@@ -57,6 +57,31 @@ required_external_tables.reverse() # setup for .pop()
 
 # -- utilities --
 
+class UnicodePrettyPrinter(pprint.PrettyPrinter, object):
+    defaultPrinter = None
+    
+    @classmethod
+    def pprint(cls, item, hangindent=0):
+        print(cls.pformat(item, indent=indent))
+    
+    @classmethod
+    def pformat(cls, item, hangindent=0):
+        if cls.defaultPrinter is None:
+            cls.defaultPrinter = cls(width=120)
+        formated = super(UnicodePrettyPrinter, cls.defaultPrinter).pformat(item)
+        if len(formated) > 70:
+            padding = ' ' * hangindent
+            if '\n' in formated:
+                formated = ('\n' + padding).join(formated.splitlines())
+        return formated
+    
+    def format(self, item, context, maxlevels, level):
+        if str != unicode and isinstance(item, unicode):
+            # remove the leading `u` from unicode objects
+            return (('%r' % item)[1:], True, False) # string, readable, recursed
+        else:
+            return super(UnicodePrettyPrinter, self).format(item, context, maxlevels, level)
+
 def print_failure(name, src, expected, result, message=None):
     global failure_count
     failure_count += 1
@@ -66,10 +91,10 @@ TEST FAILURE: %(name)s%(message)s
     EXPECTED: %(expected)s
     RESULT:   %(result)s''' % {
         'name':     name,
-        'source':   src,
+        'source':   UnicodePrettyPrinter.pformat(src, hangindent=14),
         'message':  '\n    FAILURE:  %s' % message if message is not None else '',
-        'expected': expected,
-        'result':   result
+        'expected': UnicodePrettyPrinter.pformat(expected, hangindent=14),
+        'result':   UnicodePrettyPrinter.pformat(result, hangindent=14)
     })
 
 def check_pp(src, query):
@@ -82,7 +107,7 @@ def check_pp(src, query):
     #    print("Source code: %s", src)
     #    print("Printed query: %s", composed)
 
-class OptionsBox():
+class OptionsBox(object):
     value = None
     options = None
     
@@ -112,7 +137,7 @@ class FalseStr(str):
     def __nonzero__(self):
         return False
 
-class Anything():
+class Anything(object):
     __instance = None
     
     def __new__(cls):
@@ -126,7 +151,7 @@ class Anything():
     def __repr__(self):
         return self.__str__()
 
-class Err():
+class Err(object):
     exceptionRegex = re.compile('^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
     
     err_type = None
@@ -160,7 +185,7 @@ class Err():
     def __repr__(self):
         return self.__str__()
 
-class Regex:
+class Regex(object):
     value = None
 
     def __init__ (self, value, **kwargs):
@@ -271,7 +296,7 @@ def compare(expected, result, options=None):
     # -- dict
     if isinstance(expected, dict):
         if not isinstance(result, dict):
-            return FalseStr('expected dict, got %s (%s)' % (result, type(result).__name__))
+            return FalseStr('expected dict, got %r (%s)' % (result, type(result).__name__))
         
         # - keys
         expectedKeys = set(expected.keys())
@@ -386,7 +411,7 @@ def compare(expected, result, options=None):
 
 # -- Curried output test functions --
 
-class PyTestDriver:
+class PyTestDriver(object):
     
     cpp_conn = None
     
@@ -579,6 +604,9 @@ def check_no_table_specified():
 
 def define(expr, variable=None):
     driver.define(expr, variable=variable)
+
+def anything():
+    return Anything()
 
 def bag(expected, ordered=False, partial=None):
     options = {'ordered':ordered}

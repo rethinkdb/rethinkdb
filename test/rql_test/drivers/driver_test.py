@@ -165,7 +165,10 @@ class PythonTestDriverTest(unittest.TestCase):
         # partial unordered
         self.compare(partial([{'a':1}, {'b':2}]), [{'b':2}, {'a':1}])
         self.compare(partial([{'a':1}, {'b':2}], ordered=False), [{'b':2}, {'a':1}])
-        
+    
+    def test_compare_partial_items_in_array(self):
+        self.compare([{'a':1, 'b':1}, partial({'a':2})], [{'a':1, 'b':1}, {'a':2, 'b':2}])
+    
     def test_compare_array_in_dict(self):
         pass
     
