@@ -232,6 +232,13 @@ class Driver
                             server: server
                             server_id: server_id
                     )
+                memory_error =
+                    servers: issue('info')('servers').map(
+                        issue_id('info')('servers'),
+                        (server, server_id) ->
+                            server: server
+                            server_id: server_id
+                    )
                 outdated_index =
                     tables: issue('info')('tables').map(
                         issue_id('info')('tables'),
@@ -252,6 +259,7 @@ class Driver
                 )
                 info: driver.helpers.match(issue('type'),
                     ['log_write_error', log_write_error],
+                    ['memory_error', memory_error],
                     ['outdated_index', outdated_index],
                     ['table_availability', table_avail],
                     [issue('type'), issue('info')], # default

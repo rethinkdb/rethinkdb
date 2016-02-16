@@ -176,6 +176,34 @@ render_outdated_index = (issue) ->
 
     ]
 
+render_memory_error = (issue) ->
+    # Issue rased when the server has problems with swapping memory.
+    title: "Memory issue"
+    subtitle: [
+        "A server is using swap memory."
+    ]
+    details: [
+        h "p", [
+            "The following "
+            util.pluralize_noun('server', issue.info.servers.length)
+            " encountered a memory problem:"
+        ]
+        h "ul", issue.info.servers.map((server) ->
+            h "li",
+                h "a", href: "/#servers/#{server.server_id}", server.server)
+        h "p", [
+            "The issue reported is: ",
+            h "code", issue.info.message
+        ]
+        h "p", [
+            "Please fix the problem that is causing the "
+            util.pluralize_noun("server", issue.info.servers.length)
+            " to use swap memory. This issue will go away "
+            "after an hour has passed since swap memory was used,"
+            " or after you restart RethinkDB."
+        ]
+    ]
+
 render_log_write_error = (issue) ->
     # Issue raised when the server can't write to its log file.
     title: "Cannot write logs"
@@ -209,6 +237,7 @@ render_log_write_error = (issue) ->
 render_issue = (issue) ->
     details = switch issue.type
         when 'log_write_error' then render_log_write_error(issue)
+        when 'memory_error' then render_memory_error(issue)
         when 'outdated_index' then render_outdated_index(issue)
         when 'table_availability' then render_table_availability(issue)
         when 'db_name_collision' then render_name_collision('database', issue)

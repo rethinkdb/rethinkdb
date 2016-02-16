@@ -14,6 +14,7 @@
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
+#include "clustering/administration/main/memory_checker.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -385,6 +386,13 @@ bool do_serve(io_backender_t *io_backender,
             circular reference. */
             rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
+            /* `memory_checker` periodically checks to see if we are using swap
+                    memory, and will log a warning. */
+            scoped_ptr_t<memory_checker_t> memory_checker;
+            if (i_am_a_server) {
+                memory_checker.init(new memory_checker_t(&rdb_ctx));
+            }
+
             /* When the user reads the `rethinkdb.current_issues` table, it sends
             messages to the `local_issue_server` on each server to get the issues
             information. */
@@ -392,7 +400,8 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 local_issue_server.init(new local_issue_server_t(
                     &mailbox_manager,
-                    log_writer.get_log_write_issue_tracker()));
+                    log_writer.get_log_write_issue_tracker(),
+                    memory_checker->get_memory_issue_tracker()));
             }
 
             proc_directory_metadata_t initial_proc_directory {
