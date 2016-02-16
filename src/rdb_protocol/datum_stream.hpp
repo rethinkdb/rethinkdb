@@ -22,6 +22,7 @@
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/math_utils.hpp"
+#include "rdb_protocol/order_util.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -261,6 +262,67 @@ private:
 
 struct coro_info_t;
 class coro_stream_t;
+
+class args_t;
+
+class ordered_union_datum_stream_t : public eager_datum_stream_t {
+public:
+    ordered_union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
+                                 std::vector<
+                                 std::pair<order_direction_t,
+                                           counted_t<const func_t> > > &&_comparisons,
+                                 env_t *env,
+                                 backtrace_id_t bt);
+
+    virtual std::vector<datum_t>
+    next_raw_batch(env_t *env, const batchspec_t &batchspec) final;
+
+    virtual bool is_array() const final {
+        return is_array_ordered_union;
+    }
+
+    virtual bool is_exhausted() const final;
+
+    virtual feed_type_t cfeed_type() const final {
+        return union_type;
+    }
+
+    virtual bool is_infinite() const final {
+        return is_infinite_ordered_union;
+    }
+
+private:
+    std::deque<counted_t<datum_stream_t> > streams;
+
+    feed_type_t union_type;
+    bool is_array_ordered_union, is_infinite_ordered_union;
+    bool is_ordered_by_field;
+
+    bool do_prelim_cache;
+
+    struct merge_cache_item_t {
+        datum_t value;
+        counted_t<datum_stream_t> source;
+    };
+
+    struct merge_less_t {
+        env_t *merge_env;
+        profile::sampler_t *merge_sampler;
+        lt_cmp_t *merge_lt_cmp;
+        bool operator()(const merge_cache_item_t &a, const merge_cache_item_t &b) {
+            return !merge_lt_cmp->operator()(merge_env,
+                                             merge_sampler,
+                                             a.value,
+                                             b.value);
+        }
+    };
+
+    lt_cmp_t lt;
+
+    std::priority_queue<merge_cache_item_t,
+                        std::vector<merge_cache_item_t>,
+                        merge_less_t> merge_cache;
+};
 
 class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:

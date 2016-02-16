@@ -187,7 +187,26 @@ class RDBVal extends TermBase
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
     distinct: aropt (opts) -> new Distinct opts, @
     count: (args...) -> new Count {}, @, args.map(funcWrap)...
-    union: (args...) -> new Union {}, @, args...
+    union: (attrsAndOpts...) ->
+        opts = {}
+        attrs = attrsAndOpts
+
+        perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
+        if perhapsOptDict and
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
+            opts = perhapsOptDict
+            attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
+
+        attrs = (for attr in attrs
+            if attr instanceof Asc or attr instanceof Desc
+                attr
+            else
+                funcWrap(attr)
+        )
+
+        new Union opts, @, attrs...
+
     nth: (args...) -> new Nth {}, @, args...
     bracket: (args...) -> new Bracket {}, @, args...
     toJSON: (args...) -> new ToJsonString {}, @, args...

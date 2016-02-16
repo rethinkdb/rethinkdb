@@ -74,7 +74,7 @@ private:
                 rcheck_src(bt, size >= 1 && size <= 3, base_exc_t::LOGIC,
                     strprintf("Expected between 1 and 3 elements in a raw term, "
                               "but found %zu.", size));
-                        
+
                 if (size >= 1) {
                     rapidjson::Value *val = &(*src)[0];
                     rcheck_src(bt, val->IsNumber(), base_exc_t::LOGIC,
@@ -92,9 +92,15 @@ private:
 
             if (type == Term::ASC || type == Term::DESC) {
                 rcheck_src(bt,
-                    prev_frame != nullptr && prev_frame->type == Term::ORDER_BY,
+                    prev_frame != nullptr
+                    && (prev_frame->type == Term::ORDER_BY
+                        || prev_frame->type == Term::UNION
+                        || (prev_frame->prev_frame != nullptr
+                            && prev_frame->prev_frame->type == Term::UNION
+                            && (prev_frame->type == Term::MAKE_ARRAY))
+                    ),
                     base_exc_t::LOGIC,
-                    strprintf("%s may only be used as an argument to ORDER_BY.",
+                    strprintf("%s may only be used as an argument to ORDER_BY or UNION.",
                               (type == Term::ASC ? "ASC" : "DESC")));
             } else if (type == Term::NOW) {
                 // Set r.now() terms to the same literal time so it can be deteministic
@@ -144,7 +150,7 @@ private:
             if (args != nullptr) {
                 r_sanity_check(args->IsArray());
                 for (size_t i = 0; i < args->Size(); ++i) {
-                    backtrace_id_t child_bt 
+                    backtrace_id_t child_bt
                         = make_bt(bt, datum_t(static_cast<double>(i)));
                     walker_frame_t child_frame(parent, i == 0, this);
                     call_with_enough_stack([&]() {

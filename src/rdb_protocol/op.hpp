@@ -158,6 +158,8 @@ protected:
 
 private:
     friend class args_t;
+    // Union term is a friend so we can steal arguments from an array.
+    friend class union_term_t;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
     scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
 

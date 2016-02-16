@@ -10,6 +10,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/order_util.hpp"
 
 namespace ql {
 
@@ -673,18 +674,98 @@ private:
     between_null_t null_behavior;
 };
 
+
 class union_term_t : public op_term_t {
 public:
     union_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(0, -1)) { }
+        : op_term_t(env, term, argspec_t(0, -1), optargspec_t({"interleave"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t eval_flags) const {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < args->num_args(); ++i) {
             streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
-        counted_t<datum_stream_t> union_stream = make_counted<union_datum_stream_t>(
+
+        boost::optional<raw_term_t> r_interleave_arg_op = get_src().optarg("interleave");
+
+        std::vector<scoped_ptr_t<val_t> > evaluated_interleave_args;
+
+        bool allow_unordered_interleave = true;
+        bool order_by_field = false;
+
+        counted_t<datum_stream_t> union_stream;
+
+        if (r_interleave_arg_op) {
+
+            if (r_interleave_arg_op->type() == Term::MAKE_ARRAY) {
+                // Array of elements which may contain functions or r.desc/asc.
+                allow_unordered_interleave = false;
+                order_by_field = true;
+
+                counted_t<const term_t> interleave_term;
+                // Steal arguments from an array as an optarg to allow functions in array.
+                auto it = optargs.find("interleave");
+                r_sanity_check(it != optargs.end());
+                interleave_term = it->second;
+
+                const std::vector<counted_t<const term_t> > &array_args
+                    = interleave_term->get_original_args();
+
+                std::vector<scoped_ptr_t<val_t> > array_args_evaluated;
+                for (auto &arg : array_args) {
+                    array_args_evaluated.push_back(arg->eval(env, eval_flags));
+                }
+
+                union_stream = make_counted<ordered_union_datum_stream_t>(
+                    std::move(streams),
+                    build_comparisons_from_optional_terms(this,
+                                                          env,
+                                                          std::move(array_args_evaluated),
+                                                          *r_interleave_arg_op),
+                    env->env,
+                    backtrace());
+            } else {
+                scoped_ptr_t<val_t> interleave_arg = args->optarg(env, "interleave");
+                // A single element, either a bool or a term as above.
+                datum_t interleave_datum;
+                bool use_as_term = true;
+                if (interleave_arg->get_type().is_convertible(val_t::type_t::DATUM)) {
+                    interleave_datum = interleave_arg->as_datum();
+                    if (interleave_datum.get_type() == datum_t::type_t::R_BOOL) {
+                        order_by_field = false;
+                        allow_unordered_interleave = interleave_datum.as_bool();
+                        use_as_term = false;
+                    }
+                }
+                if (use_as_term) {
+                    allow_unordered_interleave = false;
+                    order_by_field = true;
+
+                    union_stream = make_counted<ordered_union_datum_stream_t>(
+                        std::move(streams),
+                        build_comparisons_from_single_term(this,
+                                                           env,
+                                                           std::move(interleave_arg),
+                                                           *r_interleave_arg_op),
+                        env->env,
+                        backtrace());
+                }
+            }
+        }
+
+        if (allow_unordered_interleave) {
+            union_stream = make_counted<union_datum_stream_t>(
                 env->env, std::move(streams), backtrace());
+        } else if (!order_by_field) {
+            union_stream = make_counted<ordered_union_datum_stream_t>(
+                std::move(streams),
+                std::vector<std::pair<order_direction_t, counted_t<const func_t> > >(),
+                env->env,
+                backtrace());
+        }
+        r_sanity_check(union_stream.has());
         return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }

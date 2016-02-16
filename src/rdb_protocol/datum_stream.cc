@@ -1689,6 +1689,110 @@ private:
     union_datum_stream_t *parent;
 };
 
+ordered_union_datum_stream_t::ordered_union_datum_stream_t(
+    std::vector<counted_t<datum_stream_t> > &&_streams,
+    std::vector<std::pair<order_direction_t, counted_t<const func_t> > > &&_comparisons,
+    env_t  *env,
+    backtrace_id_t bt)
+    : eager_datum_stream_t(bt),
+      union_type(feed_type_t::not_feed),
+      is_array_ordered_union(true),
+      is_infinite_ordered_union(false),
+      is_ordered_by_field(_comparisons.size() != 0),
+      do_prelim_cache(true),
+      lt(_comparisons),
+      merge_cache(merge_less_t{env, nullptr, &lt}) {
+
+    for (const auto &stream : _streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_ordered_union |= stream->is_infinite();
+        is_array_ordered_union &= stream->is_array();
+    }
+    for (auto &&stream : _streams) {
+        streams.push_back(std::move(stream));
+    }
+}
+
+std::vector<datum_t> ordered_union_datum_stream_t::next_raw_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    rcheck(!is_infinite_ordered_union
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an ordered `union`.");
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    if (is_ordered_by_field) {
+        if (do_prelim_cache) {
+            for (auto &&stream : streams) {
+                r_sanity_check(stream.has());
+                datum_t cache_item = stream->next(env, batchspec);
+
+                if (cache_item.has()) {
+                    merge_cache.push(
+                        merge_cache_item_t{std::move(cache_item),
+                                stream});
+                }
+            }
+            do_prelim_cache = false;
+        }
+
+        while (merge_cache.size() > 0 && !batcher.should_send_batch()) {
+            merge_cache_item_t el = std::move(merge_cache.top());
+            merge_cache.pop();
+
+            datum_t datum_on_deck = std::move(el.value);
+
+            datum_t next_datum = el.source->next(env, batchspec);
+
+            if (next_datum.has()) {
+                // Enforce ordering in merge step
+                // Ordering of this check is backwards because lt does strict <
+                rcheck(!lt(env, nullptr, next_datum, datum_on_deck),
+                       base_exc_t::LOGIC,
+                       "The streams given as arguments"
+                       " are not ordered by given ordering.");
+
+                merge_cache.push(
+                    merge_cache_item_t{std::move(next_datum),
+                            el.source});
+            }
+
+            batcher.note_el(datum_on_deck);
+            batch.push_back(std::move(datum_on_deck));
+        }
+    } else {
+        while (!streams.empty()
+               && !batcher.should_send_batch()) {
+            datum_t row = streams.front()->next(env, batchspec);
+
+            if (row.has()) {
+                batcher.note_el(row);
+                batch.push_back(std::move(row));
+            } else {
+                streams.pop_front();
+            }
+        }
+    }
+    return batch;
+}
+
+bool ordered_union_datum_stream_t::is_exhausted() const {
+    if (is_ordered_by_field) {
+        if (merge_cache.size() == 0 && !do_prelim_cache) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    } else {
+        if (streams.empty()) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    }
+}
+
 // The maximum number of reads that a union_datum_stream spawns on its substreams
 // at a time. This limit does not apply to changefeed streams.
 const size_t MAX_CONCURRENT_UNION_READS = 32;

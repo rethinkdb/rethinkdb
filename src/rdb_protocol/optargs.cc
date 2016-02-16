@@ -68,6 +68,7 @@ static const std::set<std::string> acceptable_optargs({
     "include_offsets",
     "include_states",
     "index",
+    "interleave",
     "left_bound",
     "max_batch_bytes",
     "max_batch_rows",

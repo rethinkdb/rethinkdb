@@ -456,8 +456,11 @@ class RqlQuery(object):
     def count(self, *args):
         return Count(self, *[func_wrap(arg) for arg in args])
 
-    def union(self, *args):
-        return Union(self, *args)
+    def union(self, *args, **kwargs):
+        func_kwargs = {}
+        for key in kwargs:
+            func_kwargs[key] = func_wrap(kwargs[key])
+        return Union(self, *args, **func_kwargs)
 
     def inner_join(self, *args):
         return InnerJoin(self, *args)
