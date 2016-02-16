@@ -228,8 +228,9 @@ void artificial_table_t::do_single_update(
     }
 
     ql::datum_t resp;
+    ql::datum_t new_row;
     try {
-        ql::datum_t new_row = function(old_row);
+        new_row = function(old_row);
         rcheck_row_replacement(datum_string_t(primary_key),
             store_key_t(pval.print_primary()), old_row, new_row);
         if (new_row.get_type() == ql::datum_t::R_NULL) {
@@ -248,7 +249,7 @@ void artificial_table_t::do_single_update(
             old_row, new_row, return_changes, &dummy_was_changed);
     } catch (const ql::base_exc_t &e) {
         resp = make_row_replacement_error_stats(
-            old_row, return_changes, e.what());
+            old_row, new_row, return_changes, e.what());
     }
     *stats_inout = (*stats_inout).merge(
         resp, ql::stats_merge, env->limits(), conditions_inout);

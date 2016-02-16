@@ -247,9 +247,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
 
+        ql::datum_t new_val;
         try {
             /* Compute the replacement value for the row */
-            ql::datum_t new_val = replacer->replace(old_val);
+            new_val = replacer->replace(old_val);
 
             /* Validate the replacement value and generate a stats object to return to
             the user, but don't return it yet if we need to make changes. The reason for
@@ -301,7 +302,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             return resp;
 
         } catch (const ql::base_exc_t &e) {
-            return make_row_replacement_error_stats(old_val, return_changes, e.what());
+            return make_row_replacement_error_stats(old_val,
+                                                    new_val,
+                                                    return_changes,
+                                                    e.what());
         }
     } catch (const interrupted_exc_t &e) {
         ql::datum_object_builder_t object_builder;

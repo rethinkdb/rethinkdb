@@ -53,6 +53,7 @@ an exception, you should pass the error message to `make_row_replacement_error_s
 */
 ql::datum_t make_row_replacement_error_stats(
         ql::datum_t old_row,
+        ql::datum_t new_row,
         return_changes_t return_changes,
         const char *error_message);
 

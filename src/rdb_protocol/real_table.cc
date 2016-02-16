@@ -289,6 +289,7 @@ ql::datum_t real_table_t::write_batched_insert(
         r_sanity_check(dp != NULL);
         stats = stats.merge(*dp, ql::stats_merge, env->limits(), &conditions);
     }
+
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, env->limits());
     return std::move(result).to_datum();
