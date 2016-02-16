@@ -2,9 +2,18 @@
 
 Released on 2016-02-01
 
-This bug fix release addresses a [critical bug][issue-5289-details] in RethinkDB's
-clustering system, that can lead to data loss and invalid query results under certain
-rare circumstances.
+This bug fix release addresses a [critical bug][issue-5289-details] in RethinkDB's clustering system,
+that can lead to data loss and invalid query results under certain rare
+circumstances. The bug can appear if a table is reconfigured during a network
+partition (read more in [GitHub issue #5289][issue-5289-details]).
+
+We recommend upgrading to this release as soon as possible to avoid data loss.
+
+If you see replicas get stuck in the `transitioning` state during a reconfiguration
+after upgrading, you can run `.reconfigure({emergencyRepair: '_debug_recommit'})`
+on the table to allow the reconfiguration to complete. Please make sure that the
+cluster is idle when running this operation, as RethinkDB does not guarantee
+consistency during the emergency repair.
 
 [issue-5289-details]: https://github.com/rethinkdb/rethinkdb/issues/5289#issuecomment-175394540
 
@@ -25,7 +34,7 @@ older version.
   reads, and server crashes after reconfiguring a table during incomplete connectivity
   (#5289, #4949)
 * Fixed a segmentation fault that occurred when requesting certain documents from the
-  `logs` system table (#5327)
+  `stats` system table (#5327)
 * Changefeeds on system tables now support `map`, `filter` and related commands (#5241)
 * Backtraces are now printed even if the `addr2line` tool is not installed (#5321)
 * The Java driver now supports SSL connections thanks to a contribution by @pires (#5284)
