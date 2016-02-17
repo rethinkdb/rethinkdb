@@ -238,15 +238,14 @@ class IterableResult
             unless typeof cb is 'function'
                 throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
             nextCb = =>
-                @_next().then(cb).then(nextCb).catch (err) ->
+                if @_closeCbPromise?
+                    new Promise((resolve, reject) -> reject("Cursor is closed.")).then(cb)
+                else
+                    @_next().then(cb).then(nextCb).catch (err) ->
                     return if err?.message is 'No more rows in the cursor.'
                     throw err
-            if @_closeCbPromise?
-                return new Promise((resolve, reject) =>
-                    reject("Cursor is closed.")
-                )
-            return nextCb()
 
+            return nextCb()
         else
             unless typeof cb is 'function'
                 throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
