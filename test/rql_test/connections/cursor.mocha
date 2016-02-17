@@ -306,18 +306,39 @@ describe('JavaScript Cursor', function() {
                 });
             });
 
-            it('Promise style close cursor early', function(done) {
-                tableCursor.eachAsync(function(row) {
+            it('Promise style cursor is closed.', function(done) {
+                return tableCursor.eachAsync(function(row) {
                     assert.deepEqual(row, {'id':0});
-                    tableCursor.close();
+                    return tableCursor.close();
                 }).catch(function(error) {
-                    assert.equal(error, null);
+                    assert.equal(error, "Cursor is closed.");
                     done();
                 })
             })
 
+            it('callback style cursor is closed', function(done) {
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':0});
+                    tableCursor.close();
+                }, function(error) {
+                    assert.equal(error, "Cursor is closed.");
+                    done();
+                })
+            })
+
+            if('call back style with async callback cursor is closed', function(done) {
+                tableCursor.eachAsync(function(row, done_callback) {
+                    assert.deepEqual(row, {'id':0});
+                    tableCursor.close()
+                    done_callback(null, null)
+                }, function(error) {
+                    assert.equal(error, "Cursor is closed.");
+                    done();
+                })
+            });
+
             it('errors when missing argument', function(done) {
-                expectedMsg = 'First argument to eachAsync must be a function.';
+                expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
                 assert.throws(function() { tableCursor.eachAsync(); }, argErrorTest(expectedMsg));
                 done();
             });
