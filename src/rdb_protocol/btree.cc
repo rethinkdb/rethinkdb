@@ -1538,10 +1538,19 @@ void deserialize_sindex_info(
                   "Instead of passing a constant obsolete_reql_version_t::v1_13 into "
                   "`obsolete_cb` below, there should be a separate `obsolete_cb` to "
                   "handle the different obsolete cluster versions.");
-    archive_result_t success = deserialize_cluster_version(
-        &read_stream,
-        &cluster_version,
-        std::bind(obsolete_cb, obsolete_reql_version_t::v1_13));
+    archive_result_t success;
+
+    try {
+        success = deserialize_cluster_version(
+            &read_stream,
+            &cluster_version,
+            std::bind(obsolete_cb, obsolete_reql_version_t::v1_13));
+
+    } catch (const archive_exc_t &e) {
+        rfail_toplevel(ql::base_exc_t::INTERNAL,
+                       "Unrecognized secondary index version,"
+                       " secondary index not created.");
+    }
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
