@@ -233,10 +233,10 @@ class IterableResult
     )
 
     _eachAsync: varar(1, 2, (cb, err) ->
+        unless typeof cb is 'function'
+                throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
         if not err?
             # Promise style eachAsync
-            unless typeof cb is 'function'
-                throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
             nextCb = =>
                 if @_closeCbPromise?
                     new Promise((resolve, reject) -> reject("Cursor is closed.")).then(cb)
@@ -247,8 +247,6 @@ class IterableResult
 
             return nextCb()
         else
-            unless typeof cb is 'function'
-                throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
             if typeof err isnt 'function'
                 throw new err.ReqlDriverError "Optional second argument to eachAsync must be a function"
             if cb.length is 2
@@ -257,7 +255,9 @@ class IterableResult
 
                 done = (done_error, done_data) =>
                     nextCb = (error, data) =>
-                        if done_error? is not null
+                        if done_error == undefined or done_data == undefined
+                            err("done function expects two arguments")
+                        else if done_error? is not null
                             err(done_error)
                         else if error?
                             if error.message is 'No more rows in the cursor.'

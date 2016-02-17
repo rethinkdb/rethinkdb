@@ -193,6 +193,71 @@ describe('JavaScript Cursor', function() {
         });
 
         describe('eachAsync', function() {
+            it('Callback style iterates over table', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(
+                    function(row) {
+                        assert.deepEqual(row, {'id':i});
+                        i++;
+                    },
+                    function(error) {
+                        assert.equal(i, numRows);
+                        assert.equal(error, null);
+                        done();
+                    }
+                )
+            });
+
+            it('Callback style stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    if (row.id == 10) {
+                        return false;
+                    }
+                    i++
+                }, function(error) {
+                    assert.equal(i, 10);
+                    assert.equal(error, null);
+                    done();
+                })
+            });
+
+            it('Callback style with async handler iterates over table', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(
+                    function(row, done_callback) {
+                        assert.deepEqual(row, {'id':i});
+                        i++;
+                        done_callback(null, null);
+                    },
+                    function(error) {
+                        assert.equal(i, numRows);
+                        assert.equal(error, null);
+                        done();
+                    }
+                )
+            });
+
+            it('Callback style with async handler stops iteration early', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(
+                    function(row, done_callback) {
+                        assert.deepEqual(row, {'id':i});
+                        if (row.id == 10) {
+                            return done_callback("Please stop", null);
+                        }
+                        i++;
+                        done_callback(null, null);
+                    },
+                    function(error) {
+                        assert.equal(i, 10);
+                        assert.equal(error, "Please stop");
+                        done();
+                    }
+                )
+            });
+
             it('iterates over table', function(done) {
                 var i = 0;
                 tableCursor.eachAsync(function(row) {
@@ -240,6 +305,16 @@ describe('JavaScript Cursor', function() {
                     done();
                 });
             });
+
+            it('Promise style close cursor early', function(done) {
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':0});
+                    tableCursor.close();
+                }).catch(function(error) {
+                    assert.equal(error, null);
+                    done();
+                })
+            })
 
             it('errors when missing argument', function(done) {
                 expectedMsg = 'First argument to eachAsync must be a function.';
