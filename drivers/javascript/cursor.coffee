@@ -239,7 +239,7 @@ class IterableResult
             # Promise style eachAsync
             nextCb = =>
                 if @_closeCbPromise?
-                    new Promise((resolve, reject) -> reject("Cursor is closed.")).then(cb)
+                    new Promise((resolve, reject) -> reject("Cursor is closed."))
                 else
                     @_next().then(cb).then(nextCb).catch (err) ->
                         return if err?.message is 'No more rows in the cursor.'
