@@ -143,7 +143,12 @@ public class SocketWrapper {
                 Long timeout = Math.max(0L, deadline.get() - System.currentTimeMillis());
                 socket.setSoTimeout(timeout.intValue());
             }
-            bytesRead += readStream.read(buf);
+            int res = readStream.read(buf, bytesRead, bufsize - bytesRead);
+            if (res == -1) {
+                throw new ReqlDriverError("Reached the end of the read stream.");
+            } else {
+                bytesRead += res;
+            }
         } catch (SocketTimeoutException ste) {
             throw new TimeoutException("Read timed out." + ste.getMessage());
         } catch (IOException ex) {
