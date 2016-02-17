@@ -9,7 +9,7 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-version = '2.2-beta-3-SNAPSHOT'
+version = '2.2-beta-5'
 ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 group = "com.rethinkdb"
 archivesBaseName = "rethinkdb-driver"
