@@ -758,8 +758,10 @@ bool initialize_tls_ctx(const std::map<std::string, options::values_t> &opts, SS
         return false;
     }
 
-    // Only allow TLS v1.2 and prefer server ciphers.
-    SSL_CTX_set_options(*tls_ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE);
+    // Only allow TLS v1.2, prefer server ciphers, and always generate new keys
+    // for DHE or ECDHE.
+    SSL_CTX_set_options(*tls_ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1);
+    SSL_CTX_set_options(*tls_ctx, SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE);
 
     /* This is pretty important. We want to use the most secure TLS cipher
     suite that we can. Our default list only allows ciphers suites which employ
@@ -775,31 +777,56 @@ bool initialize_tls_ctx(const std::map<std::string, options::values_t> &opts, SS
         return false;
     }
 
-    /* These values correspond to the standard NIST/FIPS curves and are also
-    commonly known as P-521, P-384, and P-256 respectively. Some people
-    speculate that these curves are compromised in some way by the NSA but most
-    people agree that they are safe to use. Any real risk in using elliptic
-    curves is associated with ECDSA (Elliptic Curve Digital Signature
-    Algorithm) where you must be careful to generate signatures correctly using
-    a secure PRNG. As we are using them only for ECDHE, I stand by this
-    selection. These are just our defaults, but a system admin may specify a
-    set of preferred curves with a command line option - for example
-    'secp256k1' (widely used and popularized by the Bitcoin cryptocurrency) and
-    Daniel J. Bernstein's 'Curve25519' (though not currently supported by
-    OpenSSL) would be other good choices. */
-    boost::optional<std::string> curves_opt = get_optional_option(opts, "--tls-ec-curves");
-    std::string curves = curves_opt ? *curves_opt : "secp521r1:secp384r1:prime256v1";
+    /* The default curve name corresponds to a standard NIST/FIPS curve and
+    is also commonly known as P-256. Some people speculate that the NIST/FIPS
+    curves are compromised in some way by the NSA but most people agree that
+    they are safe to use. Any real risk in using elliptic curves is associated
+    with ECDSA (Elliptic Curve Digital Signature Algorithm) where you must be
+    careful to generate signatures correctly using a secure PRNG. As we are
+    using them only for ECDHE, this should be safe. This is just our default
+    ECDHE curve and is widley supported by TLS libraries, but a system admin
+    may specify any preferred curve which is supported by their local version
+    of libssl with a command line option - for example 'secp256k1' (widely used
+    and popularized by the Bitcoin cryptocurrency) and Daniel J. Bernstein's
+    'Curve25519' (though not currently supported by OpenSSL) would be other
+    good choices.
+    NOTE: For compatibility reasons, we can only support a single elliptic
+    curve since OpenSSL is ridiculous. */
+    boost::optional<std::string> curve_opt = get_optional_option(opts, "--tls-ecdh-curve");
+    std::string curve_name = curve_opt ? *curve_opt : "prime256v1";
+
+    int curve_nid = OBJ_txt2nid(curve_name.c_str());
+    if (NID_undef == curve_nid) {
+        logNTC("No elliptic curve found corresponding to name: %s", curve_name.c_str());
+        return false;
+    }
+
+    EC_KEY *ec_key = EC_KEY_new_by_curve_name(curve_nid);
+    if (NULL == ec_key) {
+        logNTC("Unable to get Elliptic Curve by name: %s", curve_name.c_str());
+        return false;
+    }
+
+    SSL_CTX_set_tmp_ecdh(*tls_ctx, ec_key);
+    EC_KEY_free(ec_key);
+
+
+    /* If we only supported OpenSSL 1.0.2 then we could have multiple ECDHE
+    curves with something like this:
+
     if (0 == SSL_CTX_set1_curves_list(*tls_ctx, curves.c_str())) {
         logNTC("Not able to set ECDHE curves for perfect forward secrecy\n");
         return false;
     }
 
-    /* Enabling this option allows the server to select the appropriate curve
-    that is shared with the client. */
+    // Enabling this option allows the server to select the appropriate curve
+    // that is shared with the client.
     if (0 == SSL_CTX_set_ecdh_auto(*tls_ctx, 1)) {
         logNTC("Not able to set ECDHE curve selection mode\n");
         return false;
     }
+
+    */
 
     /* If the client and server do not support ECDHE but do support DHE, an
     admin must specify a file containing parameters for DHE. */
@@ -1403,12 +1430,12 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
     // Generic TLS options, for customizing cipher suites.
     options_out->push_back(options::option_t(options::names_t("--tls-ciphers"),
                                              options::OPTIONAL));
-    options_out->push_back(options::option_t(options::names_t("--tls-ec-curves"),
+    options_out->push_back(options::option_t(options::names_t("--tls-ecdh-curve"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--tls-dhparams"),
                                              options::OPTIONAL));
     help.add("--tls-ciphers cipher_list", "specify a list of TLS ciphers to use; default is 'ECDHE+AESGCM'");
-    help.add("--tls-ec-curves curve_list", "specify a list of elliptic curves to use for ECDHE; default is 'secp521r1:secp384r1:prime256v1'");
+    help.add("--tls-ecdh-curve curve_name", "specify a named elliptic curve to use for ECDHE; default is 'prime256v1'");
     help.add("--tls-dhparams dhparams_filename", "provide parameters for DHE key agreement; REQUIRED if using DHE cipher suites; at least 2048-bit recommended");
 
     return help;
