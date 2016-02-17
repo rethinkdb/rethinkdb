@@ -234,7 +234,7 @@ class IterableResult
 
     _eachAsync: varar(1, 2, (cb, err) ->
         if not err?
-            # Promise style replacing eachAsync
+            # Promise style eachAsync
             unless typeof cb is 'function'
                 throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
             nextCb = =>
@@ -256,9 +256,11 @@ class IterableResult
                 # Callback style w/ async handler
                 self = @
 
-                done = =>
+                done = (done_error, done_data) =>
                     nextCb = (error, data) =>
-                        if error?
+                        if done_error? is not null
+                            err(done_error)
+                        else if error?
                             if error.message is 'No more rows in the cursor.'
                                 err(null)
                             else
@@ -270,7 +272,7 @@ class IterableResult
                     @_next nextCb
                     return
 
-                done()
+                done(null, null)
             else if cb.length is 1
                 #Callback style
                 self = @
