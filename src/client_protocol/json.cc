@@ -2,6 +2,7 @@
 #include "client_protocol/json.hpp"
 
 #include "arch/io/network.hpp"
+#include "arch/timing.hpp"
 #include "client_protocol/protocols.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
@@ -59,6 +60,16 @@ scoped_ptr_t<ql::query_params_t> json_protocol_t::parse_query(
                          Response::RESOURCE_LIMIT,
                          wire_protocol_t::too_large_query_message(size),
                          ql::backtrace_registry_t::EMPTY_BACKTRACE);
+
+        if (size < wire_protocol_t::HARD_LIMIT_TOO_LARGE_QUERY_SIZE) {
+            // Ignore all the extra data that the client is trying to send.
+            // within reason. This is so it doesn't look like a broken pipe error.
+
+            signal_timer_t read_timeout_interruptor{wire_protocol_t::TOO_LONG_QUERY_TIME};
+            wait_any_t pop_interruptor(interruptor, &read_timeout_interruptor);
+            conn->pop(size, &pop_interruptor);
+        }
+
         send_response(&error, token, conn, interruptor);
         throw tcp_conn_read_closed_exc_t();
     }
