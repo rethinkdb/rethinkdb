@@ -6,6 +6,7 @@
 #include "containers/archive/archive.hpp"
 #include "version.hpp"
 
+
 namespace archive_internal {
 
 class bogus_made_up_type_t;
@@ -38,9 +39,12 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
         crash("Outdated index handling did not crash or throw.");
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
-        rassert(raw >= static_cast<int8_t>(cluster_version_t::v1_14)
-                && raw <= static_cast<int8_t>(cluster_version_t::v2_2_is_latest));
-        *thing = static_cast<cluster_version_t>(raw);
+        if (raw >= static_cast<int8_t>(cluster_version_t::v1_14)
+            && raw <= static_cast<int8_t>(cluster_version_t::v2_2_is_latest)) {
+            *thing = static_cast<cluster_version_t>(raw);
+        } else {
+            throw archive_exc_t{"Unrecognized cluster serialization version."};
+        }
     }
     return res;
 }
@@ -56,15 +60,14 @@ inline MUST_USE archive_result_t deserialize_reql_version(
     int8_t raw;
     archive_result_t res = deserialize_universal(s, &raw);
     if (raw < static_cast<int8_t>(reql_version_t::EARLIEST)) {
-        guarantee(
-            raw >= static_cast<int8_t>(obsolete_reql_version_t::EARLIEST)
-            && raw <= static_cast<int8_t>(obsolete_reql_version_t::LATEST));
+        guarantee(raw >= static_cast<int8_t>(obsolete_reql_version_t::EARLIEST)
+                  && raw <= static_cast<int8_t>(obsolete_reql_version_t::LATEST));
         obsolete_cb(static_cast<obsolete_reql_version_t>(raw));
         crash("Outdated index handling did not crash or throw.");
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
         guarantee(raw >= static_cast<int8_t>(reql_version_t::EARLIEST)
-                  && raw <= static_cast<int8_t>(reql_version_t::LATEST));
+                && raw <= static_cast<int8_t>(reql_version_t::LATEST));
         *thing = static_cast<reql_version_t>(raw);
     }
     return res;

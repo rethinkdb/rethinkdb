@@ -546,16 +546,18 @@ def create_table(progress, conn, db, table, create_args, sindexes):
     # and create them from scratch
     indexes = r.db(db).table(table).index_list().run(conn)
     created_indexes = list()
-    for sindex in sindexes[progress[0]:]:
-        if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
-            if sindex['index'] in indexes:
-                r.db(db).table(table).index_drop(sindex['index']).run(conn)
-            r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
-            created_indexes.append(sindex['index'])
-        progress[0] += 1
-    r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
-
-def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
+    try:
+        for sindex in sindexes[progress[0]:]:
+            if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
+                if sindex['index'] in indexes:
+                    r.db(db).table(table).index_drop(sindex['index']).run(conn)
+                r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+                created_indexes.append(sindex['index'])
+            progress[0] += 1
+        r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
+    except RuntimeError:
+        throw RuntimeError("Sindex warning")
+def table_reader(options, file_info, task_queue, error_queue, warning_queue, progress_info, exit_event):
     try:
         db = file_info["db"]
         table = file_info["table"]
@@ -563,8 +565,15 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         create_args["primary_key"] = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
+        try:
+            rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
                          file_info["info"]["indexes"] if options["create_sindexes"] else [])
+        except RuntimeError as e:
+            if str(e) == "Sindex warning":
+                ex_type, ex_class, tb = sys.exc_info()
+                warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
+            else:
+                raise
 
         if file_info["format"] == "json":
             json_reader(task_queue,
@@ -619,6 +628,7 @@ def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
     task_queue = SimpleQueue()
     error_queue = SimpleQueue()
+    warning_queue = SimpleQueue()
     exit_event = multiprocessing.Event()
     interrupt_event = multiprocessing.Event()
     errors = []
@@ -652,6 +662,7 @@ def spawn_import_clients(options, files_info):
                                                               file_info,
                                                               task_queue,
                                                               error_queue,
+                                                              warning_queue,
                                                               progress_info[-1],
                                                               exit_event)))
             reader_procs[-1].start()
@@ -663,6 +674,7 @@ def spawn_import_clients(options, files_info):
             while not error_queue.empty():
                 exit_event.set()
                 errors.append(error_queue.get())
+
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
             update_progress(progress_info)
 
@@ -701,6 +713,16 @@ def spawn_import_clients(options, files_info):
             if len(error) == 4:
                 print("In file: %s" % error[3], file=sys.stderr)
         raise RuntimeError("Errors occurred during import")
+
+    if len(warning_queue) != 0:
+        while not warning_queue.empty():
+            warning = warning_queue.get()
+            print("%s" % warning[1], file=sys.stderr)
+            if options["debug"]:
+                print("%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr)
+            if len(warning) == 4:
+                print("In file: %s" % warning[3], file=sys.stderr)
+        raise RuntimeError("Warnings occurred during import")
 
 def get_import_info_for_file(filename, db_table_filter):
     file_info = {}
@@ -879,6 +901,8 @@ def main():
             raise RuntimeError("Error: Neither --directory or --file specified")
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
+        if str(ex) == "Warnings occurred during import":
+            return 2
         return 1
     print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
