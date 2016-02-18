@@ -1653,8 +1653,10 @@ class WorkerThread(threading.Thread):
         
         # -- shutdown server before worker exit
         try:
-            self.server.stop() # just cleans for external servers
+            if self.server:
+                self.server.stop() # just cleans for external servers
         except Exception as e:
+            debug(traceback.format_exc())
             sys.stdout.write('Server issue while stoping worker: %s' % str(e))
         self.server = None
 
