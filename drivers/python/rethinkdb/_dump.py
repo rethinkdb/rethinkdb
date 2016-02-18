@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
+import sys, os, datetime, time, shutil, tarfile, tempfile, subprocess, os.path
 from optparse import OptionParser
 from ._backup import *
 
@@ -112,17 +112,9 @@ def do_export(temp_dir, options):
 def do_zip(temp_dir, options):
     print("Zipping export directory...")
     start_time = time.time()
-    tar_args = ["tar", "czf", options["out_file"]]
-
-    if sys.platform.startswith("linux"):
-        # Tar on OSX does not support this flag, which may be useful with low free space
-        tar_args.append("--remove-files")
-
-    tar_args.extend(["-C", temp_dir])
-    tar_args.append(options["temp_filename"])
-    res = subprocess.call(tar_args)
-    if res != 0:
-        raise RuntimeError("Error: tar of export directory failed")
+    with tarfile.open(options["out_file"], "w:gz") as f:
+        export_dir = os.path.join(temp_dir, options["temp_filename"])
+        f.add(export_dir, options["temp_filename"])
     print("  Done (%d seconds)" % (time.time() - start_time))
 
 def run_rethinkdb_export(options):
