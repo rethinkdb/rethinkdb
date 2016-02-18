@@ -194,13 +194,13 @@ public class Connection {
             // terminate response pump
             if (exec != null && !exec.isShutdown()) {
                 exec.shutdown();
-                if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
-                    log.error("Executor did not terminate");
-                }
             }
 
             // close the socket
             socket.ifPresent(SocketWrapper::close);
+            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+                log.error("Executor did not terminate");
+            }
         }
 
     }
