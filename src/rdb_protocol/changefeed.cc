@@ -2226,11 +2226,13 @@ public:
                 if (include_states) els.push_back(initializing_datum());
                 size_t i = 0;
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
-                    els.push_back(
-                        datum_t(std::map<datum_string_t, datum_t>{
-                                {datum_string_t("new_val"), (**it)->second.second},
-                                {datum_string_t("new_offset"),
-                                 datum_t(static_cast<double>(i++))}}));
+                    std::map<datum_string_t, datum_t> m;
+                    m[datum_string_t("new_val")] = (**it)->second.second;
+                    if (include_offsets) {
+                        m[datum_string_t("new_offset")] =
+                            datum_t(static_cast<double>(i++));
+                    }
+                    els.push_back(datum_t(std::move(m)));
                 }
             }
             if (include_states) els.push_back(ready_datum());
@@ -2395,10 +2397,14 @@ public:
             size_t erased = active_data.erase(it);
             if (erased != 0) {
                 // The old value was in the set.
-                guarantee(old_offset);
+                if (include_offsets) {
+                    guarantee(old_offset);
+                }
                 old_send = **it;
             } else {
-                guarantee(!old_offset);
+                if (include_offsets) {
+                    guarantee(!old_offset);
+                }
             }
             item_queue.erase(it);
         }
@@ -2416,8 +2422,10 @@ public:
             if (insert) {
                 // The new value is in the old set bounds (and thus in the set).
                 active_data.insert(it);
-                new_offset = slow_active_offset(it);
-                guarantee(new_offset);
+                if (include_offsets) {
+                    new_offset = slow_active_offset(it);
+                    guarantee(new_offset);
+                }
                 new_send = **it;
             }
         }
