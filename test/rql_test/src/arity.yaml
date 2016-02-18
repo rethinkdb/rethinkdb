@@ -312,3 +312,8 @@ tests:
       ot:
         cd: err('ReqlCompileError','Expected 3 arguments but found 4.',[])
         js: err('ReqlCompileError','Expected 2 arguments (not including options) but found 3.',[])
+
+    - cd:
+        - r.now('foo')
+        - r.now(r.args([1,2,3]))
+      ot: err('ReqlCompileError','NOW does not accept any args.')

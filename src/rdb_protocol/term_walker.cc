@@ -97,6 +97,18 @@ private:
                     strprintf("%s may only be used as an argument to ORDER_BY.",
                               (type == Term::ASC ? "ASC" : "DESC")));
             } else if (type == Term::NOW) {
+                // This checking is not as strict as with other terms, for simplicity's sake
+                for (size_t i = 1; i < src->Size(); ++i) {
+                    rapidjson::Value *val = &(*src)[i];
+                    if (val->IsArray()) {
+                        rcheck_src(bt, val->Size() == 0, base_exc_t::LOGIC,
+                                   "NOW does not accept any args.");
+                    } else if (val->IsObject()) {
+                        rcheck_src(bt, val->MemberCount() == 0, base_exc_t::LOGIC,
+                                   "NOW does not accept any optargs.");
+                    }
+                }
+
                 // Set r.now() terms to the same literal time so it can be deteministic
                 type = Term::DATUM;
                 rapidjson::Value rewritten;
