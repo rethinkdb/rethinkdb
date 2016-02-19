@@ -88,6 +88,7 @@ struct service_address_ports_t {
 };
 
 struct tls_configs_t {
+    tls_configs_t() : web(NULL), driver(NULL), cluster(NULL) {}
     SSL_CTX *web;
     SSL_CTX *driver;
     SSL_CTX *cluster;

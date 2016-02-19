@@ -771,14 +771,18 @@ bool initialize_tls_ctx(const std::map<std::string, options::values_t> &opts, SS
     configure their own ciphers list if their SSL/TLS lib doesn't support these
     options or if they want to use other cipher suites. */
     boost::optional<std::string> ciphers_opt = get_optional_option(opts, "--tls-ciphers");
-    std::string ciphers = ciphers_opt ? *ciphers_opt : "ECDHE+AESGCM";
+    /* NOTE: I normally prefer the abreviation 'ECDHE', but older versions of
+    OpenSSL do not seem to like 'ECDHE' even though the matching cipher suites
+    have that prefix. Yeah, I know... it's very frustrating. Both older (1.0.1)
+    and newer (1.0.2) versions seem to be okay with 'EECDH' though. */
+    std::string ciphers = ciphers_opt ? *ciphers_opt : "EECDH+AESGCM";
     if (0 == SSL_CTX_set_cipher_list(*tls_ctx, ciphers.c_str())) {
         logNTC("No secure cipher suites available\n");
         return false;
     }
 
-    /* The default curve name corresponds to a standard NIST/FIPS curve and
-    is also commonly known as P-256. Some people speculate that the NIST/FIPS
+    /* The default curve name corresponds to a standard NIST/FIPS curve and is
+    also commonly known as P-256. Some people speculate that the NIST/FIPS
     curves are compromised in some way by the NSA but most people agree that
     they are safe to use. Any real risk in using elliptic curves is associated
     with ECDSA (Elliptic Curve Digital Signature Algorithm) where you must be
