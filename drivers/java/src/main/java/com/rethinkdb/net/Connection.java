@@ -198,7 +198,7 @@ public class Connection {
 
             // close the socket
             socket.ifPresent(SocketWrapper::close);
-            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+            if (exec != null && !exec.awaitTermination(60, TimeUnit.SECONDS)) {
                 log.error("Executor did not terminate");
             }
         }
