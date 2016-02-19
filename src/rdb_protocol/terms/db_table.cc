@@ -5,7 +5,6 @@
 #include <string>
 
 #include "clustering/administration/admin_op_exc.hpp"
-#include "clustering/administration/auth/global_permissions.hpp"
 #include "clustering/administration/auth/permissions.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "containers/name_string.hpp"
@@ -714,23 +713,21 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t) const {
         auth::username_t grantee_username(
             args->arg(env, args->num_args() - 2)->as_str().to_std());
+        ql::datum_t permissions = args->arg(env, args->num_args() - 1)->as_datum();
 
         bool success = false;
         ql::datum_t result;
         admin_err_t error;
         if (args->num_args() == 2) {
-            auth::global_permissions_t global_permissions(
-                args->arg(env, 1)->as_datum());
             success = env->env->reql_cluster_interface()->grant_global(
                 env->env->get_username(),
-                grantee_username,
-                global_permissions,
+                std::move(grantee_username),
+                std::move(permissions),
                 env->env->interruptor,
                 &result,
                 &error);
         } else {
             scoped_ptr_t<val_t> scope = args->arg(env, 0);
-            auth::permissions_t permissions(args->arg(env, 2)->as_datum());
             if (scope->get_type().is_convertible(val_t::type_t::DB)) {
                 success = env->env->reql_cluster_interface()->grant_database(
                     env->env->get_username(),
@@ -746,8 +743,8 @@ private:
                     env->env->get_username(),
                     table->db->id,
                     table->get_id(),
-                    grantee_username,
-                    permissions,
+                    std::move(grantee_username),
+                    std::move(permissions),
                     env->env->interruptor,
                     &result,
                     &error);

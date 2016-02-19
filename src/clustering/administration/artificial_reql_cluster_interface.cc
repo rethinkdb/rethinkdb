@@ -366,15 +366,15 @@ bool artificial_reql_cluster_interface_t::db_rebalance(
 
 bool artificial_reql_cluster_interface_t::grant_global(
         boost::optional<auth::username_t> const &granter_username,
-        auth::username_t const &grantee_username,
-        auth::global_permissions_t const &global_permissions,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     return m_next->grant_global(
         granter_username,
-        grantee_username,
-        global_permissions,
+        std::move(grantee_username),
+        std::move(permissions),
         interruptor,
         result_out,
         error_out);
@@ -382,13 +382,13 @@ bool artificial_reql_cluster_interface_t::grant_global(
 
 bool artificial_reql_cluster_interface_t::grant_database(
         boost::optional<auth::username_t> const &granter_username,
-        database_id_t const &database,
-        auth::username_t const &grantee_username,
-        auth::permissions_t const &permissions,
+        database_id_t const &database_id,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    if (database.is_nil()) {
+    if (database_id.is_nil()) {
         *error_out = admin_err_t{
             strprintf("The `%s` database is special, you can't grant permissions on it.",
                       m_database.c_str()),
@@ -397,9 +397,9 @@ bool artificial_reql_cluster_interface_t::grant_database(
     }
     return m_next->grant_database(
         granter_username,
-        database,
-        grantee_username,
-        permissions,
+        database_id,
+        std::move(grantee_username),
+        std::move(permissions),
         interruptor,
         result_out,
         error_out);
@@ -407,14 +407,14 @@ bool artificial_reql_cluster_interface_t::grant_database(
 
 bool artificial_reql_cluster_interface_t::grant_table(
         boost::optional<auth::username_t> const &granter_username,
-        database_id_t const &database,
-        namespace_id_t const &table,
-        auth::username_t const &grantee_username,
-        auth::permissions_t const &permissions,
+        database_id_t const &database_id,
+        namespace_id_t const &table_id,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    if (database.is_nil() || table.is_nil()) {
+    if (database_id.is_nil() || table_id.is_nil()) {
         *error_out = admin_err_t{
             strprintf("The `%s` database is special, you can't grant permissions on it.",
                       m_database.c_str()),
@@ -423,10 +423,10 @@ bool artificial_reql_cluster_interface_t::grant_table(
     }
     return m_next->grant_table(
         granter_username,
-        database,
-        table,
-        grantee_username,
-        permissions,
+        database_id,
+        table_id,
+        std::move(grantee_username),
+        std::move(permissions),
         interruptor,
         result_out,
         error_out);
@@ -522,14 +522,20 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
 
     for (int i = 0; i < 2; ++i) {
-        auth_backend[i].init(new auth::artificial_table_backend_t(
+        permissions_backend[i].init(new auth::permissions_artificial_table_backend_t(
             auth_semilattice_view,
             _semilattice_view,
             _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }
+    backends[name_string_t::guarantee_valid("permissions")] =
+        std::make_pair(permissions_backend[0].get(), permissions_backend[1].get());
+
+    users_backend.init(new auth::users_artificial_table_backend_t(
+        auth_semilattice_view,
+        _semilattice_view));
     backends[name_string_t::guarantee_valid("users")] =
-        std::make_pair(auth_backend[0].get(), auth_backend[1].get());
+        std::make_pair(users_backend.get(), users_backend.get());
 
     cluster_config_backend.init(new cluster_config_artificial_table_backend_t(
         _heartbeat_view));
