@@ -417,13 +417,13 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
 	    const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Don't allow a wait call without explicit database
-        if (args->num_args() == 0) {
-            rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
-        }
+      // Don't allow a wait call without explicit database
+      if (args->num_args() == 0) {
+	rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
+      }
 
-        // Handle 'wait_for' optarg
-        table_readiness_t readiness = table_readiness_t::writes;
+      // Handle 'wait_for' optarg
+        table_readiness_t readiness = table_readiness_t::finished;
         if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
             if (wait_for->as_str() == wait_outdated_str) {
                 readiness = table_readiness_t::outdated_reads;
