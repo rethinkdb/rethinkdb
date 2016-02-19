@@ -112,9 +112,19 @@ def do_export(temp_dir, options):
 def do_zip(temp_dir, options):
     print("Zipping export directory...")
     start_time = time.time()
-    with tarfile.open(options["out_file"], "w:gz") as f:
-        export_dir = os.path.join(temp_dir, options["temp_filename"])
-        f.add(export_dir, options["temp_filename"])
+    original_dir = os.getcwd()
+
+    try:
+        os.chdir(temp_dir)
+        with tarfile.open(options["out_file"], "w:gz") as f:
+            for curr, subdirs, files in os.walk(options["temp_filename"]):
+                for data_file in files:
+                    path = os.path.join(curr, data_file)
+                    f.add(path)
+                    os.unlink(path)
+    finally:
+        os.chdir(original_dir)
+
     print("  Done (%d seconds)" % (time.time() - start_time))
 
 def run_rethinkdb_export(options):
