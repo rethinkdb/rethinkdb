@@ -234,7 +234,7 @@ class IterableResult
 
     _eachAsync: varar(1, 2, (cb, err) ->
         unless typeof cb is 'function'
-                throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
+            throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
 
         if not err?
             # Calling eachAsync without a second argument returns a promise
