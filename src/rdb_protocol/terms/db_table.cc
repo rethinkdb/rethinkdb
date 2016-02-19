@@ -418,7 +418,7 @@ private:
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
         // Handle 'wait_for' optarg
-        table_readiness_t readiness = table_readiness_t::finished;
+        table_readiness_t readiness = table_readiness_t::writes;
         if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
             if (wait_for->as_str() == wait_outdated_str) {
                 readiness = table_readiness_t::outdated_reads;
