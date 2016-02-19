@@ -176,6 +176,13 @@ struct streamspec_t {
     configured_limits_t limits;
     datum_t squash;
     keyspec_t::spec_t spec;
+    streamspec_t(counted_t<datum_stream_t> _maybe_src,
+                 std::string _table_name,
+                 bool _include_offsets,
+                 bool _include_states,
+                 configured_limits_t _limits,
+                 datum_t _squash,
+                 keyspec_t::spec_t _spec);
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);

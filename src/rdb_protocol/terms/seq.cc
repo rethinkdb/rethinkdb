@@ -543,7 +543,7 @@ private:
                 streams.push_back(
                     changespec.keyspec.table->read_changes(
                         env->env,
-                        changefeed::streamspec_t{
+                        changefeed::streamspec_t(
                             include_initial
                                 ? std::move(changespec.stream)
                                 : counted_t<datum_stream_t>(),
@@ -552,7 +552,7 @@ private:
                             include_states,
                             limits,
                             squash,
-                            std::move(changespec.keyspec.spec)},
+                            std::move(changespec.keyspec.spec)),
                         backtrace()));
             }
             if (streams.size() == 1) {
@@ -572,7 +572,7 @@ private:
                 env->env,
                 sel->get_tbl()->tbl->read_changes(
                     env->env,
-                    changefeed::streamspec_t{
+                    changefeed::streamspec_t(
                         include_initial
                             // We want to provide an empty stream in this case
                             // because we get the initial values from the stamp
@@ -585,7 +585,7 @@ private:
                         include_states,
                         limits,
                         squash,
-                        sel->get_spec()},
+                        sel->get_spec()),
                     sel->get_bt()));
         }
         auto selection = v->as_selection(env->env);

@@ -3512,6 +3512,21 @@ scoped_ptr_t<subscription_t> new_sub(
         boost::apply_visitor(spec_visitor_t(env, feed, &ss), ss.spec));
 }
 
+streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
+                           std::string _table_name,
+                           bool _include_offsets,
+                           bool _include_states,
+                           configured_limits_t _limits,
+                           datum_t _squash,
+                           keyspec_t::spec_t _spec) :
+    maybe_src(std::move(_maybe_src)),
+    table_name(std::move(_table_name)),
+    include_offsets(std::move(_include_offsets)),
+    include_states(std::move(_include_states)),
+    limits(std::move(_limits)),
+    squash(std::move(_squash)),
+    spec(std::move(_spec)) { }
+
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     const streamspec_t &ss,

@@ -851,7 +851,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::backtrace_id_t::empty()),
               point_0(a->subscribe(
                           env,
-                          ql::changefeed::streamspec_t{
+                          ql::changefeed::streamspec_t(
                               make_counted<ql::vector_datum_stream_t>(
                                   bt, std::vector<ql::datum_t>(), boost::none),
                               "test",
@@ -859,13 +859,13 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                               false,
                               ql::configured_limits_t(),
                               ql::datum_t::boolean(false),
-                              keyspec_t::point_t{ql::datum_t(0.0)}},
+                              keyspec_t::point_t{ql::datum_t(0.0)}),
                           "id",
                           std::vector<ql::datum_t>(),
                           bt)),
               point_10(a->subscribe(
                            env,
-                           ql::changefeed::streamspec_t{
+                           ql::changefeed::streamspec_t(
                                make_counted<ql::vector_datum_stream_t>(
                                    bt, std::vector<ql::datum_t>(), boost::none),
                                "test",
@@ -873,13 +873,13 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                false,
                                ql::configured_limits_t(),
                                ql::datum_t::boolean(false),
-                               keyspec_t::point_t{ql::datum_t(10.0)}},
+                               keyspec_t::point_t{ql::datum_t(10.0)}),
                            "id",
                            std::vector<ql::datum_t>(),
                            bt)),
               range(a->subscribe(
                         env,
-                        ql::changefeed::streamspec_t{
+                        ql::changefeed::streamspec_t(
                             make_counted<ql::vector_datum_stream_t>(
                                 bt, std::vector<ql::datum_t>(), boost::none),
                             "test",
@@ -896,7 +896,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                             ql::datum_t(0.0),
                                             key_range_t::closed,
                                             ql::datum_t(10.0),
-                                            key_range_t::open))}},
+                                            key_range_t::open))}),
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }
