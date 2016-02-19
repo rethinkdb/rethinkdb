@@ -20,15 +20,26 @@ public:
         boost::tribool read,
         boost::tribool write,
         boost::tribool config);
-    permissions_t(ql::datum_t const &datum);
+    permissions_t(
+        boost::tribool read,
+        boost::tribool write,
+        boost::tribool config,
+        boost::tribool connect);
+    permissions_t(ql::datum_t const &datum, bool global);
+
+    void merge(ql::datum_t const &datum);
 
     boost::tribool get_read() const;
     boost::tribool get_write() const;
     boost::tribool get_config() const;
+    boost::tribool get_connect() const;
+
+    bool is_indeterminate() const;
 
     void set_read(boost::tribool);
     void set_write(boost::tribool);
     void set_config(boost::tribool);
+    void set_connect(boost::tribool);
 
     void to_datum(ql::datum_object_builder_t *datum_object_builder_out) const;
 
@@ -40,6 +51,9 @@ private:
     boost::tribool m_read;
     boost::tribool m_write;
     boost::tribool m_config;
+
+    // The `connect` permission is only available at the global scope
+    boost::optional<boost::tribool> m_connect;
 };
 
 }  // namespace auth

@@ -616,8 +616,8 @@ bool test_rdb_env_t::instance_t::db_rebalance(
 
 bool test_rdb_env_t::instance_t::grant_global(
         UNUSED boost::optional<auth::username_t> const &granter_username,
-        UNUSED auth::username_t const &grantee_username,
-        UNUSED auth::global_permissions_t const &global_permissions,
+        UNUSED auth::username_t grantee_username,
+        UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
         admin_err_t *error_out) {
@@ -629,9 +629,9 @@ bool test_rdb_env_t::instance_t::grant_global(
 
 bool test_rdb_env_t::instance_t::grant_database(
         UNUSED boost::optional<auth::username_t> const &granter_username,
-        UNUSED database_id_t const &database,
-        UNUSED auth::username_t const &grantee_username,
-        UNUSED auth::permissions_t const &permissions,
+        UNUSED database_id_t const &database_id,
+        UNUSED auth::username_t grantee_username,
+        UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
         admin_err_t *error_out) {
@@ -643,10 +643,10 @@ bool test_rdb_env_t::instance_t::grant_database(
 
 bool test_rdb_env_t::instance_t::grant_table(
         UNUSED boost::optional<auth::username_t> const &granter_username,
-        UNUSED database_id_t const &database,
-        UNUSED namespace_id_t const &table,
-        UNUSED auth::username_t const &grantee_username,
-        UNUSED auth::permissions_t const &permissions,
+        UNUSED database_id_t const &database_id,
+        UNUSED namespace_id_t const &table_id,
+        UNUSED auth::username_t grantee_username,
+        UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
         admin_err_t *error_out) {

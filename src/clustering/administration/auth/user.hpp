@@ -8,7 +8,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "clustering/administration/auth/global_permissions.hpp"
 #include "clustering/administration/auth/password.hpp"
 #include "clustering/administration/auth/permissions.hpp"
 #include "clustering/administration/auth/username.hpp"
@@ -30,25 +29,28 @@ class user_t {
 public:
     user_t();
     user_t(admin_t);
-    user_t(
-        ql::datum_t const &datum,
-        table_meta_client_t *table_meta_client,
-        cluster_semilattice_metadata_t const &cluster_metadata,
-        admin_identifier_format_t identifier_format);
+    user_t(ql::datum_t const &datum);
+
+    void merge(ql::datum_t const &datum);
 
     bool has_password() const;
     boost::optional<password_t> const &get_password() const;
     void set_password(boost::optional<std::string> password);
 
-    global_permissions_t get_global_permissions() const;
-    void set_global_permissions(global_permissions_t permissions);
+    permissions_t const &get_global_permissions() const;
+    permissions_t &get_global_permissions();
+    void set_global_permissions(permissions_t permissions);
 
+    std::map<database_id_t, permissions_t> const &get_database_permissions() const;
     permissions_t get_database_permissions(database_id_t const &database_id) const;
+    permissions_t &get_database_permissions(database_id_t const &database_id);
     void set_database_permissions(
         database_id_t const &database_id,
         permissions_t permissions);
 
+    std::map<namespace_id_t, permissions_t> const &get_table_permissions() const;
     permissions_t get_table_permissions(namespace_id_t const &table_id) const;
+    permissions_t &get_table_permissions(namespace_id_t const &table_id);
     void set_table_permissions(
         namespace_id_t const &table_id,
         permissions_t permissions);
@@ -70,20 +72,13 @@ public:
 
     bool has_connect_permission() const;
 
-    ql::datum_t to_datum(
-        std::map<namespace_id_t, table_basic_config_t> const &names,
-        cluster_semilattice_metadata_t const &cluster_metadata,
-        username_t const &username,
-        admin_identifier_format_t identifier_format =
-            admin_identifier_format_t::name) const;
-
     bool operator==(user_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(user_t);
 
 private:
     boost::optional<password_t> m_password;
-    global_permissions_t m_global_permissions;
+    permissions_t m_global_permissions;
     std::map<database_id_t, permissions_t> m_database_permissions;
     std::map<namespace_id_t, permissions_t> m_table_permissions;
 };

@@ -29,7 +29,6 @@
 namespace auth {
     class username_t;
     class permissions_t;
-    class global_permissions_t;
 }  // namespace auth
 
 struct admin_err_t;
@@ -333,25 +332,25 @@ public:
 
     virtual bool grant_global(
             boost::optional<auth::username_t> const &granter_username,
-            auth::username_t const &grantee_username,
-            auth::global_permissions_t const &global_permissions,
+            auth::username_t grantee_username,
+            ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool grant_database(
             boost::optional<auth::username_t> const &granter_username,
-            database_id_t const &database,
-            auth::username_t const &grantee_username,
-            auth::permissions_t const &permissions,
+            database_id_t const &database_id,
+            auth::username_t grantee_username,
+            ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool grant_table(
             boost::optional<auth::username_t> const &granter_username,
-            database_id_t const &database,
-            namespace_id_t const &table,
-            auth::username_t const &grantee_username,
-            auth::permissions_t const &permissions,
+            database_id_t const &database_id,
+            namespace_id_t const &table_id,
+            auth::username_t grantee_username,
+            ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;

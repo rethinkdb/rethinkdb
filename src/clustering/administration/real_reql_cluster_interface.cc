@@ -1044,22 +1044,21 @@ bool real_reql_cluster_interface_t::db_rebalance(
     return true;
 }
 
-bool real_reql_cluster_interface_t::grant_internal(
+template <typename T>
+bool grant_internal(
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view,
         boost::optional<auth::username_t> const &granter_username,
-        auth::username_t const &grantee_username,
-        std::function<void(boost::optional<auth::user_t> *user)> function,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
+        T function,
         ql::datum_t *result_out,
-        admin_err_t *error_out)
-        THROWS_ONLY(interrupted_exc_t, admin_op_exc_t) {
+        admin_err_t *error_out) {
     if (!static_cast<bool>(granter_username) || !granter_username->is_admin()) {
         // FIXME
     }
 
-    std::map<namespace_id_t, table_basic_config_t> names;
-    m_table_meta_client->list_names(&names);
-    cluster_semilattice_metadata_t cluster_metadata = m_cluster_semilattice_view->get();
-
-    auth_semilattice_metadata_t auth_metadata = m_auth_semilattice_view->get();
+    auth_semilattice_metadata_t auth_metadata = auth_semilattice_view->get();
     auto grantee = auth_metadata.m_users.find(grantee_username);
     if (grantee == auth_metadata.m_users.end() ||
             !static_cast<bool>(grantee->second.get_ref())) {
@@ -1070,40 +1069,55 @@ bool real_reql_cluster_interface_t::grant_internal(
         return false;
     }
 
-    ql::datum_t old_user = grantee->second.get_ref()->to_datum(
-        names, cluster_metadata, grantee_username);
+    ql::datum_object_builder_t old_permissions_builder;
+    ql::datum_object_builder_t new_permissions_builder;
+    try {
+        grantee->second.apply_write([&](boost::optional<auth::user_t> *user) {
+            auto &permissions_ref = function(user->get());
+            permissions_ref.to_datum(&old_permissions_builder);
+            permissions_ref.merge(permissions);
+            permissions_ref.to_datum(&new_permissions_builder);
+        });
+    } catch (admin_op_exc_t const &admin_op_exc) {
+        *error_out = admin_op_exc.to_admin_err();
+        return false;
+    }
 
-    grantee->second.apply_write(function);
-    m_auth_semilattice_view->join(auth_metadata);
+    auth_semilattice_view->join(auth_metadata);
 
-    ql::datum_t new_user = grantee->second.get_ref()->to_datum(
-        names, cluster_metadata, grantee_username);
-
-    // FIXME, wait for propagation
+    // FIXME wait for propagation
 
     ql::datum_object_builder_t result_builder;
     result_builder.overwrite("granted", ql::datum_t(1.0));
-    result_builder.overwrite("user_changes",
-        make_replacement_pair(std::move(old_user), std::move(new_user)));
+    result_builder.overwrite(
+        "permissions_changes",
+        make_replacement_pair(
+            old_permissions_builder.empty()
+                ? ql::datum_t::null()
+                : std::move(old_permissions_builder).to_datum(),
+            new_permissions_builder.empty()
+                ? ql::datum_t::null()
+                : std::move(new_permissions_builder).to_datum()));
     *result_out = std::move(result_builder).to_datum();
     return true;
 }
 
 bool real_reql_cluster_interface_t::grant_global(
         boost::optional<auth::username_t> const &granter_username,
-        auth::username_t const &grantee_username,
-        auth::global_permissions_t const &global_permissions,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
+        m_auth_semilattice_view,
         granter_username,
-        grantee_username,
-        [&](boost::optional<auth::user_t> *grantee) {
-            guarantee(static_cast<bool>(*grantee));
-            grantee->get().set_global_permissions(global_permissions);
+        std::move(grantee_username),
+        std::move(permissions),
+        [](auth::user_t &user) -> auth::permissions_t & {
+            return user.get_global_permissions();
         },
         result_out,
         error_out);
@@ -1111,23 +1125,24 @@ bool real_reql_cluster_interface_t::grant_global(
 
 bool real_reql_cluster_interface_t::grant_database(
         boost::optional<auth::username_t> const &granter_username,
-        database_id_t const &database,
-        auth::username_t const &grantee_username,
-        auth::permissions_t const &permissions,
+        database_id_t const &database_id,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(
-        !database.is_nil(),
+        !database_id.is_nil(),
         "`real_reql_cluster_interface_t` should never get queries for system tables");
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
+        m_auth_semilattice_view,
         granter_username,
-        grantee_username,
-        [&](boost::optional<auth::user_t> *grantee) {
-            guarantee(static_cast<bool>(*grantee));
-            grantee->get().set_database_permissions(database, permissions);
+        std::move(grantee_username),
+        std::move(permissions),
+        [&](auth::user_t &user) -> auth::permissions_t & {
+            return user.get_database_permissions(database_id);
         },
         result_out,
         error_out);
@@ -1135,24 +1150,25 @@ bool real_reql_cluster_interface_t::grant_database(
 
 bool real_reql_cluster_interface_t::grant_table(
         boost::optional<auth::username_t> const &granter_username,
-        database_id_t const &database,
-        namespace_id_t const &table,
-        auth::username_t const &grantee_username,
-        auth::permissions_t const &permissions,
+        database_id_t const &database_id,
+        namespace_id_t const &table_id,
+        auth::username_t grantee_username,
+        ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(
-        !database.is_nil() && !table.is_nil(),
+        !database_id.is_nil() && !table_id.is_nil(),
         "`real_reql_cluster_interface_t` should never get queries for system tables");
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
+        m_auth_semilattice_view,
         granter_username,
-        grantee_username,
-        [&](boost::optional<auth::user_t> *grantee) {
-            guarantee(static_cast<bool>(*grantee));
-            grantee->get().set_table_permissions(table, permissions);
+        std::move(grantee_username),
+        std::move(permissions),
+        [&](auth::user_t &user) -> auth::permissions_t & {
+            return user.get_table_permissions(table_id);
         },
         result_out,
         error_out);
