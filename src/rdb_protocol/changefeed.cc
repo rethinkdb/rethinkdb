@@ -2596,6 +2596,7 @@ public:
         feed->each_range_sub(*lock, [&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
             if (!sub->active()) return;
+            bool trivial = false;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
@@ -2612,9 +2613,7 @@ public:
                 // Duplicate values are caught before being written to disk and
                 // don't generate a `mod_report`, but if we have transforms the
                 // values might have changed.
-                if (new_val == old_val) {
-                    return;
-                }
+                trivial = (new_val == old_val);
             } else {
                 guarantee(change.old_val.has() || change.new_val.has());
                 if (change.new_val.has()) {
@@ -2646,13 +2645,15 @@ public:
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val,
-                                                std::move(old_idxs.back().first),
-                                                std::move(old_idxs.back().second)),
-                                indexed_datum_t(new_val,
-                                                std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)));
+                    if (!trivial) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    indexed_datum_t(old_val,
+                                                    std::move(old_idxs.back().first),
+                                                    std::move(old_idxs.back().second)),
+                                    indexed_datum_t(new_val,
+                                                    std::move(new_idxs.back().first),
+                                                    std::move(new_idxs.back().second)));
+                    }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
                 }
@@ -2675,10 +2676,12 @@ public:
                     new_idxs.pop_back();
                 }
             } else {
-                for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val, datum_t(), boost::none),
-                                indexed_datum_t(new_val, datum_t(), boost::none));
+                if (!trivial) {
+                    for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    indexed_datum_t(old_val, datum_t(), boost::none),
+                                    indexed_datum_t(new_val, datum_t(), boost::none));
+                    }
                 }
             }
         });
