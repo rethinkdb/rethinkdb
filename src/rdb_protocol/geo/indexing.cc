@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "rdb_protocol/geo/indexing.hpp"
 
 #include <string>
@@ -12,6 +12,7 @@
 #include "rdb_protocol/geo/exceptions.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
 #include "rdb_protocol/geo/geo_visitor.hpp"
+#include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
@@ -20,6 +21,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"
 
+using geo::S2Cell;
 using geo::S2CellId;
 using geo::S2Point;
 using geo::S2Polygon;
@@ -56,6 +58,54 @@ public:
 private:
     S2RegionCoverer coverer_;
 };
+
+/* The interior covering is a set of grid cells that are guaranteed to be fully
+contained in the geometry. This is useful for avoiding unnecessary intersection
+tests during post-filtering. */
+class compute_interior_covering_t :
+    public s2_geo_visitor_t<scoped_ptr_t<std::vector<S2CellId> > > {
+public:
+    explicit compute_interior_covering_t(const std::vector<S2CellId> &exterior_covering)
+        : exterior_covering_(exterior_covering) { }
+
+    scoped_ptr_t<std::vector<S2CellId> > on_point(const S2Point &) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        // A point's interior is thin, so no cell is going to fit into it.
+        return result;
+    }
+    scoped_ptr_t<std::vector<S2CellId> > on_line(const S2Polyline &) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        // A line's interior is thin, so no cell is going to fit into it.
+        return result;
+    }
+    scoped_ptr_t<std::vector<S2CellId> > on_polygon(const S2Polygon &polygon) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        // S2RegionCoverer has a `GetInteriorCovering` method.
+        // However it's *extremely* slow (often in the order of a second or more).
+        // We do something faster, at the risk of returning an empty or very sparse
+        // covering more often: We simply take the regular covering of the polygon,
+        // subdivide each cell at most once, and then prune out cells that are not
+        // fully contained in the polygon.
+        for (const auto &cell : exterior_covering_) {
+            S2Cell parent(cell);
+            S2Cell children[4];
+            if (polygon.Contains(parent)) {
+                result->push_back(parent.id());
+            } else if (parent.Subdivide(children)) {
+                for (size_t i = 0; i < 4; ++i) {
+                    if (polygon.Contains(children[i])) {
+                        result->push_back(children[i].id());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+private:
+    std::vector<S2CellId> exterior_covering_;
+};
+
 
 std::string s2cellid_to_key(S2CellId id) {
     // The important property of the result is that its lexicographic
@@ -195,8 +245,23 @@ std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
 
 std::vector<std::string> compute_index_grid_keys(
         const ql::datum_t &key, int goal_cells) {
-    rassert(key.has());
+    // Compute a cover of grid cells
+    std::vector<S2CellId> covering = compute_cell_covering(key, goal_cells);
 
+    // Generate keys
+    std::vector<std::string> result;
+    result.reserve(covering.size());
+    for (size_t i = 0; i < covering.size(); ++i) {
+        result.push_back(s2cellid_to_key(covering[i]));
+    }
+
+    return result;
+}
+
+// Helper for `compute_cell_covering` and `compute_interior_cell_covering`
+std::vector<S2CellId> compute_cell_covering(
+        const ql::datum_t &key, int goal_cells) {
+    rassert(key.has());
     if (!key.is_ptype(ql::pseudo::geometry_string)) {
         throw geo_exception_t(
             "Expected geometry but found " + key.get_type_name() + ".");
@@ -205,18 +270,23 @@ std::vector<std::string> compute_index_grid_keys(
         throw geo_exception_t("goal_cells must be positive (and should be >= 4).");
     }
 
-    // Compute a cover of grid cells
+    // Compute a covering of grid cells
     compute_covering_t coverer(goal_cells);
     scoped_ptr_t<std::vector<S2CellId> > covering = visit_geojson(&coverer, key);
+    return *covering;
+}
 
-    // Generate keys
-    std::vector<std::string> result;
-    result.reserve(covering->size());
-    for (size_t i = 0; i < covering->size(); ++i) {
-        result.push_back(s2cellid_to_key((*covering)[i]));
+std::vector<S2CellId> compute_interior_cell_covering(
+        const ql::datum_t &key, const std::vector<S2CellId> &exterior_covering) {
+    if (!key.is_ptype(ql::pseudo::geometry_string)) {
+        throw geo_exception_t(
+            "Expected geometry but found " + key.get_type_name() + ".");
     }
 
-    return result;
+    // Compute an interior covering of grid cells
+    compute_interior_covering_t coverer(exterior_covering);
+    scoped_ptr_t<std::vector<S2CellId> > covering = visit_geojson(&coverer, key);
+    return *covering;
 }
 
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
@@ -224,13 +294,12 @@ geo_index_traversal_helper_t::geo_index_traversal_helper_t(
     : is_initialized_(false), skey_version_(skey_version), interruptor_(interruptor) { }
 
 void geo_index_traversal_helper_t::init_query(
-        const std::vector<std::string> &query_grid_keys) {
+        const std::vector<geo::S2CellId> &query_cell_covering,
+        const std::vector<geo::S2CellId> &query_interior_cell_covering) {
     guarantee(!is_initialized_);
     rassert(query_cells_.empty());
-    query_cells_.reserve(query_grid_keys.size());
-    for (size_t i = 0; i < query_grid_keys.size(); ++i) {
-        query_cells_.push_back(key_to_s2cellid(query_grid_keys[i]));
-    }
+    query_cells_ = query_cell_covering;
+    query_interior_cells_ = query_interior_cell_covering;
     is_initialized_ = true;
 }
 
@@ -246,8 +315,10 @@ geo_index_traversal_helper_t::handle_pair(
     }
 
     const S2CellId key_cell = btree_key_to_s2cellid(keyvalue.key());
-    if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
-        return on_candidate(std::move(keyvalue), waiter);
+    if (any_cell_intersects(query_cells_, key_cell.range_min(), key_cell.range_max())) {
+        bool definitely_intersects_if_point =
+            any_cell_contains(query_interior_cells_, key_cell);
+        return on_candidate(std::move(keyvalue), waiter, definitely_intersects_if_point);
     } else {
         return continue_bool_t::CONTINUE;
     }
@@ -262,7 +333,7 @@ void geo_index_traversal_helper_t::filter_range(
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
-        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) {
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) const {
     std::pair<S2CellId, bool> left =
         order_btree_key_relative_to_s2cellid_keys(left_excl_or_null, skey_version_);
     std::pair<S2CellId, bool> right =
@@ -300,14 +371,15 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
     S2CellId range_min = left_cell.parent(common_level).range_min();
     S2CellId range_max = right_cell.parent(common_level).range_max();
 
-    return any_query_cell_intersects(range_min, range_max);
+    return any_cell_intersects(query_cells_, range_min, range_max);
 }
 
-bool geo_index_traversal_helper_t::any_query_cell_intersects(
+bool geo_index_traversal_helper_t::any_cell_intersects(
+        const std::vector<S2CellId> &cells,
         const S2CellId left_min, const S2CellId right_max) {
-    // Check if any of the query cells intersects with the given range
-    for (size_t j = 0; j < query_cells_.size(); ++j) {
-        if (cell_intersects_with_range(query_cells_[j], left_min, right_max)) {
+    // Check if any of the cells intersects with the given range
+    for (const auto &cell : cells) {
+        if (cell_intersects_with_range(cell, left_min, right_max)) {
             return true;
         }
     }
@@ -319,3 +391,16 @@ bool geo_index_traversal_helper_t::cell_intersects_with_range(
         const S2CellId left_min, const S2CellId right_max) {
     return left_min <= c.range_max() && right_max >= c.range_min();
 }
+
+bool geo_index_traversal_helper_t::any_cell_contains(
+        const std::vector<S2CellId> &cells,
+        const S2CellId key) {
+    // Check if any of the cells contains `key`
+    for (const auto &cell : cells) {
+        if (cell.contains(key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
