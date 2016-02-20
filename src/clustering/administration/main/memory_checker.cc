@@ -28,13 +28,7 @@ memory_checker_t::memory_checker_t(rdb_context_t *_rdb_ctx) :
                                      drainer.lock()));
 }
 
-void memory_checker_t::do_check(auto_drainer_t::lock_t keepalive) {
-    ql::env_t env(rdb_ctx,
-                  ql::return_empty_normal_batches_t::NO,
-                  keepalive.get_drain_signal(),
-                  ql::global_optargs_t(),
-                  nullptr);
-
+void memory_checker_t::do_check(UNUSED auto_drainer_t::lock_t keepalive) {
     uint64_t new_swap_usage = get_used_swap();
 
 #if defined(__MACH__)
