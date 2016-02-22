@@ -280,11 +280,14 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
 
         // FIXME
-        auth::username_t username("jeroen");
+        auth::username_t username("admin");
 
         if (legal) {
-            // FIXME, authentication
-            username = auth::username_t(read_auth_key(conn.get(), &ct_keepalive).str());
+            // FIXME
+            auth_key_t auth_key = read_auth_key(conn.get(), &ct_keepalive);
+            if (!auth_key.str().empty()) {
+                username = auth::username_t(auth_key.str());
+            }
         } else {
             throw client_server_exc_t("Received an unsupported protocol version. "
                                       "This port is for RethinkDB queries. Does your "
