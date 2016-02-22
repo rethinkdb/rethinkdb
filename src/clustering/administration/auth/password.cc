@@ -1,8 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/password.hpp"
 
-// FIXME, mbed TLS
-
 #include "errors.hpp"
 #include <openssl/evp.h>
 #include <openssl/rand.h>
