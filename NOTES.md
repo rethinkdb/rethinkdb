@@ -1,3 +1,52 @@
+# Release 2.2.5 (Modern Times)
+
+Released on 2016-02-23
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.5 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
+in the same cluster.
+
+No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Improvements ###
+
+* Improved the CPU efficiency of `orderBy` queries on secondary indexes (#5280)
+* Improved the efficiency of geospatial queries on indexes with point values (#5411)
+* Connections in the Java driver are now thread-safe (#5166)
+* Made the JavaScript driver compatible with Internet Explorer 10 (#5067)
+* The Ruby driver now supports nested pseudotypes (#5373)
+
+### Bug fixes ###
+
+* Fixed an issue that caused servers to not connect and/or reconnect properly (#2755)
+* Fixed an issue that caused servers to time out when running queries on secondary
+  indexes with long index keys (#5280)
+* Changefeeds now always emit events for documents leaving or entering the changefeed
+  range (#5205)
+* Fixed a bug in the Java driver that caused null pointer exceptions (#5355)
+* Fixed the `isFeed()` function in the Java driver (#5390, #5400)
+* The `r.now` command now performs arity checking correctly (#5405)
+* Fixed a test failure in the `unit.ClusteringBranch` test (#5182)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.2.5. In no particular order:
+
+* Mike Mintz (@mikemintz)
+* Paulo Pires (@pires)
+* Nicolas Viennot (@nviennot)
+* Brian Chavez (@bchavez)
+
+--
+
 # Release 2.2.4 (Modern Times)
 
 Released on 2016-02-01
