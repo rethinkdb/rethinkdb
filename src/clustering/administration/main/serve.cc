@@ -390,7 +390,7 @@ bool do_serve(io_backender_t *io_backender,
                     memory, and will log a warning. */
             scoped_ptr_t<memory_checker_t> memory_checker;
             if (i_am_a_server) {
-                memory_checker.init(new memory_checker_t(&rdb_ctx));
+                memory_checker.init(new memory_checker_t());
             }
 
             /* When the user reads the `rethinkdb.current_issues` table, it sends
