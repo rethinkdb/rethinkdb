@@ -211,6 +211,7 @@ class IterableResult
                 ).nodeify(cb)
         return @_closeCbPromise
 
+
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
             throw new err.ReqlDriverError "First argument to each must be a function."
@@ -231,16 +232,29 @@ class IterableResult
         @_next nextCb
     )
 
-    _eachAsync: (cb) ->
+    _eachAsync: varar(1, 2, (cb, err) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
+            throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
+
+
+        if err? and typeof err isnt 'function'
+            throw new err.ReqlDriverError "Optional second argument to eachAsync must be a function"
 
         nextCb = =>
-            @_next().then(cb).then(nextCb).catch (err) ->
-                return if err?.message is 'No more rows in the cursor.'
-                throw err
+            if @_closeCbPromise?
+                return Promise.reject("Cursor is closed.")
+            else
+                @_next().then (data) ->
+                    return cb(data) if cb.length <= 1 # either synchronous or awaits promise
+                    return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
+                .then (result) ->
+                    return nextCb() if result isnt false
+                .catch (err) ->
+                    return if err?.message is 'No more rows in the cursor.'
+                    throw err
 
-        return nextCb()
+        return nextCb().nodeify(err)
+    )
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
