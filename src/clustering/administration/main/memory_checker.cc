@@ -12,8 +12,7 @@
 static const int64_t delay_time = 60*1000;
 static const int64_t reset_checks = 60;
 
-memory_checker_t::memory_checker_t(rdb_context_t *_rdb_ctx) :
-    rdb_ctx(_rdb_ctx),
+memory_checker_t::memory_checker_t() :
     refresh_timer(0),
     swap_usage(0),
     print_log_message(true)
@@ -22,7 +21,6 @@ memory_checker_t::memory_checker_t(rdb_context_t *_rdb_ctx) :
 #endif
     ,timer(delay_time, this)
 {
-    rassert(rdb_ctx != nullptr);
     coro_t::spawn_sometime(std::bind(&memory_checker_t::do_check,
                                      this,
                                      drainer.lock()));
