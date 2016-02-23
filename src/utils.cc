@@ -357,7 +357,7 @@ double rng_t::randdouble() {
     return res / (1LL << 53);
 }
 
-TLS_with_constructor(rng_t, rng)
+TLS_ptr_with_constructor(rng_t, rng)
 
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifdef _WIN32
@@ -377,11 +377,11 @@ void system_random_bytes(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
-    return TLS_get_rng().randint(n);
+    return TLS_ptr_rng()->randint(n);
 }
 
 uint64_t randuint64(uint64_t n) {
-    return TLS_get_rng().randuint64(n);
+    return TLS_ptr_rng()->randuint64(n);
 }
 
 size_t randsize(size_t n) {
@@ -397,7 +397,7 @@ size_t randsize(size_t n) {
 }
 
 double randdouble() {
-    return TLS_get_rng().randdouble();
+    return TLS_ptr_rng()->randdouble();
 
 }
 
