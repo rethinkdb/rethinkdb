@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -412,13 +413,17 @@ class RunningProcesses:
     
     psCommand = ['ps', '-u', str(os.getuid()), '-o', 'pid=,ppid=,pgid=,state=,command=', '-www']
     
-    parentId = None
-    parentProcess = None # process
-    processes = {}         # (pid, command) -> process
-    processesByParent = {} # pid -> set([process,...]}
-    processesByGroup = {}  # pgid -> set([process,...]}
+    parentPid         = None
+    parentProcess     = None # process
+    processes         = None # (pid, command) -> process
+    processesByParent = None # pid -> set([process,...]}
+    processesByGroup  = None # pgid -> set([process,...]}
     
     def __init__(self, parentPid):
+        
+        self.processes = {}
+        self.processesByParent = {}
+        self.processesByGroup = {}
         
         # -- validate input
     
@@ -434,7 +439,6 @@ class RunningProcesses:
         self.list()
     
     def list(self):
-        
         # - reset known processes status to ''
         for process in self.processes.values():
             process.status = ''
@@ -447,7 +451,7 @@ class RunningProcesses:
         # - parse the list
         for line in psOutput.splitlines():
             try:
-                pid, ppid, pgid, state, command = line.split(None, 4)
+                pid, ppid, pgid, status, command = line.split(None, 4)
                 pid = int(pid)
                 ppid = int(ppid)
                 pgid = int(pgid)
@@ -456,13 +460,13 @@ class RunningProcesses:
             if (pid, command) in self.processes:
                 thisProcess = self.processes[(pid, command)]
                 thisProcess.pgid = pgid
-                thisProcess.state = state
+                thisProcess.status = status
             else:
-                thisProcess = self.Process(pid, ppid, pgid, state, command)
+                thisProcess = self.Process(pid, ppid, pgid, status, command)
                 self.processes[(pid, command)] = thisProcess
             
             # check for our parent process
-            if thisProcess.pid == self.parentPid:
+            if self.parentProcess is None and thisProcess.pid == self.parentPid:
                 self.parentProcess = thisProcess
             
             # catalog by parent
@@ -487,7 +491,7 @@ class RunningProcesses:
                 candidateGroups.add(self.parentProcess.pgid)
         
         visited = set()
-        while True:
+        while candidates or candidateGroups:
             for candidate in candidates.copy():
                 candidates.remove(candidate)
                 
@@ -512,9 +516,8 @@ class RunningProcesses:
                 candidates.update(self.processesByGroup[candidateGroupId])
             candidateGroups = set()
             
-            if not candidates:
-                targetProcesses.reverse() # so children go before their parents
-                return targetProcesses
+        targetProcesses.reverse() # so children go before their parents
+        return targetProcesses
 
 def kill_process_group(parent, timeout=20, sigkill_grace=2, only_warn=True):
     '''make sure that the given process group id is not running'''
@@ -569,22 +572,29 @@ def kill_process_group(parent, timeout=20, sigkill_grace=2, only_warn=True):
     processes = RunningProcesses(parentPid)
     
     # -- Terminate the parent process
-    if timeout > 0:
-        if parentPopen:
-            if parentPopen.poll() is None:
+    if parentPopen:
+        if parentPopen.poll() is None:
+            if timeout > 0:
                 parentPopen.terminate()
             else:
-                cleanDeadline = 0 # nothing to wait for
+                parentPopen.kill()
         else:
-            try:
+            cleanDeadline = 0 # nothing to wait for
+    else:
+        try:
+            if timeout > 0:
                 os.kill(parentPid, signal.SIGTERM)
-            except OSError as e:
-                if e.errno == 3: # No such process
-                    cleanDeadline = 0 # nothing to wait for
-                elif e.errno == 1: # Operation not permitted: not our process
-                    raise Exception('Asked to kill a process that was not ours: %d' % parentPid)
-                else:
-                    raise
+            else:
+                os.kill(parentPid, signal.SIGKILL)
+        except OSError as e:
+            if e.errno == 3: # No such process
+                cleanDeadline = 0 # nothing to wait for
+            elif e.errno == 1: # Operation not permitted: not our process
+                raise Exception('Asked to kill a process that was not ours: %d' % parentPid)
+            else:
+                raise
+
+            
     
     # - wait for the processes to gracefully terminate
     while time.time() < cleanDeadline:
@@ -619,7 +629,7 @@ def kill_process_group(parent, timeout=20, sigkill_grace=2, only_warn=True):
             return # everything is done
         for runner in runningProcesses:
             try:
-                os.killpg(runner.pid, signal.SIGKILL)
+                os.kill(runner.pid, signal.SIGKILL)
             except OSError: pass # ToDo: figure out what to do here
     
         if time.time() < hardDeadline:
@@ -634,7 +644,7 @@ def kill_process_group(parent, timeout=20, sigkill_grace=2, only_warn=True):
         try:
             os.waitpid(parentPid, os.WNOHANG)
         except Exception: pass
-
+    
     # -- return failure if anything still remains
     runningProcesses = processes.list()
     if runningProcesses:
@@ -757,7 +767,10 @@ def populateTable(conn, table, db=None, records=100, fieldName='id'):
     
     # --
     
-    return table.insert(conn._r.range(1, records + 1).map({fieldName:conn._r.row})).run(conn)
+    result = table.insert(conn._r.range(1, records + 1).map({fieldName:conn._r.row})).run(conn)
+    assert result['inserted'] == records, result
+    assert result['errors'] == 0, result
+    return result
 
 def getShardRanges(conn, table, db='test'):
     '''Given a table and a connection return a list of tuples'''

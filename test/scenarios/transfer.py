@@ -4,7 +4,7 @@
 import os, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
+import driver, scenario_common, utils, vcoptparse, workload_runner
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)

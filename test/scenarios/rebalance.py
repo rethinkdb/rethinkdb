@@ -4,7 +4,7 @@
 import os, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import rdb_unittest, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
+import rdb_unittest, scenario_common, utils, vcoptparse, workload_runner
 
 def sequence_from_string(string):
     returnValue = tuple()
@@ -47,7 +47,7 @@ class Rebalance(rdb_unittest.RdbTestCase):
         connServer = self.cluster[0]
         
         utils.print_with_time("Inserting data")
-        rdb_workload_common.insert_many(conn=self.conn, table=self.table, count=10000)
+        utils.populateTable(self.conn, self.table, records=10000)
         
         utils.print_with_time("Starting workload")
         with workload_runner.SplitOrContinuousWorkload(opts, connServer, db_name=self.dbName, table_name=self.tableName) as workload:
