@@ -71,7 +71,7 @@ static void validate_params(
             "to put the data.",
             query_state_t::FAILED);
     }
-    static const size_t max_shards = 32;
+    static const size_t max_shards = 64;
     if (params.num_shards > max_shards) {
         throw admin_op_exc_t(
             strprintf("Maximum number of shards is %zu.", max_shards),

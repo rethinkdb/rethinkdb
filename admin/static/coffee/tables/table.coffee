@@ -106,11 +106,14 @@ class TableContainer extends Backbone.View
                     table_status.eq(null),
                     null,
                     table_status.merge(
-                        max_shards: 32
+                        max_shards: 64
                         num_shards: table_config("shards").count().default(0)
                         num_servers: server_config.count()
                         num_default_servers: server_config.filter((server) ->
                             server('tags').contains('default')).count()
+                        max_num_shards: r.expr([64,
+                            server_config.filter(((server) ->
+                                server('tags').contains('default'))).count()]).min()
                         num_primary_replicas:
                             table_status("shards").count(
                                 (row) -> row('primary_replicas').isEmpty().not())
@@ -489,6 +492,7 @@ class ReconfigurePanel extends Backbone.View
                 num_shards: @model.get('num_shards')
                 num_servers: @model.get('num_servers')
                 num_default_servers: @model.get('num_default_servers')
+                max_num_shards: @model.get('max_num_shards')
                 num_replicas_per_shard: @model.get('num_replicas_per_shard')
         @reconfigure_modal.render()
 
