@@ -98,9 +98,9 @@ void permissions_t::merge(ql::datum_t const &datum) {
         }
     }
 
-    if (static_cast<bool>(m_connect)) {
-        ql::datum_t connect = datum.get_field("connect", ql::NOTHROW);
-        if (connect.has()) {
+    ql::datum_t connect = datum.get_field("connect", ql::NOTHROW);
+    if (connect.has()) {
+        if (static_cast<bool>(m_connect)) {
             keys.erase(datum_string_t("connect"));
 
             if (connect.get_type() == ql::datum_t::R_BOOL) {
@@ -112,6 +112,10 @@ void permissions_t::merge(ql::datum_t const &datum) {
                     "Expected a boolean or null for `connect`, got " + connect.print(),
                     query_state_t::FAILED);
             }
+        } else {
+            throw admin_op_exc_t(
+                "The `connect` permission is only valid at the global scope",
+                query_state_t::FAILED);
         }
     }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import os, sys, time
 
@@ -21,7 +21,6 @@ with driver.Process() as process:
     r.db("test").grant("test", {"read": True, "write": True, "config": True}).run(conn)
 
     table_id = r.db("test").table_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
-    r.db("test").table("test").wait().run(conn)
     r.db("test").table("test").grant(
             "test", {"read": True, "write": True, "config": True}
         ).run(conn)
@@ -174,7 +173,6 @@ with driver.Process() as process:
     r.db("rethinkdb").table("users").insert({"id": "test", "password": False}).run(conn)
     database_id = r.db_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
     table_id = r.db("test").table_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
-    r.db("test").table("test").wait().run(conn)
 
     res = permissions.insert({}).run(conn)
     assert res["errors"] == 1, res

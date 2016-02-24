@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import os, sys, time
 
@@ -77,7 +77,13 @@ with driver.Process() as process:
         res = r.db("test").grant("test", {"connect": True}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Unexpected keys, got {\n\t\"connect\":\ttrue\n}", err
+        assert err.message == "The `connect` permission is only valid at the global scope", err
+
+    try:
+        res = r.db("test").grant("test", {"invalid": "invalid"}).run(conn)
+        assert False, res
+    except r.ReqlOpFailedError, err:
+        assert err.message == "Unexpected keys, got {\n\t\"invalid\":\t\"invalid\"\n}", err
 
     res = r.db("test").grant(
             "test", {"read": True, "write": True, "config": True}
@@ -90,13 +96,18 @@ with driver.Process() as process:
         }, res
 
     table_id = r.db("test").table_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
-    r.db("test").table("test").wait().run(conn)
 
     try:
         res = r.db("test").table("test").grant("test", {"connect": True}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Unexpected keys, got {\n\t\"connect\":\ttrue\n}", err
+        assert err.message == "The `connect` permission is only valid at the global scope", err
+
+    try:
+        res = r.db("test").table("test").grant("test", {"invalid": "invalid"}).run(conn)
+        assert False, res
+    except r.ReqlOpFailedError, err:
+        assert err.message == "Unexpected keys, got {\n\t\"invalid\":\t\"invalid\"\n}", err
 
     res = r.db("test").table("test").grant(
             "test", {"read": True, "write": True, "config": True}
