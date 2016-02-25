@@ -141,7 +141,8 @@ public class Connection {
             while (true) {
                 // validate socket is open
                 if (!isOpen()) {
-                    log.error("Response Pump: The socket is not open, exiting.");
+                    awaiterException = new IOException("The socket is closed, exiting response pump.");
+                    this.close();
                     break;
                 }
 
@@ -154,7 +155,6 @@ public class Connection {
                     }
                 } catch (IOException e) {
                     awaiterException = e;
-                    // shutdown
                     this.close();
                     break;
                 }
