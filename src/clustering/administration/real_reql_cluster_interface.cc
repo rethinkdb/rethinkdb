@@ -191,7 +191,6 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
                       error_out)) {
         return false;
     }
-
     return true;
 }
 
