@@ -10,6 +10,21 @@
 
 namespace auth {
 
+namespace detail {
+
+    template <std::size_t N>
+    bool secure_compare(
+            std::array<unsigned char, N> const &lhs,
+            std::array<unsigned char, N> const &rhs) {
+        unsigned char d = 0u;
+        for (std::size_t i = 0; i < N; i++) {
+            d |= lhs[i] ^ rhs[i];
+        }
+        return 1 & ((d - 1) >> 8);
+    }
+
+}  // namespace detail
+
 password_t::password_t() {
 }
 
@@ -30,6 +45,18 @@ password_t::password_t(std::string const &password, uint32_t iteration_count)
             m_hash.data()) != 1) {
         // FIXME
     }
+}
+
+std::array<unsigned char, 16> const &password_t::get_salt() const {
+    return m_salt;
+}
+
+std::array<unsigned char, SHA256_DIGEST_LENGTH> const &password_t::get_hash() const {
+    return m_hash;
+}
+
+uint32_t password_t::get_iteration_count() const {
+    return m_iteration_count;
 }
 
 bool password_t::operator==(password_t const &rhs) const {

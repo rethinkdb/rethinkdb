@@ -23,6 +23,8 @@
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
 #include "client_protocol/protocols.hpp"
+#include "clustering/administration/auth/plaintext_authenticator.hpp"
+#include "clustering/administration/auth/scram_authenticator.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -274,64 +276,89 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(client_magic_number), &ct_keepalive);
 
-        bool pre_2 = client_magic_number == VersionDummy::V0_1;
-        bool pre_3 = pre_2 || client_magic_number == VersionDummy::V0_2;
-        bool pre_4 = pre_3 || client_magic_number == VersionDummy::V0_3;
-        bool legal = pre_4 || client_magic_number == VersionDummy::V0_4;
+        uint8_t version;
+        switch (client_magic_number) {
+            case VersionDummy::V0_1:
+                version = 1;
+                break;
+            case VersionDummy::V0_2:
+                version = 2;
+                break;
+            case VersionDummy::V0_3:
+                version = 3;
+                break;
+            case VersionDummy::V0_4:
+                version = 4;
+                break;
+            case VersionDummy::V0_5:
+                version = 5;
+                break;
+            default:
+                // FIXME, how should we respond here
+                throw client_server_exc_t(
+                    "Received an unsupported protocol version. This port is for "
+                    "RethinkDB queries. Does your client driver version not match the "
+                    "server?");
+        }
 
-        // FIXME
-        auth::username_t username("admin");
+        if (version < 5) {
+            auth::plaintext_authenticator_t authenticator(rdb_ctx->get_auth_watchable());
+            // Version `V0_2` and above client drivers specify the authorization key
+            if (version < 2) {
+                if (authenticator.is_authentication_required()) {
+                    throw client_server_exc_t(
+                        "Authorization required but client does not support it.");
+                }
+            } else {
+                auth_key_t auth_key = read_auth_key(conn.get(), &ct_keepalive);
+                if (authenticator.is_authentication_required() &&
+                        !authenticator.authenticate(auth_key.str())) {
+                    throw client_server_exc_t("Incorrect authorization key.");
+                }
+            }
 
-        if (legal) {
-            // FIXME
-            auth_key_t auth_key = read_auth_key(conn.get(), &ct_keepalive);
-            if (!auth_key.str().empty()) {
-                username = auth::username_t(auth_key.str());
+            if (version >= 3) {
+                int32_t wire_protocol;
+                conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
+
+                switch (wire_protocol) {
+                    case VersionDummy::JSON:
+                        break;
+                    case VersionDummy::PROTOBUF:
+                        throw client_server_exc_t(
+                            "The PROTOBUF client protocol is no longer supported");
+                        break;
+                    default:
+                        throw client_server_exc_t(
+                            strprintf(
+                                "Unrecognized protocol specified: '%d'", wire_protocol));
+                }
+            }
+
+            if (version >= 2) {
+                char const *success_msg = "SUCCESS";
+                conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
             }
         } else {
-            throw client_server_exc_t("Received an unsupported protocol version. "
-                                      "This port is for RethinkDB queries. Does your "
-                                      "client driver version not match the server?");
+            // FIXME
         }
 
-        size_t max_concurrent_queries = pre_4 ? 1 : 1024;
-
-        // With version 0_3, the client driver specifies which protocol to use
-        int32_t wire_protocol = VersionDummy::PROTOBUF;
-        if (!pre_3) {
-            conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
-        }
-
+        auth::username_t username("admin");
         ql::query_cache_t query_cache(
             rdb_ctx,
             client_addr_port,
-            pre_4
+            (version < 4)
                 ? ql::return_empty_normal_batches_t::YES
                 : ql::return_empty_normal_batches_t::NO,
             auth::user_context_t(std::move(username)));
 
-        switch (wire_protocol) {
-            case VersionDummy::JSON:
-                break;
-            case VersionDummy::PROTOBUF:
-                throw client_server_exc_t(
-                    "The PROTOBUF client protocol is no longer supported");
-            default:
-                throw client_server_exc_t(
-                    strprintf("Unrecognized protocol specified: '%d'", wire_protocol));
-        }
-
-        if (!pre_2) {
-            const char *success_msg = "SUCCESS";
-            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
-        }
-
-        if (wire_protocol == VersionDummy::JSON) {
-            connection_loop<json_protocol_t>(
-                conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
-        } else {
-            unreachable();
-        }
+        connection_loop<json_protocol_t>(
+            conn.get(),
+            (version < 4)
+                ? 1
+                : 1024,
+            &query_cache,
+            &ct_keepalive);
     } catch (const client_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());

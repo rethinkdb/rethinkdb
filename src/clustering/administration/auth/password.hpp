@@ -17,6 +17,10 @@ public:
     password_t();
     password_t(std::string const &password, uint32_t iteration_count = 4096);
 
+    std::array<unsigned char, 16> const &get_salt() const;
+    std::array<unsigned char, SHA256_DIGEST_LENGTH> const &get_hash() const;
+    uint32_t get_iteration_count() const;
+
     bool operator==(password_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(password_t);

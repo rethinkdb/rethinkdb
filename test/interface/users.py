@@ -9,7 +9,8 @@ import driver, utils
 r = utils.import_python_driver()
 
 with driver.Process() as process:
-    conn = r.connect(process.host, process.driver_port, auth_key="admin")
+    conn = r.connect(process.host, process.driver_port)
+
     users = r.db("rethinkdb").table("users")
 
     res = list(users.run(conn))
