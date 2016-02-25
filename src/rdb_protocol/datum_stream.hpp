@@ -274,20 +274,20 @@ public:
                                  env_t *env,
                                  backtrace_id_t bt);
 
-    virtual std::vector<datum_t>
+    std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec) final;
 
-    virtual bool is_array() const final {
+    bool is_array() const final {
         return is_array_ordered_union;
     }
 
-    virtual bool is_exhausted() const final;
+    bool is_exhausted() const final;
 
-    virtual feed_type_t cfeed_type() const final {
+    feed_type_t cfeed_type() const final {
         return union_type;
     }
 
-    virtual bool is_infinite() const final {
+    bool is_infinite() const final {
         return is_infinite_ordered_union;
     }
 

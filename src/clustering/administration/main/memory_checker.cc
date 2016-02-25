@@ -17,9 +17,9 @@ memory_checker_t::memory_checker_t() :
     swap_usage(0),
     print_log_message(true)
 #if defined(__MACH__) || defined(_WIN32)
-    ,first_check(true)
+    , first_check(true)
 #endif
-    ,timer(delay_time, this)
+    , timer(delay_time, this)
 {
     coro_t::spawn_sometime(std::bind(&memory_checker_t::do_check,
                                      this,

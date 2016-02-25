@@ -1,19 +1,22 @@
 #include "clustering/administration/main/cache_size.hpp"
 
+#include <limits>
+#include <string>
+
+#if defined(__MACH__)
+#include <cstdio>
+#endif
+
 #include <inttypes.h>
 #include <stddef.h>
 #include <unistd.h>
 
 #if defined(__MACH__)
 #include <availability.h>
-#include <cstdio>
 #include <errno.h>
 #include <mach/mach.h>
 #include <sys/sysctl.h>
 #endif
-
-#include <limits>
-#include <string>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
@@ -23,8 +26,8 @@
 #ifndef __MACH__
 
 #if defined(_WIN32)
-#include "windows.h"
-#include "psapi.h"
+#include <windows.h>
+#include <psapi.h>
 #endif
 size_t skip_spaces(const std::string &s, size_t i) {
     while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) {
@@ -207,10 +210,8 @@ bool get_proc_status_current_swap_usage(uint64_t *swap_usage_out) {
     if (our_pid == -1) {
         return false;
     }
-    char filename[20];
-    sprintf(filename, "/proc/%d/status", our_pid);
     thread_pool_t::run_in_blocker_pool([&]() {
-        ok = blocking_read_file(filename, &contents);
+        ok = blocking_read_file("/proc/self/status", &contents);
     });
     if (!ok) {
         return false;
