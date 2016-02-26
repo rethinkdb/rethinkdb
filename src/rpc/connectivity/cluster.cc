@@ -865,17 +865,18 @@ void connectivity_cluster_t::run_t::handle(
 
     // Receive & check header.
     {
-        const int64_t buffer_size = 64;
-        char buffer[buffer_size];
-        int64_t r;
-        for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
-            r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
+        for (size_t i = 0; i < cluster_proto_header.length(); ++i) {
+            // We read one byte at a time so we can bail out early if the header doesn't
+            // match. This is ok performance-wise because `read` is buffered.
+            char buffer;
+            int64_t r = conn->read(&buffer, 1);
             if (-1 == r) {
                 return; // network error.
             }
             rassert(r >= 0);
+            rassert(r <= 1);
             // If EOF or remote_header does not match header, terminate connection.
-            if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
+            if (0 == r || cluster_proto_header[i] != buffer) {
                 logWRN("Received invalid clustering header from %s, closing connection -- something might be connecting to the wrong port.", peername);
                 return;
             }
