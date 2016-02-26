@@ -270,6 +270,14 @@ class Connection(ConnectionBase):
             raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
     @asyncio.coroutine
+    def __aenter__(self):
+        return self
+
+    @asyncio.coroutine
+    def __aexit__(self):
+        self.close(reply_wait=False)
+
+    @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).

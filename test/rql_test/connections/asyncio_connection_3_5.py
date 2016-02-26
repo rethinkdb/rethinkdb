@@ -255,6 +255,10 @@ class TestConnection(TestWithConnection):
         await c.reconnect()
         await r.expr(1).run(c)
 
+    async def test_async_with_syntax(self):
+        async with r.connect(host=sharedServerHost, port=sharedServerDriverPort) as c:
+            await r.expr(1).run(c)
+
     async def test_connect_close_expr(self):
         c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
