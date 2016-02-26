@@ -228,14 +228,14 @@ std::string query_server_t::read_sized_string(tcp_conn_t *conn,
                                               const std::string &length_error_msg,
                                               signal_t *interruptor) {
     uint32_t str_length;
-    conn->read(&str_length, sizeof(uint32_t), interruptor);
+    conn->read_buffered(&str_length, sizeof(uint32_t), interruptor);
 
     if (str_length > max_size) {
         throw client_server_exc_t(length_error_msg);
     }
 
-    scoped_array_t<char> buffer(max_size);
-    conn->read(buffer.data(), str_length, interruptor);
+    scoped_array_t<char> buffer(str_length);
+    conn->read_buffered(buffer.data(), str_length, interruptor);
 
     return std::string(buffer.data(), str_length);
 }
@@ -274,7 +274,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
     try {
         int32_t client_magic_number;
-        conn->read(&client_magic_number, sizeof(client_magic_number), &ct_keepalive);
+        conn->read_buffered(
+            &client_magic_number, sizeof(client_magic_number), &ct_keepalive);
 
         uint8_t version;
         switch (client_magic_number) {
@@ -319,7 +320,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
             if (version >= 3) {
                 int32_t wire_protocol;
-                conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
+                conn->read_buffered(
+                    &wire_protocol, sizeof(wire_protocol), &ct_keepalive);
 
                 switch (wire_protocol) {
                     case VersionDummy::JSON:

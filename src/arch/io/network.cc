@@ -286,6 +286,39 @@ void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONL
     }
 }
 
+void linux_tcp_conn_t::read_buffered(void *buf, size_t size, signal_t *closer)
+        THROWS_ONLY(tcp_conn_read_closed_exc_t) {
+    while (size > 0) {
+        const_charslice read_data = peek();
+        if (read_data.end == read_data.beg) {
+            // We didn't get anything from the read buffer. Get some data from
+            // the underlying socket...
+            // For large reads, we read directly into buf to avoid an additional copy
+            // and additional round trips.
+            // For smaller reads, we use `read_more_buffered` to read into the
+            // connection's internal buffer and then copy out whatever we can use
+            // to satisfy the current request.
+            if (size >= IO_BUFFER_SIZE) {
+                return read(buf, size, closer);
+            } else {
+                read_more_buffered(closer);
+                read_data = peek();
+            }
+        }
+        size_t num_read = read_data.end - read_data.beg;
+        if (num_read > size) {
+            num_read = size;
+        }
+        rassert(num_read > 0);
+        memcpy(buf, read_data.beg, num_read);
+        // Remove the consumed data from the read buffer
+        pop(num_read, closer);
+
+        size -= num_read;
+        buf = static_cast<char *>(buf) + num_read;
+    }
+}
+
 void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     read_op_wrapper_t sentry(this, closer);
 
