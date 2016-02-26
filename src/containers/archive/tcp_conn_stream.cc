@@ -17,33 +17,12 @@ tcp_conn_stream_t::~tcp_conn_stream_t() {
 int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
     // Returns the number of bytes read, or 0 upon EOF, -1 upon error.
     // Right now this function cannot "error".
+    // It also always returns either `n` or 0. It never reads only parts of the data.
     try {
         cond_t non_closer;
-        const_charslice read_data = conn_->peek();
-        if (read_data.end == read_data.beg) {
-            // We didn't get anything from the read buffer. Get some data from
-            // the underlying socket...
-            // For large reads, we read directly into p to avoid an additional copy
-            // and additional round trips.
-            // For smaller reads, we use `read_more_buffered` to read into the
-            // connection's internal buffer and then copy out whatever we can use
-            // to satisfy the current request.
-            if (n >= IO_BUFFER_SIZE) {
-                return conn_->read_some(p, n, &non_closer);
-            } else {
-                conn_->read_more_buffered(&non_closer);
-                read_data = conn_->peek();
-            }
-        }
-        size_t num_read = read_data.end - read_data.beg;
-        if (num_read > static_cast<size_t>(n)) {
-            num_read = static_cast<size_t>(n);
-        }
-        rassert(num_read > 0);
-        memcpy(p, read_data.beg, num_read);
-        // Remove the consumed data from the read buffer
-        conn_->pop(num_read, &non_closer);
-        return num_read;
+        guarantee(n >= 0);
+        conn_->read_buffered(p, static_cast<size_t>(n), &non_closer);
+        return n;
     } catch (const tcp_conn_read_closed_exc_t &) {
         return 0;
     }

@@ -51,8 +51,8 @@ scoped_ptr_t<ql::query_params_t> json_protocol_t::parse_query(
         ql::query_cache_t *query_cache) {
     int64_t token;
     uint32_t size;
-    conn->read(&token, sizeof(token), interruptor);
-    conn->read(&size, sizeof(size), interruptor);
+    conn->read_buffered(&token, sizeof(token), interruptor);
+    conn->read_buffered(&size, sizeof(size), interruptor);
     ql::response_t error;
 
     if (size >= wire_protocol_t::TOO_LARGE_QUERY_SIZE) {
@@ -75,6 +75,10 @@ scoped_ptr_t<ql::query_params_t> json_protocol_t::parse_query(
     }
 
     scoped_array_t<char> data(size + 1);
+    // It's *usually* more efficient to do an un-buffered read here. The client is
+    // usually not going to group multiple queries into the same network package
+    // (especially not with tcp_nodelay set), and using the non-buffered `read` can
+    // avoid an extra copy.
     conn->read(data.data(), size, interruptor);
     data[size] = 0; // Null terminate the string, which the json parser requires
 
