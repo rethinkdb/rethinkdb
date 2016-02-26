@@ -274,8 +274,7 @@ class SocketWrapper(object):
         deadline = time.time() + timeout
 
         try:
-            self._socket = \
-                socket.create_connection((self.host, self.port), timeout)
+            self._socket = socket.create_connection((self.host, self.port), timeout)
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 

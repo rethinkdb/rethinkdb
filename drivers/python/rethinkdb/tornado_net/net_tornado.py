@@ -6,6 +6,7 @@ import struct
 from tornado import gen, iostream
 from tornado.ioloop import IOLoop
 from tornado.concurrent import Future
+from tornado.tcpclient import TCPClient
 
 from . import ql2_pb2 as p
 from .net import decodeUTF, Query, Response, Cursor, maybe_profile
@@ -81,35 +82,36 @@ class ConnectionInstance(object):
         self._cursor_cache = { }
         self._ready = Future()
         self._io_loop = io_loop
+        self._stream = None
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
-
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if len(self._parent.ssl) > 0:
-            ssl_options = {}
-            if self._parent.ssl["ca_certs"]:
-                ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
-                ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
-            self._stream = iostream.SSLIOStream(
-                self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
-        else:
-            self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
 
     @gen.coroutine
     def connect(self, timeout):
         deadline = None if timeout is None else self._io_loop.time() + timeout
+
         try:
-            yield with_absolute_timeout(
+            if len(self._parent.ssl) > 0:
+                ssl_options = {}
+                if self._parent.ssl["ca_certs"]:
+                    ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
+                    ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
+                stream_future = TCPClient().connect(self._parent.host, self._parent.port,
+                                                    ssl_options=ssl_options)
+            else:
+                stream_future = TCPClient().connect(self._parent.host, self._parent.port)
+
+            self._stream = yield with_absolute_timeout(
                 deadline,
-                self._stream.connect((self._parent.host,
-                                      self._parent.port),
-                                      server_hostname=self._parent.host),
+                stream_future,
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
+
+        self._stream.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._stream.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
         try:
             self._stream.write(self._parent.handshake)

@@ -133,9 +133,11 @@ class ConnectionInstance(object):
         try:
             self._streamreader, self._streamwriter = yield from \
                 asyncio.open_connection(self._parent.host, self._parent.port,
-                            family=socket.AF_INET, loop=self._io_loop)
+                                        loop=self._io_loop)
             self._streamwriter.get_extra_info('socket').setsockopt(
                                 socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            self._streamwriter.get_extra_info('socket').setsockopt(
+                                socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
