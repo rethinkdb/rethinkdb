@@ -5,7 +5,7 @@ import os, sys, subprocess
 try:
     import asyncio
 except ImportError:
-    # remove this when implimented https://github.com/rethinkdb/rethinkdb/issues/4139
+    # remove this when implemented https://github.com/rethinkdb/rethinkdb/issues/4139
     sys.stderr.write('This test requires the asyncio module from Python 3.5')
     sys.exit(0)
 
