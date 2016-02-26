@@ -244,7 +244,7 @@ class TestNoConnection(TestCaseCompatible):
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                 "RqlQuery.run must be given"
                                 " a connection to run on."):
-             r.expr(1).run()
+             yield from r.expr(1).run()
 
     @asyncio.coroutine
     def test_auth_key(self):

@@ -232,7 +232,7 @@ class TestNoConnection(TestCaseCompatible):
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                 "RqlQuery.run must be given"
                                 " a connection to run on."):
-             r.expr(1).run()
+             await r.expr(1).run()
 
     async def test_auth_key(self):
         # Test that everything still doesn't work even with an auth key
