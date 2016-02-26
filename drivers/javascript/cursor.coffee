@@ -1,4 +1,4 @@
-err = require('./errors')
+error = require('./errors')
 util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
@@ -58,9 +58,9 @@ class IterableResult
             if @_closeCb?
                 switch response.t
                     when protoResponseType.COMPILE_ERROR
-                        @_closeCb mkErr(err.ReqlServerCompileError, response, @_root)
+                        @_closeCb mkErr(error.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
-                        @_closeCb mkErr(err.ReqlClientError, response, @_root)
+                        @_closeCb mkErr(error.ReqlClientError, response, @_root)
                     when protoResponseType.RUNTIME_ERROR
                         @_closeCb mkErr(util.errorClass(response.e), response, @_root)
                     else
@@ -107,7 +107,7 @@ class IterableResult
                 # We prefetch things here, set `is 0` to avoid prefectch
                 if @_endFlag is true
                     cb = @_getCallback()
-                    cb new err.ReqlDriverError "No more rows in the cursor."
+                    cb new error.ReqlDriverError "No more rows in the cursor."
                 else if @_responses.length <= 1
                     @_promptCont()
 
@@ -133,11 +133,11 @@ class IterableResult
                     when protoResponseType.COMPILE_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.ReqlServerCompileError, response, @_root)
+                        cb mkErr(error.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.ReqlClientError, response, @_root)
+                        cb mkErr(error.ReqlClientError, response, @_root)
                     when protoResponseType.RUNTIME_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
@@ -146,7 +146,7 @@ class IterableResult
                     else
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb new err.ReqlDriverError "Unknown response type for cursor"
+                        cb new error.ReqlDriverError "Unknown response type for cursor"
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
@@ -158,11 +158,11 @@ class IterableResult
 
     ## Implement IterableResult
     hasNext: ->
-        throw new err.ReqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
+        throw new error.ReqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
 
     _next: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt "function"
-            throw new err.ReqlDriverError "First argument to `next` must be a function or undefined."
+            throw new error.ReqlDriverError "First argument to `next` must be a function or undefined."
 
         fn = (cb) =>
             @_cbQueue.push cb
@@ -214,9 +214,9 @@ class IterableResult
 
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverError "First argument to each must be a function."
+            throw new error.ReqlDriverError "First argument to each must be a function."
         if onFinished? and typeof onFinished isnt 'function'
-            throw new err.ReqlDriverError "Optional second argument to each must be a function."
+            throw new error.ReqlDriverError "Optional second argument to each must be a function."
 
         self = @
         nextCb = (err, data) =>
@@ -232,17 +232,16 @@ class IterableResult
         @_next nextCb
     )
 
-    _eachAsync: varar(1, 2, (cb, err) ->
+    _eachAsync: varar(1, 2, (cb, errCb) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverError 'First argument to eachAsync must be a function.'
+            throw new error.ReqlDriverError 'First argument to eachAsync must be a function.'
 
-
-        if err? and typeof err isnt 'function'
-            throw new err.ReqlDriverError "Optional second argument to eachAsync must be a function"
+        if errCb? and typeof errCb isnt 'function'
+            throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function"
 
         nextCb = =>
             if @_closeCbPromise?
-                return Promise.reject("Cursor is closed.")
+                return Promise.reject(new error.ReqlDriverError("Cursor is closed."))
             else
                 @_next().then (data) ->
                     return cb(data) if cb.length <= 1 # either synchronous or awaits promise
@@ -253,12 +252,12 @@ class IterableResult
                     return if err?.message is 'No more rows in the cursor.'
                     throw err
 
-        return nextCb().nodeify(err)
+        return nextCb().nodeify(errCb)
     )
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
-            throw new err.ReqlDriverCompileError "First argument to `toArray` must be a function or undefined."
+            throw new error.ReqlDriverCompileError "First argument to `toArray` must be a function or undefined."
 
         results = []
         return @eachAsync(results.push.bind(results)).return(results).nodeify(cb)
@@ -266,9 +265,9 @@ class IterableResult
     _makeEmitter: ->
         @emitter = new EventEmitter
         @each = ->
-            throw new err.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
+            throw new error.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
         @next = ->
-            throw new err.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
+            throw new error.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
     addListener: (event, listener) ->
@@ -338,9 +337,9 @@ class Feed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object Feed]"
 
@@ -350,9 +349,9 @@ class UnionedFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object UnionedFeed]"
 
@@ -362,9 +361,9 @@ class AtomFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object AtomFeed]"
 
@@ -374,9 +373,9 @@ class OrderByLimitFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object OrderByLimitFeed]"
 
@@ -401,7 +400,7 @@ class ArrayResult extends IterableResult
                 else
                     cb(null, self[self.__index++])
             else
-                cb new err.ReqlDriverError "No more rows in the cursor."
+                cb new error.ReqlDriverError "No more rows in the cursor."
 
         new Promise( (resolve, reject) ->
             nextCb = (err, result) ->
