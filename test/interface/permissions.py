@@ -28,7 +28,7 @@ with driver.Process() as process:
 
     permissions = r.db("rethinkdb").table("permissions")
 
-    res = list(permissions.run(conn))
+    res = list(permissions.order_by("id").run(conn))
     assert res == [
         {
             "id": ["admin"],
@@ -121,10 +121,16 @@ with driver.Process() as process:
     res = permissions.get(["test", database_id, table_id]).update(
             {"permissions": {"read": True, "write": True, "config": True}}
         ).run(conn)
+    assert res["skipped"] == 1, res
+    res = permissions.insert({
+            "id": ["test", database_id, table_id],
+            "permissions": {"read": True, "write": True, "config": True}
+        }).run(conn)
+    assert res["inserted"] == 1, res
 
     r.db("test").table_drop("test").run(conn)
 
-    res = list(permissions.run(conn))
+    res = list(permissions.order_by("id").run(conn))
     assert res == [
         {
             "id": ["admin"],
@@ -143,7 +149,7 @@ with driver.Process() as process:
 
     r.db_drop("test").run(conn)
 
-    res = list(permissions.run(conn))
+    res = list(permissions.order_by("id").run(conn))
     assert res == [
         {
             "id": ["admin"],
