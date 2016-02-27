@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
-import os, sys, subprocess
+import os
+import sys
+import subprocess
 
 try:
     import asyncio
+    assert sys.version_info >= (3, 5)
 except ImportError:
     # remove this when implemented https://github.com/rethinkdb/rethinkdb/issues/4139
     sys.stderr.write('This test requires the asyncio module from Python 3.5')
     sys.exit(0)
 
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'asyncio_connection_3_5.py')]))
+
+print(os.environ.get('INTERPRETER_PATH'))
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python3'), os.path.join(os.path.dirname(__file__), 'asyncio_connection_3_5.py')]))

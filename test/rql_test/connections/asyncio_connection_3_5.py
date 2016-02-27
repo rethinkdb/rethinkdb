@@ -17,16 +17,12 @@ import tempfile
 import time
 import traceback
 import unittest
+from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 os.pardir, os.pardir, "common"))
 import driver
 import utils
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 # -- import the rethinkdb driver
 
@@ -455,11 +451,11 @@ class TestGetIntersectingBatching(TestWithConnection):
         sys.stdout.flush()
 
         points = []
-        for i in xrange(0, point_count):
+        for i in range(0, point_count):
             points.append({'geo': r.point(random.uniform(-180.0, 180.0),
                                           random.uniform(-90.0, 90.0))})
         polygons = []
-        for i in xrange(0, poly_count):
+        for i in range(0, poly_count):
             # A fairly big circle, so it will cover a large range in
             # the secondary index
             polygons.append({'geo': r.circle([random.uniform(-180.0, 180.0),
@@ -473,7 +469,7 @@ class TestGetIntersectingBatching(TestWithConnection):
         # high to get a lazy result at least once.
         seen_lazy = False
 
-        for i in xrange(0, get_tries):
+        for i in range(0, get_tries):
             query_circle = r.circle([random.uniform(-180.0, 180.0),
                                      random.uniform(-90.0, 90.0)], 8000000)
             reference = await t1.filter(r.row['geo'].intersects(query_circle))\
@@ -510,12 +506,12 @@ class TestBatching(TestWithConnection):
         batch_size = 3
         count = 500
 
-        ids = set(xrange(0, count))
+        ids = set(range(0, count))
 
         await t1.insert([{'id': i} for i in ids]).run(c)
         cursor = await t1.run(c, max_batch_rows=batch_size)
 
-        for i in xrange(0, count - 1):
+        for i in range(0, count - 1):
             row = await cursor.next()
             self.assertTrue(row['id'] in ids)
             ids.remove(row['id'])
@@ -598,21 +594,18 @@ class TestCursor(TestWithConnection):
         cursor = await r.range().run(self.conn)
         await self.conn.close()
 
-
         async def read_cursor(cursor):
-            while (await cursor.fetch_next()):
-                await cursor.next()
-                cursor.close()
+            async for item in cursor:
+                await cursor.close()
 
         with self.assertRaisesRegexp(r.ReqlRuntimeError, "Connection is closed."):
              await read_cursor(cursor)
 
     async def test_cursor_after_cursor_close(self):
         cursor = await r.range().run(self.conn)
-        cursor.close()
+        await cursor.close()
         count = 0
-        while (await cursor.fetch_next()):
-            await cursor.next()
+        async for item in cursor:
             count += 1
         self.assertNotEqual(count, 0, "Did not get any cursor results")
 
@@ -620,11 +613,10 @@ class TestCursor(TestWithConnection):
         cursor = await r.range().run(self.conn)
         count = 0
 
-        while (await cursor.fetch_next()):
-            await cursor.next()
+        async for item in cursor:
             count += 1
             if count == 2:
-                cursor.close()
+                await cursor.close()
 
         self.assertTrue(count >= 2, "Did not get enough cursor results")
 
@@ -632,8 +624,7 @@ class TestCursor(TestWithConnection):
         range_size = 10000
         cursor = await r.range().limit(range_size).run(self.conn)
         count = 0
-        while (await cursor.fetch_next()):
-            await cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
@@ -643,14 +634,11 @@ class TestCursor(TestWithConnection):
         cursor = await r.range().limit(range_size).run(self.conn)
         count = 0
 
-        while (await cursor.fetch_next()):
-            await cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
-
-        while (await cursor.fetch_next()):
-            await cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
@@ -662,7 +650,7 @@ class TestCursor(TestWithConnection):
         cursors = [ ]
         cursor_counts = [ ]
         cursor_timeouts = [ ]
-        for i in xrange(self.num_cursors):
+        for i in range(self.num_cursors):
             cur = await r.range().map(r.js("(function (row) {" +
                                                 "end = new Date(new Date().getTime() + 2);" +
                                                 "while (new Date() < end) { }" +
@@ -684,11 +672,12 @@ class TestCursor(TestWithConnection):
 
         # We need to get ahead of pre-fetching for this to get the error we want
         while sum(cursor_counts) < 4000:
-            for cursor_index in xrange(self.num_cursors):
-                for read_count in xrange(random.randint(0, 10)):
+            for cursor_index in range(self.num_cursors):
+                for read_count in range(random.randint(0, 10)):
                     await get_next(cursor_index)
 
-        [cursor.close() for cursor in cursors]
+        for cursor in cursors:
+            await cursor.close()
 
         return (sum(cursor_counts), sum(cursor_timeouts))
 
@@ -839,6 +828,26 @@ class TestChangefeeds(TestWithConnection):
                self.table_b_writer()])
         await asyncio.wait(feeds_done.values())
         self.assertTrue(all([len(x) == 0 for x in needed_values.values()]))
+
+    async def test_async_for_syntax(self):
+        seen = { x:False for x in range(3) }
+        changefeed = await r.db("test").table("test").changes()['new_val']
+
+        await r.db("test").table("test").insert([
+                {
+                    "test": 0
+                }, {
+                    "test": 1
+                }, {
+                    "test": 2
+                }
+            ]).run(self.conn)
+
+        with asyncio.timeout(2):
+            async for change in changefeed:
+                seen[change['test']] = True
+                if all(seen.values()):
+                    self.assertTrue(True)
 
 if __name__ == '__main__':
     print("Running asyncio connection tests")

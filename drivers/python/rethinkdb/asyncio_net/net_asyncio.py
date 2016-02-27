@@ -83,6 +83,14 @@ class AsyncioCursor(Cursor):
         else:
             raise asyncio.StopAsyncIteration
 
+    @asyncio.coroutine
+    def close(self):
+        if self.error is None:
+            self.error = self._empty_error()
+            if self.conn.is_open():
+                self.outstanding_requests += 1
+                yield from self.conn._parent._stop(self)
+
     def _extend(self, res):
         Cursor._extend(self, res)
         self.new_response.set_result(True)
@@ -276,6 +284,12 @@ class Connection(ConnectionBase):
     @asyncio.coroutine
     def __aexit__(self):
         self.close(reply_wait=False)
+
+    @asyncio.coroutine
+    def _stop(self, cursor):
+        self.check_open()
+        q = Query(pQuery.STOP, cursor.query.token, None, None)
+        return (yield from self._instance.run_query(q, True))
 
     @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):
