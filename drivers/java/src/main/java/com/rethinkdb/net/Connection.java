@@ -137,14 +137,8 @@ public class Connection {
         // start response pump
         exec = Executors.newSingleThreadExecutor();
         exec.submit((Runnable) () -> {
-            // pump responses until canceled
-            while (true) {
-                // validate socket is open
-                if (!isOpen()) {
-                    log.error("Response Pump: The socket is not open, exiting.");
-                    break;
-                }
-
+            // pump responses until canceled or the connection is closed
+            while (isOpen()) {
                 // read response and send it to whoever is waiting, if anyone
                 try {
                     final Response response = this.socket.orElseThrow(() -> new ReqlDriverError("No socket available.")).read();
@@ -204,6 +198,9 @@ public class Connection {
 
             // close the socket
             socket.ifPresent(SocketWrapper::close);
+            if (exec != null && !exec.awaitTermination(60, TimeUnit.SECONDS)) {
+                log.error("Executor did not terminate");
+            }
         }
 
     }
