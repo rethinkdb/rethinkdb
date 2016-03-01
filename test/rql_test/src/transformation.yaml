@@ -112,7 +112,7 @@ tests:
     - py: r.range(0, 10).fold(0, lambda acc, _: acc, emit=lambda old,row,acc: acc).type_of()
       ot: "STREAM"
     - py: tbl.filter("id").fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(old.mod(20).eq(0),[row],[])).coerce_to("array")
-      ot: [{u'a': 0, u'id': 20}, {u'a': 3, u'id': 15}, {u'a': 2, u'id': 46}, {u'a': 2, u'id': 78}, {u'a': 2, u'id': 90}]
+      ot: [{'a': 0, 'id': 20}, {'a': 3, 'id': 15}, {'a': 2, 'id': 46}, {'a': 2, 'id': 78}, {'a': 2, 'id': 90}]
 
     - py: r.range().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).limit(10)
       ot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

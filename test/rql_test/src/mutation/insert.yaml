@@ -176,7 +176,7 @@ tests:
       ot: partial({'changes':[]})
 
     - py: tbl.insert({'a':r.minval}, return_changes="always")
-      ot: partial({u'changes': [{u'old_val': None, u'new_val': None, u'error': u'`r.minval` and `r.maxval` cannot be written to disk.'}]})
+      ot: partial({'changes': [{'old_val': None, 'new_val': None, 'error': '`r.minval` and `r.maxval` cannot be written to disk.'}]})
 
     # Get unreturnable data
     - cd: r.minval
