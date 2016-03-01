@@ -239,6 +239,13 @@ class Driver
                             server: server
                             server_id: server_id
                     )
+                non_transitive_error =
+                    servers: issue('info')('servers').map(
+                        issue_id('info')('servers'),
+                        (server, server_id) ->
+                            server: server
+                            server_id: server_id
+                    )
                 outdated_index =
                     tables: issue('info')('tables').map(
                         issue_id('info')('tables'),

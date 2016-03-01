@@ -21,6 +21,7 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
         server_config_client_t *_server_config_client) :
     common_server_artificial_table_backend_t(_server_config_client, _directory),
+    server_config_client(_server_config_client),
     directory_subs(_directory,
         [&](const peer_id_t &peer, const cluster_directory_metadata_t *metadata) {
             if (metadata == nullptr) {
@@ -63,7 +64,37 @@ bool server_status_artificial_table_backend_t::format_row(
         static_cast<double>(metadata.actual_cache_size_bytes) / MEGABYTE));
     builder.overwrite("process", std::move(proc_builder).to_datum());
 
+    ASSERT_NO_CORO_WAITING;
+    server_config_client->assert_thread();
+    const server_connectivity_t& connect = server_config_client
+                    ->get_server_connectivity();
     ql::datum_object_builder_t net_builder;
+    ql::datum_object_builder_t server_connect_builder;
+
+    for (auto pair : connect.all_servers) {
+        ql::datum_t server_name_or_uuid;
+        if (!convert_connected_server_id_to_datum(
+                pair.first,
+                admin_identifier_format_t::name,
+                server_config_client,
+                &server_name_or_uuid,
+                nullptr)) {
+            continue;
+        }
+        if (server_id != pair.first) {
+            bool is_connected = false;
+            if (connect.connected_to.at(server_id).find(pair.first)
+                != connect.connected_to.at(server_id).end()) {
+                is_connected = true;
+            }
+            guarantee(
+                !server_connect_builder.add(
+                    server_name_or_uuid.as_str(),
+                    ql::datum_t::boolean(is_connected)));
+        }
+    }
+    net_builder.overwrite("connected_to",
+                          std::move(server_connect_builder).to_datum());
     net_builder.overwrite("hostname",
         ql::datum_t(datum_string_t(metadata.proc.hostname)));
     net_builder.overwrite("cluster_port",
