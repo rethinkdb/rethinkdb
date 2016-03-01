@@ -15,6 +15,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -30,7 +31,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class Connection {
+public class Connection implements Closeable {
     // logger
     private static final Logger log = LoggerFactory.getLogger(Connection.class);
 
@@ -166,6 +167,7 @@ public class Connection {
         return socket.map(SocketWrapper::isOpen).orElse(false);
     }
 
+    @Override
     public void close() {
         close(false);
     }
