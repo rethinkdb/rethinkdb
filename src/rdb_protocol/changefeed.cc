@@ -2659,20 +2659,24 @@ public:
                 }
                 while (old_idxs.size() > 0) {
                     guarantee(new_idxs.size() == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val,
-                                                std::move(old_idxs.back().first),
-                                                std::move(old_idxs.back().second)),
-                                boost::none);
+                    if (old_val != null) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    indexed_datum_t(old_val,
+                                                    std::move(old_idxs.back().first),
+                                                    std::move(old_idxs.back().second)),
+                                    boost::none);
+                    }
                     old_idxs.pop_back();
                 }
                 while (new_idxs.size() > 0) {
                     guarantee(old_idxs.size() == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                boost::none,
-                                indexed_datum_t(new_val,
-                                                std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)));
+                    if (new_val != null) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    boost::none,
+                                    indexed_datum_t(new_val,
+                                                    std::move(new_idxs.back().first),
+                                                    std::move(new_idxs.back().second)));
+                    }
                     new_idxs.pop_back();
                 }
             } else {
