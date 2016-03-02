@@ -17,6 +17,15 @@ namespace ql {
 class datum_t;
 } //namespace ql
 
+// This is a macro so that you can put expensive operations into the `description`
+// argument (e.g. an `strprintf`) and it will only be evaluated if profiling is actually
+// enabled, rather than when instantiate the macro.
+#define PROFILE_STARTER_IF_ENABLED(should_profile, description, trace)              \
+    scoped_ptr_t<profile::starter_t> profile_starter;                               \
+    if (should_profile) {                                                           \
+        profile_starter.init(new profile::starter_t(description, trace));           \
+    }
+
 namespace profile {
 
 struct start_t {
