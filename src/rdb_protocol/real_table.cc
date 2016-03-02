@@ -307,7 +307,8 @@ bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
 
 void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
         read_response_t *response) {
-    profile::starter_t starter(
+    PROFILE_STARTER_IF_ENABLED(
+        env->profile() == profile_bool_t::PROFILE,
         (read.read_mode == read_mode_t::OUTDATED ? "Perform outdated read." :
          (read.read_mode == read_mode_t::DEBUG_DIRECT ? "Perform debug_direct read." :
          (read.read_mode == read_mode_t::SINGLE ? "Perform read." :
@@ -329,7 +330,8 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
 
 void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
         write_response_t *response) {
-    profile::starter_t starter("Perform write", env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        env->profile() == profile_bool_t::PROFILE, "Perform write", env->trace);
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     write->profile = env->profile();

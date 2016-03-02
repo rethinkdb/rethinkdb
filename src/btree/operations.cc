@@ -382,7 +382,8 @@ void find_keyvalue_location_for_write(
         // KSI: We can't acquire the block for write here -- we could, but it would
         // worsen the performance of the program -- sometimes we only end up using
         // this block for read.  So the profiling information is not very good.
-        profile::starter_t starter("Acquiring block for write.\n", trace);
+        PROFILE_STARTER_IF_ENABLED(
+            trace != nullptr, "Acquiring block for write.", trace);
         buf = get_root(sizer, superblock);
     }
 
@@ -394,18 +395,21 @@ void find_keyvalue_location_for_write(
                 break;
             }
         }
-        // Check if the node is overfull and proactively split it if it is (since this is an internal node).
+        // Check if the node is overfull and proactively split it if it is (since this is
+        // an internal node).
         {
-            profile::starter_t starter("Perhaps split node.", trace);
-            check_and_handle_split(sizer, &buf, &last_buf, superblock, key,
-                                   NULL, balancing_detacher);
+            PROFILE_STARTER_IF_ENABLED(
+                trace != nullptr, "Perhaps split node.", trace);
+            check_and_handle_split(
+                sizer, &buf, &last_buf, superblock, key, nullptr, balancing_detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
-            profile::starter_t starter("Perhaps merge nodes.", trace);
-            check_and_handle_underfull(sizer, &buf, &last_buf, superblock, key,
-                                       balancing_detacher);
+            PROFILE_STARTER_IF_ENABLED(
+                trace != nullptr, "Perhaps merge nodes.", trace);
+            check_and_handle_underfull(
+                sizer, &buf, &last_buf, superblock, key, balancing_detacher);
         }
 
         // Release the superblock, if we've gone past the root (and haven't
@@ -443,7 +447,8 @@ void find_keyvalue_location_for_write(
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
-            profile::starter_t starter("Acquiring block for write.\n", trace);
+            PROFILE_STARTER_IF_ENABLED(
+                trace != nullptr, "Acquire a block for write.", trace);
             buf_lock_t tmp(&buf, node_id, access_t::write);
             last_buf = std::move(buf);
             buf = std::move(tmp);
@@ -487,7 +492,8 @@ void find_keyvalue_location_for_read(
 
     buf_lock_t buf;
     {
-        profile::starter_t starter("Acquire a block for read.", trace);
+        PROFILE_STARTER_IF_ENABLED(
+                trace != nullptr, "Acquire a block for read.", trace);;
         buf_lock_t tmp(superblock->expose_buf(), root_id, access_t::read);
         superblock->release();
         buf = std::move(tmp);
@@ -515,7 +521,8 @@ void find_keyvalue_location_for_read(
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
-            profile::starter_t starter("Acquire a block for read.", trace);
+            PROFILE_STARTER_IF_ENABLED(
+                trace != nullptr, "Acquire a block for read.", trace);
             buf_lock_t tmp(&buf, node_id, access_t::read);
             buf.reset_buf_lock();
             buf = std::move(tmp);
