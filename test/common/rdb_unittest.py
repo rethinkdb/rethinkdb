@@ -6,7 +6,8 @@ import itertools, os, random, shutil, sys, unittest, warnings
 import driver, utils
 
 def main():
-    unittest.main(argv=[sys.argv[0]])
+    runner = unittest.TextTestRunner(verbosity=2)
+    unittest.main(argv=[sys.argv[0]], testRunner=runner)
 
 class RdbTestCase(unittest.TestCase):
     
@@ -171,7 +172,7 @@ class RdbTestCase(unittest.TestCase):
         serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers)
         for _ in range(serverCount - len(self.cluster)):
             firstServer = len(self.cluster) == 0
-            driver.Process(cluster=self.cluster, wait_until_ready=firstServer, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options)
+            driver.Process(cluster=self.cluster, console_output=True, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options, wait_until_ready=firstServer)
         
         self.cluster.wait_until_ready()
         

@@ -858,7 +858,15 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
         err_class = err_name
     } else if (r.Error[err_name]) {
         err_class = r.Error[err_name]
+    } else if (typeof(err_name) === 'string') {
+        // try it as a generic error
+        try {
+            if (eval(err_name).prototype instanceof Error) {
+                err_class = eval(err_name)
+            }
+        } catch(e) {}
     }
+    
     assert(err_class.prototype instanceof Error, 'err_name must be the name of an error class');
     
     var fun = function err_predicate_return (other) {

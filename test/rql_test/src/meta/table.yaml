@@ -225,7 +225,7 @@ tests:
     - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
       js: db.table('a').insert([{id:1}, {id:2}, {id:3}, {id:4}])
       rb: db.table('a').insert([{"id" => 1}, {"id" => 2}, {"id" => 3}, {"id" => 4}])
-      ot: partial({"inserted": 4})
+      ot: partial({"inserted":4})
 
     - py: db.table('a').reconfigure(shards=2, replicas=1)
       js: db.table('a').reconfigure({shards:2, replicas:1})

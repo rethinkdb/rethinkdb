@@ -397,9 +397,9 @@ describe("JavaScript Callback style", function() {
                     return r.db(dbName).table(tableName).delete().run(reqlConn);
                 }).then(function() {
                     tbl = r.db(dbName).table(tableName)
-                    });
                 });
-
+            });
+            
             describe('read', function() {
                 it("accepts readMode='outdated'", function(done){
                     tbl.run(reqlConn, {readMode: "outdated"}, noError(done));
@@ -443,8 +443,20 @@ describe("JavaScript Callback style", function() {
     });
 });
 
-describe('toString', function() {
-    it("does pretty-printing", function(done){
+describe('Javascript query toString()', function() {
+    
+    it('works for various queries', function(){
+        [
+            'r.table("turtles").filter(r.row("firstName").match("ny$"))',
+            'r.table("posts").orderBy({"index": r.desc("date")})',
+            'r.db("test").table("sometable").insert({"-x-y-z": 2})',
+        ].forEach(function(queryString){
+            var query = eval(queryString);
+            assert.equal(eval(queryString).toString(), queryString);
+        });
+    });
+    
+    it("works with variables", function(done){
         functString = r.db('db1').table('tbl1').map(function(x){ return x; }).toString()
         assert(
             /r.db\("db1"\).table\("tbl1"\).map\(function\(var_\d+\) { return var_\d+; }\)/.test(functString),

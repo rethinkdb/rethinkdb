@@ -157,7 +157,7 @@ class HttpTargetServer(object):
         
         try:
             if self.__serverProcess is not None and self.__serverProcess.poll() is None:
-                utils.kill_process_group(self.__serverProcess.pid)
+                utils.kill_process_group(self.__serverProcess)
         except Exception: pass
         
         self.__serverProcess = None
