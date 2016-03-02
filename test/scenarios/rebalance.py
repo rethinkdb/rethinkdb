@@ -47,7 +47,7 @@ class Rebalance(rdb_unittest.RdbTestCase):
         connServer = self.cluster[0]
         
         utils.print_with_time("Inserting data")
-        utils.populateTable(self.conn, self.table, records=10000)
+        utils.populateTable(self.conn, self.table, records=10000, fieldName='val')
         
         utils.print_with_time("Starting workload")
         with workload_runner.SplitOrContinuousWorkload(opts, connServer, db_name=self.dbName, table_name=self.tableName) as workload:
