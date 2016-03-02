@@ -213,12 +213,11 @@ describe('JavaScript Cursor', function() {
                 tableCursor.eachAsync(function(row) {
                     assert.deepEqual(row, {'id':i});
                     if (row.id == 10) {
-                        return false;
+                        return Promise.reject();
                     }
                     i++
                 }, function(error) {
                     assert.equal(i, 10);
-                    assert.equal(error, null);
                     done();
                 })
             });
