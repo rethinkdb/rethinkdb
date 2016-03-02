@@ -57,31 +57,6 @@ required_external_tables.reverse() # setup for .pop()
 
 # -- utilities --
 
-class UnicodePrettyPrinter(pprint.PrettyPrinter, object):
-    defaultPrinter = None
-    
-    @classmethod
-    def pprint(cls, item, hangindent=0):
-        print(cls.pformat(item, indent=indent))
-    
-    @classmethod
-    def pformat(cls, item, hangindent=0):
-        if cls.defaultPrinter is None:
-            cls.defaultPrinter = cls(width=120)
-        formated = super(UnicodePrettyPrinter, cls.defaultPrinter).pformat(item)
-        if len(formated) > 70:
-            padding = ' ' * hangindent
-            if '\n' in formated:
-                formated = ('\n' + padding).join(formated.splitlines())
-        return formated
-    
-    def format(self, item, context, maxlevels, level):
-        if str != unicode and isinstance(item, unicode):
-            # remove the leading `u` from unicode objects
-            return (('%r' % item)[1:], True, False) # string, readable, recursed
-        else:
-            return super(UnicodePrettyPrinter, self).format(item, context, maxlevels, level)
-
 def print_failure(name, src, expected, result, message=None):
     global failure_count
     failure_count += 1
@@ -91,10 +66,10 @@ TEST FAILURE: %(name)s%(message)s
     EXPECTED: %(expected)s
     RESULT:   %(result)s''' % {
         'name':     name,
-        'source':   UnicodePrettyPrinter.pformat(src, hangindent=14),
+        'source':   utils.RePrint.pformat(src, hangindent=14),
         'message':  '\n    FAILURE:  %s' % message if message is not None else '',
-        'expected': UnicodePrettyPrinter.pformat(expected, hangindent=14),
-        'result':   UnicodePrettyPrinter.pformat(result, hangindent=14)
+        'expected': utils.RePrint.pformat(expected, hangindent=14),
+        'result':   utils.RePrint.pformat(result, hangindent=14)
     })
 
 def check_pp(src, query):
