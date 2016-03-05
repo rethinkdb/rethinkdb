@@ -110,9 +110,12 @@ public class Util {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
 
-                writer.invoke(pojo, value instanceof Map
-                        ? toPojo(valueClass, (Map<String, Object>) value)
-                        : valueClass.cast(value));
+                if (valueClass.isEnum() && value instanceof String)
+                    writer.invoke(pojo, Enum.valueOf((Class<? extends Enum>)valueClass, (String)value));
+                else
+                    writer.invoke(pojo, value instanceof Map
+                            ? toPojo(valueClass, (Map<String, Object>) value)
+                            : valueClass.cast(value));
             }
         }
 

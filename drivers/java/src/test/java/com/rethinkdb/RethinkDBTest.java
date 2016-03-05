@@ -264,7 +264,7 @@ public class RethinkDBTest{
 
     @Test
     public void testTableSelectOfPojo() {
-        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
+        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true, TestPojoEnum.cat));
         Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
         assertEquals(1L, pojoResult.get("inserted"));
 
@@ -278,7 +278,7 @@ public class RethinkDBTest{
 
     @Test(expected = ClassCastException.class)
     public void testTableSelectOfPojo_withNoPojoClass_throwsException() {
-        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
+        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true, TestPojoEnum.cat));
         Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
         assertEquals(1L, pojoResult.get("inserted"));
 
@@ -288,8 +288,8 @@ public class RethinkDBTest{
 
     @Test
     public void testTableSelectOfPojoCursor() {
-        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
-        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true, TestPojoEnum.cat));
+        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false, TestPojoEnum.dog));
         Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
         Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
         assertEquals(1L, pojoOneResult.get("inserted"));
@@ -305,16 +305,18 @@ public class RethinkDBTest{
         assertEquals("foo", pojoOneSelected.getStringProperty());
         assertTrue(42L == pojoOneSelected.getPojoProperty().getLongProperty());
         assertEquals(true, pojoOneSelected.getPojoProperty().getBooleanProperty());
+        assertEquals(TestPojoEnum.cat, pojoOneSelected.getPojoProperty().getEnumProperty());
 
         assertEquals("bar", pojoTwoSelected.getStringProperty());
         assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
         assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
+        assertEquals(TestPojoEnum.dog, pojoTwoSelected.getPojoProperty().getEnumProperty());
     }
 
     @Test(expected = ClassCastException.class)
     public void testTableSelectOfPojoCursor_withNoPojoClass_throwsException() {
-        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
-        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true, TestPojoEnum.cat));
+        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false, TestPojoEnum.dog));
         Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
         Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
         assertEquals(1L, pojoOneResult.get("inserted"));
@@ -333,7 +335,7 @@ public class RethinkDBTest{
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)
             new Thread(() -> {
-                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
+                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true, TestPojoEnum.mouse));
                 final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
                 waiter.assertEquals(1L, result.get("inserted"));
                 writeCounter.getAndIncrement();
@@ -351,7 +353,7 @@ public class RethinkDBTest{
         final AtomicInteger readCounter = new AtomicInteger(0);
 
         // write to the database and retrieve the id
-        final TestPojo pojo = new TestPojo("readzz", new TestPojoInner(10L, true));
+        final TestPojo pojo = new TestPojo("readzz", new TestPojoInner(10L, true, TestPojoEnum.mouse));
         final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).optArg("return_changes", true).run(conn);
         final String id = ((List) result.get("generated_keys")).get(0).toString();
 
@@ -368,6 +370,7 @@ public class RethinkDBTest{
                 waiter.assertEquals("readzz", readPojo.getStringProperty());
                 waiter.assertEquals(10L, readPojo.getPojoProperty().getLongProperty());
                 waiter.assertEquals(true, readPojo.getPojoProperty().getBooleanProperty());
+                waiter.assertEquals(TestPojoEnum.mouse, readPojo.getPojoProperty().getEnumProperty());
                 readCounter.getAndIncrement();
                 waiter.resume();
             }).start();
@@ -383,7 +386,7 @@ public class RethinkDBTest{
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)
             new Thread(() -> {
-                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
+                final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true, TestPojoEnum.mouse));
                 final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
                 waiter.assertEquals(1L, result.get("inserted"));
                 waiter.resume();
