@@ -316,6 +316,7 @@ public class RethinkDBTest{
         assertEquals(pojoOneSelected.getLocalDateProperty(), TestPojo.sampleLocalDateProperty);
         assertEquals(pojoOneSelected.getLocalTimeProperty(), TestPojo.sampleLocalTimeProperty);
         assertEquals(pojoOneSelected.getZonedDateTimeProperty().toInstant(), TestPojo.sampleZonedDateTimeProperty.toInstant());
+        assertEquals(pojoOneSelected.getDateProperty().toInstant(), TestPojo.sampleDateProperty.toInstant());
 
         assertEquals(pojoOneSelected.getDoubleProperty(), (Double)Double.MAX_VALUE);
         assertTrue(pojoOneSelected.getPrimitiveDoubleProperty() == Double.MAX_VALUE);

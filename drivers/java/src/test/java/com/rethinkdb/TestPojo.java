@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.util.Date;
 
 /**
  * Has both public parameterless constructor and public parametrized constructor
@@ -38,6 +39,7 @@ public class TestPojo {
     public static ZonedDateTime sampleZonedDateTimeProperty = ZonedDateTime.now();
     public static BigDecimal sampleBigDecimalProperty = new BigDecimal("123456789012345678901234567");
     public static BigInteger sampleBigIntegerProperty = new BigInteger("123456789012345");
+    public static Date sampleDateProperty = new Date();
 
     private String stringProperty;
     private TestPojoInner pojoProperty;
@@ -47,6 +49,7 @@ public class TestPojo {
     private ZonedDateTime zonedDateTimeProperty = sampleZonedDateTimeProperty;
     private LocalDate localDateProperty = sampleLocalDateProperty;
     private LocalTime localTimeProperty = sampleLocalTimeProperty;
+    private Date dateProperty = sampleDateProperty;
     private Double doubleProperty = Double.MAX_VALUE;
     private double primitiveDoubleProperty = Double.MAX_VALUE;
     private Float floatProperty = Float.MAX_VALUE;
@@ -123,6 +126,14 @@ public class TestPojo {
 
     public void setLocalTimeProperty(LocalTime localTimeProperty) {
         this.localTimeProperty = localTimeProperty;
+    }
+
+    public Date getDateProperty() {
+        return dateProperty;
+    }
+
+    public void setDateProperty(Date dateProperty) {
+        this.dateProperty = dateProperty;
     }
 
     public Double getDoubleProperty() {
