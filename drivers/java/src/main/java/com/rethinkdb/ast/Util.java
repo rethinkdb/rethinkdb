@@ -144,11 +144,6 @@ public class Util {
                 if (reader != null && reader.getDeclaringClass() == pojoClass) {
                     Object value = reader.invoke(pojo);
 
-                    if (value instanceof Integer) {
-                        throw new IllegalAccessException(String.format(
-                                "Make %s of %s Long instead of Integer", reader.getName(), pojo));
-                    }
-
                     map.put(descriptor.getName(), value);
                 }
             }
