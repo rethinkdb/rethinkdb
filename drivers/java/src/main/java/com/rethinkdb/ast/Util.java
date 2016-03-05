@@ -85,9 +85,8 @@ public class Util {
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
 
         if (val instanceof LocalDateTime) {
-            ZoneId zid = ZoneId.systemDefault();
-            DateTimeFormatter fmt2 = fmt.withZone(zid);
-            return Iso8601.fromString(((LocalDateTime) val).format(fmt2));
+            ZonedDateTime zdt = ((LocalDateTime)val).atZone(ZoneId.systemDefault());
+            return Iso8601.fromString(zdt.format(fmt));
         }
         if (val instanceof ZonedDateTime) {
             return Iso8601.fromString(((ZonedDateTime) val).format(fmt));
