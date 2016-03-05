@@ -115,6 +115,10 @@ public class Util {
             return new Datum(null);
         }
 
+        if (val.getClass().isEnum()) {
+            return new Datum((String) ((Enum)val).name());
+        }
+
         // val is a non-null POJO, let's introspect its public properties
         return toReqlAst(toMap(val));
     }
