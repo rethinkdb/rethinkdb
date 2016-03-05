@@ -76,6 +76,20 @@ public class Util {
                 return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
             }
 
+            if (java.time.LocalDate.class.equals(pojoClass)) {
+                return (T) java.time.LocalDate.of(
+                        ((Long) (map.get("year"))).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue());
+            }
+            else if (java.time.LocalTime.class.equals(pojoClass)) {
+                return (T) java.time.LocalTime.of(
+                        ((Long) (map.get("hour"))).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue());
+            }
+
             throw new IllegalAccessException(String.format(
                     "%s should have a public parameterless constructor " +
                             "or a public constructor with %d parameters", pojoClass, map.keySet().size()));
@@ -112,11 +126,79 @@ public class Util {
 
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
-                        : valueClass.cast(value));
+                        : smartCast(valueClass, value));
             }
         }
 
         return pojo;
+    }
+
+    static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
+
+    public static Object smartCast(Class valueClass, Object value) {
+        try {
+            return valueClass.cast(value);
+        }
+        catch (ClassCastException ex) {
+            if (valueClass.isEnum()) {
+                try {
+                    return Enum.valueOf(valueClass, value.toString().toUpperCase());
+                } catch(IllegalArgumentException e) {
+                    return Enum.valueOf(valueClass, value.toString());
+                }
+            }
+            else if (java.time.OffsetDateTime.class.equals(valueClass)) {
+                return java.time.OffsetDateTime.parse(value.toString());
+            }
+            else if (java.time.LocalDateTime.class.equals(valueClass)) {
+                return java.time.OffsetDateTime.parse(value.toString()).toLocalDateTime();
+            }
+            else if (java.time.LocalDate.class.equals(valueClass)) {
+                return java.time.LocalDate.parse(value.toString());
+            }
+            else if (java.time.LocalTime.class.equals(valueClass)) {
+                return java.time.LocalTime.parse(value.toString());
+            }
+            else if (java.time.ZonedDateTime.class.equals(valueClass)) {
+                return java.time.ZonedDateTime.parse(value.toString());
+            }
+            else if (Boolean.class.equals(valueClass) || boolean.class.equals(valueClass)) {
+                return Boolean.valueOf(value.toString());
+            }
+            else if (Integer.class.equals(valueClass) || int.class.equals(valueClass)) {
+                return Integer.valueOf(value.toString());
+            }
+            else if (Long.class.equals(valueClass) || long.class.equals(valueClass)) {
+                return Double.valueOf(value.toString()).longValue();
+            }
+            else if (Double.class.equals(valueClass) || double.class.equals(valueClass)) {
+                return Double.valueOf(value.toString());
+            }
+            else if (Float.class.equals(valueClass) || float.class.equals(valueClass)) {
+                return Float.valueOf(value.toString());
+            }
+            else if (Short.class.equals(valueClass) || short.class.equals(valueClass)) {
+                return Short.valueOf(value.toString());
+            }
+            else if (Byte.class.equals(valueClass) || byte.class.equals(valueClass)) {
+                return Byte.valueOf(value.toString());
+            }
+            else if (java.math.BigDecimal.class.isAssignableFrom(valueClass)) {
+                return new java.math.BigDecimal(value.toString());
+            }
+            else if (java.math.BigInteger.class.isAssignableFrom(valueClass)) {
+                return new java.math.BigInteger(value.toString());
+            }
+            else if (java.util.Date.class.isAssignableFrom(valueClass)) {
+                try {
+                    return dtf.parse(value.toString());
+                } catch (java.text.ParseException e) {
+                    throw new IllegalArgumentException(e);
+                }
+            }
+            else
+                throw ex;
+        }
     }
 
     private static Constructor[] getSuitablePublicParametrizedConstructors(Constructor[] allConstructors, Map<String, Object> map) {
