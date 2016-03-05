@@ -309,6 +309,34 @@ public class RethinkDBTest{
         assertEquals("bar", pojoTwoSelected.getStringProperty());
         assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
         assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
+
+        assertEquals(pojoOneSelected.getEnumProperty(), TestPojo.PojoEnum.AAA);
+        assertEquals(pojoOneSelected.getOffsetDateTimeProperty(), TestPojo.sampleOffsetDateTimeProperty);
+        assertEquals(pojoOneSelected.getLocalDateTimeProperty(), TestPojo.sampleLocalDateTimeProperty);
+        assertEquals(pojoOneSelected.getLocalDateProperty(), TestPojo.sampleLocalDateProperty);
+        assertEquals(pojoOneSelected.getLocalTimeProperty(), TestPojo.sampleLocalTimeProperty);
+        assertEquals(pojoOneSelected.getZonedDateTimeProperty().toInstant(), TestPojo.sampleZonedDateTimeProperty.toInstant());
+
+        assertEquals(pojoOneSelected.getDoubleProperty(), (Double)Double.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveDoubleProperty() == Double.MAX_VALUE);
+        assertEquals(pojoOneSelected.getFloatProperty(), (Float)Float.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveFloatProperty() == Float.MAX_VALUE);
+        assertEquals(pojoOneSelected.getIntegerProperty(), (Integer)Integer.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveIntegerProperty() == Integer.MAX_VALUE);
+        assertEquals(pojoOneSelected.getLongProperty(), (Long)Long.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveLongProperty() == Long.MAX_VALUE);
+        assertEquals(pojoOneSelected.getShortProperty(), (Short)Short.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveShortProperty() == Short.MAX_VALUE);
+        assertEquals(pojoOneSelected.getByteProperty(), (Byte)Byte.MAX_VALUE);
+        assertTrue(pojoOneSelected.getPrimitiveByteProperty() == Byte.MAX_VALUE);
+        assertEquals(pojoOneSelected.getBooleanProperty(), (Boolean)true);
+        assertTrue(pojoOneSelected.getPrimitiveBooleanProperty() == true);
+
+        int scale = pojoOneSelected.getBigDecimalProperty().scale();
+        java.math.BigDecimal sampleBigDecimal = TestPojo.sampleBigDecimalProperty.setScale(scale, java.math.BigDecimal.ROUND_HALF_UP);
+        assertEquals(pojoOneSelected.getBigDecimalProperty(), sampleBigDecimal);
+
+        assertEquals(pojoOneSelected.getBigIntegerProperty(), TestPojo.sampleBigIntegerProperty);
     }
 
     @Test(expected = ClassCastException.class)
