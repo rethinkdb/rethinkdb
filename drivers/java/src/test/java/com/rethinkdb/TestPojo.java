@@ -32,24 +32,16 @@ public class TestPojo {
             return value;
         }
     }
-    public static OffsetDateTime sampleOffsetDateTimeProperty = OffsetDateTime.now();
-    public static LocalDateTime sampleLocalDateTimeProperty = LocalDateTime.now();
-    public static LocalDate sampleLocalDateProperty = LocalDate.now();
-    public static LocalTime sampleLocalTimeProperty = LocalTime.now();
-    public static ZonedDateTime sampleZonedDateTimeProperty = ZonedDateTime.now();
-    public static BigDecimal sampleBigDecimalProperty = new BigDecimal("123456789012345678901234567");
-    public static BigInteger sampleBigIntegerProperty = new BigInteger("123456789012345");
-    public static Date sampleDateProperty = new Date();
 
     private String stringProperty;
     private TestPojoInner pojoProperty;
     private PojoEnum enumProperty = PojoEnum.AAA;
-    private OffsetDateTime offsetDateTimeProperty = sampleOffsetDateTimeProperty;
-    private LocalDateTime localDateTimeProperty = sampleLocalDateTimeProperty;
-    private ZonedDateTime zonedDateTimeProperty = sampleZonedDateTimeProperty;
-    private LocalDate localDateProperty = sampleLocalDateProperty;
-    private LocalTime localTimeProperty = sampleLocalTimeProperty;
-    private Date dateProperty = sampleDateProperty;
+    private OffsetDateTime offsetDateTimeProperty = OffsetDateTime.now();
+    private LocalDateTime localDateTimeProperty = LocalDateTime.now();;
+    private ZonedDateTime zonedDateTimeProperty = ZonedDateTime.now();
+    private LocalDate localDateProperty = LocalDate.now();
+    private LocalTime localTimeProperty = LocalTime.now();
+    private Date dateProperty = new Date();
     private Double doubleProperty = Double.MAX_VALUE;
     private double primitiveDoubleProperty = Double.MAX_VALUE;
     private Float floatProperty = Float.MAX_VALUE;
@@ -64,8 +56,8 @@ public class TestPojo {
     private byte primitiveByteProperty = Byte.MAX_VALUE;
     private Boolean booleanProperty = true;
     private boolean primitiveBooleanProperty = true;
-    private BigDecimal bigDecimalProperty = sampleBigDecimalProperty;
-    private BigInteger bigIntegerProperty = sampleBigIntegerProperty;
+    private BigDecimal bigDecimalProperty = new BigDecimal("123456789012345678901234567");
+    private BigInteger bigIntegerProperty = new BigInteger("123456789012345");
 
     public TestPojo() {}
 
