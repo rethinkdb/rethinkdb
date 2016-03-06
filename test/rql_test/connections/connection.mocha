@@ -43,7 +43,13 @@ var givesError = function(type, msg, done) {
             }
             var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
             _msg = _msg.replace(/\nFailed assertion:(.|\n)*/m, "")
-            assert.equal(_msg, msg);
+            if (msg instanceof RegExp) {
+                if (!msg.test(_msg)) {
+                    assert.equal(_msg, msg) // just to get the formating
+                }
+            } else {
+                assert.equal(_msg, msg);
+            }
         } catch (e) {
             error = e;
         } finally {
@@ -145,7 +151,7 @@ describe("JavaScript Callback style", function() {
             server.listen(0, function() {
                 var badPort = server.address().port;
                 server.close(function(err) { // close dummy sever and hope no-one picks up the port
-                    r.connect({port:badPort}, givesError("ReqlDriverError", "Could not connect to localhost:" + badPort + ".\nconnect ECONNREFUSED", done))
+                    r.connect({port:badPort}, givesError("ReqlDriverError", RegExp("Could not connect to localhost:" + badPort + ".\nconnect ECONNREFUSED( 127.0.0.1:" + badPort + ")?"), done))
                 });
             });
         });
@@ -155,7 +161,7 @@ describe("JavaScript Callback style", function() {
             server.listen(0, function() {
                 var badPort = server.address().port;
                 server.close(function(err) { // close dummy sever and hope no-one picks up the port
-                    r.connect({port:badPort, host:'0.0.0.0'}, givesError("ReqlDriverError", "Could not connect to 0.0.0.0:" + badPort + ".\nconnect ECONNREFUSED", done))
+                    r.connect({port:badPort, host:'0.0.0.0'}, givesError("ReqlDriverError", RegExp("Could not connect to 0.0.0.0:" + badPort + ".\nconnect ECONNREFUSED( 0.0.0.0:" + badPort + ")?"), done))
                 });
             });
         });

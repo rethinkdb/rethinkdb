@@ -396,7 +396,10 @@ batched_replace_response_t rdb_batched_replace(
         // the sequence of events in the profiler trace.
         // Instead we add a single event for the whole batched replace.
         sampler->new_sample();
-        profile::starter_t profile_starter("Perform parallel replaces.", trace);
+        PROFILE_STARTER_IF_ENABLED(
+            trace != nullptr,
+            "Perform parallel replaces.",
+            trace);
         profile::disabler_t trace_disabler(trace);
         unlimited_fifo_queue_t<std::function<void()> > coro_queue;
         struct callback_t : public coro_pool_callback_t<std::function<void()> > {
@@ -965,7 +968,10 @@ void rdb_rget_slice(
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
-    profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do range scan on primary index.",
+        ql_env->trace);
 
     rget_cb_t callback(
         rget_io_data_t(response, slice),
@@ -1036,7 +1042,10 @@ void rdb_rget_secondary_slice(
         release_superblock_t release_superblock) {
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
-    profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do range scan on secondary index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -1099,8 +1108,10 @@ void rdb_get_intersecting_slice(
     guarantee(query_geometry.has());
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do intersection scan on geospatial index.",
-                               ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do intersection scan on geospatial index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -1137,8 +1148,10 @@ void rdb_get_nearest_slice(
     nearest_geo_read_response_t *response) {
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do nearest traversal on geospatial index.",
-                               ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do nearest traversal on geospatial index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;

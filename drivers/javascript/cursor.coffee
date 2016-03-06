@@ -247,7 +247,7 @@ class IterableResult
                     return cb(data) if cb.length <= 1 # either synchronous or awaits promise
                     return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
                 .then (result) ->
-                    return nextCb() if result isnt false
+                    return nextCb()
                 .catch (err) ->
                     return if err?.message is 'No more rows in the cursor.'
                     throw err

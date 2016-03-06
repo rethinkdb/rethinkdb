@@ -3,7 +3,8 @@
 
 from __future__ import print_function
 
-import atexit, collections, fcntl, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, threading, time, warnings
+import atexit, collections, fcntl, os, pprint, random, re, shutil, signal
+import socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
 
@@ -880,3 +881,28 @@ class NextWithTimeout(threading.Thread):
                 self.latestResult = e
                 if not self.stopOnEmpty:
                     self.keepRunning = False
+
+class RePrint(pprint.PrettyPrinter, object):
+    defaultPrinter = None
+    
+    @classmethod
+    def pprint(cls, item, hangindent=0):
+        print(cls.pformat(item, hangindent=hangindent))
+    
+    @classmethod
+    def pformat(cls, item, hangindent=0):
+        if cls.defaultPrinter is None:
+            cls.defaultPrinter = cls(width=120)
+        formated = super(RePrint, cls.defaultPrinter).pformat(item)
+        if len(formated) > 70:
+            padding = ' ' * hangindent
+            if '\n' in formated:
+                formated = ('\n' + padding).join(formated.splitlines())
+        return formated
+    
+    def format(self, item, context, maxlevels, level):
+        if str != unicode and isinstance(item, unicode):
+            # remove the leading `u` from unicode objects
+            return (('%r' % item)[1:], True, False) # string, readable, recursed
+        else:
+            return super(RePrint, self).format(item, context, maxlevels, level)

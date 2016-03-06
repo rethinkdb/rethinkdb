@@ -1240,7 +1240,10 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 datum_t datum_stream_t::next(env_t *env, const batchspec_t &batchspec) {
-    profile::starter_t("Reading element from datum stream.", env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        env->profile() == profile_bool_t::PROFILE,
+        "Reading element from datum stream.",
+        env->trace);
     if (batch_cache_index >= batch_cache.size()) {
         r_sanity_check(batch_cache_index == 0);
         batch_cache = next_batch(env, batchspec);

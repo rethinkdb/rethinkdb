@@ -23,12 +23,14 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     name_collision_issue_tracker(
         server_config_client, cluster_sl_view, table_meta_client),
     table_issue_tracker(server_config_client, table_meta_client, _namespace_repo),
-    outdated_index_issue_tracker(table_meta_client)
+    outdated_index_issue_tracker(table_meta_client),
+    non_transitive_issue_tracker(_server_config_client)
 {
     trackers.insert(&local_issue_client);
     trackers.insert(&name_collision_issue_tracker);
     trackers.insert(&table_issue_tracker);
     trackers.insert(&outdated_index_issue_tracker);
+    trackers.insert(&non_transitive_issue_tracker);
 }
 
 issues_artificial_table_backend_t::~issues_artificial_table_backend_t() {

@@ -12,6 +12,11 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
+struct server_connectivity_t {
+    std::map<server_id_t, std::set<server_id_t> > connected_to;
+    std::map<server_id_t, int> all_servers;
+};
+
 class server_config_client_t : public home_thread_mixin_t {
 public:
     server_config_client_t(
@@ -43,6 +48,9 @@ public:
         return &connections_map;
     }
 
+    const server_connectivity_t& get_server_connectivity() const {
+        return server_connectivity;
+    }
     /* `set_config()` changes the config of the server with the given server ID. */
     bool set_config(
         const server_id_t &server_id,
@@ -50,6 +58,10 @@ public:
         const server_config_t &new_server_config,
         signal_t *interruptor,
         admin_err_t *error_out);
+
+    void update_server_connectivity(
+        const std::pair<server_id_t, server_id_t> &key,
+        const empty_value_t *val);
 
 private:
     void install_server_metadata(
@@ -82,6 +94,10 @@ private:
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
     watchable_map_t<std::pair<peer_id_t, server_id_t>, empty_value_t>::all_subs_t
         peer_connections_map_subs;
+
+    server_connectivity_t server_connectivity;
+    typename watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+        ::all_subs_t server_connectivity_subscription;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_ */

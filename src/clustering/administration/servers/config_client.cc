@@ -17,8 +17,38 @@ server_config_client_t::server_config_client_t(
         peer_connections_map,
         std::bind(&server_config_client_t::on_peer_connections_map_change,
             this, ph::_1, ph::_2),
+        initial_call_t::YES),
+    server_connectivity_subscription(
+        &connections_map,
+        std::bind(&server_config_client_t::update_server_connectivity,
+                  this,
+                  ph::_1,
+                  ph::_2),
         initial_call_t::YES)
     { }
+
+void server_config_client_t::update_server_connectivity(
+    const std::pair<server_id_t, server_id_t> &key,
+    const empty_value_t *val) {
+    if (val == nullptr) {
+        // Entry removed
+        if (--server_connectivity.all_servers[key.first] == 0) {
+            server_connectivity.all_servers.erase(key.first);
+        }
+        if (--server_connectivity.all_servers[key.second] == 0) {
+            server_connectivity.all_servers.erase(key.second);
+        }
+        server_connectivity.connected_to[key.first].erase(key.second);
+        if (server_connectivity.connected_to[key.first].empty()) {
+            server_connectivity.connected_to.erase(key.first);
+        }
+    } else {
+        // Entry added
+        ++server_connectivity.all_servers[key.first];
+        ++server_connectivity.all_servers[key.second];
+        server_connectivity.connected_to[key.first].insert(key.second);
+    }
+}
 
 bool server_config_client_t::set_config(
         const server_id_t &server_id,

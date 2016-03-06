@@ -204,6 +204,26 @@ render_memory_error = (issue) ->
         ]
     ]
 
+render_non_transitive_error = (issue) ->
+    # Issue raised when network connectivity is non-transitive
+    title: "Connectivity issue"
+    subtitle: [
+        "Some servers are only partially connected to the cluster."
+    ]
+    details: [
+        h "p", [
+           "The following servers are not fully connected:"
+        ]
+        h "ul", issue.info.servers.map((server) ->
+            h "li",
+                h "a", href: "/#servers/#{server.server_id}", server)
+        h "p", [
+            "Partial connectivity can cause tables to remain unavailable"
+            " and queries to fail. Please check your network configuration"
+            " if this issue persists for more than a few seconds."
+        ]
+    ]
+
 render_log_write_error = (issue) ->
     # Issue raised when the server can't write to its log file.
     title: "Cannot write logs"
@@ -238,6 +258,7 @@ render_issue = (issue) ->
     details = switch issue.type
         when 'log_write_error' then render_log_write_error(issue)
         when 'memory_error' then render_memory_error(issue)
+        when 'non_transitive_error' then render_non_transitive_error(issue)
         when 'outdated_index' then render_outdated_index(issue)
         when 'table_availability' then render_table_availability(issue)
         when 'db_name_collision' then render_name_collision('database', issue)
