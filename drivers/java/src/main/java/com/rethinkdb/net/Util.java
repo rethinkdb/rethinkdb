@@ -142,9 +142,9 @@ public class Util {
         catch (ClassCastException ex) {
             if (valueClass.isEnum()) {
                 try {
-                    return Enum.valueOf(valueClass, value.toString().toUpperCase());
-                } catch(IllegalArgumentException e) {
                     return Enum.valueOf(valueClass, value.toString());
+                } catch(IllegalArgumentException e) {
+                    return Enum.valueOf(valueClass, value.toString().toUpperCase());
                 }
             }
             else if (java.time.OffsetDateTime.class.equals(valueClass)) {
