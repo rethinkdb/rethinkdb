@@ -12,6 +12,7 @@ import org.junit.rules.ExpectedException;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -310,34 +311,78 @@ public class RethinkDBTest{
         assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
         assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
 
-        assertEquals(pojoOneSelected.getEnumProperty(), TestPojo.PojoEnum.AAA);
-        assertEquals(pojoOneSelected.getOffsetDateTimeProperty(), TestPojo.sampleOffsetDateTimeProperty);
-        assertEquals(pojoOneSelected.getLocalDateTimeProperty(), TestPojo.sampleLocalDateTimeProperty);
-        assertEquals(pojoOneSelected.getLocalDateProperty(), TestPojo.sampleLocalDateProperty);
-        assertEquals(pojoOneSelected.getLocalTimeProperty(), TestPojo.sampleLocalTimeProperty);
-        assertEquals(pojoOneSelected.getZonedDateTimeProperty().toInstant(), TestPojo.sampleZonedDateTimeProperty.toInstant());
-        assertEquals(pojoOneSelected.getDateProperty().toInstant(), TestPojo.sampleDateProperty.toInstant());
+        compare_pojo(pojoOneSelected, pojoOne);
+    }
 
-        assertEquals(pojoOneSelected.getDoubleProperty(), (Double)Double.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveDoubleProperty() == Double.MAX_VALUE);
-        assertEquals(pojoOneSelected.getFloatProperty(), (Float)Float.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveFloatProperty() == Float.MAX_VALUE);
-        assertEquals(pojoOneSelected.getIntegerProperty(), (Integer)Integer.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveIntegerProperty() == Integer.MAX_VALUE);
-        assertEquals(pojoOneSelected.getLongProperty(), (Long)Long.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveLongProperty() == Long.MAX_VALUE);
-        assertEquals(pojoOneSelected.getShortProperty(), (Short)Short.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveShortProperty() == Short.MAX_VALUE);
-        assertEquals(pojoOneSelected.getByteProperty(), (Byte)Byte.MAX_VALUE);
-        assertTrue(pojoOneSelected.getPrimitiveByteProperty() == Byte.MAX_VALUE);
-        assertEquals(pojoOneSelected.getBooleanProperty(), (Boolean)true);
-        assertTrue(pojoOneSelected.getPrimitiveBooleanProperty() == true);
+    @Test
+    public void testTableSelectOfPojoCursor_ConvertStringToOtherTypes() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        MapObject map = r.hashMap("stringProperty",pojoOne.getStringProperty().toString())
+                .with("enumProperty", pojoOne.getEnumProperty().toString())
+                .with("offsetDateTimeProperty", pojoOne.getOffsetDateTimeProperty().toString())
+                .with("localDateTimeProperty", pojoOne.getLocalDateTimeProperty().toString())
+                .with("zonedDateTimeProperty", pojoOne.getZonedDateTimeProperty().toString())
+                .with("localDateProperty", pojoOne.getLocalDateProperty().toString())
+                .with("localTimeProperty", pojoOne.getLocalTimeProperty().toString())
+                .with("dateProperty", pojoOne.getDateProperty().toString())
+                .with("doubleProperty", pojoOne.getDoubleProperty().toString())
+                .with("primitiveDoubleProperty", String.valueOf(pojoOne.getPrimitiveDoubleProperty()))
+                .with("floatProperty", pojoOne.getFloatProperty().toString())
+                .with("primitiveFloatProperty", String.valueOf(pojoOne.getPrimitiveFloatProperty()))
+                .with("integerProperty", pojoOne.getIntegerProperty().toString())
+                .with("primitiveIntegerProperty", String.valueOf(pojoOne.getPrimitiveIntegerProperty()))
+                .with("longProperty", pojoOne.getLongProperty().toString())
+                .with("primitiveLongProperty", String.valueOf(pojoOne.getPrimitiveLongProperty()))
+                .with("shortProperty", pojoOne.getShortProperty().toString())
+                .with("primitiveShortProperty", String.valueOf(pojoOne.getPrimitiveShortProperty()))
+                .with("byteProperty", pojoOne.getByteProperty().toString())
+                .with("primitiveByteProperty", String.valueOf(pojoOne.getPrimitiveByteProperty()))
+                .with("booleanProperty", pojoOne.getBooleanProperty().toString())
+                .with("primitiveBooleanProperty", String.valueOf(pojoOne.getPrimitiveBooleanProperty()))
+                .with("bigDecimalProperty", pojoOne.getBigDecimalProperty().toString())
+                .with("bigIntegerProperty", pojoOne.getBigIntegerProperty().toString())
+                ;
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(map).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+
+        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        List<TestPojo> result = cursor.toList();
+        assertEquals(1, result.size());
+
+        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+
+        compare_pojo(pojoOneSelected, pojoOne);
+    }
+
+    private void compare_pojo(TestPojo pojoOneSelected, TestPojo pojoOne) {
+        assertEquals(pojoOneSelected.getEnumProperty(), pojoOne.getEnumProperty());
+        assertEquals(pojoOneSelected.getOffsetDateTimeProperty(), pojoOne.getOffsetDateTimeProperty());
+        assertEquals(pojoOneSelected.getLocalDateTimeProperty(), pojoOne.getLocalDateTimeProperty());
+        assertEquals(pojoOneSelected.getLocalDateProperty(), pojoOne.getLocalDateProperty());
+        assertEquals(pojoOneSelected.getLocalTimeProperty(), pojoOne.getLocalTimeProperty());
+        assertEquals(pojoOneSelected.getZonedDateTimeProperty().toInstant(), pojoOne.getZonedDateTimeProperty().toInstant());
+        assertEquals(pojoOneSelected.getDateProperty().toString(), pojoOne.getDateProperty().toString());
+
+        assertEquals(pojoOneSelected.getDoubleProperty(), pojoOne.getDoubleProperty());
+        assertTrue(pojoOneSelected.getPrimitiveDoubleProperty() == pojoOne.getPrimitiveDoubleProperty());
+        assertEquals(pojoOneSelected.getFloatProperty(), pojoOne.getFloatProperty());
+        assertTrue(pojoOneSelected.getPrimitiveFloatProperty() == pojoOne.getPrimitiveFloatProperty());
+        assertEquals(pojoOneSelected.getIntegerProperty(), pojoOne.getIntegerProperty());
+        assertTrue(pojoOneSelected.getPrimitiveIntegerProperty() == pojoOne.getPrimitiveIntegerProperty());
+        assertEquals(pojoOneSelected.getLongProperty(), pojoOne.getLongProperty());
+        assertTrue(pojoOneSelected.getPrimitiveLongProperty() == pojoOne.getPrimitiveLongProperty());
+        assertEquals(pojoOneSelected.getShortProperty(), pojoOne.getShortProperty());
+        assertTrue(pojoOneSelected.getPrimitiveShortProperty() == pojoOne.getPrimitiveShortProperty());
+        assertEquals(pojoOneSelected.getByteProperty(), pojoOne.getByteProperty());
+        assertTrue(pojoOneSelected.getPrimitiveByteProperty() == pojoOne.getPrimitiveByteProperty());
+        assertEquals(pojoOneSelected.getBooleanProperty(), pojoOne.getBooleanProperty());
+        assertTrue(pojoOneSelected.getPrimitiveBooleanProperty() == pojoOne.getPrimitiveBooleanProperty());
 
         int scale = pojoOneSelected.getBigDecimalProperty().scale();
-        java.math.BigDecimal sampleBigDecimal = TestPojo.sampleBigDecimalProperty.setScale(scale, java.math.BigDecimal.ROUND_HALF_UP);
+        java.math.BigDecimal sampleBigDecimal = pojoOne.getBigDecimalProperty().setScale(scale, java.math.BigDecimal.ROUND_HALF_UP);
         assertEquals(pojoOneSelected.getBigDecimalProperty(), sampleBigDecimal);
 
-        assertEquals(pojoOneSelected.getBigIntegerProperty(), TestPojo.sampleBigIntegerProperty);
+        assertEquals(pojoOneSelected.getBigIntegerProperty(), pojoOne.getBigIntegerProperty());
     }
 
     @Test(expected = ClassCastException.class)
