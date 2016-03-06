@@ -135,7 +135,7 @@ public class Util {
 
     static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
 
-    public static Object smartCast(Class valueClass, Object value) {
+    private static Object smartCast(Class valueClass, Object value) {
         try {
             return valueClass.cast(value);
         }
@@ -151,7 +151,11 @@ public class Util {
                 return java.time.OffsetDateTime.parse(value.toString());
             }
             else if (java.time.LocalDateTime.class.equals(valueClass)) {
-                return java.time.OffsetDateTime.parse(value.toString()).toLocalDateTime();
+                try {
+                    return java.time.OffsetDateTime.parse(value.toString()).toLocalDateTime();
+                } catch(java.time.format.DateTimeParseException e) {
+                    return java.time.LocalDateTime.parse(value.toString());
+                }
             }
             else if (java.time.LocalDate.class.equals(valueClass)) {
                 return java.time.LocalDate.parse(value.toString());
