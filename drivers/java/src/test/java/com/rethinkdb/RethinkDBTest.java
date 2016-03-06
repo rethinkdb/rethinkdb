@@ -316,8 +316,14 @@ public class RethinkDBTest{
     @Test
     public void testTableSelectOfPojoCursor_ConvertStringToOtherTypes() {
         TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        //pojoOne.getEnumProperty().toString() lowercase output.
+        //pojoOne.getEnumProperty().Name() will output uppercase,
+        //uppercase is more easy to be converted back because auto-generated Enum use such convention.
+        //By default, when storing enum to db, we store the .Name()
         MapObject map = r.hashMap("stringProperty",pojoOne.getStringProperty().toString())
                 .with("enumProperty", pojoOne.getEnumProperty().toString())
+                .with("enumInnerLowerCaseProperty", pojoOne.getEnumInnerLowerCaseProperty().toString()) //store "xxx"
+                .with("enumInnerUpperCaseProperty", pojoOne.getEnumInnerUpperCaseProperty().toString()) //store "XXX"
                 .with("offsetDateTimeProperty", pojoOne.getOffsetDateTimeProperty().toString())
                 .with("localDateTimeProperty", pojoOne.getLocalDateTimeProperty().toString())
                 .with("zonedDateTimeProperty", pojoOne.getZonedDateTimeProperty().toString())
@@ -355,6 +361,9 @@ public class RethinkDBTest{
 
     private void compare_pojo(TestPojo pojoOneSelected, TestPojo pojoOne) {
         assertEquals(pojoOneSelected.getEnumProperty(), pojoOne.getEnumProperty());
+        assertEquals(pojoOneSelected.getEnumInnerLowerCaseProperty(), pojoOne.getEnumInnerLowerCaseProperty());
+        assertEquals(pojoOneSelected.getEnumInnerUpperCaseProperty(), pojoOne.getEnumInnerUpperCaseProperty());
+
         assertEquals(pojoOneSelected.getOffsetDateTimeProperty(), pojoOne.getOffsetDateTimeProperty());
         assertEquals(pojoOneSelected.getLocalDateTimeProperty(), pojoOne.getLocalDateTimeProperty());
         assertEquals(pojoOneSelected.getLocalDateProperty(), pojoOne.getLocalDateProperty());

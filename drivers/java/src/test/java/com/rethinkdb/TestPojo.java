@@ -16,9 +16,8 @@ public class TestPojo {
 
     public enum PojoEnum {
         AAA("aaa"),
-        BBB("bbb"),
-        CCC("ccc"),
-        DDD("ddd")
+        xxx("xxx"),
+        XXX("XXX"),
         ;
 
         private String value;
@@ -36,6 +35,8 @@ public class TestPojo {
     private String stringProperty;
     private TestPojoInner pojoProperty;
     private PojoEnum enumProperty = PojoEnum.AAA;
+    private PojoEnum enumInnerLowerCaseProperty = PojoEnum.xxx;
+    private PojoEnum enumInnerUpperCaseProperty = PojoEnum.XXX;
     private OffsetDateTime offsetDateTimeProperty = OffsetDateTime.now();
     private LocalDateTime localDateTimeProperty = LocalDateTime.now();;
     private ZonedDateTime zonedDateTimeProperty = ZonedDateTime.now();
@@ -78,6 +79,22 @@ public class TestPojo {
 
     public void setEnumProperty(PojoEnum enumProperty) {
         this.enumProperty = enumProperty;
+    }
+
+    public PojoEnum getEnumInnerLowerCaseProperty() {
+        return enumInnerLowerCaseProperty;
+    }
+
+    public void setEnumInnerLowerCaseProperty(PojoEnum enumInnerLowerCaseProperty) {
+        this.enumInnerLowerCaseProperty = enumInnerLowerCaseProperty;
+    }
+
+    public PojoEnum getEnumInnerUpperCaseProperty() {
+        return enumInnerUpperCaseProperty;
+    }
+
+    public void setEnumInnerUpperCaseProperty(PojoEnum enumInnerUpperCaseProperty) {
+        this.enumInnerUpperCaseProperty = enumInnerUpperCaseProperty;
     }
 
     public OffsetDateTime getOffsetDateTimeProperty() {
