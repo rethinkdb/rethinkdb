@@ -1948,14 +1948,15 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     while (!is_exhausted()) {
         while (args.size() < streams.size()) {
             datum_t d = streams[args.size()]->next(env, batchspec_inner);
-            if (union_type == feed_type_t::not_feed) {
-                r_sanity_check(d.has());
-            } else {
-                if (!d.has()) {
-                    // Return with `args` partway full and continue next time
-                    // the client asks for a batch.
-                    return batch;
+            if (!d.has()) {
+                if (union_type == feed_type_t::not_feed) {
+                    // One of the streams was probably empty from the beginning. So
+                    // after the call to `next` above, we should now be exhausted.
+                    r_sanity_check(is_exhausted());
                 }
+                // If we have a feed, return with `args` partway full and continue
+                // next time the client asks for a batch.
+                return batch;
             }
             args.push_back(std::move(d));
         }
