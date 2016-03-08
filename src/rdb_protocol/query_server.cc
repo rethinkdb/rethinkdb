@@ -84,11 +84,20 @@ void rdb_query_server_t::fill_server_info(ql::response_t *out) {
 
     boost::optional<server_config_versioned_t> server_conf =
         server_config_client->get_server_config_map()->get_key(server_id);
-    guarantee(server_conf); // the local server always exists
-    datum_string_t name(server_conf->config.name.str());
+    datum_string_t name;
+    bool is_proxy = false;
+    if (server_conf) {
+        // The local server always exists on persistent nodes
+        name = datum_string_t(server_conf->config.name.str());
+    } else {
+        // If the server does not exist in the server_config_map, then we're a proxy
+        is_proxy = true;
+        name = datum_string_t("proxy node");
+    }
 
     ql::datum_object_builder_t builder;
     builder.overwrite(datum_string_t("name"), ql::datum_t(name));
     builder.overwrite(datum_string_t("id"), ql::datum_t(id));
+    builder.overwrite(datum_string_t("isProxy"), ql::datum_t::boolean(is_proxy));
     out->set_data(std::move(builder).to_datum());
 }
