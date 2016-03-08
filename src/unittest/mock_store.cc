@@ -26,7 +26,7 @@ read_t mock_read(std::string key) {
 std::string mock_parse_read_response(const read_response_t &rr) {
     const point_read_response_t *prr
         = boost::get<point_read_response_t>(&rr.response);
-    guarantee(prr != NULL);
+    guarantee(prr != nullptr);
     guarantee(prr->data.has());
     if (prr->data.get_type() == ql::datum_t::R_NULL) {
         // Behave like the old dummy_protocol_t.

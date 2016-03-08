@@ -221,7 +221,7 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
     assert_thread();
     rassert(state == state_reserving_extents);
-    current_transaction = NULL;
+    current_transaction = nullptr;
     zone->reconstruct_free_list();
     state = state_running;
 
@@ -285,7 +285,7 @@ void extent_manager_t::release_extent_preliminaries() {
 void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
     rassert(current_transaction == t);
-    current_transaction = NULL;
+    current_transaction = nullptr;
     t->mark_end();
 }
 

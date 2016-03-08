@@ -19,7 +19,7 @@ void one_waiter_cond_t::pulse() {
     pulsed_ = true;
     if (waiter_) {
         coro_t *tmp = waiter_;
-        waiter_ = NULL;
+        waiter_ = nullptr;
         tmp->notify_later_ordered();
     }
 }

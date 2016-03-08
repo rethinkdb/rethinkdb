@@ -261,7 +261,7 @@ bool do_serve(io_backender_t *io_backender,
         needs. */
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
-                              NULL,   /* we'll fill this in later */
+                              nullptr,   /* we'll fill this in later */
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
@@ -683,7 +683,7 @@ bool serve_proxy(const serve_info_t &serve_info,
                  os_signal_cond_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(NULL,
+    return do_serve(nullptr,
                     false,
                     base_path_t(""),
                     nullptr,

@@ -46,8 +46,8 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
         if (*line != ' ') return false;
         line += 1;
     } else {
-        *function = NULL;
-        *offset = NULL;
+        *function = nullptr;
+        *offset = nullptr;
         char *bracket = strchr(line, '[');
         if (!bracket) return false;
         line = bracket - 1;
@@ -94,7 +94,7 @@ been involved in this. */
 
 std::string demangle_cpp_name(const char *mangled_name) {
     int res;
-    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
+    char *name_as_c_str = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &res);
     if (res == 0) {
         std::string name_as_std_string(name_as_c_str);
         free(name_as_c_str);
@@ -112,7 +112,7 @@ int set_o_cloexec(int fd) {
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
-address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
+address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(nullptr), output(nullptr), bad(false), pid(-1) {
     if (pipe(child_in) || set_o_cloexec(child_in[0]) || set_o_cloexec(child_in[1]) || pipe(child_out) || set_o_cloexec(child_out[0]) || set_o_cloexec(child_out[1])) {
         bad = true;
         return;
@@ -127,7 +127,7 @@ address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL
         dup2(child_in[0], 0);   // stdin
         dup2(child_out[1], 1);  // stdout
 
-        const char *args[] = {"addr2line", "-s", "-e", executable, NULL};
+        const char *args[] = {"addr2line", "-s", "-e", executable, nullptr};
 
         execvp("addr2line", const_cast<char *const *>(args));
         // A normal `exit` can get stuck here it seems. Maybe some `atexit` handler?
@@ -143,7 +143,7 @@ address_to_line_t::addr2line_t::~addr2line_t() {
         fclose(output);
     }
     if (pid != -1) {
-        waitpid(pid, NULL, 0);
+        waitpid(pid, nullptr, 0);
     }
 }
 
@@ -172,7 +172,7 @@ bool address_to_line_t::run_addr2line(const std::string &executable, const void 
 
     char *result = fgets(line, line_size, proc->output);
 
-    if (result == NULL) {
+    if (result == nullptr) {
         proc->bad = true;
         return false;
     }
@@ -210,7 +210,7 @@ backtrace_t::backtrace_t() {
     int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
 
 #ifdef CROSS_CORO_BACKTRACES
-    if (coro_t::self() != NULL) {
+    if (coro_t::self() != nullptr) {
         int space_remaining = max_frames - size;
         rassert(space_remaining >= 0);
         size += coro_t::self()->copy_spawn_backtrace(stack_frames.data() + size,
@@ -274,20 +274,20 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 void backtrace_frame_t::initialize_symbols() {
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
-    if (symbols != NULL) {
+    if (symbols != nullptr) {
         symbols_line = std::string(symbols[0]);
         char *c_filename;
         char *c_function;
         char *c_offset;
         char *c_address;
         if (parse_backtrace_line(symbols[0], &c_filename, &c_function, &c_offset, &c_address)) {
-            if (c_filename != NULL) {
+            if (c_filename != nullptr) {
                 filename = std::string(c_filename);
             }
-            if (c_function != NULL) {
+            if (c_function != nullptr) {
                 function = std::string(c_function);
             }
-            if (c_offset != NULL) {
+            if (c_offset != nullptr) {
                 offset = std::string(c_offset);
             }
         }
@@ -327,7 +327,7 @@ const void *backtrace_frame_t::get_addr() const {
 
 lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
     backtrace_t(),
-    timestamp(time(0)),
+    timestamp(time(nullptr)),
     timestr(time2str(timestamp)) {
 }
 

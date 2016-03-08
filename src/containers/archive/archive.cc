@@ -83,7 +83,7 @@ void write_message_t::append(const void *p, int64_t n) {
 
 size_t write_message_t::size() const {
     size_t ret = 0;
-    for (write_buffer_t *h = buffers_.head(); h != NULL; h = buffers_.next(h)) {
+    for (write_buffer_t *h = buffers_.head(); h != nullptr; h = buffers_.next(h)) {
         ret += h->size;
     }
     return ret;

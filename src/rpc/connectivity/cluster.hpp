@@ -125,7 +125,7 @@ public:
 
         /* Returns `true` if this is the loopback connection */
         bool is_loopback() const {
-            return conn == NULL;
+            return conn == nullptr;
         }
 
         /* Drops the connection. */
@@ -209,13 +209,13 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
-                guarantee(*variable == NULL);
+                guarantee(*variable == nullptr);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
                 guarantee(*variable == value);
-                *variable = NULL;
+                *variable = nullptr;
             }
         private:
             run_t **variable;

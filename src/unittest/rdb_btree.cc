@@ -66,9 +66,9 @@ void insert_rows(int start, int finish, store_t *store) {
                             &mod_report,
                             txn.get(),
                             &deletion_context,
-                            NULL,
-                            NULL,
-                            NULL);
+                            nullptr,
+                            nullptr,
+                            nullptr);
 
         new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
         store->sindex_queue_push(mod_report, &acq);
@@ -166,7 +166,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     ql::grouped_t<ql::stream_t> *groups =
         boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
-    guarantee(groups != NULL);
+    guarantee(groups != nullptr);
     return *groups;
 }
 
@@ -179,7 +179,7 @@ void _check_keys_are_present(store_t *store,
         ASSERT_EQ(1, groups.size());
         // The order of `groups` doesn't matter because this is a small unit test.
         ql::stream_t *stream = &groups.begin()->second;
-        ASSERT_TRUE(stream != NULL);
+        ASSERT_TRUE(stream != nullptr);
         ASSERT_EQ(1ul, stream->substreams.size());
         ql::raw_stream_t *raw_stream = &stream->substreams.begin()->second.stream;
         ASSERT_EQ(1ul, raw_stream->size());
@@ -259,7 +259,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
-            NULL,
+            nullptr,
             &io_backender,
             base_path_t("."),
             generate_uuid(),
@@ -302,7 +302,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
-            NULL,
+            nullptr,
             &io_backender,
             base_path_t("."),
             generate_uuid(),
@@ -383,7 +383,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
-            NULL,
+            nullptr,
             &io_backender,
             base_path_t("."),
             generate_uuid(),
@@ -426,7 +426,7 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
-            NULL,
+            nullptr,
             &io_backender,
             base_path_t("."),
             generate_uuid(),

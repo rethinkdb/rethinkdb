@@ -68,7 +68,7 @@ public:
               &pm_total_keys_read, "total_keys_read",
               &pm_keys_set, "keys_set",
               &pm_total_keys_set, "total_keys_set") {
-        if (parent != NULL) {
+        if (parent != nullptr) {
             rename(parent, identifier);
         }
     }
@@ -100,7 +100,7 @@ public:
 class keyvalue_location_t {
 public:
     keyvalue_location_t()
-        : superblock(NULL), pass_back_superblock(NULL),
+        : superblock(nullptr), pass_back_superblock(nullptr),
           there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     ~keyvalue_location_t() {
@@ -203,7 +203,7 @@ void find_keyvalue_location_for_write(
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         profile::trace_t *trace,
-        promise_t<superblock_t *> *pass_back_superblock = NULL) THROWS_NOTHING;
+        promise_t<superblock_t *> *pass_back_superblock = nullptr) THROWS_NOTHING;
 
 void find_keyvalue_location_for_read(
         value_sizer_t *sizer,

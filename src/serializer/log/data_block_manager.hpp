@@ -101,7 +101,7 @@ private:
         gc_entry_t *current_entry;
 
         gc_state_t()
-            : current_entry(NULL) { }
+            : current_entry(nullptr) { }
     };
 
     struct gc_write_t {

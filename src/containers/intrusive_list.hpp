@@ -10,31 +10,31 @@ template <class T>
 class intrusive_list_node_t {
 public:
     bool in_a_list() const {
-        guarantee((next_ == NULL) == (prev_ == NULL));
-        return prev_ != NULL;
+        guarantee((next_ == nullptr) == (prev_ == nullptr));
+        return prev_ != nullptr;
     }
 
 protected:
-    intrusive_list_node_t() : prev_(NULL), next_(NULL) { }
+    intrusive_list_node_t() : prev_(nullptr), next_(nullptr) { }
     ~intrusive_list_node_t() {
-        guarantee(prev_ == NULL,
+        guarantee(prev_ == nullptr,
                   "non-detached intrusive list node destroyed");
-        guarantee(next_ == NULL,
+        guarantee(next_ == nullptr,
                   "inconsistent intrusive list node!");
     }
 
     intrusive_list_node_t(intrusive_list_node_t &&movee) {
-        guarantee((movee.prev_ == NULL) == (movee.next_ == NULL));
+        guarantee((movee.prev_ == nullptr) == (movee.next_ == nullptr));
         guarantee(movee.prev_ != &movee,
                 "Only intrusive_list_t can be a self-pointing node.");
         prev_ = movee.prev_;
         next_ = movee.next_;
-        if (prev_ != NULL) {
+        if (prev_ != nullptr) {
             prev_->next_ = this;
             next_->prev_ = this;
         }
-        movee.prev_ = NULL;
-        movee.next_ = NULL;
+        movee.prev_ = nullptr;
+        movee.next_ = nullptr;
     }
 
     // Don't implement this.  _Maybe_ you won't fuck it up.  Just use the
@@ -77,8 +77,8 @@ public:
         guarantee(size_ == 0, "empty intrusive list destroyed with non-zero size");
 
         // Set these to NULL to appease base class destructor's assertions.
-        this->prev_ = NULL;
-        this->next_ = NULL;
+        this->prev_ = nullptr;
+        this->next_ = nullptr;
     }
 
     bool empty() const {
@@ -172,9 +172,9 @@ private:
                                intrusive_list_node_t<T> *after) {
         intrusive_list_node_t<T> *node = item;
         guarantee(!node->in_a_list());
-        guarantee(before != NULL);
+        guarantee(before != nullptr);
         guarantee(before->in_a_list());
-        guarantee(after != NULL);
+        guarantee(after != nullptr);
         guarantee(after->in_a_list());
         before->next_ = node;
         after->prev_ = node;
@@ -187,12 +187,12 @@ private:
         guarantee(node->in_a_list());
         node->prev_->next_ = node->next_;
         node->next_->prev_ = node->prev_;
-        node->prev_ = NULL;
-        node->next_ = NULL;
+        node->prev_ = nullptr;
+        node->next_ = nullptr;
     }
 
     T *null_if_self(intrusive_list_node_t<T> *node) const {
-        return node == this ? NULL : static_cast<T *>(node);
+        return node == this ? nullptr : static_cast<T *>(node);
     }
 
     size_t size_;

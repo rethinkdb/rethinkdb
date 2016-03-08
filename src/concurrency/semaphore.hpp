@@ -153,7 +153,7 @@ public:
         acquiree(movee.acquiree),
         count(movee.count) {
 
-        movee.acquiree = NULL;
+        movee.acquiree = nullptr;
     }
 
     ~semaphore_acq_t() {

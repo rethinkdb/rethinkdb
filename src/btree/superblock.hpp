@@ -14,7 +14,7 @@ public:
         rassert(refcount >= 0);
         if (refcount == 0) {
             sub_superblock->release();
-            sub_superblock = NULL;
+            sub_superblock = nullptr;
         }
     }
 

@@ -73,7 +73,7 @@ initial_joiner_t::initial_joiner_t(
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *loopback =
         cluster->get_connection(cluster->get_me(), &connection_keepalive);
-    guarantee(loopback != NULL);
+    guarantee(loopback != nullptr);
     peer_address_t self_addr = loopback->get_peer_address();
     for (peer_address_set_t::iterator join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr);
          join_self_it != peers_not_heard_from.end();

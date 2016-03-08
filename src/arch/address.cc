@@ -107,7 +107,7 @@ void hostname_to_ips_internal(const std::string &host,
     int errno_res;
     struct addrinfo *addrs;
     std::function<void ()> fn =
-        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
+        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(nullptr),
                   &hint, &addrs, &res, &errno_res);
     thread_pool_t::run_in_blocker_pool(fn);
 
@@ -183,10 +183,10 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
                   "getifaddrs() failed, could not determine local network interfaces");
 
     for (auto *current_addr = addrs;
-         current_addr != NULL;
+         current_addr != nullptr;
          current_addr = current_addr->ifa_next) {
         struct sockaddr *addr_data = current_addr->ifa_addr;
-        if (addr_data == NULL) {
+        if (addr_data == nullptr) {
             continue;
         } else if (addr_data->sa_family == AF_INET || addr_data->sa_family == AF_INET6) {
             all_ips.insert(ip_address_t(addr_data));

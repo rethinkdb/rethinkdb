@@ -53,12 +53,12 @@ private:
         explicit request_node_t(promise_t<value_t *> *_promise_out) :
             thread_id(get_thread_id()),
             promise_out(_promise_out) {
-            guarantee(promise_out != NULL);
+            guarantee(promise_out != nullptr);
         }
 
-        bool is_abandoned() const { return promise_out == NULL; }
+        bool is_abandoned() const { return promise_out == nullptr; }
         threadnum_t get_thread() const { return thread_id; }
-        void abandon() { promise_out = NULL; }
+        void abandon() { promise_out = nullptr; }
 
         void fulfill_promise(value_t *value) {
             guarantee(!is_abandoned());
@@ -114,7 +114,7 @@ private:
 template <class value_t>
 cross_thread_semaphore_t<value_t>::~cross_thread_semaphore_t() {
     for (size_t i = 0; i < values.size(); ++i) {
-        delete lock(NULL);
+        delete lock(nullptr);
     }
 }
 
@@ -136,7 +136,7 @@ void cross_thread_semaphore_t<value_t>::pass_value_coroutine(request_node_t *req
 template <class value_t>
 value_t *cross_thread_semaphore_t<value_t>::lock(signal_t *interruptor) {
     system_mutex_t::lock_t lock(&mutex);
-    value_t *result = NULL;
+    value_t *result = nullptr;
 
     if (available_value_index == values.size()) {
         request_t request(this);
@@ -144,11 +144,11 @@ value_t *cross_thread_semaphore_t<value_t>::lock(signal_t *interruptor) {
         result = request.wait_and_get(interruptor);
     } else {
         result = values[available_value_index];
-        values[available_value_index] = NULL;
+        values[available_value_index] = nullptr;
         ++available_value_index;
     }
 
-    guarantee(result != NULL);
+    guarantee(result != nullptr);
     return result;
 }
 
@@ -157,7 +157,7 @@ void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
     system_mutex_t::lock_t lock(&mutex);
 
     if (request_queue.size() > 0) {
-        request_node_t *request = NULL;
+        request_node_t *request = nullptr;
         while (request_queue.size() > 0) {
             request = request_queue.head();
             request_queue.remove(request);
@@ -167,10 +167,10 @@ void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
             }
 
             delete request;
-            request = NULL;
+            request = nullptr;
         }
 
-        if (request != NULL) {
+        if (request != nullptr) {
             coro_t::spawn_sometime(std::bind(&cross_thread_semaphore_t<value_t>::pass_value_coroutine,
                                              this, request, value));
             return;
@@ -179,7 +179,7 @@ void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
 
     // If we get here, there were no valid requests in the queue
     guarantee(available_value_index > 0);
-    guarantee(values[available_value_index - 1] == NULL);
+    guarantee(values[available_value_index - 1] == nullptr);
     values[available_value_index - 1] = value;
     --available_value_index;
 }
@@ -209,9 +209,9 @@ cross_thread_semaphore_t<value_t>::request_t::~request_t() {
 
 template <class value_t>
 value_t *cross_thread_semaphore_t<value_t>::request_t::wait_and_get(signal_t *interruptor) {
-    value_t *result = NULL;
+    value_t *result = nullptr;
 
-    if (interruptor == NULL) {
+    if (interruptor == nullptr) {
         value_promise.wait();
     } else {
         wait_interruptible(value_promise.get_ready_signal(), interruptor);

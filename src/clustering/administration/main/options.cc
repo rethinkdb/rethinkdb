@@ -112,7 +112,7 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options) {
@@ -157,7 +157,7 @@ std::map<std::string, values_t> do_parse_command_line(
 
         const option_t *const option = find_option(option_name, options);
         if (!option) {
-            if (unrecognized_out != NULL) {
+            if (unrecognized_out != nullptr) {
                 unrecognized.push_back(option_name);
                 continue;
             } else if (looks_like_option_name(option_name)) {
@@ -192,7 +192,7 @@ std::map<std::string, values_t> do_parse_command_line(
         }
     }
 
-    if (unrecognized_out != NULL) {
+    if (unrecognized_out != nullptr) {
         unrecognized_out->swap(unrecognized);
     }
 
@@ -200,7 +200,7 @@ std::map<std::string, values_t> do_parse_command_line(
 }
 
 std::map<std::string, values_t> parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
-    return do_parse_command_line(argc, argv, options, NULL);
+    return do_parse_command_line(argc, argv, options, nullptr);
 }
 
 std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
@@ -208,7 +208,7 @@ std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
     std::vector<std::string> *unrecognized_out) {
     // We check that unrecognized_out is not NULL because do_parse_command_line
     // throws some exceptions depending on the nullness of that value.
-    guarantee(unrecognized_out != NULL);
+    guarantee(unrecognized_out != nullptr);
 
     return do_parse_command_line(argc, argv, options, unrecognized_out);
 }
@@ -307,9 +307,9 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
         const std::string option_name = "--" + name;
         const option_t *option = find_option(option_name.c_str(), options);
 
-        if (option == NULL) {
+        if (option == nullptr) {
             // Ignore 'known' options that are not valid now, but exist in the superset
-            if (find_option(option_name.c_str(), options_superset) == NULL) {
+            if (find_option(option_name.c_str(), options_superset) == nullptr) {
                 throw file_parse_error_t(source,
                                          strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
                                                    filepath.c_str(), it - lines.begin(), name.c_str()));
