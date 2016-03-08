@@ -114,7 +114,7 @@ const btree_key_t *entry_key(const entry_t *p) {
 
 const void *entry_value(const entry_t *p) {
     if (entry_is_deletion(p)) {
-        return NULL;
+        return nullptr;
     } else {
         return reinterpret_cast<const char *>(p) + entry_key(p)->full_size();
     }
@@ -425,14 +425,14 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
     const btree_key_t *last = left_exclusive_or_null;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        if (failed(last == NULL || btree_key_cmp(last, key) < 0,
+        if (failed(last == nullptr || btree_key_cmp(last, key) < 0,
                    "keys out of order")) {
             return false;
         }
         last = key;
     }
 
-    if (failed(last == NULL || right_inclusive_or_null == NULL
+    if (failed(last == nullptr || right_inclusive_or_null == nullptr
                || btree_key_cmp(last, right_inclusive_or_null) <= 0,
                "keys out of order (with right_inclusive key)")) {
         return false;
@@ -446,7 +446,7 @@ void validate(DEBUG_VAR value_sizer_t *sizer, DEBUG_VAR const leaf_node_t *node)
 #ifndef NDEBUG
     do_nothing_fscker_t fits;
     std::string msg;
-    bool fscked_successfully = fsck(sizer, NULL, NULL, node, &fits, &msg);
+    bool fscked_successfully = fsck(sizer, nullptr, nullptr, node, &fits, &msg);
     rassert(fscked_successfully, "%s", msg.c_str());
 #endif
 }
@@ -928,7 +928,7 @@ void move_elements(value_sizer_t *sizer, leaf_node_t *fro, int beg, int end,
 
     fro->live_size += fro_live_size_adjustment;
 
-    if (moved_values_out != NULL) {
+    if (moved_values_out != nullptr) {
         // Collect value pointers of the moved values
         moved_values_out->clear();
         moved_values_out->reserve(end - beg);
@@ -1034,7 +1034,7 @@ void split(value_sizer_t *sizer, leaf_node_t *node, leaf_node_t *rnode, btree_ke
 
     int node_copysize = end_rcost - num_mandatories * sizeof(uint16_t);
     move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize,
-                  tstamp_back_offset, NULL);
+                  tstamp_back_offset, nullptr);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
@@ -1060,7 +1060,7 @@ void merge(value_sizer_t *sizer, leaf_node_t *left, leaf_node_t *right) {
     }
 
     move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize,
-                  tstamp_back_offset, NULL);
+                  tstamp_back_offset, nullptr);
 }
 
 // We move keys out of sibling and into node.
@@ -1712,7 +1712,7 @@ continue_bool_t visit_entries(
 }
 
 iterator::iterator()
-    : node_(NULL), index_(-1) { }
+    : node_(nullptr), index_(-1) { }
 
 iterator::iterator(const leaf_node_t *node, int index)
     : node_(node), index_(index) { }

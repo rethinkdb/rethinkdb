@@ -22,7 +22,7 @@ class cross_thread_mutex_t {
 public:
     class acq_t {
     public:
-        acq_t() : lock_(NULL) { }
+        acq_t() : lock_(nullptr) { }
         explicit acq_t(cross_thread_mutex_t *l);
         ~acq_t();
         void reset();
@@ -40,7 +40,7 @@ public:
     };
 
     explicit cross_thread_mutex_t(bool recursive = false) :
-        is_recursive(recursive), locked_count(0), lock_holder(NULL) { }
+        is_recursive(recursive), locked_count(0), lock_holder(nullptr) { }
     ~cross_thread_mutex_t() {
 #ifndef NDEBUG
         spinlock_acq_t acq(&spinlock);

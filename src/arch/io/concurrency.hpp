@@ -11,7 +11,7 @@ class system_mutex_t {
     friend class system_cond_t;
 public:
     system_mutex_t() {
-        int res = pthread_mutex_init(&m, NULL);
+        int res = pthread_mutex_init(&m, nullptr);
         guarantee_xerr(res == 0, res, "Could not initialize pthread mutex.");
     }
     ~system_mutex_t() {
@@ -29,7 +29,7 @@ public:
             guarantee(parent);
             int res = pthread_mutex_unlock(&parent->m);
             guarantee_xerr(res == 0, res, "Could not release pthread mutex.");
-            parent = NULL;
+            parent = nullptr;
         }
         ~lock_t() {
             if (parent) unlock();
@@ -42,7 +42,7 @@ class system_cond_t {
     pthread_cond_t c;
 public:
     system_cond_t() {
-        int res = pthread_cond_init(&c, NULL);
+        int res = pthread_cond_init(&c, nullptr);
         guarantee_xerr(res == 0, res, "Could not initialize pthread cond.");
     }
     ~system_cond_t() {

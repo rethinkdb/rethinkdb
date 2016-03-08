@@ -73,5 +73,5 @@ std::vector<scoped_ptr_t<issue_t> > non_transitive_issue_tracker_t::get_issues(
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
-    return std::move(issues);
+    return issues;
 }

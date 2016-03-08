@@ -320,7 +320,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     filename = base_path_t(logfile_name);
 
 #ifdef _WIN32
-    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     fd.reset(h);
 
     if (fd.get() == INVALID_FD) {
@@ -470,7 +470,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
 #ifdef _WIN32
     DWORD bytes_written;
-    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, NULL);
+    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, nullptr);
     if (!res) {
         error_out->assign("cannot write to log file: " + winerr_string(GetLastError()));
         return false;
@@ -570,7 +570,7 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(
 
 void thread_pool_log_writer_t::install_on_thread(int i) {
     on_thread_t thread_switcher((threadnum_t(i)));
-    guarantee(TLS_get_global_log_writer() == NULL);
+    guarantee(TLS_get_global_log_writer() == nullptr);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }
@@ -611,7 +611,7 @@ void thread_pool_log_writer_t::tail_blocking(
     try {
         scoped_fd_t fd;
 #ifdef _WIN32
-        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
 #else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));

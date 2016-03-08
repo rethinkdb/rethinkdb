@@ -52,7 +52,7 @@ public:
 
         virtual ~subscription_t() { }
 
-        void reset(signal_t *s = NULL) {
+        void reset(signal_t *s = nullptr) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);
                 if (s->is_pulsed()) {
@@ -61,7 +61,7 @@ public:
                     subs.reset(s->publisher_controller.get_publisher());
                 }
             } else {
-                subs.reset(NULL);
+                subs.reset(nullptr);
             }
         }
 

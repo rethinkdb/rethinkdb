@@ -13,7 +13,7 @@
 #include "time.hpp"
 
 timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue)
-    : queue(_queue), timer_fd(-1), callback(NULL) {
+    : queue(_queue), timer_fd(-1), callback(nullptr) {
     const int fd = timerfd_create(CLOCK_MONOTONIC, 0);
     guarantee_err(fd != -1, "Could not create timer");
 
@@ -29,7 +29,7 @@ timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue)
 timerfd_provider_t::~timerfd_provider_t() {
     queue->forget_resource(timer_fd, this);
 
-    guarantee(callback == NULL);
+    guarantee(callback == nullptr);
     const int res = close(timer_fd);
     guarantee_err(res == 0 || get_errno() == EINTR, "Could not close the timer.");
 }
@@ -48,7 +48,7 @@ void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, time
     spec.it_value.tv_sec = wait_nanos / BILLION;
     spec.it_value.tv_nsec = wait_nanos % BILLION;
 
-    const int res = timerfd_settime(timer_fd, 0, &spec, NULL);
+    const int res = timerfd_settime(timer_fd, 0, &spec, nullptr);
     guarantee_err(res == 0, "Could not arm the timer.");
 
     callback = cb;
@@ -61,10 +61,10 @@ void timerfd_provider_t::unschedule_oneshot() {
     spec.it_value.tv_sec = 0;
     spec.it_value.tv_nsec = 0;
 
-    const int res = timerfd_settime(timer_fd, 0, &spec, NULL);
+    const int res = timerfd_settime(timer_fd, 0, &spec, nullptr);
     guarantee_err(res == 0, "Could not disarm the timer.");
 
-    callback = NULL;
+    callback = nullptr;
 }
 
 void timerfd_provider_t::on_event(int events) {
@@ -77,10 +77,10 @@ void timerfd_provider_t::on_event(int events) {
     guarantee_err(res == 0 || get_errno() == EAGAIN, "Could not read timer_fd value");
     if (res == 0 && nexpirations > 0) {
         // The callback could be unscheduled but after the timerfd rang, maybe.  So we check here.
-        if (callback != NULL) {
+        if (callback != nullptr) {
             // Make the callback be NULL before we call it, so that a new callback can be set.
             timer_provider_callback_t *local_cb = callback;
-            callback = NULL;
+            callback = nullptr;
             local_cb->on_oneshot();
         }
     }

@@ -32,7 +32,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
     struct dirent *ep;
 
     dp = opendir(base_path.path().c_str());
-    if (dp == NULL) {
+    if (dp == nullptr) {
         throw directory_open_failed_exc_t(get_errno(), base_path);
     }
 
@@ -43,7 +43,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
     // and Linux glibc both allocate per-directory buffers.  readdir_r is unsafe
     // because you can't specify the length of the struct dirent buffer you pass in
     // to it.  See http://elliotth.blogspot.com/2012/10/how-not-to-use-readdirr3.html
-    while ((ep = readdir(dp)) != NULL) {  // NOLINT(runtime/threadsafe_fn)
+    while ((ep = readdir(dp)) != nullptr) {  // NOLINT(runtime/threadsafe_fn)
         if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
             closedir(dp);
             return false;
@@ -94,8 +94,8 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
 
 #ifdef _WIN32
     // TODO WINDOWS: issue #5165
-    directory_fd.reset(CreateFile(directory_path.path().c_str(), GENERIC_READ, 0, NULL,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL));
+    directory_fd.reset(CreateFile(directory_path.path().c_str(), GENERIC_READ, 0, nullptr,
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, nullptr));
     if (directory_fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
         throw directory_open_failed_exc_t(EIO, directory_path);

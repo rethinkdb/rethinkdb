@@ -69,7 +69,7 @@ template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     : head(this), mb_buffer(METABLOCK_SIZE),
       extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
-      state(state_unstarted), dbfile(NULL) {
+      state(state_unstarted), dbfile(nullptr) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
     rassert(mb_buffer.get());
     mb_buffer_in_use = false;
@@ -155,7 +155,7 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_found, metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
-    rassert(dbfile != NULL);
+    rassert(dbfile != nullptr);
 
     rassert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
@@ -198,7 +198,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     // about the benefits though, so leaving this alone.
 
     // We've read everything from disk. Now find the last good metablock.
-    crc_metablock_t *last_good_mb = NULL;
+    crc_metablock_t *last_good_mb = nullptr;
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {

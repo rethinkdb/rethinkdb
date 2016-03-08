@@ -57,7 +57,7 @@
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
-    if (fp1 == NULL) {
+    if (fp1 == nullptr) {
         return false;
     }
     fprintf(fp1, "%d", number);
@@ -165,7 +165,7 @@ bool get_group_id(const char *name, gid_t *group_id_out) {
         } while (res == EINTR);
 
         if (res == 0) {
-            if (result == NULL) {
+            if (result == nullptr) {
                 return false;
             } else {
                 *group_id_out = result->gr_gid;
@@ -207,7 +207,7 @@ bool get_user_ids(const char *name, uid_t *user_id_out, gid_t *user_group_id_out
         } while (res == EINTR);
 
         if (res == 0) {
-            if (result == NULL) {
+            if (result == nullptr) {
                 return false;
             } else {
                 *user_id_out = result->pw_uid;
@@ -860,7 +860,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
-                            NULL, NULL, NULL, data_directory_lock,
+                            nullptr, nullptr, nullptr, data_directory_lock,
                             result_out);
     } else {
         logNTC("Initializing directory %s\n", base_path.path().c_str());
@@ -1422,13 +1422,13 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
             throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
-        if (freopen("/dev/null", "r", stdin) == NULL) {
+        if (freopen("/dev/null", "r", stdin) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-        if (freopen("/dev/null", "w", stdout) == NULL) {
+        if (freopen("/dev/null", "w", stdout) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-        if (freopen("/dev/null", "w", stderr) == NULL) {
+        if (freopen("/dev/null", "w", stderr) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 #endif
@@ -1519,9 +1519,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
-                                     static_cast<server_id_t*>(NULL),
-                                     static_cast<server_config_versioned_t *>(NULL),
-                                     static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                     static_cast<server_id_t*>(nullptr),
+                                     static_cast<server_config_versioned_t *>(nullptr),
+                                     static_cast<cluster_semilattice_metadata_t*>(nullptr),
                                      &data_directory_lock,
                                      &result),
                            num_workers);
@@ -1856,34 +1856,34 @@ void help_rethinkdb_proxy() {
 void help_rethinkdb_export() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_EXPORT_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_EXPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_import() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_IMPORT_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_IMPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_dump() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_DUMP_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_DUMP_SCRIPT, args);
 }
 
 void help_rethinkdb_restore() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_RESTORE_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_RESTORE_SCRIPT, args);
 }
 
 void help_rethinkdb_index_rebuild() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_INDEX_REBUILD_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, args);
 }
