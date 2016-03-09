@@ -78,16 +78,52 @@ public class Util {
 
             if (java.time.LocalDate.class.equals(pojoClass)) {
                 return (T) java.time.LocalDate.of(
-                        ((Long) (map.get("year"))).intValue(),
+                        ((Long) map.get("year")).intValue(),
                         ((Long) map.get("monthValue")).intValue(),
                         ((Long) map.get("dayOfMonth")).intValue());
             }
             else if (java.time.LocalTime.class.equals(pojoClass)) {
                 return (T) java.time.LocalTime.of(
-                        ((Long) (map.get("hour"))).intValue(),
+                        ((Long) map.get("hour")).intValue(),
                         ((Long) map.get("minute")).intValue(),
                         ((Long) map.get("second")).intValue(),
                         ((Long) map.get("nano")).intValue());
+            }
+            else if (java.time.LocalDateTime.class.equals(pojoClass)) {
+                return (T) java.time.LocalDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue());
+            }
+            else if (java.time.OffsetDateTime.class.equals(pojoClass)) {
+                String zoneOffsetId = (String)((Map<String, Object>) map.get("offset")).get("id");
+                return (T) java.time.OffsetDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue(),
+                        java.time.ZoneOffset.of(zoneOffsetId)
+                );
+            }
+            else if (java.time.ZonedDateTime.class.equals(pojoClass)) {
+                String zoneId = (String)((Map<String, Object>) map.get("zone")).get("id");
+                return (T) java.time.ZonedDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue(),
+                        java.time.ZoneId.of(zoneId)
+                );
             }
 
             throw new IllegalAccessException(String.format(
@@ -195,9 +231,14 @@ public class Util {
             }
             else if (java.util.Date.class.isAssignableFrom(valueClass)) {
                 try {
-                    return dtf.parse(value.toString());
-                } catch (java.text.ParseException e) {
-                    throw new IllegalArgumentException(e);
+                    //convert long to Date if value is already long, Long
+                    return new Date((long) value);
+                } catch (java.lang.ClassCastException e) {
+                    try {
+                        return dtf.parse(value.toString());
+                    } catch (java.text.ParseException e2) {
+                        throw new IllegalArgumentException(e);
+                    }
                 }
             }
             else

@@ -359,6 +359,25 @@ public class RethinkDBTest{
         compare_pojo(pojoOneSelected, pojoOne);
     }
 
+    @Test
+    public void testSaveBeanAsMapThenSelectAsBean() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        com.fasterxml.jackson.databind.ObjectMapper m = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        Map<String, Object> map = m.convertValue(pojoOne, Map.class);
+
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(map).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+
+        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        List<TestPojo> result = cursor.toList();
+        assertEquals(1, result.size());
+
+        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+
+        compare_pojo(pojoOneSelected, pojoOne);
+    }
+
     private void compare_pojo(TestPojo pojoOneSelected, TestPojo pojoOne) {
         assertEquals(pojoOneSelected.getEnumProperty(), pojoOne.getEnumProperty());
         assertEquals(pojoOneSelected.getEnumInnerLowerCaseProperty(), pojoOne.getEnumInnerLowerCaseProperty());
