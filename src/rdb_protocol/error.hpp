@@ -68,7 +68,7 @@ protected:
     type_t type;
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::NON_EXISTENCE);
+    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::PERMISSION_ERROR);
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.

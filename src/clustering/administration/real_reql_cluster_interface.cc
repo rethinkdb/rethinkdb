@@ -1051,11 +1051,19 @@ bool grant_internal(
         boost::optional<auth::username_t> const &granter_username,
         auth::username_t grantee_username,
         ql::datum_t permissions,
-        T function,
+        T permission_selector_function,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     if (!static_cast<bool>(granter_username) || !granter_username->is_admin()) {
         // FIXME
+    }
+
+    if (grantee_username.is_admin()) {
+        *error_out = admin_err_t{
+            "The permissions of the user `" + grantee_username.to_string() +
+                "` can't be modified",
+            query_state_t::FAILED};
+        return false;
     }
 
     auth_semilattice_metadata_t auth_metadata = auth_semilattice_view->get();
@@ -1063,20 +1071,20 @@ bool grant_internal(
     if (grantee == auth_metadata.m_users.end() ||
             !static_cast<bool>(grantee->second.get_ref())) {
         *error_out = admin_err_t{
-            strprintf("User `%s` not found", grantee_username.to_string().c_str()),
+            "User `" + grantee_username.to_string() + "` not found",
             query_state_t::FAILED
         };
         return false;
     }
 
-    ql::datum_object_builder_t old_permissions_builder;
-    ql::datum_object_builder_t new_permissions_builder;
+    ql::datum_t old_permissions;
+    ql::datum_t new_permissions;
     try {
         grantee->second.apply_write([&](boost::optional<auth::user_t> *user) {
-            auto &permissions_ref = function(user->get());
-            permissions_ref.to_datum(&old_permissions_builder);
+            auto &permissions_ref = permission_selector_function(user->get());
+            old_permissions = permissions_ref.to_datum();
             permissions_ref.merge(permissions);
-            permissions_ref.to_datum(&new_permissions_builder);
+            new_permissions = permissions_ref.to_datum();
         });
     } catch (admin_op_exc_t const &admin_op_exc) {
         *error_out = admin_op_exc.to_admin_err();
@@ -1091,13 +1099,7 @@ bool grant_internal(
     result_builder.overwrite("granted", ql::datum_t(1.0));
     result_builder.overwrite(
         "permissions_changes",
-        make_replacement_pair(
-            old_permissions_builder.empty()
-                ? ql::datum_t::null()
-                : std::move(old_permissions_builder).to_datum(),
-            new_permissions_builder.empty()
-                ? ql::datum_t::null()
-                : std::move(new_permissions_builder).to_datum()));
+        make_replacement_pair(old_permissions, new_permissions));
     *result_out = std::move(result_builder).to_datum();
     return true;
 }
@@ -1388,7 +1390,7 @@ template <typename F>
 void require_permission_internal(
         rdb_context_t *rdb_context,
         boost::optional<auth::username_t> const &username,
-        F function,
+        F permission_selector_function,
         std::string const &permission_name) {
     if (static_cast<bool>(username)) {
         rdb_context->get_auth_watchable()->apply_read(
@@ -1396,7 +1398,7 @@ void require_permission_internal(
                 auto user = auth_metadata->m_users.find(username.get());
                 if (user == auth_metadata->m_users.end() ||
                         !static_cast<bool>(user->second.get_ref()) ||
-                        !function(user->second.get_ref().get())) {
+                        !permission_selector_function(user->second.get_ref().get())) {
                     throw auth::permission_error_t(username.get(), permission_name);
                 }
            });

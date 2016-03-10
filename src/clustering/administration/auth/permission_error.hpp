@@ -15,7 +15,7 @@ public:
     permission_error_t(auth::username_t const &username, std::string const &permission)
         : std::runtime_error(
             strprintf(
-                "User `%s` does not have the required `$%s` permission",
+                "User `%s` does not have the required `%s` permission",
                 username.to_string().c_str(),
                 permission.c_str())) {
     }

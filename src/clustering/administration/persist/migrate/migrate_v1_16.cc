@@ -554,7 +554,8 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                         unreachable();
                       }
@@ -572,7 +573,8 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                         unreachable();
                       }
@@ -639,7 +641,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                           unreachable();
                       }
@@ -658,7 +661,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                           unreachable();
                       }

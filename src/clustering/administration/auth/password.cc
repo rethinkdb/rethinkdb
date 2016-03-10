@@ -1,7 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/password.hpp"
 
-#include "errors.hpp"
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
@@ -14,7 +13,7 @@ namespace auth {
 password_t::password_t() {
 }
 
-password_t::password_t(std::string password, uint32_t iteration_count)
+password_t::password_t(std::string const &password, uint32_t iteration_count)
     : m_iteration_count(iteration_count) {
     if (RAND_bytes(m_salt.data(), m_salt.size()) != 1) {
         // FIXME, ERR_get_error
@@ -41,10 +40,10 @@ bool password_t::operator==(password_t const &rhs) const {
 }
 
 RDB_IMPL_SERIALIZABLE_3(
-    password_t
-  , m_hash
-  , m_salt
-  , m_iteration_count);
-INSTANTIATE_SERIALIZABLE_SINCE_v1_13(password_t);
+    password_t,
+    m_hash,
+    m_salt,
+    m_iteration_count);
+INSTANTIATE_SERIALIZABLE_SINCE_v2_3(password_t);
 
 }  // namespace auth

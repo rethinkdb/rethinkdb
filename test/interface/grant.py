@@ -23,7 +23,7 @@ with driver.Process() as process:
         res = r.grant("test", {"invalid": "invalid"}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Unexpected keys, got {\n\t\"invalid\":\t\"invalid\"\n}", err
+        assert err.message == "Unexpected key(s) `invalid`", err
 
     res = r.grant(
             "test", {"read": True, "write": True, "config": True, "connect": True}
@@ -83,7 +83,7 @@ with driver.Process() as process:
         res = r.db("test").grant("test", {"invalid": "invalid"}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Unexpected keys, got {\n\t\"invalid\":\t\"invalid\"\n}", err
+        assert err.message == "Unexpected key(s) `invalid`", err
 
     res = r.db("test").grant(
             "test", {"read": True, "write": True, "config": True}
@@ -107,7 +107,7 @@ with driver.Process() as process:
         res = r.db("test").table("test").grant("test", {"invalid": "invalid"}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Unexpected keys, got {\n\t\"invalid\":\t\"invalid\"\n}", err
+        assert err.message == "Unexpected key(s) `invalid`", err
 
     res = r.db("test").table("test").grant(
             "test", {"read": True, "write": True, "config": True}
@@ -118,3 +118,21 @@ with driver.Process() as process:
     assert res["permissions_changes"][0]["new_val"] == {
             "read": True, "write": True, "config": True
         }, res
+
+    try:
+        res = r.grant("admin", {"config": False}).run(conn)
+        assert False, res
+    except r.ReqlOpFailedError, err:
+        assert err.message == "The permissions of the user `admin` can't be modified", err
+
+    try:
+        res = r.db("test").grant("admin", {"config": False}).run(conn)
+        assert False, res
+    except r.ReqlOpFailedError, err:
+        assert err.message == "The permissions of the user `admin` can't be modified", err
+
+    try:
+        res = r.db("test").table("test").grant("admin", {"config": False}).run(conn)
+        assert False, res
+    except r.ReqlOpFailedError, err:
+        assert err.message == "The permissions of the user `admin` can't be modified", err

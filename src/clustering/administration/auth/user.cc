@@ -1,6 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/user.hpp"
 
+#include <set>
+#include <string>
+
+#include "errors.hpp"
+#include <boost/algorithm/string/join.hpp>
+
 #include "arch/runtime/runtime_utils.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
@@ -55,18 +61,26 @@ void user_t::merge(ql::datum_t const &datum) {
     }
 
     if (datum.obj_size() != 2) {
+        std::set<std::string> keys;
+        for (size_t i = 0; i < datum.obj_size(); ++i) {
+            keys.insert(datum.get_pair(i).first.to_std());
+        }
+        keys.erase("id");
+        keys.erase("password");
+
         throw admin_op_exc_t(
-            "Unexpected keys, got " + datum.print(), query_state_t::FAILED);
+            "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`",
+            query_state_t::FAILED);
     }
 
     if (password.get_type() == ql::datum_t::R_STR) {
-        set_password(std::move(password.as_str().to_std()));
+        set_password(password.as_str().to_std());
     } else if (password.get_type() == ql::datum_t::R_BOOL) {
         if (password.as_bool()) {
             if (!static_cast<bool>(m_password)) {
                 throw admin_op_exc_t(
-                    "No password is currently set, specify a string to set it or "
-                    "`false` to keep it unset, got " + password.print(),
+                    "Expected a string to set the password or `false` to keep it "
+                    "unset, got " + password.print(),
                     query_state_t::FAILED);
             }
         } else {
@@ -263,11 +277,11 @@ bool user_t::operator==(user_t const &rhs) const {
 }
 
 RDB_IMPL_SERIALIZABLE_4(
-    user_t
-  , m_password
-  , m_global_permissions
-  , m_database_permissions
-  , m_table_permissions);
-INSTANTIATE_SERIALIZABLE_SINCE_v1_13(user_t);
+    user_t,
+    m_password,
+    m_global_permissions,
+    m_database_permissions,
+    m_table_permissions);
+INSTANTIATE_SERIALIZABLE_SINCE_v2_3(user_t);
 
 }  // namespace auth

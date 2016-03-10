@@ -1134,7 +1134,8 @@ escape_nulls_t escape_nulls_from_reql_version_for_sindex(reql_version_t rv) {
     case reql_version_t::v2_0:
     case reql_version_t::v2_1:
         return escape_nulls_t::NO;
-    case reql_version_t::v2_2_is_latest:
+    case reql_version_t::v2_2:
+    case reql_version_t::v2_3_is_latest:
         return escape_nulls_t::YES;
     default: unreachable();
     }

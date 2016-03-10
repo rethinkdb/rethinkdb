@@ -16,6 +16,8 @@ class permissions_t
 {
 public:
     permissions_t();
+    // The two constructors below are for the non-global and global scopes
+    // respectively
     permissions_t(
         boost::tribool read,
         boost::tribool write,
@@ -41,7 +43,7 @@ public:
     void set_config(boost::tribool);
     void set_connect(boost::tribool);
 
-    void to_datum(ql::datum_object_builder_t *datum_object_builder_out) const;
+    ql::datum_t to_datum() const;
 
     bool operator==(permissions_t const &rhs) const;
 
