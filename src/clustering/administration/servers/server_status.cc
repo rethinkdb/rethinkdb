@@ -79,7 +79,8 @@ bool server_status_artificial_table_backend_t::format_row(
                 server_config_client,
                 &server_name_or_uuid,
                 nullptr)) {
-            continue;
+            server_name_or_uuid = ql::datum_t(
+                datum_string_t(uuid_to_str(pair.first)));
         }
         if (server_id != pair.first) {
             bool is_connected = false;
