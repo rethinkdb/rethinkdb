@@ -1,6 +1,9 @@
 // iopyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/permissions_artificial_table_backend.hpp"
 
+#include "errors.hpp"
+#include <boost/algorithm/string/join.hpp>
+
 #include "clustering/administration/datum_adapter.hpp"
 
 namespace auth {
@@ -175,17 +178,24 @@ bool permissions_artificial_table_backend_t::write_row(
         return false;
     }
 
+    if (user->first.is_admin()) {
+        *error_out = admin_err_t{
+            "The permissions of the user `" + username.to_string() + "` can't be modified",
+            query_state_t::FAILED};
+        return false;
+    }
+
     if (new_value_inout->has()) {
-        std::set<datum_string_t> keys;
+        std::set<std::string> keys;
         for (size_t i = 0; i < new_value_inout->obj_size(); ++i) {
-            keys.insert(new_value_inout->get_pair(i).first);
+            keys.insert(new_value_inout->get_pair(i).first.to_std());
         }
-        keys.erase(datum_string_t("id"));
+        keys.erase("id");
 
         if (array_size > 1) {
             ql::datum_t database = new_value_inout->get_field("database", ql::NOTHROW);
             if (database.has()) {
-                keys.erase(datum_string_t("database"));
+                keys.erase("database");
 
                 switch (m_identifier_format) {
                     case admin_identifier_format_t::name:
@@ -232,7 +242,7 @@ bool permissions_artificial_table_backend_t::write_row(
         if (array_size > 2) {
             ql::datum_t table = new_value_inout->get_field("table", ql::NOTHROW);
             if (table.has()) {
-                keys.erase(datum_string_t("table"));
+                keys.erase("table");
 
                 switch (m_identifier_format) {
                     case admin_identifier_format_t::name:
@@ -288,7 +298,7 @@ bool permissions_artificial_table_backend_t::write_row(
 
         ql::datum_t permissions = new_value_inout->get_field("permissions", ql::NOTHROW);
         if (permissions.has()) {
-            keys.erase(datum_string_t("permissions"));
+            keys.erase("permissions");
 
             try {
                 switch (array_size) {
@@ -337,7 +347,7 @@ bool permissions_artificial_table_backend_t::write_row(
 
         if (!keys.empty()) {
             *error_out = admin_err_t{
-                "Unexpected keys, got " + new_value_inout->print(),
+                "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`",
                 query_state_t::FAILED};
             return false;
         }
@@ -398,7 +408,8 @@ uint8_t permissions_artificial_table_backend_t::parse_primary_key(
             primary_key.arr_size() > 3) {
         if (admin_err_out != nullptr) {
             *admin_err_out = admin_err_t{
-                "Expected an array of one to three items, got " + primary_key.print(),
+                "Expected an array of one to three items in the primary key, got " +
+                    primary_key.print(),
                 query_state_t::FAILED};
         }
         return 0;
@@ -486,16 +497,15 @@ bool permissions_artificial_table_backend_t::global_to_datum(
         username_t const &username,
         permissions_t const &permissions,
         ql::datum_t *datum_out) {
-    ql::datum_object_builder_t permissions_builder;
-    permissions.to_datum(&permissions_builder);
-    if (!permissions_builder.empty()) {
+    ql::datum_t permissions_datum = permissions.to_datum();
+    if (permissions_datum.get_type() != ql::datum_t::R_NULL) {
         ql::datum_object_builder_t builder;
 
         ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
         id_builder.add(convert_string_to_datum(username.to_string()));
 
         builder.overwrite("id", std::move(id_builder).to_datum());
-        builder.overwrite("permissions", std::move(permissions_builder).to_datum());
+        builder.overwrite("permissions", std::move(permissions_datum));
 
         *datum_out = std::move(builder).to_datum();
         return true;
@@ -510,9 +520,8 @@ bool permissions_artificial_table_backend_t::database_to_datum(
         permissions_t const &permissions,
         cluster_semilattice_metadata_t const &cluster_metadata,
         ql::datum_t *datum_out) {
-    ql::datum_object_builder_t permissions_builder;
-    permissions.to_datum(&permissions_builder);
-    if (!permissions_builder.empty()) {
+    ql::datum_t permissions_datum = permissions.to_datum();
+    if (permissions_datum.get_type() != ql::datum_t::R_NULL) {
         ql::datum_object_builder_t builder;
 
         ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
@@ -531,7 +540,7 @@ bool permissions_artificial_table_backend_t::database_to_datum(
 
         builder.overwrite("database", std::move(database_name_or_uuid));
         builder.overwrite("id", std::move(id_builder).to_datum());
-        builder.overwrite("permissions", std::move(permissions_builder).to_datum());
+        builder.overwrite("permissions", std::move(permissions_datum));
 
         *datum_out = std::move(builder).to_datum();
         return true;
@@ -553,14 +562,14 @@ bool permissions_artificial_table_backend_t::table_to_datum(
     } catch (no_such_table_exc_t const &) {
         return false;
     }
+    // `database_id` is only used to check for consistency, it should match the database
+    // that the `table_id` is in if `database_id` is provided
     if (!database_id.is_nil() && database_id != table_basic_config.database) {
-        // The `database_id` does not match the `table_id`
         return false;
     }
 
-    ql::datum_object_builder_t permissions_builder;
-    permissions.to_datum(&permissions_builder);
-    if (!permissions_builder.empty()) {
+    ql::datum_t permissions_datum = permissions.to_datum();
+    if (permissions_datum.get_type() != ql::datum_t::R_NULL) {
         ql::datum_object_builder_t builder;
 
         ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
@@ -585,7 +594,7 @@ bool permissions_artificial_table_backend_t::table_to_datum(
 
         builder.overwrite("database", std::move(database_name_or_uuid));
         builder.overwrite("id", std::move(id_builder).to_datum());
-        builder.overwrite("permissions", std::move(permissions_builder).to_datum());
+        builder.overwrite("permissions", std::move(permissions_datum));
         builder.overwrite("table", std::move(table_name_or_uuid));
 
         *datum_out = std::move(builder).to_datum();

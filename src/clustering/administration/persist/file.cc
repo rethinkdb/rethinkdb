@@ -53,13 +53,14 @@ cluster_version_t magic_to_version(block_magic_t magic) {
     case 'h': return cluster_version_t::v2_0;
     case 'i': return cluster_version_t::v2_1;
     case 'j': return cluster_version_t::v2_2;
+    case 'k': return cluster_version_t::v2_3;
     default:
         fail_due_to_user_error("You're trying to use an earlier version of RethinkDB "
             "to open a database created by a later version of RethinkDB.");
     }
     // This is here so you don't forget to add new versions above.
     // Please also update the value of metadata_sb_magic at the top of this file!
-    static_assert(cluster_version_t::LATEST_DISK == cluster_version_t::v2_2,
+    static_assert(cluster_version_t::LATEST_DISK == cluster_version_t::v2_3,
         "Please add new version to magic_to_version.");
 }
 
@@ -340,6 +341,8 @@ metadata_file_t::metadata_file_t(
         } break;
     case cluster_version_t::v2_2:
         break; // Up-to-date, do nothing
+    case cluster_version_t::v2_3:
+        break;
     default: unreachable();
     }
 }

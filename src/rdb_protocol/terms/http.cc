@@ -235,7 +235,7 @@ scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                         user->second.get_ref()->has_connect_permission(),
                     ql::base_exc_t::PERMISSION_ERROR,
                     strprintf(
-                        "User `%s` does not have the required `$connect` permission",
+                        "User `%s` does not have the required `connect` permission",
                         username.get().to_string().c_str()));
             });
     }

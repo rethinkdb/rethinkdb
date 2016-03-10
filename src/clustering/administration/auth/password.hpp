@@ -2,11 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_AUTH_PASSWORD_HPP
 #define CLUSTERING_ADMINISTRATION_AUTH_PASSWORD_HPP
 
+#include <openssl/sha.h>
+
 #include <array>
 #include <string>
-
-#include "errors.hpp"
-#include <openssl/sha.h>
 
 #include "rpc/serialize_macros.hpp"
 
@@ -16,7 +15,7 @@ class password_t
 {
 public:
     password_t();
-    password_t(std::string password, uint32_t iteration_count = 4096);
+    password_t(std::string const &password, uint32_t iteration_count = 4096);
 
     bool operator==(password_t const &rhs) const;
 

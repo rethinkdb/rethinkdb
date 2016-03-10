@@ -146,20 +146,45 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
 
 template <cluster_version_t W>
 void serialize(write_message_t *write_message, boost::tribool const &value) {
-    int8_t inner = value.value;
-    serialize<W>(write_message, inner);
+    int8_t mapping = -1;
+
+    if (!value) {
+        // `value` is false
+        mapping = 0;
+    } else if (value) {
+        // `value` is true
+        mapping = 1;
+    } else {
+        // `value` is indeterminate
+        mapping = 2;
+    }
+
+    serialize<W>(write_message, mapping);
 }
 
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *read_stream, boost::tribool *value) {
-    int8_t inner;
+    int8_t mapping;
 
-    archive_result_t result = deserialize<W>(read_stream, &inner);
+    archive_result_t result = deserialize<W>(read_stream, &mapping);
     if (bad(result)) {
         return result;
     }
 
-    value->value = static_cast<boost::tribool::value_t>(inner);
+    switch (mapping) {
+        case 0:
+            *value = false;
+            break;
+        case 1:
+            *value = true;
+            break;
+        case 2:
+            *value = boost::indeterminate;
+            break;
+        default:
+            unreachable();
+    }
+
     return archive_result_t::SUCCESS;
 }
 

@@ -11,8 +11,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "utils.hpp"
-
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/fifo_checker.hpp"
@@ -27,6 +25,7 @@
 #include "region/region_map.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "utils.hpp"
 #include "version.hpp"
 
 namespace auth {

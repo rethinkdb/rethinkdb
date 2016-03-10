@@ -757,7 +757,7 @@
             ["T_DB", "T_EXPR", "T_EXPR"],
             ["T_TABLE", "T_EXPR", "T_EXPR"]
         ],
-        "id": 187
+        "id": 188
     },
     "INDEX_CREATE": {
         "side_effect": true,

@@ -185,10 +185,10 @@ with driver.Process() as process:
     assert res["first_error"] == "You must specify a primary key", res
     res = permissions.insert({"id": []}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected an array of one to three items, got []", res
+    assert res["first_error"] == "Expected an array of one to three items in the primary key, got []", res
     res = permissions.insert({"id": [False, False, False, False]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected an array of one to three items, got [\n\tfalse,\n\tfalse,\n\tfalse,\n\tfalse\n]", res
+    assert res["first_error"] == "Expected an array of one to three items in the primary key, got [\n\tfalse,\n\tfalse,\n\tfalse,\n\tfalse\n]", res
     res = permissions.insert({"id": [False]}).run(conn)
     assert res["errors"] == 1, res
     assert res["first_error"] == "Expected a string as the username, got false", res
@@ -226,7 +226,7 @@ with driver.Process() as process:
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Unexpected keys, got {\n\t\"id\":\t[\n\t\t\"test\",\n\t\t\"%s\",\n\t\t\"%s\"\n\t],\n\t\"invalid\":\t\"invalid\",\n\t\"permissions\":\t{}\n}" % (database_id, table_id), res
+    assert res["first_error"] == "Unexpected key(s) `invalid`", res
     res = permissions.insert(
             {
                 "database": "invalid",
@@ -246,3 +246,13 @@ with driver.Process() as process:
         ).run(conn)
     assert res["errors"] == 1, res
     assert res["first_error"] == "The key `table` does not match the primary key", res
+
+    res = permissions.get(["admin"]).update({"config": False}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res
+    res = permissions.get(["admin", database_id]).update({"config": False}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res
+    res = permissions.get(["admin", database_id, table_id]).update({"config": False}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res

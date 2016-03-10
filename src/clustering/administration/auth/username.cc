@@ -13,7 +13,7 @@ username_t::username_t() { }
 
 username_t::username_t(std::string username)
     : m_username(std::move(username)) {
-    // FIXME
+    // FIXME, SASLPrep
 }
 
 bool username_t::is_admin() const {
@@ -32,9 +32,7 @@ bool username_t::operator==(username_t const &rhs) const {
     return m_username == rhs.m_username;
 }
 
-RDB_IMPL_SERIALIZABLE_1(
-    username_t
-  , m_username);
-INSTANTIATE_SERIALIZABLE_SINCE_v1_13(username_t);
+RDB_IMPL_SERIALIZABLE_1(username_t, m_username);
+INSTANTIATE_SERIALIZABLE_SINCE_v2_3(username_t);
 
 }  // namespace auth

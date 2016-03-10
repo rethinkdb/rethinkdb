@@ -463,10 +463,10 @@ public:
     clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> get_auth_watchable() const;
 
 private:
-    one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
-
     std::vector<std::unique_ptr<cross_thread_watchable_variable_t<
         auth_semilattice_metadata_t>>> m_cross_thread_auth_watchables;
+
+    one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
 
     DISABLE_COPYING(rdb_context_t);
 };
