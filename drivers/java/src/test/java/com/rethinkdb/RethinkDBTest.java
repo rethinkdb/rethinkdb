@@ -412,6 +412,81 @@ public class RethinkDBTest{
         assertEquals(pojoOneSelected.getBigIntegerProperty(), pojoOne.getBigIntegerProperty());
     }
 
+    @com.rethinkdb.annotations.NotSaveNull
+    public class TestPojoIgnoreNull {
+        private Object notNullProperty = "foo";
+        private Object nullProperty = null;
+
+        public TestPojoIgnoreNull() {
+        }
+
+
+        public Object getNotNullProperty() {
+            return notNullProperty;
+        }
+
+        public void setNotNullProperty(Object notNullProperty) {
+            this.notNullProperty = notNullProperty;
+        }
+
+        public Object getNullProperty() {
+            return nullProperty;
+        }
+
+        public void setNullProperty(Object nullProperty) {
+            this.nullProperty = nullProperty;
+        }
+    }
+
+    @Test
+    public void testSaveObjectIgnoreNullProperties() {
+        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull();
+
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+
+        Cursor cursor = r.db(dbName).table(tableName).run(conn);
+        List result = cursor.toList();
+        assertEquals(1, result.size());
+
+        Object _pojoOneSelected = result.get(0);
+        assertTrue(_pojoOneSelected instanceof Map);
+
+        Map<String, Object> pojoOneSelected = (Map<String, Object>)_pojoOneSelected;
+
+        assertTrue(!pojoOneSelected.containsKey("nullProperty"));
+        assertEquals(pojoOneSelected.get("notNullProperty"), pojoOne.getNotNullProperty());
+    }
+
+    @Test
+    public void testSaveObjectIgnoreNullPropertiesNested() {
+        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull();
+        TestPojoIgnoreNull pojoOneInner = new TestPojoIgnoreNull();
+        pojoOne.setNotNullProperty(pojoOneInner);
+
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+
+        Cursor cursor = r.db(dbName).table(tableName).run(conn);
+        List result = cursor.toList();
+        assertEquals(1, result.size());
+
+        Object _pojoOneSelected = result.get(0);
+        assertTrue(_pojoOneSelected instanceof Map);
+
+        Map<String, Object> pojoOneSelected = (Map<String, Object>)_pojoOneSelected;
+
+        assertTrue(!pojoOneSelected.containsKey("nullProperty"));
+
+        Object _pojoOneInnerSelected = pojoOneSelected.get("notNullProperty");
+        assertTrue(_pojoOneInnerSelected instanceof Map);
+
+        Map<String, Object> pojoOneInnerSelected = (Map<String, Object>)_pojoOneInnerSelected;
+
+        assertTrue(!pojoOneInnerSelected.containsKey("nullProperty"));
+        assertEquals(pojoOneInnerSelected.get("notNullProperty"), pojoOneInner.getNotNullProperty());
+    }
+
     @Test(expected = ClassCastException.class)
     public void testTableSelectOfPojoCursor_withNoPojoClass_throwsException() {
         TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
