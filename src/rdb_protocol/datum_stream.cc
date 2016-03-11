@@ -2157,10 +2157,10 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 
         r_sanity_check(emit_elem.has());
 
-        batcher.note_el(emit_elem);
-
         for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
-            batch.push_back(std::move(emit_elem.get(i)));
+            datum_t emit_item = emit_elem.get(i);
+            batcher.note_el(emit_item);
+            batch.push_back(std::move(emit_item));
         }
 
         acc = std::move(new_acc);
@@ -2172,7 +2172,12 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
         datum_t final_emit_elem = final_emit_func->call(
             env,
             final_emit_args)->as_datum();
-        batch.push_back(std::move(final_emit_elem));
+
+        for (size_t i=0; i< final_emit_elem.arr_size(); ++i) {
+            datum_t final_emit_item = final_emit_elem.get(i);
+            batcher.note_el(final_emit_item);
+            batch.push_back(std::move(final_emit_item));
+        }
 
         // So that calling `next_batch` on an exhausted stream returns nothing,
         // as expected.
