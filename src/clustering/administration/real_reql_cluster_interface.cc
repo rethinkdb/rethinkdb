@@ -67,7 +67,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
 }
 
 bool real_reql_cluster_interface_t::db_create(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const name_string_t &name,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
@@ -75,7 +75,7 @@ bool real_reql_cluster_interface_t::db_create(
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    require_config_permission(username);
+    user_context.require_config_permission(m_rdb_context);
 
     cluster_semilattice_metadata_t metadata;
     ql::datum_t new_config;
@@ -116,7 +116,7 @@ bool real_reql_cluster_interface_t::db_create(
 }
 
 bool real_reql_cluster_interface_t::db_drop_uuid(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             database_id_t database_id,
             const name_string_t &name,
             signal_t *interruptor_on_home,
@@ -135,7 +135,7 @@ bool real_reql_cluster_interface_t::db_drop_uuid(
         }
     }
 
-    require_config_permission(username, database_id, table_ids);
+    user_context.require_config_permission(m_rdb_context, database_id, table_ids);
 
     // Here we actually delete the tables
     size_t tables_dropped = 0;
@@ -184,7 +184,7 @@ bool real_reql_cluster_interface_t::db_drop_uuid(
 }
 
 bool real_reql_cluster_interface_t::db_drop(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const name_string_t &name,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
@@ -207,7 +207,7 @@ bool real_reql_cluster_interface_t::db_drop(
         }
 
         if (!db_drop_uuid(
-                username,
+                user_context,
                 database_id,
                 name,
                 &interruptor_on_home,
@@ -280,7 +280,7 @@ bool real_reql_cluster_interface_t::db_config(
 }
 
 bool real_reql_cluster_interface_t::table_create(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const name_string_t &name,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &config_params,
@@ -292,7 +292,7 @@ bool real_reql_cluster_interface_t::table_create(
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    require_config_permission(username, db->id);
+    user_context.require_config_permission(m_rdb_context, db->id);
 
     namespace_id_t table_id;
     cluster_semilattice_metadata_t metadata;
@@ -376,7 +376,7 @@ bool real_reql_cluster_interface_t::table_create(
 }
 
 bool real_reql_cluster_interface_t::table_drop(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const name_string_t &name,
         counted_t<const ql::db_t> db,
         signal_t *interruptor_on_caller,
@@ -394,7 +394,7 @@ bool real_reql_cluster_interface_t::table_drop(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         /* Fetch the old config via the `table_config_backend` rather than via
         `table_meta_client_t` because this will return an error document instead of
@@ -471,7 +471,7 @@ bool real_reql_cluster_interface_t::table_find(
 }
 
 bool real_reql_cluster_interface_t::table_estimate_doc_counts(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         ql::env_t *env,
@@ -487,7 +487,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        require_read_permission(username, db->id, table_id);
+        user_context.require_read_permission(m_rdb_context, db->id, table_id);
 
         table_config_and_shards_t config;
         m_table_meta_client->get_config(table_id, &interruptor_on_home, &config);
@@ -712,7 +712,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
 }
 
 bool real_reql_cluster_interface_t::table_reconfigure(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         const table_generate_config_params_t &params,
@@ -728,7 +728,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         reconfigure_internal(db, table_id, params, dry_run, &interruptor_on_home,
             result_out);
@@ -743,7 +743,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
 }
 
 bool real_reql_cluster_interface_t::db_reconfigure(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const table_generate_config_params_t &params,
         bool dry_run,
@@ -764,7 +764,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         }
     }
 
-    require_config_permission(username, db->id, table_ids);
+    user_context.require_config_permission(m_rdb_context, db->id, table_ids);
 
     ql::datum_t combined_stats = ql::datum_t::empty_object();
     for (const auto &table_id : table_ids) {
@@ -883,7 +883,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
 }
 
 bool real_reql_cluster_interface_t::table_emergency_repair(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         emergency_repair_mode_t mode,
@@ -900,7 +900,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         emergency_repair_internal(db, table_id, mode, dry_run,
             &interruptor_on_home, result_out);
@@ -970,7 +970,7 @@ void real_reql_cluster_interface_t::rebalance_internal(
 }
 
 bool real_reql_cluster_interface_t::table_rebalance(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         signal_t *interruptor_on_caller,
@@ -985,7 +985,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         rebalance_internal(table_id, &interruptor_on_home, result_out);
         return true;
@@ -999,7 +999,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
 }
 
 bool real_reql_cluster_interface_t::db_rebalance(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
@@ -1018,7 +1018,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
         }
     }
 
-    require_config_permission(username, db->id, table_ids);
+    user_context.require_config_permission(m_rdb_context, db->id, table_ids);
 
     ql::datum_t combined_stats = ql::datum_t::empty_object();
     for (const auto &table_id : table_ids) {
@@ -1048,32 +1048,30 @@ template <typename T>
 bool grant_internal(
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
-        boost::optional<auth::username_t> const &granter_username,
-        auth::username_t grantee_username,
+        auth::user_context_t const &user_context,
+        auth::username_t username,
         ql::datum_t permissions,
         T permission_selector_function,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    if (!static_cast<bool>(granter_username) || !granter_username->is_admin()) {
+    if (!user_context.is_admin()) {
         // FIXME
     }
 
-    if (grantee_username.is_admin()) {
+    if (username.is_admin()) {
         *error_out = admin_err_t{
-            "The permissions of the user `" + grantee_username.to_string() +
+            "The permissions of the user `" + username.to_string() +
                 "` can't be modified",
             query_state_t::FAILED};
         return false;
     }
 
     auth_semilattice_metadata_t auth_metadata = auth_semilattice_view->get();
-    auto grantee = auth_metadata.m_users.find(grantee_username);
+    auto grantee = auth_metadata.m_users.find(username);
     if (grantee == auth_metadata.m_users.end() ||
             !static_cast<bool>(grantee->second.get_ref())) {
         *error_out = admin_err_t{
-            "User `" + grantee_username.to_string() + "` not found",
-            query_state_t::FAILED
-        };
+            "User `" + username.to_string() + "` not found", query_state_t::FAILED};
         return false;
     }
 
@@ -1105,8 +1103,8 @@ bool grant_internal(
 }
 
 bool real_reql_cluster_interface_t::grant_global(
-        boost::optional<auth::username_t> const &granter_username,
-        auth::username_t grantee_username,
+        auth::user_context_t const &user_context,
+        auth::username_t username,
         ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1115,8 +1113,8 @@ bool real_reql_cluster_interface_t::grant_global(
 
     return grant_internal(
         m_auth_semilattice_view,
-        granter_username,
-        std::move(grantee_username),
+        user_context,
+        std::move(username),
         std::move(permissions),
         [](auth::user_t &user) -> auth::permissions_t & {
             return user.get_global_permissions();
@@ -1126,9 +1124,9 @@ bool real_reql_cluster_interface_t::grant_global(
 }
 
 bool real_reql_cluster_interface_t::grant_database(
-        boost::optional<auth::username_t> const &granter_username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id,
-        auth::username_t grantee_username,
+        auth::username_t username,
         ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1140,8 +1138,8 @@ bool real_reql_cluster_interface_t::grant_database(
 
     return grant_internal(
         m_auth_semilattice_view,
-        granter_username,
-        std::move(grantee_username),
+        user_context,
+        std::move(username),
         std::move(permissions),
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_database_permissions(database_id);
@@ -1151,10 +1149,10 @@ bool real_reql_cluster_interface_t::grant_database(
 }
 
 bool real_reql_cluster_interface_t::grant_table(
-        boost::optional<auth::username_t> const &granter_username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id,
         namespace_id_t const &table_id,
-        auth::username_t grantee_username,
+        auth::username_t username,
         ql::datum_t permissions,
         UNUSED signal_t *interruptor,
         ql::datum_t *result_out,
@@ -1166,8 +1164,8 @@ bool real_reql_cluster_interface_t::grant_table(
 
     return grant_internal(
         m_auth_semilattice_view,
-        granter_username,
-        std::move(grantee_username),
+        user_context,
+        std::move(username),
         std::move(permissions),
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_table_permissions(table_id);
@@ -1177,7 +1175,7 @@ bool real_reql_cluster_interface_t::grant_table(
 }
 
 bool real_reql_cluster_interface_t::sindex_create(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -1194,7 +1192,7 @@ bool real_reql_cluster_interface_t::sindex_create(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_create_t{name, config});
@@ -1215,7 +1213,7 @@ bool real_reql_cluster_interface_t::sindex_create(
 }
 
 bool real_reql_cluster_interface_t::sindex_drop(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -1231,7 +1229,7 @@ bool real_reql_cluster_interface_t::sindex_drop(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_drop_t{name});
@@ -1252,7 +1250,7 @@ bool real_reql_cluster_interface_t::sindex_drop(
 }
 
 bool real_reql_cluster_interface_t::sindex_rename(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
         const std::string &name,
@@ -1270,7 +1268,7 @@ bool real_reql_cluster_interface_t::sindex_rename(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, table, &table_id);
 
-        require_config_permission(username, db->id, table_id);
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::sindex_rename_t{
@@ -1386,30 +1384,30 @@ void real_reql_cluster_interface_t::make_single_selection(
         bt);
 }
 
-template <typename F>
+/* template <typename F>
 void require_permission_internal(
         rdb_context_t *rdb_context,
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         F permission_selector_function,
         std::string const &permission_name) {
-    if (static_cast<bool>(username)) {
+    if (static_cast<bool>(user_context)) {
         rdb_context->get_auth_watchable()->apply_read(
             [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(username.get());
+                auto user = auth_metadata->m_users.find(user_context.get());
                 if (user == auth_metadata->m_users.end() ||
                         !static_cast<bool>(user->second.get_ref()) ||
                         !permission_selector_function(user->second.get_ref().get())) {
-                    throw auth::permission_error_t(username.get(), permission_name);
+                    throw auth::permission_error_t(user_context.get(), permission_name);
                 }
            });
     }
 }
 
 void real_reql_cluster_interface_t::require_config_permission(
-        boost::optional<auth::username_t> const &username) const {
+        auth::user_context_t const &user_context) const {
     require_permission_internal(
         m_rdb_context,
-        username,
+        user_context,
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission();
         },
@@ -1417,11 +1415,11 @@ void real_reql_cluster_interface_t::require_config_permission(
 };
 
 void real_reql_cluster_interface_t::require_config_permission(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id) const {
     require_permission_internal(
         m_rdb_context,
-        username,
+        user_context,
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id);
         },
@@ -1429,12 +1427,12 @@ void real_reql_cluster_interface_t::require_config_permission(
 }
 
 void real_reql_cluster_interface_t::require_config_permission(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id,
         namespace_id_t const &table_id) const {
     require_permission_internal(
         m_rdb_context,
-        username,
+        user_context,
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id, table_id);
         },
@@ -1442,12 +1440,12 @@ void real_reql_cluster_interface_t::require_config_permission(
 }
 
 void real_reql_cluster_interface_t::require_config_permission(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id,
         std::set<namespace_id_t> const &table_ids) const {
     require_permission_internal(
         m_rdb_context,
-        username,
+        user_context,
         [&](auth::user_t const &user) -> bool {
             // First check the permissions on the database
             if (!user.has_config_permission(database_id)) {
@@ -1467,14 +1465,14 @@ void real_reql_cluster_interface_t::require_config_permission(
 }
 
 void real_reql_cluster_interface_t::require_read_permission(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         database_id_t const &database_id,
         namespace_id_t const &table_id) const {
     require_permission_internal(
         m_rdb_context,
-        username,
+        user_context,
         [&](auth::user_t const &user) -> bool {
             return user.has_read_permission(database_id, table_id);
         },
         "read");
-}
+} */

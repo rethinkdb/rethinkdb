@@ -54,13 +54,13 @@ public:
         m_next(next) { }
 
     bool db_create(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_drop(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
@@ -79,7 +79,7 @@ public:
             admin_err_t *error_out);
 
     bool table_create(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const name_string_t &name,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
@@ -89,7 +89,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool table_drop(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const name_string_t &name,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
@@ -103,7 +103,7 @@ public:
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
@@ -139,7 +139,7 @@ public:
             admin_err_t *error_out);
 
     bool table_reconfigure(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -148,7 +148,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_reconfigure(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -157,7 +157,7 @@ public:
             admin_err_t *error_out);
 
     bool table_emergency_repair(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -167,46 +167,46 @@ public:
             admin_err_t *error_out);
 
     bool table_rebalance(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_rebalance(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
     bool grant_global(
-            boost::optional<auth::username_t> const &granter_username,
-            auth::username_t grantee_username,
+            auth::user_context_t const &user_context,
+            auth::username_t username,
             ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool grant_database(
-            boost::optional<auth::username_t> const &granter_username,
+            auth::user_context_t const &user_context,
             database_id_t const &database_id,
-            auth::username_t grantee_username,
+            auth::username_t username,
             ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool grant_table(
-            boost::optional<auth::username_t> const &granter_username,
+            auth::user_context_t const &user_context,
             database_id_t const &database_id,
             namespace_id_t const &table_id,
-            auth::username_t grantee_username,
+            auth::username_t username,
             ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
     bool sindex_create(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -214,14 +214,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_drop(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_rename(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,

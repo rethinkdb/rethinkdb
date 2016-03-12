@@ -138,7 +138,7 @@ private:
         admin_err_t error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->db_create(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 db_name,
                 env->env->interruptor,
                 &result,
@@ -204,7 +204,7 @@ private:
         admin_err_t error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->table_create(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 tbl_name,
                 db,
                 config_params,
@@ -232,7 +232,7 @@ private:
         admin_err_t error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->db_drop(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 db_name,
                 env->env->interruptor,
                 &result,
@@ -267,7 +267,7 @@ private:
         admin_err_t error;
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->table_drop(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 tbl_name,
                 db,
                 env->env->interruptor,
@@ -567,7 +567,7 @@ private:
             /* Perform the operation */
             if (static_cast<bool>(name_if_table)) {
                 success = env->env->reql_cluster_interface()->table_reconfigure(
-                    env->env->get_username(),
+                    env->env->get_user_context(),
                     db,
                     *name_if_table,
                     config_params,
@@ -577,7 +577,7 @@ private:
                     &error);
             } else {
                 success = env->env->reql_cluster_interface()->db_reconfigure(
-                    env->env->get_username(),
+                    env->env->get_user_context(),
                     db,
                     config_params,
                     dry_run,
@@ -627,7 +627,7 @@ private:
             datum_t result;
             admin_err_t error;
             bool success = env->env->reql_cluster_interface()->table_emergency_repair(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 db,
                 *name_if_table,
                 mode,
@@ -663,7 +663,7 @@ private:
         admin_err_t error;
         if (static_cast<bool>(name_if_table)) {
             success = env->env->reql_cluster_interface()->table_rebalance(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 db,
                 *name_if_table,
                 env->env->interruptor,
@@ -671,7 +671,7 @@ private:
                 &error);
         } else {
             success = env->env->reql_cluster_interface()->db_rebalance(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 db,
                 env->env->interruptor,
                 &result,
@@ -711,7 +711,7 @@ public:
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
-        auth::username_t grantee_username(
+        auth::username_t username(
             args->arg(env, args->num_args() - 2)->as_str().to_std());
         ql::datum_t permissions = args->arg(env, args->num_args() - 1)->as_datum();
 
@@ -720,8 +720,8 @@ private:
         admin_err_t error;
         if (args->num_args() == 2) {
             success = env->env->reql_cluster_interface()->grant_global(
-                env->env->get_username(),
-                std::move(grantee_username),
+                env->env->get_user_context(),
+                std::move(username),
                 std::move(permissions),
                 env->env->interruptor,
                 &result,
@@ -730,20 +730,20 @@ private:
             scoped_ptr_t<val_t> scope = args->arg(env, 0);
             if (scope->get_type().is_convertible(val_t::type_t::DB)) {
                 success = env->env->reql_cluster_interface()->grant_database(
-                    env->env->get_username(),
+                    env->env->get_user_context(),
                     scope->as_db()->id,
-                    grantee_username,
-                    permissions,
+                    std::move(username),
+                    std::move(permissions),
                     env->env->interruptor,
                     &result,
                     &error);
             } else {
                 counted_t<table_t> table = scope->as_table();
                 success = env->env->reql_cluster_interface()->grant_table(
-                    env->env->get_username(),
+                    env->env->get_user_context(),
                     table->db->id,
                     table->get_id(),
-                    std::move(grantee_username),
+                    std::move(username),
                     std::move(permissions),
                     env->env->interruptor,
                     &result,

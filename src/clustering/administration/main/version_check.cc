@@ -44,7 +44,7 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
         ql::return_empty_normal_batches_t::NO,
         keepalive.get_drain_signal(),
         ql::global_optargs_t(),
-        boost::none,
+        auth::user_context_t(auth::permissions_t(false, false, false, true)),
         nullptr);
     http_opts_t opts;
     opts.limits = env.limits();

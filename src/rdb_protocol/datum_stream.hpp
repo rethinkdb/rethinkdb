@@ -536,7 +536,7 @@ class readgen_t {
 public:
     explicit readgen_t(
         global_optargs_t global_optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         std::string table_name,
         profile_bool_t profile,
         read_mode_t read_mode,
@@ -573,7 +573,7 @@ public:
     sorting_t sorting(const batchspec_t &batchspec) const;
 protected:
     const global_optargs_t global_optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
     const std::string table_name;
     const profile_bool_t profile;
     const read_mode_t read_mode;
@@ -584,7 +584,7 @@ class rget_readgen_t : public readgen_t {
 public:
     explicit rget_readgen_t(
         global_optargs_t global_optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         std::string table_name,
         const datumspec_t &datumspec,
         profile_bool_t profile,
@@ -626,7 +626,7 @@ public:
 
 private:
     primary_readgen_t(global_optargs_t global_optargs,
-                      boost::optional<auth::username_t> username,
+                      auth::user_context_t user_context,
                       std::string table_name,
                       const datumspec_t &datumspec,
                       profile_bool_t profile,
@@ -669,7 +669,7 @@ public:
 private:
     sindex_readgen_t(
         global_optargs_t global_optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         std::string table_name,
         const std::string &sindex,
         const datumspec_t &datumspec,
@@ -727,7 +727,7 @@ public:
 private:
     intersecting_readgen_t(
         global_optargs_t global_optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         std::string table_name,
         const std::string &sindex,
         const datum_t &query_geometry,

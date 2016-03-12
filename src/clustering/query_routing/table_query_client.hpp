@@ -48,7 +48,7 @@ public:
     bool check_readiness(table_readiness_t readiness, signal_t *interruptor);
 
     void read(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const read_t &r,
             read_response_t *response,
             order_token_t order_token,
@@ -57,7 +57,7 @@ public:
                 interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
     void write(
-            boost::optional<auth::username_t> const &username,
+            auth::user_context_t const &user_context,
             const write_t &w,
             write_response_t *response,
             order_token_t order_token,

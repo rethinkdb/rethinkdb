@@ -221,7 +221,7 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_create(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 table->db,
                 name_string_t::guarantee_valid(table->name.c_str()),
                 name,
@@ -250,7 +250,7 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_drop(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 table->db,
                 name_string_t::guarantee_valid(table->name.c_str()),
                 name,
@@ -433,7 +433,7 @@ public:
 
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->sindex_rename(
-                env->env->get_username(),
+                env->env->get_user_context(),
                 table->db,
                 name_string_t::guarantee_valid(table->name.c_str()),
                 old_name,

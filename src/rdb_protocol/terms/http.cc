@@ -224,20 +224,10 @@ void dispatch_http(env_t *env,
 
 scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                            eval_flags_t) const {
-    boost::optional<auth::username_t> const &username = env->env->get_username();
-    if (static_cast<bool>(username)) {
-        env->env->get_rdb_ctx()->get_auth_watchable()->apply_read(
-            [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(username.get());
-                rcheck(
-                    user != auth_metadata->m_users.end() &&
-                        static_cast<bool>(user->second.get_ref()) &&
-                        user->second.get_ref()->has_connect_permission(),
-                    ql::base_exc_t::PERMISSION_ERROR,
-                    strprintf(
-                        "User `%s` does not have the required `connect` permission",
-                        username.get().to_string().c_str()));
-            });
+    try {
+        env->env->get_user_context().require_connect_permission(env->env->get_rdb_ctx());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
     }
 
     http_opts_t opts;
@@ -584,7 +574,7 @@ std::string http_term_t::get_auth_item(const datum_t &datum,
 // The `auth` optarg takes an object consisting of the following fields:
 //  type - STRING, the type of authentication to perform 'basic' or 'digest'
 //      defaults to 'basic'
-//  user - STRING, the username to use
+//  user - STRING, the user_context to use
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
                            args_t *args,

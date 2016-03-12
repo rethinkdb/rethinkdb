@@ -16,7 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/secondary_operations.hpp"
-#include "clustering/administration/auth/username.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
@@ -292,7 +292,7 @@ public:
                 boost::optional<std::map<region_t, store_key_t> > _hints,
                 boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 ql::global_optargs_t _optargs,
-                boost::optional<auth::username_t> username,
+                auth::user_context_t user_context,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
                 std::vector<ql::transform_variant_t> _transforms,
@@ -304,7 +304,7 @@ public:
       hints(std::move(_hints)),
       primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
-      m_username(std::move(username)),
+      m_user_context(std::move(user_context)),
       table_name(std::move(_table_name)),
       batchspec(std::move(_batchspec)),
       transforms(std::move(_transforms)),
@@ -323,7 +323,7 @@ public:
     boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
 
     ql::global_optargs_t optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -348,7 +348,7 @@ public:
         boost::optional<changefeed_stamp_t> &&_stamp,
         region_t _region,
         ql::global_optargs_t _optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         std::string _table_name,
         ql::batchspec_t _batchspec,
         std::vector<ql::transform_variant_t> _transforms,
@@ -358,7 +358,7 @@ public:
         : stamp(std::move(_stamp)),
           region(std::move(_region)),
           optargs(std::move(_optargs)),
-          m_username(std::move(username)),
+          m_user_context(std::move(user_context)),
           table_name(std::move(_table_name)),
           batchspec(std::move(_batchspec)),
           transforms(std::move(_transforms)),
@@ -370,7 +370,7 @@ public:
 
     region_t region; // Primary key range. We need this because of sharding.
     ql::global_optargs_t optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -397,9 +397,9 @@ public:
             const std::string &_table_name,
             const std::string &_sindex_id,
             ql::global_optargs_t _optargs,
-            boost::optional<auth::username_t> username)
+            auth::user_context_t user_context)
         : optargs(std::move(_optargs)),
-          m_username(std::move(username)),
+          m_user_context(std::move(user_context)),
           center(_center),
           max_dist(_max_dist),
           max_results(_max_results),
@@ -409,7 +409,7 @@ public:
           sindex_id(_sindex_id) { }
 
     ql::global_optargs_t optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
 
     lon_lat_point_t center;
     double max_dist;
@@ -456,21 +456,21 @@ struct changefeed_limit_subscribe_t {
         ql::changefeed::keyspec_t::limit_t _spec,
         std::string _table,
         ql::global_optargs_t _optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         region_t pkey_region)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
           table(std::move(_table)),
           optargs(std::move(_optargs)),
-          m_username(std::move(username)),
+          m_user_context(std::move(user_context)),
           region(std::move(pkey_region)) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
     std::string table;
     ql::global_optargs_t optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
     region_t region;
     boost::optional<region_t> current_shard;
 };
@@ -580,13 +580,13 @@ struct batched_replace_t {
             const std::string &_pkey,
             const counted_t<const ql::func_t> &func,
             ql::global_optargs_t _optargs,
-            boost::optional<auth::username_t> username,
+            auth::user_context_t user_context,
             return_changes_t _return_changes)
         : keys(std::move(_keys)),
           pkey(_pkey),
           f(func),
           optargs(std::move(_optargs)),
-          m_username(std::move(username)),
+          m_user_context(std::move(user_context)),
           return_changes(_return_changes) {
         r_sanity_check(keys.size() != 0);
     }
@@ -594,7 +594,7 @@ struct batched_replace_t {
     std::string pkey;
     ql::wire_func_t f;
     ql::global_optargs_t optargs;
-    boost::optional<auth::username_t> m_username;
+    auth::user_context_t m_user_context;
     return_changes_t return_changes;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);

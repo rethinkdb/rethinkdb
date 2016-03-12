@@ -233,7 +233,7 @@ bool db_config_artificial_table_backend_t::write_row(
 
             // `db_drop_uuid` asserts we're on its home thread
             reql_cluster_interface->db_drop_uuid(
-                boost::none,    // FIXME
+                auth::user_context_t(auth::permissions_t(false, false, true, false)), // FIXME
                 database_id,
                 it->second.get_ref().name.get_ref(),
                 &interruptor_on_home_thread,

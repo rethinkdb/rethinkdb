@@ -861,7 +861,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         ql::return_empty_normal_batches_t::NO,
         interruptor,
         q.optargs,
-        q.m_username,
+        q.m_user_context,
         trace.get_or_null());
 
     // Initialize response.
@@ -1187,7 +1187,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 br.pkey,
                 br.f.compile_wire_func(),
                 br.optargs,
-                br.m_username,
+                br.m_user_context,
                 br.return_changes);
             return true;
         } else {
@@ -1402,7 +1402,7 @@ RDB_IMPL_SERIALIZABLE_13_FOR_CLUSTER(
     hints,
     primary_keys,
     optargs,
-    m_username,
+    m_user_context,
     table_name,
     batchspec,
     transforms,
@@ -1413,7 +1413,7 @@ RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     intersecting_geo_read_t,
     region,
     optargs,
-    m_username,
+    m_user_context,
     table_name,
     batchspec,
     transforms,
@@ -1423,7 +1423,7 @@ RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     nearest_geo_read_t,
     optargs,
-    m_username,
+    m_user_context,
     center,
     max_dist,
     max_results,
@@ -1443,7 +1443,7 @@ RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
     spec,
     table,
     optargs,
-    m_username,
+    m_user_context,
     region,
     current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);

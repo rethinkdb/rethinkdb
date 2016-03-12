@@ -84,7 +84,7 @@ public:
                                 bool initialize_metadata);
 
     void read(
-            UNUSED boost::optional<auth::username_t> const &username,
+            UNUSED auth::user_context_t const &user_context,
             const read_t &read,
             read_response_t *response,
             order_token_t tok,
@@ -97,7 +97,7 @@ public:
     }
 
     void write(
-            UNUSED boost::optional<auth::username_t> const &username,
+            UNUSED auth::user_context_t const &user_context,
             const write_t &write,
             write_response_t *response,
             order_token_t tok,

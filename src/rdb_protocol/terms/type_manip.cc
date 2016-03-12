@@ -394,7 +394,7 @@ private:
                 admin_err_t error;
                 std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
-                        env->env->get_username(),
+                        env->env->get_user_context(),
                         table->db,
                         name,
                         env->env,

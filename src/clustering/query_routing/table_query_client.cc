@@ -48,7 +48,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_response_t res;
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::OUTDATED);
-                read(boost::none, r, &res, order_token_t::ignore, interruptor);
+                read(
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    r,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::reads:
@@ -56,7 +61,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_response_t res;
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::SINGLE);
-                read(boost::none, r, &res, order_token_t::ignore, interruptor);
+                read(
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    r,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::finished: // Fallthrough in release mode, better than a crash
@@ -65,7 +75,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 write_response_t res;
                 write_t w(dummy_write_t(), profile_bool_t::DONT_PROFILE,
                           ql::configured_limits_t::unlimited);
-                write(boost::none, w, &res, order_token_t::ignore, interruptor);
+                write(
+                    auth::user_context_t(auth::permissions_t(false, true, false, false)),
+                    w,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::unavailable:
@@ -81,34 +96,22 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
 }
 
 void table_query_client_t::read(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const read_t &r,
         read_response_t *response,
         order_token_t order_token,
         signal_t *interruptor)
         THROWS_ONLY(
             interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
-    if (static_cast<bool>(username)) {
-        table_basic_config_t table_basic_config;
-        try {
-            m_table_meta_client->get_name(table_id, &table_basic_config);
-        } catch (no_such_table_exc_t const &) {
-            throw cannot_perform_query_exc_t(
-                "failed to retrieve the table configuration",
-                query_state_t::FAILED);
-        }
-
-        ctx->get_auth_watchable()->apply_read(
-            [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(username.get());
-                if (user == auth_metadata->m_users.end() ||
-                        !static_cast<bool>(user->second.get_ref()) ||
-                        !user->second.get_ref()->has_read_permission(
-                            table_basic_config.database, table_id)) {
-                    throw auth::permission_error_t(username.get(), "read");
-                }
-            });
+    table_basic_config_t table_basic_config;
+    try {
+        m_table_meta_client->get_name(table_id, &table_basic_config);
+    } catch (no_such_table_exc_t const &) {
+        throw cannot_perform_query_exc_t(
+            "Failed to retrieve the table configuration", query_state_t::FAILED);
     }
+
+    user_context.require_read_permission(ctx, table_basic_config.database, table_id);
 
     order_token.assert_read_mode();
     if (r.read_mode == read_mode_t::OUTDATED) {
@@ -129,34 +132,22 @@ void table_query_client_t::read(
 }
 
 void table_query_client_t::write(
-        boost::optional<auth::username_t> const &username,
+        auth::user_context_t const &user_context,
         const write_t &w,
         write_response_t *response,
         order_token_t order_token,
         signal_t *interruptor)
         THROWS_ONLY(
             interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
-    if (static_cast<bool>(username)) {
-        table_basic_config_t table_basic_config;
-        try {
-            m_table_meta_client->get_name(table_id, &table_basic_config);
-        } catch (no_such_table_exc_t const &) {
-            throw cannot_perform_query_exc_t(
-                "failed to retrieve the table configuration",
-                query_state_t::FAILED);
-        }
-
-        ctx->get_auth_watchable()->apply_read(
-            [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(username.get());
-                if (user == auth_metadata->m_users.end() ||
-                        !static_cast<bool>(user->second.get_ref()) ||
-                        !user->second.get_ref()->has_write_permission(
-                            table_basic_config.database, table_id)) {
-                    throw auth::permission_error_t(username.get(), "write");
-                }
-            });
+    table_basic_config_t table_basic_config;
+    try {
+        m_table_meta_client->get_name(table_id, &table_basic_config);
+    } catch (no_such_table_exc_t const &) {
+        throw cannot_perform_query_exc_t(
+            "Failed to retrieve the table configuration", query_state_t::FAILED);
     }
+
+    user_context.require_write_permission(ctx, table_basic_config.database, table_id);
 
     order_token.assert_write_mode();
     dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(
