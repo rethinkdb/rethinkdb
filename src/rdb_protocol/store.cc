@@ -286,7 +286,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::return_empty_normal_batches_t::NO,
             interruptor,
             s.optargs,
-            s.m_username,
+            s.m_user_context,
             trace);
         ql::raw_stream_t stream;
         {
@@ -359,7 +359,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.table,
             ctx,
             s.optargs,
-            s.m_username,
+            s.m_user_context,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -437,7 +437,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::return_empty_normal_batches_t::NO,
             interruptor,
             geo_read.optargs,
-            geo_read.m_username,
+            geo_read.m_user_context,
             trace);
 
         response->response = rget_read_response_t();
@@ -495,7 +495,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::return_empty_normal_batches_t::NO,
             interruptor,
             geo_read.optargs,
-            geo_read.m_username,
+            geo_read.m_user_context,
             trace);
 
         response->response = nearest_geo_read_response_t();
@@ -593,7 +593,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::return_empty_normal_batches_t::NO,
             interruptor,
             rget.optargs,
-            rget.m_username,
+            rget.m_user_context,
             trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
                 release_superblock_t::RELEASE);
@@ -737,7 +737,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             ql::return_empty_normal_batches_t::NO,
             interruptor,
             br.optargs,
-            br.m_username,
+            br.m_user_context,
             trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
@@ -760,8 +760,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, ql::global_optargs_t(), boost::none, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            ql::global_optargs_t(),
+            bi.m_user_context,
+            trace);
         datum_replacer_t replacer(&ql_env,
                                   bi);
         std::vector<store_key_t> keys;

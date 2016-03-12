@@ -20,7 +20,7 @@ mock_namespace_interface_t::mock_namespace_interface_t(
 mock_namespace_interface_t::~mock_namespace_interface_t() { }
 
 void mock_namespace_interface_t::read(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         const read_t &query,
         read_response_t *response,
         UNUSED order_token_t tok,
@@ -35,7 +35,7 @@ void mock_namespace_interface_t::read(
 }
 
 void mock_namespace_interface_t::write(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         const write_t &query,
         write_response_t *response,
         UNUSED order_token_t tok,
@@ -302,7 +302,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
             ql::return_empty_normal_batches_t::NO,
             &interruptor,
             ql::global_optargs_t(),
-            boost::none,
+            auth::user_context_t(auth::permissions_t(true, true, true, true)),
             nullptr /* no profile trace */));
 
     // Set up any databases, tables, and data
@@ -349,7 +349,7 @@ void test_rdb_env_t::instance_t::interrupt() {
 }
 
 bool test_rdb_env_t::instance_t::db_create(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED const name_string_t &name,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -361,7 +361,7 @@ bool test_rdb_env_t::instance_t::db_create(
 }
 
 bool test_rdb_env_t::instance_t::db_drop(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED const name_string_t &name,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -409,7 +409,7 @@ bool test_rdb_env_t::instance_t::db_config(
 }
 
 bool test_rdb_env_t::instance_t::table_create(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &config_params,
@@ -425,7 +425,7 @@ bool test_rdb_env_t::instance_t::table_create(
 }
 
 bool test_rdb_env_t::instance_t::table_drop(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED signal_t *local_interruptor,
@@ -482,7 +482,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
 }
 
 bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED ql::env_t *local_env,
@@ -546,7 +546,7 @@ bool test_rdb_env_t::instance_t::db_wait(
 }
 
 bool test_rdb_env_t::instance_t::table_reconfigure(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED const table_generate_config_params_t &params,
@@ -561,7 +561,7 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
 }
 
 bool test_rdb_env_t::instance_t::db_reconfigure(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
@@ -575,7 +575,7 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
 }
 
 bool test_rdb_env_t::instance_t::table_emergency_repair(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED emergency_repair_mode_t mode,
@@ -590,7 +590,7 @@ bool test_rdb_env_t::instance_t::table_emergency_repair(
 }
 
 bool test_rdb_env_t::instance_t::table_rebalance(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED signal_t *local_interruptor,
@@ -603,7 +603,7 @@ bool test_rdb_env_t::instance_t::table_rebalance(
 }
 
 bool test_rdb_env_t::instance_t::db_rebalance(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -615,8 +615,8 @@ bool test_rdb_env_t::instance_t::db_rebalance(
 }
 
 bool test_rdb_env_t::instance_t::grant_global(
-        UNUSED boost::optional<auth::username_t> const &granter_username,
-        UNUSED auth::username_t grantee_username,
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED auth::username_t username,
         UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -628,9 +628,9 @@ bool test_rdb_env_t::instance_t::grant_global(
 }
 
 bool test_rdb_env_t::instance_t::grant_database(
-        UNUSED boost::optional<auth::username_t> const &granter_username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED database_id_t const &database_id,
-        UNUSED auth::username_t grantee_username,
+        UNUSED auth::username_t username,
         UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -642,10 +642,10 @@ bool test_rdb_env_t::instance_t::grant_database(
 }
 
 bool test_rdb_env_t::instance_t::grant_table(
-        UNUSED boost::optional<auth::username_t> const &granter_username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED database_id_t const &database_id,
         UNUSED namespace_id_t const &table_id,
-        UNUSED auth::username_t grantee_username,
+        UNUSED auth::username_t username,
         UNUSED ql::datum_t permissions,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -657,7 +657,7 @@ bool test_rdb_env_t::instance_t::grant_table(
 }
 
 bool test_rdb_env_t::instance_t::sindex_create(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,
@@ -671,7 +671,7 @@ bool test_rdb_env_t::instance_t::sindex_create(
 }
 
 bool test_rdb_env_t::instance_t::sindex_drop(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,
@@ -684,7 +684,7 @@ bool test_rdb_env_t::instance_t::sindex_drop(
 }
 
 bool test_rdb_env_t::instance_t::sindex_rename(
-        UNUSED boost::optional<auth::username_t> const &username,
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,

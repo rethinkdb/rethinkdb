@@ -861,7 +861,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         ql::return_empty_normal_batches_t::NO,
         interruptor,
         q.optargs,
-        q.m_username,
+        q.m_user_context,
         trace.get_or_null());
 
     // Initialize response.
@@ -1187,7 +1187,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 br.pkey,
                 br.f.compile_wire_func(),
                 br.optargs,
-                br.m_username,
+                br.m_user_context,
                 br.return_changes);
             return true;
         } else {
@@ -1215,6 +1215,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                                             bi.conflict_behavior,
                                             temp_conflict_func,
                                             bi.limits,
+                                            bi.m_user_context,
                                             bi.return_changes);
             return true;
         } else {
@@ -1271,10 +1272,12 @@ batched_insert_t::batched_insert_t(
         conflict_behavior_t _conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > _conflict_func,
         const ql::configured_limits_t &_limits,
+        auth::user_context_t user_context,
         return_changes_t _return_changes)
         : inserts(std::move(_inserts)), pkey(_pkey),
           conflict_behavior(_conflict_behavior),
           limits(_limits),
+          m_user_context(std::move(user_context)),
           return_changes(_return_changes) {
     r_sanity_check(inserts.size() != 0);
 
@@ -1450,7 +1453,7 @@ RDB_IMPL_SERIALIZABLE_13_FOR_CLUSTER(
     hints,
     primary_keys,
     optargs,
-    m_username,
+    m_user_context,
     table_name,
     batchspec,
     transforms,
@@ -1461,7 +1464,7 @@ RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     intersecting_geo_read_t,
     region,
     optargs,
-    m_username,
+    m_user_context,
     table_name,
     batchspec,
     transforms,
@@ -1471,7 +1474,7 @@ RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     nearest_geo_read_t,
     optargs,
-    m_username,
+    m_user_context,
     center,
     max_dist,
     max_results,
@@ -1491,7 +1494,7 @@ RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
     spec,
     table,
     optargs,
-    m_username,
+    m_user_context,
     region,
     current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
@@ -1508,8 +1511,15 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
-        batched_insert_t, inserts, pkey, conflict_behavior, conflict_func, limits, return_changes);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
+        batched_insert_t,
+        inserts,
+        pkey,
+        conflict_behavior,
+        conflict_func,
+        limits,
+        m_user_context,
+        return_changes);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);

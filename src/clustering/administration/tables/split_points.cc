@@ -101,7 +101,11 @@ void fetch_distribution(
     read_response_t resp;
     try {
         ns_if_access.get()->read(
-            boost::none, read, &resp, order_token_t::ignore, interruptor);
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &resp,
+            order_token_t::ignore,
+            interruptor);
     } catch (const cannot_perform_query_exc_t &) {
         /* If the table was deleted, this will throw `no_such_table_exc_t` */
         table_basic_config_t dummy;

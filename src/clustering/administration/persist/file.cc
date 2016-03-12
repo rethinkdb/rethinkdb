@@ -24,7 +24,7 @@ ATTR_PACKED(struct metadata_disk_superblock_t {
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
-static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'j' } };
+static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'k' } };
 
 void init_metadata_superblock(void *sb_void, size_t block_size) {
     memset(sb_void, 0, block_size);
@@ -340,9 +340,9 @@ metadata_file_t::metadata_file_t(
             rewrite_cluster_metadata(&write_txn, interruptor);
         } break;
     case cluster_version_t::v2_2:
+        break; // TODO, grey
+    case cluster_version_t::v2_3_is_latest_disk:
         break; // Up-to-date, do nothing
-    case cluster_version_t::v2_3:
-        break;
     default: unreachable();
     }
 }

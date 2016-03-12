@@ -194,12 +194,12 @@ ql::datum_t real_table_t::read_nearest(
         table_name,
         sindex,
         env->get_all_optargs(),
-        env->get_username());
+        env->get_user_context());
     read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
         namespace_access.get()->read(
-            env->get_username(), read, &res, order_token_t::ignore, env->interruptor);
+            env->get_user_context(), read, &res, order_token_t::ignore, env->interruptor);
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", ex.what());
     } catch (auth::permission_error_t const &error) {
@@ -290,7 +290,7 @@ ql::datum_t real_table_t::write_batched_replace(
                 pkey,
                 func,
                 env->get_all_optargs(),
-                env->get_username(),
+                env->get_user_context(),
                 return_changes);
             write_t w(std::move(write), durability, env->profile(), env->limits());
             write_response_t response;
@@ -336,6 +336,7 @@ ql::datum_t real_table_t::write_batched_insert(
             conflict_behavior,
             conflict_func,
             env->limits(),
+            env->get_user_context(),
             return_changes);
         write_t w(std::move(write), durability, env->profile(), env->limits());
         write_response_t response;
@@ -376,7 +377,7 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
     /* Do the actual read. */
     try {
         namespace_access.get()->read(
-            env->get_username(),
+            env->get_user_context(),
             read,
             response,
             order_token_t::ignore,
@@ -402,7 +403,7 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
     /* Do the actual write. */
     try {
         namespace_access.get()->write(
-            env->get_username(),
+            env->get_user_context(),
             *write,
             response,
             order_token_t::ignore,

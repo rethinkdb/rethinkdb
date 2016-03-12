@@ -466,7 +466,7 @@ void server_t::add_limit_client(
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
-        boost::optional<auth::username_t> username,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -488,7 +488,7 @@ void server_t::add_limit_client(
             table,
             ctx,
             std::move(optargs),
-            std::move(username),
+            std::move(user_context),
             client_uuid,
             this,
             it->first,
@@ -880,7 +880,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     rdb_context_t *ctx,
     global_optargs_t optargs,
-    boost::optional<auth::username_t> username,
+    auth::user_context_t user_context,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -904,7 +904,7 @@ limit_manager_t::limit_manager_t(
         return_empty_normal_batches_t::NO,
         drainer.get_drain_signal(),
         std::move(optargs),
-        std::move(username),
+        std::move(user_context),
         nullptr);
 
     guarantee(ops.size() == 0);
@@ -1628,7 +1628,12 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
-        ns_if->read(boost::none, read, &read_resp, order_token_t::ignore, interruptor);
+        ns_if->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)), // FIXME, is this right?
+            read,
+            &read_resp,
+            order_token_t::ignore,
+            interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
         guarantee(resp != NULL);
@@ -1867,7 +1872,7 @@ public:
 
         read_response_t read_resp;
         nif->read(
-            env->get_username(),
+            env->get_user_context(),
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
@@ -2088,7 +2093,7 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
-            outer_env->get_username(),
+            outer_env->get_user_context(),
             read_t(changefeed_stamp_t(addr),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
@@ -2174,7 +2179,7 @@ private:
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
-                outer_env->get_username(),
+                outer_env->get_user_context(),
                 nullptr/*don't profile*/);
     }
 
@@ -2510,14 +2515,14 @@ public:
         include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
-            env->get_username(),
+            env->get_user_context(),
             read_t(changefeed_limit_subscribe_t(
                        addr,
                        uuid,
                        spec,
                        std::move(table),
                        env->get_all_optargs(),
-                       env->get_username(),
+                       env->get_user_context(),
                        spec.range.sindex
                            ? region_t::universe()
                            : region_t(

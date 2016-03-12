@@ -54,7 +54,7 @@ http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
             rdb_ctx,
             client_addr_port,
             ql::return_empty_normal_batches_t::YES,
-            auth::username_t("admin"))),
+            auth::user_context_t(auth::username_t("admin")))),
     counter(&rdb_ctx->stats.client_connections) { }
 
 ql::query_cache_t *http_conn_cache_t::http_conn_t::get_query_cache() {
@@ -323,7 +323,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             pre_4
                 ? ql::return_empty_normal_batches_t::YES
                 : ql::return_empty_normal_batches_t::NO,
-            std::move(username));
+            auth::user_context_t(std::move(username)));
 
         switch (wire_protocol) {
             case VersionDummy::JSON:

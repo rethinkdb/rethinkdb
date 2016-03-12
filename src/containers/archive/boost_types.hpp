@@ -182,7 +182,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *read_stream, boost::tribool
             *value = boost::indeterminate;
             break;
         default:
-            unreachable();
+            return archive_result_t::RANGE_ERROR;
     }
 
     return archive_result_t::SUCCESS;

@@ -28,7 +28,7 @@ configured_limits_t from_optargs(
                 return_empty_normal_batches_t::NO,
                 interruptor,
                 global_optargs_t(),
-                boost::none,    // FIXME, query in optarg?
+                auth::user_context_t(auth::permissions_t(false, false, false, false)),
                 nullptr);
             if (has_changefeed_queue_size) {
                 int64_t sz = args->get_optarg(&env, "changefeed_queue_size")->as_int();

@@ -1,9 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/username.hpp"
 
-#include "unicode/unistr.h"
-#include "unicode/usprep.h"
-
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 

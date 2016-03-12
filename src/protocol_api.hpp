@@ -12,6 +12,7 @@
 #include <boost/optional.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -75,7 +76,7 @@ logic for query routing exposes to the protocol-specific query parser. */
 
 class namespace_interface_t {
 public:
-    virtual void read(boost::optional<auth::username_t> const &username,
+    virtual void read(auth::user_context_t const &user_context,
                       const read_t &,
                       read_response_t *response,
                       order_token_t tok,
@@ -83,7 +84,7 @@ public:
         THROWS_ONLY(
             interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
 
-    virtual void write(boost::optional<auth::username_t> const &username,
+    virtual void write(auth::user_context_t const &user_context,
                        const write_t &,
                        write_response_t *response,
                        order_token_t tok,

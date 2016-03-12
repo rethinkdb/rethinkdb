@@ -12,12 +12,15 @@ namespace auth {
 
 class permission_error_t : public std::runtime_error {
 public:
-    permission_error_t(auth::username_t const &username, std::string const &permission)
+    permission_error_t(std::string const &permission)
         : std::runtime_error(
-            strprintf(
-                "User `%s` does not have the required `%s` permission",
-                username.to_string().c_str(),
-                permission.c_str())) {
+            "Internal permission error, required `" + permission + "` permission") {
+    }
+
+    permission_error_t(username_t const &username, std::string const &permission)
+        : std::runtime_error(
+            "User `" + username.to_string() + "`does not have the required `" +
+                permission + "` permission") {
     }
 };
 

@@ -157,7 +157,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"),
@@ -177,7 +177,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->read(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
             read,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"),
@@ -283,7 +283,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -304,7 +304,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -335,7 +335,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -355,7 +355,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -397,7 +397,7 @@ void populate_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in(
@@ -459,7 +459,7 @@ void fuzz_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::fuzz_sindex(rdb_protocol.cc"),
@@ -587,7 +587,7 @@ void read_sindex(namespace_interface_t *nsi,
 
     cond_t interruptor;
     nsi->read(
-        boost::none,
+        auth::user_context_t(auth::permissions_t(true, false, false, false)),
         read,
         &response,
         osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"),
@@ -767,7 +767,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->write(
-                    boost::none,
+                    auth::user_context_t(auth::permissions_t(false, true, false, false)),
                     write,
                     &response,
                     osource->check_in(
@@ -791,7 +791,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->read(
-                    boost::none,
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
                     read,
                     &response,
                     osource->check_in(
@@ -853,7 +853,7 @@ void run_sindex_missing_attr_test(
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in(

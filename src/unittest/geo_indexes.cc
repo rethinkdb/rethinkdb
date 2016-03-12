@@ -139,7 +139,7 @@ void insert_data(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            boost::none,
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::insert_data(geo_indexes.cc"),
@@ -202,14 +202,14 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
             table_name,
             idx_name,
             ql::global_optargs_t(),
-            boost::none),
+            auth::user_context_t(auth::permissions_t(true, false, false, false))),
         profile_bool_t::PROFILE,
         read_mode_t::SINGLE);
     read_response_t response;
 
     cond_t interruptor;
     nsi->read(
-        boost::none,
+        auth::user_context_t(auth::permissions_t(true, false, false, false)),
         read,
         &response,
         osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
@@ -325,27 +325,30 @@ std::vector<datum_t> perform_get_intersecting(
 
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
-    read_t read(intersecting_geo_read_t(boost::optional<changefeed_stamp_t>(),
-                                        region_t::universe(),
-                                        ql::global_optargs_t(),
-                                        boost::none,
-                                        table_name, ql::batchspec_t::all(),
-                                        std::vector<ql::transform_variant_t>(),
-                                        boost::optional<ql::terminal_variant_t>(),
-                                        sindex_rangespec_t(
-                                            idx_name,
-                                            region_t::universe(),
-                                            ql::datumspec_t(
-                                                ql::datum_range_t::universe()),
-                                            require_sindexes_t::NO),
-                                        query_geometry),
-                profile_bool_t::PROFILE,
-                read_mode_t::SINGLE);
+    read_t read(
+        intersecting_geo_read_t(
+            boost::optional<changefeed_stamp_t>(),
+            region_t::universe(),
+            ql::global_optargs_t(),
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            table_name,
+            ql::batchspec_t::all(),
+            std::vector<ql::transform_variant_t>(),
+            boost::optional<ql::terminal_variant_t>(),
+            sindex_rangespec_t(
+                idx_name,
+                region_t::universe(),
+                ql::datumspec_t(
+                    ql::datum_range_t::universe()),
+                require_sindexes_t::NO),
+            query_geometry),
+        profile_bool_t::PROFILE,
+        read_mode_t::SINGLE);
     read_response_t response;
 
     cond_t interruptor;
     nsi->read(
-        boost::none,
+        auth::user_context_t(auth::permissions_t(true, false, false, false)),
         read,
         &response,
         osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),
