@@ -305,12 +305,48 @@ describe('JavaScript Cursor', function() {
                 });
             });
 
+            it('respects concurrency option', function() {
+                var concurrency = 50, promises = [];
+
+                return tableCursor.eachAsync(function(row) {
+                    var p = Promise.delay(Math.random() * 100);
+                    promises.push(p);
+                    return p;
+                }, { concurrency: concurrency })
+                .then(function(err) {
+                    assert.equal(promises.length, numRows);
+                    assert(promises.every(function (p) {
+                        return !p.isPending();
+                    }));
+                });
+            });
+
+            it('respects concurrency option with early stop', function() {
+                var concurrency = 50, promises = [];
+
+                return tableCursor.eachAsync(function(row) {
+                    var p = Promise.delay(Math.random() * 100).then(function () {
+                        return Promise.reject();
+                    });
+
+                    promises.push(p);
+                    return p;
+                }, { concurrency: concurrency })
+                .catch(function(err) {
+                    assert.equal(err, null);
+                    assert.equal(promises.length, concurrency);
+                    assert(promises.every(function (p) {
+                        return !p.isPending();
+                    }));
+                });
+            });
+
             it('Promise style cursor is closed.', function() {
                 return tableCursor.eachAsync(function(row) {
                     assert.deepEqual(row, {'id':0});
-                    return tableCursor.close();
+                    tableCursor.close();
                 }).catch(function(error) {
-                    assert.equal(error, "Cursor is closed.");
+                    assert.equal(error.msg, "Cursor is closed.");
                 })
             })
 
@@ -319,7 +355,7 @@ describe('JavaScript Cursor', function() {
                     assert.deepEqual(row, {'id':0});
                     tableCursor.close();
                 }, function(error) {
-                    assert.equal(error, "Cursor is closed.");
+                    assert.equal(error.msg, "Cursor is closed.");
                     done();
                 })
             })
@@ -330,23 +366,23 @@ describe('JavaScript Cursor', function() {
                     tableCursor.close()
                     done_callback(null, null)
                 }, function(error) {
-                    assert.equal(error, "Cursor is closed.");
+                    assert.equal(error.msg, "Cursor is closed.");
                     done();
                 })
             });
 
             it('eachAsync on a cursor that is already closed.', function() {
-                tableCursor.close().then( function () {
+                return tableCursor.close().then( function () {
                     tableCursor.eachAsync(function(row) {
                         assert.equals(1,2);
                     }).catch(function (error) {
-                        assert.equal(error, "Cursor is closed.")
+                        assert.equal(error.msg, "Cursor is closed.");
                     })
                 });
             })
 
             it('errors when missing argument', function(done) {
-                expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
+                expectedMsg = 'Expected between 1 and 3 arguments but found 0.';
                 assert.throws(function() { tableCursor.eachAsync(); }, argErrorTest(expectedMsg));
                 done();
             });

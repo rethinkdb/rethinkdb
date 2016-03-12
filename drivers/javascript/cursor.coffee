@@ -224,24 +224,43 @@ class IterableResult
         return nextCb().nodeify(onFinished)
     )
 
-    eachAsync: varar(1, 2, (cb, errCb) ->
+    eachAsync: varar(1, 3, (cb, errCb, options = { concurrency: 1 }) ->
         unless typeof cb is 'function'
             throw new error.ReqlDriverError 'First argument to eachAsync must be a function.'
 
-        if errCb? and typeof errCb isnt 'function'
-            throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function"
+        if errCb?
+            if typeof errCb is 'object'
+                options = errCb
+                errCb = undefined
+            else if typeof errCb isnt 'function'
+                throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function or `options` object"
+
+        unless options and typeof options.concurrency is 'number' and options.concurrency > 0
+            throw new error.ReqlDriverError "Optional `options.concurrency` argument to eachAsync must be a positive number"
+
+        pending = []
+
+        userCb = (data) ->
+            return Promise.resolve(cb(data)) if cb.length <= 1 # either synchronous or awaits promise
+            return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
 
         nextCb = =>
             if @_closeCbPromise?
                 return Promise.reject(new error.ReqlDriverError("Cursor is closed."))
             else
-                @_next().then (data) ->
-                    return cb(data) if cb.length <= 1 # either synchronous or awaits promise
-                    return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
+                return @_next().then (data) ->
+                    return data if pending.length < options.concurrency
+                    return Promise.any(pending)
+                    .catch Promise.AggregateError, (errs) -> throw errs[0]
+                    .return(data)
+                .then (data) ->
+                    p = userCb(data).then ->
+                        pending.splice pending.indexOf(p), 1
+                    pending.push p
                 .then nextCb
                 .catch (err) ->
-                    return if err?.message is 'No more rows in the cursor.'
-                    throw err
+                    throw err if err?.message isnt 'No more rows in the cursor.'
+                    return Promise.all(pending) # await any queued promises before returning
 
         return nextCb().nodeify(errCb)
     )
