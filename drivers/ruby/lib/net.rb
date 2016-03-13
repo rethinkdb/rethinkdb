@@ -677,18 +677,38 @@ module RethinkDB
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
         @socket.sync_close = true
-        @socket.connect
+        socket_connect
         verify_cert!(@socket, context)
       else
         @socket = base_socket
+        socket_connect
       end
     end
 
     def base_socket
-      socket = TCPSocket.open(@host, @port)
+      @socket.close if @socket
+      socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
       socket
+    end
+
+    def socket_connect 
+      address = Socket.getaddrinfo(@host, nil, Socket::AF_INET).first[3]
+      sockaddr = Socket.pack_sockaddr_in(@port, address)
+      begin
+        @socket.connect_nonblock(sockaddr)
+      rescue Errno::EINPROGRESS
+        IO.select([@socket], [@socket], [@socket], @timeout)
+        begin
+          @socket.connect_nonblock(sockaddr)
+        rescue Errno::EISCONN
+          return
+        rescue Errno::EALREADY
+          @socket.close
+          raise ReqlRuntimeError, "Connection timed out"
+        end
+      end
     end
 
     def create_context(options)
