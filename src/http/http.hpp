@@ -2,6 +2,8 @@
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <openssl/ssl.h>
+
 #include <map>
 #include <string>
 #include <stdexcept>
@@ -12,8 +14,6 @@
 #include <boost/tokenizer.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
-
-#include <openssl/ssl.h>
 
 #include "arch/address.hpp"
 #include "arch/types.hpp"
@@ -155,7 +155,10 @@ protected:
  * msg that's a meaningful response */
 class http_server_t {
 public:
-    http_server_t(SSL_CTX *tls_ctx, const std::set<ip_address_t> &local_addresses, int port, http_app_t *application);
+    http_server_t(
+        SSL_CTX *tls_ctx, const std::set<ip_address_t> &local_addresses,
+        int port, http_app_t *application
+    );
     ~http_server_t();
     int get_port() const;
 private:

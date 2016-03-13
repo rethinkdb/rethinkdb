@@ -299,7 +299,18 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->make_connection(tls_ctx, &conn);
+    
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Cluster server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
     handle(&conn_stream, boost::none, boost::none, lock, NULL);
@@ -337,10 +348,15 @@ void connectivity_cluster_t::run_t::connect_to_peer(
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            keepalive_tcp_conn_stream_t conn(tls_ctx, selected_addr->ip(), selected_addr->port().value(),
-                                             drainer_lock.get_drain_signal(), cluster_client_port);
+            keepalive_tcp_conn_stream_t conn(
+                tls_ctx, selected_addr->ip(), selected_addr->port().value(),
+                drainer_lock.get_drain_signal(), cluster_client_port
+            );
             if (!*successful_join) {
-                handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);
+                handle(
+                    &conn, expected_id, boost::optional<peer_address_t>(*address),
+                    drainer_lock, successful_join
+                );
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */

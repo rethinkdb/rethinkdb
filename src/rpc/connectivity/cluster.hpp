@@ -2,13 +2,13 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
+#include <openssl/ssl.h>
+
 #include <map>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <openssl/ssl.h>
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"

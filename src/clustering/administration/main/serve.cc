@@ -210,7 +210,7 @@ bool do_serve(io_backender_t *io_backender,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
                 semilattice_manager_heartbeat.get_root_view(),
-                serve_info.tls_configs.cluster));
+                serve_info.tls_configs.cluster.get()));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -489,7 +489,7 @@ bool do_serve(io_backender_t *io_backender,
                     &rdb_ctx,
                     &server_config_client,
                     server_id,
-                    serve_info.tls_configs.driver);
+                    serve_info.tls_configs.driver.get());
                 logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
@@ -543,7 +543,7 @@ bool do_serve(io_backender_t *io_backender,
                                 server_id,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets,
-                                serve_info.tls_configs.web));
+                                serve_info.tls_configs.web.get()));
                         logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
                         /* If `serve_info.ports.http_port` was zero then the OS assigned

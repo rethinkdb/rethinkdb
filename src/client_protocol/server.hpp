@@ -2,6 +2,8 @@
 #ifndef CLIENT_PROTOCOL_SERVER_HPP_
 #define CLIENT_PROTOCOL_SERVER_HPP_
 
+#include <openssl/ssl.h>
+
 #include <set>
 #include <map>
 #include <random>
@@ -12,8 +14,6 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
-
-#include <openssl/ssl.h>
 
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -142,6 +142,7 @@ private:
                 http_res_t *result,
                 signal_t *interruptor);
 
+    SSL_CTX *tls_ctx;
     rdb_context_t *const rdb_ctx;
     query_handler_t *const handler;
 
@@ -151,8 +152,6 @@ private:
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     int next_thread;
-
-    SSL_CTX *tls_ctx;
 };
 
 #endif /* CLIENT_PROTOCOL_SERVER_HPP_ */

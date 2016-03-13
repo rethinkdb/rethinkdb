@@ -2,12 +2,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
+#include <openssl/ssl.h>
+
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <openssl/ssl.h>
+#include <memory>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file.hpp"
@@ -87,11 +88,13 @@ struct service_address_ports_t {
     int port_offset;
 };
 
-struct tls_configs_t {
-    tls_configs_t() : web(NULL), driver(NULL), cluster(NULL) {}
-    SSL_CTX *web;
-    SSL_CTX *driver;
-    SSL_CTX *cluster;
+typedef std::shared_ptr<SSL_CTX> shared_ssl_ctx_t;
+
+class tls_configs_t {
+public:
+    shared_ssl_ctx_t web;
+    shared_ssl_ctx_t driver;
+    shared_ssl_ctx_t cluster;
 };
 
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names);

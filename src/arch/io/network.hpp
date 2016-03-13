@@ -8,7 +8,6 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -50,7 +49,7 @@ public:
             error(en),
             info("Could not make connection: " + errno_string(error)) { }
 
-        explicit connect_failed_exc_t(int en, std::string err_str) :
+        connect_failed_exc_t(int en, const std::string &err_str) :
             error(en),
             info(err_str) { }
 
@@ -134,7 +133,7 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    ~linux_tcp_conn_t() THROWS_NOTHING;
+    virtual ~linux_tcp_conn_t() THROWS_NOTHING;
 
     void rethread(threadnum_t thread);
 
@@ -306,13 +305,33 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
-    virtual size_t read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t);
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple
+    wrapper around ::read(). Returns the number of bytes read or throws
+    tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
+    virtual size_t read_internal(
+        void *buffer, size_t size
+    ) THROWS_ONLY(tcp_conn_read_closed_exc_t);
 
-    /* Used to actually perform a write. If the write end of the connection is open, then writes
-    `size` bytes from `buffer` to the socket. */
+    /* Used to actually perform a write. If the write end of the connection is open, then
+    writes `size` bytes from `buffer` to the socket. */
     virtual void perform_write(const void *buffer, size_t size);
+};
+
+/* tls_conn_wrapper_t wraps a TLS connection. */
+class tls_conn_wrapper_t {
+public:
+    explicit tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
+        linux_tcp_conn_t::connect_failed_exc_t,
+    );
+
+    ~tls_conn_wrapper_t();
+
+    void set_fd(fd_t sock) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t);
+
+    SSL *get() { return conn; }
+
+private:
+    SSL *conn;
 };
 
 class linux_secure_tcp_conn_t :
@@ -322,7 +341,10 @@ public:
     friend class linux_tcp_conn_descriptor_t;
 
     // Client connection constructor.
-    linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, const ip_address_t &host, int port, signal_t *interruptor, int local_port = ANY_PORT) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    linux_secure_tcp_conn_t(
+        SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+        signal_t *interruptor, int local_port = ANY_PORT
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     ~linux_secure_tcp_conn_t() THROWS_NOTHING;
 
@@ -335,16 +357,23 @@ public:
 private:
 
     // Server connection constructor.
-    explicit linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock);
+    linux_secure_tcp_conn_t(
+        SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
-    void establish_conn(int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t);
+    void perform_handshake(signal_t *interruptor) THROWS_ONLY(
+        linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t,
+    );
 
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
-    virtual size_t read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t);
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple
+    wrapper around ::read(). Returns the number of bytes read or throws
+    tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
+    virtual size_t read_internal(void *buffer, size_t size) THROWS_ONLY(
+        tcp_conn_read_closed_exc_t
+    );
 
-    /* Used to actually perform a write. If the write end of the connection is open, then writes
-    `size` bytes from `buffer` to the socket. */
+    /* Used to actually perform a write. If the write end of the connection is open, then
+    writes `size` bytes from `buffer` to the socket. */
     virtual void perform_write(const void *buffer, size_t size);
 
     void shutdown();
@@ -352,7 +381,7 @@ private:
 
     bool is_open() { return !closed.is_pulsed(); };
 
-    SSL *conn;
+    tls_conn_wrapper_t conn;
 
     cond_t closed;
 };
@@ -361,11 +390,15 @@ class linux_tcp_conn_descriptor_t {
 public:
     ~linux_tcp_conn_descriptor_t();
 
-    void make_connection(SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
+    void make_server_connection(
+        SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
-    // Call it on the thread you'll use the connection on.
-    void make_connection(SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out);
+    // Call it on the thread you'll use the server connection on.
+    void make_server_connection(
+        SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
 private:
     friend class linux_nonthrowing_tcp_listener_t;

@@ -652,158 +652,142 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     event_watcher->stop_watching_for_errors();
 }
 
-/* tls_conn_wrapper_t wraps a TLS connection and safely releases it in
-exceptional cases if it is not reclaimed before execution leaves its scope. */
-class tls_conn_wrapper_t {
-public:
-    tls_conn_wrapper_t(SSL *_conn) {
-        conn = _conn;
+tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
+    linux_tcp_conn_t::connect_failed_exc_t
+) {
+    ERR_clear_error();
+
+    conn = SSL_new(tls_ctx);
+    if (nullptr == conn) {
+        unsigned long err_code = ERR_get_error();
+
+        throw linux_tcp_conn_t::connect_failed_exc_t(
+            err_code, ERR_error_string(err_code, nullptr)
+        );
     }
 
-    ~tls_conn_wrapper_t() {
-        SSL_free(conn);
-    }
+    // Add support for partial writes.
+    SSL_set_mode(conn, SSL_MODE_ENABLE_PARTIAL_WRITE);
+}
 
-    // Transfer ownership of the connection to the caller.
-    void reclaim() {
-        conn = NULL;
-    }
+tls_conn_wrapper_t::~tls_conn_wrapper_t() {
+    SSL_free(conn);
+}
 
-private:
-    SSL *conn;
-};
+// Set the underlying IO.
+void tls_conn_wrapper_t::set_fd(fd_t sock) THROWS_ONLY(
+    linux_tcp_conn_t::connect_failed_exc_t
+) {
+    if (0 == SSL_set_fd(conn, sock)) {
+        unsigned long err_code = ERR_get_error();
+        throw linux_tcp_conn_t::connect_failed_exc_t(
+            err_code, ERR_error_string(err_code, nullptr)
+        );
+    }
+}
 
 /* This is the client version of the constructor. The base class constructor
 will establish a TCP connection to the peer at the given host:port and then we
 wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
-linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-        linux_tcp_conn_t(host, port, interruptor, local_port) {
+linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
+    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port
+) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    linux_tcp_conn_t(host, port, interruptor, local_port),
+    conn(tls_ctx) {
 
-
-    conn = SSL_new(tls_ctx);
-
-    /* If establish_conn() throws an exception, the conn_wrapper deallocates
-    the connection when unwinding the stack. */
-    tls_conn_wrapper_t conn_wrapper(conn);
-
-    establish_conn(SSL_connect);
-
-    conn_wrapper.reclaim();
+    conn.set_fd(sock.get());
+    SSL_set_connect_state(conn.get());
+    perform_handshake(interruptor);
 }
 
 /* This is the server version of the constructor */
-linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(SSL_CTX *tls_ctx, fd_t sock) :
-        linux_tcp_conn_t(sock) {
+linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
+    SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor
+) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    linux_tcp_conn_t(_sock),
+    conn(tls_ctx) {
 
-    conn = SSL_new(tls_ctx);
-
-    try {
-        establish_conn(SSL_accept);
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
-        // Ignore.
-        logNTC("linux_secure_tcp_conn_t server constructor exception: %s\n", err.info.c_str());
-    }
+    conn.set_fd(sock.get());
+    SSL_set_accept_state(conn.get());
+    perform_handshake(interruptor);
 }
 
 linux_secure_tcp_conn_t::~linux_secure_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
     if (is_open()) shutdown();
-
-    SSL_free(conn);
 }
 
-/* Creates a new OpenSSL connection using the underlying fd and the given
-OpenSSL context. The given handshake function is used to perform the handshake
-for the client or server using SSL_connect or SSL_accept respectively. */
-void linux_secure_tcp_conn_t::establish_conn(int (*handshake)(SSL *) ) THROWS_ONLY(connect_failed_exc_t) {
-    // Add support for partial writes.
-    SSL_set_mode(conn, SSL_MODE_ENABLE_PARTIAL_WRITE);
-
-    if (NULL == conn) {
-        unsigned long err_code = ERR_get_error();
-        throw linux_tcp_conn_t::connect_failed_exc_t(err_code, ERR_error_string(err_code, NULL));
-    }
-
-    // Set the underlying IO.
-    if (0 == SSL_set_fd(conn, sock.get())) {
-        unsigned long err_code = ERR_get_error();
-        throw linux_tcp_conn_t::connect_failed_exc_t(err_code, ERR_error_string(err_code, NULL));
-    }
-
+void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor) THROWS_ONLY(
+    linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t
+) {
     // Perform TLS handshake.
     while (true) {
         ERR_clear_error();
-        int ret = handshake(conn);
+        int ret = SSL_do_handshake(conn.get());
 
         if (ret > 0) {
             return; // Successful TLS handshake.
         }
 
-        int err_code = SSL_get_error(conn, ret);
-        unsigned long io_err = 0;
+        if (ret == 0) {
+            // The handshake failed but the connection shut down cleanly.
+            throw linux_tcp_conn_t::connect_failed_exc_t(
+                0, "TLS handshake failed, shutdown cleanly"
+            );
+        }
 
-        switch (err_code) {
+        switch (SSL_get_error(conn.get(), ret)) {
         case SSL_ERROR_WANT_READ:
-            /* There's no data available right now, so we must wait for a
-            notification from the epoll queue, or for an order to shut down. */
+            /* The handshake needs to read data, but the underlying I/O has no data
+            ready to read. Wait for it to be ready or for an interrupt signal. */
             {
                 linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
-                wait_any_t waiter(&watch);
-                waiter.wait_lazily_unordered();
+                wait_interruptible(&watch, interruptor);
             }
-            /* Go around the loop and try to complete the handshake */
-            continue;
+            break;
         case SSL_ERROR_WANT_WRITE:
-            /* Wait for a notification from the event queue, or for an order to
-            shut down */
+            /* The handshake needs to write data, but the underlying I/O is not ready
+            to write. Wait for it to be ready or for an interrupt signal. */
             {
                 linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
-                wait_any_t waiter(&watch);
-                waiter.wait_lazily_unordered();
+                wait_interruptible(&watch, interruptor);
             }
-            /* Go around the loop and try to complete the handshake */
-            continue;
-        case SSL_ERROR_SYSCALL:
-            // An error with the underlying IO.
-            io_err = ERR_peek_last_error();
-            if (io_err != 0) {
-                // The Openssl error queue has data on the error.
-                throw linux_tcp_conn_t::connect_failed_exc_t(io_err, ERR_error_string(io_err, NULL));
-            }
-
-            // if ret is 0 that indicates an EOF in violation of the protocol.
-            if (0 == ret) {
-                throw linux_tcp_conn_t::connect_failed_exc_t(io_err, "TLS protocol violation - EOF");
-            }
-
-            // Otherwise consult errno.
-            throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
+            break;
         default:
-            // Some other error.
-            io_err = ERR_peek_last_error();
-            throw linux_tcp_conn_t::connect_failed_exc_t(io_err, ERR_error_string(io_err, NULL));
+            // Some other error with the underlying I/O.
+            unsigned long err_code = ERR_get_error();
+            throw linux_tcp_conn_t::connect_failed_exc_t(
+                err_code, ERR_error_string(err_code, nullptr)
+            );
         }
+
+        if (interruptor->is_pulsed()) {
+            // The handshake cannot continue because we need to shutdown now.
+            throw interrupted_exc_t();
+        }
+
+        /* Go around the loop and try to complete the handshake. */
     }
 }
 
-size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
+size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(
+    tcp_conn_read_closed_exc_t
+) {
     assert_thread();
     rassert(!closed.is_pulsed());
 
     while(true) {
         ERR_clear_error();
 
-        int ret = SSL_read(conn, buffer, size);
+        int ret = SSL_read(conn.get(), buffer, size);
 
         if (ret > 0) {
             return ret; // Operation successful, returns number of bytes read.
         }
 
-        int err_code = SSL_get_error(conn, ret);
-        unsigned long io_err = 0;
-
-        switch (err_code) {
+        switch (SSL_get_error(conn.get(), ret)) {
         case SSL_ERROR_ZERO_RETURN:
             // Indicates that the peer has sent the "close notify" alert. The
             // shutdown state is currently SSL_RECEIVED_SHUTDOWN. We must now
@@ -811,71 +795,41 @@ size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_
             shutdown();
             throw tcp_conn_read_closed_exc_t();
         case SSL_ERROR_WANT_READ:
-            /* There's no data available right now, so we must wait for a
-            notification from the epoll queue, or for an order to shut down. */
+            /* The underlying I/O has no data ready to read. Wait for it to be
+            ready or for someone to send a close signal. */
             {
-                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_in
+                );
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
-            if (closed.is_pulsed()) {
-                /* We were closed for whatever reason. Something else has
-                already called on_shutdown(). In fact, we were
-                probably signalled by on_shutdown(). */
-                throw tcp_conn_read_closed_exc_t();
-            }
-            /* Go around the loop and try to read again */
-            continue;
+            break;
         case SSL_ERROR_WANT_WRITE:
-            /* Though we are reading, a TLS renegatiotain may occur at any time
-            requiring a write. Wait for a notification from the event queue, or
-            for an order to shut down */
+            /* Though we are reading, a TLS renegotiation may occur at any time
+            requiring a write. Wait for the underyling I/O to be ready for a
+            write, or for someone to send a close signal. */
             {
-                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out
+                );
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
-            if (closed.is_pulsed()) {
-                /* We were closed for whatever reason. Whatever signalled
-                us has already called on_shutdown(). */
-                throw tcp_conn_read_closed_exc_t();
-            }
-            /* Go around the loop and try to write again */
-            continue;
-        case SSL_ERROR_SYSCALL:
-            // An error with the underlying IO.
-            io_err = ERR_get_error();
-            if (io_err != 0) {
-                // The Openssl error queue has data on the error.
-                on_shutdown();
-                throw tcp_conn_read_closed_exc_t();
-            }
-
-            // if ret is 0 that indicates an EOF in violation of the protocol.
-            if (0 == ret) {
-                on_shutdown();
-                throw tcp_conn_read_closed_exc_t();
-            }
-
-            // Otherwise consult errno.
-            switch (get_errno()) {
-            case ECONNRESET:
-            case ENOTCONN:
-                /* We were closed. This is the first notification that the kernel has given us, so we
-                must call on_shutdown(). */
-                on_shutdown();
-                throw tcp_conn_read_closed_exc_t();
-            default:
-                /* Unknown error. This is not expected, but it will probably happen sometime so we
-                shouldn't crash. */
-                on_shutdown();
-                throw tcp_conn_read_closed_exc_t();
-            }
+            break;
         default:
-            // Some other error.
+            // Some other error. Assume that the connection is unusable.
             on_shutdown();
             throw tcp_conn_read_closed_exc_t();
         }
+
+        if (closed.is_pulsed()) {
+            /* We were closed for whatever reason. Whatever signalled us has
+            already called on_shutdown(). */
+            throw tcp_conn_read_closed_exc_t();
+        }
+
+        /* Go around the loop and try to read again */
     }
 }
 
@@ -893,7 +847,7 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
     while (size > 0) {
         ERR_clear_error();
 
-        int ret = SSL_write(conn, buffer, size);
+        int ret = SSL_write(conn.get(), buffer, size);
 
         if (ret > 0) {
             // Operation successful, returns number of bytes read.
@@ -901,7 +855,9 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             size -= ret;
 
             // Slide down the buffer.
-            buffer = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buffer) + ret);
+            buffer = reinterpret_cast<const void *>(
+                reinterpret_cast<const char *>(buffer) + ret
+            );
 
             if (write_perfmon) write_perfmon->record(ret);
 
@@ -909,10 +865,7 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             continue;
         }
 
-        int err_code = SSL_get_error(conn, ret);
-        unsigned long io_err = 0;
-
-        switch (err_code) {
+        switch (SSL_get_error(conn.get(), ret)) {
         case SSL_ERROR_ZERO_RETURN:
             // Indicates that the peer has sent the "close notify" alert. The
             // shutdown state is currently SSL_RECEIVED_SHUTDOWN. We must now
@@ -920,77 +873,48 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             shutdown();
             return;
         case SSL_ERROR_WANT_READ:
-            /* There's no data available right now, so we must wait for a
-            notification from the epoll queue, or for an order to shut down. */
+            /* Though we are writing, a TLS renegotiation may occur at any time
+            requiring a read. Wait for the underyling I/O to be ready for a
+            read, or for someone to send a close signal. */
             {
                 linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
-            if (closed.is_pulsed()) {
-                /* We were closed for whatever reason. Something else has
-                already called on_shutdown(). In fact, we were
-                probably signalled by on_shutdown(). */
-                throw tcp_conn_read_closed_exc_t();
-            }
-            /* Go around the loop and try to read again */
-            continue;
+            break;
         case SSL_ERROR_WANT_WRITE:
-            /* Though we are reading, a TLS renegatiotain may occur at any time
-            requiring a write. Wait for a notification from the event queue, or
-            for an order to shut down */
+            /* The underlying I/O is not ready to accept a write. Wait for it
+            to be ready or for someone to send a close signal. */
             {
-                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out
+                );
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
-            if (closed.is_pulsed()) {
-                /* We were closed for whatever reason. Whatever signalled
-                us has already called on_shutdown(). */
-                throw tcp_conn_read_closed_exc_t();
-            }
-            /* Go around the loop and try to write again */
-            continue;
-        case SSL_ERROR_SYSCALL:
-            // An error with the underlying IO.
-            io_err = ERR_get_error();
-            if (io_err != 0) {
-                // The Openssl error queue has data on the error.
-                on_shutdown();
-                return;
-            }
-
-            // if ret is 0 that indicates an EOF in violation of the protocol.
-            if (0 == ret) {
-                on_shutdown();
-                return;
-            }
-
-            // Otherwise consult errno.
-            switch (get_errno()) {
-            case EPIPE: case EHOSTUNREACH: case ENETDOWN:
-            case EHOSTDOWN: case ECONNRESET: case ENOTCONN:
-                /* These errors are expected to happen at some point in practice */
-                on_shutdown();
-                return;
-            default:
-                /* Unknown error. This is not expected, but it will probably happen sometime so we
-                shouldn't crash. */
-                on_shutdown();
-                return;
-            }
+            break;
         default:
-            // Some other error.
+            // Some other error. Assume that the connection is unusable.
             on_shutdown();
             return;
         }
+
+        if (closed.is_pulsed()) {
+            /* We were closed for whatever reason. Whatever signalled
+            us has already called on_shutdown(). */
+            throw tcp_conn_read_closed_exc_t();
+        }
+
+        /* Go around the loop and try to read again */
     }
 }
 
 void linux_secure_tcp_conn_t::shutdown() {
     assert_thread();
 
-    int ret;
+    // Wait at most 5 seconds for the orderly shutdown. If it doesn't complete by then,
+    // we simply shutdown the socket.
+    signal_timer_t shutdown_timeout(5000);
 
     // If we have not already received a "close notify" alert from the peer,
     // then we should send one. If we have received one, this loop will respond
@@ -998,63 +922,57 @@ void linux_secure_tcp_conn_t::shutdown() {
     while (true) {
         ERR_clear_error();
 
-        if ((ret = SSL_shutdown(conn)) >= 0) {
-            break; // "close notify" was either sent or received.
+        int ret = SSL_shutdown(conn.get());
+
+        if (ret > 0) {
+            // "close notify" has been sent and received.
+            break;
         }
 
-        // A negative ret indicates as error.
-        int err_code = SSL_get_error(conn, ret);
-        if (SSL_ERROR_WANT_READ == err_code) {
-            linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
-            wait_any_t waiter(&watch);
-            waiter.wait_lazily_unordered();
-            /* Go around the loop and try to read again */
-        } else if (SSL_ERROR_WANT_WRITE == err_code) {
-            linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
-            wait_any_t waiter(&watch);
-            waiter.wait_lazily_unordered();
-            /* Go around the loop and try to write again */
-        } else {
+        if (ret == 0) {
+            // "close notify" has been sent but not yet received from peer.
+            continue;
+        }
+
+        switch(SSL_get_error(conn.get(), ret)) {
+        case SSL_ERROR_WANT_READ:
+            {
+                /* The shutdown needs to read data, but the underlying I/O has no data
+                ready to read. Wait for it to be ready or for a timeout. */
+                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
+                wait_any_t waiter(&watch, &shutdown_timeout);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            {
+                /* The handshake needs to write data, but the underlying I/O is not ready
+                to write. Wait for it to be ready or for a timeout. */
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out
+                );
+                wait_any_t waiter(&watch, &shutdown_timeout);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        default:
+            // Unable to perform clean shutdown. Just skip it.
+            break;
+        }
+
+        if (shutdown_timeout.is_pulsed()) {
+            // Unable to perform clean shutdown within time limit. Just skip it.
             break;
         }
     }
 
-    // ret is 0 if shutdown is not yet finished, i.e., we have not both sent
-    // *and* received a "close notify" alert. This is required for clean
-    // bidirectional shutdown.
-    if (0 == ret) {
-        // "close notify" was sent, but we should wait for the peer to respond
-        // with their own "close notify" alert.
-
-        while (true) {
-            ERR_clear_error();
-
-            if ((ret = SSL_shutdown(conn)) >= 0) {
-                break; // "close notify" was received.
-            }
-
-            // A negative ret indicates as error.
-            int err_code = SSL_get_error(conn, ret);
-            if (SSL_ERROR_WANT_READ == err_code) {
-                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
-                wait_any_t waiter(&watch);
-                waiter.wait_lazily_unordered();
-                /* Go around the loop and try to read again */
-            } else if (SSL_ERROR_WANT_WRITE == err_code) {
-                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
-                wait_any_t waiter(&watch);
-                waiter.wait_lazily_unordered();
-                /* Go around the loop and try to write again */
-            } else {
-                break;
-            }
-        }
-    }
-
-    // Shutdown the underlying connection.
+    // Shutdown the underlying TCP connection.
     int res = ::shutdown(sock.get(), SHUT_RDWR);
     if (res != 0 && get_errno() != ENOTCONN) {
-        logERR("Could not shutdown socket for reading and writing: %s", errno_string(get_errno()).c_str());
+        logERR(
+            "Could not shutdown socket for reading and writing: %s",
+            errno_string(get_errno()).c_str()
+        );
     }
 
     on_shutdown();
@@ -1081,16 +999,41 @@ linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
 }
 
 linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
-    rassert(fd_ == -1);
+    if (fd_ == -1) {
+        return; // Ownership of the connection was passed to someone else.
+    }
+    
+    /* If the underlying file descriptor is still valid then there must have been an
+    exception when passing the socket to a server handler via make_server_connection. It
+    is then the responsibility of this object close the TCP socket. */
+    int res = ::shutdown(fd_, SHUT_RDWR);
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR(
+            "Could not shutdown socket for reading and writing: %s",
+            errno_string(get_errno()).c_str()
+        );
+    }
 }
 
-void linux_tcp_conn_descriptor_t::make_connection(SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
-    tcp_conn->init((NULL == tls_ctx) ? new linux_tcp_conn_t(fd_) : new linux_secure_tcp_conn_t(tls_ctx, fd_));
+void linux_tcp_conn_descriptor_t::make_server_connection(
+    SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) {
+    if (tls_ctx == nullptr) {
+        tcp_conn->init(new linux_tcp_conn_t(fd_));
+    } else {
+        tcp_conn->init(new linux_secure_tcp_conn_t(tls_ctx, fd_, closer));
+    }
     fd_ = -1;
 }
 
-void linux_tcp_conn_descriptor_t::make_connection(SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out) {
-    *tcp_conn_out = (NULL == tls_ctx) ? new linux_tcp_conn_t(fd_) : new linux_secure_tcp_conn_t(tls_ctx, fd_);
+void linux_tcp_conn_descriptor_t::make_server_connection(
+    SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) {
+    if (tls_ctx == nullptr) {
+        *tcp_conn_out = new linux_tcp_conn_t(fd_);
+    } else {
+        *tcp_conn_out = new linux_secure_tcp_conn_t(tls_ctx, fd_, closer);
+    }
     fd_ = -1;
 }
 
