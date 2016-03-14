@@ -110,12 +110,6 @@ public:
     int get_port() const;
 
 private:
-    static std::string read_sized_string(tcp_conn_t *conn,
-                                         size_t max_size,
-                                         const std::string &length_error_msg,
-                                         signal_t *interruptor);
-    static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
-
     void make_error_response(bool is_draining,
                              const tcp_conn_t &conn,
                              const std::string &err,

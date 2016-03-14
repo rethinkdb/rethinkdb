@@ -462,8 +462,6 @@ datum_t to_datum(
 // DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
-datum_t to_datum(const rapidjson::Value &v, const configured_limits_t &, reql_version_t);
-
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(
     grouped_data_t &&gd, const configured_limits_t &);

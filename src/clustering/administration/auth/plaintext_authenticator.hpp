@@ -12,14 +12,13 @@ class plaintext_authenticator_t
 {
 public:
     plaintext_authenticator_t(
-        clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable);
+        clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable,
+        std::string const &username = "admin");
 
-    bool is_authentication_required() const;
-
-    bool authenticate(std::string password) const;
+    bool authenticate(std::string const &password) const;
 
 private:
-    user_t m_admin;
+    user_t m_user;
 };
 
 }  // namespace auth

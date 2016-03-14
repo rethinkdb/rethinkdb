@@ -30,8 +30,8 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/queue/limited_fifo.hpp"
-#include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
+#include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/base64.hpp"
@@ -223,36 +223,37 @@ int query_server_t::get_port() const {
     return tcp_listener->get_port();
 }
 
-std::string query_server_t::read_sized_string(tcp_conn_t *conn,
-                                              size_t max_size,
-                                              const std::string &length_error_msg,
-                                              signal_t *interruptor) {
-    uint32_t str_length;
-    conn->read_buffered(&str_length, sizeof(uint32_t), interruptor);
-
-    if (str_length > max_size) {
-        throw client_server_exc_t(length_error_msg);
-    }
-
-    scoped_array_t<char> buffer(str_length);
-    conn->read_buffered(buffer.data(), str_length, interruptor);
-
-    return std::string(buffer.data(), str_length);
+void write_datum(tcp_conn_t *connection, ql::datum_t datum, signal_t *interruptor) {
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    datum.write_json(&writer);
+    buffer.Put('\0');
+    connection->write(buffer.GetString(), buffer.GetSize(), interruptor);
 }
 
-auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
-                                         signal_t *interruptor) {
-    const std::string length_error_msg =
-        "Client provided an authorization key that is too long.";
-    std::string auth_key = read_sized_string(conn, auth_key_t::max_length,
-                                             length_error_msg, interruptor);
-    auth_key_t ret;
-    if (!ret.assign_value(auth_key)) {
-        // This should never happen, since we already checked above.
-        rassert(false);
-        throw client_server_exc_t(length_error_msg);
+ql::datum_t read_datum(tcp_conn_t *connection, signal_t *interruptor) {
+    std::array<char, 2048> buffer;
+
+    std::size_t offset = 0;
+    do {
+        connection->read_buffered(buffer.data() + offset, 1, interruptor);
+    } while (buffer[offset++] != '\0' && offset < buffer.max_size());
+    if (offset == 2048) {
+        // FIXME, fail
+        std::cout << "B\n";
     }
-    return ret;
+
+    rapidjson::Document document;
+    document.Parse(buffer.data());
+    if (document.HasParseError()) {
+        // FIXME, fail
+        std::cout << "C\n";
+    }
+
+    return ql::to_datum(
+        document,
+        ql::configured_limits_t::unlimited,
+        reql_version_t::LATEST);
 }
 
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
@@ -267,11 +268,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     nconn->make_overcomplicated(&conn);
     conn->enable_keepalive();
 
-    ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
-    UNUSED bool peer_res = conn->getpeername(&client_addr_port);
-
-    std::string init_error;
-
+    std::string error;
     try {
         int32_t client_magic_number;
         conn->read_buffered(
@@ -291,8 +288,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             case VersionDummy::V0_4:
                 version = 4;
                 break;
-            case VersionDummy::V0_5:
-                version = 5;
+            case VersionDummy::V1_0:
+                version = 10;
                 break;
             default:
                 // FIXME, how should we respond here
@@ -302,18 +299,30 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     "server?");
         }
 
-        if (version < 5) {
+        if (version < 10) {
             auth::plaintext_authenticator_t authenticator(rdb_ctx->get_auth_watchable());
-            // Version `V0_2` and above client drivers specify the authorization key
             if (version < 2) {
-                if (authenticator.is_authentication_required()) {
+                // Version `V0_2` and above client drivers specify the authorization
+                // key, otherwise we simply try the empty password
+                if (!authenticator.authenticate("")) {
                     throw client_server_exc_t(
                         "Authorization required but client does not support it.");
                 }
             } else {
-                auth_key_t auth_key = read_auth_key(conn.get(), &ct_keepalive);
-                if (authenticator.is_authentication_required() &&
-                        !authenticator.authenticate(auth_key.str())) {
+                uint32_t auth_key_size;
+                conn->read_buffered(&auth_key_size, sizeof(uint32_t), &ct_keepalive);
+
+                if (auth_key_size > 2048) {
+                    throw client_server_exc_t(
+                        "Client provided an authorization key that is too long.");
+                }
+
+                scoped_array_t<char> auth_key_buffer(auth_key_size);
+                conn->read_buffered(
+                    auth_key_buffer.data(), auth_key_size, &ct_keepalive);
+
+                if (!authenticator.authenticate(
+                        std::string(auth_key_buffer.data(), auth_key_size))) {
                     throw client_server_exc_t("Incorrect authorization key.");
                 }
             }
@@ -342,8 +351,82 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
             }
         } else {
+            auth::scram_authenticator_t authenticator(rdb_ctx->get_auth_watchable());
+
+            {
+                ql::datum_object_builder_t datum_object_builder;
+                datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
+                datum_object_builder.overwrite("max_protocol_version", ql::datum_t(0.0));
+                datum_object_builder.overwrite("min_protocol_version", ql::datum_t(0.0));
+                datum_object_builder.overwrite(
+                    "server_version", ql::datum_t(RETHINKDB_VERSION));
+
+                write_datum(
+                    conn.get(),
+                    std::move(datum_object_builder).to_datum(),
+                    &ct_keepalive);
+            }
+
+            {
+                ql::datum_t datum = read_datum(conn.get(), &ct_keepalive);
+
+                ql::datum_t protocol_version =
+                    datum.get_field("protocol_version", ql::NOTHROW);
+                if (protocol_version.get_type() != ql::datum_t::R_NUM ||
+                        protocol_version.as_num() != 0.0) {
+                    // FIXME, error protocol_version
+                }
+
+                ql::datum_t authentication_method =
+                    datum.get_field("authentication_method", ql::NOTHROW);
+                if (authentication_method.get_type() != ql::datum_t::R_STR ||
+                        authentication_method.as_str() != "SCRAM-SHA-256") {
+                    // FIXME, error authentication_method
+                }
+
+                ql::datum_t authentication =
+                    datum.get_field("authentication", ql::NOTHROW);
+                if (!authentication.has()) {
+                    // FIXME, error authentication
+                }
+            }
+
+            {
+                ql::datum_object_builder_t datum_object_builder;
+                datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
+                datum_object_builder.overwrite(
+                    "authentication",
+                    ql::datum_t(
+                        "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096"));
+
+                write_datum(
+                    conn.get(),
+                    std::move(datum_object_builder).to_datum(),
+                    &ct_keepalive);
+            }
+
+            {
+                ql::datum_t datum = read_datum(conn.get(), &ct_keepalive);
+            }
+
+            {
+                ql::datum_object_builder_t datum_object_builder;
+                datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
+                datum_object_builder.overwrite(
+                    "authentication",
+                    ql::datum_t("v=6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4="));
+
+                write_datum(
+                    conn.get(),
+                    std::move(datum_object_builder).to_datum(),
+                    &ct_keepalive);
+            }
+
             // FIXME
         }
+
+        ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
+        UNUSED bool peer_res = conn->getpeername(&client_addr_port);
 
         auth::username_t username("admin");
         ql::query_cache_t query_cache(
@@ -363,7 +446,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             &ct_keepalive);
     } catch (const client_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
-        init_error = strprintf("ERROR: %s\n", ex.what());
+        error = strprintf("ERROR: %s\n", ex.what());
     } catch (const interrupted_exc_t &ex) {
         // If we have been interrupted, we can't write a message to the client, as that
         // may block (and we would just be interrupted again anyway), just close.
@@ -373,9 +456,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         logERR("Unexpected exception in client handler: %s", ex.what());
     }
 
-    if (!init_error.empty()) {
+    if (!error.empty()) {
         try {
-            conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
+            conn->write(error.c_str(), error.length() + 1, &ct_keepalive);
             conn->shutdown_write();
         } catch (const tcp_conn_write_closed_exc_t &) {
             // Do nothing

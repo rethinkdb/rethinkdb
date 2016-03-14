@@ -2,6 +2,7 @@
 #include "clustering/administration/auth/plaintext_authenticator.hpp"
 
 #include "errors.hpp"
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
@@ -10,59 +11,44 @@
 
 namespace auth {
 
-namespace detail {
-
-    template <std::size_t N>
-    inline bool secure_compare(
-            std::array<unsigned char, N> const &lhs,
-            std::array<unsigned char, N> const &rhs) {
-        unsigned char d = 0u;
-        for (std::size_t i = 0; i < N; i++) {
-            d |= lhs[i] ^ rhs[i];
-        }
-        return 1 & ((d - 1) >> 8);
-    }
-
-}  // namespace detail
-
 plaintext_authenticator_t::plaintext_authenticator_t(
-       clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable) {
+       clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable,
+       std::string const &username) {
     auth_watchable->apply_read(
         [&](auth_semilattice_metadata_t const *auth_metadata) {
-            auto user = auth_metadata->m_users.find(auth::username_t("admin"));
-            rassert(
-                user != auth_metadata->m_users.end() ||
-                !static_cast<bool>(user->second.get_ref()));
-            m_admin = user->second.get_ref().get();
+            auto user = auth_metadata->m_users.find(auth::username_t(username));
+            if (user == auth_metadata->m_users.end() ||
+                    static_cast<bool>(user->second.get_ref())) {
+                // FIXME, user not found
+            }
+            m_user = user->second.get_ref().get();
     });
 }
 
-bool plaintext_authenticator_t::is_authentication_required() const {
-    return m_admin.has_password();
-}
-
-bool plaintext_authenticator_t::authenticate(std::string foo_password) const {
-    if (!m_admin.has_password()) {
+bool plaintext_authenticator_t::authenticate(std::string const &password) const {
+    if (!m_user.has_password()) {
         // FIXME
     }
 
     // FIXME, SASLPrep password?
 
-    auth::password_t const &bar_password = m_admin.get_password().get();
     std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
     if (PKCS5_PBKDF2_HMAC(
-            foo_password.data(),
-            foo_password.size(),
-            bar_password.get_salt().data(),
-            bar_password.get_salt().size(),
-            bar_password.get_iteration_count(),
+            password.data(),
+            password.size(),
+            m_user.get_password().get().get_salt().data(),
+            m_user.get_password().get().get_salt().size(),
+            m_user.get_password().get().get_iteration_count(),
             EVP_sha256(),
             hash.size(),
             hash.data()) != 1) {
         // FIXME
     }
 
-    return detail::secure_compare(bar_password.get_hash(), hash);
+    return CRYPTO_memcmp(
+        m_user.get_password().get().get_hash().data(),
+        hash.data(),
+        hash.size()) == 0;
 }
 
 }  // namespace auth

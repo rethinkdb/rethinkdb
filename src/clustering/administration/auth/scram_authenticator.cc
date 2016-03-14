@@ -27,4 +27,20 @@ bool scram_authenticator_t::is_authentication_required() const {
     return m_admin_has_password;
 }
 
+std::string scram_authenticator_t::first_message(std::string const &message) {
+    if (message.empty()) {
+        // FIXME, error
+    }
+
+    return "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096";
+}
+
+/* std::string scram_authenticator_t::second_message(std::string const &message) {
+    if (message.empty()) {
+        // FIXME, error
+    }
+
+    return "v=6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=";
+} */
+
 }  // namespace auth

@@ -18,8 +18,9 @@ pErrorType = p.Response.ErrorType
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from .errors import *
 from .ast import DB, Repl, ReQLDecoder, ReQLEncoder
+from .errors import *
+from .handshake import *
 
 try:
     from ssl import match_hostname, CertificateError
@@ -36,16 +37,6 @@ try:
     dict_items = lambda d: d.iteritems()
 except AttributeError:
     dict_items = lambda d: d.items()
-
-def decodeUTF(inputPipe):
-    # attempt to decode input as utf-8 with fallbacks to get something useful
-    try:
-        return inputPipe.decode('utf-8', errors='ignore')
-    except TypeError:
-        try:
-            return inputPipe.decode('utf-8')
-        except UnicodeError:
-            return repr(inputPipe)
 
 def maybe_profile(value, res):
     if res.profile is not None:
@@ -294,18 +285,28 @@ class SocketWrapper(object):
                     self._socket.close()
                     raise
 
-            self.sendall(parent._parent.handshake)
-
-            # The response from the server is a null-terminated string
-            response = b''
+            parent._parent.handshake.reset()
+            response = None
             while True:
-                char = self.recvall(1, deadline)
-                if char == b'\0':
+                request = parent._parent.handshake.next_message(response)
+                if request is None:
                     break
-                response += char
+                # This may happen in the `V1_0` protocol where we send two requests as
+                # an optimization, then need to read each separately
+                if request is not "":
+                    self.sendall(request)
+
+                response = b""
+                while True:
+                    char = self.recvall(1, deadline)
+                    if char == b'\0':
+                        break
+                    response += char
         except ReqlAuthError:
+            self.close()
             raise
         except ReqlTimeoutError:
+            self.close()
             raise
         except ReqlDriverError as ex:
             self.close()
@@ -320,15 +321,6 @@ class SocketWrapper(object):
             self.close()
             raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
                                   (self.host, self.port, ex))
-
-        if response != b"SUCCESS":
-            self.close()
-            message = decodeUTF(response).strip()
-            if message == "ERROR: Incorrect authorization key.":
-                raise ReqlAuthError(self.host, self.port)
-            else:
-                raise ReqlDriverError("Server dropped connection with message: \"%s\"" %
-                                      (message, ))
 
     def is_open(self):
         return self._socket is not None
@@ -515,11 +507,6 @@ class Connection(object):
 
     def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
-        self.auth_key = auth_key.encode('ascii')
-        self.handshake = \
-            struct.pack("<2L", p.VersionDummy.Version.V0_4, len(self.auth_key)) + \
-            self.auth_key + \
-            struct.pack("<L", p.VersionDummy.Protocol.JSON)
 
         self.host = host
         self.port = port
@@ -536,6 +523,10 @@ class Connection(object):
             self._json_encoder = kwargs.pop('json_encoder')
         if 'json_decoder' in kwargs:
             self._json_decoder = kwargs.pop('json_decoder')
+
+        # self.handshake = HandshakeV0_4(host, port, auth_key)
+        self.handshake = HandshakeV1_0(
+            self._json_decoder(), self._json_encoder(), host, port, "user", "pencil")
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:

@@ -16,6 +16,8 @@ public:
 
     bool is_authentication_required() const;
 
+    std::string first_message(std::string const &message);
+
 private:
     bool m_admin_has_password;
     clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> m_auth_watchable;
