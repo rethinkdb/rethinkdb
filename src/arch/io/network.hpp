@@ -392,13 +392,13 @@ public:
 
     void make_server_connection(
         SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
-    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the server connection on.
     void make_server_connection(
         SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
-    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
 private:
     friend class linux_nonthrowing_tcp_listener_t;

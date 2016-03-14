@@ -850,8 +850,8 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
         int ret = SSL_write(conn.get(), buffer, size);
 
         if (ret > 0) {
-            // Operation successful, returns number of bytes read.
-            rassert(ret <= size);
+            // Operation successful, returns number of bytes written.
+            rassert(static_cast<size_t>(ret) <= size);
             size -= ret;
 
             // Slide down the buffer.
@@ -916,10 +916,12 @@ void linux_secure_tcp_conn_t::shutdown() {
     // we simply shutdown the socket.
     signal_timer_t shutdown_timeout(5000);
 
+    bool skip_shutdown = false; // Set to true if TLS shutdown encounters an error.
+
     // If we have not already received a "close notify" alert from the peer,
     // then we should send one. If we have received one, this loop will respond
     // with our own "close notify" alert.
-    while (true) {
+    while (!(skip_shutdown || shutdown_timeout.is_pulsed())) {
         ERR_clear_error();
 
         int ret = SSL_shutdown(conn.get());
@@ -943,7 +945,7 @@ void linux_secure_tcp_conn_t::shutdown() {
                 wait_any_t waiter(&watch, &shutdown_timeout);
                 waiter.wait_lazily_unordered();
             }
-            break;
+            continue;
         case SSL_ERROR_WANT_WRITE:
             {
                 /* The handshake needs to write data, but the underlying I/O is not ready
@@ -954,15 +956,10 @@ void linux_secure_tcp_conn_t::shutdown() {
                 wait_any_t waiter(&watch, &shutdown_timeout);
                 waiter.wait_lazily_unordered();
             }
-            break;
+            continue;
         default:
             // Unable to perform clean shutdown. Just skip it.
-            break;
-        }
-
-        if (shutdown_timeout.is_pulsed()) {
-            // Unable to perform clean shutdown within time limit. Just skip it.
-            break;
+            skip_shutdown = true;
         }
     }
 
@@ -1017,7 +1014,7 @@ linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
     SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
-) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) {
+) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
     if (tls_ctx == nullptr) {
         tcp_conn->init(new linux_tcp_conn_t(fd_));
     } else {
@@ -1028,7 +1025,7 @@ void linux_tcp_conn_descriptor_t::make_server_connection(
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
     SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
-) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) {
+) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
     if (tls_ctx == nullptr) {
         *tcp_conn_out = new linux_tcp_conn_t(fd_);
     } else {
