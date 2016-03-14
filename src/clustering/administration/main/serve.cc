@@ -592,7 +592,8 @@ bool do_serve(io_backender_t *io_backender,
                                    ->get().config.name.c_str(),
                                uuid_to_str(server_id).c_str());
                     } else {
-                        logNTC("Proxy ready");
+                        logNTC("Proxy ready, %s",
+                               uuid_to_str(server_id).c_str());
                     }
 
                     /* `checker` periodically phones home to RethinkDB HQ to check if
