@@ -11,5 +11,5 @@ import java.lang.annotation.*;
  * To recursively skip null properties of children properties,
  * specify this annotation to the children property's classes.
  */
-public @interface NotSaveNull {
+public @interface IgnoreNullFields {
 }

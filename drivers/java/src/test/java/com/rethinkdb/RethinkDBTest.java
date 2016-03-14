@@ -1,5 +1,6 @@
 package com.rethinkdb;
 
+import com.rethinkdb.annotations.IgnoreNullFields;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
@@ -412,7 +413,7 @@ public class RethinkDBTest{
         assertEquals(pojoOneSelected.getBigIntegerProperty(), pojoOne.getBigIntegerProperty());
     }
 
-    @com.rethinkdb.annotations.NotSaveNull
+    @IgnoreNullFields
     public class TestPojoIgnoreNull {
         private Object notNullProperty = "foo";
         private Object nullProperty = null;

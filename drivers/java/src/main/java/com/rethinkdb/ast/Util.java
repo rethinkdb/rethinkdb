@@ -1,5 +1,6 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.annotations.IgnoreNullFields;
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverCompileError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
@@ -140,7 +141,7 @@ public class Util {
             }
 
             BeanInfo info = Introspector.getBeanInfo(pojoClass);
-            boolean notSaveNull = pojoClass.isAnnotationPresent(com.rethinkdb.annotations.NotSaveNull.class);
+            boolean notSaveNull = pojoClass.isAnnotationPresent(IgnoreNullFields.class);
 
             for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
                 Method reader = descriptor.getReadMethod();
