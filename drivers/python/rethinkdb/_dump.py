@@ -24,6 +24,7 @@ def print_dump_help():
     print("                                   to 3)")
     print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
     print("  --overwrite-file                 don't abort when file given via --file already exists")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("EXAMPLES:")
     print("rethinkdb dump -c mnemosyne:39500")
@@ -45,6 +46,7 @@ def parse_options():
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--overwrite-file", dest="overwrite_file", default=False, action="store_true")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
@@ -92,11 +94,13 @@ def parse_options():
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
     return res
 
 def do_export(temp_dir, options):
-    print("Exporting to directory...")
+    if not options["quiet"]:
+        print("Exporting to directory...")
     export_args = ["rethinkdb-export"]
     export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
@@ -109,14 +113,20 @@ def do_export(temp_dir, options):
     if options["debug"]:
         export_args.extend(["--debug"])
 
-    res = subprocess.call(export_args)
+    if options["quiet"]:
+        with open(os.devnull, 'w') as devnull:
+            res = subprocess.call(export_args, stdout=devnull)
+    else:
+        res = subprocess.call(export_args)
+
     if res != 0:
         raise RuntimeError("Error: rethinkdb-export failed")
 
-    # 'Done' message will be printed by the export script
+    # 'Done' message will be printed by the export script (unless options["quiet"])
 
 def do_zip(temp_dir, options):
-    print("Zipping export directory...")
+    if not options["quiet"]:
+        print("Zipping export directory...")
     start_time = time.time()
     original_dir = os.getcwd()
 
@@ -131,17 +141,19 @@ def do_zip(temp_dir, options):
     finally:
         os.chdir(original_dir)
 
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
 
 def run_rethinkdb_export(options):
     # Create a temporary directory to store the intermediary results
     temp_dir = tempfile.mkdtemp(dir=options["temp_dir"])
     res = -1
 
-    # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-    print("NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save")
-    print(" cluster metadata.  You will need to recreate your cluster setup yourself after ")
-    print(" you run 'rethinkdb-restore'.")
+    if not options["quiet"]:
+        # Print a warning about the capabilities of dump, so no one is confused (hopefully)
+        print("NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save")
+        print(" cluster metadata.  You will need to recreate your cluster setup yourself after ")
+        print(" you run 'rethinkdb-restore'.")
 
     try:
         do_export(temp_dir, options)
