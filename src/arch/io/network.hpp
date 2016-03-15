@@ -321,8 +321,7 @@ private:
 class tls_conn_wrapper_t {
 public:
     explicit tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
-        linux_tcp_conn_t::connect_failed_exc_t,
-    );
+        linux_tcp_conn_t::connect_failed_exc_t);
 
     ~tls_conn_wrapper_t();
 
@@ -362,15 +361,13 @@ private:
     ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     void perform_handshake(signal_t *interruptor) THROWS_ONLY(
-        linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t,
-    );
+        linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple
     wrapper around ::read(). Returns the number of bytes read or throws
     tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
     virtual size_t read_internal(void *buffer, size_t size) THROWS_ONLY(
-        tcp_conn_read_closed_exc_t
-    );
+        tcp_conn_read_closed_exc_t);
 
     /* Used to actually perform a write. If the write end of the connection is open, then
     writes `size` bytes from `buffer` to the socket. */

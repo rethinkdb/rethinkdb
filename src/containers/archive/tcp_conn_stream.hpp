@@ -15,8 +15,7 @@ class tcp_conn_stream_t : public read_stream_t, public write_stream_t {
 public:
     tcp_conn_stream_t(
         SSL_CTX *tls_ctx, const ip_address_t &host, int port,
-        signal_t *interruptor, int local_port = 0
-    );
+        signal_t *interruptor, int local_port = 0);
 
     // Takes ownership.
     explicit tcp_conn_stream_t(tcp_conn_t *conn);
@@ -59,8 +58,7 @@ class keepalive_tcp_conn_stream_t : public tcp_conn_stream_t {
 public:
     keepalive_tcp_conn_stream_t(
         SSL_CTX *tls_ctx, const ip_address_t &host, int port,
-        signal_t *interruptor, int local_port = 0
-    );
+        signal_t *interruptor, int local_port = 0);
 
     // Takes ownership.
     explicit keepalive_tcp_conn_stream_t(tcp_conn_t *conn);

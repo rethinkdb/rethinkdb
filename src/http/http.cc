@@ -364,8 +364,7 @@ http_server_t::http_server_t(
         ));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(
-            strprintf("Could not bind to http port: %s", ex.what())
-        );
+            strprintf("Could not bind to http port: %s", ex.what()));
     }
 }
 

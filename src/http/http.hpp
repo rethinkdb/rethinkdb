@@ -157,8 +157,7 @@ class http_server_t {
 public:
     http_server_t(
         SSL_CTX *tls_ctx, const std::set<ip_address_t> &local_addresses,
-        int port, http_app_t *application
-    );
+        int port, http_app_t *application);
     ~http_server_t();
     int get_port() const;
 private:

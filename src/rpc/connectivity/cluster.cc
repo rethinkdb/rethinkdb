@@ -350,13 +350,11 @@ void connectivity_cluster_t::run_t::connect_to_peer(
         try {
             keepalive_tcp_conn_stream_t conn(
                 tls_ctx, selected_addr->ip(), selected_addr->port().value(),
-                drainer_lock.get_drain_signal(), cluster_client_port
-            );
+                drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
                 handle(
                     &conn, expected_id, boost::optional<peer_address_t>(*address),
-                    drainer_lock, successful_join
-                );
+                    drainer_lock, successful_join);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */

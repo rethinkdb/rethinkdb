@@ -652,9 +652,8 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     event_watcher->stop_watching_for_errors();
 }
 
-tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
-    linux_tcp_conn_t::connect_failed_exc_t
-) {
+tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
     ERR_clear_error();
 
     conn = SSL_new(tls_ctx);
@@ -662,8 +661,7 @@ tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
         unsigned long err_code = ERR_get_error();
 
         throw linux_tcp_conn_t::connect_failed_exc_t(
-            err_code, ERR_error_string(err_code, nullptr)
-        );
+            err_code, ERR_error_string(err_code, nullptr));
     }
 
     // Add support for partial writes.
@@ -675,14 +673,12 @@ tls_conn_wrapper_t::~tls_conn_wrapper_t() {
 }
 
 // Set the underlying IO.
-void tls_conn_wrapper_t::set_fd(fd_t sock) THROWS_ONLY(
-    linux_tcp_conn_t::connect_failed_exc_t
-) {
+void tls_conn_wrapper_t::set_fd(fd_t sock)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
     if (0 == SSL_set_fd(conn, sock)) {
         unsigned long err_code = ERR_get_error();
         throw linux_tcp_conn_t::connect_failed_exc_t(
-            err_code, ERR_error_string(err_code, nullptr)
-        );
+            err_code, ERR_error_string(err_code, nullptr));
     }
 }
 
@@ -691,8 +687,7 @@ will establish a TCP connection to the peer at the given host:port and then we
 wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
     SSL_CTX *tls_ctx, const ip_address_t &host, int port,
-    signal_t *interruptor, int local_port
-) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
     linux_tcp_conn_t(host, port, interruptor, local_port),
     conn(tls_ctx) {
 
@@ -703,8 +698,8 @@ linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
 
 /* This is the server version of the constructor */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
-    SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor
-) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor)
+    THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
     linux_tcp_conn_t(_sock),
     conn(tls_ctx) {
 
@@ -719,9 +714,8 @@ linux_secure_tcp_conn_t::~linux_secure_tcp_conn_t() THROWS_NOTHING {
     if (is_open()) shutdown();
 }
 
-void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor) THROWS_ONLY(
-    linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t
-) {
+void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
     // Perform TLS handshake.
     while (true) {
         ERR_clear_error();
@@ -734,8 +728,7 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor) THROWS_ON
         if (ret == 0) {
             // The handshake failed but the connection shut down cleanly.
             throw linux_tcp_conn_t::connect_failed_exc_t(
-                0, "TLS handshake failed, shutdown cleanly"
-            );
+                0, "TLS handshake failed, shutdown cleanly");
         }
 
         switch (SSL_get_error(conn.get(), ret)) {
@@ -759,8 +752,7 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor) THROWS_ON
             // Some other error with the underlying I/O.
             unsigned long err_code = ERR_get_error();
             throw linux_tcp_conn_t::connect_failed_exc_t(
-                err_code, ERR_error_string(err_code, nullptr)
-            );
+                err_code, ERR_error_string(err_code, nullptr));
         }
 
         if (interruptor->is_pulsed()) {
@@ -772,9 +764,8 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor) THROWS_ON
     }
 }
 
-size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(
-    tcp_conn_read_closed_exc_t
-) {
+size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size)
+    THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!closed.is_pulsed());
 
@@ -799,8 +790,7 @@ size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_
             ready or for someone to send a close signal. */
             {
                 linux_event_watcher_t::watch_t watch(
-                    get_event_watcher(), poll_event_in
-                );
+                    get_event_watcher(), poll_event_in);
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
@@ -811,8 +801,7 @@ size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_
             write, or for someone to send a close signal. */
             {
                 linux_event_watcher_t::watch_t watch(
-                    get_event_watcher(), poll_event_out
-                );
+                    get_event_watcher(), poll_event_out);
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
@@ -856,8 +845,7 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
 
             // Slide down the buffer.
             buffer = reinterpret_cast<const void *>(
-                reinterpret_cast<const char *>(buffer) + ret
-            );
+                reinterpret_cast<const char *>(buffer) + ret);
 
             if (write_perfmon) write_perfmon->record(ret);
 
@@ -887,8 +875,7 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
             to be ready or for someone to send a close signal. */
             {
                 linux_event_watcher_t::watch_t watch(
-                    get_event_watcher(), poll_event_out
-                );
+                    get_event_watcher(), poll_event_out);
                 wait_any_t waiter(&watch, &closed);
                 waiter.wait_lazily_unordered();
             }
@@ -951,8 +938,7 @@ void linux_secure_tcp_conn_t::shutdown() {
                 /* The handshake needs to write data, but the underlying I/O is not ready
                 to write. Wait for it to be ready or for a timeout. */
                 linux_event_watcher_t::watch_t watch(
-                    get_event_watcher(), poll_event_out
-                );
+                    get_event_watcher(), poll_event_out);
                 wait_any_t waiter(&watch, &shutdown_timeout);
                 waiter.wait_lazily_unordered();
             }
@@ -968,8 +954,7 @@ void linux_secure_tcp_conn_t::shutdown() {
     if (res != 0 && get_errno() != ENOTCONN) {
         logERR(
             "Could not shutdown socket for reading and writing: %s",
-            errno_string(get_errno()).c_str()
-        );
+            errno_string(get_errno()).c_str());
     }
 
     on_shutdown();
@@ -1007,8 +992,7 @@ linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
     if (res != 0 && get_errno() != ENOTCONN) {
         logERR(
             "Could not shutdown socket for reading and writing: %s",
-            errno_string(get_errno()).c_str()
-        );
+            errno_string(get_errno()).c_str());
     }
 }
 
