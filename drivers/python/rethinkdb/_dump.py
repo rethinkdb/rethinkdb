@@ -23,6 +23,7 @@ def print_dump_help():
     print("  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults")
     print("                                   to 3)")
     print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
+    print("  --overwrite-file                 don't abort when file given via --file already exists")
     print("")
     print("EXAMPLES:")
     print("rethinkdb dump -c mnemosyne:39500")
@@ -42,6 +43,7 @@ def parse_options():
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
+    parser.add_option("--overwrite-file", dest="overwrite_file", default=False, action="store_true")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
@@ -71,7 +73,7 @@ def parse_options():
     else:
         res["out_file"] = os.path.abspath(options.out_file)
 
-    if os.path.exists(res["out_file"]):
+    if os.path.exists(res["out_file"]) and not options.overwrite_file:
         raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
     # Verify valid client count
