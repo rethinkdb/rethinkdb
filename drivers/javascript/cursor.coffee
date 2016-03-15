@@ -220,6 +220,7 @@ class IterableResult
                 return nextCb() if cb(null, data) isnt false
             .catch (err) ->
                 return if err?.message is 'No more rows in the cursor.'
+                cb(err)
 
         return nextCb().nodeify(onFinished)
     )
