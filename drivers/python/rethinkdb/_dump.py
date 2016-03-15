@@ -17,7 +17,10 @@ def print_dump_help():
     print("                                   to (defaults to localhost:28015)")
     print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
     print("  -f [ --file ] FILE               file to write archive to (defaults to")
-    print("                                   rethinkdb_dump_DATE_TIME.tar.gz)")
+    print("                                   rethinkdb_dump_DATE_TIME.tar.gz);")
+    print("                                   if FILE is -, use standard output (note that")
+    print("                                   intermediate files will still be written to")
+    print("                                   the --temp-dir directory)")
     print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
     print("                                   be specified multiple times)")
     print("  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults")
@@ -70,13 +73,17 @@ def parse_options():
     else:
         res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
 
-    if options.out_file is None:
-        res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
+    if options.out_file == "-":
+        res["out_file"] = sys.stdout
     else:
-        res["out_file"] = os.path.abspath(options.out_file)
+        # The output file is a real file in the file system
+        if options.out_file is None:
+            res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
+        else:
+            res["out_file"] = os.path.abspath(options.out_file)
 
-    if os.path.exists(res["out_file"]) and not options.overwrite_file:
-        raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
+        if os.path.exists(res["out_file"]) and not options.overwrite_file:
+            raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
     # Verify valid client count
     if options.clients < 1:
@@ -94,7 +101,7 @@ def parse_options():
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
-    res["quiet"] = options.quiet
+    res["quiet"] = True if res["out_file"] is sys.stdout else options.quiet
     res["debug"] = options.debug
     return res
 
@@ -130,9 +137,15 @@ def do_zip(temp_dir, options):
     start_time = time.time()
     original_dir = os.getcwd()
 
+    # Below,` tarfile.open()` forces us to set either `name` or `fileobj`,
+    # depending on whether the output is a real file or an open file object.
+    is_fileobj = type(options["out_file"]) is file
+    name = None if is_fileobj else options["out_file"]
+    fileobj = options["out_file"] if is_fileobj else None
+
     try:
         os.chdir(temp_dir)
-        with tarfile.open(options["out_file"], "w:gz") as f:
+        with tarfile.open(name=name, fileobj=fileobj, mode="w:gz") as f:
             for curr, subdirs, files in os.walk(options["temp_filename"]):
                 for data_file in files:
                     path = os.path.join(curr, data_file)
