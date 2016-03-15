@@ -61,7 +61,11 @@ def parse_options():
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid output file
-    res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+    if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S")
+    else:
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+
     if options.out_file is None:
         res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
     else:
