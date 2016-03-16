@@ -59,6 +59,7 @@ def print_import_help():
     print("  --force                          import data even if a table already exists, and")
     print("                                   overwrite duplicate primary keys")
     print("  --fields                         limit which fields to use when importing one table")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("Import directory:")
     print("  -d [ --directory ] DIR           the directory to import data from")
@@ -115,6 +116,7 @@ def parse_options():
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
     parser.add_option("--max-nesting-depth", dest="max_nesting_depth", default=0, type="int")
@@ -159,6 +161,7 @@ def parse_options():
     res["clients"] = options.clients
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
 
@@ -510,7 +513,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 
         # Field names may override fields from the header
         if options["custom_header"] is not None:
-            if not options["no_header"]:
+            if not options["no_header"] and not options["quiet"]:
                 print("Ignoring header row: %s" % str(fields_in))
             fields_in = options["custom_header"]
         elif options["no_header"]:
@@ -611,7 +614,7 @@ def print_progress(ratio):
     print("\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)), end=' ')
     sys.stdout.flush()
 
-def update_progress(progress_info):
+def update_progress(progress_info, options):
     lowest_completion = 1.0
     for current, max_count in progress_info:
         curr_val = current.value
@@ -623,7 +626,8 @@ def update_progress(progress_info):
         else:
             lowest_completion = min(lowest_completion, float(curr_val) / max_val)
 
-    print_progress(lowest_completion)
+    if not options["quiet"]:
+        print_progress(lowest_completion)
 
 def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
@@ -677,7 +681,7 @@ def spawn_import_clients(options, files_info):
                 errors.append(error_queue.get())
 
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
-            update_progress(progress_info)
+            update_progress(progress_info, options)
 
         # Wait for all clients to finish
         alive_clients = sum([client.is_alive() for client in client_procs])
@@ -689,16 +693,17 @@ def spawn_import_clients(options, files_info):
             client_procs = [client for client in client_procs if client.is_alive()]
 
         # If we were successful, make sure 100% progress is reported
-        if len(errors) == 0 and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set() and not options["quiet"]:
             print_progress(1.0)
 
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
-        # Continue past the progress output line
-        print("")
-        print("%s imported in %s" % (plural(rows_written.value, "row"),
-                                     plural(len(files_info), "table")))
+        if not options["quiet"]:
+            # Continue past the progress output line
+            print("")
+            print("%s imported in %s" % (plural(rows_written.value, "row"),
+                                         plural(len(files_info), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -858,7 +863,8 @@ def table_check(progress, conn, db, table, create_args, force):
         if 'primary_key' in create_args:
             pkey = create_args["primary_key"]
         else:
-            print("no primary key specified, using default primary key when creating table")
+            if not options["quiet"]:
+                print("no primary key specified, using default primary key when creating table")
         r.db(db).table_create(table, **create_args).run(conn)
 
     return pkey
@@ -905,7 +911,8 @@ def main():
         if str(ex) == "Warnings occurred during import":
             return 2
         return 1
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

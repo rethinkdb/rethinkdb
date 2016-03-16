@@ -216,12 +216,10 @@ def do_import(temp_dir, options):
         import_args.extend(["--debug"])
     if not options["create_sindexes"]:
         import_args.extend(["--no-secondary-indexes"])
-
     if options["quiet"]:
-        with open(os.devnull, 'w') as devnull:
-            res = subprocess.call(import_args, stdout=devnull)
-    else:
-        res = subprocess.call(import_args)
+        import_args.extend(["--quiet"])
+
+    res = subprocess.call(import_args)
 
     if res == 2:
         raise RuntimeError("Warning: rethinkdb-import did not create some secondary indexes.")
