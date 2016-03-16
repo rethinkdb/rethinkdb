@@ -50,6 +50,7 @@ def print_export_help():
     print("                                   be specified multiple times)")
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
     print("                                   to 3)")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("Export in CSV format:")
     print("  --delimiter CHARACTER            character to be used as field delimiter, or '\\t' for tab")
@@ -82,6 +83,7 @@ def parse_options():
     parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -152,6 +154,7 @@ def parse_options():
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
     return res
 
@@ -369,7 +372,7 @@ def abort_export(signum, frame, exit_event, interrupt_event):
 #  This is because table exports can be staggered when there are not enough clients
 #  to export all of them at once.  As a result, the progress bar will not necessarily
 #  move at the same rate for different tables.
-def update_progress(progress_info):
+def update_progress(progress_info, options):
     rows_done = 0
     total_rows = 1
     for current, max_count in progress_info:
@@ -383,7 +386,8 @@ def update_progress(progress_info):
             rows_done += curr_val
             total_rows += max_val
 
-    print_progress(float(rows_done) / total_rows)
+    if not options["quiet"]:
+        print_progress(float(rows_done) / total_rows)
 
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
@@ -434,22 +438,23 @@ def run_clients(options, db_table_set):
                                                          args=arg_lists.pop(0)))
                 processes[-1].start()
 
-            update_progress(progress_info)
+            update_progress(progress_info, options)
 
         # If we were successful, make sure 100% progress is reported
         # (rows could have been deleted which would result in being done at less than 100%)
-        if len(errors) == 0 and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set() and not options["quiet"]:
             print_progress(1.0)
 
         # Continue past the progress output line and print total rows processed
         def plural(num, text, plural_text):
             return "%d %s" % (num, text if num == 1 else plural_text)
 
-        print("")
-        print("%s exported from %s, with %s" %
-              (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
-               plural(len(db_table_set), "table", "tables"),
-               plural(sindex_counter.value, "secondary index", "secondary indexes")))
+        if not options["quiet"]:
+            print("")
+            print("%s exported from %s, with %s" %
+                  (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
+                   plural(len(db_table_set), "table", "tables"),
+                   plural(sindex_counter.value, "secondary index", "secondary indexes")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -490,7 +495,8 @@ def main():
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
         return 1
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

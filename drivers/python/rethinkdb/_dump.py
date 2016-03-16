@@ -121,10 +121,9 @@ def do_export(temp_dir, options):
         export_args.extend(["--debug"])
 
     if options["quiet"]:
-        with open(os.devnull, 'w') as devnull:
-            res = subprocess.call(export_args, stdout=devnull)
-    else:
-        res = subprocess.call(export_args)
+        export_args.extend(["--quiet"])
+
+    res = subprocess.call(export_args)
 
     if res != 0:
         raise RuntimeError("Error: rethinkdb-export failed")
