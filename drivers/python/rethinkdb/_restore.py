@@ -29,6 +29,7 @@ def print_restore_help():
     print("                                   consumption on the server)")
     print("  --force                          import data even if a table already exists")
     print("  --no-secondary-indexes           do not create secondary indexes for the restored tables")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("EXAMPLES:")
     print("")
@@ -61,6 +62,7 @@ def parse_options():
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
@@ -110,11 +112,13 @@ def parse_options():
     res["hard"] = options.hard
     res["force"] = options.force
     res["create_sindexes"] = options.create_sindexes
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
     return res
 
 def do_unzip(temp_dir, options):
-    print("Unzipping archive file...")
+    if not options["quiet"]:
+        print("Unzipping archive file...")
     start_time = time.time()
     original_dir = os.getcwd()
     sub_path = None
@@ -182,11 +186,13 @@ def do_unzip(temp_dir, options):
         if tar_temp_file_path is not None:
             os.remove(tar_temp_file_path)
 
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return os.path.join(temp_dir, sub_path)
 
 def do_import(temp_dir, options):
-    print("Importing from directory...")
+    if not options["quiet"]:
+        print("Importing from directory...")
 
     import_args = ["rethinkdb-import"]
     import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
@@ -211,7 +217,12 @@ def do_import(temp_dir, options):
     if not options["create_sindexes"]:
         import_args.extend(["--no-secondary-indexes"])
 
-    res = subprocess.call(import_args)
+    if options["quiet"]:
+        with open(os.devnull, 'w') as devnull:
+            res = subprocess.call(import_args, stdout=devnull)
+    else:
+        res = subprocess.call(import_args)
+
     if res == 2:
         raise RuntimeError("Warning: rethinkdb-import did not create some secondary indexes.")
     elif res != 0:
