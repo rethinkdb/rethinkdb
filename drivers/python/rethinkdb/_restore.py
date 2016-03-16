@@ -12,7 +12,10 @@ def print_restore_help():
     print(info)
     print(usage)
     print("")
-    print("  FILE                             the archive file to restore data from")
+    print("  FILE                             the archive file to restore data from;")
+    print("                                   if FILE is -, use standard input (note that")
+    print("                                   intermediate files will still be written to")
+    print("                                   the --temp-dir directory)")
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
@@ -77,11 +80,16 @@ def parse_options():
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
-    # Verify valid input file
-    res["in_file"] = os.path.abspath(args[0])
+    in_file_argument = args[0]
 
-    if not os.path.exists(res["in_file"]):
-        raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
+    if in_file_argument == "-":
+        res["in_file"] = sys.stdin
+    else:
+        # Verify valid input file
+        res["in_file"] = os.path.abspath(in_file_argument)
+
+        if not os.path.exists(res["in_file"]):
+            raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
     res["tables"] = parse_db_table_options(options.tables)
@@ -127,30 +135,52 @@ def do_unzip(temp_dir, options):
         path, base = os.path.split(path)
         return (base, db, os.path.splitext(table_file)[0])
 
-    with tarfile.open(options["in_file"], "r:gz") as f:
-        os.chdir(temp_dir)
-        try:
-            for member in f:
-                (base, db, table) = parse_path(member)
+    is_fileobj = type(options["in_file"]) is file
 
-                if len(base) > 0:
-                    if sub_path is None:
-                        sub_path = base
-                    elif sub_path != base:
-                        raise RuntimeError("Error: Archive file has an unexpected directory structure")
+    # If the in_file is a fileobj (e.g. stdin), stream it to a seekable file
+    # first so that the code below can seek in it.
+    tar_temp_file_path = None
+    if is_fileobj:
+        fileobj = options["in_file"]
+        fd, tar_temp_file_path = tempfile.mkstemp(suffix=".tar.gz", dir=options["temp_dir"])
+        # Constant memory streaming, buf == "" on EOF
+        with os.fdopen(fd, "w", 65536) as f:
+            buf = None
+            while buf != "":
+                buf = fileobj.read(65536)
+                f.write(buf)
+        name = tar_temp_file_path
+    else:
+        name = options["in_file"]
 
-                    if len(tables_to_export) == 0 or \
-                       (db, table) in tables_to_export or \
-                       (db, None) in tables_to_export:
-                        members.append(member)
+    try:
+        with tarfile.open(name, "r:gz") as f:
+            os.chdir(temp_dir)
+            try:
+                for member in f:
+                    (base, db, table) = parse_path(member)
 
-            if sub_path is None:
-                raise RuntimeError("Error: Archive file has an unexpected directory structure")
+                    if len(base) > 0:
+                        if sub_path is None:
+                            sub_path = base
+                        elif sub_path != base:
+                            raise RuntimeError("Error: Archive file has an unexpected directory structure")
 
-            f.extractall(members=members)
+                        if len(tables_to_export) == 0 or \
+                           (db, table) in tables_to_export or \
+                           (db, None) in tables_to_export:
+                            members.append(member)
 
-        finally:
-            os.chdir(original_dir)
+                if sub_path is None:
+                    raise RuntimeError("Error: Archive file has an unexpected directory structure")
+
+                f.extractall(members=members)
+
+            finally:
+                os.chdir(original_dir)
+    finally:
+        if tar_temp_file_path is not None:
+            os.remove(tar_temp_file_path)
 
     print("  Done (%d seconds)" % (time.time() - start_time))
     return os.path.join(temp_dir, sub_path)
