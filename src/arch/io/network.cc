@@ -981,30 +981,20 @@ linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
 }
 
 linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
-    if (fd_ == -1) {
-        return; // Ownership of the connection was passed to someone else.
-    }
-    
-    /* If the underlying file descriptor is still valid then there must have been an
-    exception when passing the socket to a server handler via make_server_connection. It
-    is then the responsibility of this object close the TCP socket. */
-    int res = ::shutdown(fd_, SHUT_RDWR);
-    if (res != 0 && get_errno() != ENOTCONN) {
-        logERR(
-            "Could not shutdown socket for reading and writing: %s",
-            errno_string(get_errno()).c_str());
-    }
+    rassert(fd == -1);
 }
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
     SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
 ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
-    if (tls_ctx == nullptr) {
-        tcp_conn->init(new linux_tcp_conn_t(fd_));
-    } else {
-        tcp_conn->init(new linux_secure_tcp_conn_t(tls_ctx, fd_, closer));
-    }
+    fd_t sock = fd_;
     fd_ = -1;
+
+    if (tls_ctx == nullptr) {
+        tcp_conn->init(new linux_tcp_conn_t(sock));
+    } else {
+        tcp_conn->init(new linux_secure_tcp_conn_t(tls_ctx, sock, closer));
+    }
 }
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
