@@ -237,7 +237,7 @@ public class Util {
                     try {
                         return dtf.parse(value.toString());
                     } catch (java.text.ParseException e2) {
-                        throw new IllegalArgumentException(e);
+                        throw new IllegalArgumentException(e2);
                     }
                 }
             }
