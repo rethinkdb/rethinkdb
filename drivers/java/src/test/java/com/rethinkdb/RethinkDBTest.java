@@ -12,9 +12,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -414,7 +412,7 @@ public class RethinkDBTest{
     }
 
     @IgnoreNullFields
-    public class TestPojoIgnoreNull {
+    public static class TestPojoIgnoreNull {
         private Object notNullProperty = "foo";
         private Object nullProperty = null;
 
@@ -486,6 +484,85 @@ public class RethinkDBTest{
 
         assertTrue(!pojoOneInnerSelected.containsKey("nullProperty"));
         assertEquals(pojoOneInnerSelected.get("notNullProperty"), pojoOneInner.getNotNullProperty());
+    }
+
+    @Test
+    public void testTableSelect_convertStringToDate() {
+        Locale.setDefault(Locale.JAPAN);
+        _convertStringToDate("2016-03-16", new String[]{
+                "Wed Mar 16 00:00:00 JST 2016"
+                ,"2016-03-16T00:00+09:00"
+                ,"2016-03-16T00:00"
+                ,"2016-03-16"
+                ,"2016-03-16T00:00+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("2016-03-16T22:43:05", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05+09:00"
+                ,"2016-03-16T22:43:05"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("2016-03-16T22:43:05.002", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05.002+09:00"
+                ,"2016-03-16T22:43:05.002"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05.002+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("2016-03-16T22:43:05+09:00", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05+09:00"
+                ,"2016-03-16T22:43:05"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("2016-03-16T22:43:05.002+09:00", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05.002+09:00"
+                ,"2016-03-16T22:43:05.002"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05.002+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("2016-03-16T22:43:05.002+09:00[Asia/Tokyo]", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05.002+09:00"
+                ,"2016-03-16T22:43:05.002"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05.002+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate(1458135785002L, new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05.002+09:00"
+                ,"2016-03-16T22:43:05.002"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05.002+09:00[Asia/Tokyo]"
+        });
+        _convertStringToDate("Wed Mar 16 22:43:05 JST 2016", new String[]{
+                "Wed Mar 16 22:43:05 JST 2016"
+                ,"2016-03-16T22:43:05+09:00"
+                ,"2016-03-16T22:43:05"
+                ,"2016-03-16"
+                ,"2016-03-16T22:43:05+09:00[Asia/Tokyo]"
+        });
+    }
+
+    void _convertStringToDate(Object value, String[] expects) {
+        r.db(dbName).table(tableName).delete().run(conn);
+        r.db(dbName).table(tableName).insert(r.hashMap()
+                .with("dateProperty", value)
+                .with("offsetDateTimeProperty", value)
+                .with("localDateTimeProperty", value)
+                .with("localDateProperty", value)
+                .with("zonedDateTimeProperty", value)
+        ).run(conn);
+        TestPojo pojoSelected = ((Cursor<TestPojo>)r.db(dbName).table(tableName).run(conn, TestPojo.class)).next();
+
+        assertEquals(expects[0], pojoSelected.getDateProperty().toString());
+        assertEquals(expects[1], pojoSelected.getOffsetDateTimeProperty().toString());
+        assertEquals(expects[2], pojoSelected.getLocalDateTimeProperty().toString());
+        assertEquals(expects[3], pojoSelected.getLocalDateProperty().toString());
+        assertEquals(expects[4], pojoSelected.getZonedDateTimeProperty().toString());
     }
 
     @Test(expected = ClassCastException.class)
