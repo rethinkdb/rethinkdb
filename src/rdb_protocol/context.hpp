@@ -127,10 +127,25 @@ enum class admin_identifier_format_t {
     uuid = 1
 };
 
+namespace ql {
+    class reader_t;
+}
+
 class base_table_t : public slow_atomic_countable_t<base_table_t> {
 public:
     virtual ql::datum_t get_id() const = 0;
     virtual const std::string &get_pkey() const = 0;
+
+    virtual scoped_ptr_t<ql::reader_t> read_all_with_sindexes(
+        ql::env_t *,
+        const std::string &,
+        ql::backtrace_id_t,
+        const std::string &,
+        const ql::datumspec_t &,
+        sorting_t,
+        read_mode_t) {
+        r_sanity_fail();
+    }
 
     virtual ql::datum_t read_row(ql::env_t *env,
         ql::datum_t pval, read_mode_t read_mode) = 0;

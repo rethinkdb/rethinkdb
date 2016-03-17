@@ -262,15 +262,22 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        boost::optional<region_t> _region,
-                       ql::datumspec_t _datumspec)
-        : id(_id), region(std::move(_region)), datumspec(std::move(_datumspec)) { }
+                       ql::datumspec_t _datumspec,
+                       require_sindexes_t _require_sindex_val = require_sindexes_t::NO)
+        : id(_id),
+          region(std::move(_region)),
+          datumspec(std::move(_datumspec)),
+          require_sindex_val(_require_sindex_val){ }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
     // For dealing with truncation and `get_all`.
     ql::datumspec_t datumspec;
+    // For forcing sindex values to be returned with sorting::UNORDERED, used in eq_join.
+    require_sindexes_t require_sindex_val;
 };
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 struct changefeed_stamp_t {

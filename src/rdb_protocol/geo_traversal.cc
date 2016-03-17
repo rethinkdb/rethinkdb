@@ -61,7 +61,8 @@ geo_job_data_t::geo_job_data_t(
                   : ql::make_append(std::move(region),
                                     std::move(last_key),
                                     sorting_t::UNORDERED,
-                                    batcher.get())) {
+                                    batcher.get(),
+                                    require_sindexes_t::NO)) {
     for (size_t i = 0; i < _transforms.size(); ++i) {
         transformers.push_back(ql::make_op(_transforms[i]));
     }

@@ -56,6 +56,12 @@ public:
             const std::string &new_sindex_id,
             const configured_limits_t &limits);
 
+    scoped_ptr_t<reader_t> get_all_with_sindexes(
+        env_t *env,
+        const datumspec_t &datumspec,
+        const std::string &get_all_sindex_id,
+        backtrace_id_t bt);
+
     datum_t make_error_datum(const base_exc_t &exception);
 
     datum_t batched_replace(

@@ -159,6 +159,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
         boost::optional<ql::terminal_variant_t>(),
         key_range_t::universe(),
         sorting_t::ASCENDING,
+        require_sindexes_t::NO,
         sindex_info,
         &res,
         release_superblock_t::RELEASE);

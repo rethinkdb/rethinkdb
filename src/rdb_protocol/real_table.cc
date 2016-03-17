@@ -5,6 +5,7 @@
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/context.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
@@ -81,6 +82,39 @@ ql::datum_t real_table_t::read_row(
     point_read_response_t *p_res = boost::get<point_read_response_t>(&res.response);
     r_sanity_check(p_res);
     return p_res->data;
+}
+
+scoped_ptr_t<ql::reader_t> real_table_t::read_all_with_sindexes(
+        ql::env_t *env,
+        const std::string &sindex,
+        ql::backtrace_id_t,
+        const std::string &table_name,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        read_mode_t read_mode) {
+    // This alternative behavior exists to make eqJoin work.
+    if (datumspec.is_empty()) {
+        return make_scoped<ql::empty_reader_t>(
+            counted_t<real_table_t>(this),
+            table_name);
+    }
+    if (sindex == get_pkey()) {
+        return make_scoped<ql::rget_reader_t>(
+            counted_t<real_table_t>(this),
+            ql::primary_readgen_t::make(
+                env, table_name, read_mode, datumspec, sorting));
+    } else {
+        return make_scoped<ql::rget_reader_t>(
+	        counted_t<real_table_t>(this),
+                ql::sindex_readgen_t::make(
+                    env,
+                    table_name,
+                    read_mode,
+                    sindex,
+                    datumspec,
+                    sorting,
+                    require_sindexes_t::YES));
+    }
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_all(

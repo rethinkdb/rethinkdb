@@ -36,7 +36,6 @@ public:
     protected:
         virtual ~ref_tracker_t() { }
     };
-
     namespace_interface_access_t();
     namespace_interface_access_t(namespace_interface_t *, ref_tracker_t *, threadnum_t);
     namespace_interface_access_t(const namespace_interface_access_t &access);
@@ -50,6 +49,10 @@ private:
     ref_tracker_t *ref_tracker;
     threadnum_t thread;
 };
+
+namespace ql {
+class reader_t;
+}
 
 class real_table_t final : public base_table_t {
 public:
@@ -108,6 +111,15 @@ public:
         durability_requirement_t durability);
     bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability);
+
+    scoped_ptr_t<ql::reader_t> read_all_with_sindexes(
+        ql::env_t *env,
+        const std::string &sindex,
+        ql::backtrace_id_t bt,
+        const std::string &table_name,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        read_mode_t read_mode) final;
 
     /* These are not part of the `base_table_t` interface. They wrap the `read()`,
     and `write()` methods of the underlying `namespace_interface_t` to add profiling

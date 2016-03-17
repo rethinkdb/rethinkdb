@@ -586,7 +586,8 @@ public:
                const boost::optional<terminal_variant_t> &_terminal,
                region_t region,
                store_key_t last_key,
-               sorting_t _sorting)
+               sorting_t _sorting,
+               require_sindexes_t require_sindex_val)
         : env(_env),
           batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
           sorting(_sorting),
@@ -595,7 +596,8 @@ public:
                       : ql::make_append(std::move(region),
                                         std::move(last_key),
                                         sorting,
-                                        batcher.get())) {
+                                        batcher.get(),
+                                        require_sindex_val)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
             transformers.push_back(ql::make_op(_transforms[i]));
         }
@@ -983,7 +985,8 @@ void rdb_rget_slice(
                    !reversed(sorting)
                        ? range.left
                        : range.right.key_or_max(),
-                   sorting),
+                   sorting,
+                   require_sindexes_t::NO),
         boost::none);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
@@ -1037,6 +1040,7 @@ void rdb_rget_secondary_slice(
         const boost::optional<terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         sorting_t sorting,
+        require_sindexes_t require_sindex_val,
         const sindex_disk_info_t &sindex_info,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
@@ -1061,7 +1065,8 @@ void rdb_rget_secondary_slice(
                    !reversed(sorting)
                        ? sindex_region_range.left
                        : sindex_region_range.right.key_or_max(),
-                   sorting),
+                   sorting,
+                   require_sindex_val),
         rget_sindex_data_t(
             pk_range,
             datumspec,
