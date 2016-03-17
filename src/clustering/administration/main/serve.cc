@@ -54,13 +54,14 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     return peers;
 }
 
-std::string service_address_ports_t::get_addresses_string() const {
-    std::set<ip_address_t> actual_addresses = local_addresses;
+std::string service_address_ports_t::get_addresses_string(
+    std::set<ip_address_t> actual_addresses) const {
+
     bool first = true;
     std::string result;
 
     // Get the actual list for printing if we're listening on all addresses.
-    if (is_bind_all()) {
+    if (is_bind_all(actual_addresses)) {
         actual_addresses = get_local_ips(std::set<ip_address_t>(),
                                          local_ip_filter_t::ALL);
     }
@@ -73,9 +74,10 @@ std::string service_address_ports_t::get_addresses_string() const {
     return result;
 }
 
-bool service_address_ports_t::is_bind_all() const {
+bool service_address_ports_t::is_bind_all(
+    std::set<ip_address_t> addresses) const {
     // If the set is empty, it means we're listening on all addresses.
-    return local_addresses.empty();
+    return addresses.empty();
 }
 
 #ifdef _WIN32
@@ -214,7 +216,7 @@ bool do_serve(io_backender_t *io_backender,
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
                 server_id,
-                serve_info.ports.local_addresses,
+                serve_info.ports.local_addresses_cluster,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
@@ -500,7 +502,7 @@ bool do_serve(io_backender_t *io_backender,
                 /* The `rdb_query_server_t` listens for client requests and processes the
                 queries it receives. */
                 rdb_query_server_t rdb_query_server(
-                    serve_info.ports.local_addresses,
+                    serve_info.ports.local_addresses_driver,
                     serve_info.ports.reql_port,
                     &rdb_ctx,
                     &server_config_client,
@@ -553,7 +555,7 @@ bool do_serve(io_backender_t *io_backender,
                         guarantee(serve_info.ports.http_port < 65536);
                         admin_server_ptr.init(
                             new administrative_http_server_manager_t(
-                                serve_info.ports.local_addresses,
+                                serve_info.ports.local_addresses_http,
                                 serve_info.ports.http_port,
                                 rdb_query_server.get_http_app(),
                                 serve_info.web_assets));
@@ -569,12 +571,28 @@ bool do_serve(io_backender_t *io_backender,
                             });
                     }
 
-                    const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logNTC("Listening on address%s: %s\n",
-                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                    std::string addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_cluster);
+                    logNTC("Listening on cluster address%s: %s\n",
+                           serve_info.ports.local_addresses_cluster.size() == 1 ? "" : "es",
                            addresses_string.c_str());
 
-                    if (!serve_info.ports.is_bind_all()) {
+                    addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_driver);
+                    logNTC("Listening on driver address%s: %s\n",
+                           serve_info.ports.local_addresses_driver.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
+
+                    addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_http);
+                    logNTC("Listening on http address%s: %s\n",
+                           serve_info.ports.local_addresses_http.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
+
+                    if (!serve_info.ports.is_bind_all(serve_info.ports.local_addresses)) {
                         if(serve_info.config_file) {
                             logNTC("To fully expose RethinkDB on the network, bind to "
                                    "all addresses by adding `bind=all' to the config "
