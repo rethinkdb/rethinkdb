@@ -58,8 +58,8 @@ std::vector<scoped_ptr_t<issue_t> > non_transitive_issue_tracker_t::get_issues(
 
     non_transitive_issue_t issue("Server connectivity is non-transitive.");
     // Check if all the servers can see each other
-    for (auto server_pair : server_connectivity.all_servers) {
-        if (server_pair.second != total_servers << 1) {
+    for (const auto &server_pair : server_connectivity.all_servers) {
+        if (server_pair.second != total_servers * 2) {
             is_transitive = false;
             issue.add_server(server_pair.first);
         }
