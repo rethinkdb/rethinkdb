@@ -66,8 +66,8 @@ bool server_status_artificial_table_backend_t::format_row(
 
     ASSERT_NO_CORO_WAITING;
     server_config_client->assert_thread();
-    const server_connectivity_t& connect = server_config_client
-                    ->get_server_connectivity();
+    const server_connectivity_t& connect =
+        server_config_client->get_server_connectivity();
     ql::datum_object_builder_t net_builder;
     ql::datum_object_builder_t server_connect_builder;
 
@@ -84,8 +84,9 @@ bool server_status_artificial_table_backend_t::format_row(
         }
         if (server_id != pair.first) {
             bool is_connected = false;
-            if (connect.connected_to.at(server_id).find(pair.first)
-                != connect.connected_to.at(server_id).end()) {
+            const auto server_it = connect.connected_to.find(server_id);
+            if (server_it != connect.connected_to.end() &&
+                  server_it->second.count(pair.first) > 0) {
                 is_connected = true;
             }
             guarantee(
