@@ -576,6 +576,11 @@ module RethinkDB
       @mon.synchronize {
         written = 0
         while written < packet.length
+
+          # need to make sure the socket is ready for reading/writing
+          vals = IO.select([@socket], [@socket], [@socket], @timeout)
+          raise Timeout::Error, "Sending failed" if vals.nil?
+         
           # Supposedly slice will not copy the array if it goes all the way to the end
           # We use IO::syswrite here rather than IO::write because of incompatibilities in
           # JRuby regarding filling up the TCP send buffer.
@@ -677,38 +682,33 @@ module RethinkDB
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
         @socket.sync_close = true
-        socket_connect
         verify_cert!(@socket, context)
       else
         @socket = base_socket
-        socket_connect
       end
     end
 
     def base_socket
-      @socket.close if @socket
       socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+      sockaddr = Socket.sockaddr_in(@port, @host)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
-      socket
-    end
 
-    def socket_connect 
-      address = Socket.getaddrinfo(@host, nil, Socket::AF_INET).first[3]
-      sockaddr = Socket.pack_sockaddr_in(@port, address)
+      # Setup connection, with a timeout.
       begin
-        @socket.connect_nonblock(sockaddr)
-      rescue Errno::EINPROGRESS
-        IO.select([@socket], [@socket], [@socket], @timeout)
+        socket.connect_nonblock(sockaddr) # setup initial connection
+      rescue IO::WaitWritable
+        vals = IO.select([socket], [socket], [socket], @timeout)
+        if vals.nil? # if we got a r or w  socket, we're all good.
+          raise Timeout::Error, "Connection timed out connecting to #{@host}/#{@port}"
+        end
         begin
-          @socket.connect_nonblock(sockaddr)
+          socket.connect_nonblock(sockaddr) # check connection failure
         rescue Errno::EISCONN
-          return
-        rescue Errno::EALREADY
-          @socket.close
-          raise ReqlRuntimeError, "Connection timed out"
         end
       end
+
+      socket
     end
 
     def create_context(options)
