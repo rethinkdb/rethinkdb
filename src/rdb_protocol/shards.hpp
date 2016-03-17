@@ -25,6 +25,13 @@
 
 enum class is_primary_t { NO, YES };
 
+enum class require_sindexes_t { NO, YES};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(require_sindexes_t,
+                                      int8_t,
+                                      require_sindexes_t::NO,
+                                      require_sindexes_t::YES);
+
 namespace ql {
 
 template<class T>
@@ -42,7 +49,7 @@ T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
 typedef std::vector<ql::datum_t> datums_t;
 typedef std::map<ql::datum_t, datums_t, optional_datum_less_t> groups_t;
 
-struct rget_item_t {
+    struct rget_item_t {
     rget_item_t() = default;
     rget_item_t(store_key_t _key,
                 ql::datum_t _sindex_key,
@@ -417,7 +424,8 @@ public:
 scoped_ptr_t<accumulator_t> make_append(region_t region,
                                         store_key_t last_key,
                                         sorting_t sorting,
-                                        batcher_t *batcher);
+                                        batcher_t *batcher,
+                                        require_sindexes_t require_sindex_val);
 scoped_ptr_t<accumulator_t> make_unsharding_append();
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 scoped_ptr_t<eager_acc_t> make_to_array();

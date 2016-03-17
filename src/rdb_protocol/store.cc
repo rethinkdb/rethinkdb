@@ -251,6 +251,7 @@ void do_read(ql::env_t *env,
                 rget.terminal,
                 rget.region.inner,
                 rget.sorting,
+                rget.sindex->require_sindex_val,
                 sindex_info,
                 res,
                 release_superblock_t::RELEASE);

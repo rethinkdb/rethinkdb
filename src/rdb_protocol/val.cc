@@ -404,6 +404,21 @@ datum_t table_t::get_row(env_t *env, datum_t pval) {
     return tbl->read_row(env, pval, read_mode);
 }
 
+scoped_ptr_t<reader_t> table_t::get_all_with_sindexes(
+        env_t *env,
+        const datumspec_t &datumspec,
+        const std::string &get_all_sindex_id,
+        backtrace_id_t bt) {
+    return tbl->read_all_with_sindexes(
+        env,
+        get_all_sindex_id,
+        bt,
+        display_name(),
+        datumspec,
+        sorting_t::UNORDERED,
+        read_mode);
+}
+
 counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
         const datumspec_t &datumspec,
