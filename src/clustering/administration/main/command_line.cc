@@ -525,9 +525,16 @@ private:
     std::string info;
 };
 
-std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options,
-                                           local_ip_filter_t filter_type) {
+std::set<ip_address_t> get_local_addresses(
+    const std::vector<std::string> &specific_options,
+    const std::vector<std::string> &default_options,
+    local_ip_filter_t filter_type) {
     std::set<ip_address_t> set_filter;
+
+    const std::vector<std::string> &bind_options =
+        specific_options.size() > 0 ?
+        specific_options :
+        default_options;
 
     // Scan through specified bind options
     for (size_t i = 0; i < bind_options.size(); ++i) {
@@ -634,11 +641,25 @@ peer_address_t get_canonical_addresses(const std::map<std::string, options::valu
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
     const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
+
+    local_ip_filter_t filter =
+        exists_option(opts, "--no-default-bind") ?
+            local_ip_filter_t::MATCH_FILTER :
+            local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK;
+
+    const std::vector<std::string> &default_options =
+        all_options(opts, "--bind");
     return service_address_ports_t(
-        get_local_addresses(all_options(opts, "--bind"),
-                            exists_option(opts, "--no-default-bind") ?
-                                local_ip_filter_t::MATCH_FILTER :
-                                local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK),
+        get_local_addresses(default_options, default_options, filter),
+        get_local_addresses(all_options(opts, "--bind-cluster"),
+                            default_options,
+                            filter),
+        get_local_addresses(all_options(opts, "--bind-driver"),
+                            default_options,
+                            filter),
+        get_local_addresses(all_options(opts, "--bind-http"),
+                            default_options,
+                            filter),
         get_canonical_addresses(opts, cluster_port),
         cluster_port,
         get_single_int(opts, "--client-port"),
@@ -1091,6 +1112,12 @@ options::help_section_t get_web_options(std::vector<options::option_t> *options_
 options::help_section_t get_network_options(const bool join_required, std::vector<options::option_t> *options_out) {
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
+                                             options::OPTIONAL_REPEAT));
+    options_out->push_back(options::option_t(options::names_t("--bind-cluster"),
+                                             options::OPTIONAL_REPEAT));
+    options_out->push_back(options::option_t(options::names_t("--bind-driver"),
+                                             options::OPTIONAL_REPEAT));
+    options_out->push_back(options::option_t(options::names_t("--bind-http"),
                                              options::OPTIONAL_REPEAT));
     help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections, loopback addresses are enabled by default");
 

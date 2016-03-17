@@ -49,6 +49,9 @@ struct service_address_ports_t {
         port_offset(0) { }
 
     service_address_ports_t(const std::set<ip_address_t> &_local_addresses,
+                            const std::set<ip_address_t> &_local_addresses_cluster,
+                            const std::set<ip_address_t> &_local_addresses_driver,
+                            const std::set<ip_address_t> &_local_addresses_http,
                             const peer_address_t &_canonical_addresses,
                             int _port,
                             int _client_port,
@@ -57,6 +60,9 @@ struct service_address_ports_t {
                             int _reql_port,
                             int _port_offset) :
         local_addresses(_local_addresses),
+        local_addresses_cluster(_local_addresses_cluster),
+        local_addresses_driver(_local_addresses_driver),
+        local_addresses_http(_local_addresses_http),
         canonical_addresses(_canonical_addresses),
         port(_port),
         client_port(_client_port),
@@ -71,11 +77,16 @@ struct service_address_ports_t {
             sanitize_port(reql_port, "reql_port", port_offset);
     }
 
-    std::string get_addresses_string() const;
+    std::string get_addresses_string(
+        std::set<ip_address_t> actual_addresses) const;
 
-    bool is_bind_all() const;
+    bool is_bind_all(std::set<ip_address_t> addresses) const;
 
     std::set<ip_address_t> local_addresses;
+    std::set<ip_address_t> local_addresses_cluster;
+    std::set<ip_address_t> local_addresses_driver;
+    std::set<ip_address_t> local_addresses_http;
+
     peer_address_t canonical_addresses;
     int port;
     int client_port;
