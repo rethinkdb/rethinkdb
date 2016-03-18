@@ -835,6 +835,9 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     // If no addresses were supplied, default to 'any'
     if (local_addresses.empty()) {
         local_addresses.insert(ip_address_t::any(AF_INET6));
+#ifdef _WIN32
+        local_addresses.insert(ip_address_t::any(AF_INET));
+#endif
     }
 }
 
