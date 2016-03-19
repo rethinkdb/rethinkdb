@@ -405,13 +405,14 @@ public:
         return false;
     }
     virtual bool is_exhausted() const;
-    virtual bool is_in_range() const;
     virtual feed_type_t cfeed_type() const {
         return feed_type_t::not_feed;
     }
     virtual bool is_infinite() const {
         return is_infinite_range;
     }
+
+    bool is_in_range() const;
 
 private:
     bool is_infinite_range;

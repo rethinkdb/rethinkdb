@@ -796,7 +796,7 @@ private:
         if (scoped_ptr_t<val_t> maybe_step = args->optarg(env, "step")) {
             step = maybe_step->as_int();
             rcheck_target(maybe_step, step != 0, base_exc_t::LOGIC,
-                          "Expected non-zero NUMBER.");
+                          "`step` cannot be zero.");
         }
 
         if (args->num_args() == 0) {

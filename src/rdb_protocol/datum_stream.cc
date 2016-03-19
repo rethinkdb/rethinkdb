@@ -2017,7 +2017,7 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
 
     while (!is_exhausted()) {
         double next = safe_to_double(start);
-        start+=step;
+        start += step;
         // `safe_to_double` returns NaN on error, which signals that `start` is larger
         // than 2^53 indicating we've reached the end of our infinite stream. This must
         // be checked before creating a `datum_t` as that does a similar check on
