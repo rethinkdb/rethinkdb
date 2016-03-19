@@ -98,6 +98,7 @@ static const std::set<std::string> acceptable_optargs({
     "right_bound",
     "shards",
     "squash",
+    "step",
     "time_format",
     "timeout",
     "unit",

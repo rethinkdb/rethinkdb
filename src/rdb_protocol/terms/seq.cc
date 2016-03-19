@@ -787,11 +787,17 @@ private:
 class range_term_t : public op_term_t {
 public:
     range_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(0, 2)) { }
+        : op_term_t(env, term, argspec_t(0, 2), optargspec_t({"step"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool is_infinite = false;
-        int64_t start = 0, stop = 0;
+        int64_t start = 0, stop = 0, step = 1;
+
+        if (scoped_ptr_t<val_t> maybe_step = args->optarg(env, "step")) {
+            step = maybe_step->as_int();
+            rcheck_target(maybe_step, step != 0, base_exc_t::LOGIC,
+                          "Expected non-zero NUMBER.");
+        }
 
         if (args->num_args() == 0) {
             is_infinite = true;
@@ -804,7 +810,7 @@ private:
         }
 
         return new_val(env->env, make_counted<range_datum_stream_t>(
-            is_infinite, start, stop, backtrace()));
+            is_infinite, start, stop, step, backtrace()));
     }
     virtual const char *name() const { return "range"; }
 };

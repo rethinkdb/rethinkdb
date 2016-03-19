@@ -51,3 +51,18 @@ tests:
 
     - cd: r.range(4).count()
       ot: 4
+
+    - cd:
+        - r.range(0, 5, { step: 2 })
+        - r.range(5, { step: 2 })
+        - r.range({ step: 2 }).limit(3)
+      ot: [0, 2, 4]
+
+    - cd: r.range(5, 0, { step: -1 })
+      ot: [5, 4, 3, 2, 1]
+
+    - cd: r.range(2, 5, 8, { step: 1 })
+      ot: err("ReqlCompileError", "Expected between 0 and 2 arguments but found 3.", [])
+
+    - cd: r.range({ step: 0 })
+      ot: err("ReqlQueryLogicError", "Expected non-zero NUMBER.", [])

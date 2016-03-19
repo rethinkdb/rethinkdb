@@ -1991,11 +1991,13 @@ std::vector<changespec_t> union_datum_stream_t::get_changespecs() {
 range_datum_stream_t::range_datum_stream_t(bool _is_infinite_range,
                                            int64_t _start,
                                            int64_t _stop,
+                                           int64_t _step,
                                            backtrace_id_t bt)
     : eager_datum_stream_t(bt),
       is_infinite_range(_is_infinite_range),
       start(_start),
-      stop(_stop) { }
+      stop(_stop),
+      step(_step) { }
 
 std::vector<datum_t>
 range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
@@ -2014,7 +2016,8 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
                             batchspec.with_at_most(500).to_batcher();
 
     while (!is_exhausted()) {
-        double next = safe_to_double(start++);
+        double next = safe_to_double(start);
+        start+=step;
         // `safe_to_double` returns NaN on error, which signals that `start` is larger
         // than 2^53 indicating we've reached the end of our infinite stream. This must
         // be checked before creating a `datum_t` as that does a similar check on
@@ -2033,7 +2036,14 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
 }
 
 bool range_datum_stream_t::is_exhausted() const {
-    return !is_infinite_range && start >= stop && batch_cache_exhausted();
+    return !is_infinite_range && !is_in_range() && batch_cache_exhausted();
+}
+
+bool range_datum_stream_t::is_in_range() const {
+    if (step < 0) {
+        return start > stop;
+    }
+    return start < stop;
 }
 
 // MAP_DATUM_STREAM_T

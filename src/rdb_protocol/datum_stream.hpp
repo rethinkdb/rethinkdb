@@ -395,6 +395,7 @@ public:
     range_datum_stream_t(bool _is_infite_range,
                          int64_t _start,
                          int64_t _stop,
+                         int64_t _step,
                          backtrace_id_t);
 
     virtual std::vector<datum_t>
@@ -404,6 +405,7 @@ public:
         return false;
     }
     virtual bool is_exhausted() const;
+    virtual bool is_in_range() const;
     virtual feed_type_t cfeed_type() const {
         return feed_type_t::not_feed;
     }
@@ -413,7 +415,7 @@ public:
 
 private:
     bool is_infinite_range;
-    int64_t start, stop;
+    int64_t start, stop, step;
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
