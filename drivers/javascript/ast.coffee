@@ -151,8 +151,7 @@ class RDBVal extends TermBase
         if opts?
             new Slice opts, @, left, right_or_opts
         else if typeof right_or_opts isnt 'undefined'
-            # FIXME
-            if (Object::toString.call(right_or_opts) is '[object Object]') and not (right_or_opts instanceof TermBase)
+            if util.isPlainObject right_or_opts
                 new Slice right_or_opts, @, left
             else
                 new Slice {}, @, left, right_or_opts
@@ -192,9 +191,7 @@ class RDBVal extends TermBase
         attrs = attrsAndOpts
 
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
-        if perhapsOptDict and
-                (Object::toString.call(perhapsOptDict) is '[object Object]') and
-                not (perhapsOptDict instanceof TermBase)
+        if util.isPlainObject perhapsOptDict
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
@@ -251,9 +248,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         if fieldsAndOpts.length > 0
             perhapsOptDict = fieldsAndOpts[fieldsAndOpts.length - 1]
-            if perhapsOptDict and
-                    (Object::toString.call(perhapsOptDict) is '[object Object]') and
-                    not (perhapsOptDict instanceof TermBase)
+            if util.isPlainObject perhapsOptDict
                 opts = perhapsOptDict
                 fields = fieldsAndOpts[0...(fieldsAndOpts.length - 1)]
 
@@ -266,9 +261,7 @@ class RDBVal extends TermBase
 
         # Look for opts dict
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
-        if perhapsOptDict and
-                (Object::toString.call(perhapsOptDict) is '[object Object]') and
-                not (perhapsOptDict instanceof TermBase)
+        if util.isPlainObject perhapsOptDict
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
@@ -314,8 +307,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         if keysAndOpts.length > 1
             perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
-            if perhapsOptDict and
-                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+            if util.isPlainObject perhapsOptDict
                 opts = perhapsOptDict
                 keys = keysAndOpts[0...(keysAndOpts.length - 1)]
         new GetAll opts, @, keys...
@@ -327,8 +319,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         if keysAndOpts.length == 1
             perhapsOptDict = keysAndOpts[0]
-            if perhapsOptDict and
-                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+            if util.isPlainObject perhapsOptDict
                 opts = perhapsOptDict
                 keys = []
         new Min opts, @, keys.map(funcWrap)...
@@ -340,8 +331,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         if keysAndOpts.length == 1
             perhapsOptDict = keysAndOpts[0]
-            if perhapsOptDict and
-                    ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+            if util.isPlainObject perhapsOptDict
                 opts = perhapsOptDict
                 keys = []
         new Max opts, @, keys.map(funcWrap)...
@@ -351,8 +341,7 @@ class RDBVal extends TermBase
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
         else if defun_or_opts?
-            # FIXME?
-            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (typeof defun_or_opts is 'function') and not (defun_or_opts instanceof TermBase)
+            if typeof defun_or_opts isnt 'function' and util.isPlainObject defun_or_opts
                 new IndexCreate defun_or_opts, @, name
             else
                 new IndexCreate {}, @, name, funcWrap(defun_or_opts)
@@ -1225,7 +1214,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new MakeArray {}, val...
     else if typeof(val) is 'number'
         new DatumTerm val
-    else if Object::toString.call(val) is '[object Object]'
+    else if util.isObject(val)
         new MakeObject val, nestingDepth
     else
         new DatumTerm val
@@ -1239,18 +1228,17 @@ rethinkdb.json = (args...) -> new Json {}, args...
 rethinkdb.error = (args...) -> new UserError {}, args...
 
 rethinkdb.random = (limitsAndOpts...) ->
-        # Default if no opts dict provided
-        opts = {}
-        limits = limitsAndOpts
+    # Default if no opts dict provided
+    opts = {}
+    limits = limitsAndOpts
 
-        # Look for opts dict
-        perhapsOptDict = limitsAndOpts[limitsAndOpts.length - 1]
-        if perhapsOptDict and
-                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
-            opts = perhapsOptDict
-            limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
+    # Look for opts dict
+    perhapsOptDict = limitsAndOpts[limitsAndOpts.length - 1]
+    if util.isPlainObject perhapsOptDict
+        opts = perhapsOptDict
+        limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
 
-        new Random opts, limits...
+    new Random opts, limits...
 
 rethinkdb.binary = ar (data) -> new Binary data
 
@@ -1356,11 +1344,17 @@ rethinkdb.circle = aropt (cen, rad, opts) -> new Circle opts, cen, rad
 rethinkdb.uuid = (args...) -> new UUID {}, args...
 
 rethinkdb.range = (args...) ->
-    if args.length and typeof args[args.length - 1] is 'object'
-        opts = args.splice(-1, 1)[0]
+    opts = {}
+    perhapsOptDict = args[args.length - 1]
+
+    if util.isPlainObject perhapsOptDict
+        opts = perhapsOptDict
+        args = args[0...(args.length - 1)]
+
     new Range opts, args...
 
 rethinkdb.union = (args...) -> new Union {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb
+module.exports.TermBase = TermBase

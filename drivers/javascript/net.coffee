@@ -512,10 +512,10 @@ class Connection extends events.EventEmitter
         if callback?
             # When calling like `.close({...}, function(...){ ... })`
             opts = optsOrCallback
-            unless Object::toString.call(opts) is '[object Object]'
+            unless util.isObject(opts)
                 throw new err.ReqlDriverError "First argument to two-argument `close` must be an object."
             cb = callback
-        else if Object::toString.call(optsOrCallback) is '[object Object]'
+        else if util.isObject(optsOrCallback)
             # When calling like `.close({...})`
             opts = optsOrCallback
             cb = null
@@ -1115,7 +1115,7 @@ class TcpConnection extends Connection
             # This is when calling close like `.close({..}, function(..) {})`
             opts = optsOrCallback
             cb = callback
-        else if Object::toString.call(optsOrCallback) is '[object Object]'
+        else if util.isObject(optsOrCallback)
             # This is when calling close like `.close({..})`
             opts = optsOrCallback
             cb = null
@@ -1390,7 +1390,7 @@ class HttpConnection extends Connection
         if callback?
             opts = optsOrCallback
             cb = callback
-        else if Object::toString.call(optsOrCallback) is '[object Object]'
+        else if util.isObject(optsOrCallback)
             opts = optsOrCallback
             cb = null
         else

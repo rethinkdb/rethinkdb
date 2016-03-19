@@ -30,7 +30,7 @@ module.exports.aropt = (fun) -> (args...) ->
     expectedPosArgs = fun.length - 1
     perhapsOptDict = args[expectedPosArgs]
 
-    if perhapsOptDict? and (Object::toString.call(perhapsOptDict) isnt '[object Object]')
+    if module.exports.isPlainObject perhapsOptDict
         perhapsOptDict = null
 
     numPosArgs = args.length - (if perhapsOptDict? then 1 else 0)
@@ -58,6 +58,12 @@ module.exports.toCamelCase = (token) ->
     token.replace(/_[a-z]/g, (match) =>
         match[1].toUpperCase()
     )
+
+module.exports.isObject = (obj) ->
+    return obj? and Object::toString.call(obj) is '[object Object]'
+
+module.exports.isPlainObject = (obj) ->
+    return obj? and module.exports.isObject(obj) and not (obj instanceof require('./ast').TermBase)
 
 convertPseudotype = (obj, opts) ->
     # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
