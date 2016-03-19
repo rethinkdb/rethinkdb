@@ -429,14 +429,12 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         flockfile(write_stream);
 #endif
 
-#ifndef _WIN32
-        // WINDOWS TODO: use fileno
-        (void) fileno;
+#ifdef _WIN32
         size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
 #else
         ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
 #endif
-        if (write_res != console_formatted.length()) {
+        if (write_res != static_cast<decltype(write_res)>(console_formatted.length())) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
