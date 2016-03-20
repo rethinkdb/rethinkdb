@@ -11,9 +11,10 @@
 #ifdef _WIN32
 
 typedef HANDLE fd_t;
-#define INVALID_FD INVALID_HANDLE_VALUE
+const fd_T INVALID_FD = INVALID_HANDLE_VALUE;
 
 inline SOCKET fd_to_socket(fd_t handle) {
+    static_assert(sizeof(SOCKET) == sizeof(HANDLE));
     return reinterpret_cast<SOCKET>(handle);
 }
 
