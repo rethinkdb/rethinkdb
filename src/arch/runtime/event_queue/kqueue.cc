@@ -192,4 +192,12 @@ void kqueue_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t
     }
 }
 
+void kqueue_event_queue_t::watch_event(system_event_t *ev, linux_event_callback_t *cb) {
+    watch_resource(ev->get_notify_fd(), poll_event_in, cb);
+}
+
+void kqueue_event_queue_t::forget_event(system_event_t *ev, linux_event_callback_t *cb) {
+    forget_resource(ev->get_notify_fd(), cb);
+}
+
 #endif // defined(__MACH__)

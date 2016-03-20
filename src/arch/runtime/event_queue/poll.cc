@@ -193,4 +193,12 @@ void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_ca
 
 }
 
+void poll_event_queue_t::watch_event(system_event_t *ev, linux_event_callback_t *cb) {
+    watch_resource(ev->get_notify_fd(), poll_event_in, cb);
+}
+
+void poll_event_queue_t::forget_event(system_event_t *ev, linux_event_callback_t *cb) {
+    forget_resource(ev->get_notify_fd(), cb);
+}
+
 #endif

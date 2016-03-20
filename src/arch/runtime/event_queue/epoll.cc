@@ -184,5 +184,13 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     DEBUG_ONLY_CODE(events_requested.erase(events_requested.find(cb)));
 }
 
+void epoll_event_queue_t::watch_event(system_event_t *ev, linux_event_callback_t *cb) {
+    watch_resource(ev->get_notify_fd(), poll_event_in, cb);
+}
+
+void epoll_event_queue_t::forget_event(system_event_t *ev, linux_event_callback_t *cb) {
+    forget_resource(ev->get_notify_fd(), cb);
+}
+
 #endif  // NO_EPOLL
 #endif  // __linux

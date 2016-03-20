@@ -13,8 +13,6 @@
 #include "arch/runtime/system_event.hpp"
 #include "config/args.hpp"
 
-extern const int poll_event_in;
-
 // Event queue structure
 struct epoll_event_queue_t {
 public:
@@ -28,13 +26,8 @@ public:
     void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void forget_resource(fd_t resource, linux_event_callback_t *cb);
 
-    void watch_event(system_event_t *ev, linux_event_callback_t *cb) {
-        watch_resource(ev->get_notify_fd(), poll_event_in, cb);
-    }
-
-    void forget_event(system_event_t *ev, linux_event_callback_t *cb) {
-        forget_resource(ev->get_notify_fd(), cb);
-    }
+    void watch_event(system_event_t *, linux_event_callback_t *cb);
+    void forget_event(system_event_t *, linux_event_callback_t *cb);
 
 private:
     linux_queue_parent_t *parent;
