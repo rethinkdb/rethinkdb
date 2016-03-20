@@ -38,6 +38,12 @@ std::string os_signal_cond_t::format() {
         return "Control-C";
     case CTRL_BREAK_EVENT:
         return "Control-Break";
+    case CTRL_CLOSE_EVENT:
+        return "Close (End Task) Event";
+    case CTRL_LOGOFF_EVENT:
+        return "Logoff Event";
+    case CTRL_SHUTDOWN_EVENT:
+        return "Shutdown Event";
     default:
         return strprintf("console signal %ud", source_type);
     }

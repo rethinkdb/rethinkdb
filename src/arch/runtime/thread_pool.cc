@@ -16,6 +16,7 @@
 #include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/timing.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -352,9 +353,28 @@ void linux_thread_pool_t::interrupt_handler(DWORD type) {
 
     linux_thread_pool_t *self = global_thread_pool.load();
 
-    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(NULL);
+    if (self == nullptr) {
+        logNTC("Caught signal. Waiting for initialization to complete before closing...");
 
-    if (interrupt_signal != NULL) {
+        const int WAIT_FOR_THREAD_POOL_MS = 10000;
+        const int NAP_TIME = 200;
+
+        for (int napped = 0; ; napped += NAP_TIME) {
+            Sleep(NAP_TIME);
+            self = global_thread_pool.load();
+            if (self != nullptr) {
+                break;
+            }
+            if (napped >= WAIT_FOR_THREAD_POOL_MS) {
+                logNTC("Waiting for initilization timed out. Stopping RethinkDB.");
+                ExitProcess(EXIT_FAILURE);
+            }
+        }
+    }
+
+    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(nullptr);
+
+    if (interrupt_signal != nullptr) {
         interrupt_signal->source_type = type;
         self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
     }

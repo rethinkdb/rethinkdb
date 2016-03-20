@@ -306,6 +306,9 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
         return false;
     }
 
+    // Don't handle signals like ^C in the extproc worker process
+    SetConsoleCtrlHandler(nullptr, true);
+
     fd_t fd = CreateFile(argv[2],
                          GENERIC_READ | GENERIC_WRITE,
                          0,

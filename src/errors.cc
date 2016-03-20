@@ -262,16 +262,7 @@ int windows_runtime_debug_failure_handler(int type, char *message, int *retval) 
 }
 
 BOOL windows_ctrl_handler(DWORD type) {
-    if (type != CTRL_C_EVENT && type != CTRL_BREAK_EVENT) {
-        return false;
-    }
-
-    thread_pool_t *thread_pool = linux_thread_pool_t::get_global_thread_pool();
-
-    if (thread_pool != nullptr) {
-        thread_pool->interrupt_handler(type);
-    }
-
+    thread_pool_t::interrupt_handler(type);
     return true;
 }
 #endif
