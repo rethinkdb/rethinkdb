@@ -117,7 +117,7 @@ public:
 test_txn_t::test_txn_t(test_cache_t *cache)
     : page_txn_t(cache,
                  cache->make_throttler_acq(),
-                 NULL) { }
+                 nullptr) { }
 
 
 TPTEST(PageTest, Control, 4) {
@@ -211,7 +211,7 @@ TPTEST(PageTest, OneWriteAcqWait, 4) {
         page_acq.init(page, &page_cache);
         ASSERT_TRUE(page_acq.buf_ready_signal()->is_pulsed());
         void *buf = page_acq.get_buf_write();
-        ASSERT_TRUE(buf != NULL);
+        ASSERT_TRUE(buf != nullptr);
     }
     page_cache.flush(std::move(txn));
 }
@@ -367,7 +367,7 @@ public:
             condZ5.wait();
             t678cond.pulse();
         }
-        c = NULL;
+        c = nullptr;
 
         {
             dummy_cache_balancer_t balancer(memory_limit);
@@ -379,7 +379,7 @@ public:
             coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn15,
                                                   this, drain.lock()));
         }
-        c = NULL;
+        c = nullptr;
 
         {
             dummy_cache_balancer_t balancer(memory_limit);
@@ -407,7 +407,7 @@ public:
 
             cache.flush(std::move(txn));
         }
-        c = NULL;
+        c = nullptr;
     }
 
 private:
@@ -433,14 +433,14 @@ private:
 
             condCR1.pulse();
             condC.wait();
-            txn1_ptr = NULL;
+            txn1_ptr = nullptr;
         }
         c->flush(std::move(txn1));
     }
 
     void run_txn2(auto_drainer_t::lock_t) {
         condA.wait();
-        ASSERT_TRUE(txn1_ptr != NULL);
+        ASSERT_TRUE(txn1_ptr != nullptr);
         auto txn2 = make_scoped<test_txn_t>(c);
         {
             txn2_ptr = txn2.get();
@@ -500,7 +500,7 @@ private:
 
             condCR2.pulse();
 
-            txn2_ptr = NULL;
+            txn2_ptr = nullptr;
         }
         c->flush(std::move(txn2));
     }

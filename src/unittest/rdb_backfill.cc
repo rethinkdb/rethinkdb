@@ -219,7 +219,7 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, NULL);
+    rdb_context_t ctx(&extproc_pool, nullptr);
     cond_t non_interruptor;
 
     in_memory_branch_history_manager_t bhm;

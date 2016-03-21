@@ -176,7 +176,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *conn =
         c1.get_connection(c2.get_me(), &connection_keepalive);
-    EXPECT_TRUE(conn == NULL);
+    EXPECT_TRUE(conn == nullptr);
 
     a1.send(888, c2.get_me());
 
@@ -222,7 +222,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, LostPeer, 3) {
         let_stuff_happen();
 
         connection = c1.get_connection(c2.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         EXPECT_FALSE(connection_keepalive.get_drain_signal()->is_pulsed());
         EXPECT_TRUE(connection->get_peer_id() == c2.get_me());
 
@@ -473,7 +473,7 @@ public:
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             get_connectivity_cluster()->get_connection(peer, &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         get_connectivity_cluster()->send_message(connection, connection_keepalive,
                                                  get_message_tag(), &writer);
     }
@@ -829,7 +829,7 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             c1.get_connection(c2.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         c2_addr_from_c1 = connection->get_peer_address();
     }
     peer_address_t c3_addr_from_c1;
@@ -837,7 +837,7 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             c1.get_connection(c3.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         c3_addr_from_c1 = connection->get_peer_address();
     }
 

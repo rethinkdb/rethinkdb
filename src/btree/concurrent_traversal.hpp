@@ -50,7 +50,7 @@ public:
             concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
+    virtual profile::trace_t *get_trace() THROWS_NOTHING { return nullptr; }
 
 protected:
     virtual ~concurrent_traversal_callback_t() { }

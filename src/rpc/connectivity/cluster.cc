@@ -255,7 +255,7 @@ connectivity_cluster_t::run_t::run_t(
     `connection_map` on each thread and notifying any listeners that we're now
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
-    connection_to_ourself(this, parent->me, _server_id, NULL, routing_table[parent->me]),
+    connection_to_ourself(this, parent->me, _server_id, nullptr, routing_table[parent->me]),
 
     heartbeat_sl_view(_heartbeat_sl_view),
 
@@ -302,7 +302,7 @@ void connectivity_cluster_t::run_t::on_new_connection(
     nconn->make_overcomplicated(&conn);
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, NULL);
+    handle(&conn_stream, boost::none, boost::none, lock, nullptr);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
@@ -1127,7 +1127,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // This check is so that when trying multiple connections to a peer in parallel, we can
     //  make sure only one of them succeeds
-    if (successful_join != NULL) {
+    if (successful_join != nullptr) {
         if (*successful_join) {
             logWRN("Somehow ended up with two successful joins to a peer, closing one");
             return;
@@ -1208,7 +1208,7 @@ void connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
+                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
 
@@ -1259,12 +1259,12 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     thread_allocator([](threadnum_t a, threadnum_t b) {
         return a.threadnum > b.threadnum;
     }),
-    current_run(NULL),
+    current_run(nullptr),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
 {
     for (int i = 0; i < max_message_tag; i++) {
-        message_handlers[i] = NULL;
+        message_handlers[i] = nullptr;
     }
 }
 
@@ -1454,14 +1454,14 @@ cluster_message_handler_t::cluster_message_handler_t(
     rassert(tag != connectivity_cluster_t::heartbeat_tag,
         "Tag %" PRIu8 " is reserved for heartbeat messages.",
         connectivity_cluster_t::heartbeat_tag);
-    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    rassert(connectivity_cluster->message_handlers[tag] == nullptr);
     connectivity_cluster->message_handlers[tag] = this;
 }
 
 cluster_message_handler_t::~cluster_message_handler_t() {
     guarantee(!connectivity_cluster->current_run);
     rassert(connectivity_cluster->message_handlers[tag] == this);
-    connectivity_cluster->message_handlers[tag] = NULL;
+    connectivity_cluster->message_handlers[tag] = nullptr;
 }
 
 void cluster_message_handler_t::on_local_message(

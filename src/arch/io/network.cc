@@ -99,7 +99,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int port,
                                    signal_t *interruptor,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-        write_perfmon(NULL),
+        write_perfmon(nullptr),
         sock(create_socket_wrapper(peer.get_address_family())),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
@@ -152,7 +152,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-        write_perfmon(NULL),
+        write_perfmon(nullptr),
         sock(s),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
@@ -382,18 +382,18 @@ linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *_parent) :
 { }
 
 void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {
-    if (operation->buffer != NULL) {
+    if (operation->buffer != nullptr) {
         parent->perform_write(operation->buffer, operation->size);
-        if (operation->dealloc != NULL) {
+        if (operation->dealloc != nullptr) {
             parent->release_write_buffer(operation->dealloc);
             parent->write_queue_limiter.unlock(operation->size);
         }
     }
 
-    if (operation->cond != NULL) {
+    if (operation->cond != nullptr) {
         operation->cond->pulse();
     }
-    if (operation->dealloc != NULL) {
+    if (operation->dealloc != nullptr) {
         parent->release_write_queue_op(operation);
     }
 }
@@ -408,7 +408,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     op->buffer = current_write_buffer->buffer;
     op->size = current_write_buffer->size;
     op->dealloc = current_write_buffer.release();
-    op->cond = NULL;
+    op->cond = nullptr;
     op->keepalive = auto_drainer_t::lock_t(drainer.get());
     current_write_buffer.init(get_write_buffer());
 
@@ -497,7 +497,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     /* Enqueue the write so it will happen eventually */
     op.buffer = buf;
     op.size = size;
-    op.dealloc = NULL;
+    op.dealloc = nullptr;
     op.cond = &to_signal_when_done;
     write_queue.push(&op);
 
@@ -568,8 +568,8 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
     pulsed. */
     write_queue_op_t op;
     cond_t to_signal_when_done;
-    op.buffer = NULL;
-    op.dealloc = NULL;
+    op.buffer = nullptr;
+    op.dealloc = nullptr;
     op.cond = &to_signal_when_done;
     write_queue.push(&op);
     to_signal_when_done.wait();
@@ -955,7 +955,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
     fd_t active_fd = socks[0].get();
 
     while(!lock.get_drain_signal()->is_pulsed()) {
-        fd_t new_sock = accept(active_fd, NULL, NULL);
+        fd_t new_sock = accept(active_fd, nullptr, nullptr);
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
@@ -1086,12 +1086,12 @@ signal_t *linux_repeated_nonthrowing_tcp_listener_t::get_bound_signal() {
 std::vector<std::string> get_ips() {
     std::vector<std::string> ret;
 
-    struct ifaddrs *if_addrs = NULL;
+    struct ifaddrs *if_addrs = nullptr;
     int addr_res = getifaddrs(&if_addrs);
     guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
 
-    for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
-        if (p->ifa_addr == NULL) {
+    for (ifaddrs *p = if_addrs; p != nullptr; p = p->ifa_next) {
+        if (p->ifa_addr == nullptr) {
             continue;
         } else if (p->ifa_addr->sa_family == AF_INET) {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
@@ -1102,7 +1102,7 @@ std::vector<std::string> get_ips() {
                 char buf[buflength + 1] = { 0 };
                 const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, buflength);
 
-                guarantee_err(res != NULL, "inet_ntop failed");
+                guarantee_err(res != nullptr, "inet_ntop failed");
 
                 ret.push_back(std::string(buf));
             }
@@ -1115,7 +1115,7 @@ std::vector<std::string> get_ips() {
                 memset(buf.data(), 0, buf.size());
                 const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf.data(), buflength);
 
-                guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
+                guarantee_err(res != nullptr, "inet_ntop failed on an ipv6 address");
 
                 ret.push_back(std::string(buf.data()));
             }

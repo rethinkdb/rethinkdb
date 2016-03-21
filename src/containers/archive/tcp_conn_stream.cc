@@ -7,7 +7,7 @@ tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, signal_
     : conn_(new tcp_conn_t(host, port, interruptor, local_port)) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
-    rassert(conn_ != NULL);
+    rassert(conn_ != nullptr);
 }
 
 tcp_conn_stream_t::~tcp_conn_stream_t() {
@@ -95,11 +95,11 @@ int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n)
 
 keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) :
     tcp_conn_stream_t(host, port, interruptor, local_port),
-    keepalive_callback(NULL) { }
+    keepalive_callback(nullptr) { }
 
 keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(tcp_conn_t *conn) :
     tcp_conn_stream_t(conn),
-    keepalive_callback(NULL) { }
+    keepalive_callback(nullptr) { }
 
 keepalive_tcp_conn_stream_t::~keepalive_tcp_conn_stream_t() {
     // Do nothing
@@ -112,7 +112,7 @@ void keepalive_tcp_conn_stream_t::set_keepalive_callback(keepalive_callback_t *_
 int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
     int64_t result = tcp_conn_stream_t::read(p, n);
 
-    if (result > 0 && keepalive_callback != NULL) {
+    if (result > 0 && keepalive_callback != nullptr) {
         keepalive_callback->keepalive_read();
     }
 
@@ -120,7 +120,7 @@ int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
 }
 
 int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 
@@ -128,7 +128,7 @@ int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
 }
 
 int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 
@@ -136,7 +136,7 @@ int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
 }
 
 bool keepalive_tcp_conn_stream_t::flush_buffer() {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 

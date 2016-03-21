@@ -103,7 +103,7 @@ class socket_stream_t :
     public write_stream_t,
     private linux_event_callback_t {
 public:
-    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
+    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = nullptr);
     virtual ~socket_stream_t();
 
     // interruptible {read,write}_stream_t functions

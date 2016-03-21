@@ -31,7 +31,7 @@ template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
     unlimited_fifo_queue_t()
         : passive_producer_t<value_t>(&available_control),
-          counter(NULL)
+          counter(nullptr)
     { }
 
     explicit unlimited_fifo_queue_t(perfmon_counter_t *_counter)

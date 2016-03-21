@@ -239,7 +239,7 @@ bool get_proc_meminfo_available_memory_size(uint64_t *mem_avail_out) {
 bool osx_runtime_version_check() {
     char str[256];
     size_t size = sizeof(str);
-    int ret = sysctlbyname("kern.osrelease", str, &size, NULL, 0);
+    int ret = sysctlbyname("kern.osrelease", str, &size, nullptr, 0);
     if (ret == -1) {
         return false;
     }

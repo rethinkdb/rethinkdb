@@ -141,7 +141,7 @@ struct generic_job_t :
 template <class Callable>
 void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 {
-    if (get_thread_pool() != NULL) {
+    if (get_thread_pool() != nullptr) {
         generic_job_t<Callable> job;
         job.fn = &fn;
         job.suspended = coro_t::self();

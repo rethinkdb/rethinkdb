@@ -227,7 +227,7 @@ void superblock_metainfo_iterator_t::advance(char * p) {
 check_failed:
     pos = next_pos = end;
     key_size = value_size = 0;
-    key_ptr = value_ptr = NULL;
+    key_ptr = value_ptr = nullptr;
 }
 
 void superblock_metainfo_iterator_t::operator++() {

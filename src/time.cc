@@ -31,7 +31,7 @@ microtime_t current_microtime() {
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
-    DEBUG_VAR int res = gettimeofday(&t, NULL);
+    DEBUG_VAR int res = gettimeofday(&t, nullptr);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
 }
@@ -84,7 +84,7 @@ timespec clock_monotonic() {
 timespec clock_realtime() {
 #ifdef __MACH__
     struct timeval tv;
-    int res = gettimeofday(&tv, NULL);
+    int res = gettimeofday(&tv, nullptr);
     guarantee_err(res == 0, "gettimeofday failed");
 
     timespec ret;
