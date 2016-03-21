@@ -2,9 +2,10 @@
 #include "clustering/administration/auth/password.hpp"
 
 #include <openssl/evp.h>
-#include <openssl/rand.h>
 #include <openssl/sha.h>
 
+#include "clustering/administration/auth/crypto/pbkcs5_pbkdf2_hmac.hpp"
+#include "clustering/administration/auth/crypto/random.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
 
@@ -12,6 +13,7 @@ namespace auth {
 
 namespace detail {
 
+    // FIXME
     template <std::size_t N>
     bool secure_compare(
             std::array<unsigned char, N> const &lhs,
@@ -30,21 +32,8 @@ password_t::password_t() {
 
 password_t::password_t(std::string const &password, uint32_t iteration_count)
     : m_iteration_count(iteration_count) {
-    if (RAND_bytes(m_salt.data(), m_salt.size()) != 1) {
-        // FIXME, ERR_get_error
-    }
-
-    if (PKCS5_PBKDF2_HMAC(
-            password.data(),
-            password.size(),
-            m_salt.data(),
-            m_salt.size(),
-            m_iteration_count,
-            EVP_sha256(),
-            m_hash.size(),
-            m_hash.data()) != 1) {
-        // FIXME
-    }
+    m_salt = crypto::random_bytes<16>();
+    m_hash = crypto::pbkcs5_pbkdf2_hmac_sha256(password, m_salt, iteration_count);
 }
 
 std::array<unsigned char, 16> const &password_t::get_salt() const {

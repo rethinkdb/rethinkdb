@@ -12,7 +12,7 @@ class username_t
 {
 public:
     username_t();
-    username_t(std::string username);
+    username_t(std::string const &username);
 
     bool is_admin() const;
 

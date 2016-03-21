@@ -240,14 +240,12 @@ ql::datum_t read_datum(tcp_conn_t *connection, signal_t *interruptor) {
     } while (buffer[offset++] != '\0' && offset < buffer.max_size());
     if (offset == 2048) {
         // FIXME, fail
-        std::cout << "B\n";
     }
 
     rapidjson::Document document;
     document.Parse(buffer.data());
     if (document.HasParseError()) {
         // FIXME, fail
-        std::cout << "C\n";
     }
 
     return ql::to_datum(
@@ -386,18 +384,16 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
                 ql::datum_t authentication =
                     datum.get_field("authentication", ql::NOTHROW);
-                if (!authentication.has()) {
+                if (authentication.get_type() != ql::datum_t::R_STR) {
                     // FIXME, error authentication
                 }
-            }
 
-            {
                 ql::datum_object_builder_t datum_object_builder;
                 datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
                 datum_object_builder.overwrite(
                     "authentication",
                     ql::datum_t(
-                        "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096"));
+                        authenticator.first_message(authentication.as_str().to_std())));
 
                 write_datum(
                     conn.get(),
@@ -407,14 +403,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
             {
                 ql::datum_t datum = read_datum(conn.get(), &ct_keepalive);
-            }
 
-            {
+                ql::datum_t authentication =
+                    datum.get_field("authentication", ql::NOTHROW);
+                if (authentication.get_type() != ql::datum_t::R_STR) {
+                    // FIXME, error authentication
+                }
+
                 ql::datum_object_builder_t datum_object_builder;
                 datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
                 datum_object_builder.overwrite(
                     "authentication",
-                    ql::datum_t("v=6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4="));
+                    ql::datum_t(
+                        authenticator.final_message(authentication.as_str().to_std())));
 
                 write_datum(
                     conn.get(),

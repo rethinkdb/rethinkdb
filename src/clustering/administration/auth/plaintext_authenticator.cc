@@ -18,7 +18,7 @@ plaintext_authenticator_t::plaintext_authenticator_t(
         [&](auth_semilattice_metadata_t const *auth_metadata) {
             auto user = auth_metadata->m_users.find(auth::username_t(username));
             if (user == auth_metadata->m_users.end() ||
-                    static_cast<bool>(user->second.get_ref())) {
+                    !static_cast<bool>(user->second.get_ref())) {
                 // FIXME, user not found
             }
             m_user = user->second.get_ref().get();

@@ -187,6 +187,7 @@ public:
 
     explicit datum_t(double _num);
     explicit datum_t(datum_string_t _str);
+    explicit datum_t(const std::string &string);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<datum_t> &&_array,
                      const configured_limits_t &limits);
@@ -341,8 +342,6 @@ public:
                               datum_t orig_key,
                               const datum_string_t &pkey) const;
 
-    static void check_str_validity(const datum_string_t &str);
-
     // Used by skey_version code. Returns a pointer to the buf_ref, if
     // the datum is currently backed by one, or NULL otherwise.
     const shared_buf_ref_t<char> *get_buf_ref() const;
@@ -472,8 +471,7 @@ bool number_as_integer(double d, int64_t *i_out);
 // Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
-// Useful for building an object datum and doing mutation operations -- otherwise,
-// you'll have to do check_str_validity checks yourself.
+// Useful for building an object datum and doing mutation operations
 class datum_object_builder_t {
 public:
     datum_object_builder_t() { }

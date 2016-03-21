@@ -39,10 +39,19 @@ RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 class auth_semilattice_metadata_t {
 public:
     auth_semilattice_metadata_t()
-        : m_users({{
-            auth::username_t("admin"),
-            versioned_t<boost::optional<auth::user_t>>(
-                boost::make_optional(auth::user_t(auth::admin_t())))}}) {
+        : m_users({
+            {
+                auth::username_t("admin"),
+                versioned_t<boost::optional<auth::user_t>>(
+                    boost::make_optional(auth::user_t(auth::admin_t())))
+            }, {
+                auth::username_t("user"),
+                versioned_t<boost::optional<auth::user_t>>(
+                    boost::make_optional(auth::user_t(
+                        auth::password_t("pencil"),
+                        auth::permissions_t(true, true, true, true))))
+            }
+        }) {
     }
 
     std::map<auth::username_t, versioned_t<boost::optional<auth::user_t>>> m_users;

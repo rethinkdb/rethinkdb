@@ -34,6 +34,11 @@ user_t::user_t(admin_t)
       m_global_permissions(true, true, true, true) {
 }
 
+user_t::user_t(password_t password, permissions_t global_permissions)
+    : m_password(std::move(password)),
+      m_global_permissions(std::move(global_permissions)) {
+}
+
 user_t::user_t(ql::datum_t const &datum)
     : m_password(boost::none),
       m_global_permissions(
