@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/table_common.hpp"
 
+#include "rdb_protocol/func.hpp"
+
 std::string error_message_index_not_found(
         const std::string &sindex, const std::string &table) {
     return strprintf("Index `%s` was not found on table `%s`",
@@ -196,16 +198,26 @@ ql::datum_t make_row_replacement_error_stats(
 }
 
 ql::datum_t resolve_insert_conflict(
-        const std::string &primary_key,
-        ql::datum_t old_row,
-        ql::datum_t insert_row,
-        conflict_behavior_t conflict_behavior) {
+    ql::env_t *env,
+    const std::string &primary_key,
+    ql::datum_t old_row,
+    ql::datum_t insert_row,
+    conflict_behavior_t conflict_behavior,
+    boost::optional<counted_t<const ql::func_t> > conflict_func) {
+
     if (old_row.get_type() == ql::datum_t::R_NULL) {
         return insert_row;
     } else if (conflict_behavior == conflict_behavior_t::REPLACE) {
         return insert_row;
     } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
         return old_row.merge(insert_row);
+    } else if (conflict_behavior == conflict_behavior_t::FUNCTION) {
+        std::vector<ql::datum_t> args;
+        args.push_back(ql::datum_t(datum_string_t(primary_key)));
+        args.push_back(old_row);
+        args.push_back(insert_row);
+        return (*conflict_func)->call(env,
+                                      args)->as_datum();
     } else {
         rfail_target(&old_row, ql::base_exc_t::OP_FAILED,
                      "Duplicate primary key `%s`:\n%s\n%s",
