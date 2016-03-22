@@ -3,7 +3,6 @@
 #define CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_
 
 #include <map>
-#include <set>
 #include <string>
 
 #include "clustering/administration/servers/server_metadata.hpp"

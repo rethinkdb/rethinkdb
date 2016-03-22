@@ -20,7 +20,7 @@ TPTEST(ClusteringMinidir, SinglePeer) {
     watchable_map_var_t<uuid_u, minidir_bcard_t<std::string, std::string> >
         writer1_readers;
     writer1_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
-    minidir_write_manager_t<std::string, std::string> writer1(
+    minidir_write_manager_t<uuid_u, std::string, std::string> writer1(
         cluster.get_mailbox_manager(),
         &writer1_data,
         &writer1_readers);
@@ -56,7 +56,7 @@ TPTEST(ClusteringMinidir, SinglePeer) {
             writer2_readers;
         writer2_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
         writer2_readers.set_key_no_equals(generate_uuid(), reader2.get_bcard());
-        minidir_write_manager_t<std::string, std::string> writer2(
+        minidir_write_manager_t<uuid_u, std::string, std::string> writer2(
             cluster.get_mailbox_manager(),
             &writer2_data,
             &writer2_readers);
@@ -91,7 +91,7 @@ TPTEST(ClusteringMinidir, MultiPeer) {
     watchable_map_var_t<uuid_u, minidir_bcard_t<std::string, std::string> >
         writer1_readers;
     writer1_readers.set_key_no_equals(generate_uuid(), reader1.get_bcard());
-    minidir_write_manager_t<std::string, std::string> writer1(
+    minidir_write_manager_t<uuid_u, std::string, std::string> writer1(
         cluster2.get_mailbox_manager(),
         &writer1_data,
         &writer1_readers);

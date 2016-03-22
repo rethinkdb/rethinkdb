@@ -48,7 +48,7 @@ bool server_status_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("name",
         convert_name_to_datum(metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_server_id_to_datum(server_id));
 
     ql::datum_object_builder_t proc_builder;
     proc_builder.overwrite("time_started",
@@ -80,7 +80,7 @@ bool server_status_artificial_table_backend_t::format_row(
                 &server_name_or_uuid,
                 nullptr)) {
             server_name_or_uuid = ql::datum_t(
-                datum_string_t(uuid_to_str(pair.first)));
+                datum_string_t(pair.first.print()));
         }
         if (server_id != pair.first) {
             bool is_connected = false;

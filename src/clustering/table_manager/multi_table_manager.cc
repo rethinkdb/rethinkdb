@@ -77,7 +77,7 @@ multi_table_manager_t::multi_table_manager_t(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory) :
     is_proxy_server(true),
-    server_id(nil_uuid()),
+    server_id(server_id_t::from_server_uuid(nil_uuid())),
     mailbox_manager(_mailbox_manager),
     server_config_client(nullptr),
     multi_table_manager_directory(_multi_table_manager_directory),

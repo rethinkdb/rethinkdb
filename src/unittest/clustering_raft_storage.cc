@@ -19,7 +19,7 @@ table_config_and_shards_t make_table_config_and_shards() {
     table_config_and_shards.config.basic.database = generate_uuid();
     table_config_and_shards.config.basic.primary_key = "id";
     table_config_t::shard_t shard;
-    shard.primary_replica = generate_uuid();
+    shard.primary_replica = server_id_t::generate_server_id();
     shard.all_replicas.insert(shard.primary_replica);
     table_config_and_shards.config.shards.push_back(shard);
     calculate_split_points_for_uuids(1, &table_config_and_shards.shard_scheme);

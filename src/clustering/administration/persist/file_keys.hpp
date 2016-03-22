@@ -11,6 +11,7 @@ class cluster_semilattice_metadata_t;
 class heartbeat_semilattice_metadata_t;
 template<class state_t> class raft_log_entry_t;
 class server_config_versioned_t;
+class server_id_t;
 class table_active_persistent_state_t;
 class table_inactive_persistent_state_t;
 class table_raft_state_t;
