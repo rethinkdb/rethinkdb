@@ -47,17 +47,17 @@ user_t::user_t(ql::datum_t const &datum)
 void user_t::merge(ql::datum_t const &datum) {
     if (!datum.has() || datum.get_type() != ql::datum_t::R_OBJECT) {
         throw admin_op_exc_t(
-            "Expected an object, got " + datum.print(), query_state_t::FAILED);
+            "Expected an object, got " + datum.print() + ".", query_state_t::FAILED);
     }
 
     ql::datum_t id = datum.get_field("id", ql::NOTHROW);
     if (!id.has()) {
-        throw admin_op_exc_t("Expected a field named `id`", query_state_t::FAILED);
+        throw admin_op_exc_t("Expected a field named `id`.", query_state_t::FAILED);
     }
 
     ql::datum_t password = datum.get_field("password", ql::NOTHROW);
     if (!password.has()) {
-        throw admin_op_exc_t("Expected a field named `password`", query_state_t::FAILED);
+        throw admin_op_exc_t("Expected a field named `password`.", query_state_t::FAILED);
     }
 
     if (datum.obj_size() != 2) {
@@ -69,7 +69,7 @@ void user_t::merge(ql::datum_t const &datum) {
         keys.erase("password");
 
         throw admin_op_exc_t(
-            "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`",
+            "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`.",
             query_state_t::FAILED);
     }
 
@@ -80,7 +80,7 @@ void user_t::merge(ql::datum_t const &datum) {
             if (!static_cast<bool>(m_password)) {
                 throw admin_op_exc_t(
                     "Expected a string to set the password or `false` to keep it "
-                    "unset, got " + password.print(),
+                    "unset, got " + password.print() + ".",
                     query_state_t::FAILED);
             }
         } else {
@@ -88,7 +88,7 @@ void user_t::merge(ql::datum_t const &datum) {
         }
     } else {
         throw admin_op_exc_t(
-            "Expected a string or boolean for `password`, got " + password.print(),
+            "Expected a string or boolean for `password`, got " + password.print() + ".",
             query_state_t::FAILED);
     }
 }

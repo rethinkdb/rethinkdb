@@ -104,7 +104,7 @@ bool real_reql_cluster_interface_t::db_create(
 
         new_config = convert_db_config_and_name_to_datum(name, db_id);
     }
-    wait_for_metadata_to_propagate(metadata, interruptor_on_caller);
+    wait_for_cluster_metadata_to_propagate(metadata, interruptor_on_caller);
 
     ql::datum_object_builder_t result_builder;
     result_builder.overwrite("dbs_created", ql::datum_t(1.0));
@@ -164,7 +164,7 @@ bool real_reql_cluster_interface_t::db_drop_uuid(
             "The database was already deleted.", query_state_t::FAILED};
         return false;
     }
-    wait_for_metadata_to_propagate(metadata, interruptor_on_home);
+    wait_for_cluster_metadata_to_propagate(metadata, interruptor_on_home);
 
     if (result_out != nullptr) {
         ql::datum_t old_config =
@@ -1044,24 +1044,38 @@ bool real_reql_cluster_interface_t::db_rebalance(
     return true;
 }
 
+/* Checks that divisor is indeed a divisor of multiple. */
+template <class T>
+bool is_joined(const T &multiple, const T &divisor) {
+    T cpy = multiple;
+
+    semilattice_join(&cpy, divisor);
+    return cpy == multiple;
+}
+
 template <typename T>
 bool grant_internal(
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
+        rdb_context_t *rdb_context,
         auth::user_context_t const &user_context,
         auth::username_t username,
         ql::datum_t permissions,
+        signal_t *interruptor,
         T permission_selector_function,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     if (!user_context.is_admin()) {
-        // FIXME
+        *error_out = admin_err_t{
+            "Only administrators can grant permissions.",
+            query_state_t::FAILED};
+        return false;
     }
 
     if (username.is_admin()) {
         *error_out = admin_err_t{
             "The permissions of the user `" + username.to_string() +
-                "` can't be modified",
+                "` can't be modified.",
             query_state_t::FAILED};
         return false;
     }
@@ -1071,7 +1085,7 @@ bool grant_internal(
     if (grantee == auth_metadata.m_users.end() ||
             !static_cast<bool>(grantee->second.get_ref())) {
         *error_out = admin_err_t{
-            "User `" + username.to_string() + "` not found", query_state_t::FAILED};
+            "User `" + username.to_string() + "` not found.", query_state_t::FAILED};
         return false;
     }
 
@@ -1091,7 +1105,12 @@ bool grant_internal(
 
     auth_semilattice_view->join(auth_metadata);
 
-    // FIXME wait for propagation
+    // Wait for the metadata to propegate
+    rdb_context->get_auth_watchable()->run_until_satisfied(
+        [&](auth_semilattice_metadata_t const &metadata) -> bool {
+            return is_joined(auth_metadata, metadata);
+        },
+        interruptor);
 
     ql::datum_object_builder_t result_builder;
     result_builder.overwrite("granted", ql::datum_t(1.0));
@@ -1106,16 +1125,18 @@ bool real_reql_cluster_interface_t::grant_global(
         auth::user_context_t const &user_context,
         auth::username_t username,
         ql::datum_t permissions,
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     on_thread_t on_thread(home_thread());
 
     return grant_internal(
         m_auth_semilattice_view,
+        m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
+        interruptor,
         [](auth::user_t &user) -> auth::permissions_t & {
             return user.get_global_permissions();
         },
@@ -1128,7 +1149,7 @@ bool real_reql_cluster_interface_t::grant_database(
         database_id_t const &database_id,
         auth::username_t username,
         ql::datum_t permissions,
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(
@@ -1138,9 +1159,11 @@ bool real_reql_cluster_interface_t::grant_database(
 
     return grant_internal(
         m_auth_semilattice_view,
+        m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
+        interruptor,
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_database_permissions(database_id);
         },
@@ -1154,7 +1177,7 @@ bool real_reql_cluster_interface_t::grant_table(
         namespace_id_t const &table_id,
         auth::username_t username,
         ql::datum_t permissions,
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
     guarantee(
@@ -1164,9 +1187,11 @@ bool real_reql_cluster_interface_t::grant_table(
 
     return grant_internal(
         m_auth_semilattice_view,
+        m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
+        interruptor,
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_table_permissions(table_id);
         },
@@ -1321,25 +1346,17 @@ bool real_reql_cluster_interface_t::sindex_list(
         "Failed to retrieve all secondary indexes.")
 }
 
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
-
-void real_reql_cluster_interface_t::wait_for_metadata_to_propagate(
+void real_reql_cluster_interface_t::wait_for_cluster_metadata_to_propagate(
         const cluster_semilattice_metadata_t &metadata,
         signal_t *interruptor_on_caller) {
     int threadnum = get_thread_id().threadnum;
 
     guarantee(m_cross_thread_database_watchables[threadnum].has());
     m_cross_thread_database_watchables[threadnum]->get_watchable()->run_until_satisfied(
-            [&] (const databases_semilattice_metadata_t &md) -> bool
-                { return is_joined(md, metadata.databases); },
-            interruptor_on_caller);
+        [&](const databases_semilattice_metadata_t &md) -> bool {
+            return is_joined(md, metadata.databases);
+        },
+        interruptor_on_caller);
 }
 
 template <class T>
@@ -1383,96 +1400,3 @@ void real_reql_cluster_interface_t::make_single_selection(
         ql::single_selection_t::from_row(env, bt, table, row),
         bt);
 }
-
-/* template <typename F>
-void require_permission_internal(
-        rdb_context_t *rdb_context,
-        auth::user_context_t const &user_context,
-        F permission_selector_function,
-        std::string const &permission_name) {
-    if (static_cast<bool>(user_context)) {
-        rdb_context->get_auth_watchable()->apply_read(
-            [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(user_context.get());
-                if (user == auth_metadata->m_users.end() ||
-                        !static_cast<bool>(user->second.get_ref()) ||
-                        !permission_selector_function(user->second.get_ref().get())) {
-                    throw auth::permission_error_t(user_context.get(), permission_name);
-                }
-           });
-    }
-}
-
-void real_reql_cluster_interface_t::require_config_permission(
-        auth::user_context_t const &user_context) const {
-    require_permission_internal(
-        m_rdb_context,
-        user_context,
-        [&](auth::user_t const &user) -> bool {
-            return user.has_config_permission();
-        },
-        "config");
-};
-
-void real_reql_cluster_interface_t::require_config_permission(
-        auth::user_context_t const &user_context,
-        database_id_t const &database_id) const {
-    require_permission_internal(
-        m_rdb_context,
-        user_context,
-        [&](auth::user_t const &user) -> bool {
-            return user.has_config_permission(database_id);
-        },
-        "config");
-}
-
-void real_reql_cluster_interface_t::require_config_permission(
-        auth::user_context_t const &user_context,
-        database_id_t const &database_id,
-        namespace_id_t const &table_id) const {
-    require_permission_internal(
-        m_rdb_context,
-        user_context,
-        [&](auth::user_t const &user) -> bool {
-            return user.has_config_permission(database_id, table_id);
-        },
-        "config");
-}
-
-void real_reql_cluster_interface_t::require_config_permission(
-        auth::user_context_t const &user_context,
-        database_id_t const &database_id,
-        std::set<namespace_id_t> const &table_ids) const {
-    require_permission_internal(
-        m_rdb_context,
-        user_context,
-        [&](auth::user_t const &user) -> bool {
-            // First check the permissions on the database
-            if (!user.has_config_permission(database_id)) {
-                return false;
-            }
-
-            // Next, for every table, check if the user has permissions on that table
-            for (auto const &table_id : table_ids) {
-                if (!user.has_config_permission(database_id, table_id)) {
-                    return false;
-                }
-            }
-
-            return true;
-        },
-        "config");
-}
-
-void real_reql_cluster_interface_t::require_read_permission(
-        auth::user_context_t const &user_context,
-        database_id_t const &database_id,
-        namespace_id_t const &table_id) const {
-    require_permission_internal(
-        m_rdb_context,
-        user_context,
-        [&](auth::user_t const &user) -> bool {
-            return user.has_read_permission(database_id, table_id);
-        },
-        "read");
-} */

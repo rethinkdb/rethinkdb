@@ -1,7 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/user_context.hpp"
 
-#include "clustering/administration/auth/permission_error.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/context.hpp"
@@ -31,6 +30,7 @@ bool user_context_t::is_admin() const {
 template <typename F, typename G>
 void require_permission_internal(
         boost::variant<permissions_t, username_t> const &context,
+        bool read_only,
         rdb_context_t *rdb_context,
         F permissions_selector_function,
         G username_selector_function,
@@ -42,6 +42,9 @@ void require_permission_internal(
             throw permission_error_t(permission_name);
         }
     } else if (auto const *username = boost::get<username_t>(&context)) {
+        if (read_only) {
+            throw auth::permission_error_t(*username, permission_name);
+        }
         rdb_context->get_auth_watchable()->apply_read(
             [&](auth_semilattice_metadata_t const *auth_metadata) {
                 auto user = auth_metadata->m_users.find(*username);
@@ -51,19 +54,23 @@ void require_permission_internal(
                     throw auth::permission_error_t(*username, permission_name);
                 }
            });
+    } else {
+        unreachable();
     }
 }
 
 void user_context_t::require_read_permission(
         rdb_context_t *rdb_context,
         database_id_t const &database_id,
-        namespace_id_t const &table_id) const {
+        namespace_id_t const &table_id) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        // Ignore the read-only flag for reads
+        false,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_read() != true;
+            return permissions.get_read() == true;
         },
         [&](user_t const &user) -> bool {
             return user.has_read_permission(database_id, table_id);
@@ -74,13 +81,14 @@ void user_context_t::require_read_permission(
 void user_context_t::require_write_permission(
         rdb_context_t *rdb_context,
         database_id_t const &database_id,
-        namespace_id_t const &table_id) const {
+        namespace_id_t const &table_id) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_write() != true;
+            return permissions.get_write() == true;
         },
         [&](user_t const &user) -> bool {
             return user.has_write_permission(database_id, table_id);
@@ -88,13 +96,15 @@ void user_context_t::require_write_permission(
         "write");
 }
 
-void user_context_t::require_config_permission(rdb_context_t *rdb_context) const {
+void user_context_t::require_config_permission(
+        rdb_context_t *rdb_context) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() != true;
+            return permissions.get_config() == true;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission();
@@ -104,13 +114,14 @@ void user_context_t::require_config_permission(rdb_context_t *rdb_context) const
 
 void user_context_t::require_config_permission(
         rdb_context_t *rdb_context,
-        database_id_t const &database_id) const {
+        database_id_t const &database_id) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() != true;
+            return permissions.get_config() == true;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id);
@@ -121,13 +132,14 @@ void user_context_t::require_config_permission(
 void user_context_t::require_config_permission(
         rdb_context_t *rdb_context,
         database_id_t const &database_id,
-        namespace_id_t const &table_id) const {
+        namespace_id_t const &table_id) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() != true;
+            return permissions.get_config() == true;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id, table_id);
@@ -138,13 +150,14 @@ void user_context_t::require_config_permission(
 void user_context_t::require_config_permission(
         rdb_context_t *rdb_context,
         database_id_t const &database_id,
-        std::set<namespace_id_t> const &table_ids) const {
+        std::set<namespace_id_t> const &table_ids) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() != true;
+            return permissions.get_config() == true;
         },
         [&](auth::user_t const &user) -> bool {
             // First check the permissions on the database
@@ -164,13 +177,16 @@ void user_context_t::require_config_permission(
         "config");
 }
 
-void user_context_t::require_connect_permission(rdb_context_t *rdb_context) const {
+void user_context_t::require_connect_permission(
+        rdb_context_t *rdb_context) const THROWS_ONLY(permission_error_t) {
     require_permission_internal(
         m_context,
+        // Ignore the read-only flag for connect, they have no write or config impact
+        false,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_connect() != true;
+            return permissions.get_connect() == true;
         },
         [&](user_t const &user) -> bool {
             return user.has_connect_permission();

@@ -268,8 +268,9 @@ private:
     ql::changefeed::client_t m_changefeed_client;
     server_config_client_t *m_server_config_client;
 
-    void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
-                                        signal_t *interruptor);
+    void wait_for_cluster_metadata_to_propagate(
+            const cluster_semilattice_metadata_t &metadata,
+            signal_t *interruptor);
 
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
@@ -317,28 +318,6 @@ private:
             ql::datum_t *results_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
-
-    /* void require_config_permission(
-            auth::user_context_t const &user_context) const;
-
-    void require_config_permission(
-            auth::user_context_t const &user_context,
-            database_id_t const &database_id) const;
-
-    void require_config_permission(
-            auth::user_context_t const &user_context,
-            database_id_t const &database_id,
-            namespace_id_t const &table_id) const; */
-
-    void require_config_permission(
-            auth::user_context_t const &user_context,
-            database_id_t const &database_id,
-            std::set<namespace_id_t> const &table_ids) const;
-
-    /* void require_read_permission(
-            auth::user_context_t const &user_context,
-            database_id_t const &database_id,
-            namespace_id_t const &table_id) const; */
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };

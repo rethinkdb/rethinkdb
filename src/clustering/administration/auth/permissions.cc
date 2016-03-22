@@ -52,7 +52,7 @@ boost::tribool datum_to_tribool(ql::datum_t const &datum, std::string const &fie
         return boost::indeterminate;
     } else {
         throw admin_op_exc_t(
-            "Expected a boolean or null for `" + field + "`, got " + datum.print(),
+            "Expected a boolean or null for `" + field + "`, got " + datum.print() + ".",
             query_state_t::FAILED);
     }
 }
@@ -60,7 +60,7 @@ boost::tribool datum_to_tribool(ql::datum_t const &datum, std::string const &fie
 void permissions_t::merge(ql::datum_t const &datum) {
     if (datum.get_type() != ql::datum_t::R_OBJECT) {
         throw admin_op_exc_t(
-            "Expected an object, got " + datum.print(), query_state_t::FAILED);
+            "Expected an object, got " + datum.print() + ".", query_state_t::FAILED);
     }
 
     std::set<std::string> keys;
@@ -93,7 +93,7 @@ void permissions_t::merge(ql::datum_t const &datum) {
             set_connect(datum_to_tribool(connect, "connect"));
         } else {
             throw admin_op_exc_t(
-                "The `connect` permission is only valid at the global scope",
+                "The `connect` permission is only valid at the global scope.",
                 query_state_t::FAILED);
         }
     }
@@ -177,17 +177,55 @@ ql::datum_t permissions_t::to_datum() const {
     }
 }
 
+bool tribool_equals(boost::tribool const &lhs, boost::tribool const &rhs) {
+    // boost::tribool::operator== returns a boost::tribool and behaves as following.
+    //
+    //                 false           true            indeterminate
+    // --------------+----------------------------------------------
+    //         false | true            false           indeterminate
+    //          true | false           true            indeterminate
+    // indeterminate | indeterminate   indeterminate   indeterminate
+    //
+    // The implementation below on the other hand behaves as following.
+    //
+    //                 false           true            indeterminate
+    // --------------+----------------------------------------------
+    //         false | true            false           false
+    //          true | false           true            false
+    // indeterminate | false           false           true
+
+    int8_t l;
+    if (!lhs) {
+        l = 0;
+    } else if (lhs) {
+        l = 1;
+    } else {
+        l = 2;
+    }
+
+    int8_t r;
+    if (!rhs) {
+        r = 0;
+    } else if (rhs) {
+        r = 1;
+    } else {
+        r = 2;
+    }
+
+    return l == r;
+}
+
 bool permissions_t::operator==(permissions_t const &rhs) const {
     // We can't use boost::optional<boost::tribool>::operator== due to implicit
     // conversion to bool operator not playing nice with boost::optional::operator==
     bool m_connect_equal =
         static_cast<bool>(m_connect) == static_cast<bool>(rhs.m_connect) && (
-            !static_cast<bool>(m_connect) || *m_connect == *rhs.m_connect);
+            !static_cast<bool>(m_connect) || tribool_equals(*m_connect, *rhs.m_connect));
 
     return
-        m_read == rhs.m_read &&
-        m_write == rhs.m_write &&
-        m_config == rhs.m_config &&
+        tribool_equals(m_read, rhs.m_read) &&
+        tribool_equals(m_write, rhs.m_write) &&
+        tribool_equals(m_config, rhs.m_config) &&
         m_connect_equal;
 }
 
