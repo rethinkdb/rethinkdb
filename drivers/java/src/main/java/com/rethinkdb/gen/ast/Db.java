@@ -61,6 +61,12 @@ public class Db extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Rebalance(arguments);
     }
+    public Grant grant(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new Grant(arguments);
+    }
     public Info info() {
         Arguments arguments = new Arguments(this);
         return new Info(arguments);
