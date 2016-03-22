@@ -328,8 +328,8 @@ void send_tcp_message(tcp_conn_stream_t *conn, Args... args) {
 
 scoped_ptr_t<tcp_conn_stream_t> connect_client(int port) {
     cond_t dummy_interruptor;
-    scoped_ptr_t<tcp_conn_stream_t> conn(
-        new tcp_conn_stream_t(ip_address_t("127.0.0.1"), port, &dummy_interruptor));
+    scoped_ptr_t<tcp_conn_stream_t> conn(new tcp_conn_stream_t(
+            nullptr, ip_address_t("127.0.0.1"), port, &dummy_interruptor));
 
     send_tcp_message(conn.get(),
         static_cast<int32_t>(VersionDummy::V0_4),  // Protocol version
@@ -422,7 +422,7 @@ void tcp_interrupt_test(
     scoped_ptr_t<query_server_t> server(
         new query_server_t(env_instance->get_rdb_context(),
                            std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
-                           0, &hanger, 2));
+                           0, &hanger, 2, nullptr));
 
     scoped_ptr_t<tcp_conn_stream_t> conn = connect_client(server->get_port());
     send_query(test_token, r_uuid_json, conn.get());
@@ -534,7 +534,7 @@ void http_interrupt_test(test_rdb_env_t *test_env,
     scoped_ptr_t<query_server_t> server(
         new query_server_t(env_instance->get_rdb_context(),
                            std::set<ip_address_t>({ip_address_t("127.0.0.1")}),
-                           0, &hanger, 2));
+                           0, &hanger, 2, nullptr));
 
     cond_t http_app_interruptor;
     http_res_t result;

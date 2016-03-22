@@ -249,7 +249,8 @@ public:
                                  peer_address_t(),
                                  ANY_PORT,
                                  0,
-                                 heartbeat_manager.get_view())
+                                 heartbeat_manager.get_view(),
+                                 nullptr)
         { }
     connectivity_cluster_t *get_connectivity_cluster() {
         return &connectivity_cluster;

@@ -3,8 +3,15 @@
 
 #include "arch/io/network.hpp"
 
-tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port)
-    : conn_(new tcp_conn_t(host, port, interruptor, local_port)) { }
+tcp_conn_stream_t::tcp_conn_stream_t(
+    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port
+) :
+    conn_(
+        (nullptr == tls_ctx) ?
+        new tcp_conn_t(host, port, interruptor, local_port) :
+        new secure_tcp_conn_t(tls_ctx, host, port, interruptor, local_port)
+    ) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
     rassert(conn_ != nullptr);
@@ -93,9 +100,12 @@ int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n)
 }
 
 
-keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) :
-    tcp_conn_stream_t(host, port, interruptor, local_port),
-    keepalive_callback(nullptr) { }
+keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(
+    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port
+) :
+    tcp_conn_stream_t(tls_ctx, host, port, interruptor, local_port),
+    keepalive_callback(NULL) { }
 
 keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(tcp_conn_t *conn) :
     tcp_conn_stream_t(conn),

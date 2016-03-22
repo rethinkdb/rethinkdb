@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -52,6 +54,10 @@ public:
         explicit connect_failed_exc_t(int en) :
             error(en),
             info("Could not make connection: " + errno_string(error)) { }
+
+        connect_failed_exc_t(int en, const std::string &err_str) :
+            error(en),
+            info(err_str) { }
 
         const char *what() const throw () {
             return info.c_str();
@@ -109,7 +115,7 @@ public:
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw tcp_conn_read_closed_exc_t. */
-    void shutdown_read();
+    virtual void shutdown_read();
 
     /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
     bool is_read_open() const;
@@ -141,7 +147,7 @@ public:
 
     /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
     is a write currently happening, it will get tcp_conn_write_closed_exc_t. */
-    void shutdown_write();
+    virtual void shutdown_write();
 
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open() const;
@@ -150,9 +156,7 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    ~linux_tcp_conn_t() THROWS_NOTHING;
-
-public:
+    virtual ~linux_tcp_conn_t() THROWS_NOTHING;
 
     void rethread(threadnum_t thread);
 
@@ -162,8 +166,21 @@ public:
         return event_watcher.get();
     }
 
+protected:
+
+    void on_shutdown_read();
+    void on_shutdown_write();
+
+    // Used by tcp_listener_t and any derived classes.
+    explicit linux_tcp_conn_t(fd_t sock);
+
+    // The underlying TCP socket file descriptor.
+    scoped_fd_t sock;
+
+    /* These are pulsed if and only if the read/write end of the connection has been closed. */
+    cond_t read_closed, write_closed;
+
 private:
-    explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
     /* `read_op_wrapper_t` and `write_op_wrapper_t` are an attempt to factor out
     the boilerplate that would otherwise be at the top of every read- or write-
@@ -232,11 +249,6 @@ private:
     events are handled through the linux_event_watcher_t. */
     void on_event(int events);
 
-    void on_shutdown_read();
-    void on_shutdown_write();
-
-    scoped_fd_t sock;
-
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
     scoped_ptr_t<linux_event_watcher_t> event_watcher;
@@ -244,15 +256,8 @@ private:
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
 
-    /* These are pulsed if and only if the read/write end of the connection has been closed. */
-    cond_t read_closed, write_closed;
-
     /* Holds data that we read from the socket but hasn't been consumed yet */
     lazy_erase_vector_t<char> read_buffer;
-
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
-    size_t read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t);
 
     static const size_t WRITE_QUEUE_MAX_SIZE = 128 * KILOBYTE;
     static const size_t WRITE_CHUNK_SIZE = 8 * KILOBYTE;
@@ -321,22 +326,99 @@ private:
     certain size, we push it onto `write_queue`. */
     scoped_ptr_t<write_buffer_t> current_write_buffer;
 
-    /* Used to actually perform a write. If the write end of the connection is open, then writes
-    `size` bytes from `buffer` to the socket. */
-    void perform_write(const void *buffer, size_t size);
-
     scoped_ptr_t<auto_drainer_t> drainer;
+
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple
+    wrapper around ::read(). Returns the number of bytes read or throws
+    tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
+    virtual size_t read_internal(
+        void *buffer, size_t size
+    ) THROWS_ONLY(tcp_conn_read_closed_exc_t);
+
+    /* Used to actually perform a write. If the write end of the connection is open, then
+    writes `size` bytes from `buffer` to the socket. */
+    virtual void perform_write(const void *buffer, size_t size);
+};
+
+/* tls_conn_wrapper_t wraps a TLS connection. */
+class tls_conn_wrapper_t {
+public:
+    explicit tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
+        linux_tcp_conn_t::connect_failed_exc_t);
+
+    ~tls_conn_wrapper_t();
+
+    void set_fd(fd_t sock) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t);
+
+    SSL *get() { return conn; }
+
+private:
+    SSL *conn;
+};
+
+class linux_secure_tcp_conn_t :
+    public linux_tcp_conn_t {
+public:
+
+    friend class linux_tcp_conn_descriptor_t;
+
+    // Client connection constructor.
+    linux_secure_tcp_conn_t(
+        SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+        signal_t *interruptor, int local_port = ANY_PORT
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+
+    ~linux_secure_tcp_conn_t() THROWS_NOTHING;
+
+    /* shutdown_read() is an alias for shutdown() */
+    virtual void shutdown_read() { shutdown(); };
+
+    /* shutdown_write() is an alias for shutdown() */
+    virtual void shutdown_write() { shutdown(); };
+
+private:
+
+    // Server connection constructor.
+    linux_secure_tcp_conn_t(
+        SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor
+    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+
+    void perform_handshake(signal_t *interruptor) THROWS_ONLY(
+        linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
+
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple
+    wrapper around ::read(). Returns the number of bytes read or throws
+    tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
+    virtual size_t read_internal(void *buffer, size_t size) THROWS_ONLY(
+        tcp_conn_read_closed_exc_t);
+
+    /* Used to actually perform a write. If the write end of the connection is open, then
+    writes `size` bytes from `buffer` to the socket. */
+    virtual void perform_write(const void *buffer, size_t size);
+
+    void shutdown();
+    void on_shutdown();
+
+    bool is_open() { return !closed.is_pulsed(); };
+
+    tls_conn_wrapper_t conn;
+
+    cond_t closed;
 };
 
 class linux_tcp_conn_descriptor_t {
 public:
     ~linux_tcp_conn_descriptor_t();
 
-    void make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
+    void make_server_connection(
+        SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
-    // Call it on the thread you'll use the connection on.
-    void make_overcomplicated(linux_tcp_conn_t **tcp_conn_out);
+    // Call it on the thread you'll use the server connection on.
+    void make_server_connection(
+        SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
 private:
     friend class linux_nonthrowing_tcp_listener_t;

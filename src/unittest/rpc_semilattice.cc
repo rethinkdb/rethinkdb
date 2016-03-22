@@ -55,7 +55,7 @@ TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
     semilattice_manager_t<sl_int_t> slm(&c, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t cr(
         &c, server_id_t::generate_server_id(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view(), nullptr);
 
     /* Make sure that metadata works properly when passed to the constructor */
     EXPECT_EQ(2u, slm.get_root_view()->get().i);
@@ -78,10 +78,10 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
                                     slm2(&cluster2, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view());
+        heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view());
+        heartbeat_manager.get_view(), nullptr);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -120,10 +120,10 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
                                     slm2(&cluster2, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view());
+        heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view());
+        heartbeat_manager.get_view(), nullptr);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -162,7 +162,7 @@ TPTEST(RPCSemilatticeTest, Watcher, 2) {
     semilattice_manager_t<sl_int_t> slm(&cluster, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run(&cluster, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view());
+        heartbeat_manager.get_view(), nullptr);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
