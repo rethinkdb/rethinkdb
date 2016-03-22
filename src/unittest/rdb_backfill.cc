@@ -235,8 +235,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &get_global_perfmon_collection(),
             region_map_t<version_t>(region_t::universe(), version_t::zero()));
 
-        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
-            generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
+        local_replicator_t local_replicator(
+            cluster.get_mailbox_manager(), server_id_t::generate_server_id(),
+            &dispatcher, &store1.store, &bhm, &non_interruptor);
 
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, cfg.value_padding_length, &first_inserter_state,
@@ -261,18 +262,20 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                server_id_t::generate_server_id(),
+                backfill_throttler_t::priority_t::critical_t::NO,
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), generate_uuid(), &store2.store,
-                &bhm, &non_interruptor);
+                local_replicator.get_replica_bcard(), server_id_t::generate_server_id(),
+                &store2.store, &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store2");
             backfill_debug_all("begin backfill store1 -> store3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                server_id_t::generate_server_id(),
+                backfill_throttler_t::priority_t::critical_t::NO,
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), generate_uuid(), &store3.store,
-                &bhm, &non_interruptor);
+                local_replicator.get_replica_bcard(), server_id_t::generate_server_id(),
+                &store3.store, &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store3");
 
             if (cfg.stream_during_backfill) {
@@ -295,8 +298,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &get_global_perfmon_collection(),
             get_store_version_map(&store2.store));
 
-        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
-            generate_uuid(), &dispatcher, &store2.store, &bhm, &non_interruptor);
+        local_replicator_t local_replicator(
+            cluster.get_mailbox_manager(), server_id_t::generate_server_id(),
+            &dispatcher, &store2.store, &bhm, &non_interruptor);
 
         /* Find the subset of `first_inserter_state` that's actually present in `store2`
         */
@@ -331,10 +335,11 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            server_id_t::generate_server_id(),
+            backfill_throttler_t::priority_t::critical_t::NO,
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), generate_uuid(), &store1.store, &bhm,
-            &non_interruptor);
+            local_replicator.get_replica_bcard(), server_id_t::generate_server_id(),
+            &store1.store, &bhm, &non_interruptor);
         backfill_debug_all("end backfill store2 -> store1");
 
         if (cfg.stream_during_backfill) {
@@ -349,8 +354,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &get_global_perfmon_collection(),
             get_store_version_map(&store1.store));
 
-        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
-            generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
+        local_replicator_t local_replicator(
+            cluster.get_mailbox_manager(), server_id_t::generate_server_id(),
+            &dispatcher, &store1.store, &bhm, &non_interruptor);
 
         /* Validate the state of `store1` to make sure
         that the backfill was completely correct */
@@ -375,10 +381,11 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            server_id_t::generate_server_id(),
+            backfill_throttler_t::priority_t::critical_t::NO,
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), generate_uuid(), &store3.store, &bhm,
-            &non_interruptor);
+            local_replicator.get_replica_bcard(), server_id_t::generate_server_id(),
+            &store3.store, &bhm, &non_interruptor);
         backfill_debug_all("end backfill store1 -> store3");
 
         if (cfg.stream_during_backfill) {
@@ -392,8 +399,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &get_global_perfmon_collection(),
             get_store_version_map(&store3.store));
 
-        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
-            generate_uuid(), &dispatcher, &store3.store, &bhm, &non_interruptor);
+        local_replicator_t local_replicator(
+            cluster.get_mailbox_manager(), server_id_t::generate_server_id(),
+            &dispatcher, &store3.store, &bhm, &non_interruptor);
 
         /* Validate the state of `store3` to make sure that the backfill was completely
         correct */

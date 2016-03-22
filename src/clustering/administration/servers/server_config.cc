@@ -29,7 +29,7 @@ bool convert_server_config_from_datum(
     if (!converter.get("id", &id_datum, error_out)) {
         return false;
     }
-    if (!convert_uuid_from_datum(id_datum, server_id_out, error_out)) {
+    if (!convert_server_id_from_datum(id_datum, server_id_out, error_out)) {
         error_out->msg = "In `id`: " + error_out->msg;
         return false;
     }
@@ -108,7 +108,7 @@ bool server_config_artificial_table_backend_t::format_row(
 
     builder.overwrite("name",
         convert_name_to_datum(metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_uuid_to_datum(server_id.get_uuid()));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum, metadata.server_config.config.tags));
 

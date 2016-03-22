@@ -80,7 +80,7 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
 }
 
 void rdb_query_server_t::fill_server_info(ql::response_t *out) {
-    datum_string_t id(uuid_to_str(server_id));
+    datum_string_t id(server_id.print());
 
     ql::datum_object_builder_t builder;
     builder.overwrite(datum_string_t("id"), ql::datum_t(id));

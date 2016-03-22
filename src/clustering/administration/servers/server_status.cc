@@ -47,7 +47,7 @@ bool server_status_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("name",
         convert_name_to_datum(metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_server_id_to_datum(server_id));
 
     ql::datum_object_builder_t proc_builder;
     proc_builder.overwrite("time_started",

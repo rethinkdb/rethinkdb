@@ -31,7 +31,7 @@ bool job_report_base_t<T>::to_datum(
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
-    for (uuid_u const &server : servers) {
+    for (server_id_t const &server : servers) {
         ql::datum_t server_name_or_uuid;
         if (convert_connected_server_id_to_datum(
                 server,

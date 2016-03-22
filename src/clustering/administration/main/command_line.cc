@@ -653,7 +653,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
-    server_id_t our_server_id = generate_uuid();
+    server_id_t our_server_id = server_id_t::generate_server_id();
 
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
@@ -834,7 +834,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     } else {
         logNTC("Initializing directory %s\n", base_path.path().c_str());
 
-        server_id_t our_server_id = generate_uuid();
+        server_id_t our_server_id = server_id_t::generate_server_id();
 
         cluster_semilattice_metadata_t cluster_metadata;
         if (serve_info->joins.empty()) {

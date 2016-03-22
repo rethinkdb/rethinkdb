@@ -20,7 +20,7 @@ private:
             return;
         }
         *result = http_res_t(http_status_code_t::OK,
-                             "application/json", '"' + uuid_to_str(me) + '"');
+                             "application/json", '"' + me.print() + '"');
     }
     server_id_t me;
 };

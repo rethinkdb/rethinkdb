@@ -106,7 +106,7 @@ bool do_serve(io_backender_t *io_backender,
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
         heartbeat_semilattice_metadata_t heartbeat_metadata;
-        server_id_t server_id = generate_uuid();
+        server_id_t server_id;
         if (metadata_file != nullptr) {
             cond_t non_interruptor;
             metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
@@ -115,10 +115,13 @@ bool do_serve(io_backender_t *io_backender,
             heartbeat_metadata = txn.read(
                 mdkey_heartbeat_semilattices(), &non_interruptor);
             server_id = txn.read(mdkey_server_id(), &non_interruptor);
+        } else {
+            // We are a proxy, generate a temporary proxy server id.
+            server_id = server_id_t::generate_proxy_id();
         }
 
 #ifndef NDEBUG
-        logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
+        logNTC("Our server ID is %s", server_id.print().c_str());
 #endif
 
         /* The `connectivity_cluster_t` maintains TCP connections to other servers in the
@@ -574,7 +577,7 @@ bool do_serve(io_backender_t *io_backender,
                         logNTC("Server ready, \"%s\" %s\n",
                                server_config_server->get_config()
                                    ->get().config.name.c_str(),
-                               uuid_to_str(server_id).c_str());
+                               uuid_to_str(server_id.get_uuid()).c_str());
                     } else {
                         logNTC("Proxy ready");
                     }
