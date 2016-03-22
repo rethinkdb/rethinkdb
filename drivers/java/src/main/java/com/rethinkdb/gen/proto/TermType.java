@@ -62,6 +62,7 @@ public enum TermType {
     BETWEEN(182),
     REDUCE(37),
     MAP(38),
+    FOLD(187),
     FILTER(39),
     CONCAT_MAP(40),
     ORDER_BY(41),
@@ -98,6 +99,7 @@ public enum TermType {
     RECONFIGURE(176),
     REBALANCE(179),
     SYNC(138),
+    GRANT(188),
     INDEX_CREATE(75),
     INDEX_DROP(76),
     INDEX_LIST(77),
@@ -247,6 +249,7 @@ public enum TermType {
             case 182: return TermType.BETWEEN;
             case 37: return TermType.REDUCE;
             case 38: return TermType.MAP;
+            case 187: return TermType.FOLD;
             case 39: return TermType.FILTER;
             case 40: return TermType.CONCAT_MAP;
             case 41: return TermType.ORDER_BY;
@@ -283,6 +286,7 @@ public enum TermType {
             case 176: return TermType.RECONFIGURE;
             case 179: return TermType.REBALANCE;
             case 138: return TermType.SYNC;
+            case 188: return TermType.GRANT;
             case 75: return TermType.INDEX_CREATE;
             case 76: return TermType.INDEX_DROP;
             case 77: return TermType.INDEX_LIST;
