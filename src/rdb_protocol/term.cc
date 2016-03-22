@@ -254,7 +254,7 @@ const raw_term_t &term_t::get_src() const {
 scoped_ptr_t<val_t> runtime_term_t::eval_on_current_stack(
         scope_env_t *env,
         eval_flags_t eval_flags) const {
-    PROFILE_STARTER_IF_ENABLED(
+        PROFILE_STARTER_IF_ENABLED(
         env->env->profile() == profile_bool_t::PROFILE,
         strprintf("Evaluating %s.", name()),
         env->env->trace);

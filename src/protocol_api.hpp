@@ -100,12 +100,12 @@ protected:
 //    conflict occurs.
 //  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
 //    occurs.
-enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE, FUNCTION };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       int8_t,
                                       conflict_behavior_t::ERROR,
-                                      conflict_behavior_t::UPDATE);
+                                      conflict_behavior_t::FUNCTION);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.
