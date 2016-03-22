@@ -1,12 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/plaintext_authenticator.hpp"
 
-#include "errors.hpp"
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
-
+#include "clustering/administration/auth/crypto/compare.hpp"
+#include "clustering/administration/auth/crypto/pbkcs5_pbkdf2_hmac.hpp"
+#include "clustering/administration/auth/crypto/saslprep.hpp"
 #include "clustering/administration/metadata.hpp"
 
 namespace auth {
@@ -32,23 +29,13 @@ bool plaintext_authenticator_t::authenticate(std::string const &password) const 
 
     // FIXME, SASLPrep password?
 
-    std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
-    if (PKCS5_PBKDF2_HMAC(
-            password.data(),
-            password.size(),
-            m_user.get_password().get().get_salt().data(),
-            m_user.get_password().get().get_salt().size(),
-            m_user.get_password().get().get_iteration_count(),
-            EVP_sha256(),
-            hash.size(),
-            hash.data()) != 1) {
-        // FIXME
-    }
+    std::array<unsigned char, SHA256_DIGEST_LENGTH> hash =
+        crypto::pbkcs5_pbkdf2_hmac_sha256(
+            password,
+            m_user.get_password().get().get_salt(),
+            m_user.get_password().get().get_iteration_count());
 
-    return CRYPTO_memcmp(
-        m_user.get_password().get().get_hash().data(),
-        hash.data(),
-        hash.size()) == 0;
+    return crypto::compare(m_user.get_password().get().get_hash(), hash);
 }
 
 }  // namespace auth

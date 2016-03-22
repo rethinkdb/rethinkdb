@@ -7,25 +7,8 @@
 #include "clustering/administration/auth/crypto/pbkcs5_pbkdf2_hmac.hpp"
 #include "clustering/administration/auth/crypto/random.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "containers/archive/versioned.hpp"
 
 namespace auth {
-
-namespace detail {
-
-    // FIXME
-    template <std::size_t N>
-    bool secure_compare(
-            std::array<unsigned char, N> const &lhs,
-            std::array<unsigned char, N> const &rhs) {
-        unsigned char d = 0u;
-        for (std::size_t i = 0; i < N; i++) {
-            d |= lhs[i] ^ rhs[i];
-        }
-        return 1 & ((d - 1) >> 8);
-    }
-
-}  // namespace detail
 
 password_t::password_t() {
 }
