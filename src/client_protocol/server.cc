@@ -193,7 +193,9 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
                                const std::set<ip_address_t> &local_addresses,
                                int port,
                                query_handler_t *_handler,
-                               uint32_t http_timeout_sec) :
+                               uint32_t http_timeout_sec,
+                               SSL_CTX *_tls_ctx) :
+        tls_ctx(_tls_ctx),
         rdb_ctx(_rdb_ctx),
         handler(_handler),
         http_conn_cache(http_timeout_sec),
@@ -259,7 +261,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     on_thread_t rethreader(chosen_thread);
 
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->make_overcomplicated(&conn);
+
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, &ct_keepalive);
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
+
     conn->enable_keepalive();
 
     ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
