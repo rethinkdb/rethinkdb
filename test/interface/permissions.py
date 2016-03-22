@@ -182,42 +182,42 @@ with driver.Process() as process:
 
     res = permissions.insert({}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "You must specify a primary key", res
+    assert res["first_error"] == "You must specify a primary key.", res
     res = permissions.insert({"id": []}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected an array of one to three items in the primary key, got []", res
+    assert res["first_error"] == "Expected an array of one to three items in the primary key, got [].", res
     res = permissions.insert({"id": [False, False, False, False]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected an array of one to three items in the primary key, got [\n\tfalse,\n\tfalse,\n\tfalse,\n\tfalse\n]", res
+    assert res["first_error"] == "Expected an array of one to three items in the primary key, got [\n\tfalse,\n\tfalse,\n\tfalse,\n\tfalse\n].", res
     res = permissions.insert({"id": [False]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a string as the username, got false", res
+    assert res["first_error"] == "Expected a string as the username, got false.", res
     res = permissions.insert({"id": ["invalid"]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "No user named `invalid`", res
+    assert res["first_error"] == "No user named `invalid`.", res
     res = permissions.insert({"id": ["test", "invalid"]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a UUID as the database, got \"invalid\"", res
+    assert res["first_error"] == "Expected a UUID as the database, got \"invalid\".", res
     res = permissions.insert(
             {
                 "id": ["test", "00000000-0000-0000-0000-000000000000"]
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "No database with UUID `00000000-0000-0000-0000-000000000000` exists", res
+    assert res["first_error"] == "No database with UUID `00000000-0000-0000-0000-000000000000` exists.", res
     res = permissions.insert({"id": ["test", database_id, "invalid"]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a UUID as the table, got \"invalid\"", res
+    assert res["first_error"] == "Expected a UUID as the table, got \"invalid\".", res
     res = permissions.insert(
             {
                 "id": ["test", database_id, "00000000-0000-0000-0000-000000000000"]
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "No table with UUID `00000000-0000-0000-0000-000000000000` exists", res
+    assert res["first_error"] == "No table with UUID `00000000-0000-0000-0000-000000000000` exists.", res
     res = permissions.insert({"id": ["test", database_id, table_id]}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a field `permissions`", res
+    assert res["first_error"] == "Expected a field `permissions`.", res
     res = permissions.insert(
             {
                 "id": ["test", database_id, table_id],
@@ -226,7 +226,7 @@ with driver.Process() as process:
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Unexpected key(s) `invalid`", res
+    assert res["first_error"] == "Unexpected key(s) `invalid`.", res
     res = permissions.insert(
             {
                 "database": "invalid",
@@ -235,7 +235,7 @@ with driver.Process() as process:
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "The key `database` does not match the primary key", res
+    assert res["first_error"] == "The key `database` does not match the primary key.", res
     res = permissions.insert(
             {
                 "database": "test",
@@ -245,14 +245,14 @@ with driver.Process() as process:
             }
         ).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "The key `table` does not match the primary key", res
+    assert res["first_error"] == "The key `table` does not match the primary key.", res
 
     res = permissions.get(["admin"]).update({"config": False}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified.", res
     res = permissions.get(["admin", database_id]).update({"config": False}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified.", res
     res = permissions.get(["admin", database_id, table_id]).update({"config": False}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "The permissions of the user `admin` can't be modified", res
+    assert res["first_error"] == "The permissions of the user `admin` can't be modified.", res

@@ -17,7 +17,7 @@ with driver.Process() as process:
         res = r.grant("test", {"read": 1}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "Expected a boolean or null for `read`, got 1", err
+        assert err.message == "Expected a boolean or null for `read`, got 1."
 
     try:
         res = r.grant("test", {"invalid": "invalid"}).run(conn)
@@ -77,7 +77,7 @@ with driver.Process() as process:
         res = r.db("test").grant("test", {"connect": True}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "The `connect` permission is only valid at the global scope", err
+        assert err.message == "The `connect` permission is only valid at the global scope.", err
 
     try:
         res = r.db("test").grant("test", {"invalid": "invalid"}).run(conn)
@@ -101,7 +101,7 @@ with driver.Process() as process:
         res = r.db("test").table("test").grant("test", {"connect": True}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "The `connect` permission is only valid at the global scope", err
+        assert err.message == "The `connect` permission is only valid at the global scope.", err
 
     try:
         res = r.db("test").table("test").grant("test", {"invalid": "invalid"}).run(conn)
@@ -123,16 +123,16 @@ with driver.Process() as process:
         res = r.grant("admin", {"config": False}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "The permissions of the user `admin` can't be modified", err
+        assert err.message == "The permissions of the user `admin` can't be modified.", err
 
     try:
         res = r.db("test").grant("admin", {"config": False}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "The permissions of the user `admin` can't be modified", err
+        assert err.message == "The permissions of the user `admin` can't be modified.", err
 
     try:
         res = r.db("test").table("test").grant("admin", {"config": False}).run(conn)
         assert False, res
     except r.ReqlOpFailedError, err:
-        assert err.message == "The permissions of the user `admin` can't be modified", err
+        assert err.message == "The permissions of the user `admin` can't be modified.", err
