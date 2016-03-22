@@ -13,6 +13,7 @@
 #include "containers/uuid.hpp"
 #include "region/region.hpp"
 #include "region/region_map.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/serialize_macros.hpp"
 

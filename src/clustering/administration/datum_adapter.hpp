@@ -10,6 +10,7 @@
 #include "containers/name_string.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "time.hpp"
 
 class cluster_semilattice_metadata_t;
@@ -50,6 +51,18 @@ bool convert_uuid_from_datum(
 ql::datum_t convert_name_or_uuid_to_datum(
         const name_string_t &name,
         const uuid_u &uuid,
+        admin_identifier_format_t identifier_format);
+
+ql::datum_t convert_server_id_to_datum(
+        const server_id_t &value);
+bool convert_server_id_from_datum(
+        ql::datum_t datum,
+        server_id_t *value_out,
+        admin_err_t *error_out);
+
+ql::datum_t convert_name_or_server_id_to_datum(
+        const name_string_t &name,
+        const server_id_t &sid,
         admin_identifier_format_t identifier_format);
 
 /* If the given server is connected, sets `*server_name_or_uuid_out` to a datum

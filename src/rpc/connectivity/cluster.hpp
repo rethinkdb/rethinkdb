@@ -18,6 +18,7 @@
 #include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
 
 namespace boost {
