@@ -106,9 +106,6 @@ with driver.Cluster(output_folder='.') as cluster:
     res = r.db("rethinkdb").table("server_config") \
            .get(process2.uuid)["cache_size_mb"].run(reql_conn1)
     assert res == 123, res
-    res = r.db("rethinkdb").table("server_status") \
-           .get(process2.uuid)["process"]["cache_size_mb"].run(reql_conn1)
-    assert res == 123, res
 
     utils.print_with_time("Checking that cache size can be changed...")
     res = r.db("rethinkdb").table("server_config") \
@@ -117,9 +114,6 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 0, res
     res = r.db("rethinkdb").table("server_config") \
            .get(process2.uuid)["cache_size_mb"].run(reql_conn1)
-    assert res == 234, res
-    res = r.db("rethinkdb").table("server_status") \
-           .get(process2.uuid)["process"]["cache_size_mb"].run(reql_conn1)
     assert res == 234, res
 
     utils.print_with_time("Checking that absurd cache sizes are rejected...")
