@@ -41,7 +41,7 @@ public:
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
-    const_charslice() : beg(NULL), end(NULL) { }
+    const_charslice() : beg(nullptr), end(nullptr) { }
 };
 
 void *raw_malloc_aligned(size_t size, size_t alignment);

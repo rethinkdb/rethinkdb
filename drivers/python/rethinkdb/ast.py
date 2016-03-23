@@ -1489,27 +1489,12 @@ class Wait(RqlMethodQuery):
     st = "wait"
 
 
-class WaitTL(RqlTopLevelQuery):
-    tt = pTerm.WAIT
-    st = "wait"
-
-
 class Reconfigure(RqlMethodQuery):
     tt = pTerm.RECONFIGURE
     st = 'reconfigure'
 
 
-class ReconfigureTL(RqlTopLevelQuery):
-    tt = pTerm.RECONFIGURE
-    st = 'reconfigure'
-
-
 class Rebalance(RqlMethodQuery):
-    tt = pTerm.REBALANCE
-    st = 'rebalance'
-
-
-class RebalanceTL(RqlTopLevelQuery):
     tt = pTerm.REBALANCE
     st = 'rebalance'
 

@@ -103,16 +103,16 @@ tests:
       js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); }, {"emit": function(old,row,acc) {return [row];}}).coerce_to("array")
       rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))}, :emit=>lambda{|old,row,acc|([row])}).coerce_to("array")
       ot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(acc.mod(3).eq(0),[row],[]),final_emit=lambda acc: acc).coerce_to("array")
-      js: r.range(0, 10).fold(0, function(acc, row) {return acc.add(1);}, {"emit":function(old,row,n) {return r.branch(n.mod(3).eq(0),[row],[])}, "final_emit" : function (acc) {return acc}}).coerce_to("array")
-      rb: r.range(0, 10).fold(0, lambda{|acc,row|(acc.add(1))}, :emit=> lambda{|old,row,acc|(r.branch(acc.mod(3).eq(0),[row],[]))}, :final_emit=> lambda{|acc|(acc)}).coerce_to("array")
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(acc.mod(3).eq(0),[row],[]),final_emit=lambda acc: [acc]).coerce_to("array")
+      js: r.range(0, 10).fold(0, function(acc, row) {return acc.add(1);}, {"emit":function(old,row,n) {return r.branch(n.mod(3).eq(0),[row],[])}, "final_emit" : function (acc) {return [acc]}}).coerce_to("array")
+      rb: r.range(0, 10).fold(0, lambda{|acc,row|(acc.add(1))}, :emit=> lambda{|old,row,acc|(r.branch(acc.mod(3).eq(0),[row],[]))}, :final_emit=> lambda{|acc|([acc])}).coerce_to("array")
       ot: [2, 5, 8, 10]
     - py: r.range(0, 10).fold([1, 1], lambda acc, _: [acc[1], acc[0].add(acc[1])], emit=lambda old,row,acc: [acc[0]]).coerce_to("array")
       ot: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
     - py: r.range(0, 10).fold(0, lambda acc, _: acc, emit=lambda old,row,acc: acc).type_of()
       ot: "STREAM"
     - py: tbl.filter("id").fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(old.mod(20).eq(0),[row],[])).coerce_to("array")
-      ot: [{u'a': 0, u'id': 20}, {u'a': 3, u'id': 15}, {u'a': 2, u'id': 46}, {u'a': 2, u'id': 78}, {u'a': 2, u'id': 90}]
+      ot: [{'a': 0, 'id': 20}, {'a': 3, 'id': 15}, {'a': 2, 'id': 46}, {'a': 2, 'id': 78}, {'a': 2, 'id': 90}]
 
     - py: r.range().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).limit(10)
       ot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -135,6 +135,10 @@ tests:
 
     - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).changes()
       ot: err("ReqlQueryLogicError", "Cannot call `changes` on an eager stream.")
+
+    # Return array from final_emit
+    - js: r.expr(["a"]).fold(null, function() {return null;}, {emit: function() {return [0]}, finalEmit: function() {return [1, 2, 3]} })
+      ot: [0, 1, 2, 3]
 
     # Concat-map
     - py: tbl.concat_map(lambda row:[])

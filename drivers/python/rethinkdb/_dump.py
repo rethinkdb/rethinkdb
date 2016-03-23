@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
+import sys, os, datetime, time, shutil, tarfile, tempfile, subprocess, os.path
 from optparse import OptionParser
 from ._backup import *
 
@@ -23,6 +23,7 @@ def print_dump_help():
     print("  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults")
     print("                                   to 3)")
     print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
+    print("  --overwrite-file                 don't abort when file given via --file already exists")
     print("")
     print("EXAMPLES:")
     print("rethinkdb dump -c mnemosyne:39500")
@@ -42,6 +43,7 @@ def parse_options():
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
+    parser.add_option("--overwrite-file", dest="overwrite_file", default=False, action="store_true")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
@@ -61,13 +63,17 @@ def parse_options():
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid output file
-    res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+    if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S")
+    else:
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+
     if options.out_file is None:
         res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
     else:
         res["out_file"] = os.path.abspath(options.out_file)
 
-    if os.path.exists(res["out_file"]):
+    if os.path.exists(res["out_file"]) and not options.overwrite_file:
         raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
     # Verify valid client count
@@ -112,17 +118,19 @@ def do_export(temp_dir, options):
 def do_zip(temp_dir, options):
     print("Zipping export directory...")
     start_time = time.time()
-    tar_args = ["tar", "czf", options["out_file"]]
+    original_dir = os.getcwd()
 
-    if sys.platform.startswith("linux"):
-        # Tar on OSX does not support this flag, which may be useful with low free space
-        tar_args.append("--remove-files")
+    try:
+        os.chdir(temp_dir)
+        with tarfile.open(options["out_file"], "w:gz") as f:
+            for curr, subdirs, files in os.walk(options["temp_filename"]):
+                for data_file in files:
+                    path = os.path.join(curr, data_file)
+                    f.add(path)
+                    os.unlink(path)
+    finally:
+        os.chdir(original_dir)
 
-    tar_args.extend(["-C", temp_dir])
-    tar_args.append(options["temp_filename"])
-    res = subprocess.call(tar_args)
-    if res != 0:
-        raise RuntimeError("Error: tar of export directory failed")
     print("  Done (%d seconds)" % (time.time() - start_time))
 
 def run_rethinkdb_export(options):

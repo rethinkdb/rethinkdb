@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
+import sys, os, datetime, time, shutil, tarfile, tempfile, subprocess, os.path
 from optparse import OptionParser
 from ._backup import *
 
@@ -108,29 +108,52 @@ def parse_options():
 def do_unzip(temp_dir, options):
     print("Unzipping archive file...")
     start_time = time.time()
-    tar_args = ["tar", "xzf", options["in_file"], "--strip-components=1"]
-    tar_args.extend(["-C", temp_dir])
+    original_dir = os.getcwd()
+    sub_path = None
 
-    if sys.platform.startswith("linux"):
-        # These are not supported on OSX (and not needed, default behavior works)
-        tar_args.extend(["--force-local", "--wildcards"])
+    tables_to_export = set(options["tables"])
+    members = []
 
-    # Only untar the selected tables
-    # Apparently tar has problems if the same file is specified by two filters, so remove dupes
-    dbs_to_export = set()
-    for db, table in set(options["tables"]):
-        if table is None:
-            dbs_to_export.add(db)
-            tar_args.append(os.path.join("*", db))
-    for db, table in set(options["tables"]):
-        if table is not None and db not in dbs_to_export:
-            tar_args.append(os.path.join("*", db, table + ".*"))
+    def parse_path(member):
+        path = os.path.normpath(member.name)
+        if member.isdir():
+            return ('', '', '')
+        if not member.isfile():
+            raise RuntimeError("Error: Archive file contains an unexpected entry type")
+        if not os.path.realpath(os.path.abspath(path)).startswith(os.getcwd()):
+            raise RuntimeError("Error: Archive file contains unexpected absolute or relative path")
+        path, table_file = os.path.split(path)
+        path, db = os.path.split(path)
+        path, base = os.path.split(path)
+        return (base, db, os.path.splitext(table_file)[0])
 
-    res = subprocess.call(tar_args)
-    if res != 0:
-        raise RuntimeError("Error: untar of archive '%s' failed" % options["in_file"])
+    with tarfile.open(options["in_file"], "r:gz") as f:
+        os.chdir(temp_dir)
+        try:
+            for member in f:
+                (base, db, table) = parse_path(member)
+
+                if len(base) > 0:
+                    if sub_path is None:
+                        sub_path = base
+                    elif sub_path != base:
+                        raise RuntimeError("Error: Archive file has an unexpected directory structure")
+
+                    if len(tables_to_export) == 0 or \
+                       (db, table) in tables_to_export or \
+                       (db, None) in tables_to_export:
+                        members.append(member)
+
+            if sub_path is None:
+                raise RuntimeError("Error: Archive file has an unexpected directory structure")
+
+            f.extractall(members=members)
+
+        finally:
+            os.chdir(original_dir)
 
     print("  Done (%d seconds)" % (time.time() - start_time))
+    return os.path.join(temp_dir, sub_path)
 
 def do_import(temp_dir, options):
     print("Importing from directory...")
@@ -154,7 +177,7 @@ def do_import(temp_dir, options):
     if options["force"]:
         import_args.append("--force")
     if options["debug"]:
-        export_args.extend(["--debug"])
+        import_args.extend(["--debug"])
     if not options["create_sindexes"]:
         import_args.extend(["--no-secondary-indexes"])
 
@@ -171,8 +194,8 @@ def run_rethinkdb_import(options):
     res = -1
 
     try:
-        do_unzip(temp_dir, options)
-        do_import(temp_dir, options)
+        sub_dir = do_unzip(temp_dir, options)
+        do_import(sub_dir, options)
     except KeyboardInterrupt:
         time.sleep(0.2)
         raise RuntimeError("Interrupted")

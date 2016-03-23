@@ -59,11 +59,11 @@ template
 versioned_t<std::string> migrate_vclock<std::string>(
     const metadata_v1_14::vclock_t<std::string> &);
 
-template<class old_t, class new_t>
-std::map<uuid_u, deletable_t<new_t> > migrate_map(
-        const std::map<uuid_u, deletable_t<old_t> > &old_map,
+template<class key_t, class old_t, class new_t>
+std::map<key_t, deletable_t<new_t> > migrate_map(
+        const std::map<key_t, deletable_t<old_t> > &old_map,
         const std::function<new_t(const old_t &)> &converter) {
-    std::map<uuid_u, deletable_t<new_t> > new_map;
+    std::map<key_t, deletable_t<new_t> > new_map;
     for (const auto &pair : old_map) {
         if (pair.second.is_deleted()) {
             new_map[pair.first].mark_deleted();
@@ -98,6 +98,7 @@ metadata_v1_16::databases_semilattice_metadata_t migrate_databases(
         const metadata_v1_14::databases_semilattice_metadata_t &old_md) {
     metadata_v1_16::databases_semilattice_metadata_t new_md;
     new_md.databases = migrate_map<
+            database_id_t,
             metadata_v1_14::database_semilattice_metadata_t,
             metadata_v1_16::database_semilattice_metadata_t>(
         old_md.databases,
@@ -132,6 +133,7 @@ metadata_v1_16::servers_semilattice_metadata_t migrate_servers(
         const metadata_v1_14::datacenters_semilattice_metadata_t &datacenters) {
     metadata_v1_16::servers_semilattice_metadata_t new_md;
     new_md.servers = migrate_map<
+            server_id_t,
             metadata_v1_14::machine_semilattice_metadata_t,
             metadata_v1_16::server_semilattice_metadata_t>(
         old_md.machines,
@@ -278,7 +280,7 @@ metadata_v1_16::namespace_semilattice_metadata_t migrate_table(
                 role = it->second;
             }
             if (role == metadata_v1_14::blueprint_role_primary) {
-                if (!s->primary_replica.is_unset()) {
+                if (!s->primary_replica.get_uuid().is_unset()) {
                     logERR("Metadata corruption detected when migrating to RethinkDB "
                         "1.16 format: table `%s.%s` has two different servers listed as "
                         "primary replica for a single shard.",
@@ -297,11 +299,11 @@ metadata_v1_16::namespace_semilattice_metadata_t migrate_table(
     }
     for (size_t i = 0; i < repli_info.shard_scheme.num_shards(); ++i) {
         metadata_v1_16::table_config_t::shard_t *s = &repli_info.config.shards[i];
-        if (s->primary_replica.is_unset()) {
+        if (s->primary_replica.get_uuid().is_unset()) {
             /* This is probably impossible unless the user was mucking around with
             `/ajax`, but fortunately there's a pretty simple translation that won't break
             anything. */
-            s->primary_replica = nil_uuid();
+            s->primary_replica = server_id_t::from_server_uuid(nil_uuid());
         }
     }
 
@@ -429,7 +431,7 @@ metadata_v1_16::namespace_semilattice_metadata_t migrate_table(
             on the pre-v1.16 metadata we consulted. This ensures that if we apply this
             procedure to two servers' metadata, and one has a more up-to-date vector
             clock, then the one with the more up-to-date vector clock will produce a
-            `versioned_t` with a later timestamp. */ 
+            `versioned_t` with a later timestamp. */
             std::numeric_limits<time_t>::min() + 1 +
                 blueprint_vclock_total + acks_vclock_total,
             repli_info);
@@ -445,6 +447,7 @@ metadata_v1_16::namespaces_semilattice_metadata_t migrate_tables(
         const metadata_v1_14::machines_semilattice_metadata_t &machines) {
     metadata_v1_16::namespaces_semilattice_metadata_t new_md;
     new_md.namespaces = migrate_map<
+            namespace_id_t,
             metadata_v1_14::namespace_semilattice_metadata_t,
             metadata_v1_16::namespace_semilattice_metadata_t>(
         old_md.namespaces,

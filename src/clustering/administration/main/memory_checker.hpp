@@ -21,7 +21,7 @@ class table_meta_client_t;
 // If we're using swap, it creates an issue in a local issue tracker, and logs an error.
 class memory_checker_t : private repeating_timer_callback_t {
 public:
-    memory_checker_t(rdb_context_t *_rdb_ctx);
+    memory_checker_t();
 
     memory_issue_tracker_t *get_memory_issue_tracker() {
         return &memory_issue_tracker;
@@ -33,8 +33,6 @@ private:
                                          this,
                                          drainer.lock()));
     }
-    rdb_context_t *const rdb_ctx;
-
     memory_issue_tracker_t memory_issue_tracker;
 
     uint64_t refresh_timer;

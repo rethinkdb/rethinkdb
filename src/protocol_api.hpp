@@ -97,7 +97,7 @@ public:
     virtual std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t) = 0;
 
-    virtual signal_t *get_initial_ready_signal() { return NULL; }
+    virtual signal_t *get_initial_ready_signal() { return nullptr; }
 
     virtual bool check_readiness(table_readiness_t readiness,
                                  signal_t *interruptor) = 0;
@@ -113,12 +113,12 @@ protected:
 //    conflict occurs.
 //  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
 //    occurs.
-enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE, FUNCTION };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       int8_t,
                                       conflict_behavior_t::ERROR,
-                                      conflict_behavior_t::UPDATE);
+                                      conflict_behavior_t::FUNCTION);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.

@@ -30,7 +30,7 @@ table_query_client_t::table_query_client_t(
         std::bind(&table_query_client_t::update_registrant,
             this, ph::_1, ph::_2),
         initial_call_t::YES) {
-    rassert(ctx != NULL);
+    rassert(ctx != nullptr);
     starting_up = false;
     if (start_count == 0) {
         start_cond.pulse();
@@ -205,7 +205,7 @@ void table_query_client_t::dispatch_immediate_op(
     relationships.visit(region_t::universe(),
     [&](const region_t &reg, const std::set<relationship_t *> &rels) {
         if (op.shard(reg, &new_op_info->sharded_op)) {
-            relationship_t *chosen_relationship = NULL;
+            relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
                 if ((*jt)->primary_client) {
                     if (chosen_relationship) {
@@ -341,7 +341,7 @@ void table_query_client_t::dispatch_outdated_read(
     [&](const region_t &region, const std::set<relationship_t *> &rels) {
         if (op.shard(region, &new_op_info->sharded_op)) {
             std::vector<relationship_t *> potential_relationships;
-            relationship_t *chosen_relationship = NULL;
+            relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
                 if ((*jt)->direct_bcard != nullptr) {
                     if ((*jt)->is_local) {

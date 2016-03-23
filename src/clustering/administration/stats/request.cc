@@ -54,7 +54,7 @@ parsed_stats_t::parsed_stats_t(const std::vector<ql::datum_t> &stats) {
                                                   ql::throw_bool_t::NOTHROW);
         server_id_t server_id;
         admin_err_t error;
-        bool res = convert_uuid_from_datum(server_id_datum, &server_id, &error);
+        bool res = convert_server_id_from_datum(server_id_datum, &server_id, &error);
         guarantee(res, "Stats contained an invalid server id. %s", error.msg.c_str());
 
         server_stats_t &serv_stats = servers[server_id];
@@ -391,9 +391,9 @@ bool server_stats_request_t::parse(const ql::datum_t &info,
         return false;
     }
 
-    admin_err_t dummy_error;
     server_id_t s;
-    if (!convert_uuid_from_datum(info.get(1), &s, &dummy_error)) {
+    admin_err_t dummy_error;
+    if (!convert_server_id_from_datum(info.get(1), &s, &dummy_error)) {
         return false;
     }
     request_out->init(new server_stats_request_t(s));
@@ -429,7 +429,7 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
     ql::datum_object_builder_t row_builder;
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
-    id_builder.add(convert_uuid_to_datum(server_id));
+    id_builder.add(convert_uuid_to_datum(server_id.get_uuid()));
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;
@@ -479,7 +479,7 @@ bool table_server_stats_request_t::parse(const ql::datum_t &info,
     if (!convert_uuid_from_datum(info.get(1), &t, &dummy_error)) {
         return false;
     }
-    if (!convert_uuid_from_datum(info.get(2), &s, &dummy_error)) {
+    if (!convert_server_id_from_datum(info.get(2), &s, &dummy_error)) {
         return false;
     }
     request_out->init(new table_server_stats_request_t(t, s));
@@ -517,7 +517,7 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(get_name()));
     id_builder.add(convert_uuid_to_datum(table_id));
-    id_builder.add(convert_uuid_to_datum(server_id));
+    id_builder.add(convert_uuid_to_datum(server_id.get_uuid()));
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;

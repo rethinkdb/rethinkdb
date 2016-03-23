@@ -155,7 +155,7 @@ private:
 
 SPAWNER_TEST(ExtProc, SimpleJob) {
     extproc_pool_t pool(2);
-    fib_job_t job(10, &pool, NULL);
+    fib_job_t job(10, &pool, nullptr);
     uint64_t result = job.run();
     ASSERT_EQ(fib(10), result);
 }
@@ -164,7 +164,7 @@ SPAWNER_TEST(ExtProc, TalkativeJob) {
     extproc_pool_t pool(2);
 
     uint64_t n = 78;
-    collatz_job_t job(n, &pool, NULL); // takes 35 iterations to reach 1
+    collatz_job_t job(n, &pool, nullptr); // takes 35 iterations to reach 1
 
     do {
         n = collatz(n);
@@ -174,7 +174,7 @@ SPAWNER_TEST(ExtProc, TalkativeJob) {
 }
 
 void run_single_job(extproc_pool_t *pool, size_t *counter, cond_t *done) {
-    fib_job_t job(10, pool, NULL);
+    fib_job_t job(10, pool, nullptr);
 
     int result = job.run();
     int expected = fib(10);
@@ -219,7 +219,7 @@ class base_crash_job_t {
 public:
     base_crash_job_t(extproc_pool_t *pool,
                      bool (*worker_fn) (read_stream_t *, write_stream_t *)) :
-        extproc_job(pool, worker_fn, NULL) { }
+        extproc_job(pool, worker_fn, nullptr) { }
 
     void read() {
         int data;
@@ -305,7 +305,7 @@ SPAWNER_TEST(ExtProc, CrashedJob) {
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -319,7 +319,7 @@ SPAWNER_TEST(ExtProc, CrashedJob) {
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -335,7 +335,7 @@ SPAWNER_TEST(ExtProc, CrashedJob) {
     */
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -352,7 +352,7 @@ SPAWNER_TEST(ExtProc, CrashedJob) {
     */
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -383,11 +383,11 @@ SPAWNER_TEST(ExtProc, HangingJob) {
 
     // Run a job that never returns, then make sure it recovers and we can still run more jobs
     {
-        hang_job_t hanger(&pool, NULL);
+        hang_job_t hanger(&pool, nullptr);
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -397,7 +397,7 @@ SPAWNER_TEST(ExtProc, HangingJob) {
 class corrupt_job_t {
 public:
     explicit corrupt_job_t(extproc_pool_t *pool) :
-        extproc_job(pool, &worker_fn, NULL) { }
+        extproc_job(pool, &worker_fn, nullptr) { }
 
     void corrupt(bool direction) {
         write_message_t wm;
@@ -445,7 +445,7 @@ SPAWNER_TEST(ExtProc, CorruptJob) {
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -458,7 +458,7 @@ SPAWNER_TEST(ExtProc, CorruptJob) {
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        fib_job_t job(10, &pool, NULL);
+        fib_job_t job(10, &pool, nullptr);
         uint64_t res = job.run();
         uint64_t expected = fib(10);
         ASSERT_EQ(res, expected);
@@ -486,7 +486,7 @@ SPAWNER_TEST(ExtProc, InterruptJobByPool) {
     pool.create(2);
 
     {
-        fib_job_t job(10, pool.get(), NULL);
+        fib_job_t job(10, pool.get(), nullptr);
 
         coro_t::spawn_now_dangerously(std::bind(&interrupt_job_by_pool_internal,
                                                 &pool, &done));

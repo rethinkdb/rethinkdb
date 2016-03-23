@@ -46,7 +46,7 @@
 
 http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
                                             ip_and_port_t client_addr_port) :
-    last_accessed(time(0)),
+    last_accessed(time(nullptr)),
     // We always return empty normal batches after the timeout for HTTP
     // connections; I think we have to do this to keep the conn cache
     // from timing out.
@@ -60,7 +60,7 @@ http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
     counter(&rdb_ctx->stats.client_connections) { }
 
 ql::query_cache_t *http_conn_cache_t::http_conn_t::get_query_cache() {
-    last_accessed = time(0);
+    last_accessed = time(nullptr);
     return query_cache.get();
 }
 
@@ -111,7 +111,7 @@ std::string http_conn_cache_t::expired_error_message() const {
 }
 
 bool http_conn_cache_t::is_expired(const http_conn_t &conn) const {
-    return difftime(time(0), conn.last_accessed_time()) > http_timeout_sec;
+    return difftime(time(nullptr), conn.last_accessed_time()) > http_timeout_sec;
 }
 
 counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(
@@ -201,12 +201,14 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
                                const std::set<ip_address_t> &local_addresses,
                                int port,
                                query_handler_t *_handler,
-                               uint32_t http_timeout_sec) :
+                               uint32_t http_timeout_sec,
+                               SSL_CTX *_tls_ctx) :
+        tls_ctx(_tls_ctx),
         rdb_ctx(_rdb_ctx),
         handler(_handler),
         http_conn_cache(http_timeout_sec),
         next_thread(0) {
-    rassert(rdb_ctx != NULL);
+    rassert(rdb_ctx != nullptr);
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
             std::bind(&query_server_t::handle_conn,
@@ -263,7 +265,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     on_thread_t rethreader(chosen_thread);
 
     scoped_ptr_t<tcp_conn_t> conn;
-    nconn->make_overcomplicated(&conn);
+
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, &ct_keepalive);
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
+
     conn->enable_keepalive();
 
     std::string error;

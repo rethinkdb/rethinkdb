@@ -476,7 +476,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
         table_out->reset(new real_table_t(nil_uuid(), table_access,
-                                          it->second->get_primary_key(), NULL));
+                                          it->second->get_primary_key(), nullptr));
         return true;
     }
 }

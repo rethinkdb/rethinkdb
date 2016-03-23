@@ -3,9 +3,6 @@
 
 #include "clustering/administration/auth/crypto/saslprep.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "containers/archive/versioned.hpp"
-
-#include <iostream>
 
 namespace auth {
 
@@ -16,7 +13,6 @@ username_t::username_t(std::string const &username) {
     if (m_username.empty()) {
         // FIXME error
     }
-    std::cout << "-- '" << m_username << "'\n";
 }
 
 bool username_t::is_admin() const {

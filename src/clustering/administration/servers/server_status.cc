@@ -21,6 +21,7 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
         server_config_client_t *_server_config_client) :
     common_server_artificial_table_backend_t(_server_config_client, _directory),
+    server_config_client(_server_config_client),
     directory_subs(_directory,
         [&](const peer_id_t &peer, const cluster_directory_metadata_t *metadata) {
             if (metadata == nullptr) {
@@ -47,7 +48,7 @@ bool server_status_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("name",
         convert_name_to_datum(metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_server_id_to_datum(server_id));
 
     ql::datum_object_builder_t proc_builder;
     proc_builder.overwrite("time_started",
@@ -63,7 +64,39 @@ bool server_status_artificial_table_backend_t::format_row(
         static_cast<double>(metadata.actual_cache_size_bytes) / MEGABYTE));
     builder.overwrite("process", std::move(proc_builder).to_datum());
 
+    ASSERT_NO_CORO_WAITING;
+    server_config_client->assert_thread();
+    const server_connectivity_t& connect =
+        server_config_client->get_server_connectivity();
     ql::datum_object_builder_t net_builder;
+    ql::datum_object_builder_t server_connect_builder;
+
+    for (auto pair : connect.all_servers) {
+        ql::datum_t server_name_or_uuid;
+        if (!convert_connected_server_id_to_datum(
+                pair.first,
+                admin_identifier_format_t::name,
+                server_config_client,
+                &server_name_or_uuid,
+                nullptr)) {
+            server_name_or_uuid = ql::datum_t(
+                datum_string_t(pair.first.print()));
+        }
+        if (server_id != pair.first) {
+            bool is_connected = false;
+            const auto server_it = connect.connected_to.find(server_id);
+            if (server_it != connect.connected_to.end() &&
+                  server_it->second.count(pair.first) > 0) {
+                is_connected = true;
+            }
+            guarantee(
+                !server_connect_builder.add(
+                    server_name_or_uuid.as_str(),
+                    ql::datum_t::boolean(is_connected)));
+        }
+    }
+    net_builder.overwrite("connected_to",
+                          std::move(server_connect_builder).to_datum());
     net_builder.overwrite("hostname",
         ql::datum_t(datum_string_t(metadata.proc.hostname)));
     net_builder.overwrite("cluster_port",

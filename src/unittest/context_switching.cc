@@ -26,9 +26,9 @@ TEST(ContextSwitchingTest, CreateArtificialStack) {
 `void*` to the test functions... */
 
 static THREAD_LOCAL coro_context_ref_t
-    *original_context = NULL,
-    *artificial_stack_1_context = NULL,
-    *artificial_stack_2_context = NULL;
+    *original_context = nullptr,
+    *artificial_stack_1_context = nullptr,
+    *artificial_stack_2_context = nullptr;
 static THREAD_LOCAL int test_int;
 
 static void switch_context_test(void) {
@@ -61,7 +61,7 @@ TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
         EXPECT_FALSE(a.context.is_nil());
     }
     EXPECT_EQ(test_int, 11);
-    original_context = NULL;
+    original_context = nullptr;
 }
 
 static void first_switch(void) {
@@ -87,7 +87,7 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
         context_switch(original_context, artificial_stack_1_context);
     }
     EXPECT_EQ(test_int, 101);
-    original_context = NULL;
+    original_context = nullptr;
 }
 
 NORETURN static void throw_an_exception() {

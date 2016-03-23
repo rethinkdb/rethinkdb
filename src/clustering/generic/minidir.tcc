@@ -100,8 +100,8 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
     }
 }
 
-template<class key_t, class value_t>
-minidir_write_manager_t<key_t, value_t>::minidir_write_manager_t(
+template<class reader_id_t, class key_t, class value_t>
+minidir_write_manager_t<reader_id_t, key_t, value_t>::minidir_write_manager_t(
         mailbox_manager_t *_mm,
         watchable_map_t<key_t, value_t> *_values,
         watchable_map_t<reader_id_t, minidir_bcard_t<key_t, value_t> > *_readers) :
@@ -123,8 +123,8 @@ minidir_write_manager_t<key_t, value_t>::minidir_write_manager_t(
         initial_call_t::YES)
     { }
 
-template<class key_t, class value_t>
-minidir_write_manager_t<key_t, value_t>::~minidir_write_manager_t() {
+template<class reader_id_t, class key_t, class value_t>
+minidir_write_manager_t<reader_id_t, key_t, value_t>::~minidir_write_manager_t() {
     ASSERT_FINITE_CORO_WAITING;
     /* Send a closing message to every existing link */
     for (auto &&peer_pair : peer_map) {
@@ -139,8 +139,8 @@ minidir_write_manager_t<key_t, value_t>::~minidir_write_manager_t() {
     stopping = true;
 }
 
-template<class key_t, class value_t>
-void minidir_write_manager_t<key_t, value_t>::on_connection_change(
+template<class reader_id_t, class key_t, class value_t>
+void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_connection_change(
         const peer_id_t &peer,
         const connectivity_cluster_t::connection_pair_t *pair) {
     auto it = peer_map.find(peer);
@@ -152,8 +152,8 @@ void minidir_write_manager_t<key_t, value_t>::on_connection_change(
     }
 }
 
-template<class key_t, class value_t>
-void minidir_write_manager_t<key_t, value_t>::on_value_change(
+template<class reader_id_t, class key_t, class value_t>
+void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_value_change(
         const key_t &key,
         const value_t *value) {
     boost::optional<value_t> value_optional;
@@ -167,8 +167,8 @@ void minidir_write_manager_t<key_t, value_t>::on_value_change(
     }
 }
 
-template<class key_t, class value_t>
-void minidir_write_manager_t<key_t, value_t>::on_reader_change(
+template<class reader_id_t, class key_t, class value_t>
+void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_reader_change(
         const reader_id_t &reader_id,
         const minidir_bcard_t<key_t, value_t> *bcard) {
     if (stopping) {
@@ -230,8 +230,8 @@ void minidir_write_manager_t<key_t, value_t>::on_reader_change(
     }
 }
 
-template<class key_t, class value_t>
-void minidir_write_manager_t<key_t, value_t>::spawn_update(
+template<class reader_id_t, class key_t, class value_t>
+void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_update(
         typename peer_data_t::link_data_t *link_data,
         const key_t &key,
         const boost::optional<value_t> &value) {
@@ -246,8 +246,8 @@ void minidir_write_manager_t<key_t, value_t>::spawn_update(
     });
 }
 
-template<class key_t, class value_t>
-void minidir_write_manager_t<key_t, value_t>::spawn_closing_link(
+template<class reader_id_t, class key_t, class value_t>
+void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_closing_link(
         typename peer_data_t::link_data_t *link_data) {
     minidir_link_id_t link_id = link_data->link_id;
     minidir_bcard_t<key_t, value_t> bcard = link_data->bcard;

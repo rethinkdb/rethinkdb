@@ -1,9 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/password.hpp"
 
-#include <openssl/evp.h>
-#include <openssl/sha.h>
-
 #include "clustering/administration/auth/crypto/pbkcs5_pbkdf2_hmac.hpp"
 #include "clustering/administration/auth/crypto/random.hpp"
 #include "containers/archive/stl_types.hpp"

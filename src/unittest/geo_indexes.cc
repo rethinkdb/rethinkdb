@@ -217,11 +217,11 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
 
     nearest_geo_read_response_t *geo_response =
         boost::get<nearest_geo_read_response_t>(&response.response);
-    if (geo_response == NULL) {
+    if (geo_response == nullptr) {
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<nearest_geo_read_response_t::dist_pair_t>();
     }
-    if (boost::get<ql::exc_t>(&geo_response->results_or_error) != NULL) {
+    if (boost::get<ql::exc_t>(&geo_response->results_or_error) != nullptr) {
         ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->results_or_error)->what();
         return std::vector<nearest_geo_read_response_t::dist_pair_t>();
     }
@@ -339,7 +339,8 @@ std::vector<datum_t> perform_get_intersecting(
                 idx_name,
                 region_t::universe(),
                 ql::datumspec_t(
-                    ql::datum_range_t::universe())),
+                    ql::datum_range_t::universe()),
+                require_sindexes_t::NO),
             query_geometry),
         profile_bool_t::PROFILE,
         read_mode_t::SINGLE);
@@ -355,17 +356,17 @@ std::vector<datum_t> perform_get_intersecting(
 
     rget_read_response_t *geo_response =
         boost::get<rget_read_response_t>(&response.response);
-    if (geo_response == NULL) {
+    if (geo_response == nullptr) {
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<datum_t>();
     }
-    if (boost::get<ql::exc_t>(&geo_response->result) != NULL) {
+    if (boost::get<ql::exc_t>(&geo_response->result) != nullptr) {
         ADD_FAILURE() << boost::get<ql::exc_t>(&geo_response->result)->what();
         return std::vector<datum_t>();
     }
 
     auto result = boost::get<ql::grouped_t<ql::stream_t> >(&geo_response->result);
-    if (result == NULL) {
+    if (result == nullptr) {
         ADD_FAILURE() << "got wrong type of result back";
         return std::vector<datum_t>();
     }

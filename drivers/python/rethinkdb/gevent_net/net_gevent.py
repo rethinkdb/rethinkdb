@@ -62,10 +62,9 @@ class SocketWrapper(object):
         self.ssl = parent._parent.ssl
 
         try:
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            self._socket = socket.create_connection((self.host, self.port))
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            self._socket.connect((self.host, self.port))
 
             if len(self.ssl) > 0:
                 ssl_context = self._get_ssl_context(self.ssl["ca_certs"])

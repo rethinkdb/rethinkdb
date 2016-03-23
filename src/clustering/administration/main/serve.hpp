@@ -2,10 +2,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
+#include <openssl/ssl.h>
+
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+#include <memory>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file.hpp"
@@ -49,6 +52,9 @@ struct service_address_ports_t {
         port_offset(0) { }
 
     service_address_ports_t(const std::set<ip_address_t> &_local_addresses,
+                            const std::set<ip_address_t> &_local_addresses_cluster,
+                            const std::set<ip_address_t> &_local_addresses_driver,
+                            const std::set<ip_address_t> &_local_addresses_http,
                             const peer_address_t &_canonical_addresses,
                             int _port,
                             int _client_port,
@@ -57,6 +63,9 @@ struct service_address_ports_t {
                             int _reql_port,
                             int _port_offset) :
         local_addresses(_local_addresses),
+        local_addresses_cluster(_local_addresses_cluster),
+        local_addresses_driver(_local_addresses_driver),
+        local_addresses_http(_local_addresses_http),
         canonical_addresses(_canonical_addresses),
         port(_port),
         client_port(_client_port),
@@ -71,11 +80,16 @@ struct service_address_ports_t {
             sanitize_port(reql_port, "reql_port", port_offset);
     }
 
-    std::string get_addresses_string() const;
+    std::string get_addresses_string(
+        std::set<ip_address_t> actual_addresses) const;
 
-    bool is_bind_all() const;
+    bool is_bind_all(std::set<ip_address_t> addresses) const;
 
     std::set<ip_address_t> local_addresses;
+    std::set<ip_address_t> local_addresses_cluster;
+    std::set<ip_address_t> local_addresses_driver;
+    std::set<ip_address_t> local_addresses_http;
+
     peer_address_t canonical_addresses;
     int port;
     int client_port;
@@ -83,6 +97,15 @@ struct service_address_ports_t {
     int http_port;
     int reql_port;
     int port_offset;
+};
+
+typedef std::shared_ptr<SSL_CTX> shared_ssl_ctx_t;
+
+class tls_configs_t {
+public:
+    shared_ssl_ctx_t web;
+    shared_ssl_ctx_t driver;
+    shared_ssl_ctx_t cluster;
 };
 
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names);
@@ -95,7 +118,8 @@ public:
                  update_check_t _do_version_checking,
                  service_address_ports_t _ports,
                  boost::optional<std::string> _config_file,
-                 std::vector<std::string> &&_argv) :
+                 std::vector<std::string> &&_argv,
+                 tls_configs_t _tls_configs) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
         web_assets(std::move(_web_assets)),
@@ -103,7 +127,9 @@ public:
         ports(_ports),
         config_file(_config_file),
         argv(std::move(_argv))
-    { }
+    {
+        tls_configs = _tls_configs;
+    }
 
     void look_up_peers() {
         peers = look_up_peers_addresses(joins);
@@ -119,6 +145,7 @@ public:
     /* The original arguments, so we can display them in `server_status`. All the
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;
+    tls_configs_t tls_configs;
 };
 
 /* This has been factored out from `command_line.hpp` because it takes a very

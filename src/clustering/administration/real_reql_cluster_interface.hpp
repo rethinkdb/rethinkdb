@@ -40,8 +40,7 @@ public:
             multi_table_manager_t *multi_table_manager,
             watchable_map_t<
                 std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
-                table_query_bcard_t> *table_query_directory
-            );
+                table_query_bcard_t> *table_query_directory);
 
     bool db_create(
             auth::user_context_t const &user_context,

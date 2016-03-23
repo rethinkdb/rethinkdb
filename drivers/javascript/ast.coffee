@@ -57,7 +57,7 @@ class TermBase
             self.__proto__ = @.__proto__
             return self
         else
-            @
+            return @
 
     run: (connection, options, callback) ->
         # Valid syntaxes are

@@ -8,7 +8,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.defer import DeferredQueue, CancelledError
 from twisted.internet.protocol import ClientFactory, Protocol
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
@@ -275,8 +275,14 @@ class ConnectionInstance(object):
     @inlineCallbacks
     def _connectTimeout(self, factory, timeout):
         try:
-            endpoint = TCP4ClientEndpoint(reactor, self._parent.host, self._parent.port,
-                        timeout=timeout)
+            # TODO: use ssl options
+            # TODO: this doesn't work for literal IPv6 addresses like '::1'
+            args = "tcp:%s:%d" % (self._parent.host, self._parent.port)
+
+            if timeout is not None:
+                args = args + (":timeout=%d" % timeout)
+
+            endpoint = clientFromString(reactor, args)
             p = yield endpoint.connect(factory)
             returnValue(p)
         except TimeoutError:

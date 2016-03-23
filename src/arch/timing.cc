@@ -25,19 +25,19 @@ void nap(int64_t ms, const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
 
 // signal_timer_t
 
-signal_timer_t::signal_timer_t() : timer(NULL) { }
-signal_timer_t::signal_timer_t(int64_t ms) : timer(NULL) {
+signal_timer_t::signal_timer_t() : timer(nullptr) { }
+signal_timer_t::signal_timer_t(int64_t ms) : timer(nullptr) {
     start(ms);
 }
 
 signal_timer_t::~signal_timer_t() {
-    if (timer != NULL) {
+    if (timer != nullptr) {
         cancel_timer(timer);
     }
 }
 
 void signal_timer_t::start(int64_t ms) {
-    guarantee(timer == NULL);
+    guarantee(timer == nullptr);
     guarantee(!is_pulsed());
     if (ms == 0) {
         pulse();
@@ -48,20 +48,20 @@ void signal_timer_t::start(int64_t ms) {
 }
 
 bool signal_timer_t::cancel() {
-    if (timer != NULL) {
+    if (timer != nullptr) {
         cancel_timer(timer);
-        timer = NULL;
+        timer = nullptr;
         return true;
     }
     return false;
 }
 
 bool signal_timer_t::is_running() const {
-    return is_pulsed() || timer != NULL;
+    return is_pulsed() || timer != nullptr;
 }
 
 void signal_timer_t::on_timer() {
-    timer = NULL;
+    timer = nullptr;
     pulse();
 }
 

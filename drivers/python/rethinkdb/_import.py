@@ -201,7 +201,7 @@ def parse_options():
         res["directory"] = os.path.abspath(dirname)
 
         if not os.path.exists(res["directory"]):
-            raise RuntimeError("Error: Directory to import does not exist: %d" % res["directory"])
+            raise RuntimeError("Error: Directory to import does not exist: %s" % res["directory"])
 
         # Verify valid --import options
         res["db_tables"] = parse_db_table_options(options.tables)
@@ -556,7 +556,8 @@ def create_table(progress, conn, db, table, create_args, sindexes):
             progress[0] += 1
         r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
     except RuntimeError:
-        throw RuntimeError("Sindex warning")
+        raise RuntimeError("Sindex warning")
+
 def table_reader(options, file_info, task_queue, error_queue, warning_queue, progress_info, exit_event):
     try:
         db = file_info["db"]
@@ -714,7 +715,7 @@ def spawn_import_clients(options, files_info):
                 print("In file: %s" % error[3], file=sys.stderr)
         raise RuntimeError("Errors occurred during import")
 
-    if len(warning_queue) != 0:
+    if not warning_queue.empty():
         while not warning_queue.empty():
             warning = warning_queue.get()
             print("%s" % warning[1], file=sys.stderr)

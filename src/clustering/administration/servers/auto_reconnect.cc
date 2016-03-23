@@ -35,8 +35,12 @@ void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
     // what we define in `initial_joiner_t::on_connection_change`, or else we might
     // never start the `try_reconnect` routine for an initial join peer.
     if (static_cast<bool>(conn)) {
-        addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
-        server_ids[peer_id] = conn->first->get_server_id();
+        // We never reconnect *to* proxies. If we are a full server, the proxy is going
+        // to connect to us instead.
+        if (!conn->first->get_server_id().is_proxy()) {
+            addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
+            server_ids[peer_id] = conn->first->get_server_id();
+        }
     } else if (!static_cast<bool>(server_id) && !static_cast<bool>(conn)) {
         auto it = server_ids.find(peer_id);
         if (it != server_ids.end()) {

@@ -220,10 +220,12 @@ connectivity_cluster_t::run_t::run_t(
         int port,
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
-            _heartbeat_sl_view)
+            _heartbeat_sl_view,
+        SSL_CTX *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),
+    tls_ctx(_tls_ctx),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -255,7 +257,7 @@ connectivity_cluster_t::run_t::run_t(
     `connection_map` on each thread and notifying any listeners that we're now
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
-    connection_to_ourself(this, parent->me, _server_id, NULL, routing_table[parent->me]),
+    connection_to_ourself(this, parent->me, _server_id, nullptr, routing_table[parent->me]),
 
     heartbeat_sl_view(_heartbeat_sl_view),
 
@@ -299,10 +301,21 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->make_overcomplicated(&conn);
+    
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Cluster server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, NULL);
+    handle(&conn_stream, boost::none, boost::none, lock, nullptr);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
@@ -337,10 +350,13 @@ void connectivity_cluster_t::run_t::connect_to_peer(
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            keepalive_tcp_conn_stream_t conn(selected_addr->ip(), selected_addr->port().value(),
-                                             drainer_lock.get_drain_signal(), cluster_client_port);
+            keepalive_tcp_conn_stream_t conn(
+                tls_ctx, selected_addr->ip(), selected_addr->port().value(),
+                drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
-                handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);
+                handle(
+                    &conn, expected_id, boost::optional<peer_address_t>(*address),
+                    drainer_lock, successful_join);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -924,7 +940,7 @@ void connectivity_cluster_t::run_t::handle(
         if (servers.count(remote_server_id) != 0) {
             // There currently is another connection open to the server
             logINF("Rejected a connection from server %s since one is open already.",
-                   uuid_to_str(remote_server_id).c_str());
+                   remote_server_id.print().c_str());
             return;
         }
     }
@@ -1127,7 +1143,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // This check is so that when trying multiple connections to a peer in parallel, we can
     //  make sure only one of them succeeds
-    if (successful_join != NULL) {
+    if (successful_join != nullptr) {
         if (*successful_join) {
             logWRN("Somehow ended up with two successful joins to a peer, closing one");
             return;
@@ -1208,7 +1224,7 @@ void connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
+                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
 
@@ -1259,12 +1275,12 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     thread_allocator([](threadnum_t a, threadnum_t b) {
         return a.threadnum > b.threadnum;
     }),
-    current_run(NULL),
+    current_run(nullptr),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
 {
     for (int i = 0; i < max_message_tag; i++) {
-        message_handlers[i] = NULL;
+        message_handlers[i] = nullptr;
     }
 }
 
@@ -1454,14 +1470,14 @@ cluster_message_handler_t::cluster_message_handler_t(
     rassert(tag != connectivity_cluster_t::heartbeat_tag,
         "Tag %" PRIu8 " is reserved for heartbeat messages.",
         connectivity_cluster_t::heartbeat_tag);
-    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    rassert(connectivity_cluster->message_handlers[tag] == nullptr);
     connectivity_cluster->message_handlers[tag] = this;
 }
 
 cluster_message_handler_t::~cluster_message_handler_t() {
     guarantee(!connectivity_cluster->current_run);
     rassert(connectivity_cluster->message_handlers[tag] == this);
-    connectivity_cluster->message_handlers[tag] = NULL;
+    connectivity_cluster->message_handlers[tag] = nullptr;
 }
 
 void cluster_message_handler_t::on_local_message(

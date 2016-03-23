@@ -1,8 +1,10 @@
 desc: 5383 include_offsets problems
 table_variable_name: tbl
 tests:
-  - rb: tbl.index_create('datetime')['created']
-    ot: 1
+  - rb: tbl.index_create('datetime')
+    ot: partial({'created':1})
+  - rb: tbl.index_wait('datetime')
+    ot: [partial({'index':'datetime', 'ready':True})]
   - rb: tbl.insert([{id:1, datetime:0}, {id:2, datetime:0}, {id:3, datetime:0}])['inserted']
     ot: 3
   - rb: c = tbl.order_by(index: 'datetime').limit(3).changes(include_initial: true)
