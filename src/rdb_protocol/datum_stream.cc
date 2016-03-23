@@ -2303,7 +2303,7 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
             env,
             final_emit_args)->as_datum();
 
-        for (size_t i=0; i< final_emit_elem.arr_size(); ++i) {
+        for (size_t i = 0; i< final_emit_elem.arr_size(); ++i) {
             datum_t final_emit_item = final_emit_elem.get(i);
             batcher.note_el(final_emit_item);
             batch.push_back(std::move(final_emit_item));
