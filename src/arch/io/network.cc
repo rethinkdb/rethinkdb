@@ -697,7 +697,7 @@ tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx)
 
     conn = SSL_new(tls_ctx);
     if (nullptr == conn) {
-        unsigned long err_code = ERR_get_error();
+        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
 
         throw linux_tcp_conn_t::connect_failed_exc_t(
             err_code, ERR_error_string(err_code, nullptr));
@@ -715,7 +715,7 @@ tls_conn_wrapper_t::~tls_conn_wrapper_t() {
 void tls_conn_wrapper_t::set_fd(fd_t sock)
     THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
     if (0 == SSL_set_fd(conn, sock)) {
-        unsigned long err_code = ERR_get_error();
+        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
         throw linux_tcp_conn_t::connect_failed_exc_t(
             err_code, ERR_error_string(err_code, nullptr));
     }
@@ -789,7 +789,7 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
             break;
         default:
             // Some other error with the underlying I/O.
-            unsigned long err_code = ERR_get_error();
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
             throw linux_tcp_conn_t::connect_failed_exc_t(
                 err_code, ERR_error_string(err_code, nullptr));
         }

@@ -782,7 +782,7 @@ public:
     virtual std::vector<datum_t> next_batch(env_t *, const batchspec_t &) {
         return std::vector<datum_t>();
     }
-    virtual std::vector<rget_item_t> raw_next_batch(
+    std::vector<rget_item_t> raw_next_batch(
         env_t *, const batchspec_t &) final {
         return std::vector<rget_item_t>{};
     }

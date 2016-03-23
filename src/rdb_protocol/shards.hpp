@@ -49,7 +49,7 @@ T groups_to_batch(std::map<datum_t, T, optional_datum_less_t> *g) {
 typedef std::vector<ql::datum_t> datums_t;
 typedef std::map<ql::datum_t, datums_t, optional_datum_less_t> groups_t;
 
-    struct rget_item_t {
+struct rget_item_t {
     rget_item_t() = default;
     rget_item_t(store_key_t _key,
                 ql::datum_t _sindex_key,

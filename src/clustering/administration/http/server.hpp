@@ -2,11 +2,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
+#include <openssl/ssl.h>
+
 #include <map>
 #include <set>
 #include <string>
-
-#include <openssl/ssl.h>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"

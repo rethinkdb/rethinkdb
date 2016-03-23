@@ -371,10 +371,10 @@ public:
     ~linux_secure_tcp_conn_t() THROWS_NOTHING;
 
     /* shutdown_read() is an alias for shutdown() */
-    virtual void shutdown_read() { shutdown(); };
+    virtual void shutdown_read() { shutdown(); }
 
     /* shutdown_write() is an alias for shutdown() */
-    virtual void shutdown_write() { shutdown(); };
+    virtual void shutdown_write() { shutdown(); }
 
 private:
 
@@ -399,7 +399,7 @@ private:
     void shutdown();
     void on_shutdown();
 
-    bool is_open() { return !closed.is_pulsed(); };
+    bool is_open() { return !closed.is_pulsed(); }
 
     tls_conn_wrapper_t conn;
 
