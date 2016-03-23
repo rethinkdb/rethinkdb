@@ -44,7 +44,7 @@
 #ifdef _WIN32
 LPFN_CONNECTEX get_ConnectEx(fd_t s) {
     static THREAD_LOCAL LPFN_CONNECTEX ConnectEx = nullptr;
-    if (!ConnectEx) {
+    if (ConnectEx == nullptr) {
         DWORD size = 0;
         GUID id = WSAID_CONNECTEX;
         DWORD res = WSAIoctl(fd_to_socket(s), SIO_GET_EXTENSION_FUNCTION_POINTER,
@@ -57,7 +57,7 @@ LPFN_CONNECTEX get_ConnectEx(fd_t s) {
 
 LPFN_ACCEPTEX get_AcceptEx(fd_t s) {
     static THREAD_LOCAL LPFN_ACCEPTEX AcceptEx = nullptr;
-    if (!AcceptEx) {
+    if (AcceptEx == nullptr) {
         DWORD size = 0;
         GUID id = WSAID_ACCEPTEX;
         DWORD res = WSAIoctl(fd_to_socket(s), SIO_GET_EXTENSION_FUNCTION_POINTER,
@@ -322,11 +322,11 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     if (read_closed.is_pulsed()) {
         throw tcp_conn_read_closed_exc_t();
     }
-    if (error != NO_ERROR) {
-        logERR("Could not read from socket: %s", winerr_string(error).c_str());
+    if (op.nb_bytes == 0 || error == ERROR_HANDLE_EOF) {
         on_shutdown_read();
         throw tcp_conn_read_closed_exc_t();
-    } else if(op.nb_bytes == 0) {
+    } else if (error != NO_ERROR) {
+        logERR("Could not read from socket: %s", winerr_string(error).c_str());
         on_shutdown_read();
         throw tcp_conn_read_closed_exc_t();
     } else {

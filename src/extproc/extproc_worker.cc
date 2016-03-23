@@ -30,8 +30,8 @@ extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != INVALID_PROCESS_ID) {
 #ifdef _WIN32
-        windows_event_watcher->rethread(get_thread_id());
-        socket_stream.create(socket.get(), windows_event_watcher.get());
+        socket_event_watcher->rethread(get_thread_id());
+        socket_stream.create(socket.get(), socket_event_watcher.get());
 #else
         socket_stream.create(socket.get());
 #endif
@@ -72,13 +72,13 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 
 #ifdef _WIN32
         new_worker = true;
-        windows_event_watcher.create(socket.get(), nullptr);
+        socket_event_watcher.create(socket.get(), nullptr);
 #endif
     }
 
 #ifdef _WIN32
-    windows_event_watcher->rethread(get_thread_id());
-    socket_stream.create(socket.get(), windows_event_watcher.get());
+    socket_event_watcher->rethread(get_thread_id());
+    socket_stream.create(socket.get(), socket_event_watcher.get());
 #else
     socket_stream.create(socket.get());
 #endif
@@ -163,8 +163,8 @@ void extproc_worker_t::kill_process() {
     if (!res) {
         logWRN("failed to kill worker process: %s", winerr_string(GetLastError()).c_str());
     }
-    windows_event_watcher->rethread(get_thread_id());
-    windows_event_watcher.reset();
+    socket_event_watcher->rethread(get_thread_id());
+    socket_event_watcher.reset();
 #else
     ::kill(worker_pid, SIGKILL);
 #endif

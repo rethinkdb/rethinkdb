@@ -50,7 +50,7 @@ private:
     object_buffer_t<socket_stream_t> socket_stream;
 
 #ifdef _WIN32
-    object_buffer_t<windows_event_watcher_t> windows_event_watcher;
+    object_buffer_t<windows_event_watcher_t> socket_event_watcher;
 #endif
 
     signal_t *interruptor;
