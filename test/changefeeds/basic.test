@@ -99,7 +99,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # kill the primary
         
         primary.kill()
-        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
+        self.table.wait(wait_for='ready_for_writes', timeout=20).run(conn)
         
         # the changefeed should have closed
         
@@ -140,7 +140,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # kill a secondary server
         
         replica.kill()
-        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
+        self.table.wait(wait_for='ready_for_writes', timeout=20).run(conn)
         
         # add another change and retrieve it
         
