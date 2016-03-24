@@ -2167,16 +2167,18 @@ TODO: retire this
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
                     text-shadow: 0 1px 0 #fff; // drop shadow
+                    box-sizing: border-box;
                 }
 
                 &.message {
-                    width: 40%;
+                    width: 70%;
                     display: inline-block;
                     @icon_width: 30px;
                     @icon_padding: 20px;
                     background: @icon_padding center no-repeat url('images/resolve_issue-message_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
+                    box-sizing: border-box;
                 }
 
                 &.datetime {

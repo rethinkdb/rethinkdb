@@ -17,18 +17,18 @@ public:
     template <class U>
     friend class scoped_ptr_t;
 
-    scoped_ptr_t() : ptr_(NULL) { }
+    scoped_ptr_t() : ptr_(nullptr) { }
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
 
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
     // type's not copyable.  There is no specific reason why these are many other
     // functions need be marked noexcept with any degree of urgency.)
     scoped_ptr_t(scoped_ptr_t &&movee) noexcept : ptr_(movee.ptr_) {
-        movee.ptr_ = NULL;
+        movee.ptr_ = nullptr;
     }
     template <class U>
     scoped_ptr_t(scoped_ptr_t<U> &&movee) noexcept : ptr_(movee.ptr_) {
-        movee.ptr_ = NULL;
+        movee.ptr_ = nullptr;
     }
 
     ~scoped_ptr_t() {
@@ -69,13 +69,13 @@ public:
 
     void reset() {
         T *tmp = ptr_;
-        ptr_ = NULL;
+        ptr_ = nullptr;
         delete tmp;
     }
 
     MUST_USE T *release() {
         T *tmp = ptr_;
-        ptr_ = NULL;
+        ptr_ = nullptr;
         return tmp;
     }
 
@@ -105,11 +105,11 @@ public:
     }
 
     bool has() const {
-        return ptr_ != NULL;
+        return ptr_ != nullptr;
     }
 
     explicit operator bool() const {
-        return ptr_ != NULL;
+        return ptr_ != nullptr;
     }
 
 private:
@@ -127,12 +127,12 @@ scoped_ptr_t<T> make_scoped(Args&&... args) {
 template <class T>
 class scoped_array_t {
 public:
-    scoped_array_t() : ptr_(NULL), size_(0) { }
-    explicit scoped_array_t(size_t n) : ptr_(NULL), size_(0) {
+    scoped_array_t() : ptr_(nullptr), size_(0) { }
+    explicit scoped_array_t(size_t n) : ptr_(nullptr), size_(0) {
         init(n);
     }
 
-    scoped_array_t(T *ptr, size_t _size) : ptr_(NULL), size_(0) {
+    scoped_array_t(T *ptr, size_t _size) : ptr_(nullptr), size_(0) {
         init(ptr, _size);
     }
 
@@ -141,7 +141,7 @@ public:
     // functions need be marked noexcept with any degree of urgency.)
     scoped_array_t(scoped_array_t &&movee) noexcept
         : ptr_(movee.ptr_), size_(movee.size_) {
-        movee.ptr_ = NULL;
+        movee.ptr_ = nullptr;
         movee.size_ = 0;
     }
 
@@ -172,7 +172,7 @@ public:
 
     void reset() {
         T *tmp = ptr_;
-        ptr_ = NULL;
+        ptr_ = nullptr;
         size_ = 0;
         delete[] tmp;
     }
@@ -263,7 +263,7 @@ public:
     template <class U, void*(*alloc_)(size_t), void(*dealloc_)(void*)>
     friend class scoped_alloc_t;
 
-    scoped_alloc_t() : ptr_(NULL) { }
+    scoped_alloc_t() : ptr_(nullptr) { }
     explicit scoped_alloc_t(size_t n) : ptr_(static_cast<T *>(alloc(n))) { }
     scoped_alloc_t(const void *beg, size_t n) {
         ptr_ = static_cast<T *>(alloc(n));
@@ -274,13 +274,13 @@ public:
     // functions need be marked noexcept with any degree of urgency.)
     scoped_alloc_t(scoped_alloc_t &&movee) noexcept
         : ptr_(movee.ptr_) {
-        movee.ptr_ = NULL;
+        movee.ptr_ = nullptr;
     }
 
     template <class U>
     scoped_alloc_t(scoped_alloc_t<U, alloc, dealloc> &&movee) noexcept
         : ptr_(movee.ptr_) {
-        movee.ptr_ = NULL;
+        movee.ptr_ = nullptr;
     }
 
     template <class U>
@@ -298,7 +298,7 @@ public:
     T *operator->() const { return ptr_; }
 
     bool has() const {
-        return ptr_ != NULL;
+        return ptr_ != nullptr;
     }
 
     void reset() {

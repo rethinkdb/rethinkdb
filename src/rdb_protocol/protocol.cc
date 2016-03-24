@@ -1194,9 +1194,18 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 shard_inserts.push_back(*it);
             }
         }
+
         if (!shard_inserts.empty()) {
-            *payload_out = batched_insert_t(std::move(shard_inserts), bi.pkey,
-                                            bi.conflict_behavior, bi.limits,
+            boost::optional<counted_t<const ql::func_t> > temp_conflict_func;
+            if (bi.conflict_func) {
+                temp_conflict_func = bi.conflict_func->compile_wire_func();
+            }
+
+            *payload_out = batched_insert_t(std::move(shard_inserts),
+                                            bi.pkey,
+                                            bi.conflict_behavior,
+                                            temp_conflict_func,
+                                            bi.limits,
                                             bi.return_changes);
             return true;
         } else {
@@ -1245,6 +1254,41 @@ bool write_t::shard(const region_t &region,
     bool result = boost::apply_visitor(v, write);
     *write_out = write_t(payload, durability_requirement, profile, limits);
     return result;
+}
+
+batched_insert_t::batched_insert_t(
+        std::vector<ql::datum_t> &&_inserts,
+        const std::string &_pkey,
+        conflict_behavior_t _conflict_behavior,
+        boost::optional<counted_t<const ql::func_t> > _conflict_func,
+        const ql::configured_limits_t &_limits,
+        return_changes_t _return_changes)
+        : inserts(std::move(_inserts)), pkey(_pkey),
+          conflict_behavior(_conflict_behavior),
+          limits(_limits),
+          return_changes(_return_changes) {
+    r_sanity_check(inserts.size() != 0);
+
+    if (_conflict_func) {
+        conflict_func = ql::wire_func_t(*_conflict_func);
+    }
+#ifndef NDEBUG
+    // These checks are done above us, but in debug mode we do them
+    // again.  (They're slow.)  We do them above us because the code in
+    // val.cc knows enough to report the write errors correctly while
+    // still doing the other writes.
+    for (auto it = inserts.begin(); it != inserts.end(); ++it) {
+        ql::datum_t keyval =
+            it->get_field(datum_string_t(pkey), ql::NOTHROW);
+        r_sanity_check(keyval.has());
+        try {
+            keyval.print_primary(); // ERROR CHECKING
+            continue;
+        } catch (const ql::base_exc_t &e) {
+        }
+        r_sanity_check(false); // throws, so can't do this in exception handler
+    }
+#endif // NDEBUG
 }
 
 template <class T>
@@ -1380,7 +1424,11 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
+                                    id,
+                                    region,
+                                    datumspec,
+                                    require_sindex_val);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
@@ -1426,8 +1474,8 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_changes);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+        batched_insert_t, inserts, pkey, conflict_behavior, conflict_func, limits, return_changes);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);

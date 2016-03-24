@@ -1,7 +1,0 @@
-{
-    "dependencies":{
-        "request": "2.31.0",
-        "jquery": "1.8.3"
-    }
-}
-

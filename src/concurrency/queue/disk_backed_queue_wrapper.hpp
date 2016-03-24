@@ -31,7 +31,7 @@ public:
             int64_t memory_queue_bytes) :
         passive_producer_t<T>(&available_control),
         memory_queue_free_space(memory_queue_bytes),
-        notify_when_room_in_memory_queue(NULL),
+        notify_when_room_in_memory_queue(nullptr),
         items_in_queue(0),
         io_backender(_io_backender),
         filename(_filename),
@@ -89,7 +89,7 @@ private:
         if (memory_queue.empty()) {
             available_control.set_available(false);
         }
-        if (notify_when_room_in_memory_queue != NULL) {
+        if (notify_when_room_in_memory_queue != nullptr) {
             notify_when_room_in_memory_queue->pulse_if_not_already_pulsed();
         }
         // TODO: This does some unnecessary copying.
@@ -124,7 +124,7 @@ private:
                 copying_viewer_t viewer(&wm);
                 disk_queue->pop(&viewer);
                 if (memory_queue_free_space <= 0) {
-                    guarantee(notify_when_room_in_memory_queue == NULL);
+                    guarantee(notify_when_room_in_memory_queue == nullptr);
                     cond_t cond;
                     assignment_sentry_t<cond_t *> assignment_sentry(
                         &notify_when_room_in_memory_queue, &cond);

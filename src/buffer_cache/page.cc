@@ -54,7 +54,7 @@ static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
-      loader_(NULL),
+      loader_(nullptr),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_deferred_loaded(this);
@@ -68,7 +68,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                cache_account_t *account)
     : block_id_(block_id),
-      loader_(NULL),
+      loader_(nullptr),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -83,7 +83,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
 page_t::page_t(block_id_t block_id, buf_ptr_t buf,
                page_cache_t *page_cache)
     : block_id_(block_id),
-      loader_(NULL),
+      loader_(nullptr),
       buf_(std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
@@ -96,7 +96,7 @@ page_t::page_t(block_id_t block_id,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
     : block_id_(block_id),
-      loader_(NULL),
+      loader_(nullptr),
       buf_(std::move(buf)),
       block_token_(block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
@@ -107,7 +107,7 @@ page_t::page_t(block_id_t block_id,
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
     : block_id_(copyee->block_id_),
-      loader_(NULL),
+      loader_(nullptr),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -121,13 +121,13 @@ page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *accoun
 page_t::~page_t() {
     rassert(waiters_.empty());
     rassert(snapshot_refcount_ == 0);
-    if (loader_ != NULL) {
+    if (loader_ != nullptr) {
         loader_->mark_abandon_page();
     }
 }
 
 bool page_t::loader_is_loading(page_loader_t *loader) {
-    rassert(loader != NULL);
+    rassert(loader != nullptr);
     return loader->is_really_loading();
 }
 
@@ -137,7 +137,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     // This is called using spawn_now_dangerously.  We need to atomically set
     // loader_ and do some other things.
     instant_page_loader_t loader;
-    rassert(page->loader_ == NULL);
+    rassert(page->loader_ == nullptr);
     page->loader_ = &loader;
 
     auto_drainer_t::lock_t lock = page_cache->drainer_lock();
@@ -159,7 +159,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             {
                 usage_adjuster_t adjuster(page_cache, page);
                 page->buf_ = buf_ptr_t::alloc_copy(copyee->buf_);
-                page->loader_ = NULL;
+                page->loader_ = nullptr;
             }
 
             page->pulse_waiters_or_make_evictable(page_cache);
@@ -186,7 +186,7 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
         usage_adjuster_t adjuster(page_cache, page);
         page->buf_ = std::move(buf);
         page->block_token_ = std::move(block_token);
-        page->loader_ = NULL;
+        page->loader_ = nullptr;
     }
 
     page->pulse_waiters_or_make_evictable(page_cache);
@@ -291,7 +291,7 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     // This is called using spawn_now_dangerously.  We need to set
     // loader_ before blocking the coroutine.
     deferred_page_loader_t loader(page);
-    rassert(page->loader_ == NULL);
+    rassert(page->loader_ == nullptr);
     page->loader_ = &loader;
 
     // Before blocking, before any catch_up_with_deferred_load can steal it, get the
@@ -322,7 +322,7 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     {
         usage_adjuster_t adjuster(page_cache, page);
         page->block_token_ = std::move(on_heap_token->token);
-        page->loader_ = NULL;
+        page->loader_ = nullptr;
     }
 
     rassert(page->waiters_.empty());
@@ -341,7 +341,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     // This is called using spawn_now_dangerously.  We need to set
     // loader_ before blocking the coroutine.
     instant_page_loader_t loader;
-    rassert(page->loader_ == NULL);
+    rassert(page->loader_ == nullptr);
     page->loader_ = &loader;
 
     auto_drainer_t::lock_t lock = page_cache->drainer_lock();
@@ -403,7 +403,7 @@ void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
     if (waiters_.empty()) {
         page_cache->evicter().move_unevictable_to_evictable(this);
     } else {
-        for (page_acq_t *p = waiters_.head(); p != NULL; p = waiters_.next(p)) {
+        for (page_acq_t *p = waiters_.head(); p != nullptr; p = waiters_.next(p)) {
             // The waiter's not already going to have been pulsed.
             p->buf_ready_signal_.pulse();
         }
@@ -417,7 +417,7 @@ void page_t::add_waiter(page_acq_t *acq, cache_account_t *account) {
     acq->page_cache()->evicter().change_to_correct_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
-    } else if (loader_ != NULL) {
+    } else if (loader_ != nullptr) {
         loader_->added_waiter(acq->page_cache(), account);
     } else if (block_token_.has()) {
         coro_t::spawn_now_dangerously(std::bind(&page_t::load_using_block_token,
@@ -435,7 +435,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     // This is called using spawn_now_dangerously.  We need to set
     // loader_ before blocking the coroutine.
     instant_page_loader_t loader;
-    rassert(page->loader_ == NULL);
+    rassert(page->loader_ == nullptr);
     page->loader_ = &loader;
 
     page_cache->evicter().reloading_page(page);
@@ -465,7 +465,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     {
         usage_adjuster_t adjuster(page_cache, page);
         page->buf_ = std::move(buf);
-        page->loader_ = NULL;
+        page->loader_ = nullptr;
     }
 
     page->pulse_waiters_or_make_evictable(page_cache);
@@ -582,13 +582,13 @@ void page_t::init_block_token(counted_t<standard_block_token_t> token,
 
 
 
-page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
+page_acq_t::page_acq_t() : page_(nullptr), page_cache_(nullptr) {
 }
 
 void page_acq_t::init(page_t *page, page_cache_t *page_cache,
                       cache_account_t *account) {
-    rassert(page_ == NULL);
-    rassert(page_cache_ == NULL);
+    rassert(page_ == nullptr);
+    rassert(page_cache_ == nullptr);
     rassert(!buf_ready_signal_.is_pulsed());
     page_ = page;
     page_cache_ = page_cache;
@@ -596,8 +596,8 @@ void page_acq_t::init(page_t *page, page_cache_t *page_cache,
 }
 
 page_acq_t::~page_acq_t() {
-    if (page_ != NULL) {
-        rassert(page_cache_ != NULL);
+    if (page_ != nullptr) {
+        rassert(page_cache_ != nullptr);
         page_->remove_waiter(this);
 
         // There's no need to call consider_evicting_current_page, because page_acq_t
@@ -608,7 +608,7 @@ page_acq_t::~page_acq_t() {
 }
 
 bool page_acq_t::has() const {
-    return page_ != NULL;
+    return page_ != nullptr;
 }
 
 signal_t *page_acq_t::buf_ready_signal() {
@@ -632,23 +632,23 @@ const void *page_acq_t::get_buf_read() {
     return page_->get_page_buf(page_cache_);
 }
 
-page_ptr_t::page_ptr_t() : page_(NULL) {
+page_ptr_t::page_ptr_t() : page_(nullptr) {
 }
 
 page_ptr_t::~page_ptr_t() {
-    rassert(page_ == NULL);
+    rassert(page_ == nullptr);
 }
 
 page_ptr_t::page_ptr_t(page_ptr_t &&movee)
     : page_(movee.page_) {
-    movee.page_ = NULL;
+    movee.page_ = nullptr;
 }
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
     // We can't do true assignment, destructing an old page-having value, because
     // reset() has to manually be called.  (This assertion is redundant with the one
     // that'll enforce this fact in tmp's destructor.)
-    rassert(page_ == NULL);
+    rassert(page_ == nullptr);
 
     page_ptr_t tmp(std::move(movee));
     swap_with(&tmp);
@@ -656,29 +656,29 @@ page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
 }
 
 void page_ptr_t::init(page_t *page) {
-    rassert(page_ == NULL);
+    rassert(page_ == nullptr);
     page_ = page;
-    if (page_ != NULL) {
+    if (page_ != nullptr) {
         page_->add_snapshotter();
     }
 }
 
 void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
-    if (page_ != NULL) {
+    if (page_ != nullptr) {
         page_t *ptr = page_;
-        page_ = NULL;
+        page_ = nullptr;
         ptr->remove_snapshotter(page_cache);
     }
 }
 
 page_t *page_ptr_t::get_page_for_read() const {
-    rassert(page_ != NULL);
+    rassert(page_ != nullptr);
     return page_;
 }
 
 page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
                                        cache_account_t *account) {
-    rassert(page_ != NULL);
+    rassert(page_ != nullptr);
     if (page_->num_snapshot_references() > 1) {
         page_ptr_t tmp(page_->make_copy(page_cache, account));
         swap_with(&tmp);
@@ -720,7 +720,7 @@ bool timestamped_page_ptr_t::has() const {
 void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
                                   page_t *page) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
-    rassert(page == NULL ||
+    rassert(page == nullptr ||
             timestamp != repli_timestamp_t::invalid ||
             is_aux_block_id(page->block_id()));
     timestamp_ = timestamp;

@@ -20,7 +20,7 @@ ql::datum_t convert_log_key_to_datum(const timespec &ts, const server_id_t &si) 
     ql::datum_array_builder_t id_builder(ql::configured_limits_t::unlimited);
     id_builder.add(ql::datum_t(datum_string_t(
         format_time(ts, local_or_utc_time_t::utc))));
-    id_builder.add(convert_uuid_to_datum(si));
+    id_builder.add(convert_server_id_to_datum(si));
     return std::move(id_builder).to_datum();
 }
 
@@ -44,7 +44,7 @@ bool convert_log_key_from_datum(const ql::datum_t &d,
         *error_out = admin_err_t{"In timestamp: " + err, query_state_t::FAILED};
         return false;
     }
-    if (!convert_uuid_from_datum(d.get(1), si_out, error_out)) {
+    if (!convert_server_id_from_datum(d.get(1), si_out, error_out)) {
         return false;
     }
     return true;
@@ -475,7 +475,7 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
                 return;
             }
 
-            ql::datum_t server_name_datum = convert_name_or_uuid_to_datum(
+            ql::datum_t server_name_datum = convert_name_or_server_id_to_datum(
                 server_name->second.first,
                 server_name->second.second,
                 identifier_format);

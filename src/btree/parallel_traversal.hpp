@@ -111,7 +111,7 @@ class parallel_traversal_progress_t;
 
 struct btree_traversal_helper_t {
     btree_traversal_helper_t()
-        : progress(NULL)
+        : progress(nullptr)
     { }
 
     //Before any of these other functions are called the helper gets a chance

@@ -4,7 +4,7 @@
 #include "arch/runtime/coroutines.hpp"
 
 
-cross_thread_mutex_t::acq_t::acq_t(cross_thread_mutex_t *l) : lock_(NULL) {
+cross_thread_mutex_t::acq_t::acq_t(cross_thread_mutex_t *l) : lock_(nullptr) {
     reset(l);
 }
 
@@ -16,7 +16,7 @@ void cross_thread_mutex_t::acq_t::reset() {
     if (lock_) {
         lock_->unlock();
     }
-    lock_ = NULL;
+    lock_ = nullptr;
 }
 
 void cross_thread_mutex_t::acq_t::reset(cross_thread_mutex_t *l) {

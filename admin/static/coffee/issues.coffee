@@ -216,7 +216,7 @@ render_non_transitive_error = (issue) ->
         ]
         h "ul", issue.info.servers.map((server) ->
             h "li",
-                h "a", href: "/#servers/#{server.server_id}", server)
+                h "a", href: "/#servers/#{server.server_id}", server.server)
         h "p", [
             "Partial connectivity can cause tables to remain unavailable"
             " and queries to fail. Please check your network configuration"

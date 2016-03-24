@@ -879,6 +879,18 @@ class Server(object):
     def logfile_path(self):
         return self.__server.logfile_path
     
+    @property
+    def data_path(self):
+        if self.__server and hasattr(self.__server, 'data_path'):
+            return self.__server.data_path
+        return None
+    
+    @property
+    def console_output(self):
+        if self.__server and hasattr(self.__server, 'console_output'):
+            return self.__server.console_output
+        return None
+    
     def check(self):
         '''Check that the server is accessible and minimally sane'''
         assert r.expr(1).run(self.conn) == 1
@@ -1482,7 +1494,7 @@ class WorkerThread(threading.Thread):
                         raise CancelRunError('External server no longer responding!')
                     else:
                         try:
-                            self.server.close()
+                            self.server.stop()
                         except Exception: pass
                         self.server = Server(scratchDir=self.scratchDir)
                         self.server.check()
@@ -1641,13 +1653,15 @@ class WorkerThread(threading.Thread):
                 debug(traceback.format_exc())
                 warnings.warn("Worker failure: %s" % unicode(e))
                 restartServer = True
+                if test:
+                    test.endTest(result='failed', errorMessage='Exception while running `%s`: %s' % (str(test.name), str(e)), errorDetails=traceback.format_exc())
             
             # -- shutdown the server if necessary
             if restartServer:
                 self.server.stop() # just cleans for external servers
                 if not isinstance(self.server, ExternalServer):
                     try:
-                        self.server.close()
+                        self.server.stop()
                     except Exception: pass
                     self.server = None
         

@@ -44,7 +44,7 @@ coro_profiler_t::~coro_profiler_t() {
 }
 
 void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
-    if (coro_t::self() == NULL) return;
+    if (coro_t::self() == nullptr) return;
 
     const ticks_t ticks_on_entry = get_ticks();
 
@@ -145,7 +145,7 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
         if (i + levels_to_strip_from_backtrace < backtrace_size) {
             trace[i] = stack_frames[i + levels_to_strip_from_backtrace];
         } else {
-            trace[i] = NULL;
+            trace[i] = nullptr;
         }
     }
     delete[] stack_frames;
@@ -326,7 +326,7 @@ void coro_profiler_t::print_to_reql(
 std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
     std::string trace_array_str = "[";
     for (size_t i = 0; i < CORO_PROFILER_BACKTRACE_DEPTH; ++i) {
-        if (trace[i] == NULL) {
+        if (trace[i] == nullptr) {
             break;
         }
         if (i > 0) {

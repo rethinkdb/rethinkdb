@@ -293,7 +293,7 @@ void linux_file_t::write_async(int64_t offset, size_t length, const void *buf,
 void linux_file_t::writev_async(int64_t offset, size_t length,
                                 scoped_array_t<iovec> &&bufs,
                                 file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr != NULL,
+    rassert(diskmgr != nullptr,
             "No diskmgr has been constructed (are we running without an event queue?)");
     verify_aligned_file_access(file_size, offset, length, bufs);
 
@@ -433,7 +433,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     // TODO WINDOWS: is all this sharing necessary? According to issue #5165, it doesn't even work
     DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
-    fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
+    fd.reset(CreateFile(path, access_mode, share_mode, nullptr, create_mode, FILE_ATTRIBUTE_NORMAL, nullptr));
     if (fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
         return file_open_result_t(file_open_result_t::ERROR, EIO);
@@ -617,7 +617,7 @@ MUST_USE int fsync_parent_directory(const char *path) {
 #else
     char absolute_path[PATH_MAX];
     char *abs_res = realpath(path, absolute_path);
-    guarantee_err(abs_res != NULL, "Failed to determine absolute path for '%s'", path);
+    guarantee_err(abs_res != nullptr, "Failed to determine absolute path for '%s'", path);
     char *parent_path = dirname(absolute_path); // Note: modifies absolute_path
 
     // Get a file descriptor on the parent directory

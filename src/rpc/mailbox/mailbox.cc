@@ -155,7 +155,7 @@ mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
     std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator it = mailboxes.find(id);
     if (it == mailboxes.end()) {
-        return NULL;
+        return nullptr;
     } else {
         return it->second;
     }
@@ -253,7 +253,7 @@ void mailbox_manager_t::mailbox_read_coroutine(
 
     // Construct a new stream to use
     vector_read_stream_t stream(std::move(*stream_data), stream_data_offset);
-    stream_data = NULL; // <- It is not safe to use `stream_data` anymore once we
+    stream_data = nullptr; // <- It is not safe to use `stream_data` anymore once we
                         //    switch the thread
 
     {
@@ -266,7 +266,7 @@ void mailbox_manager_t::mailbox_read_coroutine(
 
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
-            if (mbox != NULL) {
+            if (mbox != nullptr) {
                 try {
                     auto_drainer_t::lock_t keepalive(&mbox->drainer);
                     mbox->callback->read(&stream, keepalive.get_drain_signal());
@@ -305,7 +305,7 @@ void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
 disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager,
                                            peer_id_t peer) {
     if (mailbox_manager->get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive) != NULL) {
+            get_connection(peer, &connection_keepalive) != nullptr) {
         /* The peer is currently connected. Start watching for when they disconnect. */
         signal_t::subscription_t::reset(connection_keepalive.get_drain_signal());
     } else {

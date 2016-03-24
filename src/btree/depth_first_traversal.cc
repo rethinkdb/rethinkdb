@@ -17,8 +17,8 @@ scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
     : key_(movee.key_),
       value_(movee.value_),
       buf_(std::move(movee.buf_)) {
-    movee.key_ = NULL;
-    movee.value_ = NULL;
+    movee.key_ = nullptr;
+    movee.value_ = nullptr;
 }
 
 scoped_key_value_t::~scoped_key_value_t() { }

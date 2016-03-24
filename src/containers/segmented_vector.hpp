@@ -99,7 +99,7 @@ private:
         guarantee(index < size_, "index = %zu, size_ = %zu", index, size_);
         const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
         segment_t *seg = segments_[segment_index];
-        if (seg == NULL) {
+        if (seg == nullptr) {
             seg = new segment_t();
             segments_[segment_index] = seg;
         }
@@ -119,7 +119,7 @@ private:
             segments_.pop_back();
         }
         while (segments_.size() < new_num_segs) {
-            segments_.push_back(NULL);
+            segments_.push_back(nullptr);
         }
 
         size_ = new_size;

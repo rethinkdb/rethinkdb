@@ -178,6 +178,44 @@ tests:
     - py: tbl.insert({'a':r.minval}, return_changes="always")
       ot: partial({'changes': [{'old_val': None, 'new_val': None, 'error': '`r.minval` and `r.maxval` cannot be written to disk.'}]})
 
+      # Tests for insert conflict resolution function
+
+      # Using a conflict function
+    - cd: tbl.insert({'id':42, 'foo':1, 'bar':1})
+      ot: partial({'inserted':1})
+    - py: tbl.insert({'id':42, 'foo':5, 'bar':5}, conflict=lambda id, old_row, new_row: old_row.merge(new_row.pluck("bar")))
+      ot: partial({'replaced':1})
+    - py: tbl.get(42)
+      ot: {'id':42, 'foo':1, 'bar':5}
+    - rb: tbl.insert({:id=>42, :foo=>6, :bar=>6}, conflict: lambda {|id, old_row, new_row| return old_row.merge(new_row.pluck("bar"))})
+      ot: partial({'replaced':1})
+    - rb: tbl.get(42)
+      ot: {'id':42, 'foo':1, 'bar':6}
+    - js: tbl.insert({'id':42, 'foo':7, 'bar':7}, {conflict: function(id, old_row, new_row) {return old_row.merge(new_row.pluck("bar"))}})
+      ot: partial({'replaced':1})
+    - js: tbl.get(42)
+      ot: {'id':42, 'foo':1, 'bar':7}
+
+      # Returning the wrong thing from the conflict function
+    - py: tbl.insert({'id':42, 'foo':1, 'bar':1}, conflict=lambda a,b,c: 2)
+      ot: partial({'first_error': 'Inserted value must be an OBJECT (got NUMBER):\n2'})
+
+      # Incorrect Arity
+    - py: tbl.insert({'id':42}, conflict=lambda a,b: a)
+      ot: err("ReqlQueryLogicError", "The conflict function passed to `insert` should expect 3 arguments.")
+
+      # Non atomic operation
+    - py: tbl.insert({'id':42}, conflict=lambda a,b,c: tbl.get(42))
+      ot: err("ReqlQueryLogicError", "The conflict function passed to `insert` must be deterministic.")
+
+    - py: tbl.insert({'id':42}, conflict=lambda: {'id':42, 'num':'424'})
+      ot: partial({'replaced': 1})
+    - py: tbl.get(42)
+      ot: {'id':42, 'num':'424'}
+
+    - py: tbl.insert({'id':42}, conflict=lambda: (x for y in ()).throw(Exception('OH NOES')))
+      ot: err("Exception", 'OH NOES')
+
     # Get unreturnable data
     - cd: r.minval
       ot: err('ReqlQueryLogicError','Cannot convert `r.minval` to JSON.')

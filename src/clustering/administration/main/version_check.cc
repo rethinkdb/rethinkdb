@@ -33,7 +33,7 @@ version_checker_t::version_checker_t(
     table_meta_client(_table_meta_client),
     server_config_client(_server_config_client),
     timer(day_in_ms, this) {
-    rassert(rdb_ctx != NULL);
+    rassert(rdb_ctx != nullptr);
     coro_t::spawn_sometime(std::bind(&version_checker_t::do_check,
                                      this, true, drainer.lock()));
 }

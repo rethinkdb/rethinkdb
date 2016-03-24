@@ -34,14 +34,14 @@ performance reasons.
 Our custom context-switching code is derived from GLibC, which is covered by the
 LGPL. */
 
-artificial_stack_context_ref_t::artificial_stack_context_ref_t() : pointer(NULL) { }
+artificial_stack_context_ref_t::artificial_stack_context_ref_t() : pointer(nullptr) { }
 
 artificial_stack_context_ref_t::~artificial_stack_context_ref_t() {
     rassert(is_nil(), "You're leaking a context.");
 }
 
 bool artificial_stack_context_ref_t::is_nil() {
-    return pointer == NULL;
+    return pointer == nullptr;
 }
 
 artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
@@ -132,7 +132,7 @@ artificial_stack_t::~artificial_stack_t() {
 
     /* Set `context.pointer` to nil to avoid tripping an assertion in its
     destructor. */
-    context.pointer = NULL;
+    context.pointer = nullptr;
 
     /* Tell Valgrind the stack is no longer in use */
 #ifdef VALGRIND
@@ -224,10 +224,10 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
     rassert(current_context_out->is_nil(), "that variable already holds a context");
     rassert(!dest_context_in->is_nil(), "cannot switch to nil context");
 
-    /* `lightweight_swapcontext()` won't set `dest_context_in->pointer` to NULL,
+    /* `lightweight_swapcontext()` won't set `dest_context_in->pointer` to nullptr,
     so we have to do that ourselves. */
     void *dest_pointer = dest_context_in->pointer;
-    dest_context_in->pointer = NULL;
+    dest_context_in->pointer = nullptr;
 
     lightweight_swapcontext(&current_context_out->pointer, dest_pointer);
 }
@@ -353,8 +353,8 @@ static system_mutex_t virtual_thread_mutexes[MAX_THREADS];
 
 void context_switch(threaded_context_ref_t *current_context,
                     threaded_context_ref_t *dest_context) {
-    guarantee(current_context != NULL);
-    guarantee(dest_context != NULL);
+    guarantee(current_context != nullptr);
+    guarantee(dest_context != nullptr);
 
     bool is_scheduler = false;
     if (!current_context->lock.has()) {
@@ -391,7 +391,7 @@ void threaded_context_ref_t::wait() {
     cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
     if (do_shutdown) {
         lock.reset();
-        pthread_exit(NULL);
+        pthread_exit(nullptr);
     }
     if (do_rethread) {
         restore_virtual_thread();
@@ -429,7 +429,7 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
     }
 
     int result = pthread_create(&thread,
-                                NULL,
+                                nullptr,
                                 threaded_stack_t::internal_run,
                                 reinterpret_cast<void *>(this));
     guarantee_xerr(result == 0, result, "Could not create thread: %i", result);
@@ -475,7 +475,7 @@ threaded_stack_t::~threaded_stack_t() {
     }
 
     // Wait for the thread to shut down
-    int result = pthread_join(thread, NULL);
+    int result = pthread_join(thread, nullptr);
     guarantee_xerr(result == 0, result, "Could not join with thread: %i", result);
 
     // ... and re-acquire the lock, if we are in a coroutine.
@@ -501,7 +501,7 @@ void *threaded_stack_t::internal_run(void *p) {
 
     parent->context.wait();
     parent->initial_fun();
-    return NULL;
+    return nullptr;
 }
 
 bool threaded_stack_t::address_in_stack(const void *addr) const {
