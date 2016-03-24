@@ -2691,14 +2691,15 @@ private:
                 update_ranges();
                 r_sanity_check(active_state);
                 read_once = true;
-
                 if (batch.size() == 0) {
                     r_sanity_check(src->is_exhausted());
                 } else {
                     ret.reserve(ret.size() + batch.size());
                     for (auto &&datum : batch) {
-                        ret.push_back(
-                            vals_to_change(datum_t(), std::move(datum), true));
+                        datum_t cv = vals_to_change(datum_t(), std::move(datum), true);
+                        if (cv.has()) {
+                            ret.push_back(std::move(cv));
+                        }
                     }
                 }
             } else {
