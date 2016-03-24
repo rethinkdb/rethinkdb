@@ -1,4 +1,4 @@
-desc: Regression test for issue 5483
+desc: Regression test for issue 5438
 table_variable_name: tbl
 tests:
     - rb: tbl.index_create('a')['created']
