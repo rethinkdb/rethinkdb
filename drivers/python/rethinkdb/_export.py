@@ -78,6 +78,7 @@ def parse_options():
     parser.add_option("--format", dest="format", metavar="json | csv | ndjson", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
     parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
@@ -97,6 +98,8 @@ def parse_options():
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
+
+    res["tls_cert"] = ssl_option(options.tls_cert)
 
     # Verify valid --format option
     if options.format not in ["csv", "json", "ndjson"]:
@@ -321,11 +324,11 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
-def get_all_table_sizes(host, port, auth_key, db_table_set):
+def get_all_table_sizes(host, port, auth_key, db_table_set, ssl_op):
     def get_table_size(progress, conn, db, table):
         return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
 
-    conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+    conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
 
     ret = dict()
     for pair in db_table_set:
@@ -335,13 +338,13 @@ def get_all_table_sizes(host, port, auth_key, db_table_set):
     return ret
 
 def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, exit_event):
+                 error_queue, progress_info, sindex_counter, exit_event, ssl_op):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
-        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
         sindex_counter.value += len(table_info["indexes"])
 
@@ -397,7 +400,7 @@ def run_clients(options, db_table_set):
     errors = [ ]
 
     try:
-        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set)
+        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set, options["tls_cert"])
 
         progress_info = []
 
@@ -416,7 +419,8 @@ def run_clients(options, db_table_set):
                               error_queue,
                               progress_info[-1],
                               sindex_counter,
-                              exit_event))
+                              exit_event,
+                              options["tls_cert"]))
 
 
         # Wait for all tables to finish
@@ -473,7 +477,7 @@ def main():
         return 1
 
     try:
-        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
         # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
         # if the user has a database named 'rethinkdb'
         rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))

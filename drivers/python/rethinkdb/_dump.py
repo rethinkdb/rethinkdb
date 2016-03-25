@@ -42,6 +42,8 @@ def parse_options():
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--overwrite-file", dest="overwrite_file", default=False, action="store_true")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
@@ -61,6 +63,8 @@ def parse_options():
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
+
+    res["tls_cert"] = options.tls_cert
 
     # Verify valid output file
     if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
@@ -102,7 +106,7 @@ def do_export(temp_dir, options):
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
     export_args.extend(["--clients", str(options["clients"])])
-
+    export_args.extend(["--tls-cert", options["tls_cert"]])
     for table in options["tables"]:
         export_args.extend(["--export", table])
 
