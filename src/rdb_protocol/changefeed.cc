@@ -2974,7 +2974,7 @@ private:
                         datum_t cv = vals_to_change(datum_t(), std::move(datum), true);
                         if (cv.has()) {
                             ret.push_back(
-                                sub->maybe_add_type(cv, change_type_t::INITIAL));
+                                sub->maybe_add_type(std::move(cv), change_type_t::INITIAL));
                         }
                     }
                 }
