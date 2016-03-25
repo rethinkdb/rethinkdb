@@ -48,6 +48,7 @@ def ssl_option(str):
         return dict()
     else:
         return {"ca_certs": str}
+
 # This function is used to wrap rethinkdb calls to recover from connection errors
 # The first argument to the function is an output parameter indicating if progress
 # has been made since the last call.  This is passed as an array so it works as an
