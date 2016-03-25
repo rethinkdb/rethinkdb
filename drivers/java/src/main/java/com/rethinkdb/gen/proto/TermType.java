@@ -62,6 +62,7 @@ public enum TermType {
     BETWEEN(182),
     REDUCE(37),
     MAP(38),
+    FOLD(187),
     FILTER(39),
     CONCAT_MAP(40),
     ORDER_BY(41),
@@ -247,6 +248,7 @@ public enum TermType {
             case 182: return TermType.BETWEEN;
             case 37: return TermType.REDUCE;
             case 38: return TermType.MAP;
+            case 187: return TermType.FOLD;
             case 39: return TermType.FILTER;
             case 40: return TermType.CONCAT_MAP;
             case 41: return TermType.ORDER_BY;
