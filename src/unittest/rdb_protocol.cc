@@ -857,6 +857,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                               "test",
                               false,
                               false,
+                              false,
                               ql::configured_limits_t(),
                               ql::datum_t::boolean(false),
                               keyspec_t::point_t{ql::datum_t(0.0)}),
@@ -871,6 +872,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                "test",
                                false,
                                false,
+                               false,
                                ql::configured_limits_t(),
                                ql::datum_t::boolean(false),
                                keyspec_t::point_t{ql::datum_t(10.0)}),
@@ -883,6 +885,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                             make_counted<ql::vector_datum_stream_t>(
                                 bt, std::vector<ql::datum_t>(), boost::none),
                             "test",
+                            false,
                             false,
                             false,
                             ql::configured_limits_t(),

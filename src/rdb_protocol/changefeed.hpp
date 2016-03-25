@@ -174,6 +174,7 @@ struct streamspec_t {
     std::string table_name;
     bool include_offsets;
     bool include_states;
+    bool include_types;
     configured_limits_t limits;
     datum_t squash;
     keyspec_t::spec_t spec;
@@ -181,6 +182,7 @@ struct streamspec_t {
                  std::string _table_name,
                  bool _include_offsets,
                  bool _include_states,
+                 bool _include_types,
                  configured_limits_t _limits,
                  datum_t _squash,
                  keyspec_t::spec_t _spec);
