@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Has both public parameterless constructor and public parametrized constructor
@@ -34,37 +36,66 @@ public class TestPojo {
 
     private String stringProperty;
     private TestPojoInner pojoProperty;
-    private PojoEnum enumProperty = PojoEnum.AAA;
-    private PojoEnum enumInnerLowerCaseProperty = PojoEnum.xxx;
-    private PojoEnum enumInnerUpperCaseProperty = PojoEnum.XXX;
-    private OffsetDateTime offsetDateTimeProperty = OffsetDateTime.now();
-    private LocalDateTime localDateTimeProperty = LocalDateTime.now();;
-    private ZonedDateTime zonedDateTimeProperty = ZonedDateTime.now();
-    private LocalDate localDateProperty = LocalDate.now();
-    private LocalTime localTimeProperty = LocalTime.now();
-    private Date dateProperty = new Date();
-    private Double doubleProperty = Double.MAX_VALUE;
-    private double primitiveDoubleProperty = Double.MAX_VALUE;
-    private Float floatProperty = Float.MAX_VALUE;
-    private float primitiveFloatProperty = Float.MAX_VALUE;
-    private Integer integerProperty = Integer.MAX_VALUE;
-    private int primitiveIntegerProperty = Integer.MAX_VALUE;
-    private Long longProperty = Long.MAX_VALUE;
-    private long primitiveLongProperty = Long.MAX_VALUE;
-    private Short shortProperty = Short.MAX_VALUE;
-    private short primitiveShortProperty = Short.MAX_VALUE;
-    private Byte byteProperty = Byte.MAX_VALUE;
-    private byte primitiveByteProperty = Byte.MAX_VALUE;
-    private Boolean booleanProperty = true;
-    private boolean primitiveBooleanProperty = true;
-    private BigDecimal bigDecimalProperty = new BigDecimal("123456789012345678901234567");
-    private BigInteger bigIntegerProperty = new BigInteger("123456789012345");
+    private PojoEnum enumProperty;
+    private PojoEnum enumInnerLowerCaseProperty;
+    private PojoEnum enumInnerUpperCaseProperty;
+    private OffsetDateTime offsetDateTimeProperty;
+    private LocalDateTime localDateTimeProperty;
+    private ZonedDateTime zonedDateTimeProperty;
+    private LocalDate localDateProperty;
+    private LocalTime localTimeProperty;
+    private Date dateProperty;
+    private Double doubleProperty;
+    private double primitiveDoubleProperty;
+    private Float floatProperty;
+    private float primitiveFloatProperty;
+    private Integer integerProperty;
+    private int primitiveIntegerProperty;
+    private Long longProperty;
+    private long primitiveLongProperty;
+    private Short shortProperty;
+    private short primitiveShortProperty;
+    private Byte byteProperty;
+    private byte primitiveByteProperty;
+    private Boolean booleanProperty;
+    private boolean primitiveBooleanProperty;
+    private BigDecimal bigDecimalProperty;
+    private BigInteger bigIntegerProperty;
+
+    private List<TestPojoInner> pojoListProperty;
 
     public TestPojo() {}
 
     public TestPojo(String stringProperty, TestPojoInner pojoProperty) {
         this.stringProperty = stringProperty;
         this.pojoProperty = pojoProperty;
+
+        enumProperty = PojoEnum.AAA;
+        enumInnerLowerCaseProperty = PojoEnum.xxx;
+        enumInnerUpperCaseProperty = PojoEnum.XXX;
+        offsetDateTimeProperty = OffsetDateTime.now();
+        localDateTimeProperty = LocalDateTime.now();
+        zonedDateTimeProperty = ZonedDateTime.now();
+        localDateProperty = LocalDate.now();
+        localTimeProperty = LocalTime.now();
+        dateProperty = new Date();
+        doubleProperty = Double.MAX_VALUE;
+        primitiveDoubleProperty = Double.MAX_VALUE;
+        floatProperty = Float.MAX_VALUE;
+        primitiveFloatProperty = Float.MAX_VALUE;
+        integerProperty = Integer.MAX_VALUE;
+        primitiveIntegerProperty = Integer.MAX_VALUE;
+        longProperty = Long.MAX_VALUE;
+        primitiveLongProperty = Long.MAX_VALUE;
+        shortProperty = Short.MAX_VALUE;
+        primitiveShortProperty = Short.MAX_VALUE;
+        byteProperty = Byte.MAX_VALUE;
+        primitiveByteProperty = Byte.MAX_VALUE;
+        booleanProperty = true;
+        primitiveBooleanProperty = true;
+        bigDecimalProperty = new BigDecimal("123456789012345678901234567");
+        bigIntegerProperty = new BigInteger("123456789012345");
+        pojoListProperty = Arrays.asList(new TestPojoInner(111L, true), new TestPojoInner(222L, false));        
     }
 
     public String getStringProperty() { return this.stringProperty; }
@@ -271,5 +302,14 @@ public class TestPojo {
 
     public void setBigIntegerProperty(BigInteger bigIntegerProperty) {
         this.bigIntegerProperty = bigIntegerProperty;
+    }
+
+
+    public List<TestPojoInner> getPojoListProperty() {
+        return pojoListProperty;
+    }
+
+    public void setPojoListProperty(List<TestPojoInner> pojoListProperty) {
+        this.pojoListProperty = pojoListProperty;
     }
 }

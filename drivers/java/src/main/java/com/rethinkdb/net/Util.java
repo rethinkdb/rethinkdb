@@ -162,9 +162,22 @@ public class Util {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
 
+                //If the property is of a generic class, get inner class name of the generic type.
+                String innerClassName = null;
+                {
+                    String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
+                    int len = valueClass.getName().length();
+                    int genLen = genName.length();
+                    if (genLen > len + 2 && genName.charAt(len) == '<' && genName.charAt(genLen - 1) == '>') {
+                        innerClassName = genName.substring(len + 1, genLen - 1);
+                    }
+                }
+
+                //Java can not load generic class by Class.forName("java.util.List<TestPojoInner>"),
+                //so i have to use the fixed class, and pass inner class name to smartCast
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
-                        : smartCast(valueClass, value));
+                        : smartCast(valueClass, value, innerClassName));
             }
         }
 
@@ -173,9 +186,35 @@ public class Util {
 
     static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
 
-    private static Object smartCast(Class valueClass, Object value) {
+    private static Object smartCast(Class valueClass, Object value, String innerClassNameOfGenericValueClass) {
         try {
-            return valueClass.cast(value);
+            value = valueClass.cast(value);
+
+            if (innerClassNameOfGenericValueClass != null) {
+                /**
+                 * convert every element of list to inner class instance
+                 */
+                if (value instanceof List) {
+
+                    Class innerClass = null;
+                    try {
+                        innerClass = Class.forName(innerClassNameOfGenericValueClass);
+                    } catch (ClassNotFoundException e) {
+                        //e.printStackTrace();
+                    }
+
+                    if (innerClass != null) {
+                        List list = (List) value;
+                        int len = list.size();
+                        for (int i = 0; i < len; i++) {
+                            Object obj = list.get(i);
+                            obj = convertToPojo(obj, Optional.of(innerClass));
+                            list.set(i, obj);
+                        }
+                    }
+                }
+            }
+            return value;
         }
         catch (ClassCastException ex) {
             if (valueClass.isEnum()) {
