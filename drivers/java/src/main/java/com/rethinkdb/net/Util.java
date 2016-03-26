@@ -162,7 +162,14 @@ public class Util {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
 
-                //If the property is of a generic class, get inner class name of the generic type.
+                /**
+                 * If the property is of a generic class, get inner class name of the generic type.
+                 * For example:
+                 *  valueClass: java.util.List
+                 *  wanted target class: java.util.List<TestPojoInner>
+                 *Then
+                 *  innerClassName = "TestPojoInner.class"
+                 */
                 String innerClassName = null;
                 {
                     String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
@@ -173,8 +180,18 @@ public class Util {
                     }
                 }
 
-                //Java can not load generic class by Class.forName("java.util.List<TestPojoInner>"),
-                //so i have to use the fixed class, and pass inner class name to smartCast
+                /**
+                 * When convert a non-map value to a property of bean, and if the property is a generic type
+                 * e.g. java.util.List<TestPojoInner>, then call smartCast to do deep conversion.
+                 * In this example, the `value` should already be a ArrayList<Object>,
+                 * each item is actually a HashMap<String, Object> which should be converted to TestPojoInner.
+                 *
+                 * I do want to directly convert the `value` to the generic type e.g. java.util.List<TestPojoInner>,
+                 * but unfortunately,
+                 * Java can not load generic class by Class.forName("java.util.List<TestPojoInner>"),
+                 * so i have to use the fixed class, and pass inner class name to smartCast
+                 * and let it convert each HashMap to TestPojoInner
+                 */
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
                         : smartCast(valueClass, value, innerClassName));
@@ -200,7 +217,7 @@ public class Util {
                     try {
                         innerClass = Class.forName(innerClassNameOfGenericValueClass);
                     } catch (ClassNotFoundException e) {
-                        //e.printStackTrace();
+                        e = e; //just for setting breakpoint easier
                     }
 
                     if (innerClass != null) {
@@ -208,8 +225,9 @@ public class Util {
                         int len = list.size();
                         for (int i = 0; i < len; i++) {
                             Object obj = list.get(i);
-                            obj = convertToPojo(obj, Optional.of(innerClass));
-                            list.set(i, obj);
+                            Object convertedObj = convertToPojo(obj, Optional.of(innerClass));
+                            if (convertedObj != obj)
+                                list.set(i, convertedObj);
                         }
                     }
                 }
