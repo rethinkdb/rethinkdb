@@ -1,3 +1,48 @@
+# Release 2.2.6 (Modern Times)
+
+Released on 2016-03-25
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.2.6 servers cannot be mixed with servers running RethinkDB 2.2.1 or earlier
+in the same cluster.
+
+No migration is required when upgrading from RethinkDB 2.2.0 or higher. Please read the
+[RethinkDB 2.2.0 release notes][release-notes-2.2.0] if you're upgrading from an
+older version.
+
+[release-notes-2.2.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.2.0
+
+### Bug fixes ###
+
+* Fixed two bugs in the changefeed code that caused crashes with an "Unreachable code"
+  error in certain edge cases (#5438, #5535)
+* Fixed a `SANITY CHECK FAILED: [d.has()]` error when using the `map` command on
+  a combination of empty and non-empty input streams (#5481)
+* The result of `conn.server()` now includes an `is_proxy` field (#5485)
+* Changed the connection behavior of proxy servers to avoid repeating "Rejected a
+  connection from server X since one is open already" warnings (#5456)
+* The Python driver now supports connecting to a server via IPv6, even when using the
+  async API (asyncio, tornado, twisted) (#5445)
+* Fixed an incompatibility with certain versions of Python that made the driver unable to
+  load the `backports.ssl_match_hostname` module (#5470)
+* Fixed a resource leak in the Java driver's `cursor.close()` call (#5448)
+* Cursors in the Java driver now implement the `Closeable` interface (#5468)
+* Fixed a remaining incompatibility with Internet Explorer 10 in the JavaScript driver
+  (#5499)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.2.6. In no particular order:
+
+* Paulo Pires (@pires)
+* Mike Mintz (@mikemintz)
+
+--
+
 # Release 2.2.5 (Modern Times)
 
 Released on 2016-02-23
