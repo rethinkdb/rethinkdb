@@ -41,6 +41,12 @@ public class Util {
                 : (T) toPojo(pojoClass.get(), (Map<String, Object>) value);
     }
 
+    public static <T> T convertToPojo(Object value, Class pojoClass) {
+        return !(value instanceof Map)
+                ? (T) value
+                : (T) toPojo(pojoClass, (Map<String, Object>) value);
+    }
+
     /**
      * Converts a String-to-Object map to a POJO using bean introspection.<br>
      * The POJO's class must be public and satisfy one of the following conditions:<br>
@@ -225,7 +231,7 @@ public class Util {
                         int len = list.size();
                         for (int i = 0; i < len; i++) {
                             Object obj = list.get(i);
-                            Object convertedObj = convertToPojo(obj, Optional.of(innerClass));
+                            Object convertedObj = convertToPojo(obj, innerClass);
                             if (convertedObj != obj)
                                 list.set(i, convertedObj);
                         }
@@ -290,6 +296,16 @@ public class Util {
             }
             else if (java.util.Date.class.isAssignableFrom(valueClass)) {
                 return new Date(parseDate(value).toEpochMilli());
+            }
+            else if (valueClass.isArray() && value instanceof List) {
+                List list = (List)value;
+                int len = list.size();
+                Class aryComponentType = valueClass.getComponentType();
+                Object[] ary = (Object[])Array.newInstance(aryComponentType, list.size());
+                for(int i = 0; i < len; i++) {
+                    ary[i] = convertToPojo(list.get(i), aryComponentType);
+                }
+                return ary;
             }
             else
                 throw ex;

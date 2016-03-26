@@ -64,6 +64,10 @@ public class TestPojo {
 
     private List<TestPojoInner> pojoListProperty;
 
+    private TestPojoInner[] pojoArrayProperty;
+
+    private int[] primitiveIntegerArrayProperty;
+
     private static final OffsetDateTime sample_offsetDateTimeProperty = OffsetDateTime.now();
     private static final LocalDateTime sample_localDateTimeProperty = LocalDateTime.now();
     private static final ZonedDateTime sample_zonedDateTimeProperty = ZonedDateTime.now();
@@ -102,7 +106,10 @@ public class TestPojo {
         primitiveBooleanProperty = true;
         bigDecimalProperty = new BigDecimal("123456789012345678901234567");
         bigIntegerProperty = new BigInteger("123456789012345");
-        pojoListProperty = Arrays.asList(new TestPojoInner(111L, true), new TestPojoInner(222L, false));        
+
+        pojoListProperty = Arrays.asList(new TestPojoInner(111L, true), new TestPojoInner(222L, false));
+        pojoArrayProperty = new TestPojoInner[] {new TestPojoInner(111L, true), new TestPojoInner(222L, false)};
+//        primitiveIntegerArrayProperty = new int[] {991, 992};
     }
 
     public String getStringProperty() { return this.stringProperty; }
@@ -318,5 +325,21 @@ public class TestPojo {
 
     public void setPojoListProperty(List<TestPojoInner> pojoListProperty) {
         this.pojoListProperty = pojoListProperty;
+    }
+
+    public TestPojoInner[] getPojoArrayProperty() {
+        return pojoArrayProperty;
+    }
+
+    public void setPojoArrayProperty(TestPojoInner[] pojoArrayProperty) {
+        this.pojoArrayProperty = pojoArrayProperty;
+    }
+
+    public int[] getPrimitiveIntegerArrayProperty() {
+        return primitiveIntegerArrayProperty;
+    }
+
+    public void setPrimitiveIntegerArrayProperty(int[] primitiveIntegerArrayProperty) {
+        this.primitiveIntegerArrayProperty = primitiveIntegerArrayProperty;
     }
 }
