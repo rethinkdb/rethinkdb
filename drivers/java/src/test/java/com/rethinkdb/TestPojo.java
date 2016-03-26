@@ -64,6 +64,13 @@ public class TestPojo {
 
     private List<TestPojoInner> pojoListProperty;
 
+    private static final OffsetDateTime sample_offsetDateTimeProperty = OffsetDateTime.now();
+    private static final LocalDateTime sample_localDateTimeProperty = LocalDateTime.now();
+    private static final ZonedDateTime sample_zonedDateTimeProperty = ZonedDateTime.now();
+    private static final LocalDate sample_localDateProperty = LocalDate.now();
+    private static final LocalTime sample_localTimeProperty = LocalTime.now();
+    private static final Date sample_dateProperty = new Date();
+
     public TestPojo() {}
 
     public TestPojo(String stringProperty, TestPojoInner pojoProperty) {
@@ -73,12 +80,12 @@ public class TestPojo {
         enumProperty = PojoEnum.AAA;
         enumInnerLowerCaseProperty = PojoEnum.xxx;
         enumInnerUpperCaseProperty = PojoEnum.XXX;
-        offsetDateTimeProperty = OffsetDateTime.now();
-        localDateTimeProperty = LocalDateTime.now();
-        zonedDateTimeProperty = ZonedDateTime.now();
-        localDateProperty = LocalDate.now();
-        localTimeProperty = LocalTime.now();
-        dateProperty = new Date();
+        offsetDateTimeProperty = sample_offsetDateTimeProperty;
+        localDateTimeProperty = sample_localDateTimeProperty;
+        zonedDateTimeProperty = sample_zonedDateTimeProperty;
+        localDateProperty = sample_localDateProperty;
+        localTimeProperty = sample_localTimeProperty;
+        dateProperty = sample_dateProperty;
         doubleProperty = Double.MAX_VALUE;
         primitiveDoubleProperty = Double.MAX_VALUE;
         floatProperty = Float.MAX_VALUE;
