@@ -827,7 +827,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 66
     },
     "AND": {
@@ -835,7 +835,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 67
     },
     "FOR_EACH": {
