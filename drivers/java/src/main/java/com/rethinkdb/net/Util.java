@@ -41,6 +41,12 @@ public class Util {
                 : (T) toPojo(pojoClass.get(), (Map<String, Object>) value);
     }
 
+    public static <T> T convertToPojo(Object value, Class pojoClass) {
+        return !(value instanceof Map)
+                ? (T) value
+                : (T) toPojo(pojoClass, (Map<String, Object>) value);
+    }
+
     /**
      * Converts a String-to-Object map to a POJO using bean introspection.<br>
      * The POJO's class must be public and satisfy one of the following conditions:<br>
@@ -161,10 +167,30 @@ public class Util {
             if (writer != null && writer.getDeclaringClass() == pojoClass) {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
-
+                /**
+                 * If the property of a java bean(or says POJO) is a generic List class, e.g.
+                 *  java.util.List<com.rethinkdb.TestPojoInner>
+                 * So far rethinkdb java driver will only convert db data to following type for us:
+                 *  java.util.List<HashMap<String, Object>>
+                 * So it's better convert each item in the list to com.rethinkdb.TestPojoInner.
+                 *
+                 * I do want to directly convert the `value` to the generic type, but unfortunately,
+                 * Java can not load generic class by Class.forName("java.util.List<com.rethinkdb.TestPojoInner>"),
+                 * so i have to use the fixed class java.util.List, and pass listItemClassName to smartCast
+                 * and let it convert each HashMap to TestPojoInner
+                 */
+                String listItemClassName = null;
+                if (value instanceof List) {
+                    String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
+                    int len = valueClass.getName().length();
+                    int genLen = genName.length();
+                    if (genLen > len + 2 && genName.charAt(len) == '<' && genName.charAt(genLen - 1) == '>') {
+                        listItemClassName = genName.substring(len + 1, genLen - 1);
+                    }
+                }
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
-                        : smartCast(valueClass, value));
+                        : smartCast(valueClass, value, listItemClassName));
             }
         }
 
@@ -173,9 +199,36 @@ public class Util {
 
     static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
 
-    private static Object smartCast(Class valueClass, Object value) {
+    private static Object smartCast(Class valueClass, Object value, String listItemClassName) {
         try {
-            return valueClass.cast(value);
+            value = valueClass.cast(value);
+
+            if (listItemClassName != null) {
+                /**
+                 * convert each list element to wanted item class
+                 */
+                if (value instanceof List) {
+
+                    Class innerClass = null;
+                    try {
+                        innerClass = Class.forName(listItemClassName);
+                    } catch (ClassNotFoundException e) {
+                        e = e; //just for setting breakpoint easier
+                    }
+
+                    if (innerClass != null) {
+                        List list = (List) value;
+                        int len = list.size();
+                        for (int i = 0; i < len; i++) {
+                            Object obj = list.get(i);
+                            Object convertedObj = convertToPojo(obj, innerClass);
+                            if (convertedObj != obj)
+                                list.set(i, convertedObj);
+                        }
+                    }
+                }
+            }
+            return value;
         }
         catch (ClassCastException ex) {
             if (valueClass.isEnum()) {
@@ -233,6 +286,16 @@ public class Util {
             }
             else if (java.util.Date.class.isAssignableFrom(valueClass)) {
                 return new Date(parseDate(value).toEpochMilli());
+            }
+            else if (valueClass.isArray() && value instanceof List) {
+                List list = (List)value;
+                int len = list.size();
+                Class aryComponentType = valueClass.getComponentType();
+                Object[] ary = (Object[])Array.newInstance(aryComponentType, list.size());
+                for(int i = 0; i < len; i++) {
+                    ary[i] = convertToPojo(list.get(i), aryComponentType);
+                }
+                return ary;
             }
             else
                 throw ex;

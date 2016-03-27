@@ -11,6 +11,11 @@ import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
+import java.beans.BeanInfo;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
@@ -47,7 +52,6 @@ public class RethinkDBTest{
     public static void oneTimeTearDown() throws Exception {
         Connection conn = TestingFramework.createConnection();
         try {
-            r.db(dbName).tableDrop(tableName).run(conn);
             r.dbDrop(dbName).run(conn);
         } catch(ReqlError e){}
         conn.close();
@@ -209,7 +213,16 @@ public class RethinkDBTest{
         try {
             r.dbCreate("test").run(conn);
         } catch (Exception e) {}
+        try{
+            r.db("test").tableDrop(tblName).run(conn);
+        } catch (Exception e) {}
 
+        try {
+            r.dbDrop("optargs").run(conn);
+        } catch (Exception e) {}
+        try {
+            r.dbDrop("conn_default").run(conn);
+        } catch (Exception e) {}
         r.expr(r.array("optargs", "conn_default")).forEach(r::dbCreate).run(conn);
         r.expr(r.array("test", "optargs", "conn_default")).forEach(dbName ->
                         r.db(dbName).tableCreate(tblName).do_((unused) ->
@@ -308,8 +321,22 @@ public class RethinkDBTest{
         assertEquals("bar", pojoTwoSelected.getStringProperty());
         assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
         assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
+    }
 
-        compare_pojo(pojoOneSelected, pojoOne);
+    @Test
+    public void testTableSelectOfPojoCursor_ManyTypeMappings() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+
+        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        List<TestPojo> result = cursor.toList();
+
+        TestPojo pojoOneSelected = result.get(0);
+
+        compareMostPropertiesOfPojo(pojoOneSelected, pojoOne);
+
+        assertTrue( deepEquals(pojoOneSelected.getPojoListProperty(), pojoOne.getPojoListProperty()));
     }
 
     @Test
@@ -355,7 +382,7 @@ public class RethinkDBTest{
 
         TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
 
-        compare_pojo(pojoOneSelected, pojoOne);
+        compareMostPropertiesOfPojo(pojoOneSelected, pojoOne);
     }
 
     @Test
@@ -374,10 +401,12 @@ public class RethinkDBTest{
 
         TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
 
-        compare_pojo(pojoOneSelected, pojoOne);
+        compareMostPropertiesOfPojo(pojoOneSelected, pojoOne);
+
+        assertTrue( deepEquals(pojoOneSelected.getPojoListProperty(), pojoOne.getPojoListProperty()));
     }
 
-    private void compare_pojo(TestPojo pojoOneSelected, TestPojo pojoOne) {
+    private void compareMostPropertiesOfPojo(TestPojo pojoOneSelected, TestPojo pojoOne) {
         assertEquals(pojoOneSelected.getEnumProperty(), pojoOne.getEnumProperty());
         assertEquals(pojoOneSelected.getEnumInnerLowerCaseProperty(), pojoOne.getEnumInnerLowerCaseProperty());
         assertEquals(pojoOneSelected.getEnumInnerUpperCaseProperty(), pojoOne.getEnumInnerUpperCaseProperty());
@@ -411,14 +440,156 @@ public class RethinkDBTest{
         assertEquals(pojoOneSelected.getBigIntegerProperty(), pojoOne.getBigIntegerProperty());
     }
 
+    /**
+     * deep compare java bean, generic List, array
+     * @param obj1
+     * @param obj2
+     * @return
+     */
+    private boolean deepEquals(Object obj1, Object obj2) {
+        if ((obj1 == null) != (obj2 == null))
+            return false;
+        if (obj1 == null)
+            return true;
+        if (obj1.equals(obj2))
+            return true;
+
+        /**
+         * compare List<T>  (e.g. ArrayList<SomeClass>)
+         */
+        if (obj1 instanceof List && obj2 instanceof List) {
+            List list1 = (List) obj1;
+            List list2 = (List) obj2;
+
+            int len = list1.size();
+            if (list2.size() != len)
+                return false;
+
+            for (int i = 0; i < len; i++) {
+                if (!deepEquals(list1.get(i), list2.get(i)))
+                    return false;
+            }
+            return true;
+        }
+
+        Class clazz1 = obj1.getClass();
+
+        /**
+         * compare Xxx[] or xxx[]    (xxx means primitive type)
+         */
+        if (clazz1.isArray() && obj2.getClass().isArray()) {
+            int len = Array.getLength(obj1);
+            if (Array.getLength(obj2) != len)
+                return false;
+
+            for (int i = 0; i < len; i++) {
+                if (!deepEquals(Array.get(obj1, i), Array.get(obj2, i)))
+                    return false;
+            }
+            return true;
+        }
+        /**
+         * compare java beans
+         */
+        if (clazz1 == obj2.getClass()) {
+            try {
+                BeanInfo info = Introspector.getBeanInfo(clazz1);
+
+                int beanPropertyCount = 0;
+                for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                    Method reader = descriptor.getReadMethod();
+                    if (reader != null && descriptor.getWriteMethod() != null)
+                        beanPropertyCount++;
+                }
+                if (beanPropertyCount == 0)
+                    return false;
+
+                for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                    Method reader = descriptor.getReadMethod();
+                    if (reader != null && descriptor.getWriteMethod() != null) {
+                        Object prop1 = reader.invoke(obj1);
+                        Object prop2 = reader.invoke(obj2);
+
+                        if (!deepEquals(prop1, prop2))
+                            return false;
+                    }
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    @Test
+    public void testDeepCompare() {
+        assertEquals(false, deepEquals("hihihih", "xx"));
+        assertEquals(true, deepEquals("hihihih", "hihihih"));
+        assertEquals(true, deepEquals(Long.valueOf(123456789), 123456789L));
+
+        TestPojo pojo1 = new TestPojo("s1", null);
+        TestPojo pojo2 = new TestPojo("s1", null);
+
+        assertEquals(false, pojo1.equals(pojo2));
+        assertEquals(true, deepEquals(pojo1, pojo2));
+
+        pojo1 = new TestPojo("s1", new TestPojoInner(11L, true));
+        pojo2 = new TestPojo("s1", new TestPojoInner(11L, true));
+
+        assertEquals(false, pojo1.equals(pojo2));
+        assertEquals(true, deepEquals(pojo1, pojo2));
+
+        pojo1.getPojoListProperty().set(0, new TestPojoInner(99L, true));
+        assertEquals(false, deepEquals(pojo1.getPojoListProperty(), pojo2.getPojoListProperty()));
+        assertEquals(false, deepEquals(pojo1, pojo2));
+
+        List<TestPojo> list1 = Arrays.asList(new TestPojo("s1", new TestPojoInner(11L, true)), new TestPojo("s2", new TestPojoInner(22L, true)));
+        List<TestPojo> list2 = Arrays.asList(new TestPojo("s1", new TestPojoInner(11L, true)), new TestPojo("s2", new TestPojoInner(22L, true)));
+
+        ArrayList list3 = new ArrayList();
+        ArrayList<TestPojo> list4 = new ArrayList<>();
+        list3.add(new TestPojo("s1", new TestPojoInner(11L, true)));
+        list4.add(new TestPojo("s1", new TestPojoInner(11L, true)));
+        list3.add(new TestPojo("s2", new TestPojoInner(22L, true)));
+        list4.add(new TestPojo("s2", new TestPojoInner(22L, true)));
+
+        assertEquals(false, list1.equals(list2));
+        assertEquals(true, deepEquals(list1, list2));
+
+        assertEquals(false, list1.equals(list3));
+        assertEquals(true, deepEquals(list1, list3));
+
+        assertEquals(false, list1.equals(list4));
+        assertEquals(true, deepEquals(list1, list4));
+
+        assertEquals(false, list3.equals(list4));
+        assertEquals(true, deepEquals(list3, list4));
+
+        TestPojo[] ary1 = new TestPojo[]{new TestPojo("s1", new TestPojoInner(11L, true)), new TestPojo("s2", new TestPojoInner(22L, true))};
+        TestPojo[] ary2 = new TestPojo[]{new TestPojo("s1", new TestPojoInner(11L, true)), new TestPojo("s2", new TestPojoInner(22L, true))};
+        Object[] ary3 = new Object[]{new TestPojo("s1", new TestPojoInner(11L, true)), new TestPojo("s2", new TestPojoInner(22L, true))};
+
+        assertEquals(false, ary1.equals(ary2));
+        assertEquals(true, deepEquals(ary1, ary2));
+
+        assertEquals(false, ary1.equals(ary3));
+        assertEquals(true, deepEquals(ary1, ary3));
+    }
+
     @IgnoreNullFields
     public static class TestPojoIgnoreNull {
-        private Object notNullProperty = "foo";
-        private Object nullProperty = null;
+        private Object notNullProperty;
+        private Object nullProperty;
 
         public TestPojoIgnoreNull() {
         }
 
+        public TestPojoIgnoreNull(Object notNullProperty, Object nullProperty) {
+            this.notNullProperty = notNullProperty;
+            this.nullProperty = nullProperty;
+        }
 
         public Object getNotNullProperty() {
             return notNullProperty;
@@ -439,7 +610,7 @@ public class RethinkDBTest{
 
     @Test
     public void testSaveObjectIgnoreNullProperties() {
-        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull();
+        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull("foo", null);
 
         Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
         assertEquals(1L, pojoOneResult.get("inserted"));
@@ -459,8 +630,8 @@ public class RethinkDBTest{
 
     @Test
     public void testSaveObjectIgnoreNullPropertiesNested() {
-        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull();
-        TestPojoIgnoreNull pojoOneInner = new TestPojoIgnoreNull();
+        TestPojoIgnoreNull pojoOne = new TestPojoIgnoreNull("foo", null);
+        TestPojoIgnoreNull pojoOneInner = new TestPojoIgnoreNull("foo inner", null);
         pojoOne.setNotNullProperty(pojoOneInner);
 
         Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
@@ -594,7 +765,7 @@ public class RethinkDBTest{
                 waiter.resume();
             }).start();
 
-        waiter.await(2500, total);
+        waiter.await(5000, total);
 
         assertEquals(total, writeCounter.get());
     }
