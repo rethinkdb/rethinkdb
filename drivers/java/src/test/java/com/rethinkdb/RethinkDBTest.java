@@ -765,7 +765,7 @@ public class RethinkDBTest{
                 waiter.resume();
             }).start();
 
-        waiter.await(3500, total);
+        waiter.await(5000, total);
 
         assertEquals(total, writeCounter.get());
     }
