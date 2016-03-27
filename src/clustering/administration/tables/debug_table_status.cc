@@ -76,11 +76,11 @@ ql::datum_t convert_debug_region_to_datum(const region_t &region) {
 ql::datum_t convert_debug_contract_primary_to_datum(
         const contract_t::primary_t &primary) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("server", convert_uuid_to_datum(primary.server));
+    builder.overwrite("server", convert_uuid_to_datum(primary.server.get_uuid()));
     builder.overwrite(
         "hand_over",
         static_cast<bool>(primary.hand_over)
-            ? convert_uuid_to_datum(primary.hand_over.get())
+            ? convert_uuid_to_datum(primary.hand_over.get().get_uuid())
             : ql::datum_t::null());
     return std::move(builder).to_datum();
 }
@@ -96,16 +96,21 @@ ql::datum_t convert_debug_contracts_to_datum(
             "region", convert_debug_region_to_datum(contract.second.first));
         contract_builder.overwrite(
             "replicas", convert_set_to_datum<server_id_t>(
-                &convert_uuid_to_datum, contract.second.second.replicas));
+                [] (const server_id_t &sid) {
+                    return convert_uuid_to_datum(sid.get_uuid());
+                }, contract.second.second.replicas));
         contract_builder.overwrite(
             "voters", convert_set_to_datum<server_id_t>(
-                &convert_uuid_to_datum, contract.second.second.voters));
+                [] (const server_id_t &sid) {
+                    return convert_uuid_to_datum(sid.get_uuid());
+                }, contract.second.second.voters));
         contract_builder.overwrite(
             "temp_voters",
             static_cast<bool>(contract.second.second.temp_voters)
                 ? convert_set_to_datum<server_id_t>(
-                    &convert_uuid_to_datum,
-                    contract.second.second.temp_voters.get())
+                    [] (const server_id_t &sid) {
+                        return convert_uuid_to_datum(sid.get_uuid());
+                    }, contract.second.second.temp_voters.get())
                 : ql::datum_t::null());
         contract_builder.overwrite(
             "primary",
@@ -239,7 +244,7 @@ ql::datum_t convert_debug_statuses_to_datum(
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
     for (const auto &peer : statuses) {
         ql::datum_object_builder_t peer_builder;
-        peer_builder.overwrite("server", convert_uuid_to_datum(peer.first));
+        peer_builder.overwrite("server", convert_uuid_to_datum(peer.first.get_uuid()));
         peer_builder.overwrite("timestamp",
             convert_debug_multi_table_manager_bcard_timestamp_to_datum(
                 *peer.second.raft_state_timestamp));

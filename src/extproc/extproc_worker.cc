@@ -27,7 +27,7 @@ NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
 extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
     spawner(_spawner),
     worker_pid(-1),
-    interruptor(NULL) { }
+    interruptor(nullptr) { }
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != -1) {
@@ -67,18 +67,18 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     }
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
-    guarantee(interruptor == NULL);
+    guarantee(interruptor == nullptr);
     interruptor = _interruptor;
-    guarantee(interruptor != NULL);
+    guarantee(interruptor != nullptr);
     socket_stream.get()->set_interruptor(interruptor);
 }
 
 void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
-    guarantee(interruptor != NULL);
+    guarantee(interruptor != nullptr);
     bool errored = user_error;
 
     // If we were interrupted by the user, we can't count on the worker being valid
-    if (user_interruptor != NULL && user_interruptor->is_pulsed()) {
+    if (user_interruptor != nullptr && user_interruptor->is_pulsed()) {
         errored = true;
     } else if (!errored) {
         // Set up a timeout interruptor for the final write/read
@@ -116,7 +116,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
     }
 
     socket_stream.reset();
-    interruptor = NULL;
+    interruptor = nullptr;
 
     // If anything went wrong, we just kill the worker and recreate it later
     if (errored) {

@@ -4,7 +4,7 @@ spinlock_t::spinlock_t() {
 #if PTHREAD_HAS_SPINLOCK
     int res = pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
 #else
-    int res = pthread_mutex_init(&l, NULL);
+    int res = pthread_mutex_init(&l, nullptr);
 #endif
     guarantee_xerr(res == 0, res, "could not initialize spinlock");
 }

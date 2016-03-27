@@ -106,7 +106,7 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 MUST_USE const std::string winerr_string(DWORD winerr) {
     char *errmsg;
     DWORD res = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, NULL);
+                   nullptr, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, nullptr);
     if (res != 0) {
         size_t end = strlen(errmsg);
         while (end > 0 && isspace(errmsg[end-1])) {
@@ -274,15 +274,15 @@ void install_generic_crash_handler() {
     {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);
 
-        int res = sigaction(SIGSEGV, &sa, NULL);
+        int res = sigaction(SIGSEGV, &sa, nullptr);
         guarantee_err(res == 0, "Could not install SEGV signal handler");
-        res = sigaction(SIGBUS, &sa, NULL);
+        res = sigaction(SIGBUS, &sa, nullptr);
         guarantee_err(res == 0, "Could not install BUS signal handler");
     }
 #endif
 
     struct sigaction sa = make_sa_handler(0, SIG_IGN);
-    int res = sigaction(SIGPIPE, &sa, NULL);
+    int res = sigaction(SIGPIPE, &sa, nullptr);
     guarantee_err(res == 0, "Could not install PIPE handler");
 #endif
 

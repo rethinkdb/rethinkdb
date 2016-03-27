@@ -24,8 +24,8 @@ init () {
     must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    optional_libs="gtest termcap boost_system ssl"
-    required_libs="protobuf v8 re2 z crypto curl"
+    optional_libs="gtest termcap boost_system"
+    required_libs="protobuf v8 re2 z crypto ssl curl"
     other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
@@ -863,6 +863,7 @@ int main(){
 
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
+#include <openssl/ssl.h>
 #include <openssl/bn.h>
 int main(){ return 0; }
 

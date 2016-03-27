@@ -805,18 +805,6 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new TableList(args);
     }
-    public Wait wait_(){
-        Arguments args = new Arguments();
-        return new Wait(args);
-    }
-    public Reconfigure reconfigure(){
-        Arguments args = new Arguments();
-        return new Reconfigure(args);
-    }
-    public Rebalance rebalance(){
-        Arguments args = new Arguments();
-        return new Rebalance(args);
-    }
     public Funcall do_(Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(js);
@@ -883,16 +871,13 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Branch(args);
     }
-    public Or or(Object expr, Object exprA, Object... exprs){
+    public Or or(Object... exprs){
         Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Or(args);
     }
-    public And and(Object expr, Object... exprs){
+    public And and(Object... exprs){
         Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new And(args);
     }

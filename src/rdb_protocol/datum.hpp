@@ -144,6 +144,8 @@ public:
     static datum_t binary(datum_string_t &&value);
     static datum_t binary(const datum_string_t &value);
 
+    static datum_t utf8(datum_string_t _data);
+
     static datum_t minval();
     static datum_t maxval();
 

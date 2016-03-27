@@ -25,6 +25,13 @@
 
 enum class is_primary_t { NO, YES };
 
+enum class require_sindexes_t { NO, YES};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(require_sindexes_t,
+                                      int8_t,
+                                      require_sindexes_t::NO,
+                                      require_sindexes_t::YES);
+
 namespace ql {
 
 template<class T>
@@ -417,7 +424,8 @@ public:
 scoped_ptr_t<accumulator_t> make_append(region_t region,
                                         store_key_t last_key,
                                         sorting_t sorting,
-                                        batcher_t *batcher);
+                                        batcher_t *batcher,
+                                        require_sindexes_t require_sindex_val);
 scoped_ptr_t<accumulator_t> make_unsharding_append();
 scoped_ptr_t<accumulator_t> make_terminal(const terminal_variant_t &t);
 scoped_ptr_t<eager_acc_t> make_to_array();

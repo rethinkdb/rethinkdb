@@ -21,7 +21,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
         return reinterpret_cast<DWORD>(res);
     };
     HANDLE handle = CreateThread(nullptr, 0, go, static_cast<void*>(data), 0, nullptr);
-    if (handle == NULL) {
+    if (handle == nullptr) {
         logERR("CreateThread failed: %s", winerr_string(GetLastError()));
         return EINVAL;
     } else {
@@ -45,7 +45,7 @@ int pthread_join(pthread_t other, void** retval) {
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
-    rassert(opts == NULL, "this implementation of pthread_mutex_init does not support attributes");
+    rassert(opts == nullptr, "this implementation of pthread_mutex_init does not support attributes");
     InitializeCriticalSection(mutex);
     return 0;
 }

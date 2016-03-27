@@ -195,8 +195,8 @@ namespace_interface_access_t namespace_repo_t::get_namespace_interface(
         if (cache->entries.find(ns_id) == cache->entries.end()) {
             cache_entry = new namespace_cache_entry_t;
             cache_entry->ref_count = 0;
-            cache_entry->pulse_when_ref_count_becomes_zero = NULL;
-            cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
+            cache_entry->pulse_when_ref_count_becomes_zero = nullptr;
+            cache_entry->pulse_when_ref_count_becomes_nonzero = nullptr;
 
             namespace_id_t id(ns_id);
             cache->entries.insert(std::make_pair(id,

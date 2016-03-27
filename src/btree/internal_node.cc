@@ -143,7 +143,7 @@ bool level(block_size_t block_size, internal_node_t *node,
            std::vector<block_id_t> *moved_children_out) {
     validate(block_size, node);
     validate(block_size, sibling);
-    if (moved_children_out != NULL) {
+    if (moved_children_out != nullptr) {
         moved_children_out->reserve(sibling->npairs);
     }
 
@@ -170,7 +170,7 @@ bool level(block_size_t block_size, internal_node_t *node,
             const uint16_t new_offset = impl::insert_pair(node, pair_to_move);
             node->pair_offsets[new_npairs] = new_offset;
             ++new_npairs;
-            if (moved_children_out != NULL) {
+            if (moved_children_out != nullptr) {
                 moved_children_out->push_back(pair_to_move->lnode);
             }
 
@@ -190,7 +190,7 @@ bool level(block_size_t block_size, internal_node_t *node,
 
         keycpy(replacement_key, &pair_for_parent->key);
 
-        if (moved_children_out != NULL) {
+        if (moved_children_out != nullptr) {
             moved_children_out->push_back(pair_for_parent->lnode);
         }
         impl::delete_pair(sibling, sibling->pair_offsets[0]);
@@ -203,7 +203,7 @@ bool level(block_size_t block_size, internal_node_t *node,
         block_id_t first_child = get_pair_by_index(sibling, sibling->npairs-1)->lnode;
         offset = impl::insert_pair(node, first_child, key_from_parent);
         impl::insert_offset(node, offset, 0);
-        if (moved_children_out != NULL) {
+        if (moved_children_out != nullptr) {
             moved_children_out->push_back(first_child);
         }
         impl::delete_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
@@ -220,7 +220,7 @@ bool level(block_size_t block_size, internal_node_t *node,
 
             offset = impl::insert_pair(node, pair_to_move);
             impl::insert_offset(node, offset, 0);
-            if (moved_children_out != NULL) {
+            if (moved_children_out != nullptr) {
                 moved_children_out->push_back(pair_to_move->lnode);
             }
 

@@ -357,7 +357,7 @@ class Process(object):
     
     logfilePortRegex = re.compile('Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
     logfileServerIDRegex = re.compile('Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
-    logfileReadyRegex = re.compile('(Server|Proxy) ready(, "(?P<name>\w+)" (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
+    logfileReadyRegex = re.compile('(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
     
     @staticmethod
     def genPath(name, path, extraLetters=3):
@@ -696,7 +696,7 @@ class Process(object):
             else:
                 time.sleep(0.05)
         else:
-            raise RuntimeError("Timed out after waiting %d seconds for startup." % timeout)
+            raise RuntimeError("Timed out after waiting %d seconds for startup of %s." % (timeout, self._desired_name))
     
     def read_ports_from_log(self, timeout=30):
         deadline = time.time() + timeout
@@ -714,22 +714,15 @@ class Process(object):
         
         # -- monitor the logfile for the given lines
         
-        logLines = utils.nonblocking_readline(self.logfile_path, self._existing_log_len)
-        
-        # - look for the data lines
-        
         try:
-            while time.time() < deadline:
-                # - bail out if we have everything
-                self.check()
-                if self.ready:
-                    return
-                
-                # - get a new line or sleep
-                logLine = next(logLines)
+            for logLine in utils.nonblocking_readline(self.logfile_path, self._existing_log_len):
+                if time.time() > deadline:
+                    raise RuntimeError("Timeout while trying to read ports from log file")
                 if logLine is None:
+                    # - bail out if we are done, or the process is dead
+                    if self.process is None or self.process.poll() is not None or self.ready:
+                        return
                     time.sleep(0.05)
-                    self.check()
                     continue
                 
                 # - see if it matches one we are looking for
@@ -755,8 +748,6 @@ class Process(object):
                     self._ready_line = True
                     self._name = parsedLine.group('name')
                     self._uuid = parsedLine.group('uuid')
-            else:
-                raise RuntimeError("Timeout while trying to read ports from log file")
         finally:
             if self.cluster._hasStartLock is self:
                 self.cluster._hasStartLock = None

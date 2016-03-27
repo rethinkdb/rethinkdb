@@ -26,6 +26,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -586,7 +587,8 @@ public:
         const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
-        sorting_t sorting);
+        sorting_t sorting,
+        require_sindexes_t require_sindex_val);
 
     virtual read_t terminal_read(
         const std::vector<transform_variant_t> &transform,
@@ -610,6 +612,7 @@ private:
 
 protected:
     datumspec_t datumspec;
+    require_sindexes_t require_sindex_val;
 };
 
 class primary_readgen_t : public rget_readgen_t {
@@ -655,7 +658,8 @@ public:
         read_mode_t read_mode,
         const std::string &sindex,
         const datumspec_t &datumspec = datumspec_t(datum_range_t::universe()),
-        sorting_t sorting = sorting_t::UNORDERED);
+        sorting_t sorting = sorting_t::UNORDERED,
+        require_sindexes_t require_sindex_val = require_sindexes_t::NO);
 
     virtual void sindex_sort(std::vector<rget_item_t> *vec,
                              const batchspec_t &batchspec) const;
@@ -670,7 +674,8 @@ private:
         const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
-        sorting_t sorting);
+        sorting_t sorting,
+        require_sindexes_t require_sindex_val);
     virtual rget_read_t next_read_impl(
         const boost::optional<active_ranges_t> &active_ranges,
         const boost::optional<reql_version_t> &reql_version,
@@ -752,6 +757,8 @@ public:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(
         env_t *env, const batchspec_t &batchspec) = 0;
+    virtual std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) { unreachable(); }
     virtual bool is_finished() const = 0;
 
     virtual changefeed::keyspec_t get_changespec() const = 0;
@@ -775,6 +782,10 @@ public:
     virtual std::vector<datum_t> next_batch(env_t *, const batchspec_t &) {
         return std::vector<datum_t>();
     }
+    std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) final {
+        return std::vector<rget_item_t>{};
+    }
     virtual bool is_finished() const {
         return true;
     }
@@ -797,6 +808,8 @@ public:
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual std::vector<rget_item_t> raw_next_batch(env_t *env,
+                                                    const batchspec_t &batchspec);
     virtual bool is_finished() const;
 
     virtual changefeed::keyspec_t get_changespec() const {
@@ -872,6 +885,51 @@ private:
 
     // To detect duplicates
     std::set<store_key_t> processed_pkeys;
+};
+
+class lazy_datum_stream_t;
+class eq_join_datum_stream_t : public eager_datum_stream_t {
+public:
+    eq_join_datum_stream_t(counted_t<datum_stream_t> _stream,
+                           counted_t<table_t> _table,
+                           datum_string_t _join_index,
+                           counted_t<const func_t> _predicate,
+                           bool _ordered,
+                           backtrace_id_t bt);
+
+    bool is_array() const final {
+        return is_array_eq_join;
+    }
+    bool is_infinite() const final {
+        return is_infinite_eq_join;
+    }
+    bool is_exhausted() const final;
+
+    std::vector<datum_t>
+    next_raw_batch(env_t *env, const batchspec_t &batchspec);
+
+    feed_type_t cfeed_type() const final {
+        return eq_join_type;
+    }
+
+private:
+    counted_t<datum_stream_t> stream;
+    scoped_ptr_t<reader_t> get_all_reader;
+    std::vector<rget_item_t> get_all_items;
+
+    counted_t<table_t> table;
+    datum_string_t join_index;
+
+    std::multimap<ql::datum_t,
+                  ql::datum_t> sindex_to_datum;
+
+    counted_t<const func_t> predicate;
+
+    bool ordered;
+
+    bool is_array_eq_join;
+    bool is_infinite_eq_join;
+    feed_type_t eq_join_type;
 };
 
 class lazy_datum_stream_t : public datum_stream_t {

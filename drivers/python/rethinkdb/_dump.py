@@ -23,6 +23,7 @@ def print_dump_help():
     print("  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults")
     print("                                   to 3)")
     print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
+    print("  --overwrite-file                 don't abort when file given via --file already exists")
     print("")
     print("EXAMPLES:")
     print("rethinkdb dump -c mnemosyne:39500")
@@ -41,7 +42,10 @@ def parse_options():
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
+    parser.add_option("--overwrite-file", dest="overwrite_file", default=False, action="store_true")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
@@ -60,14 +64,20 @@ def parse_options():
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
+    res["tls_cert"] = options.tls_cert
+
     # Verify valid output file
-    res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+    if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S")
+    else:
+        res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+
     if options.out_file is None:
         res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
     else:
         res["out_file"] = os.path.abspath(options.out_file)
 
-    if os.path.exists(res["out_file"]):
+    if os.path.exists(res["out_file"]) and not options.overwrite_file:
         raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
     # Verify valid client count
@@ -96,7 +106,7 @@ def do_export(temp_dir, options):
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
     export_args.extend(["--clients", str(options["clients"])])
-
+    export_args.extend(["--tls-cert", options["tls_cert"]])
     for table in options["tables"]:
         export_args.extend(["--export", table])
 

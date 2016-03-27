@@ -13,12 +13,12 @@ os_signal_cond_t::os_signal_cond_t() :
     source_signo(0)
 {
     DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(this);
-    rassert(old == NULL);
+    rassert(old == nullptr);
 }
 
 os_signal_cond_t::~os_signal_cond_t() {
     if (!is_pulsed()) {
-        DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(NULL);
+        DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(nullptr);
         rassert(old == this);
     }
 }

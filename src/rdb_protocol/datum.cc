@@ -442,6 +442,11 @@ inline void fail_if_invalid(
     }
 }
 
+datum_t datum_t::utf8(datum_string_t _data) {
+    ql::fail_if_invalid(_data.data(), _data.size());
+    return datum_t(std::move(_data));
+}
+
 datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
                  reql_version_t reql_version) {
     switch(json.GetType()) {

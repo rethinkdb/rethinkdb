@@ -49,7 +49,7 @@ class cache_conn_t {
 public:
     explicit cache_conn_t(cache_t *cache)
         : cache_(cache),
-          newest_txn_(NULL) { }
+          newest_txn_(nullptr) { }
     ~cache_conn_t();
 
     cache_t *cache() const { return cache_; }
