@@ -68,22 +68,6 @@ public class Util {
                 return null;
             }
 
-            if (!Modifier.isPublic(pojoClass.getModifiers())) {
-                throw new IllegalAccessException(String.format("%s should be public", pojoClass));
-            }
-
-            Constructor[] allConstructors = pojoClass.getDeclaredConstructors();
-
-            if (getPublicParameterlessConstructors(allConstructors).count() == 1) {
-                return (T) constructViaPublicParameterlessConstructor(pojoClass, map);
-            }
-
-            Constructor[] constructors = getSuitablePublicParametrizedConstructors(allConstructors, map);
-
-            if (constructors.length == 1) {
-                return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
-            }
-
             if (LocalDate.class.equals(pojoClass)) {
                 return (T) LocalDate.of(
                         ((Long) map.get("year")).intValue(),
@@ -132,6 +116,22 @@ public class Util {
                         ((Long) map.get("nano")).intValue(),
                         ZoneId.of(zoneId)
                 );
+            }
+
+            if (!Modifier.isPublic(pojoClass.getModifiers())) {
+                throw new IllegalAccessException(String.format("%s should be public", pojoClass));
+            }
+
+            Constructor[] allConstructors = pojoClass.getDeclaredConstructors();
+
+            if (getPublicParameterlessConstructors(allConstructors).count() == 1) {
+                return (T) constructViaPublicParameterlessConstructor(pojoClass, map);
+            }
+
+            Constructor[] constructors = getSuitablePublicParametrizedConstructors(allConstructors, map);
+
+            if (constructors.length == 1) {
+                return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
             }
 
             throw new IllegalAccessException(String.format(
