@@ -117,6 +117,17 @@ public class Util {
                         ZoneId.of(zoneId)
                 );
             }
+            else if (Date.class.isAssignableFrom(pojoClass)) {
+                /**
+                 * map: { date: 27, day: 0, hours: 2, minutes: 50, month: 2, seconds: 46,
+                 *       time: 1459014646488, year: 116, timezoneOffset: -540 }
+                 * if not do conversion explicitly here, then later logic in constructViaPublicParameterlessConstructor
+                 * will treat Date as a normal java bean, ridiculously, it will call 8 setXxx to the Date instance,
+                 * e.g. d.setDate(27);d.setDay(0);d.setHours(2)......
+                 */
+                long epochMilli = (Long) map.get("time");
+                return (T) new Date(epochMilli);
+            }
 
             if (!Modifier.isPublic(pojoClass.getModifiers())) {
                 throw new IllegalAccessException(String.format("%s should be public", pojoClass));
