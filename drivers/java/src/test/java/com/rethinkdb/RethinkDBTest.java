@@ -1,5 +1,6 @@
 package com.rethinkdb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rethinkdb.annotations.IgnoreNullFields;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlQueryLogicError;
@@ -380,7 +381,7 @@ public class RethinkDBTest{
         List<TestPojo> result = cursor.toList();
         assertEquals(1, result.size());
 
-        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+        TestPojo pojoOneSelected = result.get(0);
 
         compareMostPropertiesOfPojo(pojoOneSelected, pojoOne);
     }
@@ -388,7 +389,7 @@ public class RethinkDBTest{
     @Test
     public void testSaveBeanAsMapThenSelectAsBean() {
         TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
-        com.fasterxml.jackson.databind.ObjectMapper m = new com.fasterxml.jackson.databind.ObjectMapper();
+        ObjectMapper m = new ObjectMapper();
 
         Map<String, Object> map = m.convertValue(pojoOne, Map.class);
 
@@ -399,7 +400,7 @@ public class RethinkDBTest{
         List<TestPojo> result = cursor.toList();
         assertEquals(1, result.size());
 
-        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+        TestPojo pojoOneSelected = result.get(0);
 
         compareMostPropertiesOfPojo(pojoOneSelected, pojoOne);
 
