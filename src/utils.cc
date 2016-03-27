@@ -2,7 +2,6 @@
 #include "utils.hpp"
 
 #include <math.h>
-#include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <locale.h>
@@ -13,12 +12,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
+
+#ifdef _WIN32
+#include "windows.hpp"
+#include <io.h>     // NOLINT
+#include <direct.h> // NOLINT
+#ifndef __MINGW32__
+#include <filesystem>
+#endif
+#else
+#include <sys/time.h>
 #include <sys/resource.h>
-#include <unistd.h>
+#include <ftw.h>
+#endif
 
 #include <google/protobuf/stubs/common.h>
+
+#include <random>
 
 #include "errors.hpp"
 #include <boost/date_time.hpp>
@@ -37,6 +48,9 @@
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
+    // Make sure stderr is non-buffered
+    setvbuf(stderr, nullptr, _IONBF, 0);
+
     install_generic_crash_handler();
     install_new_oom_handler();
 
@@ -45,6 +59,7 @@ void run_generic_global_startup_behavior() {
     // two servers in the same cluster have different locales.
     setlocale(LC_ALL, "C");
 
+#ifndef _WIN32
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
@@ -71,7 +86,13 @@ void run_generic_global_startup_behavior() {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
             get_errno(), errno_string(get_errno()).c_str());
     }
+#endif // !defined(_WIN32)
 
+#ifdef _WIN32
+    WSADATA wsa_data;
+    DWORD res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    guarantee_winerr(res == NO_ERROR, "WSAStartup failed");
+#endif
 }
 
 startup_shutdown_t::startup_shutdown_t() {
@@ -83,11 +104,13 @@ startup_shutdown_t::~startup_shutdown_t() {
 }
 
 
-void print_hd(const void *vbuf, size_t offset, size_t ulength) {
+void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
+#ifndef _WIN32
     flockfile(stderr);
+#endif
 
     if (ulength == 0) {
-        fprintf(stderr, "(data length is zero)\n");
+        debugf("(data length is zero)\n");
     }
 
     const char *buf = reinterpret_cast<const char *>(vbuf);
@@ -142,7 +165,9 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         length -= 16;
     }
 
+#ifndef _WIN32
     funlockfile(stderr);
+#endif
 }
 
 void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {
@@ -151,9 +176,14 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
         t = boost::posix_time::to_tm(as_ptime);
     } else {
+#ifdef _WIN32
+        errno_t res = localtime_s(&t, &time.tv_sec);
+        guarantee_xerr(res == 0, res, "localtime_s() failed.");
+#else
         struct tm *res1;
         res1 = localtime_r(&time.tv_sec, &t);
         guarantee_err(res1 == &t, "localtime_r() failed.");
+#endif
     }
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
@@ -212,17 +242,23 @@ bool parse_time(const std::string &str, local_or_utc_time_t zone,
 }
 
 with_priority_t::with_priority_t(int priority) {
-    rassert(coro_t::self() != NULL);
+    rassert(coro_t::self() != nullptr);
     previous_priority = coro_t::self()->get_priority();
     coro_t::self()->set_priority(priority);
 }
 with_priority_t::~with_priority_t() {
-    rassert(coro_t::self() != NULL);
+    rassert(coro_t::self() != nullptr);
     coro_t::self()->set_priority(previous_priority);
 }
 
-void *malloc_aligned(size_t size, size_t alignment) {
-    void *ptr = NULL;
+void *raw_malloc_aligned(size_t size, size_t alignment) {
+    void *ptr = nullptr;
+#ifdef _WIN32
+    ptr = _aligned_malloc(size, alignment);
+    if (ptr == nullptr) {
+        crash_oom();
+    }
+#else
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
@@ -233,12 +269,27 @@ void *malloc_aligned(size_t size, size_t alignment) {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
     }
+#endif
     return ptr;
+}
+
+#ifndef _WIN32
+void *raw_malloc_page_aligned(size_t size) {
+    return raw_malloc_aligned(size, getpagesize());
+}
+#endif
+
+void raw_free_aligned(void *ptr) {
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
 }
 
 void *rmalloc(size_t size) {
     void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == NULL && size != 0) {
+    if (res == nullptr && size != 0) {
         crash_oom();
     }
     return res;
@@ -246,7 +297,7 @@ void *rmalloc(size_t size) {
 
 void *rrealloc(void *ptr, size_t size) {
     void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == NULL && size != 0) {
+    if (res == nullptr && size != 0) {
         crash_oom();
     }
     return res;
@@ -261,32 +312,43 @@ bool risfinite(double arg) {
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        seed = tv.tv_usec;
+        seed = std::random_device{}();
     }
 #else
     seed = 314159;
 #endif
-    xsubi[2] = seed / (1 << 16);
-    xsubi[1] = seed % (1 << 16);
-    xsubi[0] = 0x330E;
+#ifdef _WIN32
+    state.seed(seed);
+#else
+    state[2] = seed / (1 << 16);
+    state[1] = seed % (1 << 16);
+    state[0] = 0x330E;
+#endif
 }
 
 int rng_t::randint(int n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    long x = nrand48(xsubi);  // NOLINT(runtime/int)
-    return x % n;
+#ifdef _WIN32
+    unsigned long x = state(); // NOLINT(runtime/int)
+#else
+    long x = nrand48(state.data());  // NOLINT(runtime/int)
+#endif
+    return x % static_cast<unsigned int>(n);
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
+#ifdef _WIN32
+    std::uniform_int_distribution<uint64_t> dist(0, n);
+    return dist(state);
+#else
+    uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
+    uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
     uint64_t x = x_high;
     x <<= 32;
     x += x_low;
     return x % n;
+#endif
 }
 
 double rng_t::randdouble() {
@@ -295,52 +357,31 @@ double rng_t::randdouble() {
     return res / (1LL << 53);
 }
 
-struct nrand_xsubi_t {
-    unsigned short xsubi[3];  // NOLINT(runtime/int)
-};
+TLS_ptr_with_constructor(rng_t, rng)
 
-TLS_with_init(bool, rng_initialized, false)
-TLS(nrand_xsubi_t, rng_data)
-
-void get_dev_urandom(void *out, int64_t nbytes) {
+void system_random_bytes(void *out, int64_t nbytes) {
+#ifdef _WIN32
+    HCRYPTPROV hProv;
+    BOOL res = CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+    guarantee_winerr(res, "CryptAcquireContext failed");
+    res = CryptGenRandom(hProv, nbytes, static_cast<BYTE*>(out));
+    DWORD err = GetLastError();
+    CryptReleaseContext(hProv, 0);
+    guarantee_xwinerr(res, err, "CryptGenRandom failed");
+#else
     blocking_read_file_stream_t urandom;
     guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
     int64_t readres = force_read(&urandom, out, nbytes);
     guarantee(readres == nbytes);
+#endif
 }
 
 int randint(int n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    nrand_xsubi_t buffer;
-    if (!TLS_get_rng_initialized()) {
-        CT_ASSERT(sizeof(buffer.xsubi) == 6);
-        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
-        TLS_set_rng_initialized(true);
-    } else {
-        buffer = TLS_get_rng_data();
-    }
-    long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    TLS_set_rng_data(buffer);
-    return x % n;
+    return TLS_ptr_rng()->randint(n);
 }
 
 uint64_t randuint64(uint64_t n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    nrand_xsubi_t buffer;
-    if (!TLS_get_rng_initialized()) {
-        CT_ASSERT(sizeof(buffer.xsubi) == 6);
-        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
-        TLS_set_rng_initialized(true);
-    } else {
-        buffer = TLS_get_rng_data();
-    }
-    uint32_t x_low = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    uint64_t x = x_high;
-    x <<= 32;
-    x += x_low;
-    TLS_set_rng_data(buffer);
-    return x % n;
+    return TLS_ptr_rng()->randuint64(n);
 }
 
 size_t randsize(size_t n) {
@@ -356,9 +397,8 @@ size_t randsize(size_t n) {
 }
 
 double randdouble() {
-    uint64_t x = randuint64(1LL << 53);
-    double res = x;
-    return res / (1LL << 53);
+    return TLS_ptr_rng()->randdouble();
+
 }
 
 bool begins_with_minus(const char *string) {
@@ -464,6 +504,33 @@ char int_to_hex(int x) {
 }
 
 bool blocking_read_file(const char *path, std::string *contents_out) {
+#ifdef _WIN32
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    LARGE_INTEGER fileSize;
+    BOOL res = GetFileSizeEx(hFile, &fileSize);
+    if (!res) {
+        CloseHandle(hFile);
+        return false;
+    }
+    DWORD remaining = fileSize.QuadPart;
+    std::string ret;
+    ret.resize(remaining);
+    size_t index = 0;
+    while (remaining > 0) {
+        DWORD consumed;
+        res = ReadFile(hFile, &ret[index], remaining, &consumed, nullptr);
+        if (!res) {
+            CloseHandle(hFile);
+            return false;
+        }
+        remaining -= consumed;
+        index += consumed;
+    }
+    CloseHandle(hFile);
+    *contents_out = std::move(ret);
+    return true;
+#else
     scoped_fd_t fd;
 
     {
@@ -492,12 +559,13 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         }
 
         if (res == 0) {
-            *contents_out = ret;
+            *contents_out = std::move(ret);
             return true;
         }
 
         ret.append(buf, buf + res);
     }
+#endif
 }
 
 std::string blocking_read_file(const char *path) {
@@ -526,33 +594,87 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
-                            UNUSED const int flag, UNUSED FTW *ftw) {
-    logNTC("In recursion: removing file %s\n", path);
+#ifdef _MSC_VER
+
+int remove_directory_helper(const char *path) {
+    logNTC("In recursion: removing file '%s'\n", path);
+    DWORD attrs = GetFileAttributes(path);
+    if (GetLastError() == ERROR_FILE_NOT_FOUND) {
+        logWRN("Trying to delete non-existent file '%s'", path);
+        return 0;
+    } else {
+        guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES, "GetFileAttributes failed");
+    }
+    BOOL res;
+    if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+        res = RemoveDirectory(path);
+    } else {
+        res = DeleteFile(path);
+    }
+    guarantee_winerr(res, "failed to remove: '%s': %s", path, winerr_string(GetLastError()).c_str());
+    return 0;
+}
+
+#else
+
+int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED int, UNUSED struct FTW *) {
+    logNTC("In recursion: removing file '%s'\n", path);
     int res = ::remove(path);
     guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
 }
 
-void remove_directory_recursive(const char *path) {
+#endif
+
+void remove_directory_recursive(const char *dirpath) {
+#ifdef _MSC_VER
+    using namespace std::tr2; // NOLINT
+    std::function<void(sys::path)> go = [go](sys::path dir){
+        for (auto it : sys::directory_iterator(dir)) {
+            if (sys::is_directory(it.status())) {
+                go(it.path());
+            }
+            remove_directory_helper(it.path().string().c_str());
+        }
+        remove_directory_helper(dir.string().c_str());
+    };
+    go(dirpath);
+#else
     // max_openfd is ignored on OS X (which claims the parameter
     // specifies the maximum traversal depth) and used by Linux to
     // limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper
     // than that).
     const int max_openfd = 128;
-    logNTC("Recursively removing directory %s\n", path);
-    int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+    logNTC("Recursively removing directory %s\n", dirpath);
+    int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
+#endif
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
 
 void base_path_t::make_absolute() {
+#ifdef _WIN32
+    char absolute_path[MAX_PATH];
+    DWORD size = GetFullPathName(path_.c_str(), sizeof(absolute_path), absolute_path, nullptr);
+    guarantee_winerr(size != 0, "GetFullPathName failed");
+    if (size < sizeof(absolute_path)) {
+      path_.assign(absolute_path);
+      return;
+    }
+    std::string long_absolute_path;
+    long_absolute_path.resize(size);
+    DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], nullptr);
+    guarantee_winerr(size != 0, "GetFullPathName failed");
+    guarantee(new_size < size, "GetFullPathName: name too long");
+    path_ = std::move(long_absolute_path);
+#else
     char absolute_path[PATH_MAX];
     char *res = realpath(path_.c_str(), absolute_path);
-    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
+    guarantee_err(res != nullptr, "Failed to determine absolute path for '%s'", path_.c_str());
     path_.assign(absolute_path);
+#endif
 }
 
 const std::string& base_path_t::path() const {
@@ -565,8 +687,13 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 }
 
 bool is_rw_directory(const base_path_t& path) {
+#ifdef _WIN32
+    if (_access(path.path().c_str(), 06 /* read and write */) != 0)
+        return false;
+#else
     if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
         return false;
+#endif
     struct stat details;
     if (stat(path.path().c_str(), &details) != 0)
         return false;
@@ -581,9 +708,13 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     remove_directory_recursive(path.path().c_str());
 
     int res;
+#ifdef _WIN32
+    res = _mkdir(path.path().c_str());
+#else
     do {
         res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
+#endif
     guarantee_err(res == 0, "mkdir of temporary directory %s failed",
                   path.path().c_str());
 

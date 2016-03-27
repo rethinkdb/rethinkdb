@@ -5,7 +5,7 @@
 # We assemble path directives.
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS)
+RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS) $(MALLOC_LIBS)
 RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE) $(CRYPTO_INCLUDE)
 ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(V8_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP)
@@ -85,7 +85,6 @@ endif
 
 RT_LDFLAGS += $(LIB_SEARCH_PATHS)
 
-RT_CXXFLAGS?=
 RT_CXXFLAGS += -I$(SOURCE_DIR)
 RT_CXXFLAGS += -pthread
 RT_CXXFLAGS += "-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
@@ -294,7 +293,7 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 .PRECIOUS: $(PROTO_DIR)/. $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
 
 $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
-	$P PROTOC[CPP] $^
+	$P PROTOC
 
 #	# See issue #2965
 	+rm -f $(PROTO_DIR)/$*.pb.h $(PROTO_DIR)/$*.pb.cc
@@ -311,7 +310,7 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP) $(SSL_LIBS_DEP)
 
 MAYBE_CHECK_STATIC_MALLOC =
 ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
@@ -363,11 +362,21 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-$(BUILD_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(PRECOMPILED_DIR)/web_assets/web_assets.cc | $(BUILD_ROOT_DIR)/web_assets/.
+	$P CP
+	cp -f $< $@
+
+else # Don't use precompiled assets
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
 	$P GENERATE
 	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
 
-$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
+endif
+
+$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_ROOT_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
 	mkdir -p $(dir $@)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<

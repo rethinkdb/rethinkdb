@@ -1,4 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
+#ifndef _WIN32
+
 #include "arch/runtime/event_queue/poll.hpp"
 
 #include <unistd.h>
@@ -103,7 +106,7 @@ void poll_event_queue_t::run() {
 #ifndef RDB_TIMER_PROVIDER
 #error "RDB_TIMER_PROVIDER not defined."
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
-        res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask_restricted);
+        res = ppoll(&watched_fds[0], watched_fds.size(), nullptr, &sigmask_restricted);
 #else
         res = poll(&watched_fds[0], watched_fds.size(), -1);
 #endif
@@ -137,9 +140,9 @@ void poll_event_queue_t::run() {
         // kernel starves out signals, so we need to unblock them to
         // let the signal handlers get called, and then block them
         // right back. What a sensible fucking system.
-        res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, NULL);
+        res = pthread_sigmask(SIG_SETMASK, &sigmask_restricted, nullptr);
         guarantee_xerr(res == 0, res, "Could not unblock signals");
-        res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
+        res = pthread_sigmask(SIG_SETMASK, &sigmask_full, nullptr);
         guarantee_xerr(res == 0, res, "Could not block signals");
 #endif  // RDB_TIMER_PROVIDER
 
@@ -189,3 +192,13 @@ void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_ca
     }
 
 }
+
+void poll_event_queue_t::watch_event(system_event_t *ev, linux_event_callback_t *cb) {
+    watch_resource(ev->get_notify_fd(), poll_event_in, cb);
+}
+
+void poll_event_queue_t::forget_event(system_event_t *ev, linux_event_callback_t *cb) {
+    forget_resource(ev->get_notify_fd(), cb);
+}
+
+#endif

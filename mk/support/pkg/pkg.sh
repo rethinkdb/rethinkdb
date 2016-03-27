@@ -67,15 +67,18 @@ pkg_fetch_archive () {
 
     local archive="${src_url##*/}"
     set +e # turn off auto-fail so we can fall back to $src_url_backup
-    geturl "$src_url" > "$tmp_dir/$archive"
+    error_text=$(geturl "$src_url" "$tmp_dir/$archive")
     local download_failed=$?
     if [[ $download_failed -ne "0" ]] && [[ $src_url_backup ]]; then
-        geturl "$src_url_backup" > "$tmp_dir/$archive"
+        error_text=$(geturl "$src_url_backup" "$tmp_dir/$archive")
         download_failed=$?
     fi
     set -e # reenable auto-fail
     if [[ $download_failed -ne "0" ]]; then
-        error "failed to download $pkg: $src_url"
+        if [[ ! -z $error_text ]]; then
+            error_text=": $error_text"
+        fi
+        error "failed to download $pkg from $src_url$error_text"
     fi
 
     if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
@@ -272,12 +275,12 @@ git_clone_tag () {
     )
 }
 
-# Download a file to stdout
+# Download a file
 geturl () {
-    if [[ -n "${WGET:-}" ]]; then
-        $WGET --quiet --output-document=- "$@"
+    if [[ -n "${CURL:-}" ]]; then
+        $CURL --silent -S --fail --location "$1" -o "$2"
     else
-        ${CURL:-curl} --silent --fail --location "$@"
+        ${WGET:-wget} --quiet --output-document="$2" "$1" 
     fi
 }
 

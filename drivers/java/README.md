@@ -9,7 +9,7 @@ documentation at [java-api-docs][]
 ## Basics
 
 The Java driver is built using gradle (2.7+). To build the driver from
-source, you need gradle, Java, and python3 installed:
+source, you need gradle, Java, and python3.4 installed:
 
 ```bash
 $ make
@@ -128,7 +128,7 @@ https://oss.sonatype.org/content/repositories/snapshots/com/rethinkdb/rethinkdb-
 with the version you gave it.
 
 If you are doing a full release, you need to go to
-https://oss.sontatype.org/#stagingRepositories and search for
+https://oss.sonatype.org/#stagingRepositories and search for
 "rethinkdb" in the search box, find the release that is in status
 `open`. Select it and then click the `Close` button. This will check
 it and make it ready for release. If that stage passes you can click

@@ -70,14 +70,14 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
-void runtime_fail(base_exc_t::type_t type,
-                  const char *test, const char *file, int line,
-                  std::string msg, backtrace_id_t bt) NORETURN;
-void runtime_fail(base_exc_t::type_t type,
-                  const char *test, const char *file, int line,
-                  std::string msg) NORETURN;
-void runtime_sanity_check_failed(
-    const char *file, int line, const char *test, const std::string &msg) NORETURN;
+NORETURN void runtime_fail(base_exc_t::type_t type,
+                           const char *test, const char *file, int line,
+                           std::string msg, backtrace_id_t bt);
+NORETURN void runtime_fail(base_exc_t::type_t type,
+                           const char *test, const char *file, int line,
+                           std::string msg);
+NORETURN void runtime_sanity_check_failed(
+                   const char *file, int line, const char *test, const std::string &msg);
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a

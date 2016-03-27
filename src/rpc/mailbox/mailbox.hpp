@@ -17,7 +17,7 @@ class mailbox_manager_t;
 
 /* `mailbox_t` is a receiver of messages. Construct it with a callback function
 to handle messages it receives. To send messages to the mailbox, call the
-`get_address()` method and then call `send()` on the address it returns. */
+`get_address()` method and then call `send_write()` on the address it returns. */
 
 class mailbox_write_callback_t {
 public:
@@ -53,7 +53,7 @@ public:
 private:
     friend class mailbox_manager_t;
     friend class raw_mailbox_writer_t;
-    friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
+    friend void send_write(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
     mailbox_manager_t *manager;
 
@@ -98,7 +98,7 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(address_t, peer, thread, mailbox_id);
 
     private:
-        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
+        friend void send_write(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
@@ -125,13 +125,13 @@ public:
     address_t get_address() const;
 };
 
-/* `send()` sends a message to a mailbox. `send()` can block and must be called
-in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
+/* `send_write()` sends a message to a mailbox. `send_write()` can block and must be called
+in a coroutine. If the mailbox does not exist or the peer is disconnected, `send_write()`
 will silently fail. Mailbox messages are not necessarily delivered in order. */
 
-void send(mailbox_manager_t *src,
-          raw_mailbox_t::address_t dest,
-          mailbox_write_callback_t *callback);
+void send_write(mailbox_manager_t *src,
+                raw_mailbox_t::address_t dest,
+                mailbox_write_callback_t *callback);
 
 /* `mailbox_manager_t` is a `cluster_message_handler_t` that takes care
 of actually routing messages to mailboxes. */
@@ -143,7 +143,7 @@ public:
 
 private:
     friend struct raw_mailbox_t;
-    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
+    friend void send_write(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
 
     struct mailbox_table_t {
         mailbox_table_t();
@@ -178,9 +178,7 @@ private:
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
-                                auto_drainer_t::lock_t connection_keepalive,
-                                threadnum_t dest_thread,
+    void mailbox_read_coroutine(threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset,
@@ -188,7 +186,7 @@ private:
 };
 
 /* Note: disconnect_watcher_t keeps the connection alive for as long as it
-exists, blocking reconnects from getting through. Avoid keeping the 
+exists, blocking reconnects from getting through. Avoid keeping the
 disconnect_watcher_t around for long after it gets pulsed. */
 class disconnect_watcher_t : public signal_t, private signal_t::subscription_t {
 public:

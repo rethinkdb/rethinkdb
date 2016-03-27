@@ -2,7 +2,6 @@ package com.rethinkdb;
 
 import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.ConnectionInstance;
 
 public class RethinkDB extends TopLevel {
 

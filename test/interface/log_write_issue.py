@@ -51,7 +51,7 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
         try:
             utils.print_with_time("log size: %d" % os.path.getsize(process.logfile_path))
             issues = list(r.db("rethinkdb").table("current_issues").run(conn))
-            assert len(issues) == 1, "Wrong number of issues. Should have been one, was: % s" % pprint.pformat(issues)
+            assert len(issues) == 1, "Wrong number of issues. Should have been one, was: % s. Known on Macos: #3699" % pprint.pformat(issues)
             assert issues[0]["type"] == "log_write_error", pprint.pformat(issues)
             assert issues[0]["critical"] == False, pprint.pformat(issues)
             assert issues[0]["info"]["servers"] == ["the_server"], pprint.pformat(issues)

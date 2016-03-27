@@ -20,7 +20,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
 #include "rdb_protocol/datum_stream.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -49,7 +49,7 @@ public:
         friend class query_cache_t;
         ref_t(query_cache_t *_query_cache,
               int64_t _token,
-              new_semaphore_acq_t _throttler,
+              new_semaphore_in_line_t _throttler,
               query_cache_t::entry_t *_entry,
               signal_t *interruptor);
 
@@ -63,7 +63,7 @@ public:
         const scoped_ptr_t<profile::trace_t> trace;
 
         query_cache_t *query_cache;
-        new_semaphore_acq_t throttler;
+        new_semaphore_in_line_t throttler;
         auto_drainer_t::lock_t drainer_lock;
         wait_any_t combined_interruptor;
         new_mutex_in_line_t mutex_lock;

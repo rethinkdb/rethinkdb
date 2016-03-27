@@ -100,7 +100,7 @@ public:
     ~gc_entry_t() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
         guarantee(parent->entries.get(extent_id) == this);
-        parent->entries.set(extent_id, NULL);
+        parent->entries.set(extent_id, nullptr);
 
         --parent->stats->pm_serializer_data_extents;
     }
@@ -171,7 +171,7 @@ public:
             *relative_offset_out = offset;
             *block_index_out = block_infos.size();
             block_infos.push_back(block_info_t{offset, block_size, false, false});
-            update_stats(NULL, &block_infos.back());
+            update_stats(nullptr, &block_infos.back());
             return true;
         }
     }
@@ -243,11 +243,11 @@ public:
         auto it = find_lower_bound_iter(relative_offset);
         if (it == block_infos.end()) {
             block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
-            update_stats(NULL, &block_infos.back());
+            update_stats(nullptr, &block_infos.back());
         } else if (it->relative_offset > relative_offset) {
             guarantee(it->relative_offset >= relative_offset + aligned_value(block_size));
             auto new_block = block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
-            update_stats(NULL, &*new_block);
+            update_stats(nullptr, &*new_block);
         } else {
             guarantee(it->relative_offset == relative_offset);
             guarantee(it->block_size == block_size);
@@ -307,8 +307,8 @@ private:
 
     // old_block can be NULL if a block_info was freshly added
     void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
-        rassert(new_block != NULL);
-        if (old_block != NULL) {
+        rassert(new_block != nullptr);
+        if (old_block != nullptr) {
             // Undo old_block
             if (old_block->token_referenced || old_block->index_referenced) {
                 // Block is live
@@ -327,7 +327,7 @@ private:
     // Used by constructors.
     void add_self_to_parent_entries() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
-        guarantee(parent->entries.get(extent_id) == NULL);
+        guarantee(parent->entries.get(extent_id) == nullptr);
         parent->entries.set(extent_id, this);
 
         ++parent->stats->pm_serializer_data_extents;
@@ -381,13 +381,13 @@ data_block_manager_t::data_block_manager_t(
         extent_manager_t *em, log_serializer_t *_serializer,
         const log_serializer_on_disk_static_config_t *_static_config,
         log_serializer_stats_t *_stats)
-    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), gc_enabled(true),
+    : stats(_stats), shutdown_callback(nullptr), state(state_unstarted), gc_enabled(true),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
       gc_stats(stats)
 {
-    rassert(static_config != NULL);
-    rassert(extent_manager != NULL);
-    rassert(serializer != NULL);
+    rassert(static_config != nullptr);
+    rassert(extent_manager != nullptr);
+    rassert(serializer != nullptr);
 }
 
 data_block_manager_t::~data_block_manager_t() {
@@ -409,7 +409,7 @@ void data_block_manager_t::start_reconstruct() {
 void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size) {
     uint64_t extent_id = static_config->extent_index(offset);
 
-    if (entries.get(extent_id) == NULL) {
+    if (entries.get(extent_id) == nullptr) {
         guarantee(state == state_unstarted); // This is called at startup.
 
         gc_entry_t *entry = new gc_entry_t(this, extent_id * extent_manager->extent_size);
@@ -438,13 +438,13 @@ void data_block_manager_t::start_existing(file_t *file,
         /* It is (perhaps) possible to have an active data block extent with no
            actual data blocks in it. In this case we would not have created a
            gc_entry_t for the extent yet. */
-        if (entries.get(offset / extent_manager->extent_size) == NULL) {
+        if (entries.get(offset / extent_manager->extent_size) == nullptr) {
             gc_entry_t *e = new gc_entry_t(this, offset);
             reconstructed_extents.push_back(e);
         }
 
         active_extent = entries.get(offset / extent_manager->extent_size);
-        guarantee(active_extent != NULL);
+        guarantee(active_extent != nullptr);
 
         /* Turn the extent from a reconstructing extent into an active extent */
         guarantee(active_extent->state == gc_entry_t::state_reconstructing);
@@ -452,7 +452,7 @@ void data_block_manager_t::start_existing(file_t *file,
 
         active_extent->make_active();
     } else {
-        active_extent = NULL;
+        active_extent = nullptr;
     }
 
     /* Convert any extents that we found live blocks in, but that are not active
@@ -566,7 +566,7 @@ public:
                                                 int64_t off_in) {
         const gc_entry_t *entry
             = parent->entries.get(off_in / parent->static_config->extent_size());
-        guarantee(entry != NULL);
+        guarantee(entry != nullptr);
 
         return entry->block_boundaries();
     }
@@ -590,8 +590,7 @@ public:
                                    &read_ahead_offset,
                                    &read_ahead_size);
 
-        scoped_malloc_t<char> read_ahead_buf(
-                malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE));
+        scoped_device_block_aligned_ptr_t<char> read_ahead_buf(read_ahead_size);
 
         // Do the disk read!
         co_read(parent->dbfile, read_ahead_offset, read_ahead_size,
@@ -698,8 +697,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
             int64_t ceil_off_end = ceil_aligned(off_in + block_size.ser_value(),
                                                 DEVICE_BLOCK_SIZE);
-            scoped_malloc_t<char> buf(malloc_aligned(ceil_off_end - floor_off_in,
-                                                     DEVICE_BLOCK_SIZE));
+            scoped_device_block_aligned_ptr_t<char> buf(ceil_off_end - floor_off_in);
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
@@ -805,7 +803,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 }
 
 void data_block_manager_t::destroy_entry(gc_entry_t *entry) {
-    rassert(entry != NULL);
+    rassert(entry != nullptr);
     entry->destroy();
 }
 
@@ -840,10 +838,10 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
             case gc_entry_t::state_in_gc: {
                 int num_matched = 0;
                 for (gc_state_t *gc_state = active_gcs.head();
-                     gc_state != NULL;
+                     gc_state != nullptr;
                      gc_state = active_gcs.next(gc_state)) {
                     if (gc_state->current_entry == entry) {
-                        gc_state->current_entry = NULL;
+                        gc_state->current_entry = nullptr;
                         ++num_matched;
 #ifdef NDEBUG
                         // In release mode, terminate the loop as soon
@@ -942,7 +940,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 void data_block_manager_t::mark_live_tokenwise_with_offset(int64_t offset) {
     uint64_t extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
-    rassert(entry != NULL);
+    rassert(entry != nullptr);
     unsigned int block_index = entry->block_index(offset);
 
     entry->mark_live_tokenwise(block_index);
@@ -952,7 +950,7 @@ void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
     uint64_t extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
 
-    rassert(entry != NULL);
+    rassert(entry != nullptr);
 
     unsigned int block_index = entry->block_index(offset);
 
@@ -1015,7 +1013,7 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
 
 void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
     // A buffer for blocks we're transferring.
-    scoped_malloc_t<char> gc_blocks;
+    scoped_device_block_aligned_ptr_t<char> gc_blocks;
     size_t total_bytes_read = 0;
 
     // A helper for waiting for all reads to finish
@@ -1041,9 +1039,9 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
 
         /* grab the entry */
         guarantee (!gc_pq.empty());
-        guarantee(gc_state->current_entry == NULL);
+        guarantee(gc_state->current_entry == nullptr);
         gc_state->current_entry = gc_pq.pop();
-        gc_state->current_entry->our_pq_entry = NULL;
+        gc_state->current_entry->our_pq_entry = nullptr;
 
         guarantee(gc_state->current_entry->state == gc_entry_t::state_old);
         gc_state->current_entry->state = gc_entry_t::state_in_gc;
@@ -1059,7 +1057,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
         // once manually when we have issued all reads.
         read_cb.refcount++;
 
-        gc_blocks.init(malloc_aligned(extent_manager->extent_size, DEVICE_BLOCK_SIZE));
+        gc_blocks = scoped_device_block_aligned_ptr_t<char>(extent_manager->extent_size);
 
         // We're going to send as few discrete reads as possible, minimizing
         // disk->CPU bandwidth usage, instead of simply reading the entire
@@ -1124,7 +1122,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
     /* If other forces cause all of the blocks in the extent to become
     garbage before we even finish GCing it, they will set current_entry
     to NULL. */
-    if (gc_state->current_entry == NULL) {
+    if (gc_state->current_entry == nullptr) {
         return;
     }
 
@@ -1164,7 +1162,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
     /* Our write should have forced all of the blocks in the extent to
     become garbage, which should have caused the extent to be released
     and gc_state.current_entry to become NULL. */
-    guarantee(gc_state->current_entry == NULL,
+    guarantee(gc_state->current_entry == nullptr,
               "%p: %" PRIu32 " garbage bytes left on the extent, %" PRIu32
               " index-referenced bytes, %" PRIu32
               " token-referenced bytes, at offset %" PRIi64
@@ -1179,7 +1177,7 @@ void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
 
 void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
                                      gc_state_t *gc_state) {
-    guarantee(gc_state->current_entry != NULL);
+    guarantee(gc_state->current_entry != nullptr);
 
     block_write_cond_t block_write_cond;
 
@@ -1221,7 +1219,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
 
     // We created block tokens for our blocks we're writing, so
     // there's no way the current entry could have become NULL.
-    guarantee(gc_state->current_entry != NULL);
+    guarantee(gc_state->current_entry != nullptr);
 
     std::vector<index_write_op_t> index_write_ops;
 
@@ -1280,7 +1278,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
 void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
-    if (active_extent != NULL) {
+    if (active_extent != nullptr) {
         metablock->active_extent = active_extent->extent_ref.offset();
     } else {
         metablock->active_extent = NULL_OFFSET;
@@ -1292,7 +1290,7 @@ void data_block_manager_t::disable_gc() {
 }
 
 bool data_block_manager_t::shutdown(data_block_manager::shutdown_callback_t *cb) {
-    rassert(cb != NULL);
+    rassert(cb != nullptr);
     guarantee(state == state_ready);
     state = state_shutting_down;
 
@@ -1300,7 +1298,7 @@ bool data_block_manager_t::shutdown(data_block_manager::shutdown_callback_t *cb)
         shutdown_callback = cb;
         return false;
     } else {
-        shutdown_callback = NULL;
+        shutdown_callback = nullptr;
         actually_shutdown();
         return true;
     }
@@ -1310,12 +1308,12 @@ void data_block_manager_t::actually_shutdown() {
     guarantee(state == state_shutting_down);
     state = state_shut_down;
 
-    guarantee(reconstructed_extents.head() == NULL);
+    guarantee(reconstructed_extents.head() == nullptr);
 
-    if (active_extent != NULL) {
+    if (active_extent != nullptr) {
         UNUSED int64_t extent = active_extent->extent_ref.release();
         delete active_extent;
-        active_extent = NULL;
+        active_extent = nullptr;
     }
 
     while (gc_entry_t *entry = young_extent_queue.head()) {
@@ -1340,7 +1338,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     ASSERT_NO_CORO_WAITING;
 
     // Start a new extent if necessary.
-    if (active_extent == NULL) {
+    if (active_extent == nullptr) {
         active_extent = new gc_entry_t(this);
         ++stats->pm_serializer_data_extents_allocated;
     }

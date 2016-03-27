@@ -57,7 +57,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
         return &r->inner.left;
     } else {
         if (r->inner.right.unbounded) {
-            return NULL;
+            return nullptr;
         } else {
             return &r->inner.right.key();
         }
@@ -93,14 +93,14 @@ public:
         const store_key_t *jval = double_key_lookup(j, *vec_);
 
         int ret;
-        if (ival == NULL) {
-            if (jval == NULL) {
+        if (ival == nullptr) {
+            if (jval == nullptr) {
                 ret = 0;
             } else {
                 ret = 1;
             }
         } else {
-            if (jval == NULL) {
+            if (jval == nullptr) {
                 ret = -1;
             } else {
                 ret = ival->compare(*jval);
@@ -219,9 +219,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     uint64_t out_beg = double_hash_lookup(*hash_beg, vec);
     uint64_t out_end = double_hash_lookup(*(hash_end - 1), vec);
 
-    rassert(out_left != NULL);
+    rassert(out_left != nullptr);
 
-    if (out_right != NULL) {
+    if (out_right != nullptr) {
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::open, *out_right));
     } else {
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::none, store_key_t()));

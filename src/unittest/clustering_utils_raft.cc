@@ -28,9 +28,9 @@ dummy_raft_cluster_t::dummy_raft_cluster_t(
         std::vector<raft_member_id_t> *member_ids_out) :
     mailbox_manager(&connectivity_cluster, 'M'),
     heartbeat_manager(heartbeat_semilattice_metadata),
-    connectivity_cluster_run(&connectivity_cluster, generate_uuid(),
+    connectivity_cluster_run(&connectivity_cluster, server_id_t::generate_server_id(),
         get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view()),
+        heartbeat_manager.get_view(), nullptr),
     check_invariants_timer(100, [this]() {
         coro_t::spawn_sometime(std::bind(
             &dummy_raft_cluster_t::check_invariants,
@@ -71,7 +71,11 @@ raft_member_id_t dummy_raft_cluster_t::join() {
     bool found_init_state = false;
     for (const auto &pair : members) {
         if (pair.second->member_drainer.has()) {
-            init_state = pair.second->member->get_raft()->get_state_for_init();
+            cond_t non_interruptor;
+            raft_member_t<dummy_raft_state_t>::change_lock_t raft_change_lock(
+                pair.second->member->get_raft(), &non_interruptor);
+            init_state =
+                pair.second->member->get_raft()->get_state_for_init(raft_change_lock);
             found_init_state = true;
             break;
         }
@@ -111,7 +115,8 @@ void dummy_raft_cluster_t::set_live(const raft_member_id_t &member_id, live_t li
         }
         if (i->live == live_t::dead && live != live_t::dead) {
             i->member.init(new raft_networked_member_t<dummy_raft_state_t>(
-                member_id, &mailbox_manager, &i->member_directory, i, ""));
+                member_id, &mailbox_manager, &i->member_directory, i, "",
+                raft_start_election_immediately_t::NO));
             i->member_drainer.init(new auto_drainer_t);
         }
     }

@@ -61,57 +61,79 @@
  * cannot be inlined, and that it does not use on_thread_t.
  */
 
+#ifdef _MSC_VER
+#define TLS_ptr_with_constructor(type, name) TLS_ptr(type, name)
+#else
+#define TLS_ptr_with_constructor(type, name)                            \
+    typedef char TLS_ ## name ## _t[sizeof(type)];                      \
+    TLS_ptr(TLS_ ## name ## _t, name ## _)                              \
+    TLS_with_init(bool, name ## _initialised, false)                    \
+    NOINLINE type *TLS_ptr_ ## name () {                                \
+        if (!TLS_get_ ## name ## _initialised()) {                      \
+            new (reinterpret_cast<void *>(TLS_ptr_ ## name ## _())) type(); \
+            TLS_set_ ## name ## _initialised(true);                     \
+        }                                                               \
+        return reinterpret_cast<type *>(TLS_ptr_ ## name ## _());       \
+    }
+#endif
+
 #ifndef THREADED_COROUTINES
-#define TLS_with_init(type, name, initial)                              \
-    static THREAD_LOCAL type TLS_ ## name = initial;               \
-                                                                        \
+
+#define DEFINE_TLS_ACCESSORS(type, name)                                \
     NOINLINE type TLS_get_ ## name () {                                 \
         return TLS_ ## name;                                            \
     }                                                                   \
                                                                         \
-    NOINLINE void TLS_set_ ## name (type const &val) {                  \
-        TLS_ ## name = val;                                             \
+    template <class T>                                                  \
+    NOINLINE void TLS_set_ ## name (T&& val) {                          \
+        TLS_ ## name = std::forward<T>(val);                            \
+    }
+
+#define TLS(type, name)                                                 \
+    static THREAD_LOCAL type TLS_ ## name;                              \
+    DEFINE_TLS_ACCESSORS(type, name)
+
+#define TLS_with_init(type, name, initial)                              \
+    static THREAD_LOCAL type TLS_ ## name(initial);                     \
+    DEFINE_TLS_ACCESSORS(type, name)
+
+#define TLS_ptr(type, name)                                             \
+    static THREAD_LOCAL type TLS_ ## name;                              \
+                                                                        \
+    NOINLINE type *TLS_ptr_ ## name () {                                \
+        return &TLS_ ## name;                                           \
     }
 
 #else  // THREADED_COROUTINES
+
+#define DEFINE_TLS_ACCESSORS(type, name)                                \
+    type TLS_get_ ## name () {                                          \
+        return TLS_ ## name[get_thread_id().threadnum].value;           \
+    }                                                                   \
+                                                                        \
+    template <class T>                                                  \
+    void TLS_set_ ## name(T&& val) {                                    \
+        TLS_ ## name[get_thread_id().threadnum].value = std::forward<T>(val); \
+    }
+
+#define TLS(type, name)                                                 \
+    static std::vector<cache_line_padded_t<type> >                      \
+        TLS_ ## name(MAX_THREADS);                                      \
+    DEFINE_TLS_ACCESSORS(type, name)
+
 #define TLS_with_init(type, name, initial)                              \
     static std::vector<cache_line_padded_t<type> >                      \
         TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
+    DEFINE_TLS_ACCESSORS(type, name)
+
+#define TLS_ptr(type, name)                                             \
+    static std::vector<cache_line_padded_t<type> >                      \
+        TLS_ ## name(MAX_THREADS);                                      \
                                                                         \
-    type TLS_get_ ## name () {                                          \
-        return TLS_ ## name[get_thread_id().threadnum].value;           \
-    }                                                                   \
-                                                                        \
-    void TLS_set_ ## name(type const &val) {                            \
-        TLS_ ## name[get_thread_id().threadnum].value = val;            \
+    type *TLS_ptr_ ## name () {                                         \
+        return &TLS_ ## name[get_thread_id().threadnum].value;          \
     }
 
 #endif  // THREADED_COROUTINES
-
-#ifndef THREADED_COROUTINES
-#define TLS(type, name)                                                 \
-    static THREAD_LOCAL type TLS_ ## name;                         \
-                                                                        \
-    NOINLINE type TLS_get_ ## name () {                                 \
-        return TLS_ ## name;                                            \
-    }                                                                   \
-                                                                        \
-    NOINLINE void TLS_set_ ## name (type const &val) {                  \
-        TLS_ ## name = val;                                             \
-    }
-
-#else // THREADED_COROUTINES
-#define TLS(type, name)                                                 \
-    static cache_line_padded_t<type> TLS_ ## name[MAX_THREADS];         \
-                                                                        \
-    type TLS_get_ ## name () {                                          \
-        return TLS_ ## name[get_thread_id().threadnum].value;           \
-    }                                                                   \
-                                                                        \
-    void TLS_set_ ## name(type const &val) {                            \
-        TLS_ ## name[get_thread_id().threadnum].value = val;            \
-    }
-
-#endif // not THREADED_COROUTINES
 
 #endif /* THREAD_LOCAL_HPP_ */

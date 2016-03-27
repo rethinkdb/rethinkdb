@@ -155,9 +155,14 @@ datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_b
 }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    call_with_enough_stack(
-        [&] { destruct(); },
-        MIN_DATUM_RECURSION_STACK_SPACE);
+    // An optimization similar to what we do in `call_with_enough_stack_datum`,
+    // except that we can also ignore recursion for BUF_R_ARRAY and BUF_R_OBJECT.
+    if (internal_type == internal_type_t::R_ARRAY ||
+        internal_type == internal_type_t::R_OBJECT) {
+        call_with_enough_stack([&] { destruct(); }, MIN_DATUM_RECURSION_STACK_SPACE);
+    } else {
+        destruct();
+    }
 }
 
 datum_t::type_t datum_t::data_wrapper_t::get_type() const {
@@ -435,6 +440,11 @@ inline void fail_if_invalid(
                     truncation_length, string, reason.explanation,
                     reason.position);
     }
+}
+
+datum_t datum_t::utf8(datum_string_t _data) {
+    ql::fail_if_invalid(_data.data(), _data.size());
+    return datum_t(std::move(_data));
 }
 
 datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
@@ -938,10 +948,10 @@ datum_t datum_t::drop_literals_unchecked_stack(bool *encountered_literal_out) co
 }
 
 datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->drop_literals_unchecked_stack(
                 encountered_literal_out);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 void datum_t::rcheck_valid_replace(datum_t old_val,
@@ -1473,9 +1483,9 @@ void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
 
 template <class json_writer_t>
 void datum_t::write_json(json_writer_t *writer) const {
-    call_with_enough_stack([&] {
+    call_with_enough_stack_datum([&] {
             return this->write_json_unchecked_stack<json_writer_t>(writer);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 // Explicit instantiation
@@ -1496,21 +1506,22 @@ rapidjson::Value datum_t::as_json(rapidjson::Value::AllocatorType *allocator) co
     case R_ARRAY: {
         rapidjson::Value res(rapidjson::kArrayType);
         for (size_t i = 0; i < arr_size(); ++i) {
-            call_with_enough_stack([&]() {
-                    res.PushBack(unchecked_get(i).as_json(allocator), *allocator);
-                }, MIN_DATUM_RECURSION_STACK_SPACE);
+            const datum_t el = unchecked_get(i);
+            el.call_with_enough_stack_datum([&]() {
+                    res.PushBack(el.as_json(allocator), *allocator);
+                });
         }
         return res;
     } break;
     case R_OBJECT: {
         rapidjson::Value res(rapidjson::kObjectType);
         for (size_t i = 0; i < obj_size(); ++i) {
-            call_with_enough_stack([&]() {
-                    auto pair = get_pair(i);
+            auto pair = get_pair(i);
+            pair.second.call_with_enough_stack_datum([&]() {
                     res.AddMember(rapidjson::Value(pair.first.data(),
                                                    pair.first.size(), *allocator),
                                   pair.second.as_json(allocator), *allocator);
-                }, MIN_DATUM_RECURSION_STACK_SPACE);
+                });
         }
         return res;
     } break;
@@ -1637,9 +1648,9 @@ datum_t datum_t::default_merge_unchecked_stack(const datum_t &rhs) const {
 }
 
 datum_t datum_t::merge(const datum_t &rhs) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->default_merge_unchecked_stack(rhs);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 datum_t datum_t::custom_merge_unchecked_stack(const datum_t &rhs,
@@ -1665,10 +1676,10 @@ datum_t datum_t::merge(const datum_t &rhs,
                        merge_resoluter_t f,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->custom_merge_unchecked_stack(
                 rhs, std::move(f), limits, conditions_out);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 template<class T>
@@ -1742,9 +1753,9 @@ int datum_t::cmp_unchecked_stack(const datum_t &rhs) const {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
-    return call_with_enough_stack<int>([&] {
+    return call_with_enough_stack_datum<int>([&] {
             return this->cmp_unchecked_stack(rhs);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
@@ -1884,6 +1895,25 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;
     }
+}
+
+template<class result_t, class callable_t>
+result_t datum_t::call_with_enough_stack_datum(callable_t &&fun) const {
+    // Only use `call_with_enough_stack` if we might recurse further for efficiency
+    // reasons.
+    const type_t t = get_type();
+    if (t == type_t::R_ARRAY || t == type_t::R_OBJECT) {
+        return call_with_enough_stack<result_t>(fun, MIN_DATUM_RECURSION_STACK_SPACE);
+    } else {
+        return fun();
+    }
+}
+template<class callable_t>
+inline void datum_t::call_with_enough_stack_datum(callable_t &&fun) const {
+    call_with_enough_stack_datum<int>([&]() -> int {
+        fun();
+        return 0;
+    });
 }
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a

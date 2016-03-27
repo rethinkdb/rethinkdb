@@ -8,6 +8,7 @@
 
 #include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class name_collision_issue_tracker_t : public issue_tracker_t {

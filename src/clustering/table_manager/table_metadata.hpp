@@ -50,7 +50,8 @@ public:
         microtime_t timestamp;
         uuid_u id;
 
-        RDB_DECLARE_ME_SERIALIZABLE(epoch_t);
+        // Keep the class keyword here to satisfy VC++
+        RDB_DECLARE_ME_SERIALIZABLE(class epoch_t);
     };
 
     static multi_table_manager_timestamp_t min() {
@@ -185,6 +186,7 @@ public:
         boost::optional<table_basic_config_t> basic_config,
         boost::optional<raft_member_id_t> raft_member_id,
         boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_raft_state,
+        boost::optional<raft_start_election_immediately_t> start_election_immediately,
         mailbox_t<void()>::address_t ack_addr
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;

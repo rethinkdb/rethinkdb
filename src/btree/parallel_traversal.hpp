@@ -12,6 +12,7 @@
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
+#include "btree/node.hpp"
 
 class buf_lock_t;
 class buf_parent_t;
@@ -110,7 +111,7 @@ class parallel_traversal_progress_t;
 
 struct btree_traversal_helper_t {
     btree_traversal_helper_t()
-        : progress(NULL)
+        : progress(nullptr)
     { }
 
     //Before any of these other functions are called the helper gets a chance

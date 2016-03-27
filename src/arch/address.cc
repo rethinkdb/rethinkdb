@@ -6,7 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include "windows.hpp"
+#include <ws2tcpip.h> // NOLINT
+#else
 #include <netinet/in.h>
+#endif
 
 #include <functional>
 
@@ -19,8 +25,11 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
     : host(_host),
       res(_res),
       errno_res(_errno_res) {
-    std::string info = (res == EAI_SYSTEM) ?
+    std::string info =
+#ifndef _WIN32
+        (res == EAI_SYSTEM) ?
         strprintf("%s (errno %d)", errno_string(errno_res).c_str(), errno_res) :
+#endif
         strprintf("%s (gai_errno %d)", gai_strerror(res), res);
     error_string = strprintf("getaddrinfo() failed for hostname '%s': %s",
                              host.c_str(), info.c_str());
@@ -28,13 +37,22 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
+#ifdef _WIN32
+    const int namelen = 256; // (cf. RFC 1035)
+#else
     const int namelen = _POSIX_HOST_NAME_MAX;
+#endif
 
     std::vector<char> bytes(namelen + 1);
     bytes[namelen] = '0';
 
     int res = gethostname(bytes.data(), namelen);
+
+#ifdef _WIN32
+    guarantee_winerr(res == 0, "gethostname() failed");
+#else
     guarantee_err(res == 0, "gethostname() failed");
+#endif
     return std::string(bytes.data());
 }
 
@@ -51,12 +69,17 @@ void do_getaddrinfo(const char *node,
     }
 }
 
-/* Format an `in_addr` in dotted deciaml notation. */
+/* Format an `in_addr` in dotted decimal notation. */
 template <class addr_t>
 std::string ip_to_string(const addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
+#ifdef _WIN32
+    const char *result = inet_ntop(address_family, reinterpret_cast<void*>(const_cast<addr_t*>(&addr)),
+                                   buffer, INET6_ADDRSTRLEN);
+#else
     const char *result = inet_ntop(address_family, &addr,
                                    buffer, INET6_ADDRSTRLEN);
+#endif
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
 }
@@ -84,7 +107,7 @@ void hostname_to_ips_internal(const std::string &host,
     int errno_res;
     struct addrinfo *addrs;
     std::function<void ()> fn =
-        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
+        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(nullptr),
                   &hint, &addrs, &res, &errno_res);
     thread_pool_t::run_in_blocker_pool(fn);
 
@@ -140,6 +163,10 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         // Continue on, this probably means there's no DNS entry for this host
     }
 
+#ifdef _WIN32
+    // TODO WINDOWS: is this enough?
+    all_ips.emplace("127.0.0.1");
+#else
     // Ignore loopback addresses - those will be returned by getifaddrs, and
     // getaddrinfo is not so trustworthy.
     // See https://github.com/rethinkdb/rethinkdb/issues/2405
@@ -156,16 +183,17 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
                   "getifaddrs() failed, could not determine local network interfaces");
 
     for (auto *current_addr = addrs;
-         current_addr != NULL;
+         current_addr != nullptr;
          current_addr = current_addr->ifa_next) {
         struct sockaddr *addr_data = current_addr->ifa_addr;
-        if (addr_data == NULL) {
+        if (addr_data == nullptr) {
             continue;
         } else if (addr_data->sa_family == AF_INET || addr_data->sa_family == AF_INET6) {
             all_ips.insert(ip_address_t(addr_data));
         }
     }
     freeifaddrs(addrs);
+#endif
 
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
@@ -371,6 +399,9 @@ bool ip_address_t::operator < (const ip_address_t &x) const {
 }
 
 bool ip_address_t::is_loopback() const {
+#ifdef _WIN32
+#define IN_LOOPBACKNET 127 // from <netinet/in.h> on Linux
+#endif
     if (is_ipv4()) {
         return (ntohl(ipv4_addr.s_addr) >> 24) == IN_LOOPBACKNET;
     } else if (is_ipv6()) {
@@ -389,9 +420,7 @@ bool ip_address_t::is_any() const {
 }
 
 port_t::port_t(int _value)
-    : value_(_value) {
-    guarantee(value_ <= port_t::max_port);
-}
+    : value_(_value) { }
 
 port_t::port_t(sockaddr const *sa) {
     switch (sa->sa_family) {
@@ -406,7 +435,7 @@ port_t::port_t(sockaddr const *sa) {
     }
 }
 
-int port_t::value() const {
+uint16_t port_t::value() const {
     return value_;
 }
 

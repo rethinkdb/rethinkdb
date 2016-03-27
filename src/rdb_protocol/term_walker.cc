@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/term_walker.hpp"
 
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
@@ -74,7 +74,7 @@ private:
                 rcheck_src(bt, size >= 1 && size <= 3, base_exc_t::LOGIC,
                     strprintf("Expected between 1 and 3 elements in a raw term, "
                               "but found %zu.", size));
-                        
+
                 if (size >= 1) {
                     rapidjson::Value *val = &(*src)[0];
                     rcheck_src(bt, val->IsNumber(), base_exc_t::LOGIC,
@@ -92,11 +92,29 @@ private:
 
             if (type == Term::ASC || type == Term::DESC) {
                 rcheck_src(bt,
-                    prev_frame != nullptr && prev_frame->type == Term::ORDER_BY,
+                    prev_frame != nullptr
+                    && (prev_frame->type == Term::ORDER_BY
+                        || prev_frame->type == Term::UNION
+                        || (prev_frame->prev_frame != nullptr
+                            && prev_frame->prev_frame->type == Term::UNION
+                            && (prev_frame->type == Term::MAKE_ARRAY))
+                    ),
                     base_exc_t::LOGIC,
-                    strprintf("%s may only be used as an argument to ORDER_BY.",
+                    strprintf("%s may only be used as an argument to ORDER_BY or UNION.",
                               (type == Term::ASC ? "ASC" : "DESC")));
             } else if (type == Term::NOW) {
+                // This checking is not as strict as with other terms, for simplicity's sake
+                for (size_t i = 1; i < src->Size(); ++i) {
+                    rapidjson::Value *val = &(*src)[i];
+                    if (val->IsArray()) {
+                        rcheck_src(bt, val->Size() == 0, base_exc_t::LOGIC,
+                                   "NOW does not accept any args.");
+                    } else if (val->IsObject()) {
+                        rcheck_src(bt, val->MemberCount() == 0, base_exc_t::LOGIC,
+                                   "NOW does not accept any optargs.");
+                    }
+                }
+
                 // Set r.now() terms to the same literal time so it can be deteministic
                 type = Term::DATUM;
                 rapidjson::Value rewritten;
@@ -144,7 +162,7 @@ private:
             if (args != nullptr) {
                 r_sanity_check(args->IsArray());
                 for (size_t i = 0; i < args->Size(); ++i) {
-                    backtrace_id_t child_bt 
+                    backtrace_id_t child_bt
                         = make_bt(bt, datum_t(static_cast<double>(i)));
                     walker_frame_t child_frame(parent, i == 0, this);
                     call_with_enough_stack([&]() {
@@ -281,6 +299,7 @@ bool term_type_is_valid(Term::TermType type) {
     case Term::CHANGES:
     case Term::REDUCE:
     case Term::MAP:
+    case Term::FOLD:
     case Term::FILTER:
     case Term::CONCAT_MAP:
     case Term::GROUP:
@@ -468,6 +487,7 @@ bool term_is_write_or_meta(Term::TermType type) {
     case Term::CHANGES:
     case Term::REDUCE:
     case Term::MAP:
+    case Term::FOLD:
     case Term::FILTER:
     case Term::CONCAT_MAP:
     case Term::GROUP:
@@ -591,6 +611,7 @@ bool term_forbids_writes(Term::TermType type) {
     switch (type) {
     case Term::REDUCE:
     case Term::MAP:
+    case Term::FOLD:
     case Term::FILTER:
     case Term::CONCAT_MAP:
     case Term::GROUP:

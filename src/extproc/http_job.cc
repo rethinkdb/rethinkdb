@@ -73,10 +73,10 @@ private:
 class scoped_curl_slist_t {
 public:
     scoped_curl_slist_t() :
-        slist(NULL) { }
+        slist(nullptr) { }
 
     ~scoped_curl_slist_t() {
-        if (slist != NULL) {
+        if (slist != nullptr) {
             curl_slist_free_all(slist);
         }
     }
@@ -87,7 +87,7 @@ public:
 
     void add(const std::string &str) {
         slist = curl_slist_append(slist, str.c_str());
-        if (slist == NULL) {
+        if (slist == nullptr) {
             throw curl_exc_t("appending header, allocation failure");
         }
     }
@@ -249,7 +249,7 @@ std::string exc_encode(CURL *curl_handle, const std::string &str) {
 
     if (str.size() != 0) {
         char *curl_res = curl_easy_escape(curl_handle, str.data(), str.size());
-        if (curl_res == NULL) {
+        if (curl_res == nullptr) {
             throw curl_exc_t("encode string");
         }
         res.assign(curl_res);
@@ -357,7 +357,7 @@ std::string url_encode_fields(CURL *curl_handle,
         } else if (pair.second.get_type() != ql::datum_t::R_NULL) {
             // This shouldn't happen because we check this in the main process anyway
             throw curl_exc_t(strprintf("expected `params.%s` to be a NUMBER, STRING, "
-                                       "or NULL, but found %s",
+                                       "or nullptr, but found %s",
                                        pair.first.to_std().c_str(),
                                        pair.second.get_type_name().c_str()));
         }
@@ -460,7 +460,7 @@ void transfer_header_opt(const std::vector<std::string> &header,
         curl_data->header.add(*it);
     }
 
-    if (curl_data->header.get() != NULL) {
+    if (curl_data->header.get() != nullptr) {
         exc_setopt(curl_handle, CURLOPT_HTTPHEADER, curl_data->header.get(), "HEADER");
     }
 }
@@ -539,7 +539,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
     scoped_curl_handle_t curl_handle;
     curl_data_t curl_data;
 
-    if (curl_handle.get() == NULL) {
+    if (curl_handle.get() == nullptr) {
         res_out->error.assign("initialization");
         return;
     }
@@ -619,12 +619,12 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         case http_result_format_t::AUTO:
             {
                 std::string content_type;
-                char *content_type_buffer = NULL;
+                char *content_type_buffer = nullptr;
                 curl_easy_getinfo(curl_handle.get(),
                                   CURLINFO_CONTENT_TYPE,
                                   &content_type_buffer);
 
-                if (content_type_buffer != NULL) {
+                if (content_type_buffer != nullptr) {
                     content_type.assign(content_type_buffer);
                 }
 
@@ -710,7 +710,7 @@ private:
     std::map<datum_string_t, ql::datum_t> link_headers;
     std::string current_field;
 };
-header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
+header_parser_singleton_t *header_parser_singleton_t::instance = nullptr;
 
 // The link_parser regular expression is used to parse 'Link' headers from HTTP
 // responses (see RFC 5988 - http://tools.ietf.org/html/rfc5988).  We are interested
@@ -744,11 +744,12 @@ header_parser_singleton_t::header_parser_singleton_t() :
 }
 
 void header_parser_singleton_t::initialize() {
-    if (instance == NULL) {
+    if (instance == nullptr) {
         instance = new header_parser_singleton_t();
     }
 
     instance->current_field.clear();
+    instance->link_headers.clear();
     http_parser_init(&instance->parser, HTTP_RESPONSE);
     instance->parser.data = instance;
 }
@@ -772,7 +773,7 @@ header_parser_singleton_t::parse(const std::string &header) {
     // Return an empty object if we didn't receive any headers
     if (instance->header_fields.size() == 0 &&
         instance->link_headers.size() == 0) {
-        return ql::datum_t();
+        return ql::datum_t::empty_object();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
         instance->header_fields[datum_string_t("link")] =
@@ -847,11 +848,11 @@ void save_cookies(CURL *curl_handle, http_result_t *res_out) {
     }
 
     res_out->cookies.clear();
-    for (curl_slist *current = cookies; current != NULL; current = current->next) {
+    for (curl_slist *current = cookies; current != nullptr; current = current->next) {
         res_out->cookies.push_back(std::string(current->data));
     }
 
-    if (cookies != NULL) {
+    if (cookies != nullptr) {
         curl_slist_free_all(cookies);
     }
 }
@@ -900,7 +901,7 @@ private:
     { }
 
     static void initialize_if_needed() {
-        if (instance == NULL) {
+        if (instance == nullptr) {
             instance = new jsonp_parser_singleton_t();
         }
     }
@@ -919,7 +920,7 @@ private:
 };
 
 // Static const initializations for above
-jsonp_parser_singleton_t *jsonp_parser_singleton_t::instance = NULL;
+jsonp_parser_singleton_t *jsonp_parser_singleton_t::instance = nullptr;
 const char *jsonp_parser_singleton_t::fn_call = "\\(((?s).*)\\)";
 const char *jsonp_parser_singleton_t::expr_end = "\\s*;?\\s*";
 const char *jsonp_parser_singleton_t::js_ident =

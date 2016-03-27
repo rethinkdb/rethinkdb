@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <limits>
 #include <string>
+#include <iterator>
 
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 #include "rdb_protocol/geo/s2/base/logging.h"

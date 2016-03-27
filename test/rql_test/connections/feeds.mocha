@@ -1,3 +1,7 @@
+#!/usr/bin/env node
+
+// Copyright 2015-2016 RethinkDB, all rights reserved.
+
 ////
 // Tests for feeds on the JavaScript driver
 /////
@@ -66,12 +70,11 @@ var withConnection = function(fnct) {
     }
 }
 
-// ensure both tbl and tableFeed are valid
-var withTableFeed = function() {
+var withTable = function() {    
     // ensure db exists
     return withConnection()
     .then(function() {
-        r.expr([dbName]).setDifference(r.dbList()).forEach(
+        return r.expr([dbName]).setDifference(r.dbList()).forEach(
             function(value) { return r.dbCreate(value); }
         ).run(reqlConn)
     })
@@ -85,22 +88,29 @@ var withTableFeed = function() {
     .then(function() {
         return r.db(dbName).table(tableName).wait().run(reqlConn)
     })
+}
+
+// ensure both tbl and tableFeed are valid
+var withTableFeed = function() {
+    return withTable()
+    // dispose of any old tableFeed
+    .then(function() {
+        if (tableFeed) {
+            try { tableFeed.removeAllListeners(); } catch (err) {}
+            return tableFeed.close();
+        }
+    })
     // provide a clean tableFeed
     .then(function() {
-        try {
-            tableFeed.removeAllListeners();
-            tableFeed.close(); // just so we don't get cross-test contamination
-        } catch (err) {}
-
-        return tbl.changes().run(reqlConn).then(function(newFeed) {
-            tableFeed = newFeed;
-        });
-    })
+        return tbl.changes().run(reqlConn);
+    }).then(function(newFeed) {
+        tableFeed = newFeed;
+    });
 }
 
 // delete all items in tbl
 var cleanTable = function() {
-    return withTableFeed()
+    return withTable()
     .then(function() {
         return tbl.delete().run(reqlConn);
     });
@@ -112,10 +122,16 @@ describe('JavaScript changefeed', function() {
     this.timeout(5000); // Bump timeout from the default 2000ms because some operations
                         // (like table creation) may take a moment
 
-    before(cleanTable); // clean before the tests, some tests require continuity
+    before(function() {
+        this.timeout(10000)
+        return cleanTable(); // clean before the tests, some tests require continuity
+    })
 
     // ensure validity of reqlConn, tbl, and tableFeed
-    beforeEach(withTableFeed);
+    beforeEach(function () {
+        this.timeout(10000)
+        return withTableFeed();
+    })
 
     describe('on a table', function() {
 
@@ -295,7 +311,7 @@ describe('JavaScript changefeed', function() {
     });
 
     describe('EventEmitter interface', function() {
-        var shortTimeout = 200;
+        var shortTimeout = 500;
         var checkDelay = 5
 
         // ensure we have a clean reqlConn for the next test
@@ -343,7 +359,7 @@ describe('JavaScript changefeed', function() {
             tableFeed.on('data', function() { eventCounterB += 1; });
 
             // do the inserts
-            r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'data on with two receivers'}); }).run(reqlConn);
+            r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'emits an event to two receivers when data is inserted'}); }).run(reqlConn);
 
             // check on the result periodically, up to a deadline
             var checkEvents = function() {

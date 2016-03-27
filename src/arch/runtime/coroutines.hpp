@@ -186,7 +186,7 @@ private:
 
         // If we were called from a coroutine, the new coroutine inherits our
         // caller's priority.
-        if (self() != NULL) {
+        if (self() != nullptr) {
             coro->set_priority(self()->get_priority());
         } else {
             // Otherwise, just reset to the default.
@@ -201,7 +201,7 @@ private:
     static void return_coro_to_free_list(coro_t *coro);
     static void maybe_evict_from_free_list();
 
-    static void run() NORETURN;
+    NORETURN static void run();
 
     friend class coro_profiler_t;
     friend struct coro_globals_t;

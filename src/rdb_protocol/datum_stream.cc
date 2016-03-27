@@ -95,25 +95,6 @@ bool active_ranges_t::totally_exhausted() const {
     return true;
 }
 
-store_key_t truncate_and_get_left(active_ranges_t *ranges) {
-    const store_key_t *smallest_left = &store_key_max;
-    for (auto &&pair: ranges->ranges) {
-        for (auto &&hash_pair : pair.second.hash_ranges) {
-            if (hash_pair.second.cache.size() != 0) {
-                // If we truncate the cache for a shard, it's always active.
-                hash_pair.second.state = range_state_t::ACTIVE;
-                // This should only ever be called when iterating left to right.
-                hash_pair.second.key_range.left = hash_pair.second.cache[0].key;
-                hash_pair.second.cache.clear();
-            }
-            if (hash_pair.second.key_range.left < *smallest_left) {
-                smallest_left = &hash_pair.second.key_range.left;
-            }
-        }
-    }
-    return *smallest_left;
-}
-
 key_range_t active_ranges_to_range(const active_ranges_t &ranges) {
     store_key_t start = store_key_t::max();
     store_key_t end = store_key_t::min();
@@ -186,20 +167,50 @@ boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
 enum class is_secondary_t { NO, YES };
 active_ranges_t new_active_ranges(
     const stream_t &stream,
-    key_range_t &&original_range,
+    const key_range_t &original_range,
+    const boost::optional<std::map<region_t, uuid_u> > &shard_ids,
     is_secondary_t is_secondary) {
     active_ranges_t ret;
+    std::set<uuid_u> covered_shards;
     for (auto &&pair : stream.substreams) {
-        std::map<hash_range_t, hash_range_with_cache_t> hash_ranges;
+        uuid_u cfeed_shard_id = nil_uuid();
+        if (shard_ids) {
+            auto shard_id_it = shard_ids->find(pair.first);
+            r_sanity_check(shard_id_it != shard_ids->end());
+            cfeed_shard_id = shard_id_it->second;
+            covered_shards.insert(cfeed_shard_id);
+        }
+
         ret.ranges[pair.first.inner]
            .hash_ranges[hash_range_t{pair.first.beg, pair.first.end}]
             = hash_range_with_cache_t{
+                cfeed_shard_id,
                 is_secondary == is_secondary_t::YES
-                    ? std::move(original_range)
+                    ? original_range
                     : pair.first.inner.intersection(original_range),
                 raw_stream_t(),
                 range_state_t::ACTIVE};
     }
+
+    // Add ranges for missing shards (we get this if some shards didn't return any data)
+    if (shard_ids) {
+        for (const auto &shard_pair : *shard_ids) {
+            if (covered_shards.count(shard_pair.second) > 0) {
+                continue;
+            }
+
+            ret.ranges[shard_pair.first.inner]
+                .hash_ranges[hash_range_t{shard_pair.first.beg, shard_pair.first.end}]
+                 = hash_range_with_cache_t{
+                     shard_pair.second,
+                     is_secondary == is_secondary_t::YES
+                         ? original_range
+                         : shard_pair.first.inner.intersection(original_range),
+                     raw_stream_t(),
+                     range_state_t::ACTIVE};
+        }
+    }
+
     return ret;
 }
 
@@ -303,6 +314,13 @@ private:
     bool finished;
 };
 
+changefeed::keyspec_t empty_reader_t::get_changespec() const {
+    return changefeed::keyspec_t(
+        changefeed::keyspec_t::empty_t(),
+        table,
+        table_name);
+}
+
 raw_stream_t rget_response_reader_t::unshard(
     sorting_t sorting,
     rget_read_response_t &&res) {
@@ -311,8 +329,16 @@ raw_stream_t rget_response_reader_t::unshard(
     r_sanity_check(gs != nullptr);
     auto stream = groups_to_batch(gs->get_underlying_map());
     if (!active_ranges) {
+        boost::optional<std::map<region_t, uuid_u> > opt_shard_ids;
+        if (res.stamp_response) {
+            opt_shard_ids = std::map<region_t, uuid_u>();
+            for (const auto &pair : *res.stamp_response->stamp_infos) {
+                opt_shard_ids->insert(
+                    std::make_pair(pair.second.shard_region, pair.first));
+            }
+        }
         active_ranges = new_active_ranges(
-            stream, readgen->original_keyrange(res.reql_version),
+            stream, readgen->original_keyrange(res.reql_version), opt_shard_ids,
             readgen->sindex_name() ? is_secondary_t::YES : is_secondary_t::NO);
         readgen->restrict_active_ranges(sorting, &*active_ranges);
         reql_version = res.reql_version;
@@ -389,7 +415,12 @@ raw_stream_t rget_response_reader_t::unshard(
 
     // Do the unsharding.
     if (sorting != sorting_t::UNORDERED) {
+        size_t num_iters = 0;
         for (;;) {
+            const size_t YIELD_INTERVAL = 2000;
+            if (++num_iters % YIELD_INTERVAL == 0) {
+                coro_t::yield();
+            }
             pseudoshard_t *best_shard = &pseudoshards[0];
             const store_key_t *best_key = best_shard->best_unpopped_key();
             for (size_t i = 1; i < pseudoshards.size(); ++i) {
@@ -459,7 +490,6 @@ rget_response_reader_t::rget_response_reader_t(
     : table(_table),
       started(false),
       readgen(std::move(_readgen)),
-      last_read_start(store_key_t::min()),
       items_index(0) { }
 
 void rget_response_reader_t::add_transformation(transform_variant_t &&tv) {
@@ -472,12 +502,25 @@ bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
     return true;
 }
 
-boost::optional<active_state_t> rget_response_reader_t::truncate_and_get_active_state() {
-    if (!stamp || !active_ranges || shard_stamps.size() == 0) return boost::none;
+boost::optional<active_state_t> rget_response_reader_t::get_active_state() {
+    if (!stamp || !active_ranges || shard_stamp_infos.empty()) return boost::none;
+    std::map<uuid_u, std::pair<key_range_t, uint64_t> > shard_last_read_stamps;
+    for (const auto &range_pair : active_ranges->ranges) {
+        for (const auto &hash_pair : range_pair.second.hash_ranges) {
+            const auto stamp_it = shard_stamp_infos.find(hash_pair.second.cfeed_shard_id);
+            r_sanity_check(stamp_it != shard_stamp_infos.end());
+
+            key_range_t last_read_range(
+                key_range_t::closed, stamp_it->second.last_read_start,
+                key_range_t::open, std::max(stamp_it->second.last_read_start,
+                                            hash_pair.second.key_range.left));
+            shard_last_read_stamps.insert(std::make_pair(
+                stamp_it->first,
+                std::make_pair(last_read_range, stamp_it->second.stamp)));
+        }
+    }
     return active_state_t{
-        key_range_t(key_range_t::closed, last_read_start,
-                    key_range_t::open, truncate_and_get_left(&*active_ranges)),
-        shard_stamps,
+        std::move(shard_last_read_stamps),
         reql_version,
         DEBUG_ONLY(readgen->sindex_name())};
 }
@@ -492,6 +535,18 @@ void rget_response_reader_t::accumulate(env_t *env,
     result_t res = do_read(env, std::move(read)).result;
     mark_shards_exhausted();
     acc->add_res(env, &res, readgen->sorting(batchspec));
+}
+
+std::vector<rget_item_t> rget_response_reader_t::raw_next_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    r_sanity_check(batchspec.get_batch_type() != batch_type_t::SINDEX_CONSTANT);
+    started = true;
+    bool loaded = load_items(env, batchspec);
+    r_sanity_check(items_index == 0 && (items.size() != 0) == loaded);
+    std::vector<rget_item_t> res;
+    res.swap(items);
+    return res;
 }
 
 std::vector<datum_t> rget_response_reader_t::next_batch(
@@ -575,25 +630,6 @@ bool rget_response_reader_t::is_finished() const {
     return shards_exhausted() && items_index >= items.size();
 }
 
-struct last_read_start_visitor_t : public boost::static_visitor<store_key_t> {
-    store_key_t operator()(const intersecting_geo_read_t &geo) const {
-        return geo.sindex.region ? geo.sindex.region->inner.left : store_key_t::min();
-    }
-    store_key_t operator()(const rget_read_t &rget) const {
-        if (rget.sindex) {
-            return rget.sindex->region
-                ? rget.sindex->region->inner.left
-                : store_key_t::min();
-        } else {
-            return rget.region.inner.left;
-        }
-    }
-    template<class T>
-    store_key_t operator()(const T &) const {
-        r_sanity_fail();
-    }
-};
-
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table->read_with_profile(env, read, &res);
@@ -602,7 +638,6 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
-    last_read_start = boost::apply_visitor(last_read_start_visitor_t(), read.read);
     return std::move(*rget_res);
 }
 
@@ -643,14 +678,14 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
     if (stamp) {
         r_sanity_check(res.stamp_response);
-        rcheck_datum(res.stamp_response->stamps, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(res.stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve start stamps.  (Did you just reshard?)");
-        rcheck_datum(res.stamp_response->stamps->size() != 0,
+        rcheck_datum(res.stamp_response->stamp_infos->size() != 0,
                      base_exc_t::RESUMABLE_OP_FAILED,
                      "Empty start stamps.  Did you just reshard?");
-        for (const auto &pair : *res.stamp_response->stamps) {
+        for (const auto &pair : *res.stamp_response->stamp_infos) {
             // It's OK to blow away old values.
-            shard_stamps[pair.first] = pair.second;
+            shard_stamp_infos[pair.first] = pair.second;
         }
     }
 
@@ -758,11 +793,13 @@ rget_readgen_t::rget_readgen_t(
     const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
-    sorting_t _sorting)
+    sorting_t _sorting,
+    require_sindexes_t _require_sindex_val)
     : readgen_t(std::move(_global_optargs),
                 std::move(_table_name),
                 _profile, _read_mode, _sorting),
-      datumspec(_datumspec) { }
+      datumspec(_datumspec),
+      require_sindex_val(_require_sindex_val) { }
 
 read_t rget_readgen_t::next_read(
     const boost::optional<active_ranges_t> &active_ranges,
@@ -813,7 +850,8 @@ primary_readgen_t::primary_readgen_t(
         datumspec,
         _profile,
         _read_mode,
-        sorting) {
+        sorting,
+        require_sindexes_t::NO) {
     store_keys = datumspec.primary_key_map();
 }
 
@@ -954,14 +992,16 @@ sindex_readgen_t::sindex_readgen_t(
     const datumspec_t &datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
-    sorting_t sorting)
+    sorting_t sorting,
+    require_sindexes_t require_sindex_val)
     : rget_readgen_t(
         std::move(global_optargs),
         std::move(table_name),
         datumspec,
         _profile,
         _read_mode,
-        sorting),
+        sorting,
+        require_sindex_val),
       sindex(_sindex),
       sent_first_read(false) { }
 
@@ -971,7 +1011,8 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     read_mode_t read_mode,
     const std::string &sindex,
     const datumspec_t &datumspec,
-    sorting_t sorting) {
+    sorting_t sorting,
+    require_sindexes_t require_sindex_val) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->get_all_optargs(),
@@ -980,7 +1021,8 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
             datumspec,
             env->profile(),
             read_mode,
-            sorting));
+            sorting,
+            require_sindex_val));
 }
 
 void sindex_readgen_t::sindex_sort(
@@ -1030,7 +1072,10 @@ rget_read_t sindex_readgen_t::next_read_impl(
         batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, std::move(region), std::move(ds)),
+        sindex_rangespec_t(sindex,
+                           std::move(region),
+                           std::move(ds),
+                           require_sindex_val),
         sorting(batchspec));
 }
 
@@ -1155,7 +1200,7 @@ bool datum_stream_t::add_stamp(changefeed_stamp_t) {
     return false;
 }
 
-boost::optional<active_state_t> datum_stream_t::truncate_and_get_active_state() {
+boost::optional<active_state_t> datum_stream_t::get_active_state() {
     return boost::none;
 }
 
@@ -1217,7 +1262,10 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 datum_t datum_stream_t::next(env_t *env, const batchspec_t &batchspec) {
-    profile::starter_t("Reading element from datum stream.", env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        env->profile() == profile_bool_t::PROFILE,
+        "Reading element from datum stream.",
+        env->trace);
     if (batch_cache_index >= batch_cache.size()) {
         r_sanity_check(batch_cache_index == 0);
         batch_cache = next_batch(env, batchspec);
@@ -1312,6 +1360,7 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
 }
 
 // LAZY_DATUM_STREAM_T
+
 lazy_datum_stream_t::lazy_datum_stream_t(scoped_ptr_t<reader_t> &&_reader,
                                          backtrace_id_t bt)
     : datum_stream_t(bt),
@@ -1487,6 +1536,13 @@ slice_datum_stream_t::slice_datum_stream_t(
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
 std::vector<changespec_t> slice_datum_stream_t::get_changespecs() {
+    for (auto transform : transforms) {
+        filter_wire_func_t *filter = boost::get<filter_wire_func_t>(&transform);
+        if (filter == nullptr) {
+            rfail(base_exc_t::LOGIC,
+                  "Getting a changefeed on a filter after a limit is not supported.");
+        }
+    }
     if (left == 0) {
         auto subspecs = source->get_changespecs();
         rcheck(subspecs.size() == 1, base_exc_t::LOGIC,
@@ -1665,6 +1721,110 @@ private:
     bool running, is_first_batch;
     union_datum_stream_t *parent;
 };
+
+ordered_union_datum_stream_t::ordered_union_datum_stream_t(
+    std::vector<counted_t<datum_stream_t> > &&_streams,
+    std::vector<std::pair<order_direction_t, counted_t<const func_t> > > &&_comparisons,
+    env_t  *env,
+    backtrace_id_t bt)
+    : eager_datum_stream_t(bt),
+      union_type(feed_type_t::not_feed),
+      is_array_ordered_union(true),
+      is_infinite_ordered_union(false),
+      is_ordered_by_field(_comparisons.size() != 0),
+      do_prelim_cache(true),
+      lt(_comparisons),
+      merge_cache(merge_less_t{env, nullptr, &lt}) {
+
+    for (const auto &stream : _streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_ordered_union |= stream->is_infinite();
+        is_array_ordered_union &= stream->is_array();
+    }
+    for (auto &&stream : _streams) {
+        streams.push_back(std::move(stream));
+    }
+}
+
+std::vector<datum_t> ordered_union_datum_stream_t::next_raw_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    rcheck(!is_infinite_ordered_union
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an ordered `union`.");
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    if (is_ordered_by_field) {
+        if (do_prelim_cache) {
+            for (auto &&stream : streams) {
+                r_sanity_check(stream.has());
+                datum_t cache_item = stream->next(env, batchspec);
+
+                if (cache_item.has()) {
+                    merge_cache.push(
+                        merge_cache_item_t{std::move(cache_item),
+                                stream});
+                }
+            }
+            do_prelim_cache = false;
+        }
+
+        while (merge_cache.size() > 0 && !batcher.should_send_batch()) {
+            merge_cache_item_t el = std::move(merge_cache.top());
+            merge_cache.pop();
+
+            datum_t datum_on_deck = std::move(el.value);
+
+            datum_t next_datum = el.source->next(env, batchspec);
+
+            if (next_datum.has()) {
+                // Enforce ordering in merge step
+                // Ordering of this check is backwards because lt does strict <
+                rcheck(!lt(env, nullptr, next_datum, datum_on_deck),
+                       base_exc_t::LOGIC,
+                       "The streams given as arguments"
+                       " are not ordered by given ordering.");
+
+                merge_cache.push(
+                    merge_cache_item_t{std::move(next_datum),
+                            el.source});
+            }
+
+            batcher.note_el(datum_on_deck);
+            batch.push_back(std::move(datum_on_deck));
+        }
+    } else {
+        while (!streams.empty()
+               && !batcher.should_send_batch()) {
+            datum_t row = streams.front()->next(env, batchspec);
+
+            if (row.has()) {
+                batcher.note_el(row);
+                batch.push_back(std::move(row));
+            } else {
+                streams.pop_front();
+            }
+        }
+    }
+    return batch;
+}
+
+bool ordered_union_datum_stream_t::is_exhausted() const {
+    if (is_ordered_by_field) {
+        if (merge_cache.size() == 0 && !do_prelim_cache) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    } else {
+        if (streams.empty()) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    }
+}
 
 // The maximum number of reads that a union_datum_stream spawns on its substreams
 // at a time. This limit does not apply to changefeed streams.
@@ -1932,14 +2092,15 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     while (!is_exhausted()) {
         while (args.size() < streams.size()) {
             datum_t d = streams[args.size()]->next(env, batchspec_inner);
-            if (union_type == feed_type_t::not_feed) {
-                r_sanity_check(d.has());
-            } else {
-                if (!d.has()) {
-                    // Return with `args` partway full and continue next time
-                    // the client asks for a batch.
-                    return batch;
+            if (!d.has()) {
+                if (union_type == feed_type_t::not_feed) {
+                    // One of the streams was probably empty from the beginning. So
+                    // after the call to `next` above, we should now be exhausted.
+                    r_sanity_check(is_exhausted());
                 }
+                // If we have a feed, return with `args` partway full and continue
+                // next time the client asks for a batch.
+                return batch;
             }
             args.push_back(std::move(d));
         }
@@ -1961,6 +2122,204 @@ bool map_datum_stream_t::is_exhausted() const {
         if (stream->is_exhausted()) {
             return batch_cache_exhausted();
         }
+    }
+    return false;
+}
+
+eq_join_datum_stream_t::eq_join_datum_stream_t(counted_t<datum_stream_t> _stream,
+                                               counted_t<table_t> _table,
+                                               datum_string_t _join_index,
+                                               counted_t<const func_t> _predicate,
+                                               bool _ordered,
+                                               backtrace_id_t bt) :
+    eager_datum_stream_t(bt),
+    stream(std::move(_stream)),
+    table(std::move(_table)),
+    join_index(std::move(_join_index)),
+    predicate(std::move(_predicate)),
+    ordered(_ordered),
+    is_array_eq_join(stream->is_array()),
+    is_infinite_eq_join(stream->is_infinite()),
+    eq_join_type(stream->cfeed_type()) { }
+
+std::vector<datum_t> eq_join_datum_stream_t::next_raw_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    batcher_t batcher = batchspec.to_batcher();
+
+    batchspec_t inner_batchspec = ordered ?
+        batchspec_t::all().with_at_most(1) :
+        batchspec;
+
+    std::vector<datum_t> res;
+    while (!is_exhausted() && !batcher.should_send_batch()) {
+        if (!get_all_reader.has() ||
+            (get_all_reader->is_finished() &&
+             get_all_items.empty())) {
+            // Get a new batch of keys
+            std::vector<datum_t> stream_batch = stream->next_batch(env,
+                                                                   inner_batchspec);
+            // Basically do a get all on the new keys
+            // but we get the reader directly so we can read the sindex from the lookup.
+            sindex_to_datum.clear();
+            std::map<datum_t, uint64_t> keys;
+            for (size_t i = 0; i < stream_batch.size(); ++i) {
+                datum_t key_val;
+                try {
+                    key_val = predicate->call(
+                        env,
+                        std::vector<datum_t>{stream_batch[i]})->as_datum();
+                } catch (const exc_t &e) {
+                    if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+                        continue;
+                    } else {
+                        throw;
+                    }
+                }
+                // Build a multimap from sindex value to datums from left side stream.
+                if (key_val.get_type() != datum_t::type_t::R_NULL) {
+                    sindex_to_datum.insert(std::pair<datum_t, datum_t>{
+                            key_val, stream_batch[i]});
+                    keys[key_val] = 1;
+                }
+            }
+            get_all_reader = table->get_all_with_sindexes(
+                env,
+                datumspec_t(std::move(keys)),
+                join_index.to_std(),
+                backtrace());
+        }
+        if (get_all_items.empty()) {
+            get_all_items = get_all_reader->raw_next_batch(env, batchspec);
+        }
+        rget_item_t item;
+        if (!get_all_items.empty()) {
+            item = get_all_items.back();
+            get_all_items.pop_back();
+        } else {
+            continue;
+        }
+        // Get each item in get_all results, and match it with all datums that match
+        // in the multimap from the left side stream.
+        std::pair<std::multimap<datum_t, datum_t>::iterator,
+                  std::multimap<datum_t, datum_t>::iterator> range;
+        if (item.sindex_key.has()) {
+            range = sindex_to_datum.equal_range(item.sindex_key);
+        } else {
+            range = sindex_to_datum.equal_range(item.data.get_field(join_index));
+        }
+        datum_string_t right("right");
+        datum_string_t left("left");
+        for (auto pair = range.first; pair != range.second; ++pair) {
+            ql::datum_object_builder_t res_item;
+            bool conflict = true;
+            conflict &= res_item.add(right, item.data);
+            conflict &= res_item.add(left, pair->second);
+            guarantee(!conflict);
+            datum_t res_datum = std::move(res_item).to_datum();
+            batcher.note_el(res_datum);
+            res.push_back(std::move(res_datum));
+        }
+    }
+    return res;
+}
+
+bool eq_join_datum_stream_t::is_exhausted() const {
+    if (stream->is_exhausted() &&
+        get_all_items.empty() &&
+        (!get_all_reader.has() || get_all_reader->is_finished())) {
+        return batch_cache_exhausted();
+    }
+    return false;
+}
+
+fold_datum_stream_t::fold_datum_stream_t(
+    counted_t<datum_stream_t> &&_stream,
+    datum_t _base,
+    counted_t<const func_t> &&_acc_func,
+    counted_t<const func_t> &&_emit_func,
+    counted_t<const func_t> &&_final_emit_func,
+    backtrace_id_t bt)
+    : eager_datum_stream_t(bt),
+      stream(std::move(_stream)),
+      acc_func(std::move(_acc_func)),
+      emit_func(std::move(_emit_func)),
+      final_emit_func(std::move(_final_emit_func)),
+      acc(_base) {
+
+    if (final_emit_func.has()) {
+        do_final_emit = true;
+    } else {
+        do_final_emit = false;
+    }
+
+    is_array_fold = stream->is_array();
+    union_type = stream->cfeed_type();
+    is_infinite_fold = stream->is_infinite();
+}
+
+std::vector<datum_t>
+fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    rcheck(!is_infinite_fold
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an aggregation function "
+           "(`reduce`, `count`, etc.) or coerce it to an array.");
+
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    // TODO: Create an inner batchspec as in `map_datum_stream_t`
+    // when we add folding over multiple streams.
+
+    while (!is_exhausted() && !batcher.should_send_batch()) {
+        datum_t row = stream->next(env, batchspec);
+        datum_t new_acc = acc_func->call(
+            env,
+            std::vector<datum_t>{acc, row})->as_datum();
+
+        r_sanity_check(new_acc.has());
+
+        datum_t emit_elem = emit_func->call(
+            env,
+            std::vector<datum_t>{acc, row, new_acc})->as_datum();
+
+        r_sanity_check(emit_elem.has());
+
+        for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
+            datum_t emit_item = emit_elem.get(i);
+            batcher.note_el(emit_item);
+            batch.push_back(std::move(emit_item));
+        }
+
+        acc = std::move(new_acc);
+    }
+
+    if (is_exhausted() && do_final_emit) {
+        std::vector<datum_t> final_emit_args;
+        final_emit_args.push_back(acc);
+        datum_t final_emit_elem = final_emit_func->call(
+            env,
+            final_emit_args)->as_datum();
+
+        for (size_t i = 0; i< final_emit_elem.arr_size(); ++i) {
+            datum_t final_emit_item = final_emit_elem.get(i);
+            batcher.note_el(final_emit_item);
+            batch.push_back(std::move(final_emit_item));
+        }
+
+        // So that calling `next_batch` on an exhausted stream returns nothing,
+        // as expected.
+        do_final_emit = false;
+    }
+
+    return batch;
+}
+
+bool fold_datum_stream_t::is_exhausted() const {
+    if (stream->is_exhausted()) {
+        return batch_cache_exhausted();
     }
     return false;
 }

@@ -12,7 +12,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "rapidjson/rapidjson.h"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -73,7 +73,7 @@ public:
 
     // This parses the datum each time it is called - keep calls to a minimum
     datum_t datum(const configured_limits_t &limits, reql_version_t version) const;
-    
+
     // Parses the datum using the latest version and with no limits, this should
     // generally only be used during or before term compilation.
     datum_t datum() const;

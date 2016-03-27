@@ -729,21 +729,21 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
 
 void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
                     changefeed_stamp_response_t *out) {
-    out->stamps = std::map<uuid_u, uint64_t>();
+    out->stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
     for (auto &&resp : resps) {
         // In the error case abort early.
-        if (!resp->stamps) {
-            out->stamps = boost::none;
+        if (!resp->stamp_infos) {
+            out->stamp_infos = boost::none;
             return;
         }
-        for (auto &&stamp : *resp->stamps) {
+        for (auto &&info_pair : *resp->stamp_infos) {
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
             // `include_initial` changefeeds.
-            auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
-            if (!pair.second) {
-                out->stamps = boost::none;
+            bool inserted = out->stamp_infos->insert(info_pair).second;
+            if (!inserted) {
+                out->stamp_infos = boost::none;
                 return;
             }
         }
@@ -912,7 +912,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             : ql::make_unsharding_append());
         acc->unshard(&env, results);
         // The semantics here are that we aborted before ever iterating since no
-        // iteration occured (since we don't actually have a btree here).
+        // iteration occurred (since we don't actually have a btree here).
         acc->finish(continue_bool_t::ABORT, &out->result);
     } catch (const ql::exc_t &ex) {
         *out = query_response_t(ex);
@@ -1021,7 +1021,13 @@ void read_t::unshard(read_response_t *responses, size_t count,
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
-    bool operator()(const rget_read_t &) const {                  return true;  }
+    bool operator()(const rget_read_t &rget) const {
+        // If the `rget_read_t` is part of an `include_initial` changefeed, we can't
+        // snapshot yet, since we first need to get the timestamps in an atomic fashion
+        // (i.e. without any writes happening before we get there).
+        // We'll instead create a snapshot later inside the `rdb_read_visitor_t`.
+        return !static_cast<bool>(rget.stamp);
+    }
     bool operator()(const intersecting_geo_read_t &) const {      return true;  }
     bool operator()(const nearest_geo_read_t &) const {           return true;  }
     bool operator()(const changefeed_subscribe_t &) const {       return false; }
@@ -1038,6 +1044,8 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const rget_read_t &rget) const {
+        // `include_initial` changefeed reads must be routed to the primary, since
+        // that's where changefeeds are managed.
         return static_cast<bool>(rget.stamp);
     }
     bool operator()(const point_read_t &) const {                 return false; }
@@ -1186,9 +1194,18 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 shard_inserts.push_back(*it);
             }
         }
+
         if (!shard_inserts.empty()) {
-            *payload_out = batched_insert_t(std::move(shard_inserts), bi.pkey,
-                                            bi.conflict_behavior, bi.limits,
+            boost::optional<counted_t<const ql::func_t> > temp_conflict_func;
+            if (bi.conflict_func) {
+                temp_conflict_func = bi.conflict_func->compile_wire_func();
+            }
+
+            *payload_out = batched_insert_t(std::move(shard_inserts),
+                                            bi.pkey,
+                                            bi.conflict_behavior,
+                                            temp_conflict_func,
+                                            bi.limits,
                                             bi.return_changes);
             return true;
         } else {
@@ -1237,6 +1254,41 @@ bool write_t::shard(const region_t &region,
     bool result = boost::apply_visitor(v, write);
     *write_out = write_t(payload, durability_requirement, profile, limits);
     return result;
+}
+
+batched_insert_t::batched_insert_t(
+        std::vector<ql::datum_t> &&_inserts,
+        const std::string &_pkey,
+        conflict_behavior_t _conflict_behavior,
+        boost::optional<counted_t<const ql::func_t> > _conflict_func,
+        const ql::configured_limits_t &_limits,
+        return_changes_t _return_changes)
+        : inserts(std::move(_inserts)), pkey(_pkey),
+          conflict_behavior(_conflict_behavior),
+          limits(_limits),
+          return_changes(_return_changes) {
+    r_sanity_check(inserts.size() != 0);
+
+    if (_conflict_func) {
+        conflict_func = ql::wire_func_t(*_conflict_func);
+    }
+#ifndef NDEBUG
+    // These checks are done above us, but in debug mode we do them
+    // again.  (They're slow.)  We do them above us because the code in
+    // val.cc knows enough to report the write errors correctly while
+    // still doing the other writes.
+    for (auto it = inserts.begin(); it != inserts.end(); ++it) {
+        ql::datum_t keyval =
+            it->get_field(datum_string_t(pkey), ql::NOTHROW);
+        r_sanity_check(keyval.has());
+        try {
+            keyval.print_primary(); // ERROR CHECKING
+            continue;
+        } catch (const ql::base_exc_t &e) {
+        }
+        r_sanity_check(false); // throws, so can't do this in exception handler
+    }
+#endif // NDEBUG
 }
 
 template <class T>
@@ -1358,7 +1410,9 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_subscribe_response_t, server_uuids, addrs);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_limit_subscribe_response_t, shards, limit_addrs);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    shard_stamp_info_t, stamp, shard_region, last_read_start);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamp_infos);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_point_stamp_response_t::valid_response_t, stamp, initial_val);
@@ -1370,7 +1424,11 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
+RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
+                                    id,
+                                    region,
+                                    datumspec,
+                                    require_sindex_val);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
@@ -1416,8 +1474,8 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-        batched_insert_t, inserts, pkey, conflict_behavior, limits, return_changes);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+        batched_insert_t, inserts, pkey, conflict_behavior, conflict_func, limits, return_changes);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);

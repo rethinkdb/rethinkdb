@@ -12,7 +12,7 @@
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/scoped.hpp"
 
-#ifdef __MACH__
+#ifndef __linux__
 #define USE_WRITEV 0
 #else
 #define USE_WRITEV 1
@@ -44,7 +44,7 @@ struct pool_diskmgr_action_t
         type = ACTION_RESIZE;
         wrap_in_datasyncs = _wrap_in_datasyncs;
         fd = _fd;
-        buf_and_count.iov_base = NULL;
+        buf_and_count.iov_base = nullptr;
         buf_and_count.iov_len = 0;
         offset = _new_size;
     }
@@ -57,7 +57,7 @@ struct pool_diskmgr_action_t
         wrap_in_datasyncs = false;
         fd = _fd;
         iovecs = std::move(_bufs);
-        buf_and_count.iov_base = NULL;
+        buf_and_count.iov_base = nullptr;
         buf_and_count.iov_len = _count;
         offset = _offset;
     }
@@ -77,7 +77,7 @@ struct pool_diskmgr_action_t
     bool get_is_read() const { return type == ACTION_READ; }
     fd_t get_fd() const { return fd; }
     void get_bufs(iovec **iovecs_out, size_t *iovecs_len_out) {
-        if (buf_and_count.iov_base != NULL) {
+        if (buf_and_count.iov_base != nullptr) {
             *iovecs_out = &buf_and_count;
             *iovecs_len_out = 1;
         } else {

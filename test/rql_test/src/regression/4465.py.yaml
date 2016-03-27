@@ -1,0 +1,8 @@
+desc: 4465 (Delete tables from table_config)
+table_variable_name: blah
+tests:
+  - py: r.db("rethinkdb").table("db_config").delete()
+    ot: {"deleted":1,"errors":0,"inserted":0,"replaced":0,"skipped":0,"unchanged":0}
+
+  - py: r.db("rethinkdb").table("table_status")
+    ot: []

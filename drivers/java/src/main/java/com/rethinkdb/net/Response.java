@@ -1,14 +1,16 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.*;
+import com.rethinkdb.ast.*;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.proto.ErrorType;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.proto.ResponseNote;
-import com.rethinkdb.ast.Query;
 import com.rethinkdb.model.Backtrace;
 import com.rethinkdb.model.Profile;
 import org.json.simple.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
@@ -27,8 +29,10 @@ class Response {
     public final Optional<Backtrace> backtrace;
     public final Optional<ErrorType> errorType;
 
+    static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public static Response parseFrom(long token, ByteBuffer buf) {
+        Response.logger.debug("JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
         InputStreamReader codepointReader =
             new InputStreamReader(new ByteArrayInputStream(buf.array()));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
@@ -48,7 +52,8 @@ class Response {
         if(jsonResp.containsKey("e")){
             res.setErrorType(((Long)jsonResp.get("e")).intValue());
         }
-        return res.setProfile((JSONArray) jsonResp.getOrDefault("p", null))
+        return res.setNotes(responseNotes)
+                .setProfile((JSONArray) jsonResp.getOrDefault("p", null))
                 .setBacktrace((JSONArray) jsonResp.getOrDefault("b", null))
                 .setData((JSONArray) jsonResp.getOrDefault("r", new JSONArray()))
                 .build();
@@ -135,7 +140,7 @@ class Response {
 
     /* Whether the response is any kind of feed */
     boolean isFeed() {
-        return notes.stream().allMatch(ResponseNote::isFeed);
+        return notes.stream().anyMatch(ResponseNote::isFeed);
     }
 
     /* Whether the response is any kind of error */

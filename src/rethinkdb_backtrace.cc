@@ -1,9 +1,15 @@
 #include "rethinkdb_backtrace.hpp"
 
+#ifdef _WIN32
+
+int rethinkdb_backtrace(void **buffer, int size) {
+    // TODO WINDOWS
+    return 0;
+}
+
+#elif defined(__MACH__)
+
 #include <execinfo.h>
-
-#ifdef __MACH__
-
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -69,7 +75,7 @@ void substitute_pthread_t_stack_fields(pthread_t th, pthread_t_field_locations_t
 
 int rethinkdb_backtrace(void **buffer, int size) {
     coro_t *const coro = coro_t::self();
-    if (coro == NULL) {
+    if (coro == nullptr) {
         return backtrace(buffer, size);
     } else {
         pthread_t_field_locations_t field_locations;
@@ -95,6 +101,8 @@ int rethinkdb_backtrace(void **buffer, int size) {
 }
 
 #else
+
+#include <execinfo.h>
 
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);

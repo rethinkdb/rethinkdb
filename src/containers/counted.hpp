@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <atomic>
 #include <utility>
 
 #include "containers/scoped.hpp"
@@ -23,7 +24,7 @@ public:
     template <class U>
     friend class counted_t;
 
-    counted_t() : p_(NULL) { }
+    counted_t() : p_(nullptr) { }
     explicit counted_t(T *p) : p_(p) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
@@ -42,12 +43,12 @@ public:
     }
 
     counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
-        movee.p_ = NULL;
+        movee.p_ = nullptr;
     }
 
     template <class U>
     counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
-        movee.p_ = NULL;
+        movee.p_ = nullptr;
     }
 
 // Avoid a spurious warning when building on Saucy. See issue #1674
@@ -112,7 +113,7 @@ public:
     }
 
     bool has() const {
-        return p_ != NULL;
+        return p_ != nullptr;
     }
 
     bool unique() const {
@@ -120,7 +121,7 @@ public:
     }
 
     explicit operator bool() const {
-        return p_ != NULL;
+        return p_ != nullptr;
     }
 
 private:
@@ -230,19 +231,19 @@ private:
     friend void counted_release<T>(const slow_atomic_countable_t<T> *p);
     friend intptr_t counted_use_count<T>(const slow_atomic_countable_t<T> *p);
 
-    mutable intptr_t refcount_;
+    mutable std::atomic<intptr_t> refcount_;
     DISABLE_COPYING(slow_atomic_countable_t);
 };
 
 template <class T>
 inline void counted_add_ref(const slow_atomic_countable_t<T> *p) {
-    DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
+    DEBUG_VAR intptr_t res = ++(p->refcount_);
     rassert(res > 0);
 }
 
 template <class T>
 inline void counted_release(const slow_atomic_countable_t<T> *p) {
-    intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
+    intptr_t res = --(p->refcount_);
     rassert(res >= 0);
     if (res == 0) {
         delete static_cast<T *>(const_cast<slow_atomic_countable_t<T> *>(p));

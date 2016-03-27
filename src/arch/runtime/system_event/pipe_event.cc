@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/runtime/system_event/pipe_event.hpp"
 
+#ifndef _WIN32
+
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -61,3 +63,5 @@ void pipe_event_t::wakey_wakey() {
         guarantee_err(get_errno() == EAGAIN || get_errno() == EWOULDBLOCK, "Could not write to notification pipe");
     }
 }
+
+#endif

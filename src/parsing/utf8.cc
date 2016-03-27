@@ -68,6 +68,41 @@ inline bool is_valid_internal(Iterator begin, Iterator end, reason_t *reason) {
     return true;
 }
 
+size_t count_codepoints(const char *start, const char *end) {
+    rassert(start <= end);
+    size_t ret = 0;
+    for (; start < end; start++) {
+        if ( !is_continuation(*start) ) {
+            ret++;
+        }
+    }
+    return ret;
+}
+
+size_t count_codepoints(const datum_string_t &str) {
+    return count_codepoints(str.data(), str.data() + str.size());
+}
+
+size_t index_codepoints(const char *start, const char *end, size_t n) {
+    // first, skip to the byte after the codepoint before the target character
+    const char *at;
+    for (at = start; at < end && n > 0; at++) {
+        if ( !is_continuation(*at) ) {
+            n--;
+        }
+    }
+
+    // if the codepoint before the target character is multibyte,
+    // skip past the end of it
+    for (; at < end && is_continuation(*at); at++) { }
+
+    return at-start;
+}
+
+size_t index_codepoints(const datum_string_t &str, size_t n) {
+    return index_codepoints(str.data(), str.data() + str.size(), n);
+}
+
 bool is_valid(const datum_string_t &str) {
     reason_t reason;
     return is_valid_internal(str.data(), str.data() + str.size(), &reason);
@@ -139,7 +174,7 @@ const char *is_valid_continuation_byte(Iterator position, Iterator end) {
     } else if (!is_continuation(*position)) {
         return "Expected continuation byte, saw something else";
     } else {
-        return 0;
+        return nullptr;
     }
 }
 
@@ -165,7 +200,7 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 110xxxxx - two character multibyte
         *codepoint = extract_and_shift(current, HIGH_THREE_BITS, 6);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
@@ -180,12 +215,12 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 1110xxxx - three character multibyte
         *codepoint = extract_and_shift(current, HIGH_FOUR_BITS, 12);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
@@ -200,17 +235,17 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 11110xxx - four character multibyte
         *codepoint = extract_and_shift(current, HIGH_FIVE_BITS, 18);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 12;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);

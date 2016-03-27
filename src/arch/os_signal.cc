@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32
+
 #include "arch/os_signal.hpp"
 
 #include "arch/runtime/thread_pool.hpp"
@@ -11,12 +13,12 @@ os_signal_cond_t::os_signal_cond_t() :
     source_signo(0)
 {
     DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(this);
-    rassert(old == NULL);
+    rassert(old == nullptr);
 }
 
 os_signal_cond_t::~os_signal_cond_t() {
     if (!is_pulsed()) {
-        DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(NULL);
+        DEBUG_VAR thread_message_t *old = thread_pool_t::set_interrupt_message(nullptr);
         rassert(old == this);
     }
 }
@@ -37,3 +39,5 @@ void os_signal_cond_t::on_thread_switch() {
     // TODO: There's probably an outside chance of a use-after-free bug here.
     do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
 }
+
+#endif // !defined(_WIN32)

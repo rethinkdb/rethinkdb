@@ -2,6 +2,8 @@
 #ifndef ARCH_FD_SEND_RECV_HPP_
 #define ARCH_FD_SEND_RECV_HPP_
 
+#ifndef _WIN32
+
 #include "errors.hpp"
 #include "arch/runtime/runtime_utils.hpp" // fd_t
 
@@ -24,5 +26,7 @@ enum fd_recv_result_t {
 //
 // Sets errno if it returns FD_RECV_ERROR.
 MUST_USE fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, fd_t *fds);
+
+#endif
 
 #endif // ARCH_FD_SEND_RECV_HPP_

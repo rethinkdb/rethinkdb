@@ -49,7 +49,7 @@ class cache_conn_t {
 public:
     explicit cache_conn_t(cache_t *cache)
         : cache_(cache),
-          newest_txn_(NULL) { }
+          newest_txn_(nullptr) { }
     ~cache_conn_t();
 
     cache_t *cache() const { return cache_; }
@@ -315,8 +315,8 @@ private:
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
     // value of *_changes_semaphore_acq_.count(), we use
     // *_changes_semaphore_acq_.change_count() to keep the numbers equal.
-    new_semaphore_acq_t block_changes_semaphore_acq_;
-    new_semaphore_acq_t index_changes_semaphore_acq_;
+    new_semaphore_in_line_t block_changes_semaphore_acq_;
+    new_semaphore_in_line_t index_changes_semaphore_acq_;
 
     DISABLE_COPYING(throttler_acq_t);
 };
@@ -373,7 +373,7 @@ public:
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
-                            ser_buffer_t *buf,
+                            scoped_device_block_aligned_ptr_t<ser_buffer_t> ptr,
                             const counted_t<standard_block_token_t> &token);
 
     void read_ahead_cb_is_destroyed();

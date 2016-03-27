@@ -5,12 +5,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <array>
 #include <functional>
 #include <string>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
 #include "debug.hpp"
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+#include <random>
+typedef SSIZE_T ssize_t;
+#endif
+
+#ifdef _WIN32
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
 
 class printf_buffer_t;
 
@@ -25,10 +41,15 @@ public:
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
-    const_charslice() : beg(NULL), end(NULL) { }
+    const_charslice() : beg(nullptr), end(nullptr) { }
 };
 
-void *malloc_aligned(size_t size, size_t alignment);
+void *raw_malloc_aligned(size_t size, size_t alignment);
+void raw_free_aligned(void *ptr);
+
+#ifndef _WIN32
+void *raw_malloc_page_aligned(size_t size);
+#endif
 
 /* Calls `malloc()` and checks its return value to crash if the allocation fails. */
 void *rmalloc(size_t size);
@@ -47,14 +68,23 @@ public:
     int randint(int n);
     uint64_t randuint64(uint64_t n);
     double randdouble();
+
+#ifdef _WIN32
+    typedef std::ranlux48 state_t;
+#else
+    typedef std::array<uint16_t, 3> state_t;
+#endif
+
     explicit rng_t(int seed = -1);
+    rng_t(rng_t&&) = default;
+    explicit rng_t(const state_t& s) : state(s) { }
 private:
-    unsigned short xsubi[3];  // NOLINT(runtime/int)
+    state_t state;
     DISABLE_COPYING(rng_t);
 };
 
 // Reads from /dev/urandom.  Use this sparingly, please.
-void get_dev_urandom(void *out, int64_t nbytes);
+void system_random_bytes(void *out, int64_t nbytes);
 
 int randint(int n); // In range [0, n)
 uint64_t randuint64(uint64_t n);
@@ -158,14 +188,20 @@ private:
     T old_value;
 };
 
+std::string errno_string(int errsv);
+
 std::string sanitize_for_logger(const std::string &s);
 static inline std::string time2str(const time_t &t) {
-    char timebuf[26]; // I apologize for the magic constant.
-    //           ^^ See man 3 ctime_r
+    const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN
+    char timebuf[TIMEBUF_SIZE];
+#ifdef _WIN32
+    errno_t ret = ctime_s(timebuf, sizeof(timebuf), &t);
+    guarantee_err(ret == 0, "time2str: invalid time");
+    return timebuf;
+#else
     return ctime_r(&t, timebuf);
+#endif
 }
-
-std::string errno_string(int errsv);
 
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
@@ -195,8 +231,8 @@ serializer_filepath_t manual_serializer_filepath(const std::string& permanent_pa
 class serializer_filepath_t {
 public:
     serializer_filepath_t(const base_path_t& directory, const std::string& relative_path)
-        : permanent_path_(directory.path() + "/" + relative_path),
-          temporary_path_(directory.path() + "/" + TEMPORARY_DIRECTORY_NAME + "/" + relative_path + ".create") {
+        : permanent_path_(directory.path() + PATH_SEPARATOR + relative_path),
+          temporary_path_(directory.path() + PATH_SEPARATOR + TEMPORARY_DIRECTORY_NAME + PATH_SEPARATOR + relative_path + ".create") {
         guarantee(!relative_path.empty());
     }
 
@@ -225,6 +261,8 @@ void remove_directory_recursive(const char *path);
 #define COMPILER_STR "CLANG " __clang_version__
 #elif defined __GNUC__
 #define COMPILER_STR "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
+#elif defined _MSC_VER
+#define COMPILER_STR "MSC " MSTR(_MSC_FULL_VER)
 #else
 #define COMPILER_STR "UNKNOWN COMPILER"
 #endif
@@ -236,5 +274,10 @@ void remove_directory_recursive(const char *path);
 #endif
 
 #define ANY_PORT 0
+
+template <class T>
+T clone(const T& x) {
+    return x;
+}
 
 #endif // UTILS_HPP_

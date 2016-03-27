@@ -107,7 +107,6 @@
 
 namespace geo {
 
-
 class ExactFloat {
  public:
   // The following limits are imposed by OpenSSL.

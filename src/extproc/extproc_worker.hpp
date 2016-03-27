@@ -3,6 +3,7 @@
 #define EXTPROC_EXTPROC_WORKER_HPP_
 
 #include <sys/types.h>
+#include "arch/process.hpp"
 #include "arch/io/io_utils.hpp"
 #include "concurrency/wait_any.hpp"
 #include "concurrency/cross_thread_signal.hpp"

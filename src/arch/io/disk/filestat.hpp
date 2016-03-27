@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
-int64_t get_file_size(int fd);
+#include "arch/runtime/runtime_utils.hpp"
+
+int64_t get_file_size(fd_t fd);
 
 #endif  // ARCH_IO_DISK_FILESTAT_HPP_

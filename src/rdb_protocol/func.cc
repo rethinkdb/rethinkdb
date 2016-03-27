@@ -95,6 +95,10 @@ deterministic_t reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
+bool reql_func_t::is_simple_selector() const {
+    return body->is_simple_selector();
+}
+
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
                      backtrace_id_t backtrace)
@@ -427,7 +431,7 @@ val_t *js_result_visitor_t::operator()(
     return new val_t(datum, parent->backtrace());
 }
 // This JS evaluation resulted in an id for a js function
-val_t *js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
+val_t *js_result_visitor_t::operator()(UNUSED const js_id_t id_val) const {
     counted_t<const func_t> func = make_counted<js_func_t>(code,
                                                            timeout_ms,
                                                            parent->backtrace());

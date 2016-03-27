@@ -84,7 +84,7 @@ def main():
         JavaRenderer(
             global_info=args.global_info,
             proto=args.proto_json.json,
-            java_term_info=args.java_term_info.json,
+            java_term_info=args.java_term_info,
             template_dir=args.template_dir,
             package_dir=args.package_dir,
         ).render_all()
@@ -508,11 +508,15 @@ class JavaRenderer(object):
                  package_dir):
         self.global_info = global_info
         self.proto = proto
-        self.term_info = java_term_info
+        self.term_info = java_term_info.json
         self.template_dir = template_dir
         self.gen_dir = package_dir+'/gen'
         self.max_arity = self.get_max_arity()
-        self.renderer = Renderer(template_dir, invoking_filenames=[__file__])
+        self.renderer = Renderer(
+            template_dir,
+            invoking_filenames=[__file__],
+            source_files=[java_term_info.filename],
+        )
         # Facade methods
         self.get_template_name = self.renderer.get_template_name
         self.render = self.renderer.render
@@ -645,9 +649,10 @@ class EmptyTemplate(Exception):
 class Renderer(object):
     '''Manages rendering templates'''
 
-    def __init__(self, template_dir, invoking_filenames):
+    def __init__(self, template_dir, invoking_filenames, source_files=None):
         self.template_dir = template_dir
         self.invoking_filenames = invoking_filenames
+        self.source_files = source_files or []
         self.tl = TemplateLookup(directories=[template_dir])
         self.template_context = {
             'camel': camel,  # CamelCase function
@@ -736,7 +741,7 @@ class Renderer(object):
         output_mtime = self.mtime(output_path)
 
         # Check if this file or the invoking file have changed
-        for filename in self.invoking_filenames:
+        for filename in self.invoking_filenames + self.source_files:
             if self.mtime(filename) > output_mtime:
                 logger.debug(
                     " Rendering since %s has changed", filename)

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "clustering/administration/issues/log_write.hpp"
+#include "clustering/administration/issues/memory.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -19,6 +20,7 @@ retrieve their local issues. */
 class local_issues_t {
 public:
     std::vector<log_write_issue_t> log_write_issues;
+    std::vector<memory_issue_t> memory_issues;
 };
 
 RDB_DECLARE_SERIALIZABLE(local_issues_t);
@@ -35,7 +37,8 @@ class local_issue_server_t : public home_thread_mixin_t {
 public:
     local_issue_server_t(
         mailbox_manager_t *mm,
-        log_write_issue_tracker_t *log_write_issue_tracker);
+        log_write_issue_tracker_t *log_write_issue_tracker,
+        memory_issue_tracker_t *memory_issue_tracker);
 
     local_issue_bcard_t get_bcard() {
         return local_issue_bcard_t { get_mailbox.get_address() };
@@ -46,6 +49,7 @@ private:
 
     mailbox_manager_t *const mailbox_manager;
     log_write_issue_tracker_t *const log_write_issue_tracker;
+    memory_issue_tracker_t *const memory_issue_tracker;
     local_issue_bcard_t::get_mailbox_t get_mailbox;
     DISABLE_COPYING(local_issue_server_t);
 };

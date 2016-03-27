@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 import os, sys, time
 
@@ -21,7 +21,8 @@ with driver.Cluster(initial_servers=["a", "b"], output_folder='.', command_prefi
     r.db_create("test").run(conn)
     res = r.table_create("test", replicas=2).run(conn)
     table_uuid = res["config_changes"][0]["new_val"]["id"]
-
+    
+    r.table("test").wait().run(conn)
     r.table("test").insert(r.range(1000).map({"value": r.row})).run(conn)
     
     assert os.path.exists(os.path.join(cluster[0].data_path, table_uuid))

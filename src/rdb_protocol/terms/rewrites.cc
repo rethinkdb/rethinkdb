@@ -118,39 +118,6 @@ public:
     virtual const char *name() const { return "outer_join"; }
 };
 
-class eq_join_term_t : public rewrite_term_t {
-public:
-    eq_join_term_t(compile_env_t *env, const raw_term_t &term)
-        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-private:
-
-    static minidriver_t::reql_t rewrite(const raw_term_t &in) {
-        minidriver_t r(in.bt());
-
-        raw_term_t left = in.arg(0);
-        raw_term_t left_attr = in.arg(1);
-        raw_term_t right = in.arg(2);
-        auto row = minidriver_t::dummy_var_t::EQJOIN_ROW;
-        auto v = minidriver_t::dummy_var_t::EQJOIN_V;
-
-        minidriver_t::reql_t get_all =
-            r.expr(right).get_all(
-                r.expr(left_attr)(r.var(row),
-                                  r.optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)));
-        get_all.copy_optargs_from_term(in);
-        return r.expr(left).concat_map(
-            r.fun(row,
-                  r.branch(
-                       r.null() == r.var(row),
-                       r.array(),
-                       get_all.default_(r.array()).map(
-                           r.fun(v, r.object(r.optarg("left", row),
-                                             r.optarg("right", v)))))));
-
-    }
-    virtual const char *name() const { return "eq_join"; }
-};
-
 class delete_term_t : public rewrite_term_t {
 public:
     delete_term_t(compile_env_t *env, const raw_term_t &term)
@@ -164,6 +131,7 @@ private:
         auto x = minidriver_t::dummy_var_t::IGNORED;
 
         minidriver_t::reql_t term = r.expr(val).replace(r.fun(x, r.null()));
+
         term.copy_optargs_from_term(in);
         return term;
      }
@@ -240,7 +208,7 @@ private:
         return term;
     }
 
-     virtual const char *name() const { return "difference"; }
+    virtual const char *name() const { return "difference"; }
 };
 
 class with_fields_term_t : public rewrite_term_t {
@@ -259,7 +227,7 @@ private:
         pluck.copy_args_from_term(in, 1);
         return pluck;
     }
-     virtual const char *name() const { return "with_fields"; }
+    virtual const char *name() const { return "with_fields"; }
 };
 
 counted_t<term_t> make_skip_term(
@@ -273,10 +241,6 @@ counted_t<term_t> make_inner_join_term(
 counted_t<term_t> make_outer_join_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<outer_join_term_t>(env, term);
-}
-counted_t<term_t> make_eq_join_term(
-        compile_env_t *env, const raw_term_t &term) {
-    return make_counted<eq_join_term_t>(env, term);
 }
 counted_t<term_t> make_update_term(
         compile_env_t *env, const raw_term_t &term) {

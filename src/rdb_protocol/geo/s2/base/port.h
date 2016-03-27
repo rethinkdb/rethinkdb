@@ -99,9 +99,7 @@ typedef uint16_t u_int16_t;
 
 #endif
 
-// The following guarenty declaration of the byte swap functions, and
-// define __BYTE_ORDER for MSVC
-#ifdef COMPILER_MSVC
+#ifdef _WIN32
 #include <stdlib.h>
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #define bswap_16(x) _byteswap_ushort(x)
@@ -164,6 +162,8 @@ const char PATH_SEPARATOR = '/';
 
 // va_copy portability definitions
 #ifdef COMPILER_MSVC
+
+#if _MSC_VER < 1400
 // MSVC doesn't have va_copy yet.
 // This is believed to work for 32-bit msvc.  This may not work at all for
 // other platforms.
@@ -174,6 +174,7 @@ const char PATH_SEPARATOR = '/';
 inline void va_copy(va_list& a, va_list& b) {
   a = b;
 }
+#endif
 
 // Nor does it have uid_t
 typedef int uid_t;
@@ -475,11 +476,11 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define FSEEKO fseeko
 
 inline void *aligned_malloc(size_t size, int minimum_alignment) {
-  return malloc_aligned(size, static_cast<size_t>(minimum_alignment));
+  return raw_malloc_aligned(size, static_cast<size_t>(minimum_alignment));
 }
 
 inline void aligned_free(void *aligned_memory) {
-  free(aligned_memory);
+  raw_free_aligned(aligned_memory);
 }
 
 #else   // not GCC

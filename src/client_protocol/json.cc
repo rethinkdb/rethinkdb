@@ -2,13 +2,14 @@
 #include "client_protocol/json.hpp"
 
 #include "arch/io/network.hpp"
+#include "arch/timing.hpp"
 #include "client_protocol/protocols.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_params.hpp"
 #include "rdb_protocol/response.hpp"
@@ -50,8 +51,8 @@ scoped_ptr_t<ql::query_params_t> json_protocol_t::parse_query(
         ql::query_cache_t *query_cache) {
     int64_t token;
     uint32_t size;
-    conn->read(&token, sizeof(token), interruptor);
-    conn->read(&size, sizeof(size), interruptor);
+    conn->read_buffered(&token, sizeof(token), interruptor);
+    conn->read_buffered(&size, sizeof(size), interruptor);
     ql::response_t error;
 
     if (size >= wire_protocol_t::TOO_LARGE_QUERY_SIZE) {
@@ -59,11 +60,25 @@ scoped_ptr_t<ql::query_params_t> json_protocol_t::parse_query(
                          Response::RESOURCE_LIMIT,
                          wire_protocol_t::too_large_query_message(size),
                          ql::backtrace_registry_t::EMPTY_BACKTRACE);
+
+        if (size < wire_protocol_t::HARD_LIMIT_TOO_LARGE_QUERY_SIZE) {
+            // Ignore all the extra data that the client is trying to send.
+            // within reason. This is so it doesn't look like a broken pipe error.
+
+            signal_timer_t read_timeout_interruptor{wire_protocol_t::TOO_LONG_QUERY_TIME};
+            wait_any_t pop_interruptor(interruptor, &read_timeout_interruptor);
+            conn->pop(size, &pop_interruptor);
+        }
+
         send_response(&error, token, conn, interruptor);
         throw tcp_conn_read_closed_exc_t();
     }
 
     scoped_array_t<char> data(size + 1);
+    // It's *usually* more efficient to do an un-buffered read here. The client is
+    // usually not going to group multiple queries into the same network package
+    // (especially not with tcp_nodelay set), and using the non-buffered `read` can
+    // avoid an extra copy.
     conn->read(data.data(), size, interruptor);
     data[size] = 0; // Null terminate the string, which the json parser requires
 
@@ -114,9 +129,15 @@ void write_response_internal(ql::response_t *response,
                     size_t offset = per_thread * m;
                     size_t end = (m == num_threads - 1) ?
                         response->data().size() : (per_thread * (m + 1));
+
                     for (size_t i = offset; i < end; ++i) {
+                        const size_t YIELD_INTERVAL = 2000;
+                        if ((i + 1) % YIELD_INTERVAL == 0) {
+                            coro_t::yield();
+                        }
                         response->data()[i].write_json(&thread_writer);
                     }
+
                     thread_writer.EndArray();
                 });
 

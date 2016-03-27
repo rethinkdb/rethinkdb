@@ -71,7 +71,7 @@ bool operator<(const uuid_u& x, const uuid_u& y) {
 
 TLS_with_init(bool, next_uuid_initialized, false);
 typedef std::array<uint8_t, uuid_u::kStaticSize> next_uuid_t;
-TLS(next_uuid_t, next_uuid);
+TLS_with_init(next_uuid_t, next_uuid, next_uuid_t{{0}});
 
 uuid_u get_and_increment_uuid() {
     uuid_u result;
@@ -110,7 +110,7 @@ void hash_uuid(uuid_u *uuid) {
 
 void initialize_dev_random_uuid() {
     next_uuid_t next_uuid;
-    get_dev_urandom(next_uuid.data(), uuid_u::static_size());
+    system_random_bytes(next_uuid.data(), uuid_u::static_size());
     TLS_set_next_uuid(next_uuid);
 }
 

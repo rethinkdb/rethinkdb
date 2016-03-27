@@ -593,8 +593,6 @@ class TestSuccessAtomFeed(TestWithConnection):
     def runTest(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
 
-        from rethinkdb import ql2_pb2 as p
-
         if 'success_atom_feed' in r.db('test').table_list().run(c):
             r.db('test').table_drop('success_atom_feed').run(c)
         r.db('test').table_create('success_atom_feed').run(c)

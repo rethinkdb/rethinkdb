@@ -12,7 +12,7 @@ namespace unittest {
 
 mock_file_t::mock_file_t(mode_t mode, std::vector<char> *data) : mode_(mode), data_(data) {
     guarantee(mode != 0);
-    guarantee(data_ != NULL);
+    guarantee(data_ != nullptr);
 }
 mock_file_t::~mock_file_t() { }
 
@@ -63,7 +63,7 @@ void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
 
 void mock_file_t::writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                                file_account_t *account, linux_iocallback_t *cb) {
-    scoped_malloc_t<char> buf(malloc_aligned(length, DEVICE_BLOCK_SIZE));
+    scoped_device_block_aligned_ptr_t<char> buf(length);
 
     iovec bufvec[1] = { { buf.get(), length } };
     fill_bufs_from_source(bufvec, 1, bufs.data(), bufs.size(), 0);

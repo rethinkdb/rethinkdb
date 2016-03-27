@@ -2,6 +2,7 @@
 #include "rdb_protocol/terms/arr.hpp"
 
 #include "math.hpp"
+#include "parsing/utf8.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -66,7 +67,7 @@ private:
 
 // This gets the literal index of a (possibly negative) index relative to a
 // fixed size.
-uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
+static uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
     CT_ASSERT(sizeof(size_t) <= sizeof(uint64_t));
     if (index >= 0) return index;
     if (uint64_t(index * -1) > size) {
@@ -200,14 +201,13 @@ public:
         : bounded_op_term_t(env, term, argspec_t(2, 3)) { }
 private:
 
-    bool canon_helper(size_t size, bool index_open, int64_t fake_index,
+    void canon_helper(size_t size, bool index_open, int64_t fake_index,
                       bool is_left, uint64_t *real_index_out) const {
         bool index_oob = false;
         *real_index_out = canonicalize(this, fake_index, size, &index_oob);
-        if (index_open == is_left) {
+        if (index_open == is_left && !index_oob) {
             *real_index_out += 1; // This is safe because it was an int64_t before.
         }
-        return index_oob;
     }
 
     scoped_ptr_t<val_t> slice_array(datum_t arr,
@@ -215,12 +215,8 @@ private:
                                     bool left_open, int64_t fake_l,
                                     bool right_open, int64_t fake_r) const {
         uint64_t real_l, real_r;
-        if (canon_helper(arr.arr_size(), left_open, fake_l, true, &real_l)) {
-            real_l = 0;
-        }
-        if (canon_helper(arr.arr_size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::empty_array());
-        }
+        canon_helper(arr.arr_size(), left_open, fake_l, true, &real_l);
+        canon_helper(arr.arr_size(), right_open, fake_r, false, &real_r);
 
         datum_array_builder_t out(limits);
         for (uint64_t i = real_l; i < real_r; ++i) {
@@ -237,12 +233,8 @@ private:
                                      bool right_open, int64_t fake_r) const {
         const datum_string_t &data = binary.as_binary();
         uint64_t real_l, real_r;
-        if (canon_helper(data.size(), left_open, fake_l, true, &real_l)) {
-            real_l = 0;
-        }
-        if (canon_helper(data.size(), right_open, fake_r, false, &real_r)) {
-            return new_val(datum_t::binary(datum_string_t()));
-        }
+        canon_helper(data.size(), left_open, fake_l, true, &real_l);
+        canon_helper(data.size(), right_open, fake_r, false, &real_r);
 
         real_r = clamp<uint64_t>(real_r, 0, data.size());
 
@@ -254,6 +246,29 @@ private:
         }
 
         return new_val(datum_t::binary(std::move(subdata)));
+    }
+
+    scoped_ptr_t<val_t> slice_string(datum_t str,
+                                     bool left_open, int64_t fake_l,
+                                     bool right_open, int64_t fake_r) const {
+        const datum_string_t &data = str.as_str();
+        size_t size = utf8::count_codepoints(data);
+        uint64_t real_l, real_r;
+        canon_helper(size, left_open, fake_l, true, &real_l);
+        canon_helper(size, right_open, fake_r, false, &real_r);
+
+        real_r = clamp<uint64_t>(real_r, 0, size);
+
+        datum_string_t subdata;
+        if (real_l <= real_r) {
+            size_t from = utf8::index_codepoints(data, real_l);
+            size_t to = utf8::index_codepoints(data, real_r);
+            subdata = datum_string_t(to - from, &data.data()[from]);
+        } else {
+            subdata = datum_string_t();
+        }
+
+        return new_val(datum_t(std::move(subdata)));
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -270,9 +285,11 @@ private:
                                    right_open, fake_r);
             } else if (d.get_type() == datum_t::R_BINARY) {
                 return slice_binary(d, left_open, fake_l, right_open, fake_r);
+            } else if (d.get_type() == datum_t::R_STR) {
+                return slice_string(d, left_open, fake_l, right_open, fake_r);
             } else {
                 rfail_target(v, base_exc_t::LOGIC,
-                             "Expected ARRAY or BINARY, but found %s.",
+                             "Expected ARRAY, BINARY, or STRING, but found %s.",
                              d.get_type_name().c_str());
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {

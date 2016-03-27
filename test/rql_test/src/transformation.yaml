@@ -90,6 +90,56 @@ tests:
       rb: tbl.union(tbl.coerce_to("array")).map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 9900
 
+    # Fold
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1))
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); })
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))})
+      ot: 10
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), final_emit=lambda acc: acc.mul(2))
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); }, {"final_emit": function(acc) {return acc.mul(2);}})
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))}, :final_emit=>lambda{|acc|(acc.mul(2))})
+      ot: 20
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [row]).coerce_to("array")
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); }, {"emit": function(old,row,acc) {return [row];}}).coerce_to("array")
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))}, :emit=>lambda{|old,row,acc|([row])}).coerce_to("array")
+      ot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(acc.mod(3).eq(0),[row],[]),final_emit=lambda acc: [acc]).coerce_to("array")
+      js: r.range(0, 10).fold(0, function(acc, row) {return acc.add(1);}, {"emit":function(old,row,n) {return r.branch(n.mod(3).eq(0),[row],[])}, "final_emit" : function (acc) {return [acc]}}).coerce_to("array")
+      rb: r.range(0, 10).fold(0, lambda{|acc,row|(acc.add(1))}, :emit=> lambda{|old,row,acc|(r.branch(acc.mod(3).eq(0),[row],[]))}, :final_emit=> lambda{|acc|([acc])}).coerce_to("array")
+      ot: [2, 5, 8, 10]
+    - py: r.range(0, 10).fold([1, 1], lambda acc, _: [acc[1], acc[0].add(acc[1])], emit=lambda old,row,acc: [acc[0]]).coerce_to("array")
+      ot: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc, emit=lambda old,row,acc: acc).type_of()
+      ot: "STREAM"
+    - py: tbl.filter("id").fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.branch(old.mod(20).eq(0),[row],[])).coerce_to("array")
+      ot: [{'a': 0, 'id': 20}, {'a': 3, 'id': 15}, {'a': 2, 'id': 46}, {'a': 2, 'id': 78}, {'a': 2, 'id': 90}]
+
+    - py: r.range().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).limit(10)
+      ot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    - py: r.range().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).map(lambda doc: 1).reduce(lambda l, r: l+r)
+      ot: err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.")
+
+    - py: r.range(0, 1000).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).coerce_to("array")
+      ot: [x for x in range(1, 1001)]
+
+    # Empty stream test.
+    - py: tbl.get_all().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc])
+      ot: []
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: acc)
+      ot: err("ReqlQueryLogicError", "Expected type ARRAY but found NUMBER.")
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.range())
+      ot: err("ReqlQueryLogicError", "Expected type DATUM but found SEQUENCE:")
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).changes()
+      ot: err("ReqlQueryLogicError", "Cannot call `changes` on an eager stream.")
+
+    # Return array from final_emit
+    - js: r.expr(["a"]).fold(null, function() {return null;}, {emit: function() {return [0]}, finalEmit: function() {return [1, 2, 3]} })
+      ot: [0, 1, 2, 3]
+
     # Concat-map
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })

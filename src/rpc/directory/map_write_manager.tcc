@@ -118,6 +118,9 @@ void directory_map_write_manager_t<key_t, value_t>::stream_to_conn(
             std::set<key_t> dirty_keys;
             std::swap(dirty_keys, conns_entry->second.dirty_keys);
             for (const key_t &key : dirty_keys) {
+                if (interruptor.is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
                 /* If the key changed again since we copied `dirty_keys`, we'll be
                 sending the newest value, because we didn't copy the value at the same
                 time as we copied `dirty_keys`. So it's OK to remove the key from

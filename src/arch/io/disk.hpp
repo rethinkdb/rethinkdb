@@ -11,11 +11,11 @@
 #include "perfmon/core.hpp"
 
 // The maximum concurrent IO requests per event queue.. the default value.
-#define DEFAULT_MAX_CONCURRENT_IO_REQUESTS 64
+const int DEFAULT_MAX_CONCURRENT_IO_REQUESTS = 64;
 
 // The maximum user-specifiable value how many concurrent I/O requests may be done per event
 // queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
-#define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
+const int MAXIMUM_MAX_CONCURRENT_IO_REQUESTS = MILLION;
 
 struct iovec;
 
@@ -118,7 +118,7 @@ file_open_result_t open_file(const char *path, int mode,
                              io_backender_t *backender,
                              scoped_ptr_t<file_t> *out);
 
-void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
+NORETURN void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res);
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.

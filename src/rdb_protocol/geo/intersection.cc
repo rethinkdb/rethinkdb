@@ -98,8 +98,10 @@ bool geo_does_intersect(const S2Polygon &polygon,
 
 bool geo_does_intersect(const S2Point &point,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     // This returns the point itself if it's inside the polygon.
     // In contrast to other_polygon.Contains(), it also works for points that
     // are exactly on the corner of the polygon.
@@ -111,8 +113,10 @@ bool geo_does_intersect(const S2Point &point,
 
 bool geo_does_intersect(const S2Polyline &line,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     std::vector<S2Polyline *> intersecting_pieces;
     other_polygon.IntersectWithPolyline(&line, &intersecting_pieces);
     // We're not interested in the actual line pieces that intersect
@@ -124,8 +128,12 @@ bool geo_does_intersect(const S2Polyline &line,
 
 bool geo_does_intersect(const S2Polygon &polygon,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (polygon.num_vertices() == 0) return false;
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (polygon.num_vertices() == 0) {
+        return false;
+    }
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     return other_polygon.Intersects(&polygon);
 }

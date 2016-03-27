@@ -4,7 +4,7 @@
 #include "arch/address.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
@@ -77,6 +77,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::CHANGES:            return make_changes_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
+    case Term::FOLD:               return make_fold_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCAT_MAP:         return make_concatmap_term(env, t);
     case Term::GROUP:              return make_group_term(env, t);
@@ -253,8 +254,11 @@ const raw_term_t &term_t::get_src() const {
 scoped_ptr_t<val_t> runtime_term_t::eval_on_current_stack(
         scope_env_t *env,
         eval_flags_t eval_flags) const {
+        PROFILE_STARTER_IF_ENABLED(
+        env->env->profile() == profile_bool_t::PROFILE,
+        strprintf("Evaluating %s.", name()),
+        env->env->trace);
     // This is basically a hook for unit tests to change things mid-query
-    profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     env->env->do_eval_callback();
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     if (env->env->interruptor->is_pulsed()) {

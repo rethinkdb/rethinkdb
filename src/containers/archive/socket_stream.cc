@@ -1,4 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 #include "containers/archive/socket_stream.hpp"
 
 #include <fcntl.h>
@@ -52,7 +58,7 @@ void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
 // -------------------- linux_event_fd_watcher_t --------------------
 linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
     : io_in_progress_(false),
-      event_callback_(NULL),
+      event_callback_(nullptr),
       event_watcher_(fd, this)
 {
     int res = fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -140,7 +146,7 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
 socket_stream_t::socket_stream_t(fd_t fd, fd_watcher_t *watcher)
     : fd_(fd),
       fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd)),
-      interruptor(NULL)
+      interruptor(nullptr)
 {
     guarantee(fd != INVALID_FD);
     fd_watcher_->init_callback(this);
@@ -321,3 +327,4 @@ void socket_stream_t::on_event(int events) {
     if (fd_watcher_->is_read_open()) shutdown_read();
 }
 
+#endif

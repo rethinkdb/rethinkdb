@@ -10,8 +10,12 @@ class H < RethinkDB::Handler
     @state = {}
   end
   def on_initial_val(val)
+    print "init: ", val, "\n"
     id = val['id']
-    raise "Duplicate initial val." if @state[id]
+    if @state[id]
+      stop
+      raise RuntimeError, "Duplicate initial val."
+    end
     @state[id] = val['z']
     $statelog << @state.dup
     r.table('test').between([id-1, 11].max, 20).update {|row|
@@ -22,15 +26,22 @@ class H < RethinkDB::Handler
     }.run(noreply: true)
   end
   def on_change(old_val, new_val)
+    print [old_val, new_val], "\n"
     if !old_val
       EM.defer {
         sleep 0.1
         $handle.close
         @state.each {|k,v|
           if k == 10 || k == 19
-            raise RuntimeError, "#{k} = #{v}" if v != 19
+            if  v != 19
+              stop
+              raise RuntimeError, "#{k} = #{v}"
+            end
           else
-            raise RuntimeError, "#{k} = #{v}" if v != k+1
+            if v != k+1
+              stop
+              raise RuntimeError, "#{k} = #{v}"
+            end
           end
         }
         EM.stop
@@ -38,6 +49,7 @@ class H < RethinkDB::Handler
     else
       id = old_val['id']
       if @state[id] != old_val['z']
+        stop
         raise RuntimeError, "Missed a change (#{old_val} -> #{new_val})."
       end
       @state[id] = new_val['z']
@@ -64,4 +76,5 @@ r.table_create('test').run rescue nil
     $h = H.new
     $handle = q.em_run($h, max_batch_rows: 1)
   }
+  $c.noreply_wait
 }

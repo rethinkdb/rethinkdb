@@ -112,11 +112,11 @@ private:
     mailbox_write_callback_t *subwriter;
 };
 
-void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
-        mailbox_write_callback_t *callback) {
+void send_write(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
+                mailbox_write_callback_t *callback) {
     guarantee(src);
     guarantee(!dest.is_nil());
-    new_semaphore_acq_t acq(src->semaphores.get(), 1);
+    new_semaphore_in_line_t acq(src->semaphores.get(), 1);
     acq.acquisition_signal()->wait();
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
@@ -155,7 +155,7 @@ mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
     std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator it = mailboxes.find(id);
     if (it == mailboxes.end()) {
-        return NULL;
+        return nullptr;
     } else {
         return it->second;
     }
@@ -187,8 +187,8 @@ void read_mailbox_header(read_stream_t *stream,
 }
 
 void mailbox_manager_t::on_local_message(
-        connectivity_cluster_t::connection_t *connection,
-        auto_drainer_t::lock_t connection_keepalive,
+        UNUSED connectivity_cluster_t::connection_t *connection,
+        UNUSED auto_drainer_t::lock_t connection_keepalive,
         std::vector<char> &&data) {
     vector_read_stream_t stream(std::move(data));
 
@@ -210,17 +210,17 @@ void mailbox_manager_t::on_local_message(
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(
-        [this, connection, connection_keepalive /* important to capture */,
-                mbox_header, &stream_data, stream_data_offset]() {
-            mailbox_read_coroutine(connection, connection_keepalive,
+        [this, mbox_header, &stream_data, stream_data_offset]() {
+            mailbox_read_coroutine(
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, stream_data_offset, FORCE_YIELD);
         });
 }
 
-void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connection,
-                                   auto_drainer_t::lock_t connection_keepalive,
-                                   read_stream_t *stream) {
+void mailbox_manager_t::on_message(
+        UNUSED connectivity_cluster_t::connection_t *connection,
+        UNUSED auto_drainer_t::lock_t connection_keepalive,
+        read_stream_t *stream) {
     mailbox_header_t mbox_header;
     read_mailbox_header(stream, &mbox_header);
 
@@ -237,18 +237,14 @@ void mailbox_manager_t::on_message(connectivity_cluster_t::connection_t *connect
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(
-        [this, connection, connection_keepalive /* important to capture */,
-                mbox_header, &stream_data]() {
-            mailbox_read_coroutine(connection, connection_keepalive,
+        [this, mbox_header, &stream_data]() {
+            mailbox_read_coroutine(
                 threadnum_t(mbox_header.dest_thread), mbox_header.dest_mailbox_id,
                 &stream_data, 0, MAYBE_YIELD);
         });
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(
-        connectivity_cluster_t::connection_t *connection,
-        /* This ensures that the `connection` pointer remains valid */
-        UNUSED auto_drainer_t::lock_t connection_keepalive,
         threadnum_t dest_thread,
         raw_mailbox_t::id_t dest_mailbox_id,
         std::vector<char> *stream_data,
@@ -257,10 +253,9 @@ void mailbox_manager_t::mailbox_read_coroutine(
 
     // Construct a new stream to use
     vector_read_stream_t stream(std::move(*stream_data), stream_data_offset);
-    stream_data = NULL; // <- It is not safe to use `stream_data` anymore once we
+    stream_data = nullptr; // <- It is not safe to use `stream_data` anymore once we
                         //    switch the thread
 
-    bool archive_exception = false;
     {
         on_thread_t rethreader(dest_thread);
         if (force_yield == FORCE_YIELD && rethreader.home_thread() == get_thread_id()) {
@@ -271,7 +266,7 @@ void mailbox_manager_t::mailbox_read_coroutine(
 
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
-            if (mbox != NULL) {
+            if (mbox != nullptr) {
                 try {
                     auto_drainer_t::lock_t keepalive(&mbox->drainer);
                     mbox->callback->read(&stream, keepalive.get_drain_signal());
@@ -282,15 +277,8 @@ void mailbox_manager_t::mailbox_read_coroutine(
                 }
             }
         } catch (const fake_archive_exc_t &e) {
-            // Set a flag and handle the exception later.
-            // This is to avoid doing thread switches and other coroutine things
-            // while being in the exception handler. Just a precaution...
-            archive_exception = true;
+            logWRN("Received an invalid cluster message from a peer.");
         }
-    }
-    if (archive_exception) {
-        logWRN("Received an invalid cluster message from a peer. Disconnecting.");
-        connection->kill_connection();
     }
 }
 
@@ -317,7 +305,7 @@ void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
 disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager,
                                            peer_id_t peer) {
     if (mailbox_manager->get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive) != NULL) {
+            get_connection(peer, &connection_keepalive) != nullptr) {
         /* The peer is currently connected. Start watching for when they disconnect. */
         signal_t::subscription_t::reset(connection_keepalive.get_drain_signal());
     } else {

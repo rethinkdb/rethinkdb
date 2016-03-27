@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32
+
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -10,7 +12,7 @@
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
 
-extproc_spawner_t *extproc_spawner_t::instance = NULL;
+extproc_spawner_t *extproc_spawner_t::instance = nullptr;
 
 // This is the class that runs in the external process, doing all the work
 class worker_run_t {
@@ -22,7 +24,7 @@ public:
 
         // Set ourselves to get interrupted when our parent dies
         struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
-        const int sigaction_res = sigaction(SIGALRM, &sa, NULL);
+        const int sigaction_res = sigaction(SIGALRM, &sa, nullptr);
         guarantee_err(sigaction_res == 0, "worker: could not set action for ALRM signal");
 
         struct itimerval timerval;
@@ -120,7 +122,7 @@ public:
             // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
             // this will prevent zombies, but may not be "fully portable".
             struct sigaction sa = make_sa_handler(0, SIG_IGN);
-            const int res = sigaction(SIGCHLD, &sa, NULL);
+            const int res = sigaction(SIGCHLD, &sa, nullptr);
             guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
         }
     }
@@ -157,7 +159,7 @@ extproc_spawner_t::extproc_spawner_t() :
     spawner_pid(-1)
 {
     // TODO: guarantee we aren't in a thread pool
-    guarantee(instance == NULL);
+    guarantee(instance == nullptr);
     instance = this;
 
     fork_spawner();
@@ -166,7 +168,7 @@ extproc_spawner_t::extproc_spawner_t() :
 extproc_spawner_t::~extproc_spawner_t() {
     // TODO: guarantee we aren't in a thread pool
     guarantee(instance == this);
-    instance = NULL;
+    instance = nullptr;
 
     // This should trigger the spawner to exit
     spawner_socket.reset();
@@ -230,3 +232,5 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     scoped_fd_t closer(fds[1]);
     return fds[0];
 }
+
+#endif

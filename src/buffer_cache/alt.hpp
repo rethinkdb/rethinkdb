@@ -185,15 +185,16 @@ public:
     void swap(buf_lock_t &other);
     void reset_buf_lock();
     bool empty() const {
-        return txn_ == NULL;
+        return txn_ == nullptr;
     }
 
+    bool is_snapshotted() const;
     void snapshot_subdag();
 
     void detach_child(block_id_t child_id);
 
     block_id_t block_id() const {
-        guarantee(txn_ != NULL);
+        guarantee(txn_ != nullptr);
         return current_page_acq()->block_id();
     }
 
@@ -275,27 +276,27 @@ private:
 
 class buf_parent_t {
 public:
-    buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
+    buf_parent_t() : txn_(nullptr), lock_or_null_(nullptr) { }
 
     explicit buf_parent_t(buf_lock_t *lock)
         : txn_(lock->txn()), lock_or_null_(lock) {
-        guarantee(lock != NULL);
+        guarantee(lock != nullptr);
         guarantee(!lock->empty());
     }
 
     explicit buf_parent_t(txn_t *txn)
-        : txn_(txn), lock_or_null_(NULL) {
+        : txn_(txn), lock_or_null_(nullptr) {
         rassert(txn != NULL);
     }
 
     void detach_child(block_id_t child_id) {
-        if (lock_or_null_ != NULL) {
+        if (lock_or_null_ != nullptr) {
             lock_or_null_->detach_child(child_id);
         }
     }
 
     bool empty() const {
-        return txn_ == NULL;
+        return txn_ == nullptr;
     }
 
     txn_t *txn() const {

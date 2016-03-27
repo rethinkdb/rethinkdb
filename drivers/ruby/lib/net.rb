@@ -52,8 +52,11 @@ module RethinkDB
     end
     def handle(m, args, caller)
       if !stopped?
-        if method(m).arity == args.size
+        mar = method(m).arity
+        if mar == args.size
           send(m, *args)
+        elsif mar == 0
+          send(m)
         else
           send(m, *args, caller)
         end
@@ -149,7 +152,12 @@ module RethinkDB
       return false
     end
     def handle(m, *args)
-      @handler.handle(m, args, self)
+      begin
+        @handler.handle(m, args, self)
+      rescue Exception => e
+        @handler.stop
+        raise e
+      end
     end
     def handle_open
       if !@opened
@@ -809,7 +817,7 @@ module RethinkDB
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
-          sec ? timeout(sec, &b) : b.call
+          sec ? Timeout::timeout(sec, &b) : b.call
         end
         def read_exn(len, timeout_sec=nil)
           maybe_timeout(timeout_sec) {

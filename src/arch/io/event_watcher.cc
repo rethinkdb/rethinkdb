@@ -2,11 +2,17 @@
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
+#ifdef _WIN32
+
+// TODO WINDOWS
+
+#else
+
 linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh) :
     fd(f), error_handler(eh),
-    in_watcher(NULL), out_watcher(NULL),
+    in_watcher(nullptr), out_watcher(nullptr),
 #ifdef __linux
-    rdhup_watcher(NULL),
+    rdhup_watcher(nullptr),
 #endif
     watching_for_errors(true),
     old_mask(0),
@@ -43,13 +49,13 @@ linux_event_watcher_t::watch_t::watch_t(linux_event_watcher_t *p, int e) :
 
 linux_event_watcher_t::watch_t::~watch_t() {
     rassert(*parent->get_watch_slot(event) == this);
-    *parent->get_watch_slot(event) = NULL;
+    *parent->get_watch_slot(event) = nullptr;
     parent->remask();
 }
 
 bool linux_event_watcher_t::is_watching(int event) {
     assert_thread();
-    return *get_watch_slot(event) == NULL;
+    return *get_watch_slot(event) == nullptr;
 }
 
 linux_event_watcher_t::watch_t **linux_event_watcher_t::get_watch_slot(int event) {
@@ -120,15 +126,16 @@ void linux_event_watcher_t::on_event(int event) {
     // wakeups.  (They'll just get EAGAIN.)
 
     if ((event & poll_event_in) || (event & error_mask)) {
-        if (in_watcher != NULL && !in_watcher->is_pulsed()) {
+        if (in_watcher != nullptr && !in_watcher->is_pulsed()) {
             in_watcher->pulse();
         }
     }
 
     if ((event & poll_event_out) || (event & error_mask)) {
-        if (out_watcher != NULL && !out_watcher->is_pulsed()) {
+        if (out_watcher != nullptr && !out_watcher->is_pulsed()) {
             out_watcher->pulse();
         }
     }
 }
 
+#endif

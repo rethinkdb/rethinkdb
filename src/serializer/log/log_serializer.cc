@@ -69,6 +69,10 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
 
     guarantee(opened_temporary_);
+
+#ifdef _WIN32
+    // TODO WINDOWS
+#else
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
@@ -78,6 +82,7 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     }
 
     warn_fsync_parent_directory(file_name().c_str());
+#endif
 
     opened_temporary_ = false;
 }
@@ -160,7 +165,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
     metablock_t metablock;
-    bzero(&metablock, sizeof(metablock));
+    memset(&metablock, 0, sizeof(metablock));
 
     extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
@@ -202,7 +207,7 @@ struct ls_start_existing_fsm_t :
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
-        to_signal_when_done = NULL;
+        to_signal_when_done = nullptr;
         if (next_starting_up_step()) {
             return true;
         } else {
@@ -392,15 +397,15 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
       expecting_no_more_tokens(false),
 #endif
       dynamic_config(_dynamic_config),
-      shutdown_callback(NULL),
+      shutdown_callback(nullptr),
       shutdown_state(shutdown_not_started),
       state(state_unstarted),
       static_header_needs_migration(false),
-      dbfile(NULL),
-      extent_manager(NULL),
-      metablock_manager(NULL),
-      lba_index(NULL),
-      data_block_manager(NULL),
+      dbfile(nullptr),
+      extent_manager(nullptr),
+      metablock_manager(nullptr),
+      lba_index(nullptr),
+      data_block_manager(nullptr),
       active_write_count(0) {
     // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
@@ -751,7 +756,7 @@ max_block_size_t log_serializer_t::max_block_size() const {
 
 bool log_serializer_t::coop_lock_and_check() {
     assert_thread();
-    rassert(dbfile != NULL);
+    rassert(dbfile != nullptr);
     return dbfile->coop_lock_and_check();
 }
 
@@ -873,16 +878,16 @@ void log_serializer_t::next_shutdown_step() {
         extent_manager->shutdown();
 
         delete lba_index;
-        lba_index = NULL;
+        lba_index = nullptr;
 
         delete data_block_manager;
-        data_block_manager = NULL;
+        data_block_manager = nullptr;
 
         delete metablock_manager;
-        metablock_manager = NULL;
+        metablock_manager = nullptr;
 
         delete extent_manager;
-        extent_manager = NULL;
+        extent_manager = nullptr;
 
         shutdown_state = shutdown_waiting_on_dbfile_destruction;
         coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
@@ -890,7 +895,7 @@ void log_serializer_t::next_shutdown_step() {
         return;
     }
 
-    rassert(dbfile == NULL);
+    rassert(dbfile == nullptr);
 
     if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
@@ -906,9 +911,9 @@ void log_serializer_t::next_shutdown_step() {
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {
     index_writes_io_account.reset();
-    rassert(dbfile != NULL);
+    rassert(dbfile != nullptr);
     delete dbfile;
-    dbfile = NULL;
+    dbfile = nullptr;
     next_shutdown_step();
 }
 
@@ -919,7 +924,7 @@ void log_serializer_t::on_datablock_manager_shutdown() {
 
 void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     assert_thread();
-    bzero(mb_buffer, sizeof(*mb_buffer));
+    memset(mb_buffer, 0, sizeof(*mb_buffer));
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
@@ -996,7 +1001,7 @@ void debug_print(printf_buffer_t *buf,
 }
 
 void counted_add_ref(ls_block_token_pointee_t *p) {
-    DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    DEBUG_VAR intptr_t res = ++(p->ref_count_);
     rassert(res > 0);
 }
 
@@ -1010,7 +1015,7 @@ void counted_release(ls_block_token_pointee_t *p) {
         ls_block_token_pointee_t *p;
     };
 
-    intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    intptr_t res = --(p->ref_count_);
     rassert(res >= 0);
     if (res == 0) {
         if (get_thread_id() == p->serializer_->home_thread()) {

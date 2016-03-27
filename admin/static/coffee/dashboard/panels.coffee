@@ -93,13 +93,9 @@ class IndexesModel extends Backbone.Model
              jobs=systable('jobs'), \
              current_issues=systable('current_issues')) =>
         num_sindexes:
-            table_config.map((table) ->
-                r.branch(
-                    table_status.get(table('id'))('status')('ready_for_outdated_reads'),
-                    r.db(table('db')).table(table('name')).indexList().count(),
-                    0
-                )
-            ).sum()
+            table_config.sum((row) ->
+                row('indexes').count()
+            )
         sindexes_constructing:
             jobs.filter(type: 'index_construction')('info').map((row) ->
                 db: row('db')

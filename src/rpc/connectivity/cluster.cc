@@ -1,7 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
+#ifndef _WIN32
 #include <netinet/in.h>
+#endif
 
 #include <algorithm>
 #include <functional>
@@ -34,7 +36,7 @@ static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
 
-#define CLUSTER_VERSION_STRING "2.2.0"
+#define CLUSTER_VERSION_STRING "2.2.2"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -101,7 +103,7 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
     return false;
 }
 
-#if defined (__x86_64__)
+#if defined (__x86_64__) || defined (_WIN64)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
 #elif defined (__i386__) || defined(__arm__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
@@ -129,10 +131,12 @@ void connectivity_cluster_t::connection_t::kill_connection() {
     }
 }
 
-connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
-                                                   const peer_id_t &_peer_id,
-                                                   keepalive_tcp_conn_stream_t *_conn,
-                                                   const peer_address_t &_peer_address) THROWS_NOTHING :
+connectivity_cluster_t::connection_t::connection_t(
+        run_t *_parent,
+        const peer_id_t &_peer_id,
+        const server_id_t &_server_id,
+        keepalive_tcp_conn_stream_t *_conn,
+        const peer_address_t &_peer_address) THROWS_NOTHING :
     conn(_conn),
     peer_address(_peer_address),
     flusher([&](signal_t *) {
@@ -153,6 +157,7 @@ connectivity_cluster_t::connection_t::connection_t(run_t *_parent,
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(_parent),
     peer_id(_peer_id),
+    server_id(_server_id),
     drainers()
 {
     pmap(get_num_threads(), [this](int thread_id) {
@@ -215,10 +220,12 @@ connectivity_cluster_t::run_t::run_t(
         int port,
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
-            _heartbeat_sl_view)
+            _heartbeat_sl_view,
+        SSL_CTX *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),
+    tls_ctx(_tls_ctx),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -250,7 +257,7 @@ connectivity_cluster_t::run_t::run_t(
     `connection_map` on each thread and notifying any listeners that we're now
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
-    connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+    connection_to_ourself(this, parent->me, _server_id, nullptr, routing_table[parent->me]),
 
     heartbeat_sl_view(_heartbeat_sl_view),
 
@@ -294,10 +301,21 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->make_overcomplicated(&conn);
+    
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Cluster server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, NULL);
+    handle(&conn_stream, boost::none, boost::none, lock, nullptr);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
@@ -332,10 +350,13 @@ void connectivity_cluster_t::run_t::connect_to_peer(
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            keepalive_tcp_conn_stream_t conn(selected_addr->ip(), selected_addr->port().value(),
-                                             drainer_lock.get_drain_signal(), cluster_client_port);
+            keepalive_tcp_conn_stream_t conn(
+                tls_ctx, selected_addr->ip(), selected_addr->port().value(),
+                drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
-                handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);
+                handle(
+                    &conn, expected_id, boost::optional<peer_address_t>(*address),
+                    drainer_lock, successful_join);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -860,17 +881,18 @@ void connectivity_cluster_t::run_t::handle(
 
     // Receive & check header.
     {
-        const int64_t buffer_size = 64;
-        char buffer[buffer_size];
-        int64_t r;
-        for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
-            r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
+        for (size_t i = 0; i < cluster_proto_header.length(); ++i) {
+            // We read one byte at a time so we can bail out early if the header doesn't
+            // match. This is ok performance-wise because `read` is buffered.
+            char buffer;
+            int64_t r = conn->read(&buffer, 1);
             if (-1 == r) {
                 return; // network error.
             }
             rassert(r >= 0);
+            rassert(r <= 1);
             // If EOF or remote_header does not match header, terminate connection.
-            if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
+            if (0 == r || cluster_proto_header[i] != buffer) {
                 logWRN("Received invalid clustering header from %s, closing connection -- something might be connecting to the wrong port.", peername);
                 return;
             }
@@ -918,7 +940,7 @@ void connectivity_cluster_t::run_t::handle(
         if (servers.count(remote_server_id) != 0) {
             // There currently is another connection open to the server
             logINF("Rejected a connection from server %s since one is open already.",
-                   uuid_to_str(remote_server_id).c_str());
+                   remote_server_id.print().c_str());
             return;
         }
     }
@@ -1121,7 +1143,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // This check is so that when trying multiple connections to a peer in parallel, we can
     //  make sure only one of them succeeds
-    if (successful_join != NULL) {
+    if (successful_join != nullptr) {
         if (*successful_join) {
             logWRN("Somehow ended up with two successful joins to a peer, closing one");
             return;
@@ -1175,7 +1197,8 @@ void connectivity_cluster_t::run_t::handle(
         /* `connection_t` is the public interface of this coroutine. Its
         constructor registers it in the `connectivity_cluster_t`'s connection
         map. */
-        connection_t conn_structure(this, other_id, conn, *other_peer_addr.get());
+        connection_t conn_structure(
+            this, other_id, remote_server_id, conn, *other_peer_addr.get());
 
         /* `heartbeat_manager` will periodically send a heartbeat message to
         other servers, and it will also close the connection if we don't
@@ -1201,7 +1224,7 @@ void connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
+                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
 
@@ -1229,6 +1252,13 @@ void connectivity_cluster_t::run_t::handle(
 
         if (conn->is_read_open()) {
             logWRN("Received invalid data on a cluster connection. Disconnecting.");
+            conn->shutdown_read();
+        }
+        if (conn->is_write_open()) {
+            /* Shutdown the write direction as well, to make sure that any active
+            `send_message` calls get interrupted and don't stop us from destructing
+            the `conn_structure`. */
+            conn->shutdown_write();
         }
 
         /* The `conn_structure` destructor removes us from the connection map. It also
@@ -1245,12 +1275,12 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     thread_allocator([](threadnum_t a, threadnum_t b) {
         return a.threadnum > b.threadnum;
     }),
-    current_run(NULL),
+    current_run(nullptr),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
 {
     for (int i = 0; i < max_message_tag; i++) {
-        message_handlers[i] = NULL;
+        message_handlers[i] = nullptr;
     }
 }
 
@@ -1312,6 +1342,12 @@ void connectivity_cluster_t::send_message(connection_t *connection,
                                      message_tag_t tag,
                                      cluster_send_message_write_callback_t *callback) {
     // We could be on _any_ thread.
+
+    /* If the connection is being closed, just drop the message now. It's not going
+    to actually get sent anyway. That way we avoid getting in line for the send_mutex. */
+    if (connection_keepalive.get_drain_signal()->is_pulsed()) {
+        return;
+    }
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
@@ -1434,14 +1470,14 @@ cluster_message_handler_t::cluster_message_handler_t(
     rassert(tag != connectivity_cluster_t::heartbeat_tag,
         "Tag %" PRIu8 " is reserved for heartbeat messages.",
         connectivity_cluster_t::heartbeat_tag);
-    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    rassert(connectivity_cluster->message_handlers[tag] == nullptr);
     connectivity_cluster->message_handlers[tag] = this;
 }
 
 cluster_message_handler_t::~cluster_message_handler_t() {
     guarantee(!connectivity_cluster->current_run);
     rassert(connectivity_cluster->message_handlers[tag] == this);
-    connectivity_cluster->message_handlers[tag] = NULL;
+    connectivity_cluster->message_handlers[tag] = nullptr;
 }
 
 void cluster_message_handler_t::on_local_message(

@@ -11,6 +11,10 @@
 
 namespace unittest {
 
+#ifdef _MSC_VER
+int (&random)() = rand;
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #endif

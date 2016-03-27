@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.4
 # -*- coding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument(
         "--test-output-dir",
         help="Directory to render tests to",
-        default="./src/test/java/gen",
+        default="./src/test/java/com/rethinkdb/gen",
     )
     parser.add_argument(
         "--template-dir",
@@ -188,7 +188,7 @@ class TestFile(object):
 
     def load(self):
         '''Load the test file, yaml parse it, extract file-level metadata'''
-        with open(self.full_path) as f:
+        with open(self.full_path, encoding='utf-8') as f:
             parsed_yaml = parsePolyglot.parseYAML(f)
         self.description = parsed_yaml.get('desc', 'No description')
         self.table_var_names = self.get_varnames(parsed_yaml)
@@ -213,6 +213,7 @@ class TestFile(object):
     def render(self):
         '''Renders the converted tests to a runnable test file'''
         defs_and_test = ast_to_java(self.test_generator, self.reql_vars)
+        self.renderer.source_files = [self.filename]
         self.renderer.render(
             'Test.java',
             output_dir=self.test_output_dir,

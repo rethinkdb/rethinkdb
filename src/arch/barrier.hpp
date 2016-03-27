@@ -5,7 +5,7 @@
 
 #include "errors.hpp"
 
-// We call this a pthread_barrier_t so as to differentiate from other barrier types.
+// We call this a thread_barrier_t so as to differentiate from other barrier types.
 class thread_barrier_t {
 public:
     explicit thread_barrier_t(int num_workers);

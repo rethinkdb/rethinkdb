@@ -65,6 +65,21 @@ code, by making it clearer what the meaning of a particular number is. */
 typedef uint64_t raft_term_t;
 typedef uint64_t raft_log_index_t;
 
+/* `raft_start_election_immediately_t` is used as a hint to the `raft_member_t`
+constructor, and is used to speed up new raft clusters' first elections.
+
+On new clusters, it should be set to YES on precisely one of the raft members. If we're
+joining an existing cluster, it should be set to NO to avoid disposing a running leader. */
+enum class raft_start_election_immediately_t {
+    NO,
+    YES
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    raft_start_election_immediately_t,
+    int8_t,
+    raft_start_election_immediately_t::NO,
+    raft_start_election_immediately_t::YES);
+
 /* Every member of the Raft cluster is identified by a `raft_member_id_t`. The Raft paper
 uses integers for this purpose, but we use UUIDs because we have no reliable distributed
 way of assigning integers. Note that `raft_member_id_t` is not a `server_id_t` or a
@@ -572,7 +587,8 @@ public:
         raft_network_interface_t<state_t> *network,
         /* We'll print log messages of the form `<log_prefix>: <message>`. If
         `log_prefix` is empty, we won't print any messages. */
-        const std::string &log_prefix);
+        const std::string &log_prefix,
+        const raft_start_election_immediately_t start_election_immediately);
 
     ~raft_member_t();
 
@@ -603,9 +619,32 @@ public:
         return latest_state.get_watchable();
     }
 
+    /* `change_lock_t` freezes the Raft member state, for example in preparation for
+    calling `propose_*()`. Only one `change_lock_t` can exist at a time, and while it
+    exists, the Raft member will not process normal traffic; so don't keep the
+    `change_lock_t` around longer than necessary. However, it is safe to block while
+    holding the `change_lock_t` if you need to.
+
+    The point of `change_lock_t` is that `get_latest_state()` will not change while the
+    `change_lock_t` exists, unless the lock owner calls `propose_*()`. The state reported
+    by `get_latest_state()` is guaranteed to be the state that the proposed change will
+    be applied to. This makes it possible to atomically read the state and issue a change
+    conditional on the state. */
+    class change_lock_t {
+    public:
+        change_lock_t(raft_member_t *parent, signal_t *interruptor);
+    private:
+        friend class raft_member_t;
+        new_mutex_acq_t mutex_acq;
+    };
+
     /* `get_state_for_init()` returns a `raft_persistent_state_t` that could be used to
-    initialize a new member joining the Raft cluster. */
-    raft_persistent_state_t<state_t> get_state_for_init();
+    initialize a new member joining the Raft cluster.
+    A `change_lock_t` must be constructed on this `raft_member_t` before calling this.
+    This is a separate step so that `get_state_for_init()` doesn't need to block in
+    order to obtain a lock internally. */
+    raft_persistent_state_t<state_t> get_state_for_init(
+        const change_lock_t &change_lock_proof);
 
     /* Here's how to perform a Raft transaction:
 
@@ -640,25 +679,6 @@ public:
     clone_ptr_t<watchable_t<bool> > get_readiness_for_config_change() {
         return readiness_for_config_change.get_watchable();
     }
-
-    /* `change_lock_t` freezes the Raft member state in preparation for calling
-    `propose_*()`. Only one `change_lock_t` can exist at a time, and while it exists, the
-    Raft member will not process normal traffic; so don't keep the `change_lock_t` around
-    longer than necessary. However, it is safe to block while holding the `change_lock_t`
-    if you need to.
-
-    The point of `change_lock_t` is that `get_latest_state()` will not change while the
-    `change_lock_t` exists, unless the lock owner calls `propose_*()`. The state reported
-    by `get_latest_state()` is guaranteed to be the state that the proposed change will
-    be applied to. This makes it possible to atomically read the state and issue a change
-    conditional on the state. */
-    class change_lock_t {
-    public:
-        change_lock_t(raft_member_t *parent, signal_t *interruptor);
-    private:
-        friend class raft_member_t;
-        new_mutex_acq_t mutex_acq;
-    };
 
     /* `change_token_t` is a way to track the progress of a change to the Raft cluster.
     It's a promise that will be `true` if the change has been committed, and `false` if

@@ -50,7 +50,8 @@ multi_table_manager_t::multi_table_manager_t(
                 &perfmon_collections->serializers_collection);
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, state.epoch, state.raft_member_id, raft_storage,
-                table->multistore_ptr.get(), &perfmon_collections->namespace_collection);
+                raft_start_election_immediately_t::NO, table->multistore_ptr.get(),
+                &perfmon_collections->namespace_collection);
         },
         [&](const namespace_id_t &table_id,
                 const table_inactive_persistent_state_t &state,
@@ -76,7 +77,7 @@ multi_table_manager_t::multi_table_manager_t(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory) :
     is_proxy_server(true),
-    server_id(nil_uuid()),
+    server_id(server_id_t::from_server_uuid(nil_uuid())),
     mailbox_manager(_mailbox_manager),
     server_config_client(nullptr),
     multi_table_manager_directory(_multi_table_manager_directory),
@@ -120,6 +121,7 @@ multi_table_manager_t::active_table_t::active_table_t(
         const multi_table_manager_timestamp_t::epoch_t &epoch,
         const raft_member_id_t &member_id,
         raft_storage_interface_t<table_raft_state_t> *raft_storage,
+        const raft_start_election_immediately_t start_election_immediately,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace) :
     parent(_parent),
@@ -128,7 +130,8 @@ multi_table_manager_t::active_table_t::active_table_t(
     manager(parent->server_id, parent->mailbox_manager, parent->server_config_client,
         parent->table_manager_directory, &parent->backfill_throttler,
         parent->connections_map, *parent->base_path, parent->io_backender, table_id,
-        epoch, member_id, raft_storage, multistore_ptr, perfmon_collection_namespace),
+        epoch, member_id, raft_storage, start_election_immediately, multistore_ptr,
+        perfmon_collection_namespace),
     table_manager_bcard_copier(
         &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
@@ -254,7 +257,7 @@ void multi_table_manager_t::help_construct() {
     action_mailbox.init(new multi_table_manager_bcard_t::action_mailbox_t(
         mailbox_manager,
         std::bind(&multi_table_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)));
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8, ph::_9)));
 
     get_status_mailbox.init(new multi_table_manager_bcard_t::get_status_mailbox_t(
         mailbox_manager,
@@ -271,6 +274,8 @@ void multi_table_manager_t::on_action(
         const boost::optional<raft_member_id_t> &raft_member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_raft_state,
+        const boost::optional<raft_start_election_immediately_t>
+            &start_election_immediately,
         const mailbox_t<void()>::address_t &ack_addr) {
     typedef multi_table_manager_bcard_t::status_t action_status_t;
 
@@ -284,6 +289,8 @@ void multi_table_manager_t::on_action(
         (action_status == action_status_t::ACTIVE));
     guarantee(timestamp.is_deletion() ==
         (action_status == action_status_t::DELETED));
+    guarantee(action_status != action_status_t::ACTIVE ||
+        static_cast<bool>(start_election_immediately));
 
     /* Find or create the table record for this table */
     mutex_assertion_t::acq_t global_mutex_acq(&mutex);
@@ -327,16 +334,36 @@ void multi_table_manager_t::on_action(
             case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
         }
-        /* If we are inactive and are told to become active, we ignore the
-        timestamp. The `base_table_config_t` in our inactive state might be
-        a left-over from an emergency repair that none of the currently active
-        servers has seen. In that case we would have no chance to become active
-        again for this table until another emergency repair happened
-        (which might be impossible, if the table is otherwise still available). */
-        bool ignore_timestamp =
-            table->status == table_t::status_t::INACTIVE
-            && action_status == action_status_t::ACTIVE;
-        if (!ignore_timestamp && !timestamp.supersedes(current_timestamp)) {
+        /* Rejecting old actions is absolutely critical for correctness.
+        ACTIVE actions contain the Raft member ID. If we accepted an INACTIVE and then
+        an ACTIVE action in the wrong order, we might swipe away our Raft state due to
+        the INACTIVE action, and then become active again *with an old Raft ID* that
+        we had been active with before. This will violate Raft invariants, and can lead
+        to split-brain configurations and data loss. */
+        if (!timestamp.supersedes(current_timestamp)) {
+            /* If we are inactive and are told to become active, we print a special
+            message. The `base_table_config_t` in our inactive state might be
+            a left-over from an emergency repair that none of the currently active
+            servers has seen. In that case we would have no chance to become active
+            again for this table until another emergency repair happened
+            (which might be impossible, if the table is otherwise still available). */
+            bool outdated_activation =
+                table->status == table_t::status_t::INACTIVE &&
+                action_status == action_status_t::ACTIVE &&
+                timestamp.epoch != current_timestamp.epoch;
+            if (outdated_activation) {
+                logWRN("Table %s (%s): Not adding a replica on this server because the "
+                       "active configuration conflicts with a more recent inactive "
+                       "configuration. "
+                       "If you see replicas get stuck in the `transitioning` state "
+                       "after reconfiguring this table, you can try recovering by "
+                       "running `.reconfigure({emergencyRepair: '_debug_recommit'})` on "
+                       "it. Please make sure that the cluster is idle when running this "
+                       "operation. RethinkDB does not guarantee consistency during "
+                       "the emergency repair.",
+                       uuid_to_str(table_id).c_str(),
+                       table->basic_configs_entry->get_value().first.name.c_str());
+            }
             if (!ack_addr.is_nil()) {
                 send(mailbox_manager, ack_addr);
             }
@@ -370,17 +397,20 @@ void multi_table_manager_t::on_action(
 
             /* Open files for the new table. We do this after writing the record, because
             this way if we crash we won't leak the file. */
+            /* Don't interrupt here. We've already set the `table->status` to ACTIVE, and
+            it not having a `multistore_ptr` with that status would be illegal. */
+            cond_t non_interruptor;
             persistence_interface->create_multistore(
                 table_id,
                 &table->multistore_ptr,
-                interruptor,
+                &non_interruptor,
                 &perfmon_collections->serializers_collection);
 
             /* Create the `active_table_t`, which contains the `raft_member_t` and does
             all of the important work of actually handing queries */
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                raft_storage, table->multistore_ptr.get(),
+                raft_storage, *start_election_immediately, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
             logINF("Table %s: Added replica on this server.",
@@ -404,7 +434,7 @@ void multi_table_manager_t::on_action(
 
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                raft_storage, table->multistore_ptr.get(),
+                raft_storage, *start_election_immediately, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
             logINF("Table %s: Reset replica on this server.",
@@ -538,20 +568,27 @@ void multi_table_manager_t::do_sync(
         boost::optional<raft_member_id_t> raft_member_id;
         boost::optional<raft_persistent_state_t<table_raft_state_t> >
             initial_raft_state;
-        table.active->get_raft()->get_committed_state()->apply_read(
-            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
-                timestamp.log_index = st->log_index;
-                auto it = st->state.member_ids.find(other_server_id);
-                if (it != st->state.member_ids.end()) {
-                    action_status = action_status_t::ACTIVE;
-                    raft_member_id = boost::make_optional(it->second);
-                    initial_raft_state = boost::make_optional(
-                        table.active->get_raft()->get_state_for_init());
-                } else {
-                    action_status = action_status_t::INACTIVE;
-                    basic_config = boost::make_optional(st->state.config.config.basic);
-                }
-            });
+        {
+            cond_t non_interruptor;
+            raft_member_t<table_raft_state_t>::change_lock_t raft_change_lock(
+                table.active->get_raft(), &non_interruptor);
+            table.active->get_raft()->get_committed_state()->apply_read(
+                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
+                    timestamp.log_index = st->log_index;
+                    auto it = st->state.member_ids.find(other_server_id);
+                    if (it != st->state.member_ids.end()) {
+                        action_status = action_status_t::ACTIVE;
+                        raft_member_id = boost::make_optional(it->second);
+                        initial_raft_state = boost::make_optional(
+                            table.active->get_raft()->get_state_for_init(
+                                raft_change_lock));
+                    } else {
+                        action_status = action_status_t::INACTIVE;
+                        basic_config =
+                            boost::make_optional(st->state.config.config.basic);
+                    }
+                });
+        }
 
         if (static_cast<bool>(table_bcard)) {
             /* If the peer already has an entry in the directory, we can use that to
@@ -570,6 +607,7 @@ void multi_table_manager_t::do_sync(
             basic_config,
             raft_member_id,
             initial_raft_state,
+            boost::optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
             mailbox_t<void()>::address_t());
 
     } else if (table.status == table_t::status_t::INACTIVE) {
@@ -587,6 +625,7 @@ void multi_table_manager_t::do_sync(
                 table.basic_configs_entry->get_value().first),
             boost::optional<raft_member_id_t>(),
             boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+            boost::optional<raft_start_election_immediately_t>(),
             mailbox_t<void()>::address_t());
 
     } else if (table.status == table_t::status_t::DELETED) {
@@ -597,6 +636,7 @@ void multi_table_manager_t::do_sync(
             boost::optional<table_basic_config_t>(),
             boost::optional<raft_member_id_t>(),
             boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+            boost::optional<raft_start_election_immediately_t>(),
             mailbox_t<void()>::address_t());
 
     } else {

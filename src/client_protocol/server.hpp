@@ -2,6 +2,8 @@
 #ifndef CLIENT_PROTOCOL_SERVER_HPP_
 #define CLIENT_PROTOCOL_SERVER_HPP_
 
+#include <openssl/ssl.h>
+
 #include <set>
 #include <map>
 #include <random>
@@ -89,7 +91,7 @@ private:
     uint32_t http_timeout_sec;
 };
 
-class new_semaphore_acq_t;
+class new_semaphore_in_line_t;
 class query_handler_t {
 public:
     virtual ~query_handler_t() { }
@@ -106,7 +108,8 @@ public:
         const std::set<ip_address_t> &local_addresses,
         int port,
         query_handler_t *_handler,
-        uint32_t http_timeout_sec);
+        uint32_t http_timeout_sec,
+        SSL_CTX* tls_ctx);
     ~query_server_t();
 
     int get_port() const;
@@ -139,6 +142,7 @@ private:
                 http_res_t *result,
                 signal_t *interruptor);
 
+    SSL_CTX *tls_ctx;
     rdb_context_t *const rdb_ctx;
     query_handler_t *const handler;
 

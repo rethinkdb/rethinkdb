@@ -177,9 +177,9 @@ private:
     `our_dispatcher_drainer` will always both be null or both be non-null. */
     auto_drainer_t *our_dispatcher_drainer;
 
-    /* `begin_write_mutex` is used to ensure that we don't ack a contract until all past
-    and ongoing writes are safe under the contract's conditions. */
-    mutex_assertion_t begin_write_mutex;
+    /* `begin_write_mutex_assertion` is used to ensure that we don't ack a contract until
+    all past and ongoing writes are safe under the contract's conditions. */
+    mutex_assertion_t begin_write_mutex_assertion;
 
     /* `drainer` ensures that `run()` and `update_contract_on_store_thread()` are
     stopped before the other member variables are destroyed. */

@@ -73,7 +73,7 @@ COLONIZE_SCRIPT := $(EXTERNAL_DIR)/colonist/colonize.sh
 COLONIZE_SCRIPT_ABS := $(EXTERNAL_DIR_ABS)/colonist/colonize.sh
 
 PROTO_FILE_SRC := $(TOP)/src/rdb_protocol/ql2.proto
-PROTO_DIR := $(BUILD_DIR)/proto
+PROTO_DIR := $(BUILD_ROOT_DIR)/proto
 
 DEP_DIR := $(BUILD_DIR)/dep
 OBJ_DIR := $(BUILD_DIR)/obj

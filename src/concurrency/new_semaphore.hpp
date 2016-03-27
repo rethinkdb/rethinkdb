@@ -6,11 +6,11 @@
 #include "containers/intrusive_list.hpp"
 
 // This semaphore obeys first-in-line/first-acquisition semantics.  The
-// new_semaphore_acq_t's will receive access to the semaphore in the same order that
+// new_semaphore_in_line_t's will receive access to the semaphore in the same order that
 // such access was requested.  Also, there aren't problems with starvation.  Also, it
-// doesn't have naked lock and unlock functions, you have to use new_semaphore_acq_t.
+// doesn't have naked lock and unlock functions, you have to use new_semaphore_in_line_t.
 
-class new_semaphore_acq_t;
+class new_semaphore_in_line_t;
 
 class new_semaphore_t : public home_thread_mixin_debug_only_t {
 public:
@@ -23,9 +23,9 @@ public:
     void set_capacity(int64_t new_capacity);
 
 private:
-    friend class new_semaphore_acq_t;
-    void add_acquirer(new_semaphore_acq_t *acq);
-    void remove_acquirer(new_semaphore_acq_t *acq);
+    friend class new_semaphore_in_line_t;
+    void add_acquirer(new_semaphore_in_line_t *acq);
+    void remove_acquirer(new_semaphore_in_line_t *acq);
 
     void pulse_waiters();
 
@@ -37,21 +37,21 @@ private:
     int64_t capacity_;
     int64_t current_;
 
-    intrusive_list_t<new_semaphore_acq_t> waiters_;
+    intrusive_list_t<new_semaphore_in_line_t> waiters_;
 
     DISABLE_COPYING(new_semaphore_t);
 };
 
-class new_semaphore_acq_t : public intrusive_list_node_t<new_semaphore_acq_t> {
+class new_semaphore_in_line_t : public intrusive_list_node_t<new_semaphore_in_line_t> {
 public:
     // Construction is non-blocking, it gets you in line for the semaphore.  You need
     // to call acquisition_signal()->wait() in order to wait for your acquisition of the
     // semaphore.  Acquirers receive the semaphore in the same order that they've
     // acquired it.
-    ~new_semaphore_acq_t();
-    new_semaphore_acq_t();
-    new_semaphore_acq_t(new_semaphore_t *semaphore, int64_t count);
-    new_semaphore_acq_t(new_semaphore_acq_t &&movee);
+    ~new_semaphore_in_line_t();
+    new_semaphore_in_line_t();
+    new_semaphore_in_line_t(new_semaphore_t *semaphore, int64_t count);
+    new_semaphore_in_line_t(new_semaphore_in_line_t &&movee);
 
     // Returns "how much" of the semaphore this acq has acquired or would acquire.
     int64_t count() const;
@@ -68,7 +68,7 @@ public:
     //
     // For example, if `this->count() == 1` and `other->count() == 2` before the call,
     // then after the call `this->count() == 3` and `other` is invalid.
-    void transfer_in(new_semaphore_acq_t &&other);
+    void transfer_in(new_semaphore_in_line_t &&other);
 
     // Initializes the object.
     void init(new_semaphore_t *semaphore, int64_t count);
@@ -91,7 +91,7 @@ private:
 
     // Gets pulsed when we have successfully acquired the semaphore.
     cond_t cond_;
-    DISABLE_COPYING(new_semaphore_acq_t);
+    DISABLE_COPYING(new_semaphore_in_line_t);
 };
 
 

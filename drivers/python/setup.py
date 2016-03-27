@@ -1,4 +1,12 @@
 # Copyright 2010-2015 RethinkDB, all rights reserved.
+"""
+Please see the following links for more information::
+
+- `Python API documentation <http://rethinkdb.com/api/python/>`_
+- `GitHub Project <https://github.com/rethinkdb/rethinkdb>`_
+- `Python Driver Source <https://github.com/rethinkdb/rethinkdb/tree/next/drivers/python>`_
+
+"""
 
 import os, setuptools, sys
 
@@ -21,10 +29,18 @@ setuptools.setup(
     zip_safe=True,
     version=version,
     description="Python driver library for the RethinkDB database server.",
+    long_description=__doc__,
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",
     maintainer_email="bugs@rethinkdb.com",
-    packages=['rethinkdb', 'rethinkdb.tornado_net', 'rethinkdb.twisted_net', 'rethinkdb.backports.ssl_match_hostname'] + conditionalPackages,
+    packages=[
+        'rethinkdb',
+        'rethinkdb.tornado_net',
+        'rethinkdb.twisted_net',
+        'rethinkdb.gevent_net',
+        'rethinkdb.backports',
+        'rethinkdb.backports.ssl_match_hostname'
+    ] + conditionalPackages,
     package_dir={'rethinkdb':'rethinkdb'},
     package_data={ 'rethinkdb':['backports/ssl_match_hostname/*.txt'] },
     entry_points={

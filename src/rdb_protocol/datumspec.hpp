@@ -51,10 +51,12 @@ public:
     }
 
     key_range_t::bound_t left_bound_type, right_bound_type;
+
 private:
     friend class info_term_t;
     datum_t left_bound, right_bound;
 };
+
 void debug_print(printf_buffer_t *buf, const datum_range_t &rng);
 
 template<class T>

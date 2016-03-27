@@ -99,7 +99,7 @@ private:
         guarantee(index < size_, "index = %zu, size_ = %zu", index, size_);
         const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
         segment_t *seg = segments_[segment_index];
-        if (seg == NULL) {
+        if (seg == nullptr) {
             seg = new segment_t();
             segments_[segment_index] = seg;
         }
@@ -110,18 +110,16 @@ private:
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
-        {
-            const size_t num_segs = size_ != 0 ? ((size_ - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
-            guarantee(num_segs == segments_.size());
-        }
         const size_t new_num_segs = new_size != 0 ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
 
-        while (segments_.size() > new_num_segs) {
+	// Leave an additional segment when resizing to avoid allocating and
+	// deallocating large blocks at a boundary, i.e. 0 elements.
+        while (segments_.size() > new_num_segs + 1) {
             delete segments_.back();
             segments_.pop_back();
         }
         while (segments_.size() < new_num_segs) {
-            segments_.push_back(NULL);
+            segments_.push_back(nullptr);
         }
 
         size_ = new_size;
