@@ -167,30 +167,13 @@ public class Util {
             if (writer != null && writer.getDeclaringClass() == pojoClass) {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
-
                 /**
-                 * If the property is of a generic class, get inner class name of the generic type.
+                 * If the property is of a generic List class
                  * For example:
-                 *  valueClass: java.util.List
-                 *  wanted target class: java.util.List<TestPojoInner>
+                 *  source class (from db): java.util.List<HashMap<String, Object>>
+                 *  target class:           java.util.List<com.rethinkdb.TestPojoInner>
                  *Then
-                 *  innerClassName = "TestPojoInner.class"
-                 */
-                String innerClassName = null;
-                {
-                    String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
-                    int len = valueClass.getName().length();
-                    int genLen = genName.length();
-                    if (genLen > len + 2 && genName.charAt(len) == '<' && genName.charAt(genLen - 1) == '>') {
-                        innerClassName = genName.substring(len + 1, genLen - 1);
-                    }
-                }
-
-                /**
-                 * When convert a non-map value to a property of bean, and if the property is a generic type
-                 * e.g. java.util.List<TestPojoInner>, then call smartCast to do deep conversion.
-                 * In this example, the `value` should already be a ArrayList<Object>,
-                 * each item is actually a HashMap<String, Object> which should be converted to TestPojoInner.
+                 *  innerClassName = "com.rethinkdb.TestPojoInner"
                  *
                  * I do want to directly convert the `value` to the generic type e.g. java.util.List<TestPojoInner>,
                  * but unfortunately,
@@ -198,9 +181,18 @@ public class Util {
                  * so i have to use the fixed class, and pass inner class name to smartCast
                  * and let it convert each HashMap to TestPojoInner
                  */
+                String listItemClassName = null;
+                if (value instanceof List) {
+                    String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
+                    int len = valueClass.getName().length();
+                    int genLen = genName.length();
+                    if (genLen > len + 2 && genName.charAt(len) == '<' && genName.charAt(genLen - 1) == '>') {
+                        listItemClassName = genName.substring(len + 1, genLen - 1);
+                    }
+                }
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
-                        : smartCast(valueClass, value, innerClassName));
+                        : smartCast(valueClass, value, listItemClassName));
             }
         }
 
@@ -209,11 +201,11 @@ public class Util {
 
     static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
 
-    private static Object smartCast(Class valueClass, Object value, String innerClassNameOfGenericValueClass) {
+    private static Object smartCast(Class valueClass, Object value, String listItemClassName) {
         try {
             value = valueClass.cast(value);
 
-            if (innerClassNameOfGenericValueClass != null) {
+            if (listItemClassName != null) {
                 /**
                  * convert every element of list to inner class instance
                  */
@@ -221,7 +213,7 @@ public class Util {
 
                     Class innerClass = null;
                     try {
-                        innerClass = Class.forName(innerClassNameOfGenericValueClass);
+                        innerClass = Class.forName(listItemClassName);
                     } catch (ClassNotFoundException e) {
                         e = e; //just for setting breakpoint easier
                     }
