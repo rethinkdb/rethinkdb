@@ -10,6 +10,8 @@ import java.lang.reflect.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -76,21 +78,21 @@ public class Util {
                 return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
             }
 
-            if (java.time.LocalDate.class.equals(pojoClass)) {
-                return (T) java.time.LocalDate.of(
+            if (LocalDate.class.equals(pojoClass)) {
+                return (T) LocalDate.of(
                         ((Long) map.get("year")).intValue(),
                         ((Long) map.get("monthValue")).intValue(),
                         ((Long) map.get("dayOfMonth")).intValue());
             }
-            else if (java.time.LocalTime.class.equals(pojoClass)) {
-                return (T) java.time.LocalTime.of(
+            else if (LocalTime.class.equals(pojoClass)) {
+                return (T) LocalTime.of(
                         ((Long) map.get("hour")).intValue(),
                         ((Long) map.get("minute")).intValue(),
                         ((Long) map.get("second")).intValue(),
                         ((Long) map.get("nano")).intValue());
             }
-            else if (java.time.LocalDateTime.class.equals(pojoClass)) {
-                return (T) java.time.LocalDateTime.of(
+            else if (LocalDateTime.class.equals(pojoClass)) {
+                return (T) LocalDateTime.of(
                         ((Long) map.get("year")).intValue(),
                         ((Long) map.get("monthValue")).intValue(),
                         ((Long) map.get("dayOfMonth")).intValue(),
@@ -99,9 +101,9 @@ public class Util {
                         ((Long) map.get("second")).intValue(),
                         ((Long) map.get("nano")).intValue());
             }
-            else if (java.time.OffsetDateTime.class.equals(pojoClass)) {
+            else if (OffsetDateTime.class.equals(pojoClass)) {
                 String zoneOffsetId = (String)((Map<String, Object>) map.get("offset")).get("id");
-                return (T) java.time.OffsetDateTime.of(
+                return (T) OffsetDateTime.of(
                         ((Long) map.get("year")).intValue(),
                         ((Long) map.get("monthValue")).intValue(),
                         ((Long) map.get("dayOfMonth")).intValue(),
@@ -109,12 +111,12 @@ public class Util {
                         ((Long) map.get("minute")).intValue(),
                         ((Long) map.get("second")).intValue(),
                         ((Long) map.get("nano")).intValue(),
-                        java.time.ZoneOffset.of(zoneOffsetId)
+                        ZoneOffset.of(zoneOffsetId)
                 );
             }
-            else if (java.time.ZonedDateTime.class.equals(pojoClass)) {
+            else if (ZonedDateTime.class.equals(pojoClass)) {
                 String zoneId = (String)((Map<String, Object>) map.get("zone")).get("id");
-                return (T) java.time.ZonedDateTime.of(
+                return (T) ZonedDateTime.of(
                         ((Long) map.get("year")).intValue(),
                         ((Long) map.get("monthValue")).intValue(),
                         ((Long) map.get("dayOfMonth")).intValue(),
@@ -122,7 +124,7 @@ public class Util {
                         ((Long) map.get("minute")).intValue(),
                         ((Long) map.get("second")).intValue(),
                         ((Long) map.get("nano")).intValue(),
-                        java.time.ZoneId.of(zoneId)
+                        ZoneId.of(zoneId)
                 );
             }
 
@@ -183,24 +185,24 @@ public class Util {
                     return Enum.valueOf(valueClass, value.toString().toUpperCase());
                 }
             }
-            else if (java.time.OffsetDateTime.class.equals(valueClass)) {
-                return java.time.OffsetDateTime.parse(value.toString());
+            else if (OffsetDateTime.class.equals(valueClass)) {
+                return OffsetDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
             }
-            else if (java.time.LocalDateTime.class.equals(valueClass)) {
+            else if (LocalDateTime.class.equals(valueClass)) {
+                return LocalDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
+            }
+            else if (LocalDate.class.equals(valueClass)) {
+                return LocalDateTime.ofInstant(parseDate(value), ZoneId.systemDefault()).toLocalDate();
+            }
+            else if (LocalTime.class.equals(valueClass)) {
                 try {
-                    return java.time.OffsetDateTime.parse(value.toString()).toLocalDateTime();
-                } catch(java.time.format.DateTimeParseException e) {
-                    return java.time.LocalDateTime.parse(value.toString());
+                    return LocalTime.parse(value.toString());
+                } catch (DateTimeParseException e) {
+                    throw new ClassCastException("Can not convert \"" + value + "\" to LocalTime. Valid data samples: 23:59:59.007");
                 }
             }
-            else if (java.time.LocalDate.class.equals(valueClass)) {
-                return java.time.LocalDate.parse(value.toString());
-            }
-            else if (java.time.LocalTime.class.equals(valueClass)) {
-                return java.time.LocalTime.parse(value.toString());
-            }
-            else if (java.time.ZonedDateTime.class.equals(valueClass)) {
-                return java.time.ZonedDateTime.parse(value.toString());
+            else if (ZonedDateTime.class.equals(valueClass)) {
+                return ZonedDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
             }
             else if (Boolean.class.equals(valueClass) || boolean.class.equals(valueClass)) {
                 return Boolean.valueOf(value.toString());
@@ -230,19 +232,44 @@ public class Util {
                 return new java.math.BigInteger(value.toString());
             }
             else if (java.util.Date.class.isAssignableFrom(valueClass)) {
-                try {
-                    //convert long to Date if value is already long, Long
-                    return new Date((long) value);
-                } catch (java.lang.ClassCastException e) {
-                    try {
-                        return dtf.parse(value.toString());
-                    } catch (java.text.ParseException e2) {
-                        throw new IllegalArgumentException(e);
-                    }
-                }
+                return new Date(parseDate(value).toEpochMilli());
             }
             else
                 throw ex;
+        }
+    }
+
+    private static Instant parseDate(Object value) {
+        try {
+            return Instant.ofEpochMilli((long) value);
+        } catch (ClassCastException e) {
+            String sValue = value.toString();
+            try {
+                //try "2016-03-16"
+                return LocalDate.parse(sValue).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            } catch (DateTimeParseException e1) {
+                try {
+                    //try 2016-03-16T09:58:59.007
+                    return LocalDateTime.parse(sValue).atZone(ZoneId.systemDefault()).toInstant();
+                } catch (DateTimeParseException e2) {
+                    try {
+                        //try 2016-03-16T09:58:59.007+09:00
+                        return OffsetDateTime.parse(sValue).toInstant();
+                    } catch (DateTimeParseException e3) {
+                        try {
+                            //try 2016-03-16T09:58:59.007+09:00[Asia/Tokyo]
+                            return ZonedDateTime.parse(value.toString()).toInstant();
+                        } catch (DateTimeParseException e4) {
+                            try {
+                                //try "Sat Dec 30 09:58:59 JST 2016"  (the result of new Date().toString())
+                                return dtf.parse(sValue).toInstant();
+                            } catch (java.text.ParseException e5) {
+                                throw new ClassCastException("Can not convert \"" + sValue + "\" to date related type. Valid data samples: 2016-03-16, 2016-03-16T09:58:59, 2016-03-16T09:58:59.007, 2016-03-16T09:58:59.007+09:00, Sat Dec 30 09:58:59 JST 2016");
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
