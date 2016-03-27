@@ -168,17 +168,15 @@ public class Util {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
                 /**
-                 * If the property is of a generic List class
-                 * For example:
-                 *  source class (from db): java.util.List<HashMap<String, Object>>
-                 *  target class:           java.util.List<com.rethinkdb.TestPojoInner>
-                 *Then
-                 *  innerClassName = "com.rethinkdb.TestPojoInner"
+                 * If the property of a java bean(or says POJO) is a generic List class, e.g.
+                 *  java.util.List<com.rethinkdb.TestPojoInner>
+                 * So far rethinkdb java driver will only convert db data to following type for us:
+                 *  java.util.List<HashMap<String, Object>>
+                 * So it's better convert each item in the list to com.rethinkdb.TestPojoInner.
                  *
-                 * I do want to directly convert the `value` to the generic type e.g. java.util.List<TestPojoInner>,
-                 * but unfortunately,
-                 * Java can not load generic class by Class.forName("java.util.List<TestPojoInner>"),
-                 * so i have to use the fixed class, and pass inner class name to smartCast
+                 * I do want to directly convert the `value` to the generic type, but unfortunately,
+                 * Java can not load generic class by Class.forName("java.util.List<com.rethinkdb.TestPojoInner>"),
+                 * so i have to use the fixed class java.util.List, and pass listItemClassName to smartCast
                  * and let it convert each HashMap to TestPojoInner
                  */
                 String listItemClassName = null;
@@ -207,7 +205,7 @@ public class Util {
 
             if (listItemClassName != null) {
                 /**
-                 * convert every element of list to inner class instance
+                 * convert each list element to wanted item class
                  */
                 if (value instanceof List) {
 
