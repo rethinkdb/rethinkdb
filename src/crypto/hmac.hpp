@@ -1,13 +1,13 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HMAC_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HMAC_HPP
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#ifndef CRYPTO_HMAC_HPP
+#define CRYPTO_HMAC_HPP
+
+#include <openssl/sha.h>
 
 #include <array>
 #include <string>
 
-#include <openssl/sha.h>
-
-namespace auth { namespace crypto {
+namespace crypto {
 
 namespace detail {
 
@@ -42,6 +42,6 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> hmac_sha256(
 }
 
 
-} }  // namespace auth::crypto
+}  // namespace crypto
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HMAC_HPP
+#endif  // CRYPTO_HMAC_HPP

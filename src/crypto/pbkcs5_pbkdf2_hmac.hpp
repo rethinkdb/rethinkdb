@@ -1,11 +1,12 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_PKCS5_PBKDF2_HMAC_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_PKCS5_PBKDF2_HMAC_HPP
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#ifndef CRYPTO_PKCS5_PBKDF2_HMAC_HPP
+#define CRYPTO_PKCS5_PBKDF2_HMAC_HPP
 
-#include <array>
 #include <openssl/sha.h>
 
-namespace auth { namespace crypto {
+#include <array>
+
+namespace crypto {
 
 namespace detail {
 
@@ -44,6 +45,6 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> pbkcs5_pbkdf2_hmac_sha256
         iteration_count);
 }
 
-} }  // namespace auth::crypto
+}  // namespace crypto
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_PKCS5_PBKDF2_HMAC_HPP
+#endif  // CRYPTO_PKCS5_PBKDF2_HMAC_HPP

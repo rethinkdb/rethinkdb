@@ -1,7 +1,9 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/administration/auth/base64.hpp"
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#include "crypto/base64.hpp"
 
-namespace auth {
+#include "crypto/error.hpp"
+
+namespace crypto {
 
 namespace detail {
 
@@ -73,17 +75,17 @@ std::string base64_decode(std::string const &encoded) {
                             decoded.push_back((buffer >> 10) & 0x000000ff);
                             return decoded;
                         } else {
-                            // FIXME error, padding
+                            throw error_t("Invalid padding in `" + encoded + "`");
                         }
                     case 1:
                         decoded.push_back((buffer >> 16) & 0x000000ff);
                         decoded.push_back((buffer >> 8) & 0x000000ff);
                         return decoded;
                     default:
-                        ; // FIXME error, padding
+                        throw error_t("Invalid padding in `" + encoded + "`");
                 }
             } else {
-                // FIXME error, padding
+                throw error_t("Invalid padding in `" + encoded + "`");
             }
             iterator++;
         }
@@ -95,4 +97,4 @@ std::string base64_decode(std::string const &encoded) {
     return decoded;
 }
 
-}  // namespace auth
+}  // namespace crypto

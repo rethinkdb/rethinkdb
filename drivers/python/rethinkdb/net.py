@@ -504,7 +504,7 @@ class Connection(object):
     _json_decoder = ReQLDecoder
     _json_encoder = ReQLEncoder
 
-    def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
+    def __init__(self, conn_type, host, port, db, username, password, timeout, ssl, **kwargs):
         self.db = db
 
         self.host = host
@@ -525,7 +525,7 @@ class Connection(object):
 
         # self.handshake = HandshakeV0_4(host, port, auth_key)
         self.handshake = HandshakeV1_0(
-            self._json_decoder(), self._json_encoder(), host, port, "user", "pencil")
+            self._json_decoder(), self._json_encoder(), host, port, username, password)
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -618,8 +618,16 @@ class DefaultConnection(Connection):
 
 connection_type = DefaultConnection
 
-def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
-    conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
+def connect(
+        host='localhost',
+        port=28015,
+        db=None,
+        username="admin",
+        password="",
+        timeout=20,
+        ssl=dict(),
+        **kwargs):
+    conn = connection_type(host, port, db, username, password, timeout, ssl, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):

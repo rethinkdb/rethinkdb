@@ -1,10 +1,10 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_RANDOM_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_RANDOM_HPP
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#ifndef CRYPTO_RANDOM_HPP
+#define CRYPTO_RANDOM_HPP
 
 #include <array>
 
-namespace auth { namespace crypto {
+namespace crypto {
 
 namespace detail {
 
@@ -19,6 +19,6 @@ inline std::array<unsigned char, N> random_bytes() {
     return bytes;
 }
 
-} }  // namespace auth::crypto
+}  // namespace crypto
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_RANDOM_HPP
+#endif  // CRYPTO_RANDOM_HPP

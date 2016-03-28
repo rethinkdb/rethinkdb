@@ -1,13 +1,15 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/administration/auth/crypto/pbkcs5_pbkdf2_hmac.hpp"
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#include "crypto/pbkcs5_pbkdf2_hmac.hpp"
 
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-#include "clustering/administration/auth/crypto/crypto_error.hpp"
+#include "crypto/error.hpp"
+
+namespace crypto {
 
 std::array<unsigned char, SHA256_DIGEST_LENGTH>
-auth::crypto::detail::pbkcs5_pbkdf2_hmac_sha256(
+detail::pbkcs5_pbkdf2_hmac_sha256(
         char const *password,
         size_t password_size,
         unsigned char const *salt,
@@ -24,8 +26,10 @@ auth::crypto::detail::pbkcs5_pbkdf2_hmac_sha256(
             EVP_sha256(),
             SHA256_DIGEST_LENGTH,
             hmac.data()) != 1) {
-        // FIXME
+        throw openssl_error_t(ERR_get_error());
     }
 
     return hmac;
 }
+
+}  // namespace crypto

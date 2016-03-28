@@ -1,13 +1,13 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HASH_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HASH_HPP
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#ifndef CRYPTO_HASH_HPP
+#define CRYPTO_HASH_HPP
+
+#include <openssl/sha.h>
 
 #include <array>
 #include <string>
 
-#include <openssl/sha.h>
-
-namespace auth { namespace crypto {
+namespace crypto {
 
 namespace detail {
 
@@ -28,6 +28,6 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> sha256(
         reinterpret_cast<unsigned char const *>(string.data()), string.size());
 }
 
-} }  // namespace auth::crypto
+}  // namespace crypto
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_CRYPTO_HASH_HPP
+#endif  // CRYPTO_HASH_HPP

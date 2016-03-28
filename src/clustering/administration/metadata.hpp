@@ -44,12 +44,6 @@ public:
                 auth::username_t("admin"),
                 versioned_t<boost::optional<auth::user_t>>(
                     boost::make_optional(auth::user_t(auth::admin_t())))
-            }, {
-                auth::username_t("user"),
-                versioned_t<boost::optional<auth::user_t>>(
-                    boost::make_optional(auth::user_t(
-                        auth::password_t("pencil"),
-                        auth::permissions_t(true, true, true, true))))
             }
         }) {
     }

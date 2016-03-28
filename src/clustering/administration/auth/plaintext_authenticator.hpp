@@ -4,6 +4,9 @@
 
 #include <string>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/administration/auth/user.hpp"
 
 namespace auth {
@@ -18,7 +21,7 @@ public:
     bool authenticate(std::string const &password) const;
 
 private:
-    user_t m_user;
+    boost::optional<user_t> m_user;
 };
 
 }  // namespace auth

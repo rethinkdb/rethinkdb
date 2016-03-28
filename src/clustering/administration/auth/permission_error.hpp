@@ -12,7 +12,7 @@ namespace auth {
 
 class permission_error_t : public std::runtime_error {
 public:
-    permission_error_t(std::string const &permission)
+    explicit permission_error_t(std::string const &permission)
         : std::runtime_error(
             "Internal permission error, required `" + permission + "` permission.") {
     }

@@ -21,7 +21,7 @@ namespace auth {
 // permissions since it has the `"connect"` permission, be sure to construct it
 
 user_t::user_t()
-    : m_password(boost::none),
+    : m_password(),
       m_global_permissions(
         boost::indeterminate,
         boost::indeterminate,
@@ -30,7 +30,7 @@ user_t::user_t()
 }
 
 user_t::user_t(admin_t)
-    : m_password(boost::none),
+    : m_password(password_t("")),
       m_global_permissions(true, true, true, true) {
 }
 
@@ -40,7 +40,7 @@ user_t::user_t(password_t password, permissions_t global_permissions)
 }
 
 user_t::user_t(ql::datum_t const &datum)
-    : m_password(boost::none),
+    : m_password(password_t("")),
       m_global_permissions(
         boost::indeterminate,
         boost::indeterminate,
@@ -79,17 +79,10 @@ void user_t::merge(ql::datum_t const &datum) {
     }
 
     if (password.get_type() == ql::datum_t::R_STR) {
-        set_password(password.as_str().to_std());
+        set_password(password_t(password.as_str().to_std()));
     } else if (password.get_type() == ql::datum_t::R_BOOL) {
-        if (password.as_bool()) {
-            if (!static_cast<bool>(m_password)) {
-                throw admin_op_exc_t(
-                    "Expected a string to set the password or `false` to keep it "
-                    "unset, got " + password.print() + ".",
-                    query_state_t::FAILED);
-            }
-        } else {
-            set_password(boost::none);
+        if (!password.as_bool()) {
+            set_password(password_t(""));
         }
     } else {
         throw admin_op_exc_t(
@@ -98,20 +91,12 @@ void user_t::merge(ql::datum_t const &datum) {
     }
 }
 
-bool user_t::has_password() const {
-    return static_cast<bool>(m_password);
-}
-
-boost::optional<password_t> const & user_t::get_password() const {
+password_t const &user_t::get_password() const {
     return m_password;
 }
 
-void user_t::set_password(boost::optional<std::string> password) {
-    if (static_cast<bool>(password)) {
-        m_password = std::move(password.get());
-    } else {
-        m_password = boost::none;
-    }
+void user_t::set_password(password_t password) {
+    m_password = std::move(password);
 }
 
 permissions_t const &user_t::get_global_permissions() const {

@@ -28,15 +28,14 @@ class admin_t {
 class user_t {
 public:
     user_t();
-    user_t(admin_t);
+    explicit user_t(admin_t);
     user_t(password_t password, permissions_t global_permissions);
-    user_t(ql::datum_t const &datum);
+    explicit user_t(ql::datum_t const &datum);
 
     void merge(ql::datum_t const &datum);
 
-    bool has_password() const;
-    boost::optional<password_t> const &get_password() const;
-    void set_password(boost::optional<std::string> password);
+    password_t const &get_password() const;
+    void set_password(password_t password);
 
     permissions_t const &get_global_permissions() const;
     permissions_t &get_global_permissions();
@@ -78,7 +77,7 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE(user_t);
 
 private:
-    boost::optional<password_t> m_password;
+    password_t m_password;
     permissions_t m_global_permissions;
     std::map<database_id_t, permissions_t> m_database_permissions;
     std::map<namespace_id_t, permissions_t> m_table_permissions;

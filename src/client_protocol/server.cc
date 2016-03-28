@@ -15,14 +15,12 @@
 #include <random> // NOLINT(build/include_order)
 #include <set> // NOLINT(build/include_order)
 #include <string> // NOLINT(build/include_order)
-#include <limits> // NOLINT(build/include_order)
-
-#include "errors.hpp" // NOLINT(build/include_order)
-#include <boost/lexical_cast.hpp> // NOLINT(build/include_order)
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
+#include "client_protocol/client_server_error.hpp"
 #include "client_protocol/protocols.hpp"
+#include "clustering/administration/auth/authentication_error.hpp"
 #include "clustering/administration/auth/plaintext_authenticator.hpp"
 #include "clustering/administration/auth/scram_authenticator.hpp"
 #include "clustering/administration/auth/username.hpp"
@@ -30,6 +28,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/queue/limited_fifo.hpp"
+#include "crypto/error.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -188,15 +187,6 @@ size_t http_conn_cache_t::sha_hasher_t::operator()(const conn_key_t &x) const {
     return res;
 }
 
-struct client_server_exc_t : public std::exception {
-public:
-    explicit client_server_exc_t(const std::string& data) : info(data) { }
-    ~client_server_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
-private:
-    std::string info;
-};
-
 query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
                                const std::set<ip_address_t> &local_addresses,
                                int port,
@@ -241,13 +231,13 @@ ql::datum_t read_datum(tcp_conn_t *connection, signal_t *interruptor) {
         connection->read_buffered(buffer.data() + offset, 1, interruptor);
     } while (buffer[offset++] != '\0' && offset < buffer.max_size());
     if (offset == 2048) {
-        // FIXME, fail
+        throw client_protocol::client_server_error_t(7, "Limited read buffer size.");
     }
 
     rapidjson::Document document;
     document.Parse(buffer.data());
     if (document.HasParseError()) {
-        // FIXME, fail
+        throw client_protocol::client_server_error_t(8, "Invalid JSON object.");
     }
 
     return ql::to_datum(
@@ -273,20 +263,20 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         return;
     } catch (const tcp_conn_t::connect_failed_exc_t &err) {
         // TLS handshake failed.
-        logERR("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        logWRN("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
         return;
     }
 
-
     conn->enable_keepalive();
 
-    std::string error;
+    uint8_t version = 0;
+    uint32_t error_code = 0;
+    std::string error_message;
     try {
         int32_t client_magic_number;
         conn->read_buffered(
             &client_magic_number, sizeof(client_magic_number), &ct_keepalive);
 
-        uint8_t version;
         switch (client_magic_number) {
             case VersionDummy::V0_1:
                 version = 1;
@@ -304,8 +294,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 version = 10;
                 break;
             default:
-                // FIXME, how should we respond here
-                throw client_server_exc_t(
+                throw client_protocol::client_server_error_t(
+                    -1,
                     "Received an unsupported protocol version. This port is for "
                     "RethinkDB queries. Does your client driver version not match the "
                     "server?");
@@ -317,16 +307,16 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 // Version `V0_2` and above client drivers specify the authorization
                 // key, otherwise we simply try the empty password
                 if (!authenticator.authenticate("")) {
-                    throw client_server_exc_t(
-                        "Authorization required but client does not support it.");
+                    throw client_protocol::client_server_error_t(
+                        -1, "Authorization required but client does not support it.");
                 }
             } else {
                 uint32_t auth_key_size;
                 conn->read_buffered(&auth_key_size, sizeof(uint32_t), &ct_keepalive);
 
                 if (auth_key_size > 2048) {
-                    throw client_server_exc_t(
-                        "Client provided an authorization key that is too long.");
+                    throw client_protocol::client_server_error_t(
+                        -1, "Client provided an authorization key that is too long.");
                 }
 
                 scoped_array_t<char> auth_key_buffer(auth_key_size);
@@ -335,7 +325,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
                 if (!authenticator.authenticate(
                         std::string(auth_key_buffer.data(), auth_key_size))) {
-                    throw client_server_exc_t("Incorrect authorization key.");
+                    throw client_protocol::client_server_error_t(
+                        -1, "Incorrect authorization key.");
                 }
             }
 
@@ -348,11 +339,12 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     case VersionDummy::JSON:
                         break;
                     case VersionDummy::PROTOBUF:
-                        throw client_server_exc_t(
-                            "The PROTOBUF client protocol is no longer supported");
+                        throw client_protocol::client_server_error_t(
+                            -1, "The PROTOBUF client protocol is no longer supported");
                         break;
                     default:
-                        throw client_server_exc_t(
+                        throw client_protocol::client_server_error_t(
+                            -1,
                             strprintf(
                                 "Unrecognized protocol specified: '%d'", wire_protocol));
                 }
@@ -384,22 +376,31 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
                 ql::datum_t protocol_version =
                     datum.get_field("protocol_version", ql::NOTHROW);
-                if (protocol_version.get_type() != ql::datum_t::R_NUM ||
-                        protocol_version.as_num() != 0.0) {
-                    // FIXME, error protocol_version
+                if (protocol_version.get_type() != ql::datum_t::R_NUM) {
+                    throw client_protocol::client_server_error_t(
+                        1, "Expected a number for `protocol_version`.");
+                }
+                if (protocol_version.as_num() != 0.0) {
+                    throw client_protocol::client_server_error_t(
+                        2, "Unsupported `protocol_version`.");
                 }
 
                 ql::datum_t authentication_method =
                     datum.get_field("authentication_method", ql::NOTHROW);
-                if (authentication_method.get_type() != ql::datum_t::R_STR ||
-                        authentication_method.as_str() != "SCRAM-SHA-256") {
-                    // FIXME, error authentication_method
+                if (authentication_method.get_type() != ql::datum_t::R_STR) {
+                    throw client_protocol::client_server_error_t(
+                        3, "Expected a string for `authentication_method`.");
+                }
+                if (authentication_method.as_str() != "SCRAM-SHA-256") {
+                    throw client_protocol::client_server_error_t(
+                        4, "Unsupported `authentication_method`.");
                 }
 
                 ql::datum_t authentication =
                     datum.get_field("authentication", ql::NOTHROW);
                 if (authentication.get_type() != ql::datum_t::R_STR) {
-                    // FIXME, error authentication
+                    throw client_protocol::client_server_error_t(
+                        5, "Expected a string for `authentication`.");
                 }
 
                 ql::datum_object_builder_t datum_object_builder;
@@ -421,7 +422,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 ql::datum_t authentication =
                     datum.get_field("authentication", ql::NOTHROW);
                 if (authentication.get_type() != ql::datum_t::R_STR) {
-                    // FIXME, error authentication
+                    throw client_protocol::client_server_error_t(
+                        5, "Expected a string for `authentication`.");
                 }
 
                 ql::datum_object_builder_t datum_object_builder;
@@ -436,8 +438,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     std::move(datum_object_builder).to_datum(),
                     &ct_keepalive);
             }
-
-            // FIXME
         }
 
         ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
@@ -459,24 +459,50 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 : 1024,
             &query_cache,
             &ct_keepalive);
-    } catch (const client_server_exc_t &ex) {
-        // Can't write response here due to coro switching inside exception handler
-        error = strprintf("ERROR: %s\n", ex.what());
-    } catch (const interrupted_exc_t &ex) {
+    } catch (client_protocol::client_server_error_t const &error) {
+        // We can't write the response here due to coroutine switching inside an
+        // exception handler
+        error_code = error.get_error_code();
+        error_message = error.what();
+    } catch (interrupted_exc_t const &) {
         // If we have been interrupted, we can't write a message to the client, as that
         // may block (and we would just be interrupted again anyway), just close.
+    } catch (auth::authentication_error_t const &error) {
+        error_code = 9; // FIXME
+        error_message = error.what();
+    } catch (crypto::error_t const &error) {
+        error_code = 10;
+        error_message = error.what();
+    } catch (crypto::openssl_error_t const &error) {
+        error_code = 11;
+        error_message = error.code().message();
     } catch (const tcp_conn_read_closed_exc_t &) {
     } catch (const tcp_conn_write_closed_exc_t &) {
     } catch (const std::exception &ex) {
         logERR("Unexpected exception in client handler: %s", ex.what());
     }
 
-    if (!error.empty()) {
+    if (!error_message.empty()) {
         try {
-            conn->write(error.c_str(), error.length() + 1, &ct_keepalive);
+            if (version < 10) {
+                std::string error = "ERROR: " + error_message + "\n";
+                conn->write(error.c_str(), error.length() + 1, &ct_keepalive);
+            } else {
+                ql::datum_object_builder_t datum_object_builder;
+                datum_object_builder.overwrite("success", ql::datum_t::boolean(false));
+                datum_object_builder.overwrite("error", ql::datum_t(error_message));
+                datum_object_builder.overwrite(
+                    "error_code", ql::datum_t(static_cast<double>(error_code)));
+
+                write_datum(
+                    conn.get(),
+                    std::move(datum_object_builder).to_datum(),
+                    &ct_keepalive);
+            }
+
             conn->shutdown_write();
         } catch (const tcp_conn_write_closed_exc_t &) {
-            // Do nothing
+            // Writing the error message failed, there is nothing we can do at this point
         }
     }
 }

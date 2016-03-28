@@ -1,13 +1,14 @@
-#include "unicode/unistr.h"
-#include "unicode/usprep.h"
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#include "crypto/saslprep.hpp"
+
+#include <unicode/unistr.h>
+#include <unicode/usprep.h>
 
 #include <string>
 
-#include "clustering/administration/auth/crypto/crypto_error.hpp"
+#include "crypto/error.hpp"
 
-#include <iostream>
-
-namespace auth { namespace crypto {
+namespace crypto {
 
 std::string saslprep(std::string const &source) {
     // FIXME missing data
@@ -57,4 +58,4 @@ std::string saslprep(std::string const &source) {
     return destination; */
 }
 
-} }  // namespace auth::crypto
+}  // namespace crypto

@@ -50,6 +50,7 @@
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "crypto/initialization_guard.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -677,12 +678,12 @@ bool load_tls_key_and_cert(
     SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
     if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
-        return false;      
+        return false;
     }
 
     if(SSL_CTX_use_certificate_file(tls_ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
-        return false;      
+        return false;
     }
 
     if(1 != SSL_CTX_check_private_key(tls_ctx)) {
@@ -726,7 +727,7 @@ bool configure_driver_tls(
     if (ca_file) {
         if (!SSL_CTX_load_verify_locations(driver_tls, ca_file->c_str(), nullptr)) {
             ERR_print_errors_fp(stderr);
-            return false; 
+            return false;
         }
 
         // Mutual authentication.
@@ -756,7 +757,7 @@ bool configure_cluster_tls(
 
     if (!SSL_CTX_load_verify_locations(cluster_tls, ca_file->c_str(), nullptr)) {
         ERR_print_errors_fp(stderr);
-        return false; 
+        return false;
     }
 
     // Mutual authentication.
@@ -787,6 +788,7 @@ private:
 bool initialize_tls_ctx(
     const std::map<std::string, options::values_t> &opts,
     shared_ssl_ctx_t *tls_ctx_out) {
+
     tls_ctx_out->reset(SSL_CTX_new(SSLv23_method()), SSL_CTX_free);
     if (nullptr == tls_ctx_out->get()) {
         ERR_print_errors_fp(stderr);
@@ -911,11 +913,6 @@ bool initialize_tls_ctx(
 bool configure_tls(
     const std::map<std::string, options::values_t> &opts,
     tls_configs_t *tls_configs_out) {
-    // Setup OpenSSL context.
-    SSL_library_init();
-    SSL_load_error_strings();
-
-    logNTC("%s\n", SSLeay_version(SSLEAY_VERSION));
 
     if(!exists_option(opts, "--no-http-admin") && exists_option(opts, "--web-tls")) {
         if (!(initialize_tls_ctx(opts, &(tls_configs_out->web)) &&
@@ -2151,6 +2148,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         extproc_spawner_t extproc_spawner;
+
+        crypto::initialization_guard_t crypto_initialization_guard;
 
         tls_configs_t tls_configs;
         if (!configure_tls(opts, &tls_configs)) {

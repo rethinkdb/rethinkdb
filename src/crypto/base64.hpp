@@ -1,11 +1,11 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_BASE64_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_BASE64_HPP
+// Copyright 2010-2016 RethinkDB, all rights reserved.
+#ifndef CRYPTO_BASE64_HPP
+#define CRYPTO_BASE64_HPP
 
 #include <array>
 #include <string>
 
-namespace auth {
+namespace crypto {
 
 namespace detail {
 
@@ -25,6 +25,6 @@ inline std::string base64_encode(std::string const &string) {
         reinterpret_cast<unsigned char const *>(string.data()), string.size());
 }
 
-}  // namespace auth
+}  // namespace crypto
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_BASE64_HPP
+#endif  // CRYPTO_BASE64_HPP

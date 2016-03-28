@@ -340,7 +340,7 @@ metadata_file_t::metadata_file_t(
             rewrite_cluster_metadata(&write_txn, interruptor);
         } break;
     case cluster_version_t::v2_2:
-        break; // TODO, grey
+        break; // TODO(grey)
     case cluster_version_t::v2_3_is_latest_disk:
         break; // Up-to-date, do nothing
     default: unreachable();

@@ -21,7 +21,7 @@ class user_context_t
 public:
     user_context_t();
     explicit user_context_t(permissions_t permissions);
-    user_context_t(username_t username, bool read_only = false);
+    explicit user_context_t(username_t username, bool read_only = false);
 
     bool is_admin() const;
 

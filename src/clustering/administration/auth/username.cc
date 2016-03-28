@@ -1,8 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/username.hpp"
 
-#include "clustering/administration/auth/crypto/saslprep.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "crypto/saslprep.hpp"
 
 namespace auth {
 

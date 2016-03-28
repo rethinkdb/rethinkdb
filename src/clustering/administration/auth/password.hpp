@@ -14,21 +14,29 @@ namespace auth {
 class password_t
 {
 public:
-    password_t();
-    password_t(std::string const &password, uint32_t iteration_count = 4096);
+    static const uint32_t default_iteration_count = 4096;
 
+    password_t();
+    explicit password_t(
+        std::string const &password,
+        uint32_t iteration_count = default_iteration_count);
+
+    static password_t generate_password_for_unknown_user();
+
+    uint32_t get_iteration_count() const;
     std::array<unsigned char, 16> const &get_salt() const;
     std::array<unsigned char, SHA256_DIGEST_LENGTH> const &get_hash() const;
-    uint32_t get_iteration_count() const;
+    bool is_empty() const;
 
     bool operator==(password_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(password_t);
 
 private:
+    uint32_t m_iteration_count;
     std::array<unsigned char, 16> m_salt;
     std::array<unsigned char, SHA256_DIGEST_LENGTH> m_hash;
-    uint32_t m_iteration_count;
+    bool m_is_empty;
 };
 
 }  // namespace auth

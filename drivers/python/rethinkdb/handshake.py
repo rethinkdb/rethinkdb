@@ -113,7 +113,7 @@ class HandshakeV1_0(object):
             return struct.pack("<L", self.VERSION) + \
                 self._json_encoder.encode({
                     "protocol_version": self._protocol_version,
-                    "authetication_method": "SCRAM-SHA-256",
+                    "authentication_method": "SCRAM-SHA-256",
                     "authentication":
                         (b"n,," + self._client_first_message_bare).decode("ascii")
                 }).encode("utf-8") + \

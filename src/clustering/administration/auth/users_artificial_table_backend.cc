@@ -16,7 +16,7 @@ users_artificial_table_backend_t::users_artificial_table_backend_t(
 ql::datum_t user_to_datum(username_t const &username, user_t const &user) {
     ql::datum_object_builder_t builder;
     builder.overwrite("id", ql::datum_t(datum_string_t(username.to_string())));
-    builder.overwrite("password", ql::datum_t::boolean(user.has_password()));
+    builder.overwrite("password", ql::datum_t::boolean(!user.get_password().is_empty()));
     return std::move(builder).to_datum();
 }
 

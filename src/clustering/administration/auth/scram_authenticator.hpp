@@ -28,6 +28,7 @@ private:
 
     std::string m_client_first_message_bare;
     password_t m_password;
+    bool m_is_user_known;
     std::string m_nonce;
     std::string m_server_first_message;
 };
