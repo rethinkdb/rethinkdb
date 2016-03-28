@@ -244,6 +244,13 @@ class ConnectionInstance(object):
         if start_reactor:
             reactor.run()
 
+    def client_port(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[1]
+    def client_address(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[0]
+
     def _handleResponse(self, token, data):
         try:
             cursor = self._cursor_cache.get(token)
