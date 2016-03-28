@@ -1046,6 +1046,18 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func2);
         return new Reduce(arguments);
     }
+    public Fold fold(Object exprA, Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(js);
+        return new Fold(arguments);
+    }
+    public Fold fold(Object exprA, ReqlFunction2 func2) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(func2);
+        return new Fold(arguments);
+    }
     public Map map(Javascript js) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(js);

@@ -25,5 +25,29 @@ public class Union extends ReqlExpr {
     public Union(Arguments args, OptArgs optargs) {
         super(TermType.UNION, args, optargs);
     }
+public Union optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
+public Union optArg(String optname, ReqlFunction0 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
+public Union optArg(String optname, ReqlFunction1 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
+public Union optArg(String optname, ReqlFunction2 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
+public Union optArg(String optname, ReqlFunction3 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
+public Union optArg(String optname, ReqlFunction4 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Union(args, newOptargs);
+}
 
 }

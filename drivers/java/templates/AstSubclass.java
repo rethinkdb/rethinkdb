@@ -31,10 +31,12 @@ public class ${classname} extends ${superclass} {
 <%block name="static_factories"></%block>\
 <%block name="optArgs">\
 % if optargs:
-public ${classname} optArg(String optname, Object value) {
+% for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
+public ${classname} optArg(String optname, ${type} value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
     return new ${classname}(args, newOptargs);
 }
+% endfor
 % endif
 </%block>
 <%block name="special_methods" />\

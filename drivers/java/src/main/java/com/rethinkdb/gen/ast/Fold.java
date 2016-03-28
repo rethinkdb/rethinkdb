@@ -13,41 +13,41 @@ import com.rethinkdb.ast.ReqlAst;
 
 
 
-public class Distinct extends ReqlExpr {
+public class Fold extends ReqlExpr {
 
 
-    public Distinct(Object arg) {
+    public Fold(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Distinct(Arguments args){
+    public Fold(Arguments args){
         this(args, null);
     }
-    public Distinct(Arguments args, OptArgs optargs) {
-        super(TermType.DISTINCT, args, optargs);
+    public Fold(Arguments args, OptArgs optargs) {
+        super(TermType.FOLD, args, optargs);
     }
-public Distinct optArg(String optname, Object value) {
+public Fold optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
-public Distinct optArg(String optname, ReqlFunction0 value) {
+public Fold optArg(String optname, ReqlFunction0 value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
-public Distinct optArg(String optname, ReqlFunction1 value) {
+public Fold optArg(String optname, ReqlFunction1 value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
-public Distinct optArg(String optname, ReqlFunction2 value) {
+public Fold optArg(String optname, ReqlFunction2 value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
-public Distinct optArg(String optname, ReqlFunction3 value) {
+public Fold optArg(String optname, ReqlFunction3 value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
-public Distinct optArg(String optname, ReqlFunction4 value) {
+public Fold optArg(String optname, ReqlFunction4 value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
+    return new Fold(args, newOptargs);
 }
 
 }
