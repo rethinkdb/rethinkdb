@@ -32,7 +32,8 @@ class Response {
     static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public static Response parseFrom(long token, ByteBuffer buf) {
-        Response.logger.debug("JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
+        if (Response.logger.isDebugEnabled())
+            Response.logger.debug("JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
         InputStreamReader codepointReader =
             new InputStreamReader(new ByteArrayInputStream(buf.array()));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
