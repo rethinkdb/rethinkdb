@@ -39,6 +39,7 @@ class mailbox_manager_t;
 class namespace_interface_access_t;
 class real_superblock_t;
 class sindex_superblock_t;
+class table_meta_client_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
@@ -216,8 +217,9 @@ public:
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const streamspec_t &ss,
-        const namespace_id_t &uuid,
-        backtrace_id_t bt);
+        const namespace_id_t &table_id,
+        backtrace_id_t bt,
+        table_meta_client_t *table_meta_client);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(

@@ -19,7 +19,7 @@ public:
 
     permission_error_t(username_t const &username, std::string const &permission)
         : std::runtime_error(
-            "User `" + username.to_string() + "`does not have the required `" +
+            "User `" + username.to_string() + "` does not have the required `" +
                 permission + "` permission.") {
     }
 };

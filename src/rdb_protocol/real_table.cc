@@ -154,7 +154,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
     const ql::changefeed::streamspec_t &ss,
     ql::backtrace_id_t bt) {
-    return changefeed_client->new_stream(env, ss, uuid, bt);
+    return changefeed_client->new_stream(env, ss, uuid, bt, m_table_meta_client);
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(

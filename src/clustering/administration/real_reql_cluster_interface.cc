@@ -464,7 +464,8 @@ bool real_reql_cluster_interface_t::table_find(
             table_id,
             m_namespace_repo.get_namespace_interface(table_id, interruptor_on_caller),
             primary_key,
-            &m_changefeed_client));
+            &m_changefeed_client,
+            m_table_meta_client));
 
         return true;
     } CATCH_NAME_ERRORS(db->name, name, error_out)

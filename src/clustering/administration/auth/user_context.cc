@@ -35,6 +35,12 @@ void require_permission_internal(
         F permissions_selector_function,
         G username_selector_function,
         std::string const &permission_name) {
+    if (rdb_context == nullptr) {
+        // This can only happen if the environment was constructed via the constructor
+        // that exists for certain sindex and unit-testing purposes
+        return;
+    }
+
     // Note I'd preferred to have used a `boost::static_visitor`, but that would require
     // storing the functions in an `std::function`, causing an allocation
     if (auto const *permissions = boost::get<permissions_t>(&context)) {
@@ -192,6 +198,14 @@ void user_context_t::require_connect_permission(
             return user.has_connect_permission();
         },
         "connect");
+}
+
+std::string user_context_t::to_string() const {
+    if (auto const *username = boost::get<username_t>(&m_context)) {
+        return username->to_string();
+    } else {
+        return "internal";
+    }
 }
 
 RDB_IMPL_SERIALIZABLE_2(

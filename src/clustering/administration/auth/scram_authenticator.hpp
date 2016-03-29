@@ -5,28 +5,28 @@
 #include <map>
 #include <string>
 
+#include "clustering/administration/auth/base_authenticator.hpp"
 #include "clustering/administration/auth/password.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/metadata.hpp"
 
 namespace auth {
 
-class scram_authenticator_t
+class scram_authenticator_t : public base_authenticator_t
 {
 public:
     scram_authenticator_t(
         clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable);
 
-    std::string first_message(std::string const &message);
-    std::string final_message(std::string const &message);
+    /* virtual */ std::string next_message(std::string const &);
+    /* virtual */ username_t get_authenticated_username() const;
 
     static std::map<char, std::string> split_attributes(std::string const &message);
     static username_t saslname_decode(std::string const &saslname);
 
 private:
-    clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> m_auth_watchable;
-
     std::string m_client_first_message_bare;
+    username_t m_username;
     password_t m_password;
     bool m_is_user_known;
     std::string m_nonce;

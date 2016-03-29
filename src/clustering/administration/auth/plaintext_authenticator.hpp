@@ -7,21 +7,22 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "clustering/administration/auth/base_authenticator.hpp"
 #include "clustering/administration/auth/user.hpp"
 
 namespace auth {
 
-class plaintext_authenticator_t
-{
+class plaintext_authenticator_t : public base_authenticator_t {
 public:
     plaintext_authenticator_t(
         clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable,
-        std::string const &username = "admin");
+        username_t const &username = username_t("admin"));
 
-    bool authenticate(std::string const &password) const;
+    /* virtual */ std::string next_message(std::string const &);
+    /* virtual */ username_t get_authenticated_username() const;
 
 private:
-    boost::optional<user_t> m_user;
+    username_t m_username;
 };
 
 }  // namespace auth

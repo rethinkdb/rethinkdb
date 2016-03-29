@@ -270,6 +270,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     conn->enable_keepalive();
 
     uint8_t version = 0;
+    std::unique_ptr<auth::base_authenticator_t> authenticator;
     uint32_t error_code = 0;
     std::string error_message;
     try {
@@ -302,11 +303,17 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         }
 
         if (version < 10) {
-            auth::plaintext_authenticator_t authenticator(rdb_ctx->get_auth_watchable());
+            // We'll get std::make_unique in C++14
+            authenticator.reset(
+                new auth::plaintext_authenticator_t(rdb_ctx->get_auth_watchable()));
+
             if (version < 2) {
                 // Version `V0_2` and above client drivers specify the authorization
                 // key, otherwise we simply try the empty password
-                if (!authenticator.authenticate("")) {
+                try {
+                    authenticator->next_message("");
+                } catch (auth::authentication_error_t const &) {
+                    // Note we must not change this message for backwards compatibility
                     throw client_protocol::client_server_error_t(
                         -1, "Authorization required but client does not support it.");
                 }
@@ -323,8 +330,11 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 conn->read_buffered(
                     auth_key_buffer.data(), auth_key_size, &ct_keepalive);
 
-                if (!authenticator.authenticate(
-                        std::string(auth_key_buffer.data(), auth_key_size))) {
+                try {
+                    authenticator->next_message(
+                        std::string(auth_key_buffer.data(), auth_key_size));
+                } catch (auth::authentication_error_t const &) {
+                    // Note we must not change this message for backwards compatibility
                     throw client_protocol::client_server_error_t(
                         -1, "Incorrect authorization key.");
                 }
@@ -355,7 +365,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
             }
         } else {
-            auth::scram_authenticator_t authenticator(rdb_ctx->get_auth_watchable());
+            authenticator.reset(
+                new auth::scram_authenticator_t(rdb_ctx->get_auth_watchable()));
 
             {
                 ql::datum_object_builder_t datum_object_builder;
@@ -408,7 +419,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 datum_object_builder.overwrite(
                     "authentication",
                     ql::datum_t(
-                        authenticator.first_message(authentication.as_str().to_std())));
+                        authenticator->next_message(authentication.as_str().to_std())));
 
                 write_datum(
                     conn.get(),
@@ -431,7 +442,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 datum_object_builder.overwrite(
                     "authentication",
                     ql::datum_t(
-                        authenticator.final_message(authentication.as_str().to_std())));
+                        authenticator->next_message(authentication.as_str().to_std())));
 
                 write_datum(
                     conn.get(),
@@ -443,14 +454,14 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
         UNUSED bool peer_res = conn->getpeername(&client_addr_port);
 
-        auth::username_t username("admin");
+        guarantee(authenticator != nullptr);
         ql::query_cache_t query_cache(
             rdb_ctx,
             client_addr_port,
             (version < 4)
                 ? ql::return_empty_normal_batches_t::YES
                 : ql::return_empty_normal_batches_t::NO,
-            auth::user_context_t(std::move(username)));
+            auth::user_context_t(authenticator->get_authenticated_username()));
 
         connection_loop<json_protocol_t>(
             conn.get(),

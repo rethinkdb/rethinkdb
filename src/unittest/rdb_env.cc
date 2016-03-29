@@ -475,8 +475,13 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         static fake_ref_tracker_t fake_ref_tracker;
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
-        table_out->reset(new real_table_t(nil_uuid(), table_access,
-                                          it->second->get_primary_key(), nullptr));
+        table_out->reset(
+            new real_table_t(
+                nil_uuid(),
+                table_access,
+                it->second->get_primary_key(),
+                nullptr,
+                nullptr));
         return true;
     }
 }

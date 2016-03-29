@@ -53,6 +53,8 @@ public:
     void require_connect_permission(
             rdb_context_t *rdb_context) const THROWS_ONLY(permission_error_t);
 
+    std::string to_string() const;
+
     RDB_DECLARE_ME_SERIALIZABLE(user_context_t);
 
 private:
