@@ -118,7 +118,9 @@ void mandatory_digits(const std::string &s, size_t n, size_t *p_at, std::string 
     for (size_t i = 0; i < n; ++i) {
         size_t at = (*p_at)++;
         rcheck_datum(at < s.size(), base_exc_t::LOGIC,
-                     strprintf("Truncated date string `%s`.", s.c_str()));
+                     strprintf("Invalid time zone string `%s`. Valid time zones " 
+                       "are `+hh:mm`, `-hh:mm`, `+hhmm`, `-hhmm`, `+hh`, `-hh` "
+                       "and `Z`.", s.c_str()));
         char c = s[at];
         rcheck_datum('0' <= c && c <= '9', base_exc_t::LOGIC,
                      strprintf(
