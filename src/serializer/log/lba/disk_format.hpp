@@ -140,7 +140,8 @@ ATTR_PACKED(struct lba_extent_t {
     ATTR_PACKED(struct header_t {
         char magic[LBA_MAGIC_SIZE];
         char padding[sizeof(lba_entry_t) - (1 + (LBA_MAGIC_SIZE - 1) % sizeof(lba_entry_t))];
-    } header);
+    });
+    header_t header;
     lba_entry_t entries[0];
 });
 

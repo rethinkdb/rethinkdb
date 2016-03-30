@@ -4,6 +4,7 @@
 
 #include <signal.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
