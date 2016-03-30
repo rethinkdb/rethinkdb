@@ -28,8 +28,8 @@ inline fd_t socket_to_fd(SOCKET s) {
 
 typedef int fd_t;
 const fd_t INVALID_FD = -1;
-const fd_t STDOUT_FD = STDOUT_FIENO;
-const fd_t STDERR_FD = STDERR_FIENO;
+const fd_t STDOUT_FD = STDOUT_FILENO;
+const fd_t STDERR_FD = STDERR_FILENO;
 
 inline int fd_to_socket(fd_t fd) {
     return fd;
