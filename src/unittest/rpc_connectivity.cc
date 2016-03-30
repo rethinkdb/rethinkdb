@@ -648,7 +648,7 @@ TPTEST(RPCConnectivityTest, CheckHeaders) {
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -690,7 +690,7 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -746,7 +746,7 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();

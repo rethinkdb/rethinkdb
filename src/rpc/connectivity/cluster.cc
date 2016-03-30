@@ -221,7 +221,7 @@ connectivity_cluster_t::run_t::run_t(
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             _heartbeat_sl_view,
-        SSL_CTX *_tls_ctx)
+        tls_ctx_t *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),

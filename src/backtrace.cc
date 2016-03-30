@@ -227,47 +227,6 @@ backtrace_t::backtrace_t() {
     }
 }
 
-std::string backtrace_t::print_frames(bool use_addr2line) const {
-    address_to_line_t address_to_line;
-    std::string output;
-    for (size_t i = 0; i < get_num_frames(); i++) {
-        backtrace_frame_t current_frame = get_frame(i);
-        current_frame.initialize_symbols();
-
-        output.append(strprintf("%d [%p]: ", static_cast<int>(i+1), current_frame.get_addr()));
-
-        try {
-            output.append(current_frame.get_demangled_name());
-        } catch (const demangle_failed_exc_t &) {
-            if (!current_frame.get_name().empty()) {
-                output.append(current_frame.get_name() + "+" + current_frame.get_offset());
-            } else if (!current_frame.get_symbols_line().empty()) {
-                output.append(current_frame.get_symbols_line());
-            } else {
-                output.append("<unknown function>");
-            }
-        }
-
-        output.append(" at ");
-
-        std::string some_other_line;
-        if (use_addr2line) {
-            if (!current_frame.get_filename().empty()) {
-                some_other_line = address_to_line.address_to_line(current_frame.get_filename(), current_frame.get_addr());
-            }
-        }
-        if (!some_other_line.empty()) {
-            output.append(some_other_line);
-        } else {
-            output.append(strprintf("%p", current_frame.get_addr()) + " (" + current_frame.get_filename() + ")");
-        }
-
-        output.append("\n");
-    }
-
-    return output;
-}
-
 backtrace_frame_t::backtrace_frame_t(const void* _addr) :
     symbols_initialized(false),
     addr(_addr) {
@@ -372,7 +331,7 @@ void initialize_dbghelp() {
 }
 #endif
 
-std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+std::string backtrace_t::print_frames(bool use_addr2line) const {
 #ifdef _WIN32
     initialize_dbghelp();
 

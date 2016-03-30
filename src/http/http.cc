@@ -344,7 +344,7 @@ http_res_t http_error_res(const std::string &content, http_status_code_t rescode
 }
 
 http_server_t::http_server_t(
-    SSL_CTX *_tls_ctx, const std::set<ip_address_t> &local_addresses,
+    tls_ctx_t *_tls_ctx, const std::set<ip_address_t> &local_addresses,
     int port, http_app_t *_application
 ):
     application(_application),

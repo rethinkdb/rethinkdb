@@ -5,8 +5,11 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifdef ENABLE_TLS
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -30,6 +33,7 @@
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -340,6 +344,8 @@ private:
     virtual void perform_write(const void *buffer, size_t size);
 };
 
+#ifdef ENABLE_TLS
+
 /* tls_conn_wrapper_t wraps a TLS connection. */
 class tls_conn_wrapper_t {
 public:
@@ -409,18 +415,20 @@ private:
     cond_t closed;
 };
 
+#endif /* ENABLE_TLS */
+
 class linux_tcp_conn_descriptor_t {
 public:
     ~linux_tcp_conn_descriptor_t();
 
     void make_server_connection(
-        SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+        tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
     ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the server connection on.
     void make_server_connection(
-        SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+        tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
     ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
 
 private:

@@ -2,9 +2,8 @@
 #ifndef CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 
-#include <openssl/ssl.h>
-
 #include "arch/address.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/types.hpp"
 #include "containers/archive/archive.hpp"
 #include "threading.hpp"
@@ -14,7 +13,7 @@ class signal_t;
 class tcp_conn_stream_t : public read_stream_t, public write_stream_t {
 public:
     tcp_conn_stream_t(
-        SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+        tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
         signal_t *interruptor, int local_port = 0);
 
     // Takes ownership.
@@ -57,7 +56,7 @@ private:
 class keepalive_tcp_conn_stream_t : public tcp_conn_stream_t {
 public:
     keepalive_tcp_conn_stream_t(
-        SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+        tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
         signal_t *interruptor, int local_port = 0);
 
     // Takes ownership.

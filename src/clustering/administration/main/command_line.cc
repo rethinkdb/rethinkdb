@@ -8,10 +8,12 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef ENABLE_TLS
 #include <openssl/ssl.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
+#endif
 
 #ifndef _WIN32
 #include <pwd.h>
@@ -31,6 +33,7 @@
 #include <re2/re2.h>
 
 #include "arch/io/disk.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "arch/filesystem.hpp"
@@ -673,6 +676,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
         port_offset);
 }
 
+#ifdef ENABLE_TLS
 bool load_tls_key_and_cert(
     SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
     if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
@@ -956,7 +960,7 @@ bool configure_tls(
 
     return true;
 }
-
+#endif /* ENABLE_TLS */
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
@@ -1886,9 +1890,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
@@ -1978,9 +1984,11 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
@@ -2153,9 +2161,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),

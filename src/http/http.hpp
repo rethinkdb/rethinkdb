@@ -2,8 +2,6 @@
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
-#include <openssl/ssl.h>
-
 #include <map>
 #include <string>
 #include <stdexcept>
@@ -16,6 +14,7 @@
 #include <boost/optional.hpp>
 
 #include "arch/address.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
@@ -155,7 +154,7 @@ protected:
 class http_server_t {
 public:
     http_server_t(
-        SSL_CTX *tls_ctx, const std::set<ip_address_t> &local_addresses,
+        tls_ctx_t *tls_ctx, const std::set<ip_address_t> &local_addresses,
         int port, http_app_t *application);
     ~http_server_t();
     int get_port() const;
@@ -164,7 +163,7 @@ private:
     http_app_t *application;
     auto_drainer_t auto_drainer;
     scoped_ptr_t<tcp_listener_t> tcp_listener;
-    SSL_CTX *tls_ctx;
+    tls_ctx_t *tls_ctx;
 };
 
 std::string percent_escaped_string(const std::string &s);

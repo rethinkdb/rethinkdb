@@ -92,6 +92,8 @@ RT_CXXFLAGS += "-D__STDC_LIMIT_MACROS"
 RT_CXXFLAGS += "-D__STDC_FORMAT_MACROS"
 RT_CXXFLAGS += -Wall -Wextra
 
+RT_CXXFLAGS += -DENABLE_TLS
+
 # Enable RapidJSON std::string functions
 RT_CXXFLAGS += "-DRAPIDJSON_HAS_STDSTRING"
 # Set RapidJSON to exact double parsing mode

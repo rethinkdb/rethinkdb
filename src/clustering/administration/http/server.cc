@@ -12,7 +12,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
         http_app_t *reql_app,
         std::string path,
-        SSL_CTX *tls_ctx)
+        tls_ctx_t *tls_ctx)
 {
 
     file_app.init(new file_http_app_t(path));
