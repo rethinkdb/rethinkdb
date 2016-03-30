@@ -27,13 +27,13 @@ public:
 
     char *data() const { return ptr_; }
     const char *c_str() const { return ptr_; }
-    size_t size() const { return length_; }
+    int64_t size() const { return length_; }
 
     static const int STATIC_DATA_SIZE = 1000;
 
 private:
     // The number of bytes that have been appended.
-    size_t length_;
+    int64_t length_;
 
     // Either a pointer to data_, or, if length_ >= N, a pointer to an
     // array on the heap whose size is a power of two that is at least
