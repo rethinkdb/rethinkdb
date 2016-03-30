@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
+#include "utils.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
 #include "region/region.hpp"
-#include "utils.hpp"
 
 /* `region_map_t` is a mapping from contiguous non-overlapping `region_t`s to `value_t`s.
 It will automatically merge contiguous regions with the same value (in most cases).

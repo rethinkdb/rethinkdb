@@ -44,6 +44,29 @@ int pthread_join(pthread_t other, void** retval) {
     }
 }
 
+int pthread_spin_init(pthread_spinlock_t* lock, int type) {
+    rassert(type == PTHREAD_PROCESS_PRIVATE);
+    static const int spin_count = 40; // TODO WINDOWS: this spin count is arbitrary
+    InitializeCriticalSectionAndSpinCount(lock, spin_count);
+    return 0;
+}
+
+
+int pthread_spin_destroy(pthread_mutex_t* lock) {
+    DeleteCriticalSection(lock);
+    return 0;
+}
+
+int pthread_spin_lock(pthread_mutex_t* lock) {
+    EnterCriticalSection(lock);
+    return 0;
+}
+
+int pthread_spin_unlock(pthread_spinlock_t* lock) {
+    LeaveCriticalSection(lock);
+    return 0;
+}
+
 int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
     rassert(opts == nullptr, "this implementation of pthread_mutex_init does not support attributes");
     InitializeCriticalSection(mutex);
@@ -51,6 +74,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
 }
 
 int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
     return 0;
 }
 

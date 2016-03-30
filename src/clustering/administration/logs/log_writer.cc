@@ -320,7 +320,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     filename = base_path_t(logfile_name);
 
 #ifdef _WIN32
-    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     fd.reset(h);
 
     if (fd.get() == INVALID_FD) {
@@ -390,30 +390,21 @@ log_message_t fallback_log_writer_t::assemble_log_message(
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg) + "\n";
 
-#ifdef _MSC_VER
-    static int STDOUT_FILENO = -1;
-    static int STDERR_FILENO = -1;
-    if (STDOUT_FILENO == -1) {
-        STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
-        STDERR_FILENO = STDOUT_FILENO;
-    }
-#endif
-
     FILE* write_stream = nullptr;
-    int fileno = -1;
+    fd_t filefd = INVALID_FD;
     switch (msg.level) {
         case log_level_info:
             // no message on stdout/stderr
             break;
         case log_level_notice:
             write_stream = stdout;
-            fileno = STDOUT_FILENO;
+            filefd = STDOUT_FD;
             break;
         case log_level_debug:
         case log_level_warn:
         case log_level_error:
             write_stream = stderr;
-            fileno = STDERR_FILENO;
+            filefd = STDERR_FD;
             break;
         default:
             unreachable();
@@ -430,20 +421,24 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 #endif
 
 #ifdef _WIN32
-        size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
+        DWORD bytes_written = 0;
+        BOOL res = WriteFile(filefd, console_formatted.data(), console_formatted.length(), &bytes_written, nullptr);
+        if (!res || bytes_written != console_formatted.length()) {
+            error_out->assign("cannot write to stdout/stderr: " + winerr_string(GetLastError()));
+            return false;
+        }
 #else
-        ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
-#endif
-        if (write_res != static_cast<decltype(write_res)>(console_formatted.length())) {
+        ssize_t write_res = ::write(filefd, console_formatted.data(), console_formatted.length());
+        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
-
+#endif
 
 #ifdef _WIN32
         // WINDOWS TODO
 #else
-        int fsync_res = fsync(fileno);
+        int fsync_res = fsync(filefd);
         if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL ||
                 get_errno() == ENOTSUP)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
@@ -609,7 +604,11 @@ void thread_pool_log_writer_t::tail_blocking(
     try {
         scoped_fd_t fd;
 #ifdef _WIN32
-        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+        if (fd.get() == INVALID_FD) {
+            logWRN("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
+            set_errno(EIO);
+        }
 #else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));

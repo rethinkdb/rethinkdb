@@ -183,7 +183,7 @@ endif
 
 ifeq ($(SYMBOLS),1)
   # -rdynamic is necessary so that backtrace_symbols() works properly
-  ifneq ($(OS),Darwin)
+  ifeq ($(OS),Linux)
     RT_LDFLAGS += -rdynamic
   endif
   RT_CXXFLAGS += -g
@@ -300,12 +300,14 @@ $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP
 
 	$(PROTOC) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $<
 
-rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
-rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py
-rpc/mailbox/typed.hpp: $(TOP)/scripts/generate_rpc_templates.py
-rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
+$(TOP)/src/rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
+$(TOP)/src/rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py
+$(TOP)/src/rpc/mailbox/typed.hpp: $(TOP)/scripts/generate_rpc_templates.py
+$(TOP)/src/rpc/semilattice/joins/macros.hpp $(TOP)/src/rpc/serialize_macros.hpp $(TOP)/src/rpc/mailbox/typed.hpp:
 	$P GEN $@
 	$< > $@
+
+generate-headers: $(TOP)/src/rpc/semilattice/joins/macros.hpp $(TOP)/src/rpc/serialize_macros.hpp $(TOP)/src/rpc/mailbox/typed.hpp
 
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)

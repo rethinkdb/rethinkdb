@@ -101,7 +101,7 @@ ATTR_PACKED(struct lba_entry_t {
 });
 
 
-struct lba_shard_metablock_t {
+ATTR_PACKED(struct lba_shard_metablock_t {
     /* Reference to the last lba extent (that's currently being
      * written to). Once the extent is filled, the reference is
      * moved to the lba superblock, and the next block gets a
@@ -114,11 +114,11 @@ struct lba_shard_metablock_t {
     int64_t lba_superblock_offset;
     int32_t lba_superblock_entries_count;
     int32_t padding2;
-};
+});
 
-struct lba_metablock_mixin_t {
+ATTR_PACKED(struct lba_metablock_mixin_t {
     lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
-    
+
     /* Note that inline_lba_entries is not sharded into LBA_SHARD_FACTOR shards.
      * Instead it contains entries from all shards. Sharding is not necessary
      * for the inlined entries, because we do not perform any blocking operations
@@ -129,20 +129,21 @@ struct lba_metablock_mixin_t {
     lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
     int32_t inline_lba_entries_count;
     int32_t padding;
-};
+});
 
 
 #define LBA_MAGIC_SIZE 8
 static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i', 'c'};
 
-struct lba_extent_t {
+ATTR_PACKED(struct lba_extent_t {
     // Header needs to be padded to a multiple of sizeof(lba_entry_t)
-    struct header_t {
+    ATTR_PACKED(struct header_t {
         char magic[LBA_MAGIC_SIZE];
         char padding[sizeof(lba_entry_t) - (1 + (LBA_MAGIC_SIZE - 1) % sizeof(lba_entry_t))];
-    } header;
+    });
+    header_t header;
     lba_entry_t entries[0];
-};
+});
 
 
 

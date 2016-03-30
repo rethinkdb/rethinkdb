@@ -1,6 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "arch/fd_send_recv.hpp"
-
 #ifndef _WIN32
 
 #include <sys/types.h>
@@ -9,6 +7,7 @@
 #include <string.h>
 
 #include "containers/scoped.hpp"
+#include "arch/fd_send_recv.hpp"
 
 // The code for {send,recv}_fds was determined by careful reading of the man
 // pages for sendmsg(2), recvmsg(2), unix(7), and particularly cmsg(3), which

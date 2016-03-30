@@ -49,7 +49,11 @@ void debugf_prefix_buf(printf_buffer_t *buf) {
 
     format_time(t, buf, local_or_utc_time_t::local);
 
-    buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
+    if (in_thread_pool()) {
+        buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
+    } else {
+        buf->appendf(" Foreign thread: ");
+    }
 }
 
 void debugf_dump_buf(printf_buffer_t *buf) {

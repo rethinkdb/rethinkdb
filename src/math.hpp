@@ -30,7 +30,7 @@ T clamp(T x, T lo, T hi) {
     return x < lo ? lo : x > hi ? hi : x;
 }
 
-inline bool divides(int64_t x, int64_t y) {
+constexpr inline bool divides(int64_t x, int64_t y) {
     return y % x == 0;
 }
 

@@ -6,6 +6,7 @@
 
 #include <map>
 #include <string>
+#include <atomic>
 
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
@@ -45,8 +46,8 @@ public:
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
     // same thread that initial_message was delivered to, and interrupt_message will be set to
     // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
-    // set_interrupt_message() again. Returns the previous value of interrupt_message.
-    static MUST_USE os_signal_cond_t *set_interrupt_message(os_signal_cond_t *interrupt_message);
+    // exchange_interrupt_message() again. Returns the previous value of interrupt_message.
+    MUST_USE os_signal_cond_t *exchange_interrupt_message(os_signal_cond_t *interrupt_message);
 
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
     // is a thread message that will be delivered to thread zero after all of the event queues
@@ -61,6 +62,10 @@ public:
     void shutdown_thread_pool();
 
     ~linux_thread_pool_t();
+
+#ifdef _WIN32
+    static void interrupt_handler(DWORD type);
+#endif
 
 private:
 #ifndef NDEBUG
@@ -98,17 +103,26 @@ public:
     int n_threads;
     bool do_set_affinity;
 
-    // Non-inlinable getters and setters for the thread local variables.
+#ifdef _WIN32
+    static linux_thread_pool_t *get_global_thread_pool();
+#endif
+
+    // Getters and setters for the thread local variables.
     // See thread_local.hpp for an explanation of why these must not be
     // inlined.
-    static linux_thread_pool_t *get_thread_pool();
-    static void set_thread_pool(linux_thread_pool_t *val);
-    static int get_thread_id();
-    static void set_thread_id(int val);
-    static linux_thread_t *get_thread();
-    static void set_thread(linux_thread_t *val);
+    static NOINLINE linux_thread_pool_t *get_thread_pool();
+    static NOINLINE void set_thread_pool(linux_thread_pool_t *val);
+    static NOINLINE int get_thread_id();
+    static NOINLINE void set_thread_id(int val);
+    static NOINLINE linux_thread_t *get_thread();
+    static NOINLINE void set_thread(linux_thread_t *val);
 
 private:
+
+#ifdef _WIN32
+    static std::atomic<linux_thread_pool_t *> global_thread_pool;
+#endif
+
     // The thread_pool that started the thread we are currently in
     static THREAD_LOCAL linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in

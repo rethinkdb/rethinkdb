@@ -31,7 +31,12 @@ std::string filepath_file_opener_t::file_name() const {
 }
 
 std::string filepath_file_opener_t::temporary_file_name() const {
+#ifdef _WIN32
+    // TODO WINDOWS: use temporary files
+    return filepath_.permanent_path();
+#else
     return filepath_.temporary_path();
+#endif
 }
 
 std::string filepath_file_opener_t::current_file_name() const {
@@ -71,7 +76,8 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     guarantee(opened_temporary_);
 
 #ifdef _WIN32
-    // TODO WINDOWS
+    // TODO WINDOWS: temporary files are not used because, by default,
+    // files cannot be renamed while still open
 #else
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 

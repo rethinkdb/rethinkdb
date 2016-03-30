@@ -65,6 +65,8 @@
 #define TLS_ptr_with_constructor(type, name) TLS_ptr(type, name)
 #else
 #define TLS_ptr_with_constructor(type, name)                            \
+    static_assert(is_trivially_destructible<type>::value,		\
+                  "must be trivially destructible: " #type);            \
     typedef char TLS_ ## name ## _t[sizeof(type)];                      \
     TLS_ptr(TLS_ ## name ## _t, name ## _)                              \
     TLS_with_init(bool, name ## _initialised, false)                    \
@@ -135,5 +137,14 @@
     }
 
 #endif  // THREADED_COROUTINES
+
+#define GLIBCXX_4_8 20130322
+
+#if defined(_LIBCPP_TYPE_TRAITS) || defined(_MSC_VER) || __GLIBCXX__ >= GLIBCXX_4_8
+// libc++ with type traights support, visual studio and libstdc++ >= 4.8
+using std::is_trivially_destructible;
+#else
+#define is_trivially_destructible std::has_trivial_destructor
+#endif
 
 #endif /* THREAD_LOCAL_HPP_ */

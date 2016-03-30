@@ -17,6 +17,10 @@
 
 #include "arch/io/disk.hpp"
 
+#ifdef _WIN32
+#define LOCK_FILE_NAME "dirlock"
+#endif
+
 bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);
 }
@@ -93,9 +97,9 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
     }
 
 #ifdef _WIN32
-    // TODO WINDOWS: issue #5165
-    directory_fd.reset(CreateFile(directory_path.path().c_str(), GENERIC_READ, 0, nullptr,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, nullptr));
+    directory_fd.reset(CreateFile((directory_path.path() + "\\" LOCK_FILE_NAME).c_str(),
+                                  GENERIC_WRITE, 0, NULL,
+                                  CREATE_ALWAYS, FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE, NULL));
     if (directory_fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
         throw directory_open_failed_exc_t(EIO, directory_path);
@@ -114,6 +118,12 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
 directory_lock_t::~directory_lock_t() {
     // Only delete the directory if we created it and haven't finished initialization
     if (created && !initialize_done) {
+#ifdef _WIN32
+        // TODO WINDOWS: the lock is a file inside the directory,
+        // so we can't delete the directory without deleting it,
+        // but by deleting it now we unlock the directory too early
+        directory_fd.reset();
+#endif
         remove_directory_recursive(directory_path.path().c_str());
     }
 }

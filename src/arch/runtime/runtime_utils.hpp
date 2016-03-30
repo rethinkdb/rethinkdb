@@ -4,6 +4,7 @@
 
 #include <signal.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
@@ -11,12 +12,33 @@
 #ifdef _WIN32
 
 typedef HANDLE fd_t;
-#define INVALID_FD INVALID_HANDLE_VALUE
+const fd_t INVALID_FD = INVALID_HANDLE_VALUE;
+const fd_t STDOUT_FD = GetStdHandle(STD_OUTPUT_HANDLE);
+const fd_t STDERR_FD = GetStdHandle(STD_ERROR_HANDLE);
+
+inline SOCKET fd_to_socket(fd_t handle) {
+    CT_ASSERT(sizeof(SOCKET) == sizeof(HANDLE));
+    return reinterpret_cast<SOCKET>(handle);
+}
+
+inline fd_t socket_to_fd(SOCKET s) {
+    return reinterpret_cast<fd_t>(s);
+}
 
 #else
 
 typedef int fd_t;
-#define INVALID_FD fd_t(-1)
+const fd_t INVALID_FD = -1;
+const fd_t STDOUT_FD = STDOUT_FILENO;
+const fd_t STDERR_FD = STDERR_FILENO;
+
+inline int fd_to_socket(fd_t fd) {
+    return fd;
+}
+
+inline fd_t socket_to_fd(int fd) {
+    return fd;
+}
 
 #endif
 

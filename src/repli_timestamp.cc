@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <inttypes.h>
 
+#include <algorithm>
+
 #include "containers/archive/archive.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/printf_buffer.hpp"

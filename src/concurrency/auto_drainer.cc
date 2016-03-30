@@ -62,6 +62,7 @@ bool auto_drainer_t::lock_t::has_lock() const {
     return parent != nullptr;
 }
 
+
 signal_t *auto_drainer_t::lock_t::get_drain_signal() const {
     guarantee(parent, "calling `get_drain_signal()` on a nil "
         "`auto_drainer_t::lock_t`.");

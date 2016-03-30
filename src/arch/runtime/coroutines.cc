@@ -18,6 +18,7 @@
 #include "config/args.hpp"
 #include "debug.hpp"
 #include "do_on_thread.hpp"
+#include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rethinkdb_backtrace.hpp"
 #include "thread_local.hpp"
@@ -78,7 +79,11 @@ struct coro_globals_t {
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
-        { }
+        {
+#ifdef _WIN32
+            coro_initialize_for_thread();
+#endif
+        }
 
     ~coro_globals_t() {
         /* We shouldn't be shutting down from within a coroutine */
@@ -183,7 +188,7 @@ void coro_t::run() {
     coro_t *coro = TLS_get_cglobals()->current_coro;
 
 #ifndef NDEBUG
-    char dummy;  /* Make sure we're on the right stack. */
+    char dummy;
     rassert(coro->stack.address_in_stack(&dummy));
 #endif
 

@@ -52,6 +52,7 @@ class perfmon_membership_t;
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
     perfmon_collection_t();
+    explicit perfmon_collection_t(threadnum_t);
     ~perfmon_collection_t();
 
     /* Perfmon interface */

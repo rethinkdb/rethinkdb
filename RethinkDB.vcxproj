@@ -9,6 +9,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CB045D34-1C67-473B-ABAB-83F0D630596D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -32,7 +33,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;RETHINKDB_VERSION="2.2-windows-alpha2";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WINVER=0x600;_WIN32_WINNT=WINVER;RETHINKDB_VERSION="2.2.1-windows-dev";_USE_MATH_DEFINES;COMPILER_MSVC;RAPIDJSON_HAS_STDSTRING;V8_NEEDS_BUFFER_ALLOCATOR</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -42,7 +43,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/we4005 /bigobj</AdditionalOptions>
+      <AdditionalOptions>/we4005 /bigobj /Zm50</AdditionalOptions>
       <ShowIncludes>false</ShowIncludes>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
@@ -51,8 +52,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
+      <AdditionalDependencies>curl.lib;dbghelp.lib;iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;v8_base_0.lib;v8_base_1.lib;v8_base_2.lib;v8_base_3.lib;v8_snapshot.lib;v8_libbase.lib;v8_libplatform.lib;icui18n.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>

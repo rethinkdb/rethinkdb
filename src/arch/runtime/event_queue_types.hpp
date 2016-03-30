@@ -18,6 +18,11 @@ struct linux_queue_parent_t {
     virtual ~linux_queue_parent_t() {}
 };
 
+const int poll_event_in = 1;
+const int poll_event_out = 2;
+const int poll_event_err = 4;
+const int poll_event_hup = 8;
+const int poll_event_rdhup = 16;
 
 #endif  // ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP_
 

@@ -43,9 +43,12 @@ struct mutex_assertion_t : public home_thread_mixin_t {
     };
 
     explicit mutex_assertion_t(threadnum_t explicit_home_thread) :
-        home_thread_mixin_t(explicit_home_thread), locked(false) { }
+        home_thread_mixin_t(explicit_home_thread), locked(false) {
+    }
 
-    mutex_assertion_t() : locked(false) { }
+    mutex_assertion_t() : locked(false) {
+    }
+
     mutex_assertion_t(mutex_assertion_t &&movee) : locked(movee.locked) {
         rassert(!locked);
     }

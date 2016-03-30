@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <google/protobuf/stubs/common.h>
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -121,7 +122,7 @@ void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
                               0xBD, 0xBD, 0xBD, 0xBD,
                               0xBD, 0xBD, 0xBD, 0xBD };
     uint8_t zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint8_t ff_sample[16] = { 0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
@@ -629,12 +630,13 @@ int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED
 void remove_directory_recursive(const char *dirpath) {
 #ifdef _MSC_VER
     using namespace std::tr2; // NOLINT
-    std::function<void(sys::path)> go = [go](sys::path dir){
+    std::function<void(sys::path)> go = [&go](sys::path dir){
         for (auto it : sys::directory_iterator(dir)) {
             if (sys::is_directory(it.status())) {
                 go(it.path());
+            } else {
+                remove_directory_helper(it.path().string().c_str());
             }
-            remove_directory_helper(it.path().string().c_str());
         }
         remove_directory_helper(dir.string().c_str());
     };
@@ -730,4 +732,5 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=""
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
+
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

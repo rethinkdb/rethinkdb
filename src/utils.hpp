@@ -63,8 +63,8 @@ enum class query_state_t { FAILED, INDETERMINATE };
 
 class rng_t {
 public:
-// Returns a random number in [0, n).  Is not perfectly uniform; the
-// bias tends to get worse when RAND_MAX is far from a multiple of n.
+// Returns a random number in [0, n).  May not be perfectly uniform; the
+// bias might be worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
     uint64_t randuint64(uint64_t n);
     double randdouble();

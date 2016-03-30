@@ -16,6 +16,7 @@
 #include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/timing.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -25,28 +26,39 @@
 // If this is too small, you may see memory corruption and crashes when attempting
 // to format a backtrace.
 const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
-#endif  // VALGRIND
+#endif
 
-THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-THREAD_LOCAL int linux_thread_pool_t::thread_id;
-THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
+#ifdef _WIN32
+std::atomic<linux_thread_pool_t *> linux_thread_pool_t::global_thread_pool = nullptr;
 
-NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
+linux_thread_pool_t *linux_thread_pool_t::get_global_thread_pool() {
+    return global_thread_pool.load();
+}
+#endif
+
+THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool = nullptr;
+THREAD_LOCAL int linux_thread_pool_t::thread_id = -1;
+THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread = nullptr;
+
+linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
     return thread_pool;
 }
-NOINLINE void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {
+void linux_thread_pool_t::set_thread_pool(linux_thread_pool_t *val) {
+    rassert(thread_pool == nullptr || val == nullptr);
     thread_pool = val;
 }
-NOINLINE int linux_thread_pool_t::get_thread_id() {
+int linux_thread_pool_t::get_thread_id() {
     return thread_id;
 }
-NOINLINE void linux_thread_pool_t::set_thread_id(int val) {
+void linux_thread_pool_t::set_thread_id(int val) {
     thread_id = val;
 }
-NOINLINE linux_thread_t *linux_thread_pool_t::get_thread() {
+linux_thread_t *linux_thread_pool_t::get_thread() {
+    rassert(thread != nullptr);
     return thread;
 }
-NOINLINE void linux_thread_pool_t::set_thread(linux_thread_t *val) {
+void linux_thread_pool_t::set_thread(linux_thread_t *val) {
+    rassert(thread == nullptr || val == nullptr);
     thread = val;
 }
 
@@ -71,13 +83,14 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
-os_signal_cond_t *linux_thread_pool_t::set_interrupt_message(os_signal_cond_t *m) {
+os_signal_cond_t *linux_thread_pool_t::exchange_interrupt_message(os_signal_cond_t *m) {
     os_signal_cond_t *o;
     {
-        spinlock_acq_t acq(&get_thread_pool()->interrupt_message_lock);
+        spinlock_acq_t acq(&interrupt_message_lock);
 
-        o = get_thread_pool()->interrupt_message;
-        get_thread_pool()->interrupt_message = m;
+        o = interrupt_message;
+
+        interrupt_message = m;
     }
 
     return o;
@@ -243,7 +256,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // not really important.
 
     set_thread_pool(this);   // So signal handlers can find us
-#ifndef _WIN32
+#ifdef _WIN32
+    global_thread_pool.store(this);
+#else
     {
         struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
@@ -268,7 +283,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
     guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
-#ifndef _WIN32
+#ifdef _WIN32
+    global_thread_pool.store(nullptr);
+#else
     // Remove interrupt handlers
     {
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
@@ -328,7 +345,43 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif  // NDEBUG
 }
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+void linux_thread_pool_t::interrupt_handler(DWORD type) {
+    // The  handler should run on a new thread created by the OS
+    rassert(get_thread_pool() == nullptr, "The interrupt handler was called on the wrong thread.");
+
+    linux_thread_pool_t *self = global_thread_pool.load();
+
+    if (self == nullptr) {
+        logNTC("Caught signal. Waiting for initialization to complete before closing...");
+
+        const int WAIT_FOR_THREAD_POOL_MS = 10000;
+        const int NAP_TIME = 200;
+
+        for (int napped = 0; ; napped += NAP_TIME) {
+            Sleep(NAP_TIME);
+            self = global_thread_pool.load();
+            if (self != nullptr) {
+                break;
+            }
+            if (napped >= WAIT_FOR_THREAD_POOL_MS) {
+                logNTC("Waiting for initilization timed out. Stopping RethinkDB.");
+                ExitProcess(EXIT_FAILURE);
+            }
+        }
+    }
+
+    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(nullptr);
+
+    if (interrupt_signal != nullptr) {
+        interrupt_signal->source_type = type;
+        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
+    }
+}
+
+#else
+
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,
@@ -345,8 +398,8 @@ void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void 
     to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
-    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(nullptr);
-    if (interrupt_signal != nullptr) {
+    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(NULL);
+    if (interrupt_signal != NULL) {
         interrupt_signal->source_signo = signo;
         interrupt_signal->source_pid = siginfo->si_pid;
         interrupt_signal->source_uid = siginfo->si_uid;

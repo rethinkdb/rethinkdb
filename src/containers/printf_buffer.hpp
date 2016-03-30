@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 // Cannot include utils.hpp, we are included by utils.hpp.
 #include "errors.hpp"
@@ -27,13 +27,13 @@ public:
 
     char *data() const { return ptr_; }
     const char *c_str() const { return ptr_; }
-    int size() const { return length_; }
+    size_t size() const { return length_; }
 
     static const int STATIC_DATA_SIZE = 1000;
 
 private:
     // The number of bytes that have been appended.
-    int64_t length_;
+    size_t length_;
 
     // Either a pointer to data_, or, if length_ >= N, a pointer to an
     // array on the heap whose size is a power of two that is at least
