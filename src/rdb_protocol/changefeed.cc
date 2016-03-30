@@ -11,6 +11,8 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
@@ -23,12 +25,15 @@ namespace ql {
 namespace changefeed {
 
 struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index, boost::optional<uint64_t> _tag_num)
-        : val(std::move(_val)), index(std::move(_index)), tag_num(std::move(_tag_num)) {
+    indexed_datum_t(
+            datum_t _val,
+            boost::optional<std::string> _btree_index_key)
+        : val(std::move(_val)),
+          btree_index_key(std::move(_btree_index_key)) {
         guarantee(val.has());
     }
-    datum_t val, index;
-    boost::optional<uint64_t> tag_num;
+    datum_t val;
+    boost::optional<std::string> btree_index_key;
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
@@ -73,7 +78,8 @@ struct change_val_t {
           DEBUG_ONLY(, sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
         if (old_val && new_val) {
-            guarantee(old_val->index.has() == new_val->index.has());
+            guarantee(static_cast<bool>(old_val->btree_index_key)
+                == static_cast<bool>(new_val->btree_index_key));
             rassert(old_val->val != new_val->val);
         }
     }
@@ -98,7 +104,9 @@ std::string print(const datum_t &d) {
 std::string print(const indexed_datum_t &d) {
     return strprintf("indexed_datum_t(val: %s, index: %s)",
                      print(d.val).c_str(),
-                     print(d.index).c_str());
+                     d.btree_index_key
+                     ? key_to_debug_str(store_key_t(*d.btree_index_key)).c_str()
+                     : "boost::none");
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -1981,7 +1989,7 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                boost::none,
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none)
+               indexed_datum_t(resp->initial_val, boost::none)
                DEBUG_ONLY(, boost::none));
         if (start_stamp > stamp) {
             stamp = start_stamp;
@@ -2032,7 +2040,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none)
+            indexed_datum_t(initial, boost::none)
             DEBUG_ONLY(, boost::none));
         started = true;
 
@@ -2098,6 +2106,17 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
+        if (spec.intersect_geometry) {
+            try {
+                if (!geo_does_intersect(*spec.intersect_geometry, sindex_key)) {
+                    return 0;
+                }
+            } catch (const geo_exception_t &) {
+                return 0;
+            } catch (const base_exc_t &) {
+                return 0;
+            }
+        }
         return spec.datumspec.copies(sindex_key);
     }
     size_t copies(const store_key_t &pkey) const {
@@ -2754,13 +2773,12 @@ public:
             ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
-                    old_idxs, new_idxs;
+                std::vector<indexed_datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            old_idxs.push_back(idx);
+                            old_idxs.push_back(indexed_datum_t(old_val, idx.second));
                         }
                     }
                 }
@@ -2768,19 +2786,15 @@ public:
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            new_idxs.push_back(idx);
+                            new_idxs.push_back(indexed_datum_t(new_val, idx.second));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     if (!trivial) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(old_idxs.back()),
+                                    std::move(new_idxs.back()));
                     }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2789,9 +2803,7 @@ public:
                     guarantee(new_idxs.size() == 0);
                     if (old_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
+                                    std::move(old_idxs.back()),
                                     boost::none);
                     }
                     old_idxs.pop_back();
@@ -2801,9 +2813,7 @@ public:
                     if (new_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                     boost::none,
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(new_idxs.back()));
                     }
                     new_idxs.pop_back();
                 }
@@ -2811,8 +2821,8 @@ public:
                 if (!trivial) {
                     for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val, datum_t(), boost::none),
-                                    indexed_datum_t(new_val, datum_t(), boost::none));
+                                    indexed_datum_t(old_val, boost::none),
+                                    indexed_datum_t(new_val, boost::none));
                     }
                 }
             }
@@ -2820,20 +2830,21 @@ public:
         feed->on_point_sub(
             change.pkey,
             *lock,
-            std::bind(&point_sub_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      change.pkey,
-                      boost::none,
-                      change.old_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.old_val, datum_t(), boost::none))
-                          : boost::none,
-                      change.new_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.new_val, datum_t(), boost::none))
-                          : boost::none));
+            std::bind(
+                &point_sub_t::add_el,
+                ph::_1,
+                std::cref(server_uuid),
+                stamp,
+                change.pkey,
+                boost::none,
+                change.old_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.old_val, boost::none))
+                    : boost::none,
+                change.new_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.new_val, boost::none))
+                    : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
@@ -2940,10 +2951,10 @@ private:
                         cv,
                         cv.old_val && discard(
                             cv.pkey,
-                            cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                            cv.source_stamp, *cv.old_val),
                         cv.new_val && discard(
                             cv.pkey,
-                            cv.new_val->tag_num, cv.source_stamp, *cv.new_val),
+                            cv.source_stamp, *cv.new_val),
                         sub->include_types);
                     if (el.has()) {
                         batcher.note_el(el);
@@ -2997,12 +3008,11 @@ private:
     }
 
     bool discard(const store_key_t &pkey,
-                 const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
         store_key_t key;
-        if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
+        if (val.btree_index_key) {
+            key = store_key_t(*val.btree_index_key);
         } else {
             key = pkey;
         }

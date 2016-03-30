@@ -595,7 +595,16 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const intersecting_geo_read_t &gr) const {
-        return rangey_read(gr);
+        bool do_read = rangey_read(gr);
+        if (do_read) {
+            // If we're in an include_initial changefeed, we need to copy the
+            // new region onto the stamp.
+            auto *out = boost::get<intersecting_geo_read_t>(payload_out);
+            if (out->stamp) {
+                out->stamp->region = out->region;
+            }
+        }
+        return do_read;
     }
 
     bool operator()(const nearest_geo_read_t &gr) const {
@@ -1021,14 +1030,19 @@ void read_t::unshard(read_response_t *responses, size_t count,
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
+
+    // If the `rget_read_t` or `intersecting_geo_read_t` is part of an
+    // `include_initial` changefeed, we can't snapshot yet, since we first need
+    // to get the timestamps in an atomic fashion (i.e. without any writes
+    // happening before we get there). We'll instead create a snapshot later
+    // inside the `rdb_read_visitor_t`.
     bool operator()(const rget_read_t &rget) const {
-        // If the `rget_read_t` is part of an `include_initial` changefeed, we can't
-        // snapshot yet, since we first need to get the timestamps in an atomic fashion
-        // (i.e. without any writes happening before we get there).
-        // We'll instead create a snapshot later inside the `rdb_read_visitor_t`.
         return !static_cast<bool>(rget.stamp);
     }
-    bool operator()(const intersecting_geo_read_t &) const {      return true;  }
+    bool operator()(const intersecting_geo_read_t &geo_read) const {
+        return !static_cast<bool>(geo_read.stamp);
+    }
+
     bool operator()(const nearest_geo_read_t &) const {           return true;  }
     bool operator()(const changefeed_subscribe_t &) const {       return false; }
     bool operator()(const changefeed_limit_subscribe_t &) const { return false; }
@@ -1043,14 +1057,17 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 }
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
+    // `include_initial` changefeed reads must be routed to the primary, since
+    // that's where changefeeds are managed.
     bool operator()(const rget_read_t &rget) const {
-        // `include_initial` changefeed reads must be routed to the primary, since
-        // that's where changefeeds are managed.
         return static_cast<bool>(rget.stamp);
     }
+    bool operator()(const intersecting_geo_read_t &geo_read) const {
+        return static_cast<bool>(geo_read.stamp);
+    }
+
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
-    bool operator()(const intersecting_geo_read_t &) const {      return false; }
     bool operator()(const nearest_geo_read_t &) const {           return false; }
     bool operator()(const changefeed_subscribe_t &) const {       return true;  }
     bool operator()(const changefeed_limit_subscribe_t &) const { return true;  }
@@ -1447,8 +1464,8 @@ RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
     terminal,
     sindex,
     sorting);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+        intersecting_geo_read_t, stamp, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         nearest_geo_read_t, optargs, center, max_dist, max_results, geo_system,

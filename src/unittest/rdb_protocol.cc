@@ -899,7 +899,8 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                             ql::datum_t(0.0),
                                             key_range_t::closed,
                                             ql::datum_t(10.0),
-                                            key_range_t::open))}),
+                                            key_range_t::open)),
+                                    boost::none}),
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

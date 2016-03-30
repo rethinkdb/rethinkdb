@@ -433,6 +433,28 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
 
+        if (geo_read.stamp) {
+            res->stamp_response = changefeed_stamp_response_t();
+
+            store_key_t read_left = geo_read.sindex.region
+                ? geo_read.sindex.region->inner.left
+                : store_key_t::min();
+
+            changefeed_stamp_response_t r = do_stamp(
+                *geo_read.stamp,
+                geo_read.region,
+                read_left);
+            if (r.stamp_infos) {
+                res->stamp_response = r;
+            } else {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::OP_FAILED,
+                    "Feed aborted before initial values were read.",
+                    ql::backtrace_id_t::empty());
+                return;
+            }
+        }
+
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
@@ -475,6 +497,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             geo_read.terminal,
             geo_read.region.inner,
             sindex_info,
+            geo_read.stamp ? is_stamp_read_t::YES : is_stamp_read_t::NO,
             res);
     }
 

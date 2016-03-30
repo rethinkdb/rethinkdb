@@ -175,6 +175,7 @@ void rdb_get_intersecting_slice(
     const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
+    is_stamp_read_t is_stamp_read,
     rget_read_response_t *response);
 
 void rdb_get_nearest_slice(

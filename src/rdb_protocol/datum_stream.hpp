@@ -684,7 +684,7 @@ private:
         const batchspec_t &batchspec) const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-            std::vector<transform_variant_t> transforms) const;
+        std::vector<transform_variant_t> transforms) const;
 
     const std::string sindex;
     bool sent_first_read;
@@ -719,11 +719,8 @@ public:
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-        std::vector<transform_variant_t>) const {
-        rfail_datum(base_exc_t::LOGIC,
-                    "%s", "Cannot call `changes` on an intersection read.");
-        unreachable();
-    }
+        std::vector<transform_variant_t>) const;
+
 private:
     intersecting_readgen_t(
         global_optargs_t global_optargs,
@@ -883,8 +880,11 @@ protected:
 private:
     std::vector<rget_item_t> do_intersecting_read(env_t *env, const read_t &read);
 
-    // To detect duplicates
-    std::set<store_key_t> processed_pkeys;
+    // Each secondary index value might be inserted into a geospatial index multiple
+    // times, and we need to remove those duplicates across batches.
+    // We keep track of pairs of primary key and optional multi-index tags in order
+    // to detect and remove such duplicates.
+    std::set<std::pair<std::string, boost::optional<uint64_t> > > processed_pkey_tags;
 };
 
 class lazy_datum_stream_t;

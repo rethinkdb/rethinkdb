@@ -163,7 +163,8 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        datumspec_t(bounds)};
+        datumspec_t(bounds),
+        boost::none};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
