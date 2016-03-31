@@ -138,9 +138,9 @@ std::string scram_authenticator_t::next_message(std::string const &message)
                             throw authentication_error_t("invalid-encoding");
                     }
                 }
-                if (attributes.count('c') == 0
-                        || attributes.count('r')
-                        || attributes.count('p')) {
+                if (attributes.count('c') == 0 ||
+                        attributes.count('r') == 0 ||
+                        attributes.count('p') == 0) {
                     throw authentication_error_t("invalid-encoding");
                 }
 
