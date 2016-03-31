@@ -240,10 +240,14 @@ ql::datum_t read_datum(tcp_conn_t *connection, signal_t *interruptor) {
         throw client_protocol::client_server_error_t(8, "Invalid JSON object.");
     }
 
-    return ql::to_datum(
-        document,
-        ql::configured_limits_t::unlimited,
-        reql_version_t::LATEST);
+    try {
+        return ql::to_datum(
+            document,
+            ql::configured_limits_t::unlimited,
+            reql_version_t::LATEST);
+    } catch (ql::base_exc_t const &) {
+        throw client_protocol::client_server_error_t(9, "Failed to convert JSON to datum.");
+    }
 }
 
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
@@ -301,69 +305,52 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     "RethinkDB queries. Does your client driver version not match the "
                     "server?");
         }
-
-        if (version < 10) {
+        if (version < 3) {
+            // `V0_1` and `V0_2` only supported the PROTOBUF protocol
+            throw client_protocol::client_server_error_t(
+                -1, "The PROTOBUF client protocol is no longer supported");
+        } else if (version < 10) {
             // We'll get std::make_unique in C++14
             authenticator.reset(
                 new auth::plaintext_authenticator_t(rdb_ctx->get_auth_watchable()));
 
-            if (version < 2) {
-                // Version `V0_2` and above client drivers specify the authorization
-                // key, otherwise we simply try the empty password
-                try {
-                    authenticator->next_message("");
-                } catch (auth::authentication_error_t const &) {
-                    // Note we must not change this message for backwards compatibility
-                    throw client_protocol::client_server_error_t(
-                        -1, "Authorization required but client does not support it.");
-                }
-            } else {
-                uint32_t auth_key_size;
-                conn->read_buffered(&auth_key_size, sizeof(uint32_t), &ct_keepalive);
-
-                if (auth_key_size > 2048) {
-                    throw client_protocol::client_server_error_t(
-                        -1, "Client provided an authorization key that is too long.");
-                }
-
-                scoped_array_t<char> auth_key_buffer(auth_key_size);
-                conn->read_buffered(
-                    auth_key_buffer.data(), auth_key_size, &ct_keepalive);
-
-                try {
-                    authenticator->next_message(
-                        std::string(auth_key_buffer.data(), auth_key_size));
-                } catch (auth::authentication_error_t const &) {
-                    // Note we must not change this message for backwards compatibility
-                    throw client_protocol::client_server_error_t(
-                        -1, "Incorrect authorization key.");
-                }
+            uint32_t auth_key_size;
+            conn->read_buffered(&auth_key_size, sizeof(uint32_t), &ct_keepalive);
+            if (auth_key_size > 2048) {
+                throw client_protocol::client_server_error_t(
+                    -1, "Client provided an authorization key that is too long.");
             }
 
-            if (version >= 3) {
-                int32_t wire_protocol;
-                conn->read_buffered(
-                    &wire_protocol, sizeof(wire_protocol), &ct_keepalive);
+            scoped_array_t<char> auth_key_buffer(auth_key_size);
+            conn->read_buffered(auth_key_buffer.data(), auth_key_size, &ct_keepalive);
 
-                switch (wire_protocol) {
-                    case VersionDummy::JSON:
-                        break;
-                    case VersionDummy::PROTOBUF:
-                        throw client_protocol::client_server_error_t(
-                            -1, "The PROTOBUF client protocol is no longer supported");
-                        break;
-                    default:
-                        throw client_protocol::client_server_error_t(
-                            -1,
-                            strprintf(
-                                "Unrecognized protocol specified: '%d'", wire_protocol));
-                }
+            try {
+                authenticator->next_message(
+                    std::string(auth_key_buffer.data(), auth_key_size));
+            } catch (auth::authentication_error_t const &) {
+                // Note we must not change this message for backwards compatibility
+                throw client_protocol::client_server_error_t(
+                    -1, "Incorrect authorization key.");
             }
 
-            if (version >= 2) {
-                char const *success_msg = "SUCCESS";
-                conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+            int32_t wire_protocol;
+            conn->read_buffered(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
+            switch (wire_protocol) {
+                case VersionDummy::JSON:
+                    break;
+                case VersionDummy::PROTOBUF:
+                    throw client_protocol::client_server_error_t(
+                        -1, "The PROTOBUF client protocol is no longer supported");
+                    break;
+                default:
+                    throw client_protocol::client_server_error_t(
+                        -1,
+                        strprintf(
+                            "Unrecognized protocol specified: '%d'", wire_protocol));
             }
+
+            char const *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
         } else {
             authenticator.reset(
                 new auth::scram_authenticator_t(rdb_ctx->get_auth_watchable()));
@@ -479,13 +466,13 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         // If we have been interrupted, we can't write a message to the client, as that
         // may block (and we would just be interrupted again anyway), just close.
     } catch (auth::authentication_error_t const &error) {
-        error_code = 9; // FIXME
+        error_code = 10; // FIXME these need their own codes
         error_message = error.what();
     } catch (crypto::error_t const &error) {
-        error_code = 10;
+        error_code = 11;
         error_message = error.what();
     } catch (crypto::openssl_error_t const &error) {
-        error_code = 11;
+        error_code = 12;
         error_message = error.code().message();
     } catch (const tcp_conn_read_closed_exc_t &) {
     } catch (const tcp_conn_write_closed_exc_t &) {
@@ -512,6 +499,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             }
 
             conn->shutdown_write();
+        } catch (client_protocol::client_server_error_t const &error) {
+        } catch (interrupted_exc_t const &) {
         } catch (const tcp_conn_write_closed_exc_t &) {
             // Writing the error message failed, there is nothing we can do at this point
         }

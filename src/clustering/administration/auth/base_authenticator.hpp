@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "clustering/administration/auth/authentication_error.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/metadata.hpp"
 
@@ -13,18 +14,18 @@ class base_authenticator_t {
 public:
     base_authenticator_t(
             clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable)
-        : m_auth_watchable(auth_watchable),
-          m_state(0) {
+        : m_auth_watchable(auth_watchable) {
     }
     virtual ~base_authenticator_t() {
     }
 
-    virtual std::string next_message(std::string const &) = 0;
-    virtual username_t get_authenticated_username() const = 0;
+    virtual std::string next_message(std::string const &)
+            THROWS_ONLY(authentication_error_t) = 0;
+    virtual username_t get_authenticated_username() const
+            THROWS_ONLY(authentication_error_t) = 0;
 
 protected:
     clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> m_auth_watchable;
-    uint32_t m_state;
 };
 
 }  // namespace auth

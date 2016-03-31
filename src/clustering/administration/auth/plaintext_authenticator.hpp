@@ -18,11 +18,14 @@ public:
         clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable,
         username_t const &username = username_t("admin"));
 
-    /* virtual */ std::string next_message(std::string const &);
-    /* virtual */ username_t get_authenticated_username() const;
+    /* virtual */ std::string next_message(std::string const &)
+            THROWS_ONLY(authentication_error_t);
+    /* virtual */ username_t get_authenticated_username() const
+            THROWS_ONLY(authentication_error_t);
 
 private:
     username_t m_username;
+    bool m_is_authenticated;
 };
 
 }  // namespace auth

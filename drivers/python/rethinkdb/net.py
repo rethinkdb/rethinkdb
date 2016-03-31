@@ -504,7 +504,7 @@ class Connection(object):
     _json_decoder = ReQLDecoder
     _json_encoder = ReQLEncoder
 
-    def __init__(self, conn_type, host, port, db, username, password, timeout, ssl, **kwargs):
+    def __init__(self, conn_type, host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs):
         self.db = db
 
         self.host = host
@@ -523,9 +523,21 @@ class Connection(object):
         if 'json_decoder' in kwargs:
             self._json_decoder = kwargs.pop('json_decoder')
 
-        # self.handshake = HandshakeV0_4(host, port, auth_key)
-        self.handshake = HandshakeV1_0(
-            self._json_decoder(), self._json_encoder(), host, port, username, password)
+        if auth_key is None and password is None:
+            auth_key = password = ''
+        elif auth_key is None and password is not None:
+            auth_key = password
+        elif auth_key is not None and password is None:
+            password = auth_key
+        else:
+            # auth_key is not None and password is not None
+            raise ReqlDriverError("`auth_key` and `password` are both set.")
+
+        if _handshake_version == 4:
+            self.handshake = HandshakeV0_4(host, port, auth_key)
+        else:
+            self.handshake = HandshakeV1_0(
+                self._json_decoder(), self._json_encoder(), host, port, user, password)
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -622,12 +634,14 @@ def connect(
         host='localhost',
         port=28015,
         db=None,
-        username="admin",
-        password="",
+        auth_key=None,
+        user='admin',
+        password=None,
         timeout=20,
         ssl=dict(),
+        _handshake_version=10,
         **kwargs):
-    conn = connection_type(host, port, db, username, password, timeout, ssl, **kwargs)
+    conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):

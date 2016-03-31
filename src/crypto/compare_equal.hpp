@@ -9,7 +9,7 @@
 namespace crypto {
 
 template <std::size_t N>
-inline bool compare(
+inline bool compare_equal(
         std::array<unsigned char, N> const &lhs,
         std::array<unsigned char, N> const &rhs) {
     return CRYPTO_memcmp(lhs.data(), rhs.data(), lhs.size()) == 0;

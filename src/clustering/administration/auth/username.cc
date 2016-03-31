@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/username.hpp"
 
+#include "clustering/administration/auth/authentication_error.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "crypto/saslprep.hpp"
 
@@ -11,7 +12,7 @@ username_t::username_t() { }
 username_t::username_t(std::string const &username) {
     m_username = crypto::saslprep(username);
     if (m_username.empty()) {
-        // FIXME error
+        throw authentication_error_t("Empty username");
     }
 }
 

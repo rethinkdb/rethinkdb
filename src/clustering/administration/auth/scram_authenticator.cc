@@ -14,13 +14,15 @@ namespace auth {
 
 scram_authenticator_t::scram_authenticator_t(
         clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable)
-    : base_authenticator_t(auth_watchable) {
+    : base_authenticator_t(auth_watchable),
+      m_state(state_t::FIRST_MESSAGE) {
 }
 
-std::string scram_authenticator_t::next_message(std::string const &message) {
-    switch (m_state) {
-        case 0:
-            {
+std::string scram_authenticator_t::next_message(std::string const &message)
+        THROWS_ONLY(authentication_error_t) {
+    try {
+        switch (m_state) {
+            case state_t::FIRST_MESSAGE: {
                 if (message.find("n,") != 0) {
                     throw authentication_error_t("server-does-support-channel-binding");
                 }
@@ -33,7 +35,7 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
 
                 std::string client_nonce;
                 std::map<char, std::string> attributes =
-                    scram_authenticator_t::split_attributes(m_client_first_message_bare);
+                    split_attributes(m_client_first_message_bare);
                 for (auto const &attribute : attributes) {
                     switch (attribute.first) {
                         case 'n':
@@ -44,12 +46,11 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
                             break;
                         case 'm':
                             throw authentication_error_t("extensions-not-supported");
-                            break;
                         default:
                             throw authentication_error_t("invalid-encoding");
                     }
                 }
-                if (attributes.size() != 2) {
+                if (attributes.count('n') == 0 || attributes.count('r') == 0) {
                     throw authentication_error_t("invalid-encoding");
                 }
 
@@ -75,12 +76,11 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
                     ",s=" + crypto::base64_encode(m_password.get_salt()) +
                     ",i=" + std::to_string(m_password.get_iteration_count());
 
-                m_state++;
+                m_state = state_t::FINAL_MESSAGE;
 
                 return m_server_first_message;
             }
-        case 1:
-            {
+            case state_t::FINAL_MESSAGE: {
                 if (!m_is_user_known) {
                     throw authentication_error_t("unknown-user");
                 }
@@ -111,8 +111,7 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
                     client_proof[i] = (client_key[i] ^ client_signature[i]);
                 }
 
-                std::map<char, std::string> attributes =
-                    scram_authenticator_t::split_attributes(message);
+                std::map<char, std::string> attributes = split_attributes(message);
                 for (auto const &attribute : attributes) {
                     switch (attribute.first) {
                         case 'c':
@@ -131,15 +130,17 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
                                     crypto::base64_encode(client_proof)) {
                                 throw authentication_error_t("invalid-proof");
                             }
+                            m_state = state_t::AUTHENTICATED;
                             break;
                         case 'm':
                             throw authentication_error_t("extensions-not-supported");
-                            break;
                         default:
                             throw authentication_error_t("invalid-encoding");
                     }
                 }
-                if (attributes.size() != 3) {
+                if (attributes.count('c') == 0
+                        || attributes.count('r')
+                        || attributes.count('p')) {
                     throw authentication_error_t("invalid-encoding");
                 }
 
@@ -151,19 +152,28 @@ std::string scram_authenticator_t::next_message(std::string const &message) {
                 std::array<unsigned char, SHA256_DIGEST_LENGTH> server_signature =
                     crypto::hmac_sha256(server_key, auth_message);
 
-                m_state++;
-
                 return "v=" + crypto::base64_encode(server_signature);
             }
-        default:
-            unreachable();
+            case state_t::ERROR:
+                throw authentication_error_t(
+                    "A previous error occured, no more messages expected.");
+            case state_t::AUTHENTICATED:
+                throw authentication_error_t(
+                    "Already authenticated, no more messages expected.");
+        }
+    } catch (...) {
+        m_state = state_t::ERROR;
+        throw;
     }
 }
 
-/* virtual */ username_t scram_authenticator_t::get_authenticated_username() const {
-    guarantee(m_state == 2);
-
-    return m_username;
+/* virtual */ username_t scram_authenticator_t::get_authenticated_username() const
+        THROWS_ONLY(authentication_error_t) {
+    if (m_state == state_t::AUTHENTICATED) {
+        return m_username;
+    } else {
+        throw authentication_error_t("No authenticated user");
+    }
 }
 
 /* static */ std::map<char, std::string> scram_authenticator_t::split_attributes(

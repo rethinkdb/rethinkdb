@@ -12,19 +12,21 @@
 
 namespace auth {
 
-class scram_authenticator_t : public base_authenticator_t
-{
+class scram_authenticator_t : public base_authenticator_t {
 public:
     scram_authenticator_t(
         clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> auth_watchable);
 
-    /* virtual */ std::string next_message(std::string const &);
-    /* virtual */ username_t get_authenticated_username() const;
+    /* virtual */ std::string next_message(std::string const &)
+            THROWS_ONLY(authentication_error_t);
+    /* virtual */ username_t get_authenticated_username() const
+            THROWS_ONLY(authentication_error_t);
 
     static std::map<char, std::string> split_attributes(std::string const &message);
     static username_t saslname_decode(std::string const &saslname);
 
 private:
+    enum class state_t{FIRST_MESSAGE, FINAL_MESSAGE, ERROR, AUTHENTICATED} m_state;
     std::string m_client_first_message_bare;
     username_t m_username;
     password_t m_password;

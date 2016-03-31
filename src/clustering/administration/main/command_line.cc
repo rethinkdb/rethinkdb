@@ -50,7 +50,6 @@
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
-#include "crypto/initialization_guard.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -2148,8 +2147,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         extproc_spawner_t extproc_spawner;
-
-        crypto::initialization_guard_t crypto_initialization_guard;
 
         tls_configs_t tls_configs;
         if (!configure_tls(opts, &tls_configs)) {

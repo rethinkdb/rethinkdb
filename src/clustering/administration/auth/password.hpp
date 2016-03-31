@@ -14,7 +14,8 @@ namespace auth {
 class password_t
 {
 public:
-    static const uint32_t default_iteration_count = 4096;
+    static constexpr uint32_t default_iteration_count = 4096;
+    static constexpr std::size_t salt_length = 16;
 
     password_t();
     explicit password_t(
@@ -24,7 +25,7 @@ public:
     static password_t generate_password_for_unknown_user();
 
     uint32_t get_iteration_count() const;
-    std::array<unsigned char, 16> const &get_salt() const;
+    std::array<unsigned char, salt_length> const &get_salt() const;
     std::array<unsigned char, SHA256_DIGEST_LENGTH> const &get_hash() const;
     bool is_empty() const;
 
@@ -34,7 +35,7 @@ public:
 
 private:
     uint32_t m_iteration_count;
-    std::array<unsigned char, 16> m_salt;
+    std::array<unsigned char, salt_length> m_salt;
     std::array<unsigned char, SHA256_DIGEST_LENGTH> m_hash;
     bool m_is_empty;
 };

@@ -12,7 +12,7 @@ password_t::password_t() {
 
 password_t::password_t(std::string const &password, uint32_t iteration_count)
     : m_iteration_count(iteration_count),
-      m_salt(crypto::random_bytes<16>()),
+      m_salt(crypto::random_bytes<salt_length>()),
       m_hash(crypto::pbkcs5_pbkdf2_hmac_sha256(password, m_salt, m_iteration_count)),
       m_is_empty(password == "") {
 }
@@ -20,8 +20,9 @@ password_t::password_t(std::string const &password, uint32_t iteration_count)
 /* static */ password_t password_t::generate_password_for_unknown_user() {
     password_t password;
     password.m_iteration_count = password_t::default_iteration_count,
-    password.m_salt = crypto::random_bytes<16>(),
+    password.m_salt = crypto::random_bytes<salt_length>(),
     password.m_hash.fill('\0');
+    password.m_is_empty = false;
     return password;
 }
 
@@ -29,7 +30,7 @@ uint32_t password_t::get_iteration_count() const {
     return m_iteration_count;
 }
 
-std::array<unsigned char, 16> const &password_t::get_salt() const {
+std::array<unsigned char, password_t::salt_length> const &password_t::get_salt() const {
     return m_salt;
 }
 

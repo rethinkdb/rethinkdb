@@ -81,7 +81,14 @@ void user_t::merge(ql::datum_t const &datum) {
     if (password.get_type() == ql::datum_t::R_STR) {
         set_password(password_t(password.as_str().to_std()));
     } else if (password.get_type() == ql::datum_t::R_BOOL) {
-        if (!password.as_bool()) {
+        if (password.as_bool()) {
+            if (m_password.is_empty()) {
+                throw admin_op_exc_t(
+                    "Expected a string to set the password or `false` to keep it "
+                    "unset, got " + password.print() + ".",
+                    query_state_t::FAILED);
+            }
+        } else {
             set_password(password_t(""));
         }
     } else {

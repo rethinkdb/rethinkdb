@@ -24,7 +24,7 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> hmac_sha256(
         std::string const &key,
         std::array<unsigned char, N> const &data) {
     return detail::hmac_sha256(
-        key.data(),
+        reinterpret_cast<unsigned char const *>(key.data()),
         key.size(),
         data.data(),
         data.size());

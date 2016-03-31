@@ -167,7 +167,7 @@ void get_table_status(
         if (ns_if.get()->check_readiness(table_readiness_t::writes, interruptor)) {
             status_out->readiness = table_readiness_t::writes;
         } else if (ns_if.get()->check_readiness(table_readiness_t::reads, interruptor)) {
-            status_out->readiness =  table_readiness_t::reads;
+            status_out->readiness = table_readiness_t::reads;
         } else if (ns_if.get()->check_readiness(
                 table_readiness_t::outdated_reads, interruptor)) {
             status_out->readiness = table_readiness_t::outdated_reads;
