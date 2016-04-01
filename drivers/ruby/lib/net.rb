@@ -490,6 +490,13 @@ module RethinkDB
     end
     attr_reader :host, :port, :default_db, :conn_id
 
+    def client_port
+      is_open() ? @socket.addr[1] : nil
+    end
+    def client_address
+      is_open() ? @socket.addr[3] : nil
+    end
+
     def new_token
       @token_cnt_mutex.synchronize{@token_cnt += 1}
     end

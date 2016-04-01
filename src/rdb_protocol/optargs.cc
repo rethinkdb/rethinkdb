@@ -67,6 +67,7 @@ static const std::set<std::string> acceptable_optargs({
     "include_initial",
     "include_offsets",
     "include_states",
+    "include_types",
     "index",
     "interleave",
     "ordered",

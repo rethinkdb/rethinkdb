@@ -1,0 +1,11 @@
+desc: r.minval can't be confused with an empty array. This used to crash.
+table_variable_name: tbl
+tests:
+    - py: tbl.index_create("v")
+      ot: {"created": 1}
+    - py: tbl.index_wait("v")
+    - py: tbl.insert({"id": 1, "v": []})
+      ot: partial({"inserted": 1})
+    - py: tbl.between([r.minval], [r.maxval], left_bound="open", index="v").count()
+      ot: 0
+

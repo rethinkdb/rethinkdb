@@ -1,6 +1,6 @@
 require 'eventmachine'
 require 'pp'
-require_relative './importRethinkDB.rb'
+require_relative '../importRethinkDB.rb'
 
 $port ||= (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 ARGV.clear

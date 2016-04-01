@@ -59,6 +59,7 @@ def print_import_help():
     print("  --force                          import data even if a table already exists, and")
     print("                                   overwrite duplicate primary keys")
     print("  --fields                         limit which fields to use when importing one table")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("Import directory:")
     print("  -d [ --directory ] DIR           the directory to import data from")
@@ -115,6 +116,7 @@ def parse_options():
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
     parser.add_option("--max-document-size", dest="max_document_size",  default=0,type="int")
     parser.add_option("--max-nesting-depth", dest="max_nesting_depth", default=0, type="int")
@@ -122,6 +124,8 @@ def parse_options():
     # Replication settings
     parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
     parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
+
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -155,10 +159,13 @@ def parse_options():
     if options.clients < 1:
         raise RuntimeError("Error: --client option too low, must have at least one client connection")
 
+    res["tls_cert"] = ssl_option(options.tls_cert)
+
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
 
@@ -326,9 +333,9 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
         task = task_queue.get()
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability, ssl_op):
     try:
-        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
         write_count = [0]
         rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability, write_count)
     except:
@@ -510,7 +517,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
 
         # Field names may override fields from the header
         if options["custom_header"] is not None:
-            if not options["no_header"]:
+            if not options["no_header"] and not options["quiet"]:
                 print("Ignoring header row: %s" % str(fields_in))
             fields_in = options["custom_header"]
         elif options["no_header"]:
@@ -565,7 +572,7 @@ def table_reader(options, file_info, task_queue, error_queue, warning_queue, pro
         create_args = dict(options["create_args"])
         create_args["primary_key"] = file_info["info"]["primary_key"]
 
-        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
         try:
             rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
                          file_info["info"]["indexes"] if options["create_sindexes"] else [])
@@ -611,7 +618,7 @@ def print_progress(ratio):
     print("\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)), end=' ')
     sys.stdout.flush()
 
-def update_progress(progress_info):
+def update_progress(progress_info, options):
     lowest_completion = 1.0
     for current, max_count in progress_info:
         curr_val = current.value
@@ -623,7 +630,8 @@ def update_progress(progress_info):
         else:
             lowest_completion = min(lowest_completion, float(curr_val) / max_val)
 
-    print_progress(lowest_completion)
+    if not options["quiet"]:
+        print_progress(lowest_completion)
 
 def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
@@ -652,7 +660,8 @@ def spawn_import_clients(options, files_info):
                                                               error_queue,
                                                               rows_written,
                                                               options["force"],
-                                                              options["durability"])))
+                                                              options["durability"],
+                                                              options["tls_cert"])))
             client_procs[-1].start()
 
         for file_info in files_info:
@@ -677,7 +686,7 @@ def spawn_import_clients(options, files_info):
                 errors.append(error_queue.get())
 
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
-            update_progress(progress_info)
+            update_progress(progress_info, options)
 
         # Wait for all clients to finish
         alive_clients = sum([client.is_alive() for client in client_procs])
@@ -689,16 +698,17 @@ def spawn_import_clients(options, files_info):
             client_procs = [client for client in client_procs if client.is_alive()]
 
         # If we were successful, make sure 100% progress is reported
-        if len(errors) == 0 and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set() and not options["quiet"]:
             print_progress(1.0)
 
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
-        # Continue past the progress output line
-        print("")
-        print("%s imported in %s" % (plural(rows_written.value, "row"),
-                                     plural(len(files_info), "table")))
+        if not options["quiet"]:
+            # Continue past the progress output line
+            print("")
+            print("%s imported in %s" % (plural(rows_written.value, "row"),
+                                         plural(len(files_info), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -814,7 +824,7 @@ def import_directory(options):
 
         db_tables.add((file_info["db"], file_info["table"]))
 
-    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -858,7 +868,8 @@ def table_check(progress, conn, db, table, create_args, force):
         if 'primary_key' in create_args:
             pkey = create_args["primary_key"]
         else:
-            print("no primary key specified, using default primary key when creating table")
+            if not options["quiet"]:
+                print("no primary key specified, using default primary key when creating table")
         r.db(db).table_create(table, **create_args).run(conn)
 
     return pkey
@@ -868,7 +879,7 @@ def import_file(options):
     table = options["import_db_table"][1]
 
     # Ensure that the database and table exist with the right primary key
-    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    conn_fn = lambda: r.connect(options["host"], options["port"], ssl= options["tls_cert"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -905,7 +916,8 @@ def main():
         if str(ex) == "Warnings occurred during import":
             return 2
         return 1
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

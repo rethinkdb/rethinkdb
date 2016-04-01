@@ -695,8 +695,8 @@ public class MetaTable {
             /* partial({'reconfigured':0}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 0L));
             /* db.table('a').reconfigure(emergency_repair=None, shards=1, replicas=1, dry_run=True) */
-            logger.info("About to run line #123: db.table('a').reconfigure().optArg('emergency_repair', null).optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
-            Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", null).optArg("shards", 1L).optArg("replicas", 1L).optArg("dry_run", true),
+            logger.info("About to run line #123: db.table('a').reconfigure().optArg('emergency_repair', (ReqlExpr) null).optArg('shards', 1L).optArg('replicas', 1L).optArg('dry_run', true)");
+            Object obtained = runOrCatch(db.table("a").reconfigure().optArg("emergency_repair", (ReqlExpr) null).optArg("shards", 1L).optArg("replicas", 1L).optArg("dry_run", true),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1279,75 +1279,12 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #256
+            // meta/table.yaml line #262
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            logger.info("About to run line #256: db.tableDrop('a')");
+            logger.info("About to run line #262: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #256");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #256:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #260
-            /* AnythingIsFine */
-            Object expected_ = AnythingIsFine;
-            /* db.table_create('a') */
-            logger.info("About to run line #260: db.tableCreate('a')");
-            Object obtained = runOrCatch(db.tableCreate("a"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #260");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #260:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #261
-            /* AnythingIsFine */
-            Object expected_ = AnythingIsFine;
-            /* db.table_create('b') */
-            logger.info("About to run line #261: db.tableCreate('b')");
-            Object obtained = runOrCatch(db.tableCreate("b"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #261");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #261:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #262
-            /* AnythingIsFine */
-            Object expected_ = AnythingIsFine;
-            /* db.table_create('c') */
-            logger.info("About to run line #262: db.tableCreate('c')");
-            Object obtained = runOrCatch(db.tableCreate("c"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1363,19 +1300,82 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #264
+            // meta/table.yaml line #266
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
+            /* db.table_create('a') */
+            logger.info("About to run line #266: db.tableCreate('a')");
+            Object obtained = runOrCatch(db.tableCreate("a"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #266");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #266:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #267
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
+            /* db.table_create('b') */
+            logger.info("About to run line #267: db.tableCreate('b')");
+            Object obtained = runOrCatch(db.tableCreate("b"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #267");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #267:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #268
+            /* AnythingIsFine */
+            Object expected_ = AnythingIsFine;
+            /* db.table_create('c') */
+            logger.info("About to run line #268: db.tableCreate('c')");
+            Object obtained = runOrCatch(db.tableCreate("c"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #268");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #268:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #270
             /* err('ReqlQueryLogicError', 'Every table must have at least one shard.', []) */
             Err expected_ = err("ReqlQueryLogicError", "Every table must have at least one shard.", r.array());
             /* db.reconfigure(shards=0, replicas=1) */
-            logger.info("About to run line #264: db.reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
+            logger.info("About to run line #270: db.reconfigure().optArg('shards', 0L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 0L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #264");
+            logger.info("Finished running line #270");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #264:" + ae.toString());
+                logger.error("Whoops, got exception on line #270:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1384,19 +1384,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #269
+            // meta/table.yaml line #275
             /* err('ReqlQueryLogicError', '`primary_replica_tag` must be specified when `replicas` is an OBJECT.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`primary_replica_tag` must be specified when `replicas` is an OBJECT.", r.array());
             /* db.reconfigure(shards=1, replicas={"default":0}) */
-            logger.info("About to run line #269: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
+            logger.info("About to run line #275: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', 0L))");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", 0L)),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #269");
+            logger.info("Finished running line #275");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #269:" + ae.toString());
+                logger.error("Whoops, got exception on line #275:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1405,19 +1405,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #274
+            // meta/table.yaml line #280
             /* err('ReqlQueryLogicError', 'Can\'t have a negative number of replicas', []) */
             Err expected_ = err("ReqlQueryLogicError", "Can't have a negative number of replicas", r.array());
             /* db.reconfigure(shards=1, replicas={"default":-3}, primary_replica_tag='default') */
-            logger.info("About to run line #274: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
+            logger.info("About to run line #280: db.reconfigure().optArg('shards', 1L).optArg('replicas', r.hashMap('default', -3L)).optArg('primary_replica_tag', 'default')");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", r.hashMap("default", -3L)).optArg("primary_replica_tag", "default"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #274");
+            logger.info("Finished running line #280");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #274:" + ae.toString());
+                logger.error("Whoops, got exception on line #280:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1426,19 +1426,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #279
+            // meta/table.yaml line #285
             /* err('ReqlQueryLogicError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', []) */
             Err expected_ = err("ReqlQueryLogicError", "`replicas` must be an OBJECT if `primary_replica_tag` is specified.", r.array());
             /* db.reconfigure(shards=1, replicas=3, primary_replica_tag='foo') */
-            logger.info("About to run line #279: db.reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
+            logger.info("About to run line #285: db.reconfigure().optArg('shards', 1L).optArg('replicas', 3L).optArg('primary_replica_tag', 'foo')");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 1L).optArg("replicas", 3L).optArg("primary_replica_tag", "foo"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #279");
+            logger.info("Finished running line #285");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #279:" + ae.toString());
+                logger.error("Whoops, got exception on line #285:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1447,19 +1447,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #284
+            // meta/table.yaml line #290
             /* partial({'reconfigured':3}) */
             Partial expected_ = partial(r.hashMap("reconfigured", 3L));
             /* db.reconfigure(shards=2, replicas=1) */
-            logger.info("About to run line #284: db.reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
+            logger.info("About to run line #290: db.reconfigure().optArg('shards', 2L).optArg('replicas', 1L)");
             Object obtained = runOrCatch(db.reconfigure().optArg("shards", 2L).optArg("replicas", 1L),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #284");
+            logger.info("Finished running line #290");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #284:" + ae.toString());
+                logger.error("Whoops, got exception on line #290:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1468,61 +1468,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #289
+            // meta/table.yaml line #295
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('a') */
-            logger.info("About to run line #289: db.tableDrop('a')");
+            logger.info("About to run line #295: db.tableDrop('a')");
             Object obtained = runOrCatch(db.tableDrop("a"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #289");
+            logger.info("Finished running line #295");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #289:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #291
-            /* partial({'tables_dropped':1}) */
-            Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
-            /* db.table_drop('b') */
-            logger.info("About to run line #291: db.tableDrop('b')");
-            Object obtained = runOrCatch(db.tableDrop("b"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #291");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #291:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #293
-            /* partial({'tables_dropped':1}) */
-            Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
-            /* db.table_drop('c') */
-            logger.info("About to run line #293: db.tableDrop('c')");
-            Object obtained = runOrCatch(db.tableDrop("c"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #293");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #293:" + ae.toString());
+                logger.error("Whoops, got exception on line #295:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1532,11 +1490,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #297
-            /* partial({'dbs_created':1}) */
-            Partial expected_ = partial(r.hashMap("dbs_created", 1L));
-            /* r.db_create("test2") */
-            logger.info("About to run line #297: r.dbCreate('test2')");
-            Object obtained = runOrCatch(r.dbCreate("test2"),
+            /* partial({'tables_dropped':1}) */
+            Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
+            /* db.table_drop('b') */
+            logger.info("About to run line #297: db.tableDrop('b')");
+            Object obtained = runOrCatch(db.tableDrop("b"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1551,25 +1509,67 @@ public class MetaTable {
             }
         }
 
-        // meta/table.yaml line #300
+        {
+            // meta/table.yaml line #299
+            /* partial({'tables_dropped':1}) */
+            Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
+            /* db.table_drop('c') */
+            logger.info("About to run line #299: db.tableDrop('c')");
+            Object obtained = runOrCatch(db.tableDrop("c"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #299");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #299:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #303
+            /* partial({'dbs_created':1}) */
+            Partial expected_ = partial(r.hashMap("dbs_created", 1L));
+            /* r.db_create("test2") */
+            logger.info("About to run line #303: r.dbCreate('test2')");
+            Object obtained = runOrCatch(r.dbCreate("test2"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #303");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #303:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        // meta/table.yaml line #306
         // db2 = r.db("test2")
         logger.info("Possibly executing: Db db2 = (Db) (r.db('test2'));");
         Db db2 = (Db) (r.db("test2"));
 
         {
-            // meta/table.yaml line #302
+            // meta/table.yaml line #308
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create("testA") */
-            logger.info("About to run line #302: db.tableCreate('testA')");
+            logger.info("About to run line #308: db.tableCreate('testA')");
             Object obtained = runOrCatch(db.tableCreate("testA"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #302");
+            logger.info("Finished running line #308");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #302:" + ae.toString());
+                logger.error("Whoops, got exception on line #308:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1578,61 +1578,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #304
+            // meta/table.yaml line #310
             /* partial({'tables_created':1}) */
             Partial expected_ = partial(r.hashMap("tables_created", 1L));
             /* db.table_create("testB") */
-            logger.info("About to run line #304: db.tableCreate('testB')");
+            logger.info("About to run line #310: db.tableCreate('testB')");
             Object obtained = runOrCatch(db.tableCreate("testB"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #304");
+            logger.info("Finished running line #310");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #304:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #306
-            /* partial({'tables_created':1}) */
-            Partial expected_ = partial(r.hashMap("tables_created", 1L));
-            /* db2.table_create("test2B") */
-            logger.info("About to run line #306: db2.tableCreate('test2B')");
-            Object obtained = runOrCatch(db2.tableCreate("test2B"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #306");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #306:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // meta/table.yaml line #309
-            /* {'db':'test','name':'testA'} */
-            Map expected_ = r.hashMap("db", "test").with("name", "testA");
-            /* r.table('testA').config().pluck('db','name') */
-            logger.info("About to run line #309: r.table('testA').config().pluck('db', 'name')");
-            Object obtained = runOrCatch(r.table("testA").config().pluck("db", "name"),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #309");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #309:" + ae.toString());
+                logger.error("Whoops, got exception on line #310:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1642,11 +1600,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #312
-            /* err('ReqlOpFailedError', 'Table `test.doesntexist` does not exist.', []) */
-            Err expected_ = err("ReqlOpFailedError", "Table `test.doesntexist` does not exist.", r.array());
-            /* r.table('doesntexist').config() */
-            logger.info("About to run line #312: r.table('doesntexist').config()");
-            Object obtained = runOrCatch(r.table("doesntexist").config(),
+            /* partial({'tables_created':1}) */
+            Partial expected_ = partial(r.hashMap("tables_created", 1L));
+            /* db2.table_create("test2B") */
+            logger.info("About to run line #312: db2.tableCreate('test2B')");
+            Object obtained = runOrCatch(db2.tableCreate("test2B"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1663,11 +1621,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #315
-            /* err('ReqlOpFailedError', 'Table `test.test2B` does not exist.', []) */
-            Err expected_ = err("ReqlOpFailedError", "Table `test.test2B` does not exist.", r.array());
-            /* r.table('test2B').config() */
-            logger.info("About to run line #315: r.table('test2B').config()");
-            Object obtained = runOrCatch(r.table("test2B").config(),
+            /* {'db':'test','name':'testA'} */
+            Map expected_ = r.hashMap("db", "test").with("name", "testA");
+            /* r.table('testA').config().pluck('db','name') */
+            logger.info("About to run line #315: r.table('testA').config().pluck('db', 'name')");
+            Object obtained = runOrCatch(r.table("testA").config().pluck("db", "name"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1684,11 +1642,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #318
-            /* True */
-            Boolean expected_ = true;
-            /* r.db('rethinkdb').table('table_config').filter({'name':'testA'}).nth(0).eq(r.table('testA').config()) */
-            logger.info("About to run line #318: r.db('rethinkdb').table('table_config').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').config())");
-            Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").config()),
+            /* err('ReqlOpFailedError', 'Table `test.doesntexist` does not exist.', []) */
+            Err expected_ = err("ReqlOpFailedError", "Table `test.doesntexist` does not exist.", r.array());
+            /* r.table('doesntexist').config() */
+            logger.info("About to run line #318: r.table('doesntexist').config()");
+            Object obtained = runOrCatch(r.table("doesntexist").config(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1705,11 +1663,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #321
-            /* True */
-            Boolean expected_ = true;
-            /* r.db('rethinkdb').table('table_status').filter({'name':'testA'}).nth(0).eq(r.table('testA').status()) */
-            logger.info("About to run line #321: r.db('rethinkdb').table('table_status').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').status())");
-            Object obtained = runOrCatch(r.db("rethinkdb").table("table_status").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").status()),
+            /* err('ReqlOpFailedError', 'Table `test.test2B` does not exist.', []) */
+            Err expected_ = err("ReqlOpFailedError", "Table `test.test2B` does not exist.", r.array());
+            /* r.table('test2B').config() */
+            logger.info("About to run line #321: r.table('test2B').config()");
+            Object obtained = runOrCatch(r.table("test2B").config(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1726,11 +1684,11 @@ public class MetaTable {
 
         {
             // meta/table.yaml line #324
-            /* uuid() */
-            UUIDMatch expected_ = uuid();
-            /* r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"] */
-            logger.info("About to run line #324: r.db('rethinkdb').table('table_config').optArg('identifier_format', 'uuid').nth(0L).bracket('db')");
-            Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").optArg("identifier_format", "uuid").nth(0L).bracket("db"),
+            /* True */
+            Boolean expected_ = true;
+            /* r.db('rethinkdb').table('table_config').filter({'name':'testA'}).nth(0).eq(r.table('testA').config()) */
+            logger.info("About to run line #324: r.db('rethinkdb').table('table_config').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').config())");
+            Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").config()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1746,19 +1704,61 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #329
+            // meta/table.yaml line #327
+            /* True */
+            Boolean expected_ = true;
+            /* r.db('rethinkdb').table('table_status').filter({'name':'testA'}).nth(0).eq(r.table('testA').status()) */
+            logger.info("About to run line #327: r.db('rethinkdb').table('table_status').filter(r.hashMap('name', 'testA')).nth(0L).eq(r.table('testA').status())");
+            Object obtained = runOrCatch(r.db("rethinkdb").table("table_status").filter(r.hashMap("name", "testA")).nth(0L).eq(r.table("testA").status()),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #327");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #327:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #330
+            /* uuid() */
+            UUIDMatch expected_ = uuid();
+            /* r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"] */
+            logger.info("About to run line #330: r.db('rethinkdb').table('table_config').optArg('identifier_format', 'uuid').nth(0L).bracket('db')");
+            Object obtained = runOrCatch(r.db("rethinkdb").table("table_config").optArg("identifier_format", "uuid").nth(0L).bracket("db"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #330");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #330:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // meta/table.yaml line #335
             /* 0 */
             Long expected_ = 0L;
             /* r.table('testA', identifier_format='uuid').count() */
-            logger.info("About to run line #329: r.table('testA').optArg('identifier_format', 'uuid').count()");
+            logger.info("About to run line #335: r.table('testA').optArg('identifier_format', 'uuid').count()");
             Object obtained = runOrCatch(r.table("testA").optArg("identifier_format", "uuid").count(),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #329");
+            logger.info("Finished running line #335");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #329:" + ae.toString());
+                logger.error("Whoops, got exception on line #335:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1767,19 +1767,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #339
+            // meta/table.yaml line #348
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('testA') */
-            logger.info("About to run line #339: db.tableDrop('testA')");
+            logger.info("About to run line #348: db.tableDrop('testA')");
             Object obtained = runOrCatch(db.tableDrop("testA"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #339");
+            logger.info("Finished running line #348");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #339:" + ae.toString());
+                logger.error("Whoops, got exception on line #348:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1788,19 +1788,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #342
+            // meta/table.yaml line #351
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* db.table_drop('testB') */
-            logger.info("About to run line #342: db.tableDrop('testB')");
+            logger.info("About to run line #351: db.tableDrop('testB')");
             Object obtained = runOrCatch(db.tableDrop("testB"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #342");
+            logger.info("Finished running line #351");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #342:" + ae.toString());
+                logger.error("Whoops, got exception on line #351:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -1809,19 +1809,19 @@ public class MetaTable {
         }
 
         {
-            // meta/table.yaml line #345
+            // meta/table.yaml line #354
             /* partial({'dbs_dropped':1,'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("dbs_dropped", 1L).with("tables_dropped", 1L));
             /* r.db_drop('test2') */
-            logger.info("About to run line #345: r.dbDrop('test2')");
+            logger.info("About to run line #354: r.dbDrop('test2')");
             Object obtained = runOrCatch(r.dbDrop("test2"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #345");
+            logger.info("Finished running line #354");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #345:" + ae.toString());
+                logger.error("Whoops, got exception on line #354:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

@@ -13,6 +13,8 @@
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
@@ -25,12 +27,15 @@ namespace ql {
 namespace changefeed {
 
 struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index, boost::optional<uint64_t> _tag_num)
-        : val(std::move(_val)), index(std::move(_index)), tag_num(std::move(_tag_num)) {
+    indexed_datum_t(
+            datum_t _val,
+            boost::optional<std::string> _btree_index_key)
+        : val(std::move(_val)),
+          btree_index_key(std::move(_btree_index_key)) {
         guarantee(val.has());
     }
-    datum_t val, index;
-    boost::optional<uint64_t> tag_num;
+    datum_t val;
+    boost::optional<std::string> btree_index_key;
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
@@ -75,7 +80,8 @@ struct change_val_t {
           DEBUG_ONLY(, sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
         if (old_val && new_val) {
-            guarantee(old_val->index.has() == new_val->index.has());
+            guarantee(static_cast<bool>(old_val->btree_index_key)
+                == static_cast<bool>(new_val->btree_index_key));
             rassert(old_val->val != new_val->val);
         }
     }
@@ -100,7 +106,9 @@ std::string print(const datum_t &d) {
 std::string print(const indexed_datum_t &d) {
     return strprintf("indexed_datum_t(val: %s, index: %s)",
                      print(d.val).c_str(),
-                     print(d.index).c_str());
+                     d.btree_index_key
+                     ? key_to_debug_str(store_key_t(*d.btree_index_key)).c_str()
+                     : "boost::none");
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -158,51 +166,6 @@ std::string print(const change_val_t &cv) {
 template<class T>
 void debug_print(printf_buffer_t *buf, const T &t) {
     buf->appendf("%s", debug::print(t).c_str());
-}
-
-datum_t vals_to_change(
-    datum_t old_val,
-    datum_t new_val,
-    bool discard_old_val = false,
-    bool discard_new_val = false,
-    bool include_offsets = false,
-    boost::optional<size_t> old_offset = boost::none,
-    boost::optional<size_t> new_offset = boost::none) {
-    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
-        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
-        return datum_t();
-    } else {
-        std::map<datum_string_t, datum_t> ret;
-        if (!discard_old_val) {
-            ret[datum_string_t("old_val")] = std::move(old_val);
-            if (include_offsets) {
-                ret[datum_string_t("old_offset")] = old_offset
-                    ? datum_t(static_cast<double>(*old_offset))
-                    : datum_t::null();
-            }
-        }
-        if (!discard_new_val) {
-            ret[datum_string_t("new_val")] = std::move(new_val);
-            if (include_offsets) {
-                ret[datum_string_t("new_offset")] = new_offset
-                    ? datum_t(static_cast<double>(*new_offset))
-                    : datum_t::null();
-            }
-        }
-        guarantee(ret.size() != 0);
-        return datum_t(std::move(ret));
-    }
-}
-
-datum_t change_val_to_change(
-    const change_val_t &change,
-    bool discard_old_val = false,
-    bool discard_new_val = false) {
-    return vals_to_change(
-        change.old_val ? change.old_val->val : datum_t::null(),
-        change.new_val ? change.new_val->val : datum_t::null(),
-        discard_old_val,
-        discard_new_val);
 }
 
 enum class pop_type_t { RANGE, POINT };
@@ -1315,6 +1278,15 @@ protected:
     }
 };
 
+enum class change_type_t {
+    ADD = 0,
+    REMOVE = 1,
+    CHANGE = 2,
+    INITIAL = 3,
+    UNINITIAL = 4,
+    STATE = 5
+};
+
 // Uses the home thread of the subscriber, not the client.
 class feed_t;
 class subscription_t : public home_thread_mixin_t {
@@ -1357,11 +1329,13 @@ protected:
                    feed_t *feed,
                    configured_limits_t limits,
                    const datum_t &squash,
-                   bool include_states);
+                   bool include_states,
+                   bool include_types);
     void maybe_signal_cond() THROWS_NOTHING;
     void maybe_signal_queue_nearly_full_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
 
+    datum_t maybe_add_type(datum_t &&datum, change_type_t type);
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
     std::exception_ptr exc;
     // If we exceed the array size limit, elements are evicted from `els` and
@@ -1373,6 +1347,7 @@ protected:
     const configured_limits_t limits;
     const bool squash; // Whether or not to squash changes.
     const bool include_states; // Whether or not to include notes about the state.
+    const bool include_types; // Whether or not to include a type field in items.
     // Whether we're in the middle of one logical batch (only matters for squashing).
     bool mid_batch;
 private:
@@ -1391,6 +1366,127 @@ private:
     cond_t *queue_nearly_full_cond;
     DISABLE_COPYING(subscription_t);
 };
+
+datum_string_t type_to_string(change_type_t type) {
+    datum_string_t type_string;
+    switch (type) {
+    case change_type_t::ADD:
+        type_string = datum_string_t("add");
+        break;
+    case change_type_t::REMOVE:
+        type_string = datum_string_t("remove");
+        break;
+    case change_type_t::CHANGE:
+        type_string = datum_string_t("change");
+        break;
+    case change_type_t::INITIAL:
+        type_string = datum_string_t("initial");
+        break;
+    case change_type_t::UNINITIAL:
+        type_string = datum_string_t("uninitial");
+        break;
+    case change_type_t::STATE:
+        type_string = datum_string_t("state");
+        break;
+    default:
+        unreachable();
+    }
+
+    return type_string;
+}
+datum_t add_type(datum_t &&datum, change_type_t type) {
+    datum_string_t type_string = type_to_string(type);
+    return datum.merge(
+        datum_t{
+            std::map<datum_string_t, datum_t>{
+                std::pair<datum_string_t, datum_t>{
+                    datum_string_t("type"),
+                        datum_t(type_string)}}});
+}
+
+datum_t subscription_t::maybe_add_type(datum_t &&datum, change_type_t type) {
+    if (!include_types) {
+        return std::move(datum);
+    }
+    return add_type(std::move(datum), type);
+}
+
+
+datum_t vals_to_change(
+    datum_t old_val,
+    datum_t new_val,
+    bool discard_old_val = false,
+    bool discard_new_val = false,
+    bool include_type = false,
+    bool include_offsets = false,
+    boost::optional<size_t> old_offset = boost::none,
+    boost::optional<size_t> new_offset = boost::none) {
+    change_type_t change_type;
+
+    if (discard_old_val && !discard_new_val) {
+        change_type = change_type_t::INITIAL;
+        old_val = datum_t::null();
+    } else if (!discard_old_val && discard_new_val) {
+        change_type = change_type_t::UNINITIAL;
+        new_val = datum_t::null();
+    } else if (!discard_old_val
+               && old_val.get_type() == datum_t::R_NULL) {
+        change_type = change_type_t::ADD;
+    } else if (!discard_new_val
+               && new_val.get_type() == datum_t::R_NULL) {
+        change_type = change_type_t::REMOVE;
+    } else {
+        // Either it's a change, or we're about to return.
+        change_type = change_type_t::CHANGE;
+    }
+    // Status type is handled where statuses are generated.
+
+    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
+        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
+        return datum_t();
+    } else {
+        std::map<datum_string_t, datum_t> ret;
+        if (!discard_old_val) {
+            ret[datum_string_t("old_val")] = std::move(old_val);
+            if (include_offsets) {
+                ret[datum_string_t("old_offset")] = old_offset
+                    ? datum_t(static_cast<double>(*old_offset))
+                    : datum_t::null();
+            }
+        }
+        if (!discard_new_val) {
+            ret[datum_string_t("new_val")] = std::move(new_val);
+            if (include_offsets) {
+                ret[datum_string_t("new_offset")] = new_offset
+                    ? datum_t(static_cast<double>(*new_offset))
+                    : datum_t::null();
+            }
+        }
+        guarantee(ret.size() != 0);
+
+        if (include_type) {
+            ret[datum_string_t("type")] =
+                datum_t(
+                    type_to_string(change_type));
+        }
+        datum_t ret_datum = datum_t(std::move(ret));
+        return ret_datum;
+    }
+}
+
+datum_t change_val_to_change(
+    const change_val_t &change,
+    bool discard_old_val = false,
+    bool discard_new_val = false,
+    bool include_type = false) {
+    datum_t res = vals_to_change(
+        change.old_val ? change.old_val->val : datum_t::null(),
+        change.new_val ? change.new_val->val : datum_t::null(),
+        discard_old_val,
+        discard_new_val,
+        include_type);
+    return res;
+}
 
 enum class init_squashing_queue_t { NO, YES };
 class flat_sub_t : public subscription_t {
@@ -1749,11 +1845,17 @@ public:
                 feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
-                bool include_states)
+                bool include_states,
+                bool include_types)
     // There will never be any changes, safe to start squashing right away.
     : flat_sub_t(init_squashing_queue_t::YES,
-                 rdb_context, user_context, feed, std::move(limits), squash,
-                 include_states),
+                 rdb_context,
+                 user_context,
+                 feed,
+                 std::move(limits),
+                 squash,
+                 include_states,
+                 include_types),
       state(state_t::INITIALIZING),
       sent_state(state_t::NONE),
       include_initial(false) {
@@ -1770,7 +1872,9 @@ public:
         if (state != sent_state && include_states) {
             sent_state = state;
             state = state_t::READY;
-            return state_datum(sent_state);
+            return maybe_add_type(
+                state_datum(sent_state),
+                change_type_t::STATE);
         }
         r_sanity_fail();
     }
@@ -1825,11 +1929,17 @@ public:
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
+                bool include_types,
                 datum_t _pkey)
         // For point changefeeds we start squashing right away.
         : flat_sub_t(init_squashing_queue_t::YES,
-                     rdb_context, user_context, feed, std::move(limits), squash,
-                     include_states),
+                     rdb_context,
+                     user_context,
+                     feed,
+                     std::move(limits),
+                     squash,
+                     include_states,
+                     include_types),
           pkey(std::move(_pkey)),
           stamp(0),
           started(false),
@@ -1855,7 +1965,8 @@ public:
     datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
-            return state_datum(state);
+            return maybe_add_type(state_datum(state),
+                                  change_type_t::STATE);
         }
         datum_t ret;
         if (state != state_t::READY && include_initial) {
@@ -1866,10 +1977,15 @@ public:
                 // like `{new_val: null}`.
                 ret = datum_t(
                     std::map<datum_string_t, datum_t>{{
-                        datum_string_t("new_val"), datum_t::null()}});
+                            datum_string_t("new_val"),
+                            datum_t::null()}});
             }
+            ret = maybe_add_type(std::move(ret), change_type_t::INITIAL);
         } else {
-            ret = change_val_to_change(pop_change_val());
+            ret = change_val_to_change(pop_change_val(),
+                                       false,
+                                       false,
+                                       include_types);
         }
         initial_val = boost::none;
         state = state_t::READY;
@@ -1914,7 +2030,7 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                boost::none,
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none)
+               indexed_datum_t(resp->initial_val, boost::none)
                DEBUG_ONLY(, boost::none));
         if (start_stamp > stamp) {
             stamp = start_stamp;
@@ -1965,7 +2081,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none)
+            indexed_datum_t(initial, boost::none)
             DEBUG_ONLY(, boost::none));
         started = true;
 
@@ -2001,13 +2117,19 @@ public:
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
+                bool include_types,
                 env_t *outer_env,
                 keyspec_t::range_t _spec)
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
         : flat_sub_t(init_squashing_queue_t::NO,
-                     rdb_context, user_context, feed, std::move(limits), squash,
-                     include_states),
+                     rdb_context,
+                     user_context,
+                     feed,
+                     std::move(limits),
+                     squash,
+                     include_states,
+                     include_types),
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
@@ -2029,6 +2151,17 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
+        if (spec.intersect_geometry) {
+            try {
+                if (!geo_does_intersect(*spec.intersect_geometry, sindex_key)) {
+                    return 0;
+                }
+            } catch (const geo_exception_t &) {
+                return 0;
+            } catch (const base_exc_t &) {
+                return 0;
+            }
+        }
         return spec.datumspec.copies(sindex_key);
     }
     size_t copies(const store_key_t &pkey) const {
@@ -2080,7 +2213,8 @@ public:
             if (artificial_include_initial && artificial_initial_vals.size() == 0) {
                 state = state_t::READY;
             }
-            return state_datum(sent_state);
+            return maybe_add_type(state_datum(sent_state),
+                                  change_type_t::STATE);
         }
         if (artificial_initial_vals.size() != 0) {
             datum_t d = artificial_initial_vals.back();
@@ -2088,9 +2222,14 @@ public:
             if (artificial_initial_vals.size() == 0) {
                 state = state_t::READY;
             }
-            return vals_to_change(datum_t(), d, true);
+            return maybe_add_type(
+                vals_to_change(datum_t(), d, true),
+                change_type_t::INITIAL);
         }
-        return change_val_to_change(pop_change_val());
+        return change_val_to_change(pop_change_val(),
+                                    false,
+                                    false,
+                                    include_types);
     }
     bool has_el() final {
         return (include_states && state != sent_state)
@@ -2244,9 +2383,15 @@ public:
                 const datum_t &squash,
                 bool _include_offsets,
                 bool include_states,
+                bool include_types,
                 keyspec_t::limit_t _spec)
-        : subscription_t(rdb_context, user_context, feed, limits, squash,
-                         include_states),
+        : subscription_t(rdb_context,
+                         user_context,
+                         feed,
+                         limits,
+                         squash,
+                         include_states,
+                         include_types),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -2271,7 +2416,8 @@ public:
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
             if (include_initial) {
-                if (include_states) els.push_back(initializing_datum());
+                if (include_states) els.push_back(maybe_add_type(initializing_datum(),
+                                                                 change_type_t::STATE));
                 size_t i = 0;
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                     std::map<datum_string_t, datum_t> m;
@@ -2280,10 +2426,12 @@ public:
                         m[datum_string_t("new_offset")] =
                             datum_t(static_cast<double>(i++));
                     }
-                    els.push_back(datum_t(std::move(m)));
+                    els.push_back(maybe_add_type(datum_t(std::move(m)),
+                                                 change_type_t::INITIAL));
                 }
             }
-            if (include_states) els.push_back(ready_datum());
+            if (include_states) els.push_back(maybe_add_type(ready_datum(),
+                                                             change_type_t::STATE));
 
             if (!squash) {
                 decltype(queued_changes) changes;
@@ -2382,11 +2530,13 @@ public:
         if (lc.old_d.has() && lc.new_d.has()) {
             rassert(lc.old_d != lc.new_d || lc.old_offset != lc.new_offset);
         }
+
         datum_t el = vals_to_change(
             lc.old_d.has() ? std::move(lc.old_d) : datum_t::null(),
             lc.new_d.has() ? std::move(lc.new_d) : datum_t::null(),
             false,
             false,
+            include_types,
             include_offsets,
             std::move(lc.old_offset),
             std::move(lc.new_offset));
@@ -2676,13 +2826,12 @@ public:
             ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
-                    old_idxs, new_idxs;
+                std::vector<indexed_datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            old_idxs.push_back(idx);
+                            old_idxs.push_back(indexed_datum_t(old_val, idx.second));
                         }
                     }
                 }
@@ -2690,19 +2839,15 @@ public:
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            new_idxs.push_back(idx);
+                            new_idxs.push_back(indexed_datum_t(new_val, idx.second));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     if (!trivial) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(old_idxs.back()),
+                                    std::move(new_idxs.back()));
                     }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2711,9 +2856,7 @@ public:
                     guarantee(new_idxs.size() == 0);
                     if (old_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
+                                    std::move(old_idxs.back()),
                                     boost::none);
                     }
                     old_idxs.pop_back();
@@ -2723,9 +2866,7 @@ public:
                     if (new_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                     boost::none,
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(new_idxs.back()));
                     }
                     new_idxs.pop_back();
                 }
@@ -2733,8 +2874,8 @@ public:
                 if (!trivial) {
                     for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val, datum_t(), boost::none),
-                                    indexed_datum_t(new_val, datum_t(), boost::none));
+                                    indexed_datum_t(old_val, boost::none),
+                                    indexed_datum_t(new_val, boost::none));
                     }
                 }
             }
@@ -2742,20 +2883,21 @@ public:
         feed->on_point_sub(
             change.pkey,
             *lock,
-            std::bind(&point_sub_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      change.pkey,
-                      boost::none,
-                      change.old_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.old_val, datum_t(), boost::none))
-                          : boost::none,
-                      change.new_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.new_val, datum_t(), boost::none))
-                          : boost::none));
+            std::bind(
+                &point_sub_t::add_el,
+                ph::_1,
+                std::cref(server_uuid),
+                stamp,
+                change.pkey,
+                boost::none,
+                change.old_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.old_val, boost::none))
+                    : boost::none,
+                change.new_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.new_val, boost::none))
+                    : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
@@ -2862,10 +3004,11 @@ private:
                         cv,
                         cv.old_val && discard(
                             cv.pkey,
-                            cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                            cv.source_stamp, *cv.old_val),
                         cv.new_val && discard(
                             cv.pkey,
-                            cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
+                            cv.source_stamp, *cv.new_val),
+                        sub->include_types);
                     if (el.has()) {
                         batcher.note_el(el);
                         ret.push_back(std::move(el));
@@ -2875,7 +3018,9 @@ private:
                 remove_outdated_ranges();
             } else {
                 if (sub->include_states) {
-                    ret.push_back(state_datum(state_t::INITIALIZING));
+                    ret.push_back(sub->maybe_add_type(
+                                      state_datum(state_t::INITIALIZING),
+                                      change_type_t::STATE));
                 }
             }
             if (!src->is_exhausted() && !batcher.should_send_batch()) {
@@ -2885,14 +3030,16 @@ private:
                 update_ranges();
                 r_sanity_check(active_state);
                 read_once = true;
-
                 if (batch.size() == 0) {
                     r_sanity_check(src->is_exhausted());
                 } else {
                     ret.reserve(ret.size() + batch.size());
                     for (auto &&datum : batch) {
-                        ret.push_back(
-                            vals_to_change(datum_t(), std::move(datum), true));
+                        datum_t cv = vals_to_change(datum_t(), std::move(datum), true);
+                        if (cv.has()) {
+                            ret.push_back(
+                                sub->maybe_add_type(std::move(cv), change_type_t::INITIAL));
+                        }
                     }
                 }
             } else {
@@ -2914,12 +3061,11 @@ private:
     }
 
     bool discard(const store_key_t &pkey,
-                 const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
         store_key_t key;
-        if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
+        if (val.btree_index_key) {
+            key = store_key_t(*val.btree_index_key);
         } else {
             key = pkey;
         }
@@ -3038,12 +3184,14 @@ subscription_t::subscription_t(
     feed_t *_feed,
     configured_limits_t _limits,
     const datum_t &_squash,
-    bool _include_states)
+    bool _include_states,
+    bool _include_types)
     : skipped(0),
       feed(_feed),
       limits(std::move(_limits)),
       squash(_squash.as_bool()),
       include_states(_include_states),
+      include_types(_include_types),
       mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
       rdb_context(_rdb_context),
@@ -3574,27 +3722,52 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for range subs.");
             return new range_sub_t(
-                env->get_rdb_ctx(), env->get_user_context(), feed, ss->limits,
-                ss->squash, ss->include_states, env, range);
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types,
+                env,
+                range);
         }
         subscription_t *operator()(const keyspec_t::empty_t &) const {
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for empty subs.");
             return new empty_sub_t(
-                env->get_rdb_ctx(), env->get_user_context(), feed, ss->limits,
-                ss->squash, ss->include_states);
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
             return new limit_sub_t(
-                env->get_rdb_ctx(), env->get_user_context(), feed, ss->limits,
-                ss->squash, ss->include_offsets, ss->include_states, limit);
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_offsets,
+                ss->include_states,
+                ss->include_types,
+                limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for point subs.");
             return new point_sub_t(
-                env->get_rdb_ctx(), env->get_user_context(), feed, ss->limits,
-                ss->squash, ss->include_states, point.key);
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types,
+                point.key);
         }
         env_t *env;
         feed_t *feed;
@@ -3608,6 +3781,7 @@ streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
                            std::string _table_name,
                            bool _include_offsets,
                            bool _include_states,
+                           bool _include_types,
                            configured_limits_t _limits,
                            datum_t _squash,
                            keyspec_t::spec_t _spec) :
@@ -3615,6 +3789,7 @@ streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
     table_name(std::move(_table_name)),
     include_offsets(std::move(_include_offsets)),
     include_states(std::move(_include_states)),
+    include_types(std::move(_include_types)),
     limits(std::move(_limits)),
     squash(std::move(_squash)),
     spec(std::move(_spec)) { }

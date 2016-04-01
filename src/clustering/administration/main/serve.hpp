@@ -119,6 +119,7 @@ public:
                  service_address_ports_t _ports,
                  boost::optional<std::string> _config_file,
                  std::vector<std::string> &&_argv,
+                 const int _join_delay_secs,
                  tls_configs_t _tls_configs) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
@@ -126,7 +127,8 @@ public:
         do_version_checking(_do_version_checking),
         ports(_ports),
         config_file(_config_file),
-        argv(std::move(_argv))
+        argv(std::move(_argv)),
+        join_delay_secs(_join_delay_secs)
     {
         tls_configs = _tls_configs;
     }
@@ -145,6 +147,7 @@ public:
     /* The original arguments, so we can display them in `server_status`. All the
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;
+    int join_delay_secs;
     tls_configs_t tls_configs;
 };
 

@@ -213,7 +213,7 @@ class TestFile(object):
     def render(self):
         '''Renders the converted tests to a runnable test file'''
         defs_and_test = ast_to_java(self.test_generator, self.reql_vars)
-        self.renderer.source_files = [self.filename]
+        self.renderer.source_files = [self.full_path]
         self.renderer.render(
             'Test.java',
             output_dir=self.test_output_dir,
@@ -448,7 +448,7 @@ class JavaVisitor(ast.NodeVisitor):
     def cast_null(self, arg, cast='ReqlExpr'):
         '''Emits a cast to (ReqlExpr) if the node represents null'''
         if (type(arg) == ast.Name and arg.id == 'null') or \
-           (type(arg) == ast.NameConstant and arg.value == "None"):
+           (type(arg) == ast.NameConstant and arg.value == None):
             self.write("(")
             self.write(cast)
             self.write(") ")
@@ -466,7 +466,7 @@ class JavaVisitor(ast.NodeVisitor):
             self.write(".optArg(")
             self.to_str(optarg.arg)
             self.write(", ")
-            self.visit(optarg.value)
+            self.cast_null(optarg.value)
             self.write(")")
 
     def generic_visit(self, node):

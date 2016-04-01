@@ -24,7 +24,7 @@ TPTEST(RPCDirectoryTest, OneNode) {
     watchable_variable_t<int> watchable(5);
     directory_write_manager_t<int> write_manager(&c, 'D', watchable.get_watchable());
     connectivity_cluster_t::run_t cr(&c, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     let_stuff_happen();
 }
@@ -43,16 +43,16 @@ TPTEST(RPCDirectoryTest, ThreeNodes) {
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
     connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
-    cr2.join(get_cluster_local_address(&c1));
-    cr3.join(get_cluster_local_address(&c1));
+    cr2.join(get_cluster_local_address(&c1), 0);
+    cr3.join(get_cluster_local_address(&c1), 0);
     let_stuff_happen();
 }
 
@@ -69,16 +69,16 @@ TPTEST(RPCDirectoryTest, Exchange) {
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
     connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
-    cr2.join(get_cluster_local_address(&c1));
-    cr3.join(get_cluster_local_address(&c1));
+    cr2.join(get_cluster_local_address(&c1), 0);
+    cr3.join(get_cluster_local_address(&c1), 0);
     let_stuff_happen();
     EXPECT_EQ(1u, rm1.get_root_view()->get().get_inner().count(c1.get_me()));
     EXPECT_EQ(101, rm1.get_root_view()->get().get_inner().find(c1.get_me())->second);
@@ -101,16 +101,16 @@ TPTEST(RPCDirectoryTest, Update) {
                                    wm2(&c2, 'D', w2.get_watchable()),
                                    wm3(&c3, 'D', w3.get_watchable());
     connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
-    cr2.join(get_cluster_local_address(&c1));
-    cr3.join(get_cluster_local_address(&c1));
+    cr2.join(get_cluster_local_address(&c1), 0);
+    cr3.join(get_cluster_local_address(&c1), 0);
     let_stuff_happen();
     w1.set_value(151);
     let_stuff_happen();
@@ -136,16 +136,16 @@ TPTEST(RPCDirectoryTest, MapUpdate) {
     directory_map_write_manager_t<int, int>
         wm1(&c1, 'D', &w1), wm2(&c2, 'D', &w2), wm3(&c3, 'D', &w3);
     connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
-    cr2.join(get_cluster_local_address(&c1));
-    cr3.join(get_cluster_local_address(&c1));
+    cr2.join(get_cluster_local_address(&c1), 0);
+    cr3.join(get_cluster_local_address(&c1), 0);
     let_stuff_happen();
     ASSERT_TRUE(boost::optional<int>(1) ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
@@ -177,7 +177,7 @@ TPTEST(RPCDirectoryTest, DestructorRace) {
     watchable_variable_t<int> w(5);
     directory_write_manager_t<int> wm(&c, 'D', w.get_watchable());
     connectivity_cluster_t::run_t cr(&c, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     w.set_value(6);

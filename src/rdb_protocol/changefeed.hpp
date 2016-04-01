@@ -43,7 +43,8 @@ class table_meta_client_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
-typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+// The string is the btree index key
+typedef std::pair<ql::datum_t, std::string> index_pair_t;
 typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
 
 namespace ql {
@@ -134,6 +135,7 @@ struct keyspec_t {
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datumspec_t datumspec;
+        boost::optional<datum_t> intersect_geometry;
     };
     struct empty_t { };
     struct limit_t {
@@ -176,6 +178,7 @@ struct streamspec_t {
     std::string table_name;
     bool include_offsets;
     bool include_states;
+    bool include_types;
     configured_limits_t limits;
     datum_t squash;
     keyspec_t::spec_t spec;
@@ -183,6 +186,7 @@ struct streamspec_t {
                  std::string _table_name,
                  bool _include_offsets,
                  bool _include_states,
+                 bool _include_types,
                  configured_limits_t _limits,
                  datum_t _squash,
                  keyspec_t::spec_t _spec);

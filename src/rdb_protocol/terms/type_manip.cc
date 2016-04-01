@@ -192,7 +192,7 @@ private:
             // DATUM -> DATUM
             if (supertype(end_type) == val_t::type_t::DATUM) {
                 if (start_type == R_BINARY_TYPE && end_type == R_STR_TYPE) {
-                    return new_val(datum_t(d.as_binary()));
+                    return new_val(datum_t::utf8(d.as_binary()));
                 }
                 if (start_type == R_STR_TYPE && end_type == R_BINARY_TYPE) {
                     return new_val(datum_t::binary(d.as_str()));

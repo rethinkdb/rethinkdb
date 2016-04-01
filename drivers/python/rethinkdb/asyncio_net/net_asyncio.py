@@ -128,6 +128,13 @@ class ConnectionInstance(object):
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
+    def client_port(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[1]
+    def client_address(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[0]
+
     @asyncio.coroutine
     def connect(self, timeout):
         try:

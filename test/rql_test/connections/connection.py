@@ -71,6 +71,10 @@ class TestCaseCompatible(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCaseCompatible, self).__init__(*args, **kwargs)
 
+        if not hasattr(self, 'assertIsNone'):
+            self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
         if not hasattr(self, 'assertRaisesRegexp'):
             self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
         if not hasattr(self, 'skipTest'):
@@ -79,6 +83,14 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertGreaterEqual = self.replacement_assertGreaterEqual
         if not hasattr(self, 'assertLess'):
             self.assertLess = self.replacement_assertLess
+
+    def replacement_assertIsNone(self, val):
+        if val is not None:
+            raise AssertionError('%s is not None' % val)
+
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
 
     def replacement_assertGreaterEqual(self, greater, lesser):
         if not greater >= lesser:
@@ -316,6 +328,17 @@ class TestAuthConnection(TestPrivateServer):
         conn.reconnect()
 
 class TestConnection(TestWithConnection):
+    def test_client_port_and_address(self):
+        c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     def test_connect_close_reconnect(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         r.expr(1).run(c)

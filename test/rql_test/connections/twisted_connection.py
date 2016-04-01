@@ -95,6 +95,22 @@ def closeSharedServer():
 
 class TestCaseCompatible(unittest.TestCase):
     # can't use standard TestCase run here because async.
+
+    def __init__(self, *args, **kwargs):
+        super(TestCaseCompatible, self).__init__(*args, **kwargs)
+        if not hasattr(self, 'assertIsNone'):
+            self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
+
+    def replacement_assertIsNone(self, val):
+        if val is not None:
+            raise AssertionError('%s is not None' % val)
+
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
+
     def setUp(self):
         return defer.succeed(None)
 
@@ -243,6 +259,19 @@ class TestNoConnection(TestCaseCompatible):
 
 
 class TestConnection(TestWithConnection):
+    @inlineCallbacks
+    def test_client_port_and_address(self):
+        c = yield r.connect(host=sharedServerHost,
+                            port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        yield c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     @inlineCallbacks
     def test_connect_close_reconnect(self):
         c = yield r.connect(host=sharedServerHost,
@@ -944,4 +973,3 @@ if __name__ == '__main__':
     AsyncTestRunner(stream=sys.stdout, verbosity=2).run(suite).\
         addCallback(finishTests)
     reactor.run()
-

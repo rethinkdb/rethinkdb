@@ -134,7 +134,7 @@ enum class admin_identifier_format_t {
 };
 
 namespace ql {
-    class reader_t;
+class reader_t;
 }
 
 class base_table_t : public slow_atomic_countable_t<base_table_t> {

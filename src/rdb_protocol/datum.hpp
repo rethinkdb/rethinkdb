@@ -68,7 +68,12 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 // When getting the typename of a datum, this should be YES if the name will be
 // used for sorting datums by type, and NO if the name is to be given to a user.
-enum class name_for_sorting_t { NO = 0, YES = 1};
+enum class name_for_sorting_t { NO = 0, YES = 1 };
+
+// `r.minval` and `r.maxval` were encoded in keys differently before 2.3. Determines
+// which encoding should be used.
+enum class extrema_encoding_t { PRE_v2_3, LATEST };
+extrema_encoding_t extrema_encoding_from_reql_version_for_sindex(reql_version_t rv);
 
 // When constructing a secondary index key, extremas should not be used.  They
 // may be used when constructing secondary index ranges (i.e. for `between`).
@@ -143,6 +148,8 @@ public:
     static datum_t boolean(bool value);
     static datum_t binary(datum_string_t &&value);
     static datum_t binary(const datum_string_t &value);
+
+    static datum_t utf8(datum_string_t _data);
 
     static datum_t minval();
     static datum_t maxval();
@@ -382,11 +389,18 @@ private:
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
     void num_to_str_key(std::string *str_out) const;
-    void str_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const;
+    void str_to_str_key(escape_nulls_t escape_nulls, std::string *str_out) const;
     void bool_to_str_key(std::string *str_out) const;
-    void array_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const;
+    void array_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        escape_nulls_t escape_nulls,
+        std::string *str_out) const;
     void binary_to_str_key(std::string *str_out) const;
-    void extrema_to_str_key(std::string *str_out) const;
+    void extrema_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        std::string *str_out) const;
 
     int cmp_unchecked_stack(const datum_t &rhs) const;
 

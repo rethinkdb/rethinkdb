@@ -158,7 +158,7 @@ public:
 
     virtual ~linux_tcp_conn_t() THROWS_NOTHING;
 
-    void rethread(threadnum_t thread);
+    virtual void rethread(threadnum_t thread);
 
     bool getpeername(ip_and_port_t *ip_and_port);
 
@@ -370,11 +370,14 @@ public:
 
     ~linux_secure_tcp_conn_t() THROWS_NOTHING;
 
-    /* shutdown_read() is an alias for shutdown() */
-    virtual void shutdown_read() { shutdown(); };
+    /* shutdown_read() and shutdown_write() just close the socket rather than performing
+    the full TLS shutdown procedure, because they're assumed not to block.
+    Our usual `shutdown` does block and it also assumes that no other operation is
+    currently ongoing on the connection, which we can't guarantee here. */
+    virtual void shutdown_read() { shutdown_socket(); }
+    virtual void shutdown_write() { shutdown_socket(); }
 
-    /* shutdown_write() is an alias for shutdown() */
-    virtual void shutdown_write() { shutdown(); };
+    virtual void rethread(threadnum_t thread);
 
 private:
 
@@ -397,9 +400,9 @@ private:
     virtual void perform_write(const void *buffer, size_t size);
 
     void shutdown();
-    void on_shutdown();
+    void shutdown_socket();
 
-    bool is_open() { return !closed.is_pulsed(); };
+    bool is_open() { return !closed.is_pulsed(); }
 
     tls_conn_wrapper_t conn;
 

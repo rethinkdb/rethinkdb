@@ -7,7 +7,7 @@
 class non_transitive_issue_t : public issue_t {
 public:
     non_transitive_issue_t() : issue_t(nil_uuid()) { }
-    non_transitive_issue_t(const std::string &_message) :
+    explicit non_transitive_issue_t(const std::string &_message) :
         issue_t(from_hash(base_type_id, _message)),
         message(_message) { }
     bool build_info_and_description(

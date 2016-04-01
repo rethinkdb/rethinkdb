@@ -163,7 +163,8 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        datumspec_t(bounds)};
+        datumspec_t(bounds),
+        boost::none};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
@@ -202,7 +203,7 @@ ql::datum_t clean_errors(ql::datum_t reply) {
     ql::datum_t array = reply.get_field("changes");
     ql::datum_array_builder_t clean_array(ql::configured_limits_t::unlimited);
     for (size_t i = 0; i < array.arr_size(); ++i) {
-        ql::datum_t updated = std::move(array.get(i));
+        ql::datum_t updated = array.get(i);
         if (updated.get_field("error", NOTHROW).has()) {
             clean_array.add(ql::datum_t{
                     std::map<datum_string_t, datum_t>{

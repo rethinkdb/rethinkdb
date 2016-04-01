@@ -397,6 +397,20 @@
         ],
         "id": 37
     },
+    "FOLD": {
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR", "T_FUNC2"]
+        ],
+        "optargs": {
+            "emit": "T_FUNC3",
+            "final_emit": "T_FUNC1"
+        },
+        "id": 187
+    },
     "MAP": {
         "include_in": [
             "T_TOP_LEVEL",
@@ -465,6 +479,9 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
+        "optargs": {
+            "interleave": "T_EXPR"
+        },
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 44
     },
@@ -841,7 +858,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 66
     },
     "AND": {
@@ -849,7 +866,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 67
     },
     "FOR_EACH": {
