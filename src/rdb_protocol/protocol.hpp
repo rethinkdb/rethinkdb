@@ -134,19 +134,6 @@ struct rget_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
-struct intersecting_geo_read_response_t {
-    boost::variant<ql::datum_t, ql::exc_t> results_or_error;
-
-    intersecting_geo_read_response_t() { }
-    intersecting_geo_read_response_t(
-            const ql::datum_t &_results)
-        : results_or_error(_results) { }
-    intersecting_geo_read_response_t(
-            const ql::exc_t &_error)
-        : results_or_error(_error) { }
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
-
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
     typedef std::vector<dist_pair_t> result_t;

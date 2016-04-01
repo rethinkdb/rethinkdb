@@ -247,6 +247,7 @@ public:
                                  server_id,
                                  get_unittest_addresses(),
                                  peer_address_t(),
+                                 0,
                                  ANY_PORT,
                                  0,
                                  heartbeat_manager.get_view(),
@@ -260,7 +261,7 @@ public:
     }
     void connect(simple_mailbox_cluster_t *other) {
         connectivity_cluster_run.join(
-            get_cluster_local_address(&other->connectivity_cluster));
+            get_cluster_local_address(&other->connectivity_cluster), 0);
     }
     void disconnect(simple_mailbox_cluster_t *other) {
         auto_drainer_t::lock_t keepalive;

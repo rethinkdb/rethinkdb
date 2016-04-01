@@ -539,7 +539,8 @@ public:
                           "changefeed_queue_size",
                           "include_initial",
                           "include_offsets",
-                          "include_states"})) { }
+                          "include_states",
+                          "include_types"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -559,6 +560,11 @@ private:
         bool include_states = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
+        }
+
+        bool include_types = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_types")) {
+            include_types = v->as_bool();
         }
 
         bool include_initial = false;
@@ -595,6 +601,7 @@ private:
                             changespec.keyspec.table_name,
                             include_offsets,
                             include_states,
+                            include_types,
                             limits,
                             squash,
                             std::move(changespec.keyspec.spec)),
@@ -628,6 +635,7 @@ private:
                         sel->get_tbl()->display_name(),
                         include_offsets,
                         include_states,
+                        include_types,
                         limits,
                         squash,
                         sel->get_spec()),

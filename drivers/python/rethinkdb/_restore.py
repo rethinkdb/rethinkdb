@@ -12,7 +12,10 @@ def print_restore_help():
     print(info)
     print(usage)
     print("")
-    print("  FILE                             the archive file to restore data from")
+    print("  FILE                             the archive file to restore data from;")
+    print("                                   if FILE is -, use standard input (note that")
+    print("                                   intermediate files will still be written to")
+    print("                                   the --temp-dir directory)")
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
@@ -26,6 +29,7 @@ def print_restore_help():
     print("                                   consumption on the server)")
     print("  --force                          import data even if a table already exists")
     print("  --no-secondary-indexes           do not create secondary indexes for the restored tables")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("EXAMPLES:")
     print("")
@@ -53,11 +57,14 @@ def parse_options():
     parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
     parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+
     parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
@@ -77,11 +84,16 @@ def parse_options():
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
 
-    # Verify valid input file
-    res["in_file"] = os.path.abspath(args[0])
+    in_file_argument = args[0]
 
-    if not os.path.exists(res["in_file"]):
-        raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
+    if in_file_argument == "-":
+        res["in_file"] = sys.stdin
+    else:
+        # Verify valid input file
+        res["in_file"] = os.path.abspath(in_file_argument)
+
+        if not os.path.exists(res["in_file"]):
+            raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
     res["tables"] = parse_db_table_options(options.tables)
@@ -102,11 +114,15 @@ def parse_options():
     res["hard"] = options.hard
     res["force"] = options.force
     res["create_sindexes"] = options.create_sindexes
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
+
+    res["tls_cert"] = options.tls_cert
     return res
 
 def do_unzip(temp_dir, options):
-    print("Unzipping archive file...")
+    if not options["quiet"]:
+        print("Unzipping archive file...")
     start_time = time.time()
     original_dir = os.getcwd()
     sub_path = None
@@ -127,36 +143,60 @@ def do_unzip(temp_dir, options):
         path, base = os.path.split(path)
         return (base, db, os.path.splitext(table_file)[0])
 
-    with tarfile.open(options["in_file"], "r:gz") as f:
-        os.chdir(temp_dir)
-        try:
-            for member in f:
-                (base, db, table) = parse_path(member)
+    is_fileobj = type(options["in_file"]) is file
 
-                if len(base) > 0:
-                    if sub_path is None:
-                        sub_path = base
-                    elif sub_path != base:
-                        raise RuntimeError("Error: Archive file has an unexpected directory structure")
+    # If the in_file is a fileobj (e.g. stdin), stream it to a seekable file
+    # first so that the code below can seek in it.
+    tar_temp_file_path = None
+    if is_fileobj:
+        fileobj = options["in_file"]
+        fd, tar_temp_file_path = tempfile.mkstemp(suffix=".tar.gz", dir=options["temp_dir"])
+        # Constant memory streaming, buf == "" on EOF
+        with os.fdopen(fd, "w", 65536) as f:
+            buf = None
+            while buf != "":
+                buf = fileobj.read(65536)
+                f.write(buf)
+        name = tar_temp_file_path
+    else:
+        name = options["in_file"]
 
-                    if len(tables_to_export) == 0 or \
-                       (db, table) in tables_to_export or \
-                       (db, None) in tables_to_export:
-                        members.append(member)
+    try:
+        with tarfile.open(name, "r:gz") as f:
+            os.chdir(temp_dir)
+            try:
+                for member in f:
+                    (base, db, table) = parse_path(member)
 
-            if sub_path is None:
-                raise RuntimeError("Error: Archive file has an unexpected directory structure")
+                    if len(base) > 0:
+                        if sub_path is None:
+                            sub_path = base
+                        elif sub_path != base:
+                            raise RuntimeError("Error: Archive file has an unexpected directory structure")
 
-            f.extractall(members=members)
+                        if len(tables_to_export) == 0 or \
+                           (db, table) in tables_to_export or \
+                           (db, None) in tables_to_export:
+                            members.append(member)
 
-        finally:
-            os.chdir(original_dir)
+                if sub_path is None:
+                    raise RuntimeError("Error: Archive file has an unexpected directory structure")
 
-    print("  Done (%d seconds)" % (time.time() - start_time))
+                f.extractall(members=members)
+
+            finally:
+                os.chdir(original_dir)
+    finally:
+        if tar_temp_file_path is not None:
+            os.remove(tar_temp_file_path)
+
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return os.path.join(temp_dir, sub_path)
 
 def do_import(temp_dir, options):
-    print("Importing from directory...")
+    if not options["quiet"]:
+        print("Importing from directory...")
 
     import_args = ["rethinkdb-import"]
     import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
@@ -165,6 +205,7 @@ def do_import(temp_dir, options):
     import_args.extend(["--clients", str(options["clients"])])
     import_args.extend(["--shards", str(options["shards"])])
     import_args.extend(["--replicas", str(options["replicas"])])
+    import_args.extend(["--tls-cert", options["tls_cert"]])
 
     for db, table in options["tables"]:
         if table is None:
@@ -180,8 +221,11 @@ def do_import(temp_dir, options):
         import_args.extend(["--debug"])
     if not options["create_sindexes"]:
         import_args.extend(["--no-secondary-indexes"])
+    if options["quiet"]:
+        import_args.extend(["--quiet"])
 
     res = subprocess.call(import_args)
+
     if res == 2:
         raise RuntimeError("Warning: rethinkdb-import did not create some secondary indexes.")
     elif res != 0:

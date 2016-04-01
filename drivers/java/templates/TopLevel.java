@@ -10,6 +10,7 @@ import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TopLevel {
@@ -31,8 +32,16 @@ public class TopLevel {
         return new MapObject();
     }
 
-    public List array(Object... vals){
-        return Arrays.asList(vals);
+% for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
+    public List array(${type} val0, ${type}... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+% endfor
+    public List array(){
+        return new ArrayList();
     }
 
 %for term in all_terms.values():

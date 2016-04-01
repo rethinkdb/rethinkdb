@@ -420,6 +420,27 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     return std::string();
 }
 
+boost::optional<int> parse_join_delay_secs_option(
+        const std::map<std::string, options::values_t> &opts) {
+    if (exists_option(opts, "--join-delay")) {
+        const std::string delay_opt = get_single_option(opts, "--join-delay");
+        uint64_t join_delay_secs;
+        if (!strtou64_strict(delay_opt, 10, &join_delay_secs)) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: join-delay should be a number, got '%s'",
+                    delay_opt.c_str()));
+        }
+        if (join_delay_secs > std::numeric_limits<int>::max()) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: join-delay is too large. Must be at most %d",
+                    std::numeric_limits<int>::max()));
+        }
+        return boost::optional<int>(static_cast<int>(join_delay_secs));
+    } else {
+        return boost::optional<int>();
+    }
+}
+
 /* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
 empty inner `boost::optional` means the cache size is set to `auto`. */
 boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
@@ -677,12 +698,12 @@ bool load_tls_key_and_cert(
     SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
     if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
-        return false;      
+        return false;
     }
 
     if(SSL_CTX_use_certificate_file(tls_ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
-        return false;      
+        return false;
     }
 
     if(1 != SSL_CTX_check_private_key(tls_ctx)) {
@@ -695,11 +716,11 @@ bool load_tls_key_and_cert(
 
 bool configure_web_tls(
     const std::map<std::string, options::values_t> &opts, SSL_CTX *web_tls) {
-    boost::optional<std::string> key_file = get_optional_option(opts, "--web-tls-key");
-    boost::optional<std::string> cert_file = get_optional_option(opts, "--web-tls-cert");
+    boost::optional<std::string> key_file = get_optional_option(opts, "--http-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(opts, "--http-tls-cert");
 
     if (!(key_file && cert_file)) {
-        logERR("--web-tls-key and --web-tls-cert must be specified together.");
+        logERR("--http-tls-key and --http-tls-cert must be specified together.");
         return false;
     }
 
@@ -715,7 +736,13 @@ bool configure_driver_tls(
     boost::optional<std::string> ca_file = get_optional_option(opts, "--driver-tls-ca");
 
     if (!(key_file && cert_file)) {
-        logERR("--driver-tls-key and --driver-tls-cert must be specified together.");
+        if (key_file || cert_file) {
+            logERR("--driver-tls-key and --driver-tls-cert must be specified together.");
+        } else {
+            rassert(ca_file);
+            logERR("--driver-tls-key and --driver-tls-cert must be specified if "
+                   "--driver-tls-ca is specified.");
+        }
         return false;
     }
 
@@ -726,7 +753,7 @@ bool configure_driver_tls(
     if (ca_file) {
         if (!SSL_CTX_load_verify_locations(driver_tls, ca_file->c_str(), nullptr)) {
             ERR_print_errors_fp(stderr);
-            return false; 
+            return false;
         }
 
         // Mutual authentication.
@@ -746,7 +773,8 @@ bool configure_cluster_tls(
     boost::optional<std::string> ca_file = get_optional_option(opts, "--cluster-tls-ca");
 
     if (!(key_file && cert_file && ca_file)) {
-        logERR("--cluster-tls-key, --cluster-tls-cert, and --cluster-tls-ca must be specified together.");
+        logERR("--cluster-tls-key, --cluster-tls-cert, and --cluster-tls-ca must be "
+               "specified together.");
         return false;
     }
 
@@ -756,7 +784,7 @@ bool configure_cluster_tls(
 
     if (!SSL_CTX_load_verify_locations(cluster_tls, ca_file->c_str(), nullptr)) {
         ERR_print_errors_fp(stderr);
-        return false; 
+        return false;
     }
 
     // Mutual authentication.
@@ -917,7 +945,9 @@ bool configure_tls(
 
     logNTC("%s\n", SSLeay_version(SSLEAY_VERSION));
 
-    if(!exists_option(opts, "--no-http-admin") && exists_option(opts, "--web-tls")) {
+    if(!exists_option(opts, "--no-http-admin") &&
+            (exists_option(opts, "--http-tls-key")
+             || exists_option(opts, "--http-tls-cert"))) {
         if (!(initialize_tls_ctx(opts, &(tls_configs_out->web)) &&
               configure_web_tls(opts, tls_configs_out->web.get())
             )) {
@@ -925,7 +955,9 @@ bool configure_tls(
         }
     }
 
-    if (exists_option(opts, "--driver-tls")) {
+    if (exists_option(opts, "--driver-tls-key")
+        || exists_option(opts, "--driver-tls-cert")
+        || exists_option(opts, "--driver-tls-ca")) {
         if (!(initialize_tls_ctx(opts, &(tls_configs_out->driver)) &&
               configure_driver_tls(opts, tls_configs_out->driver.get())
             )) {
@@ -933,7 +965,9 @@ bool configure_tls(
         }
     }
 
-    if (exists_option(opts, "--cluster-tls")) {
+    if (exists_option(opts, "--cluster-tls-key")
+        || exists_option(opts, "--cluster-tls-cert")
+        || exists_option(opts, "--cluster-tls-ca")) {
         if (!(initialize_tls_ctx(opts, &(tls_configs_out->cluster)) &&
               configure_cluster_tls(opts, tls_configs_out->cluster.get())
             )) {
@@ -1434,6 +1468,11 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
                                              options::OPTIONAL_REPEAT));
     help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
+    options_out->push_back(options::option_t(options::names_t("--join-delay"),
+                                             options::OPTIONAL));
+    help.add("--join-delay seconds", "hold the TCP connection open for these many "
+             "seconds before joining with another server.");
+
     return help;
 }
 
@@ -1484,30 +1523,24 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
     options::help_section_t help("TLS options");
 
     // Web TLS options.
-    options_out->push_back(options::option_t(options::names_t("--web-tls"),
-                                             options::OPTIONAL_NO_PARAMETER));
-    options_out->push_back(options::option_t(options::names_t("--web-tls-key"),
+    options_out->push_back(options::option_t(options::names_t("--http-tls-key"),
                                              options::OPTIONAL));
-    options_out->push_back(options::option_t(options::names_t("--web-tls-cert"),
+    options_out->push_back(options::option_t(options::names_t("--http-tls-cert"),
                                              options::OPTIONAL));
-    help.add("--web-tls", "secure the web administration console with TLS");
     help.add(
-        "--web-tls-key key_filename",
+        "--http-tls-key key_filename",
         "private key to use for web administration console TLS");
     help.add(
-        "--web-tls-cert cert_filename",
+        "--http-tls-cert cert_filename",
         "certificate to use for web administration console TLS");
 
     // Client Driver TLS options.
-    options_out->push_back(options::option_t(options::names_t("--driver-tls"),
-                                             options::OPTIONAL_NO_PARAMETER));
     options_out->push_back(options::option_t(options::names_t("--driver-tls-key"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--driver-tls-cert"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--driver-tls-ca"),
                                              options::OPTIONAL));
-    help.add("--driver-tls", "secure client driver connections with TLS");
     help.add(
         "--driver-tls-key key_filename",
         "private key to use for client driver connection TLS");
@@ -1519,15 +1552,12 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
         "CA certificate bundle used to verify client certificates; TLS client authentication disabled if omitted");
 
     // Client Driver TLS options.
-    options_out->push_back(options::option_t(options::names_t("--cluster-tls"),
-                                             options::OPTIONAL_NO_PARAMETER));
     options_out->push_back(options::option_t(options::names_t("--cluster-tls-key"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--cluster-tls-cert"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--cluster-tls-ca"),
                                              options::OPTIONAL));
-    help.add("--cluster-tls", "secure intra-cluster connections with TLS");
     help.add(
         "--cluster-tls-key key_filename",
         "private key to use for intra-cluster connection TLS");
@@ -1860,6 +1890,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
@@ -1897,6 +1929,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -1951,6 +1984,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+
 #ifndef _WIN32
         get_and_set_user_group(opts);
 #endif
@@ -1989,6 +2024,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
                                 tls_configs);
 
         bool result;
@@ -2102,6 +2138,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         update_check_t do_update_checking = parse_update_checking_option(opts);
 
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
         // is called on it.  This will be done after the metadata files have been created.
@@ -2164,6 +2202,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);

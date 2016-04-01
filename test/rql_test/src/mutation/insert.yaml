@@ -208,13 +208,10 @@ tests:
     - py: tbl.insert({'id':42}, conflict=lambda a,b,c: tbl.get(42))
       ot: err("ReqlQueryLogicError", "The conflict function passed to `insert` must be deterministic.")
 
-    - py: tbl.insert({'id':42}, conflict=lambda: {'id':42, 'num':'424'})
+    - py: tbl.insert({'id':42}, conflict=lambda a,b,c: {'id':42, 'num':'424'})
       ot: partial({'replaced': 1})
     - py: tbl.get(42)
       ot: {'id':42, 'num':'424'}
-
-    - py: tbl.insert({'id':42}, conflict=lambda: (x for y in ()).throw(Exception('OH NOES')))
-      ot: err("Exception", 'OH NOES')
 
     # Get unreturnable data
     - cd: r.minval

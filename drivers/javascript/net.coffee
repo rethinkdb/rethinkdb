@@ -1103,6 +1103,9 @@ class TcpConnection extends Connection
         # just set the `@open` flag to `false`
         @rawSocket.on 'timeout', => @open = false; @emit 'timeout'
 
+    clientPort: -> @rawSocket.localPort
+    clientAddress: -> @rawSocket.localAddress
+
     # #### TcpConnection close method
     #
     # This is a public method for closing the current connection. It

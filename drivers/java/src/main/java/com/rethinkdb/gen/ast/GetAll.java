@@ -29,5 +29,25 @@ public GetAll optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
     return new GetAll(args, newOptargs);
 }
+public GetAll optArg(String optname, ReqlFunction0 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
+public GetAll optArg(String optname, ReqlFunction1 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
+public GetAll optArg(String optname, ReqlFunction2 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
+public GetAll optArg(String optname, ReqlFunction3 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
+public GetAll optArg(String optname, ReqlFunction4 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
 
 }

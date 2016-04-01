@@ -85,6 +85,16 @@ class ConnectionInstance(object):
         self._stream = None
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    def client_port(self):
+        if self.is_open():
+            return self._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket.getsockname()[0]
 
     @gen.coroutine
     def connect(self, timeout):

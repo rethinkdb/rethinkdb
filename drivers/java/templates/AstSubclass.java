@@ -31,10 +31,12 @@ public class ${classname} extends ${superclass} {
 <%block name="static_factories"></%block>\
 <%block name="optArgs">\
 % if optargs:
-public ${classname} optArg(String optname, Object value) {
+% for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
+public ${classname} optArg(String optname, ${type} value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
     return new ${classname}(args, newOptargs);
 }
+% endfor
 % endif
 </%block>
 <%block name="special_methods" />\
@@ -43,11 +45,16 @@ public ${classname} optArg(String optname, Object value) {
     % for methodname in info['methodnames']:
       % for signature in info['signatures']:
         % if signature['first_arg'] == classname:
+          % if signature['args'][0]['type'].endswith('...'):
+<% remainingArgs = signature['args'] %>\
+          % else:
+<% remainingArgs = signature['args'][1:] %>\
+          % endif
     public ${info['classname']} ${methodname}(${
             ', '.join("%s %s" % (arg['type'], arg['var'])
-                      for arg in signature['args'][1:])}) {
+                      for arg in remainingArgs)}) {
         Arguments arguments = new Arguments(this);
-          %for arg in signature['args'][1:]:
+          %for arg in remainingArgs:
             %if arg['type'].endswith('...'):
         arguments.coerceAndAddAll(${arg['var']});
             %else:

@@ -8,6 +8,7 @@ namespace geo {
 typedef Vector3_d S2Point;
 class S2Polyline;
 class S2Polygon;
+class S2LatLngRect;
 }
 
 template <class return_t>
@@ -18,6 +19,7 @@ public:
     virtual return_t on_point(const geo::S2Point &) = 0;
     virtual return_t on_line(const geo::S2Polyline &) = 0;
     virtual return_t on_polygon(const geo::S2Polygon &) = 0;
+    virtual return_t on_latlngrect(const geo::S2LatLngRect &) = 0;
 };
 
 #endif  // RDB_PROTOCOL_GEO_GEO_VISITOR_HPP_

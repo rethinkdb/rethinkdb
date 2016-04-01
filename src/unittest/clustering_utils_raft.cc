@@ -29,7 +29,7 @@ dummy_raft_cluster_t::dummy_raft_cluster_t(
     mailbox_manager(&connectivity_cluster, 'M'),
     heartbeat_manager(heartbeat_semilattice_metadata),
     connectivity_cluster_run(&connectivity_cluster, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr),
     check_invariants_timer(100, [this]() {
         coro_t::spawn_sometime(std::bind(

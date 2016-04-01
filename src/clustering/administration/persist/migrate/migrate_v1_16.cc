@@ -18,7 +18,7 @@
 struct cluster_metadata_superblock_t {
     block_magic_t magic;
 
-    server_id_t server_id;
+    uuid_u server_id;
 
     static const int METADATA_BLOB_MAXREFLEN = 1500;
     char metadata_blob[METADATA_BLOB_MAXREFLEN];
@@ -595,10 +595,17 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
               });
 
     migrate_heartbeat(out, interruptor);
-    migrate_server(sb->server_id, metadata, out, interruptor);
+    migrate_server(
+        server_id_t::from_server_uuid(sb->server_id), metadata, out, interruptor);
     migrate_databases(metadata, out, interruptor);
-    migrate_tables(io_backender, base_path,
-                   sb->server_id, metadata, branch_history, out, interruptor);
+    migrate_tables(
+        io_backender,
+        base_path,
+        server_id_t::from_server_uuid(sb->server_id),
+        metadata,
+        branch_history,
+        out,
+        interruptor);
 }
 
 void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,

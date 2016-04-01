@@ -333,7 +333,7 @@ class SocketWrapper(object):
         return self._socket is not None
 
     def close(self):
-        if self._socket is not None:
+        if self.is_open():
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
@@ -422,6 +422,14 @@ class ConnectionInstance(object):
         self._header_in_progress = None
         self._socket = None
         self._closing = False
+
+    def client_port(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[0]
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -535,6 +543,14 @@ class Connection(object):
             self._json_encoder = kwargs.pop('json_encoder')
         if 'json_decoder' in kwargs:
             self._json_decoder = kwargs.pop('json_decoder')
+
+    def client_port(self):
+        if self.is_open():
+            return self._instance.client_port()
+
+    def client_address(self):
+        if self.is_open():
+            return self._instance.client_address()
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:

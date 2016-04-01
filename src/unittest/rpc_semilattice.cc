@@ -55,7 +55,7 @@ TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
     semilattice_manager_t<sl_int_t> slm(&c, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t cr(
         &c, server_id_t::generate_server_id(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view(), nullptr);
+        peer_address_t(), 0, ANY_PORT, 0, heartbeat_manager.get_view(), nullptr);
 
     /* Make sure that metadata works properly when passed to the constructor */
     EXPECT_EQ(2u, slm.get_root_view()->get().i);
@@ -77,16 +77,16 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
     semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
                                     slm2(&cluster2, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
 
-    run1.join(get_cluster_local_address(&cluster2));
+    run1.join(get_cluster_local_address(&cluster2), 0);
 
     /* Block until the connection is established */
     signal_timer_t timeout;
@@ -119,10 +119,10 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
                                     slm2(&cluster2, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
@@ -133,7 +133,7 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     EXPECT_THROW(slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
     EXPECT_THROW(slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
 
-    run1.join(get_cluster_local_address(&cluster2));
+    run1.join(get_cluster_local_address(&cluster2), 0);
 
     /* Block until the connection is established */
     signal_timer_t timeout;
@@ -161,7 +161,7 @@ TPTEST(RPCSemilatticeTest, Watcher, 2) {
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, 'S', sl_int_t(2));
     connectivity_cluster_t::run_t run(&cluster, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     bool have_been_notified = false;

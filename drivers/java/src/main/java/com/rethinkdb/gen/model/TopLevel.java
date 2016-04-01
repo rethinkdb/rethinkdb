@@ -14,6 +14,7 @@ import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TopLevel {
@@ -35,8 +36,44 @@ public class TopLevel {
         return new MapObject();
     }
 
-    public List array(Object... vals){
-        return Arrays.asList(vals);
+    public List array(Object val0, Object... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(ReqlFunction0 val0, ReqlFunction0... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(ReqlFunction1 val0, ReqlFunction1... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(ReqlFunction2 val0, ReqlFunction2... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(ReqlFunction3 val0, ReqlFunction3... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(ReqlFunction4 val0, ReqlFunction4... vals){
+        List res = new ArrayList();
+        res.add(val0);
+        res.addAll(Arrays.asList(vals));
+        return res;
+    }
+    public List array(){
+        return new ArrayList();
     }
 
     public Javascript js(Object expr){
@@ -657,6 +694,20 @@ public class TopLevel {
         args.coerceAndAdd(func2);
         return new Reduce(args);
     }
+    public Fold fold(Object expr, Object exprA, Javascript js){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        return new Fold(args);
+    }
+    public Fold fold(Object expr, Object exprA, ReqlFunction2 func2){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func2);
+        return new Fold(args);
+    }
     public Map map(Object expr, Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
@@ -877,16 +928,13 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Branch(args);
     }
-    public Or or(Object expr, Object exprA, Object... exprs){
+    public Or or(Object... exprs){
         Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Or(args);
     }
-    public And and(Object expr, Object... exprs){
+    public And and(Object... exprs){
         Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new And(args);
     }
