@@ -35,8 +35,8 @@ bool checked_read_row_from_backend(
 artificial_table_t::artificial_table_t(artificial_table_backend_t *_backend) :
     backend(_backend), primary_key(backend->get_primary_key_name()) { }
 
-ql::datum_t artificial_table_t::get_id() const {
-    return ql::datum_t::null();
+namespace_id_t artificial_table_t::get_id() const {
+    return nil_uuid();
 }
 
 const std::string &artificial_table_t::get_pkey() const {

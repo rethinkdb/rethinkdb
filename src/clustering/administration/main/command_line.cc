@@ -815,6 +815,7 @@ private:
 bool initialize_tls_ctx(
     const std::map<std::string, options::values_t> &opts,
     shared_ssl_ctx_t *tls_ctx_out) {
+
     tls_ctx_out->reset(SSL_CTX_new(SSLv23_method()), SSL_CTX_free);
     if (nullptr == tls_ctx_out->get()) {
         ERR_print_errors_fp(stderr);
@@ -939,11 +940,6 @@ bool initialize_tls_ctx(
 bool configure_tls(
     const std::map<std::string, options::values_t> &opts,
     tls_configs_t *tls_configs_out) {
-    // Setup OpenSSL context.
-    SSL_library_init();
-    SSL_load_error_strings();
-
-    logNTC("%s\n", SSLeay_version(SSLEAY_VERSION));
 
     if(!exists_option(opts, "--no-http-admin") &&
             (exists_option(opts, "--http-tls-key")

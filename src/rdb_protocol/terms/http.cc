@@ -4,12 +4,14 @@
 #include <string>
 #include "debug.hpp"
 
+#include "clustering/administration/metadata.hpp"
+#include "extproc/http_runner.hpp"
 #include "math.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/terms/terms.hpp"
-#include "extproc/http_runner.hpp"
+#include "rpc/semilattice/view.hpp"
 
 namespace ql {
 
@@ -222,6 +224,12 @@ void dispatch_http(env_t *env,
 
 scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
                                            eval_flags_t) const {
+    try {
+        env->env->get_user_context().require_connect_permission(env->env->get_rdb_ctx());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
+
     http_opts_t opts;
     opts.limits = env->env->limits();
     opts.version = env->env->reql_version();
@@ -566,7 +574,7 @@ std::string http_term_t::get_auth_item(const datum_t &datum,
 // The `auth` optarg takes an object consisting of the following fields:
 //  type - STRING, the type of authentication to perform 'basic' or 'digest'
 //      defaults to 'basic'
-//  user - STRING, the username to use
+//  user - STRING, the user_context to use
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
                            args_t *args,

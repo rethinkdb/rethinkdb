@@ -65,6 +65,8 @@ public class ErrorBuilder {
                             return ReqlOpIndeterminateError::new;
                         case USER:
                             return ReqlUserError::new;
+                        case PERMISSION_ERROR:
+                            return ReqlPermissionError::new;
                         default:
                             return ReqlRuntimeError::new;
                     }

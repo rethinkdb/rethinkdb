@@ -312,7 +312,10 @@ datum_t::datum_t(double _num) : data(_num) {
 }
 
 datum_t::datum_t(datum_string_t _str) : data(std::move(_str)) {
-    check_str_validity(data.r_str);
+}
+
+datum_t::datum_t(const std::string &string)
+    : data(datum_string_t(string)) {
 }
 
 datum_t::datum_t(const char *cstr) : data(cstr) { }
@@ -495,14 +498,6 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
     } break;
     default: unreachable();
     }
-}
-
-void check_str_validity(const char *, size_t) {
-    // previous versions would throw on NULL bytes.
-}
-
-void datum_t::check_str_validity(const datum_string_t &str) {
-    ::ql::check_str_validity(str.data(), str.size());
 }
 
 const shared_buf_ref_t<char> *datum_t::get_buf_ref() const {
@@ -1883,7 +1878,6 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
         for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
-            datum_t::check_str_validity(key);
             fail_if_invalid(ap->key());
             auto res = map.insert(std::make_pair(key,
                                                  to_datum(&ap->val(), limits,
@@ -2042,7 +2036,6 @@ datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
 }
 
 bool datum_object_builder_t::add(const datum_string_t &key, datum_t val) {
-    datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     auto res = map.insert(std::make_pair(key, std::move(val)));
     // Return _false_ if the insertion actually happened.  Because we are being
@@ -2056,7 +2049,6 @@ bool datum_object_builder_t::add(const char *key, datum_t val) {
 
 void datum_object_builder_t::overwrite(const datum_string_t &key,
                                        datum_t val) {
-    datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     map[key] = std::move(val);
 }

@@ -10,6 +10,7 @@
 #include <string>
 
 #include "arch/address.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/wait_any.hpp"
@@ -36,7 +37,8 @@ class query_cache_t : public home_thread_mixin_t {
 public:
     query_cache_t(rdb_context_t *_rdb_ctx,
                   ip_and_port_t _client_addr_port,
-                  return_empty_normal_batches_t _return_empty_normal_batches);
+                  return_empty_normal_batches_t _return_empty_normal_batches,
+                  auth::user_context_t _user_context);
     ~query_cache_t();
 
     // A reference to a given query in the cache - no more than one reference may be
@@ -96,6 +98,9 @@ public:
     void terminate_internal(entry_t *entry);
 
     enum class interrupt_reason_t { UNKNOWN, STOP, DELETE };
+
+    auth::user_context_t const &get_user_context() const;
+
 private:
     class entry_t {
     public:
@@ -138,6 +143,7 @@ private:
     rdb_context_t *const rdb_ctx;
     ip_and_port_t client_addr_port;
     return_empty_normal_batches_t return_empty_normal_batches;
+    auth::user_context_t user_context;
     std::map<int64_t, scoped_ptr_t<entry_t> > queries;
 
     // Used for noreply waiting, this contains all allocated-but-incomplete query ids

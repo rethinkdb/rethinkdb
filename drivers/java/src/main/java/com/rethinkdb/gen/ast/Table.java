@@ -89,6 +89,12 @@ public Table optArg(String optname, ReqlFunction4 value) {
         Arguments arguments = new Arguments(this);
         return new Sync(arguments);
     }
+    public Grant grant(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new Grant(arguments);
+    }
     public IndexCreate indexCreate(Object expr) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);

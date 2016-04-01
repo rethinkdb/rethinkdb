@@ -5,6 +5,8 @@
 
 #include "boost_utils.hpp"
 #include "btree/reql_specific.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -429,6 +431,7 @@ void server_t::add_limit_client(
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -450,6 +453,7 @@ void server_t::add_limit_client(
             table,
             ctx,
             std::move(optargs),
+            std::move(user_context),
             client_uuid,
             this,
             it->first,
@@ -841,6 +845,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     rdb_context_t *ctx,
     global_optargs_t optargs,
+    auth::user_context_t user_context,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -860,8 +865,12 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, return_empty_normal_batches_t::NO,
-        drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx,
+        return_empty_normal_batches_t::NO,
+        drainer.get_drain_signal(),
+        std::move(optargs),
+        std::move(user_context),
+        nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -1315,7 +1324,9 @@ public:
         }
     }
 protected:
-    subscription_t(feed_t *feed,
+    subscription_t(rdb_context_t *rdb_context,
+                   const auth::user_context_t &user_context,
+                   feed_t *feed,
                    configured_limits_t limits,
                    const datum_t &squash,
                    bool include_states,
@@ -1346,6 +1357,9 @@ private:
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
     virtual void apply_queued_changes() = 0;
+
+    rdb_context_t *rdb_context;
+    auth::user_context_t user_context;
 
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
@@ -1543,7 +1557,7 @@ class limit_sub_t;
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
-    feed_t();
+    feed_t(namespace_id_t const &, table_meta_client_t *);
     virtual ~feed_t();
 
     void add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
@@ -1579,6 +1593,14 @@ public:
 
     const std::string pkey;
     virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
+
+    namespace_id_t const &get_table_id() const {
+        return table_id;
+    }
+
+    table_meta_client_t *get_table_meta_client() const {
+        return table_meta_client;
+    }
 protected:
     bool detached;
     int64_t num_subs;
@@ -1630,6 +1652,9 @@ private:
     // expensive case), it's easier to fill this in multiple times than to have
     // every sub do a thread switch to read the value.
     one_per_thread_t<stamps_t> stamps;
+
+    namespace_id_t table_id;
+    table_meta_client_t *table_meta_client;
 };
 
 void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
@@ -1656,16 +1681,16 @@ public:
                 client_t *client,
                 mailbox_manager_t *manager,
                 namespace_interface_t *ns_if,
-                uuid_u uuid,
-                signal_t *interruptor);
+                namespace_id_t const &table_id,
+                signal_t *interruptor,
+                table_meta_client_t *table_meta_client);
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
     void abort_feed() final { aborted.pulse_if_not_already_pulsed(); }
-    uuid_u get_uuid() const { return uuid; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
 private:
-    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
+    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, table_id); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
@@ -1673,7 +1698,7 @@ private:
 
     auto_drainer_t::lock_t client_lock;
     client_t *client;
-    uuid_u uuid;
+    namespace_id_t table_id;
     mailbox_manager_t *manager;
     mailbox_t<void(stamped_msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
@@ -1706,18 +1731,25 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                          client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
-                         uuid_u _uuid,
-                         signal_t *interruptor)
-    : client_lock(std::move(_client_lock)),
+                         namespace_id_t const &_table_id,
+                         signal_t *interruptor,
+                         table_meta_client_t *table_meta_client)
+    : feed_t(_table_id, table_meta_client),
+      client_lock(std::move(_client_lock)),
       client(_client),
-      uuid(_uuid),
+      table_id(_table_id),
       manager(_manager),
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
-        ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
+        ns_if->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &read_resp,
+            order_token_t::ignore,
+            interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
         guarantee(resp != NULL);
@@ -1790,7 +1822,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, table_id);
         guarantee(detached);
         if (self.has()) {
             guarantee(lock.has());
@@ -1808,13 +1840,17 @@ void real_feed_t::constructor_cb() {
 
 class empty_sub_t : public flat_sub_t {
 public:
-    empty_sub_t(feed_t *feed,
+    empty_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
                 bool include_types)
     // There will never be any changes, safe to start squashing right away.
     : flat_sub_t(init_squashing_queue_t::YES,
+                 rdb_context,
+                 user_context,
                  feed,
                  std::move(limits),
                  squash,
@@ -1887,7 +1923,9 @@ private:
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed,
+    point_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
@@ -1895,6 +1933,8 @@ public:
                 datum_t _pkey)
         // For point changefeeds we start squashing right away.
         : flat_sub_t(init_squashing_queue_t::YES,
+                     rdb_context,
+                     user_context,
                      feed,
                      std::move(limits),
                      squash,
@@ -1974,6 +2014,7 @@ public:
 
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
@@ -2070,7 +2111,9 @@ counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed,
+    range_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
@@ -2080,6 +2123,8 @@ public:
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
         : flat_sub_t(init_squashing_queue_t::NO,
+                     rdb_context,
+                     user_context,
                      feed,
                      std::move(limits),
                      squash,
@@ -2216,6 +2261,7 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
+            outer_env->get_user_context(),
             read_t(changefeed_stamp_t(addr),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
@@ -2292,7 +2338,7 @@ private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
         // actually have a context.
-        return outer_env->get_rdb_ctx() == NULL
+        return outer_env->get_rdb_ctx() == nullptr
             ? make_scoped<env_t>(outer_env->interruptor,
                                  outer_env->return_empty_normal_batches,
                                  outer_env->reql_version())
@@ -2301,6 +2347,7 @@ private:
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
+                outer_env->get_user_context(),
                 nullptr/*don't profile*/);
     }
 
@@ -2329,14 +2376,18 @@ class limit_sub_t : public subscription_t {
     };
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed,
+    limit_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool _include_offsets,
                 bool include_states,
                 bool include_types,
                 keyspec_t::limit_t _spec)
-        : subscription_t(feed,
+        : subscription_t(rdb_context,
+                         user_context,
+                         feed,
                          limits,
                          squash,
                          include_states,
@@ -2646,16 +2697,18 @@ public:
         include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_limit_subscribe_t(
                        addr,
                        uuid,
                        spec,
                        std::move(table),
                        env->get_all_optargs(),
+                       env->get_user_context(),
                        spec.range.sindex
-                       ? region_t::universe()
-                       : region_t(
-                           spec.range.datumspec.covering_range().to_primary_keyrange())),
+                           ? region_t::universe()
+                           : region_t(
+                               spec.range.datumspec.covering_range().to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
@@ -3126,6 +3179,8 @@ private:
 };
 
 subscription_t::subscription_t(
+    rdb_context_t *_rdb_context,
+    const auth::user_context_t &_user_context,
     feed_t *_feed,
     configured_limits_t _limits,
     const datum_t &_squash,
@@ -3139,6 +3194,8 @@ subscription_t::subscription_t(
       include_types(_include_types),
       mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
+      rdb_context(_rdb_context),
+      user_context(_user_context),
       cond(NULL),
       queue_nearly_full_cond(NULL) {
     guarantee(feed != NULL);
@@ -3243,6 +3300,32 @@ subscription_t::get_els(batcher_t *batcher,
     } else {
         r_sanity_check(false);
     }
+
+    // FIXME changefeeds on artificial tables
+    if (feed != nullptr &&
+            !feed->get_table_id().is_nil() &&
+            feed->get_table_meta_client() != nullptr &&
+            rdb_context != nullptr) {
+        try {
+            table_basic_config_t table_basic_config;
+            feed->get_table_meta_client()->get_name(
+                feed->get_table_id(), &table_basic_config);
+
+            user_context.require_read_permission(
+                rdb_context, table_basic_config.database, feed->get_table_id());
+        } catch (no_such_table_exc_t const &no_such_table_exc) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::OP_FAILED, no_such_table_exc.what())),
+                detach_t::NO);
+        } catch (auth::permission_error_t const permission_error) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::PERMISSION_ERROR, permission_error.what())),
+              detach_t::NO);
+        }
+    }
+
     r_sanity_check(ret.size() != 0);
     return ret;
 }
@@ -3601,11 +3684,13 @@ void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
     r_sanity_check(num_subs == 0);
 }
 
-feed_t::feed_t()
+feed_t::feed_t(namespace_id_t const &_table_id, table_meta_client_t *_table_meta_client)
   : detached(false),
     num_subs(0),
     empty_subs(get_num_threads()),
-    range_subs(get_num_threads()) { }
+    range_subs(get_num_threads()),
+    table_id(_table_id),
+    table_meta_client(_table_meta_client) { }
 
 feed_t::~feed_t() {
     guarantee(num_subs == 0);
@@ -3637,6 +3722,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for range subs.");
             return new range_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3649,6 +3736,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for empty subs.");
             return new empty_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3657,6 +3746,8 @@ scoped_ptr_t<subscription_t> new_sub(
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
             return new limit_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3669,6 +3760,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for point subs.");
             return new point_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3704,8 +3797,9 @@ streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     const streamspec_t &ss,
-    const namespace_id_t &uuid,
-    backtrace_id_t bt) {
+    const namespace_id_t &table_id,
+    backtrace_id_t bt,
+    table_meta_client_t *table_meta_client) {
     bool is_second_try = false;
     uuid_u last_feed_uuid;
     for (;;) {
@@ -3723,12 +3817,12 @@ counted_t<datum_stream_t> client_t::new_stream(
                 auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
                 rwlock_in_line_t spot(&feeds_lock, access_t::write);
                 spot.read_signal()->wait_lazily_unordered();
-                auto feed_it = feeds.find(uuid);
+                auto feed_it = feeds.find(table_id);
 
                 if (is_second_try) {
                     guarantee(!last_feed_uuid.is_unset());
                     if (feed_it != feeds.end()
-                        && feed_it->second->get_uuid() == last_feed_uuid) {
+                        && feed_it->second->get_table_id() == last_feed_uuid) {
                         // We enter this branch if we got a `RESUMABLE_OP_FAILED`
                         // exception, tried again, and found the same feed (which is
                         // presumably in a broken state and needs to be replaced).
@@ -3746,19 +3840,20 @@ counted_t<datum_stream_t> client_t::new_stream(
                 if (feed_it == feeds.end()) {
                     spot.write_signal()->wait_lazily_unordered();
                     namespace_interface_access_t access =
-                        namespace_source(uuid, &interruptor);
+                        namespace_source(table_id, &interruptor);
                     // Even though we have the user's feed here, multiple
                     // users may share a feed_t, and this code path will
                     // only be run for the first one.  Rather than mess
                     // about, just use the defaults.
                     auto val = make_scoped<real_feed_t>(
-                        lock, this, manager, access.get(), uuid, &interruptor);
-                    feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
+                        lock, this, manager, access.get(), table_id, &interruptor,
+                        table_meta_client);
+                    feed_it = feeds.insert(std::make_pair(table_id, std::move(val))).first;
                 }
 
                 guarantee(feed_it != feeds.end());
                 real_feed_t *feed = feed_it->second.get();
-                last_feed_uuid = feed->get_uuid();
+                last_feed_uuid = feed->get_table_id();
                 addr = feed->get_addr();
 
                 // We need to do this while holding `feeds_lock` to make sure
@@ -3769,7 +3864,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 sub = new_sub(env, feed, ss);
             }
             namespace_interface_access_t access =
-                namespace_source(uuid, env->interruptor);
+                namespace_source(table_id, env->interruptor);
             return sub->to_stream(env, ss.table_name, access.get(),
                                   addr, ss.maybe_src, std::move(sub), bt);
         } catch (const cannot_perform_query_exc_t &e) {
@@ -3832,7 +3927,9 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
 
 class artificial_feed_t : public feed_t {
 public:
-    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
+    explicit artificial_feed_t(artificial_t *_parent)
+        : feed_t(nil_uuid(), nullptr),
+          parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }

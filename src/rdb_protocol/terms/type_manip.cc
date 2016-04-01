@@ -385,14 +385,26 @@ private:
             b |= info.add("primary_key",
                           datum_t(datum_string_t(table->get_pkey())));
             b |= info.add("db", val_info(env, new_val(table->db)));
-            b |= info.add("id", table->get_id());
+            b |= info.add("id",
+                          table->get_id().is_nil() ?
+                              datum_t::null() :
+                              datum_t(datum_string_t(uuid_to_str(table->get_id()))));
             name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
             {
-                admin_err_t error;
                 std::vector<int64_t> doc_counts;
-                if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
-                        table->db, name, env->env, &doc_counts, &error)) {
-                    REQL_RETHROW(error);
+                try {
+                    admin_err_t error;
+                    if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
+                            env->env->get_user_context(),
+                            table->db,
+                            name,
+                            env->env,
+                            &doc_counts,
+                            &error)) {
+                        REQL_RETHROW(error);
+                    }
+                } catch (auth::permission_error_t const &permission_error) {
+                    rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
                 }
                 datum_array_builder_t arr(configured_limits_t::unlimited);
                 for (int64_t i : doc_counts) {

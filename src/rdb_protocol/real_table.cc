@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
 #include "rdb_protocol/real_table.hpp"
 
+#include "clustering/administration/auth/permission_error.hpp"
 #include "math.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
@@ -65,8 +66,8 @@ namespace_interface_t *namespace_interface_access_t::get() {
     return nif;
 }
 
-ql::datum_t real_table_t::get_id() const {
-    return ql::datum_t(datum_string_t(uuid_to_str(uuid)));
+namespace_id_t real_table_t::get_id() const {
+    return uuid;
 }
 
 const std::string &real_table_t::get_pkey() const {
@@ -153,7 +154,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
     const ql::changefeed::streamspec_t &ss,
     ql::backtrace_id_t bt) {
-    return changefeed_client->new_stream(env, ss, uuid, bt);
+    return changefeed_client->new_stream(env, ss, uuid, bt, m_table_meta_client);
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
@@ -185,15 +186,24 @@ ql::datum_t real_table_t::read_nearest(
         const ql::configured_limits_t &limits) {
 
     nearest_geo_read_t geo_read(
-        region_t::universe(), center, max_dist, max_results,
-        geo_system, table_name, sindex, env->get_all_optargs());
+        region_t::universe(),
+        center,
+        max_dist,
+        max_results,
+        geo_system,
+        table_name,
+        sindex,
+        env->get_all_optargs(),
+        env->get_user_context());
     read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
-        namespace_access.get()->read(read, &res, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_user_context(), read, &res, order_token_t::ignore, env->interruptor);
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", ex.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
 
     nearest_geo_read_response_t *g_res =
@@ -275,8 +285,13 @@ ql::datum_t real_table_t::write_batched_replace(
     bool batch_succeeded = false;
     for (auto &&batch : batches) {
         try {
-            batched_replace_t write(std::move(batch), pkey, func,
-                                    env->get_all_optargs(), return_changes);
+            batched_replace_t write(
+                std::move(batch),
+                pkey,
+                func,
+                env->get_all_optargs(),
+                env->get_user_context(),
+                return_changes);
             write_t w(std::move(write), durability, env->profile(), env->limits());
             write_response_t response;
             write_with_profile(env, &w, &response);
@@ -321,6 +336,7 @@ ql::datum_t real_table_t::write_batched_insert(
             conflict_behavior,
             conflict_func,
             env->limits(),
+            env->get_user_context(),
             return_changes);
         write_t w(std::move(write), durability, env->profile(), env->limits());
         write_response_t response;
@@ -357,13 +373,21 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     r_sanity_check(read.profile == env->profile());
+
     /* Do the actual read. */
     try {
-        namespace_access.get()->read(read, response, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_user_context(),
+            read,
+            response,
+            order_token_t::ignore,
+            env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
@@ -375,9 +399,14 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     write->profile = env->profile();
+
     /* Do the actual write. */
     try {
-        namespace_access.get()->write(*write, response, order_token_t::ignore,
+        namespace_access.get()->write(
+            env->get_user_context(),
+            *write,
+            response,
+            order_token_t::ignore,
             env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         ql::base_exc_t::type_t type;
@@ -391,7 +420,10 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
         default: unreachable();
         }
         rfail_datum(type, "Cannot perform write: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }

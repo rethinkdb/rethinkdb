@@ -336,6 +336,7 @@ bool do_serve(io_backender_t *io_backender,
             uses to create, destroy, and reconfigure databases and tables. */
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
+                semilattice_manager_auth.get_root_view(),
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
@@ -347,8 +348,8 @@ bool do_serve(io_backender_t *io_backender,
             `rethinkdb` system database. */
             admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
-                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
+                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_heartbeat.get_root_view(),
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
