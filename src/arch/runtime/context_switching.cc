@@ -76,6 +76,7 @@ void save_stack_info(fiber_stack_t *stack) {
             warned = true;
         }
         stack->has_stack_info = false;
+        return;
     }
     THREAD_BASIC_INFORMATION info;
     NTSTATUS res = NtQueryInformationThread(GetCurrentThread(),
@@ -87,6 +88,7 @@ void save_stack_info(fiber_stack_t *stack) {
         logWRN("NtQueryInformationThread failed: %s",
                winerr_string(LsaNtStatusToWinError(res)).c_str());
         stack->has_stack_info = false;
+        return;
     }
     NT_TIB tib;
     res = NtReadVirtualMemory(GetCurrentProcess(),
@@ -98,6 +100,7 @@ void save_stack_info(fiber_stack_t *stack) {
         logWRN("NtReadVirtualMemory failed: %s",
                winerr_string(LsaNtStatusToWinError(res)).c_str());
         stack->has_stack_info = false;
+        return;
     }
     stack->stack_base = reinterpret_cast<char*>(tib.StackBase);
     stack->stack_limit = reinterpret_cast<char*>(tib.StackLimit);
@@ -129,11 +132,19 @@ fiber_stack_t::~fiber_stack_t() {
 }
 
 bool fiber_stack_t::address_in_stack(const void *addr) const {
+    if (!has_stack_info) {
+        rassert(has_stack_info, "could not determine stack limits");
+        return true;
+    }
     const char *a = reinterpret_cast<const char*>(addr);
     return stack_limit < a && a <= stack_base;
 }
 
 bool fiber_stack_t::address_is_stack_overflow(const void *addr) const {
+    if (!has_stack_info) {
+        rassert(has_stack_info, "could not determine stack limits");
+        return false;
+    }
     return reinterpret_cast<const char*>(addr) <= stack_limit;
 }
 

@@ -392,6 +392,9 @@ bool has_n_bytes_free_stack_space(size_t n) {
     char tester;
     const coro_t *current_coro = coro_t::self();
     guarantee(current_coro != nullptr);
+    if (!current_coro->stack.has_stack_info) {
+        return true;
+    }
     return current_coro->stack.free_space_below(&tester) >= n;
 }
 
