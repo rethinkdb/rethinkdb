@@ -79,7 +79,7 @@ TPTEST(RPCMailboxTest, MailboxStartStop, 2) {
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
         heartbeat_manager(heartbeat_semilattice_metadata);
     connectivity_cluster_t::run_t r(&c, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     /* Make sure we can create a mailbox */
@@ -98,12 +98,12 @@ TPTEST_MULTITHREAD(RPCMailboxTest, MailboxMessage, 3) {
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
         heartbeat_manager(heartbeat_semilattice_metadata);
     connectivity_cluster_t::run_t r1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t r2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
-    r1.join(get_cluster_local_address(&c2));
+    r1.join(get_cluster_local_address(&c2), 0);
     let_stuff_happen();
 
     /* Create a mailbox and send it three messages */
@@ -130,10 +130,10 @@ TPTEST_MULTITHREAD(RPCMailboxTest, DeadMailbox, 3) {
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
         heartbeat_manager(heartbeat_semilattice_metadata);
     connectivity_cluster_t::run_t r1(&c1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     connectivity_cluster_t::run_t r2(&c2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
     /* Create a mailbox, take its address, then destroy it. */
     raw_mailbox_t::address_t address;
@@ -159,7 +159,7 @@ TPTEST_MULTITHREAD(RPCMailboxTest, MailboxAddressSemantics, 3) {
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
         heartbeat_manager(heartbeat_semilattice_metadata);
     connectivity_cluster_t::run_t r(&c, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     dummy_mailbox_t mbox(&m);
@@ -181,7 +181,7 @@ TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
         heartbeat_manager(heartbeat_semilattice_metadata);
     connectivity_cluster_t::run_t r(&c, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        get_unittest_addresses(), peer_address_t(), 0, ANY_PORT, 0,
         heartbeat_manager.get_view(), nullptr);
 
     std::vector<std::string> inbox;

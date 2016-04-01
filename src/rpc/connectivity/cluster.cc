@@ -217,6 +217,7 @@ connectivity_cluster_t::run_t::run_t(
         const server_id_t &_server_id,
         const std::set<ip_address_t> &local_addresses,
         const peer_address_t &canonical_addresses,
+        const int join_delay_secs,
         int port,
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
@@ -264,7 +265,7 @@ connectivity_cluster_t::run_t::run_t(
     listener(new tcp_listener_t(
         cluster_listener_socket.get(),
         std::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                 this, ph::_1, auto_drainer_t::lock_t(&drainer))))
+                 this, ph::_1, join_delay_secs, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
@@ -283,7 +284,9 @@ int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
 }
 
-void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::join(
+        const peer_address_t &address,
+        const int join_delay_secs) THROWS_NOTHING {
     parent->assert_thread();
     coro_t::spawn_now_dangerously(std::bind(
         &connectivity_cluster_t::run_t::join_blocking,
@@ -291,17 +294,19 @@ void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_N
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
+        join_delay_secs,
         auto_drainer_t::lock_t(&drainer)));
 }
 
 void connectivity_cluster_t::run_t::on_new_connection(
         const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+        const int join_delay_secs,
         auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    
+
     try {
         nconn->make_server_connection(tls_ctx, &conn, lock.get_drain_signal());
     } catch (const interrupted_exc_t &) {
@@ -315,7 +320,7 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, nullptr);
+    handle(&conn_stream, boost::none, boost::none, lock, nullptr, join_delay_secs);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
@@ -324,6 +329,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join,
+        const int join_delay_secs,
         co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
@@ -356,7 +362,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
             if (!*successful_join) {
                 handle(
                     &conn, expected_id, boost::optional<peer_address_t>(*address),
-                    drainer_lock, successful_join);
+                    drainer_lock, successful_join, join_delay_secs);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -372,6 +378,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
 void connectivity_cluster_t::run_t::join_blocking(
         const peer_address_t peer,
         boost::optional<peer_id_t> expected_id,
+        const int join_delay_secs,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
@@ -399,6 +406,7 @@ void connectivity_cluster_t::run_t::join_blocking(
                    expected_id,
                    drainer_lock,
                    &successful_join,
+                   join_delay_secs,
                    &rate_control));
 
     // All attempts have completed
@@ -832,7 +840,8 @@ void connectivity_cluster_t::run_t::handle(
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock,
-        bool *successful_join) THROWS_NOTHING
+        bool *successful_join,
+        const int join_delay_secs) THROWS_NOTHING
 {
     parent->assert_thread();
 
@@ -1163,6 +1172,7 @@ void connectivity_cluster_t::run_t::handle(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     peer_address_t(it->second), // This is where we resolve the peer's ip addresses
                     boost::optional<peer_id_t>(it->first),
+                    join_delay_secs,
                     drainer_lock));
             }
         }
@@ -1192,6 +1202,20 @@ void connectivity_cluster_t::run_t::handle(
     // or write gets interrupted.
     cluster_conn_closing_subscription_t conn_closer_2(conn);
     conn_closer_2.reset(&connection_thread_drain_signal);
+
+    // Wait a certain amount to make sure that the connection is table. Only then
+    // add it to the connectivity cluster and start processing messages.
+    if (join_delay_secs > 0) {
+        logINF("Delaying the join with server %s for %d seconds.",
+               remote_server_id.print().c_str(),
+               join_delay_secs);
+        try {
+            nap(static_cast<int64_t>(join_delay_secs) * 1000,
+                &connection_thread_drain_signal);
+        } catch (const interrupted_exc_t &) {
+            // Ignore this here. We will bail out below.
+        }
+    }
 
     {
         /* `connection_t` is the public interface of this coroutine. Its

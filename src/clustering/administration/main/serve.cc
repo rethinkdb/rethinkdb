@@ -221,6 +221,7 @@ bool do_serve(io_backender_t *io_backender,
                 server_id,
                 serve_info.ports.local_addresses_cluster,
                 serve_info.ports.canonical_addresses,
+                serve_info.join_delay_secs,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
                 semilattice_manager_heartbeat.get_root_view(),
@@ -241,7 +242,8 @@ bool do_serve(io_backender_t *io_backender,
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            &server_config_client);
+            &server_config_client,
+            serve_info.join_delay_secs);
 
         /* `initial_joiner` sets up the initial connections to the peers that were
         specified with the `--join` flag on the command line. */
@@ -249,7 +251,8 @@ bool do_serve(io_backender_t *io_backender,
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
                                                      connectivity_cluster_run.get(),
-                                                     serve_info.peers));
+                                                     serve_info.peers,
+                                                     serve_info.join_delay_secs));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
