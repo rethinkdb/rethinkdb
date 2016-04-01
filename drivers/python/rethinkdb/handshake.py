@@ -122,7 +122,10 @@ class HandshakeV1_0(object):
             json = self._json_decoder.decode(response.decode("utf-8"))
             try:
                 if json["success"] == False:
-                    raise ReqlDriverError(json["error"])
+                    if 10 <= json["error_code"] <= 20:
+                        raise ReqlAuthError(json["error"])
+                    else:
+                        raise ReqlDriverError(json["error"])
 
                 min = json["min_protocol_version"]
                 max = json["max_protocol_version"]
@@ -142,7 +145,10 @@ class HandshakeV1_0(object):
             server_first_message = r = salt = i = None
             try:
                 if json["success"] == False:
-                    raise ReqlDriverError(json["error"])
+                    if 10 <= json["error_code"] <= 20:
+                        raise ReqlAuthError(json["error"])
+                    else:
+                        raise ReqlDriverError(json["error"])
 
                 server_first_message = json["authentication"].encode("ascii")
                 authentication = dict(
@@ -208,7 +214,10 @@ class HandshakeV1_0(object):
             v = None
             try:
                 if json["success"] == False:
-                    raise ReqlDriverError(json["error"])
+                    if 10 <= json["error_code"] <= 20:
+                        raise ReqlAuthError(json["error"])
+                    else:
+                        raise ReqlDriverError(json["error"])
 
                 authentication = dict(
                     x.split(b"=", 1)

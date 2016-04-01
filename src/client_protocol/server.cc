@@ -466,13 +466,14 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         // If we have been interrupted, we can't write a message to the client, as that
         // may block (and we would just be interrupted again anyway), just close.
     } catch (auth::authentication_error_t const &error) {
-        error_code = 10; // FIXME these need their own codes
+        // Note these have error codes 10 to 20
+        error_code = error.get_error_code();
         error_message = error.what();
     } catch (crypto::error_t const &error) {
-        error_code = 11;
+        error_code = 21;
         error_message = error.what();
     } catch (crypto::openssl_error_t const &error) {
-        error_code = 12;
+        error_code = 22;
         error_message = error.code().message();
     } catch (const tcp_conn_read_closed_exc_t &) {
     } catch (const tcp_conn_write_closed_exc_t &) {

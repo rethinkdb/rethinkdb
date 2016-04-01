@@ -12,7 +12,7 @@ username_t::username_t() { }
 username_t::username_t(std::string const &username) {
     m_username = crypto::saslprep(username);
     if (m_username.empty()) {
-        throw authentication_error_t("Empty username");
+        throw authentication_error_t(18, "Empty username");
     }
 }
 
