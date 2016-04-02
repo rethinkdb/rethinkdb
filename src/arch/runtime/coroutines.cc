@@ -392,9 +392,11 @@ bool has_n_bytes_free_stack_space(size_t n) {
     char tester;
     const coro_t *current_coro = coro_t::self();
     guarantee(current_coro != nullptr);
+#ifdef _WIN32
     if (!current_coro->stack.has_stack_info) {
         return true;
     }
+#endif
     return current_coro->stack.free_space_below(&tester) >= n;
 }
 
