@@ -5,6 +5,7 @@
 #include <openssl/sha.h>
 
 #include <array>
+#include <string>
 
 namespace crypto {
 

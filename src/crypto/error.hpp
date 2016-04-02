@@ -6,6 +6,7 @@
 
 #include <exception>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 
 namespace crypto {
