@@ -248,11 +248,15 @@ void serialize(write_message_t *write_message, std::array<T, N> const &values) {
 
 template <cluster_version_t W, class T, std::size_t N>
 MUST_USE archive_result_t deserialize(read_stream_t *read_stream, std::array<T, N> *values) {
-    std::size_t size = 0;
-    archive_result_t archive_result = deserialize_varint_uint64(read_stream, &size);
+    uint64_t sz = 0;
+    archive_result_t archive_result = deserialize_varint_uint64(read_stream, &sz);
     if (bad(archive_result)) {
         return archive_result;
     }
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    size_t size = static_cast<size_t>(sz);
     if (size != N) {
         return archive_result_t::RANGE_ERROR;
     }
