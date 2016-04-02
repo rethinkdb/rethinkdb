@@ -1497,6 +1497,7 @@ options::help_section_t get_setuser_options(std::vector<options::option_t> *opti
     return help;
 }
 
+#ifdef ENABLE_TLS
 options::help_section_t get_tls_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("TLS options");
 
@@ -1565,6 +1566,7 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
 
     return help;
 }
+#endif
 
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
@@ -1591,7 +1593,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -1604,7 +1608,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_network_options(true, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
@@ -1618,7 +1624,9 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
