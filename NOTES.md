@@ -1,3 +1,157 @@
+# Release 2.3.0 (Fantasia)
+
+TODO: Check all the PRs
+TODO: Cutoff point: March 30th 3:22 PM
+
+Released on 2016-04-XX
+
+RethinkDB 2.3 introduces a user and permission system, TLS encrypted connections, a
+Windows beta, and various improvements to the ReQL query language.
+
+Read the [blog post][2.3-release] for more details.
+
+[2.3-release]: http://rethinkdb.com/blog/2.3-release/
+
+## Compatibility ##
+
+Data files from RethinkDB version 1.16 onward will be automatically migrated.
+As with any major release, back up your data files before performing the upgrade.
+
+If you're upgrading from RethinkDB 1.15.x or earlier, please read the
+[data migration guide][data-migration-docs] to find out about the required migration steps.
+
+RethinkDB 2.3.0 servers cannot be mixed with servers running RethinkDB 2.2.x or earlier
+in the same cluster.
+
+[data-migration-docs]: http://www.rethinkdb.com/docs/migration/
+
+### API-breaking changes ###
+
+* TODO: eqJoin ordering
+* TODO: Changed geo multi index semantics
+* TODO: `returnChanges: "always"` on `insert` now generates {error: } documents
+* Changefeeds on queries of the form `orderBy(...).limit(...).filter(...)` are no longer
+  allowed. Previous versions of RethinkDB allowed the creation of such changefeeds, but
+  did not provide the correct semantics.
+* TODO: Coercing non-unicode binary to string
+* TODO: r.minval and r.maxval in secondary index functions
+* TODO: No more global r.wait, r.rebalance, r.reconfigure
+
+### Deprecated APIs ###
+
+* TODO: deprecated `each`
+* TODO: deprecated `auth_key`. Talk about how it gets migrated etc.
+
+## New features ##
+
+* TODO: Users & Permissions
+* TODO: TLS (Linux and OS X only)
+* TODO: Windows
+* TODO: fold
+* Added support for changefeeds on `getIntersecting` queries. (#4777)
+
+## Improvements ##
+
+* Server
+ * The `--bind` option can now be specified separately for the web UI (`--bind-http`),
+   client driver port (`--bind-driver`) and cluster port (`--bind-cluster`). (#5467)
+ * RethinkDB servers now detect non-transitive connectivity in the cluster and raise a
+   `"non_transitive_error"` issue in the `current_issues` system table when detecting
+   an issue. Additionally, the `server_status` system table now contains information on
+   each server's connectivity in the new `connected_to` field. (#4936)
+ * Added a new `"memory_error"` issue type for the `current_issues` system table that is
+   displayed when the RethinkDB process starts using swap space. (Linux only) (#1023)
+ * Reduced the number of scenarios that require index migration after a RethinkDB
+   upgrade. Indexes no longer need to be migrated unless they use a custom index
+   function. (#5175)
+ * Added support for compiling RethinkDB on Alpine Linux. (#4437)
+ * Proxy servers now print their server ID on startup. (#5515)
+ * Raised the maximum query size from 64 MB to 128 MB. (#4529)
+ * Increased the maximum number of shards for a table from 32 to 64. (#5311)
+* ReQL
+ * Added an `interleave` option to the `union` command to allow merging streams in a
+   particular order. (#5090)
+ * Added support for custom conflict-resolution functions to the `insert` command.
+   (#3753)
+ * The `insert` command now returns changes in the same order in which they were passed
+   in when the `returnChanges` option is used. (#5041)
+ * Improved the error message from `reconfigure` if too many servers are unreachable
+   (#5267)
+ * Made geospatial multi indexes behave consistently with non-geospatial multi indexes
+   if a document is indexed under multiple matching keys. `getIntersecting` and
+   `getNearest` now return duplicates if multiple index keys match. (#3351)
+ * The `and`, `or` and `getAll` commands can now be called with zero arguments.
+   (#4696, #2588)
+ * Disallowed calling `r.wait`, `r.rebalance` and `r.reconfigure` on the global scope to
+   avoid confusing semantics. (#4382)
+* Performance
+ * Implemented efficient batching for distributed joins using the `eqJoin` command.
+   (#5115)
+ * Optimized `tableCreate` to complete more quickly. (#4746)
+ * TODO Function evaluation overhead
+* Web UI
+ * The web UI now uses the `conn.server()` command for getting information about the
+   connected server. (#5059)
+* All drivers
+ * TODO
+* JavaScript driver
+ * TODO: eachAsync
+* Python driver
+ * Added a `"gevent"` loop type to the Python driver. (#4433)
+ * Printing a cursor object now displays the first few results. (#5331)
+ * Removed the dependency on `tar` for the `rethinkdb restore` and `rethinkdb dump`
+   commands. (#5399)
+ * Added a `--tls-cert` option to the `rethinkdb import`, `rethinkdb export`,
+   `rethinkdb dump`, `rethinkdb restore` and `rethinkdb index-rebuild` commands to enable
+   TLS connections. (#5330)
+
+## Bug fixes ##
+
+* Server
+ * Fixed a crash with the message `[cmp != 0]` when querying with `r.minval` or
+   `r.maxval` values inside of an array. (#5542)
+ * Fixed in issue that caused orphaned tables to be left behind when deleting a database
+   through the `db_config` system table. (#4465)
+ * Fixed a crash when trying to restore a backup from a version of RethinkDB that is too
+   new. (#5104)
+* ReQL
+ * Disallowed changefeeds on queries of the form `orderBy(...).limit(...).filter(...)`,
+   since they do not provide the correct semantics. (#5325)
+ * Coercing a binary value to a string value now properly checks for illegal characters
+   in the string. (#5536)
+* Web UI
+ * Fixed the "The request to retrieve data failed" error when having an orphaned table
+   whose database has been deleted. (#4985)
+ * Fixed the maximum number of shards display for clusters with more than 32 servers.
+   (#5311)
+ * Fixed an empty "Connected to" field when accessing the web UI through a RethinkDB
+   proxy server. (#3182)
+* JavaScript driver
+ * TODO
+* Python driver
+ * Fixed a bug in the `__str__` function of cursor objects. (#5567)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3. In no particular order:
+
+* TODO
+
+--
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Release 2.2.6 (Modern Times)
 
 Released on 2016-03-25
