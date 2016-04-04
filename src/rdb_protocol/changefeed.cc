@@ -3322,7 +3322,7 @@ subscription_t::get_els(batcher_t *batcher,
             stop(
                 std::make_exception_ptr(
                     datum_exc_t(base_exc_t::PERMISSION_ERROR, permission_error.what())),
-              detach_t::NO);
+                detach_t::NO);
         }
     }
 

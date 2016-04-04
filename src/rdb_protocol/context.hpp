@@ -241,6 +241,7 @@ public:
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, admin_err_t *error_out) = 0;
     virtual bool db_config(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             ql::backtrace_id_t bt,
             ql::env_t *env,
@@ -280,6 +281,7 @@ public:
             std::vector<int64_t> *doc_counts_out,
             admin_err_t *error_out) = 0;
     virtual bool table_config(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
