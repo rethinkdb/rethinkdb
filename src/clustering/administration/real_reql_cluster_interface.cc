@@ -274,7 +274,7 @@ bool real_reql_cluster_interface_t::db_config(
             query_state_t::FAILED};
         return false;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     }
 }
@@ -337,7 +337,7 @@ bool real_reql_cluster_interface_t::table_create(
             admin_identifier_format_t::name, config.server_names);
 
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -544,7 +544,7 @@ bool real_reql_cluster_interface_t::table_config(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -566,7 +566,7 @@ bool real_reql_cluster_interface_t::table_status(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -590,7 +590,7 @@ bool real_reql_cluster_interface_t::table_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -621,7 +621,7 @@ bool real_reql_cluster_interface_t::db_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     }
 }
@@ -735,7 +735,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
             result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -780,7 +780,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
             deleted before the operation even began. */
             continue;
         } catch (const admin_op_exc_t &admin_op_exc) {
-            *error_out = std::move(admin_op_exc.to_admin_err());
+            *error_out = admin_op_exc.to_admin_err();
             return false;
         } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been reconfigured.",
@@ -907,7 +907,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
             &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -991,7 +991,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
         rebalance_internal(table_id, &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -1031,7 +1031,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
             just ignore it to avoid making a confusing error message. */
             continue;
         } catch (const admin_op_exc_t &admin_op_exc) {
-            *error_out = std::move(admin_op_exc.to_admin_err());
+            *error_out = admin_op_exc.to_admin_err();
             return false;
         } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been rebalanced.",
