@@ -1487,7 +1487,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--bind-http"),
                                              options::OPTIONAL_REPEAT));
     help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections, loopback addresses are enabled by default. Can be overridden by the following three options.");
-    help.add("--bind-cluster {all | addr}", "override the behavior specified by --bind for cluster connections.")
+    help.add("--bind-cluster {all | addr}", "override the behavior specified by --bind for cluster connections.");
     help.add("--bind-driver {all | addr}", "override the behavior specified by --bind for client driver connections.");
     help.add("--bind-http {all | addr}", "override the behavior specified by --bind for web console connections.");
     options_out->push_back(options::option_t(options::names_t("--no-default-bind"),
