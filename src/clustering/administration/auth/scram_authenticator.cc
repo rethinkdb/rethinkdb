@@ -160,6 +160,8 @@ std::string scram_authenticator_t::next_message(std::string const &message)
             case state_t::AUTHENTICATED:
                 throw authentication_error_t(
                     20, "Already authenticated, no more messages expected.");
+            default:
+                unreachable();
         }
     } catch (...) {
         m_state = state_t::ERROR;
