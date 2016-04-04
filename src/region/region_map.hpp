@@ -306,6 +306,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
                 std::move(regions), std::move(values));
             return archive_result_t::SUCCESS;
         }
+    default:
+        unreachable();
     }
 }
 

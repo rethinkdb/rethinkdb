@@ -123,7 +123,7 @@ def latest_build_dir(check_executable=True, mode=None):
             raise test_exceptions.NotBuiltException(detail='no version of this project has yet been built')
         
         if mode in (None, ''):
-            mode = ['release', 'debug']
+            mode = ['release', 'debug', 'Release', 'Debug']
         elif not hasattr(mode, '__iter__'):
             mode = [str(mode)]
         
@@ -134,7 +134,7 @@ def latest_build_dir(check_executable=True, mode=None):
             path = os.path.join(masterBuildDir, name)
             if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
                 if check_executable == True:
-                    if not os.path.isfile(os.path.join(path, 'rethinkdb')):
+                    if not os.path.isfile(os.path.join(path, 'rethinkdb')) and os.path.isfile(os.path.join(path, 'RethinkDB.exe')):
                         continue
                 
                 mtime = os.path.getmtime(path)

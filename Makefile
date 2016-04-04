@@ -87,11 +87,13 @@ debug-count:
 	@$(eval MAKE_GOALS := $(filter-out $@,$(MAKE_GOALS)))$(COUNTDOWN_COMMAND)
 
 COUNTDOWN_COMMAND = MAKEFLAGS='$(MAKEFLAGS)' $(MAKE_CMD_LINE) $(MAKE_GOALS) --dry-run JUST_SCAN_MAKEFILES=1 -j1
-ifeq (1,$(SHOW_COUNTDOWN))
+ifneq (1,$(SHOW_COUNTDOWN))
+  COUNTDOWN_TOTAL :=
+else ifeq (Windows,$(OS))
+  COUNTDOWN_TOTAL :=
+else
   # See mk/lib.mk for JUST_SCAN_MAKEFILES
   COUNTDOWN_TOTAL = $(firstword $(shell $(COUNTDOWN_COMMAND) 2>&1 | grep "[!!!]" | wc -l 2>/dev/null))
-else
-  COUNTDOWN_TOTAL :=
 endif
 
 # Build the list of phony targets

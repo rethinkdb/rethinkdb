@@ -14,13 +14,6 @@
 
 int main(int argc, char *argv[]) {
 
-#if defined(_WIN32) && !defined(NDEBUG)
-    extern int unittest_main(int, char**);
-    if (argc >= 2 && !strcmp(argv[1], "test")) {
-        return unittest_main(argc - 1, argv + 1);
-    }
-#endif
-
 #if !defined(NDEBUG) && !defined(_WIN32)
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;

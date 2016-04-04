@@ -67,8 +67,10 @@ std::string FpToString(Fprint fp) {
   return std::string(buf);
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 std::string FloatToString(float f, const char* format) {
   char buf[80];
   snprintf(buf, sizeof(buf), format, f);
@@ -92,7 +94,9 @@ std::string UInt64ToString(uint64 ui64, const char* format) {
   snprintf(buf, sizeof(buf), format, ui64);
   return std::string(buf);
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 // Default arguments
 std::string FloatToString(float f)   { return FloatToString(f, "%7f"); }

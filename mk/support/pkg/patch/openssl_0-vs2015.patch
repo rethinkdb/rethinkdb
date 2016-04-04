@@ -1,0 +1,11 @@
+--- ../../../../external/openssl_1.0.1i/e_os.h	2014-08-06 14:10:56.000000000 -0700
++++ ./e_os.h	2016-01-27 20:34:13.826788800 -0800
+@@ -307,7 +307,7 @@
+ #      undef isxdigit
+ #    endif
+ #    if defined(_MSC_VER) && !defined(_DLL) && defined(stdin)
+-#      if _MSC_VER>=1300
++#      if _MSC_VER>=1300 && _MSC_VER<1400
+ #        undef stdin
+ #        undef stdout
+ #        undef stderr
