@@ -227,7 +227,7 @@ class TestPrivateServer(TestCaseCompatible):
 
             if cls.authKey is not None:
                 conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
-                result = r.db('rethinkdb').table('cluster_config').get('auth').update({'auth_key':cls.authKey}).run(conn)
+                result = r.db('rethinkdb').table('users').get('admin').update({'password':cls.authKey}).run(conn)
                 if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
                     cls.server = None
                     raise Exception('Unable to set authkey, got: %s' % str(result))
@@ -284,13 +284,13 @@ class TestConnectionDefaultPort(TestPrivateServer):
             return
         self.assertRaisesRegexp(
             r.ReqlAuthError,
-            "Could not connect to %s:%d, incorrect authentication key." % (self.host, self.port),
+            "Could not connect to %s:%d: Wrong password" % (self.host, self.port),
             r.connect,
             auth_key="hunter2")
 
 class TestAuthConnection(TestPrivateServer):
 
-    incorrectAuthMessage = "Could not connect to %s:%d, incorrect authentication key."
+    incorrectAuthMessage = "Could not connect to %s:%d: Wrong password"
     authKey = 'hunter2'
 
     def test_connect_no_auth(self):
@@ -309,19 +309,6 @@ class TestAuthConnection(TestPrivateServer):
             r.ReqlAuthError,
             self.incorrectAuthMessage % (self.host, self.port),
             r.connect, port=self.port, auth_key="hunter22")
-
-    def test_connect_long_auth(self):
-        long_key = str("k") * 2049
-        not_long_key = str("k") * 2048
-
-        self.assertRaisesRegexp(
-            r.ReqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
-            r.connect, port=self.port, auth_key=long_key)
-
-        self.assertRaisesRegexp(
-            r.ReqlDriverError,
-            self.incorrectAuthMessage % (self.host, self.port),
-            r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
         conn = r.connect(port=self.port, auth_key="hunter2")

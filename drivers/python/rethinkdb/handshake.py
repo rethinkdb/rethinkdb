@@ -53,7 +53,7 @@ class HandshakeV0_4(object):
                     except UnicodeError:
                         message = repr(response).strip()
                 if message == "ERROR: Incorrect authorization key.":
-                    raise ReqlAuthError(self._host, self._port)
+                    raise ReqlAuthError("Incorrect authentication key.", self._host, self._port)
                 else:
                     raise ReqlDriverError(
                         "Server dropped connection with message: \"%s\"" % (message, ))
@@ -123,7 +123,7 @@ class HandshakeV1_0(object):
             try:
                 if json["success"] == False:
                     if 10 <= json["error_code"] <= 20:
-                        raise ReqlAuthError(json["error"])
+                        raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
                         raise ReqlDriverError(json["error"])
 
@@ -146,7 +146,7 @@ class HandshakeV1_0(object):
             try:
                 if json["success"] == False:
                     if 10 <= json["error_code"] <= 20:
-                        raise ReqlAuthError(json["error"])
+                        raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
                         raise ReqlDriverError(json["error"])
 
@@ -156,7 +156,7 @@ class HandshakeV1_0(object):
 
                 r = authentication[b"r"]
                 if not r.startswith(self._r):
-                    raise ReqlAuthError("Invalid nonce from server")
+                    raise ReqlAuthError("Invalid nonce from server", self._host, self._port)
                 salt = base64.standard_b64decode(authentication[b"s"])
                 i = int(authentication[b"i"])
             except KeyError as key_error:
@@ -215,7 +215,7 @@ class HandshakeV1_0(object):
             try:
                 if json["success"] == False:
                     if 10 <= json["error_code"] <= 20:
-                        raise ReqlAuthError(json["error"])
+                        raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
                         raise ReqlDriverError(json["error"])
 
@@ -228,7 +228,7 @@ class HandshakeV1_0(object):
                 raise ReqlDriverError("Missing key: %s" % (key_error, ))
 
             if not self._compare_digest(v, self._server_signature):
-                raise ReqlAuthError("Invalid server signature")
+                raise ReqlAuthError("Invalid server signature", self._host, self._port)
 
             self._state = 4
             return None
