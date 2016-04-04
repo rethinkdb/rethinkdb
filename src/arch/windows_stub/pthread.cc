@@ -88,6 +88,41 @@ int pthread_mutex_unlock(pthread_mutex_t* mutex) {
     return 0;
 }
 
+int pthread_rwlock_init(pthread_rwlock_t *lock, void *opts) {
+    rassert(opts == nullptr, "this implementation of pthread_rwlock_t does not support attributes");
+    InitializeSRWLock(lock->lock);
+    return 0;
+}
+
+int pthread_rwlock_destroy(pthread_rwlock_t *) {
+    // SRWLocks do not need to be explicitly destroyed
+    return 0;
+}
+
+int pthread_rwlock_rdlock(pthread_rwlock_t *lock) {
+    AcquireSRWLockShared(lock->lock);
+    lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::SHARED;
+    return 0;
+}
+
+int pthread_rwlock_wrlock(pthread_rwlock_t *lock) {
+    AcquireSRWLockExclusive(lock->lock);
+    lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE;
+    return 0;
+}
+
+int pthread_rwlock_unlock(pthread_rwlock_t *lock) {
+    switch (lock->current_acq_mode) {
+        case pthread_rwlock_t::srw_lock_mode_t::SHARED:
+            ReleaseSRWLockShared(lock->lock);
+        case pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE:
+            ReleaseSRWLockExclusive(lock->lock);
+        default:
+            unreachable();
+    }
+    return 0;
+}
+
 int pthread_attr_init(pthread_attr_t*) {
     return 0;
 }

@@ -70,12 +70,6 @@ with driver.Cluster(output_folder='.', ) as cluster:
                 assert len(feed.changes) == 0, "Expected no changes on %s, found %s." % (name, feed.changes)
     check([], 5.0)
 
-    utils.print_with_time("Changing auth key...")
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": "foo"}).run(conn)
-    assert res["replaced"] == 1 and res["errors"] == 0, res
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": None}).run(conn)
-    check(["cluster_config"], 1.0)
-
     utils.print_with_time("Creating database...")
     res = r.db_create("test").run(conn)
     assert res.get("dbs_created", 0) == 1, res

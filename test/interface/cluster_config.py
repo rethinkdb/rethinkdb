@@ -22,64 +22,15 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
     server = cluster[0]
     conn = r.connect(server.host, server.driver_port)
-    
-    print("Setting AuthKey (%.2fs)" % (time.time() - startTime))
-
-    assert list(r.db("rethinkdb").table("cluster_config").run(conn)) == [
-            {"id": "auth", "auth_key": None},
-            {"id": "heartbeat", "heartbeat_timeout_secs": 10}
-        ]
-    
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": "hunter2"}).run(conn)
-    assert res["errors"] == 0
-    
-    conn.close()
-    
-    print("Verifying AuthKey prevents unauthenticated connections (%.2fs)" % (time.time() - startTime))
-    
-    try:
-        r.connect(server.host, server.driver_port)
-    except r.ReqlDriverError:
-        pass
-    else:
-        assert False, "the change to the auth key doesn't seem to have worked"
-    
-    print("Checking connection with the AuthKey (%.2fs)" % (time.time() - startTime))
-    
-    conn = r.connect(server.host, server.driver_port, auth_key="hunter2")
-    
-    rows = list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn))
-    assert rows == [{"id": "auth", "auth_key": {"hidden": True}}]
-    
-    print("Removing the AuthKey (%.2fs)" % (time.time() - startTime))
-    
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": None}).run(conn)
-    assert res["errors"] == 0
-    
-    assert list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn)) == [{"id": "auth", "auth_key": None}]
-    
-    conn.close()
-    
-    print("Verifying connection without an AuthKey (%.2fs)" % (time.time() - startTime))
-    
-    conn = r.connect(server.host, server.driver_port)
-    assert list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn)) == [{"id": "auth", "auth_key": None}]
-
-    # This is mostly to make sure the server doesn't crash in this case
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": {"hidden": True}}).run(conn)
-    assert res["errors"] == 1
 
     print("Inserting nonsense to make sure it's not accepted (%.2fs)" % (time.time() - startTime))
     
     res = r.db("rethinkdb").table("cluster_config").insert({"id": "foobar"}).run(conn)
     assert res["errors"] == 1, res
-    res = r.db("rethinkdb").table("cluster_config").get("auth").delete().run(conn)
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").delete().run(conn)
     assert res["errors"] == 1, res
-    res = r.db("rethinkdb").table("cluster_config").get("auth") \
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat") \
            .update({"foo": "bar"}).run(conn)
-    assert res["errors"] == 1, res
-    res = r.db("rethinkdb").table("cluster_config").get("auth") \
-           .update({"auth_key": {"is_this_nonsense": "yes"}}).run(conn)
     assert res["errors"] == 1, res
 
     print("Verifying heartbeat timeout interface")

@@ -26,6 +26,11 @@
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
+namespace auth {
+    class user_context_t;
+    class permissions_t;
+}  // namespace auth
+
 struct admin_err_t;
 
 enum class return_changes_t {
@@ -42,7 +47,8 @@ class ellipsoid_spec_t;
 class extproc_pool_t;
 class name_string_t;
 class namespace_interface_t;
-template <class> class semilattice_readwrite_view_t;
+template <class> class cross_thread_watchable_variable_t;
+template <class> class semilattice_read_view_t;
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 enum class sindex_geo_bool_t { REGULAR = 0, GEO = 1};
@@ -133,7 +139,7 @@ class reader_t;
 
 class base_table_t : public slow_atomic_countable_t<base_table_t> {
 public:
-    virtual ql::datum_t get_id() const = 0;
+    virtual namespace_id_t get_id() const = 0;
     virtual const std::string &get_pkey() const = 0;
 
     virtual scoped_ptr_t<ql::reader_t> read_all_with_sindexes(
@@ -216,10 +222,18 @@ public:
     `base_table_t` is because their implementations fits better with the implementations
     of the other methods of `reql_cluster_interface_t` than `base_table_t`. */
 
-    virtual bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
-    virtual bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
+    virtual bool db_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool db_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
     virtual bool db_list(
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out) = 0;
@@ -233,13 +247,24 @@ public:
             scoped_ptr_t<ql::val_t> *selection_out,
             admin_err_t *error_out) = 0;
 
-    /* `table_create()` won't return until the table is ready for reading */
-    virtual bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+    /* `table_create()` won't return until the table is ready for writing */
+    virtual bool table_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
-            const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
-    virtual bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out) = 0;
+            const std::string &primary_key,
+            write_durability_t durability,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool table_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
     virtual bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor, std::set<name_string_t> *names_out,
             admin_err_t *error_out) = 0;
@@ -248,6 +273,7 @@ public:
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out) = 0;
     virtual bool table_estimate_doc_counts(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
@@ -283,6 +309,7 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -291,6 +318,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool db_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -299,6 +327,7 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_emergency_repair(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -308,18 +337,46 @@ public:
             admin_err_t *error_out) = 0;
 
     virtual bool table_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
     virtual bool db_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
 
+    virtual bool grant_global(
+            auth::user_context_t const &user_context,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool grant_database(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+    virtual bool grant_table(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            namespace_id_t const &table_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+
     virtual bool sindex_create(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -327,12 +384,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out) = 0;
     virtual bool sindex_drop(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out) = 0;
     virtual bool sindex_rename(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -360,25 +419,24 @@ public:
     rdb_context_t();
     // Also used by unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
-                  reql_cluster_interface_t *_cluster_interface);
+                  reql_cluster_interface_t *_cluster_interface,
+                  boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+                      auth_semilattice_view);
 
     // The "real" constructor used outside of unit tests.
-    rdb_context_t(extproc_pool_t *_extproc_pool,
-                  mailbox_manager_t *_mailbox_manager,
-                  reql_cluster_interface_t *_cluster_interface,
-                  boost::shared_ptr<
-                    semilattice_readwrite_view_t<
-                        auth_semilattice_metadata_t> > _auth_metadata,
-                  perfmon_collection_t *global_stats,
-                  const std::string &_reql_http_proxy);
+    rdb_context_t(
+        extproc_pool_t *_extproc_pool,
+        mailbox_manager_t *_mailbox_manager,
+        reql_cluster_interface_t *_cluster_interface,
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view,
+        perfmon_collection_t *global_stats,
+        const std::string &_reql_http_proxy);
 
     ~rdb_context_t();
 
     extproc_pool_t *extproc_pool;
     reql_cluster_interface_t *cluster_interface;
-
-    boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        auth_metadata;
 
     mailbox_manager_t *manager;
 
@@ -404,10 +462,18 @@ public:
 
     std::set<ql::query_cache_t *> *get_query_caches_for_this_thread();
 
-private:
-    one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
+    clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> get_auth_watchable() const;
 
 private:
+    void init_auth_watchables(
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view);
+
+    std::vector<std::unique_ptr<cross_thread_watchable_variable_t<
+        auth_semilattice_metadata_t>>> m_cross_thread_auth_watchables;
+
+    one_per_thread_t<std::set<ql::query_cache_t *> > query_caches;
+
     DISABLE_COPYING(rdb_context_t);
 };
 

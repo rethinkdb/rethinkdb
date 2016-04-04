@@ -19,10 +19,14 @@ mock_namespace_interface_t::mock_namespace_interface_t(
 
 mock_namespace_interface_t::~mock_namespace_interface_t() { }
 
-void mock_namespace_interface_t::read(const read_t &query,
-                                      read_response_t *response,
-                                      UNUSED order_token_t tok,
-                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+void mock_namespace_interface_t::read(
+        UNUSED auth::user_context_t const &user_context,
+        const read_t &query,
+        read_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -30,10 +34,14 @@ void mock_namespace_interface_t::read(const read_t &query,
     boost::apply_visitor(v, query.read);
 }
 
-void mock_namespace_interface_t::write(const write_t &query,
-                                       write_response_t *response,
-                                       UNUSED order_token_t tok,
-                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+void mock_namespace_interface_t::write(
+        UNUSED auth::user_context_t const &user_context,
+        const write_t &query,
+        write_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -286,15 +294,17 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
-    rdb_ctx(&extproc_pool, this),
-    auth_manager(auth_semilattice_metadata_t())
+    auth_manager(auth_semilattice_metadata_t("")),
+    rdb_ctx(&extproc_pool, this, auth_manager.get_view())
 {
-    rdb_ctx.auth_metadata = auth_manager.get_view();
-    env.init(new ql::env_t(&rdb_ctx,
-                           ql::return_empty_normal_batches_t::NO,
-                           &interruptor,
-                           ql::global_optargs_t(),
-                           nullptr /* no profile trace */));
+    env.init(
+        new ql::env_t(
+            &rdb_ctx,
+            ql::return_empty_normal_batches_t::NO,
+            &interruptor,
+            ql::global_optargs_t(),
+            auth::user_context_t(auth::permissions_t(true, true, true, true)),
+            nullptr /* no profile trace */));
 
     // Set up any databases, tables, and data
     for (auto const &db_name : test_env.databases) {
@@ -339,8 +349,11 @@ void test_rdb_env_t::instance_t::interrupt() {
     interruptor.pulse();
 }
 
-bool test_rdb_env_t::instance_t::db_create(UNUSED const name_string_t &name,
-        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+bool test_rdb_env_t::instance_t::db_create(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
         admin_err_t *error_out) {
     *error_out = admin_err_t{
         "test_rdb_env_t::instance_t doesn't support mutation",
@@ -348,8 +361,11 @@ bool test_rdb_env_t::instance_t::db_create(UNUSED const name_string_t &name,
     return false;
 }
 
-bool test_rdb_env_t::instance_t::db_drop(UNUSED const name_string_t &name,
-        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+bool test_rdb_env_t::instance_t::db_drop(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
         admin_err_t *error_out) {
     *error_out = admin_err_t{
         "test_rdb_env_t::instance_t doesn't support mutation",
@@ -393,7 +409,9 @@ bool test_rdb_env_t::instance_t::db_config(
     return false;
 }
 
-bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
+bool test_rdb_env_t::instance_t::table_create(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &config_params,
         UNUSED const std::string &primary_key,
@@ -407,7 +425,9 @@ bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
     return false;
 }
 
-bool test_rdb_env_t::instance_t::table_drop(UNUSED const name_string_t &name,
+bool test_rdb_env_t::instance_t::table_drop(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED const name_string_t &name,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -456,13 +476,19 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         static fake_ref_tracker_t fake_ref_tracker;
         namespace_interface_access_t table_access(
             it->second.get(), &fake_ref_tracker, get_thread_id());
-        table_out->reset(new real_table_t(nil_uuid(), table_access,
-                                          it->second->get_primary_key(), nullptr));
+        table_out->reset(
+            new real_table_t(
+                nil_uuid(),
+                table_access,
+                it->second->get_primary_key(),
+                nullptr,
+                nullptr));
         return true;
     }
 }
 
 bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED ql::env_t *local_env,
@@ -526,6 +552,7 @@ bool test_rdb_env_t::instance_t::db_wait(
 }
 
 bool test_rdb_env_t::instance_t::table_reconfigure(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED const table_generate_config_params_t &params,
@@ -540,6 +567,7 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
 }
 
 bool test_rdb_env_t::instance_t::db_reconfigure(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &params,
         UNUSED bool dry_run,
@@ -553,6 +581,7 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
 }
 
 bool test_rdb_env_t::instance_t::table_emergency_repair(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED emergency_repair_mode_t mode,
@@ -567,6 +596,7 @@ bool test_rdb_env_t::instance_t::table_emergency_repair(
 }
 
 bool test_rdb_env_t::instance_t::table_rebalance(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED signal_t *local_interruptor,
@@ -579,6 +609,7 @@ bool test_rdb_env_t::instance_t::table_rebalance(
 }
 
 bool test_rdb_env_t::instance_t::db_rebalance(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,
@@ -589,7 +620,50 @@ bool test_rdb_env_t::instance_t::db_rebalance(
     return false;
 }
 
+bool test_rdb_env_t::instance_t::grant_global(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED auth::username_t username,
+        UNUSED ql::datum_t permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_global()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::grant_database(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED database_id_t const &database_id,
+        UNUSED auth::username_t username,
+        UNUSED ql::datum_t permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_database()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::grant_table(
+        UNUSED auth::user_context_t const &user_context,
+        UNUSED database_id_t const &database_id,
+        UNUSED namespace_id_t const &table_id,
+        UNUSED auth::username_t username,
+        UNUSED ql::datum_t permissions,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support grant_table()",
+        query_state_t::FAILED};
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::sindex_create(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,
@@ -603,6 +677,7 @@ bool test_rdb_env_t::instance_t::sindex_create(
 }
 
 bool test_rdb_env_t::instance_t::sindex_drop(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,
@@ -615,6 +690,7 @@ bool test_rdb_env_t::instance_t::sindex_drop(
 }
 
 bool test_rdb_env_t::instance_t::sindex_rename(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
         UNUSED const std::string &name,

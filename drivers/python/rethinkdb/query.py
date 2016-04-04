@@ -5,7 +5,7 @@ __all__ = [
     'union', 'map', 'object', 'binary', 'uuid', 'type_of', 'info', 'range',
     'literal', 'asc', 'desc',
     'db', 'db_create', 'db_drop', 'db_list',
-    'table', 'table_create', 'table_drop', 'table_list',
+    'table', 'table_create', 'table_drop', 'table_list', 'grant',
     'group', 'reduce', 'count', 'sum', 'avg', 'min', 'max', 'distinct',
     'contains', 'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
@@ -93,6 +93,11 @@ def table_drop(*args):
 
 def table_list(*args):
     return ast.TableListTL(*args)
+
+
+def grant(*args, **kwargs):
+    return ast.GrantTL(*args, **kwargs)
+
 
 def branch(*args):
     return ast.Branch(*args)

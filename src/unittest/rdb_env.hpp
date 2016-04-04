@@ -14,6 +14,7 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "extproc/extproc_pool.hpp"
@@ -40,15 +41,23 @@ public:
                                         ql::env_t *_env);
     virtual ~mock_namespace_interface_t();
 
-    void read(const read_t &query,
-              read_response_t *response,
-              UNUSED order_token_t tok,
-              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read(
+        UNUSED auth::user_context_t const &user_context,
+        const read_t &query,
+        read_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
-    void write(const write_t &query,
-               write_response_t *response,
-               UNUSED order_token_t tok,
-               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(
+        UNUSED auth::user_context_t const &user_context,
+        const write_t &query,
+        write_response_t *response,
+        UNUSED order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t);
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
@@ -149,10 +158,18 @@ public:
                                                      name_string_t table);
 
 
-        bool db_create(const name_string_t &name, signal_t *interruptor,
-                ql::datum_t *result_out, admin_err_t *error_out);
-        bool db_drop(const name_string_t &name, signal_t *interruptor,
-                ql::datum_t *result_out, admin_err_t *error_out);
+        bool db_create(
+                auth::user_context_t const &user_context,
+                const name_string_t &name,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool db_drop(
+                auth::user_context_t const &user_context,
+                const name_string_t &name,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
         bool db_list(
                 signal_t *interruptor,
                 std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -166,12 +183,23 @@ public:
                 scoped_ptr_t<ql::val_t> *selection_out,
                 admin_err_t *error_out);
 
-        bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+        bool table_create(
+                auth::user_context_t const &user_context,
+                const name_string_t &name,
+                counted_t<const ql::db_t> db,
                 const table_generate_config_params_t &config_params,
-                const std::string &primary_key, write_durability_t durability,
-                signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-        bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-                signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+                const std::string &primary_key,
+                write_durability_t durability,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool table_drop(
+                auth::user_context_t const &user_context,
+                const name_string_t &name,
+                counted_t<const ql::db_t> db,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
         bool table_list(counted_t<const ql::db_t> db,
                 signal_t *interruptor,
                 std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -180,6 +208,7 @@ public:
                 signal_t *interruptor, counted_t<base_table_t> *table_out,
                 admin_err_t *error_out);
         bool table_estimate_doc_counts(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
                 ql::env_t *env,
@@ -215,6 +244,7 @@ public:
                 admin_err_t *error_out);
 
         bool table_reconfigure(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
                 const table_generate_config_params_t &params,
@@ -223,6 +253,7 @@ public:
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
         bool db_reconfigure(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const table_generate_config_params_t &params,
                 bool dry_run,
@@ -231,6 +262,7 @@ public:
                 admin_err_t *error_out);
 
         bool table_emergency_repair(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
                 emergency_repair_mode_t,
@@ -240,18 +272,46 @@ public:
                 admin_err_t *error_out);
 
         bool table_rebalance(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
         bool db_rebalance(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
 
+        bool grant_global(
+                auth::user_context_t const &user_context,
+                auth::username_t username,
+                ql::datum_t permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool grant_database(
+                auth::user_context_t const &user_context,
+                database_id_t const &database_id,
+                auth::username_t username,
+                ql::datum_t permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+        bool grant_table(
+                auth::user_context_t const &user_context,
+                database_id_t const &database_id,
+                namespace_id_t const &table_id,
+                auth::username_t username,
+                ql::datum_t permissions,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                admin_err_t *error_out);
+
         bool sindex_create(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &table,
                 const std::string &name,
@@ -259,12 +319,14 @@ public:
                 signal_t *interruptor,
                 admin_err_t *error_out);
         bool sindex_drop(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &table,
                 const std::string &name,
                 signal_t *interruptor,
                 admin_err_t *error_out);
         bool sindex_rename(
+                auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,
                 const name_string_t &table,
                 const std::string &name,
@@ -282,8 +344,8 @@ public:
 
     private:
         extproc_pool_t extproc_pool;
-        rdb_context_t rdb_ctx;
         dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+        rdb_context_t rdb_ctx;
         std::map<name_string_t, database_id_t> databases;
         std::map<std::pair<database_id_t, name_string_t>,
                  scoped_ptr_t<mock_namespace_interface_t> > tables;

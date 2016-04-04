@@ -856,6 +856,12 @@ public class TopLevel {
         Arguments args = new Arguments();
         return new TableList(args);
     }
+    public Grant grant(Object expr, Object exprA){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        return new Grant(args);
+    }
     public Funcall do_(Javascript js){
         Arguments args = new Arguments();
         args.coerceAndAdd(js);

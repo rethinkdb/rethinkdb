@@ -15,6 +15,7 @@
 #include "rdb_protocol/datum.hpp"
 
 namespace geo {
+class S2LatLngRect;
 typedef Vector3_d S2Point;
 class S2Polyline;
 class S2Polygon;
@@ -42,6 +43,11 @@ ql::datum_t construct_geo_polygon(
         const lon_lat_line_t &shell,
         const std::vector<lon_lat_line_t> &holes,
         const ql::configured_limits_t &limits);
+// This is not part of the GeoJSON standard, but our own extension that we use
+// internally for `getIntersecting` changefeeds.
+ql::datum_t construct_geo_latlngrect(
+        const geo::S2LatLngRect &rect,
+        const ql::configured_limits_t &limits);
 
 /* These functions extract coordinates from GeoJSON objects */
 lon_lat_point_t extract_lon_lat_point(const ql::datum_t &geojson);
@@ -59,6 +65,8 @@ scoped_ptr_t<geo::S2Point> coordinates_to_s2point(
 scoped_ptr_t<geo::S2Polyline> coordinates_to_s2polyline(
         const ql::datum_t &coords);
 scoped_ptr_t<geo::S2Polygon> coordinates_to_s2polygon(
+        const ql::datum_t &coords);
+scoped_ptr_t<geo::S2LatLngRect> coordinates_to_s2latlngrect(
         const ql::datum_t &coords);
 
 /* Performs conversion to an S2 type and calls the visitor, depending on the geometry
@@ -82,6 +90,10 @@ return_t visit_geojson(
         scoped_ptr_t<geo::S2Polygon> poly = coordinates_to_s2polygon(coordinates);
         rassert(poly.has());
         return visitor->on_polygon(*poly);
+    } else if (type == "$reql_LatLngRect$") {
+        scoped_ptr_t<geo::S2LatLngRect> rect = coordinates_to_s2latlngrect(coordinates);
+        rassert(rect.has());
+        return visitor->on_latlngrect(*rect);
     } else {
         bool valid_geojson =
             type == "MultiPoint"

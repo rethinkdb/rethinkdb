@@ -595,7 +595,16 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const intersecting_geo_read_t &gr) const {
-        return rangey_read(gr);
+        bool do_read = rangey_read(gr);
+        if (do_read) {
+            // If we're in an include_initial changefeed, we need to copy the
+            // new region onto the stamp.
+            auto *out = boost::get<intersecting_geo_read_t>(payload_out);
+            if (out->stamp) {
+                out->stamp->region = out->region;
+            }
+        }
+        return do_read;
     }
 
     bool operator()(const nearest_geo_read_t &gr) const {
@@ -856,8 +865,13 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         rassert(q.optargs.has_optarg("db"));
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
-    ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
-                  interruptor, q.optargs, trace.get_or_null());
+    ql::env_t env(
+        ctx,
+        ql::return_empty_normal_batches_t::NO,
+        interruptor,
+        q.optargs,
+        q.m_user_context,
+        trace.get_or_null());
 
     // Initialize response.
     response_out->response = query_response_t();
@@ -1021,14 +1035,19 @@ void read_t::unshard(read_response_t *responses, size_t count,
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
+
+    // If the `rget_read_t` or `intersecting_geo_read_t` is part of an
+    // `include_initial` changefeed, we can't snapshot yet, since we first need
+    // to get the timestamps in an atomic fashion (i.e. without any writes
+    // happening before we get there). We'll instead create a snapshot later
+    // inside the `rdb_read_visitor_t`.
     bool operator()(const rget_read_t &rget) const {
-        // If the `rget_read_t` is part of an `include_initial` changefeed, we can't
-        // snapshot yet, since we first need to get the timestamps in an atomic fashion
-        // (i.e. without any writes happening before we get there).
-        // We'll instead create a snapshot later inside the `rdb_read_visitor_t`.
         return !static_cast<bool>(rget.stamp);
     }
-    bool operator()(const intersecting_geo_read_t &) const {      return true;  }
+    bool operator()(const intersecting_geo_read_t &geo_read) const {
+        return !static_cast<bool>(geo_read.stamp);
+    }
+
     bool operator()(const nearest_geo_read_t &) const {           return true;  }
     bool operator()(const changefeed_subscribe_t &) const {       return false; }
     bool operator()(const changefeed_limit_subscribe_t &) const { return false; }
@@ -1043,14 +1062,17 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 }
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
+    // `include_initial` changefeed reads must be routed to the primary, since
+    // that's where changefeeds are managed.
     bool operator()(const rget_read_t &rget) const {
-        // `include_initial` changefeed reads must be routed to the primary, since
-        // that's where changefeeds are managed.
         return static_cast<bool>(rget.stamp);
     }
+    bool operator()(const intersecting_geo_read_t &geo_read) const {
+        return static_cast<bool>(geo_read.stamp);
+    }
+
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
-    bool operator()(const intersecting_geo_read_t &) const {      return false; }
     bool operator()(const nearest_geo_read_t &) const {           return false; }
     bool operator()(const changefeed_subscribe_t &) const {       return true;  }
     bool operator()(const changefeed_limit_subscribe_t &) const { return true;  }
@@ -1177,9 +1199,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             }
         }
         if (!shard_keys.empty()) {
-            *payload_out = batched_replace_t(std::move(shard_keys), br.pkey,
-                                             br.f.compile_wire_func(), br.optargs,
-                                             br.return_changes);
+            *payload_out = batched_replace_t(
+                std::move(shard_keys),
+                br.pkey,
+                br.f.compile_wire_func(),
+                br.optargs,
+                br.m_user_context,
+                br.return_changes);
             return true;
         } else {
             return false;
@@ -1206,6 +1232,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                                             bi.conflict_behavior,
                                             temp_conflict_func,
                                             bi.limits,
+                                            bi.m_user_context,
                                             bi.return_changes);
             return true;
         } else {
@@ -1262,10 +1289,12 @@ batched_insert_t::batched_insert_t(
         conflict_behavior_t _conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > _conflict_func,
         const ql::configured_limits_t &_limits,
+        auth::user_context_t user_context,
         return_changes_t _return_changes)
         : inserts(std::move(_inserts)), pkey(_pkey),
           conflict_behavior(_conflict_behavior),
           limits(_limits),
+          m_user_context(std::move(user_context)),
           return_changes(_return_changes) {
     r_sanity_check(inserts.size() != 0);
 
@@ -1433,7 +1462,7 @@ RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_13_FOR_CLUSTER(
     rget_read_t,
     stamp,
     region,
@@ -1441,25 +1470,51 @@ RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
     hints,
     primary_keys,
     optargs,
+    m_user_context,
     table_name,
     batchspec,
     transforms,
     terminal,
     sindex,
     sorting);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
-        terminal, sindex, query_geometry);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        nearest_geo_read_t, optargs, center, max_dist, max_results, geo_system,
-        region, table_name, sindex_id);
+RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(
+    intersecting_geo_read_t,
+    stamp,
+    region,
+    optargs,
+    m_user_context,
+    table_name,
+    batchspec,
+    transforms,
+    terminal,
+    sindex,
+    query_geometry);
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+    nearest_geo_read_t,
+    optargs,
+    m_user_context,
+    center,
+    max_dist,
+    max_results,
+    geo_system,
+    region,
+    table_name,
+    sindex_id);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
         distribution_read_t, max_depth, result_limit, region);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, region);
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
-    changefeed_limit_subscribe_t, addr, uuid, spec, table, region, current_shard);
+RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
+    changefeed_limit_subscribe_t,
+    addr,
+    uuid,
+    spec,
+    table,
+    optargs,
+    m_user_context,
+    region,
+    current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 
@@ -1474,8 +1529,15 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_sha
 
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
-        batched_insert_t, inserts, pkey, conflict_behavior, conflict_func, limits, return_changes);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
+        batched_insert_t,
+        inserts,
+        pkey,
+        conflict_behavior,
+        conflict_func,
+        limits,
+        m_user_context,
+        return_changes);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);

@@ -520,9 +520,8 @@ template MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_1
         read_stream_t *, scoped_ptr_t<term_storage_t> *);
 
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2_is_latest>(
-        read_stream_t *s,
-        scoped_ptr_t<term_storage_t> *term_storage_out) {
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     CT_ASSERT(sizeof(int) == sizeof(int32_t));
     int32_t size;
     archive_result_t res = deserialize_universal(s, &size);
@@ -538,6 +537,11 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2_is_lates
 
     term_storage_out->init(new wire_term_storage_t(std::move(data), std::move(doc)));
     return archive_result_t::SUCCESS;
+}
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3_is_latest>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }
 
 void write_term(rapidjson::Writer<rapidjson::StringBuffer> *writer,

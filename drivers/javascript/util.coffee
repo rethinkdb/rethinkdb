@@ -131,6 +131,7 @@ errorClass = (errorType) =>
         when protoErrorType.INTERNAL            then err.ReqlInternalError
         when protoErrorType.OP_FAILED           then err.ReqlOpFailedError
         when protoErrorType.OP_INDETERMINATE    then err.ReqlOpIndeterminateError
+        when protoErrorType.PERMISSION_ERROR    then err.ReqlPermissionError
         else                                    err.ReqlRuntimeError
 
 

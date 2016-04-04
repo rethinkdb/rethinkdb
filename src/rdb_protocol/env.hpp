@@ -8,6 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "containers/lru_cache.hpp"
@@ -47,6 +51,7 @@ public:
           return_empty_normal_batches_t return_empty_normal_batches,
           signal_t *interruptor,
           global_optargs_t optargs,
+          auth::user_context_t user_context,
           profile::trace_t *trace);
 
     // Used in unittest and for some secondary index environments (hence the
@@ -90,6 +95,10 @@ public:
         return global_optargs_.get_optarg(env, key);
     }
 
+    auth::user_context_t const &get_user_context() const {
+        return m_user_context;
+    }
+
     configured_limits_t limits() const {
         return limits_;
     }
@@ -114,6 +123,9 @@ private:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs_;
+
+    // The user that's evaluating this query
+    auth::user_context_t m_user_context;
 
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits_;

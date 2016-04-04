@@ -410,7 +410,12 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
         return;
     } catch (const tcp_conn_t::connect_failed_exc_t &err) {
         // TLS handshake failed.
-        logERR("HTTP server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        // FIXME move this TLS to use crypto/
+        if (err.error == 336027804) {
+            logNTC("Received a plain HTTP request on the HTTPS port.");
+        } else {
+            logWRN("HTTP server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        }
         return;
     }
 

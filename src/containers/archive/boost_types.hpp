@@ -3,6 +3,7 @@
 #define CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
 
 #include "errors.hpp"
+#include <boost/logic/tribool.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
@@ -127,7 +128,6 @@ void serialize(write_message_t *wm, const boost::optional<T> &x) {
     }
 }
 
-
 template <cluster_version_t W, class T>
 MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
     bool exists;
@@ -142,6 +142,50 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
         x->reset();
         return archive_result_t::SUCCESS;
     }
+}
+
+template <cluster_version_t W>
+void serialize(write_message_t *write_message, boost::tribool const &value) {
+    int8_t mapping = -1;
+
+    if (!value) {
+        // `value` is false
+        mapping = 0;
+    } else if (value) {
+        // `value` is true
+        mapping = 1;
+    } else {
+        // `value` is indeterminate
+        mapping = 2;
+    }
+
+    serialize<W>(write_message, mapping);
+}
+
+template <cluster_version_t W>
+MUST_USE archive_result_t deserialize(read_stream_t *read_stream, boost::tribool *value) {
+    int8_t mapping;
+
+    archive_result_t result = deserialize<W>(read_stream, &mapping);
+    if (bad(result)) {
+        return result;
+    }
+
+    switch (mapping) {
+        case 0:
+            *value = false;
+            break;
+        case 1:
+            *value = true;
+            break;
+        case 2:
+            *value = boost::indeterminate;
+            break;
+        default:
+            return archive_result_t::RANGE_ERROR;
+    }
+
+    return archive_result_t::SUCCESS;
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

@@ -5,12 +5,16 @@
 
 #include "boost_utils.hpp"
 #include "btree/reql_specific.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
@@ -23,12 +27,15 @@ namespace ql {
 namespace changefeed {
 
 struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index, boost::optional<uint64_t> _tag_num)
-        : val(std::move(_val)), index(std::move(_index)), tag_num(std::move(_tag_num)) {
+    indexed_datum_t(
+            datum_t _val,
+            boost::optional<std::string> _btree_index_key)
+        : val(std::move(_val)),
+          btree_index_key(std::move(_btree_index_key)) {
         guarantee(val.has());
     }
-    datum_t val, index;
-    boost::optional<uint64_t> tag_num;
+    datum_t val;
+    boost::optional<std::string> btree_index_key;
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
@@ -73,7 +80,8 @@ struct change_val_t {
           DEBUG_ONLY(, sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
         if (old_val && new_val) {
-            guarantee(old_val->index.has() == new_val->index.has());
+            guarantee(static_cast<bool>(old_val->btree_index_key)
+                == static_cast<bool>(new_val->btree_index_key));
             rassert(old_val->val != new_val->val);
         }
     }
@@ -98,7 +106,9 @@ std::string print(const datum_t &d) {
 std::string print(const indexed_datum_t &d) {
     return strprintf("indexed_datum_t(val: %s, index: %s)",
                      print(d.val).c_str(),
-                     print(d.index).c_str());
+                     d.btree_index_key
+                     ? key_to_debug_str(store_key_t(*d.btree_index_key)).c_str()
+                     : "boost::none");
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -421,6 +431,7 @@ void server_t::add_limit_client(
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -442,6 +453,7 @@ void server_t::add_limit_client(
             table,
             ctx,
             std::move(optargs),
+            std::move(user_context),
             client_uuid,
             this,
             it->first,
@@ -833,6 +845,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     rdb_context_t *ctx,
     global_optargs_t optargs,
+    auth::user_context_t user_context,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -852,8 +865,12 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, return_empty_normal_batches_t::NO,
-        drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx,
+        return_empty_normal_batches_t::NO,
+        drainer.get_drain_signal(),
+        std::move(optargs),
+        std::move(user_context),
+        nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -1307,7 +1324,9 @@ public:
         }
     }
 protected:
-    subscription_t(feed_t *feed,
+    subscription_t(rdb_context_t *rdb_context,
+                   const auth::user_context_t &user_context,
+                   feed_t *feed,
                    configured_limits_t limits,
                    const datum_t &squash,
                    bool include_states,
@@ -1338,6 +1357,9 @@ private:
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
     virtual void apply_queued_changes() = 0;
+
+    rdb_context_t *rdb_context;
+    auth::user_context_t user_context;
 
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
@@ -1535,7 +1557,7 @@ class limit_sub_t;
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
-    feed_t();
+    feed_t(namespace_id_t const &, table_meta_client_t *);
     virtual ~feed_t();
 
     void add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
@@ -1571,6 +1593,14 @@ public:
 
     const std::string pkey;
     virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
+
+    namespace_id_t const &get_table_id() const {
+        return table_id;
+    }
+
+    table_meta_client_t *get_table_meta_client() const {
+        return table_meta_client;
+    }
 protected:
     bool detached;
     int64_t num_subs;
@@ -1622,6 +1652,9 @@ private:
     // expensive case), it's easier to fill this in multiple times than to have
     // every sub do a thread switch to read the value.
     one_per_thread_t<stamps_t> stamps;
+
+    namespace_id_t table_id;
+    table_meta_client_t *table_meta_client;
 };
 
 void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
@@ -1648,16 +1681,16 @@ public:
                 client_t *client,
                 mailbox_manager_t *manager,
                 namespace_interface_t *ns_if,
-                uuid_u uuid,
-                signal_t *interruptor);
+                namespace_id_t const &table_id,
+                signal_t *interruptor,
+                table_meta_client_t *table_meta_client);
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
     void abort_feed() final { aborted.pulse_if_not_already_pulsed(); }
-    uuid_u get_uuid() const { return uuid; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
 private:
-    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
+    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, table_id); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
@@ -1665,7 +1698,7 @@ private:
 
     auto_drainer_t::lock_t client_lock;
     client_t *client;
-    uuid_u uuid;
+    namespace_id_t table_id;
     mailbox_manager_t *manager;
     mailbox_t<void(stamped_msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
@@ -1698,18 +1731,25 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                          client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
-                         uuid_u _uuid,
-                         signal_t *interruptor)
-    : client_lock(std::move(_client_lock)),
+                         namespace_id_t const &_table_id,
+                         signal_t *interruptor,
+                         table_meta_client_t *table_meta_client)
+    : feed_t(_table_id, table_meta_client),
+      client_lock(std::move(_client_lock)),
       client(_client),
-      uuid(_uuid),
+      table_id(_table_id),
       manager(_manager),
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
-        ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
+        ns_if->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &read_resp,
+            order_token_t::ignore,
+            interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
         guarantee(resp != NULL);
@@ -1782,7 +1822,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, table_id);
         guarantee(detached);
         if (self.has()) {
             guarantee(lock.has());
@@ -1800,13 +1840,17 @@ void real_feed_t::constructor_cb() {
 
 class empty_sub_t : public flat_sub_t {
 public:
-    empty_sub_t(feed_t *feed,
+    empty_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
                 bool include_types)
     // There will never be any changes, safe to start squashing right away.
     : flat_sub_t(init_squashing_queue_t::YES,
+                 rdb_context,
+                 user_context,
                  feed,
                  std::move(limits),
                  squash,
@@ -1879,7 +1923,9 @@ private:
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed,
+    point_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
@@ -1887,6 +1933,8 @@ public:
                 datum_t _pkey)
         // For point changefeeds we start squashing right away.
         : flat_sub_t(init_squashing_queue_t::YES,
+                     rdb_context,
+                     user_context,
                      feed,
                      std::move(limits),
                      squash,
@@ -1966,6 +2014,7 @@ public:
 
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
@@ -1981,7 +2030,7 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                boost::none,
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none)
+               indexed_datum_t(resp->initial_val, boost::none)
                DEBUG_ONLY(, boost::none));
         if (start_stamp > stamp) {
             stamp = start_stamp;
@@ -2032,7 +2081,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none)
+            indexed_datum_t(initial, boost::none)
             DEBUG_ONLY(, boost::none));
         started = true;
 
@@ -2062,7 +2111,9 @@ counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed,
+    range_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool include_states,
@@ -2072,6 +2123,8 @@ public:
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
         : flat_sub_t(init_squashing_queue_t::NO,
+                     rdb_context,
+                     user_context,
                      feed,
                      std::move(limits),
                      squash,
@@ -2098,6 +2151,17 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
+        if (spec.intersect_geometry) {
+            try {
+                if (!geo_does_intersect(*spec.intersect_geometry, sindex_key)) {
+                    return 0;
+                }
+            } catch (const geo_exception_t &) {
+                return 0;
+            } catch (const base_exc_t &) {
+                return 0;
+            }
+        }
         return spec.datumspec.copies(sindex_key);
     }
     size_t copies(const store_key_t &pkey) const {
@@ -2197,6 +2261,7 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
+            outer_env->get_user_context(),
             read_t(changefeed_stamp_t(addr),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
@@ -2273,7 +2338,7 @@ private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
         // actually have a context.
-        return outer_env->get_rdb_ctx() == NULL
+        return outer_env->get_rdb_ctx() == nullptr
             ? make_scoped<env_t>(outer_env->interruptor,
                                  outer_env->return_empty_normal_batches,
                                  outer_env->reql_version())
@@ -2282,6 +2347,7 @@ private:
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
+                outer_env->get_user_context(),
                 nullptr/*don't profile*/);
     }
 
@@ -2310,14 +2376,18 @@ class limit_sub_t : public subscription_t {
     };
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed,
+    limit_sub_t(rdb_context_t *rdb_context,
+                const auth::user_context_t &user_context,
+                feed_t *feed,
                 configured_limits_t limits,
                 const datum_t &squash,
                 bool _include_offsets,
                 bool include_states,
                 bool include_types,
                 keyspec_t::limit_t _spec)
-        : subscription_t(feed,
+        : subscription_t(rdb_context,
+                         user_context,
+                         feed,
                          limits,
                          squash,
                          include_states,
@@ -2627,16 +2697,18 @@ public:
         include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_limit_subscribe_t(
                        addr,
                        uuid,
                        spec,
                        std::move(table),
                        env->get_all_optargs(),
+                       env->get_user_context(),
                        spec.range.sindex
-                       ? region_t::universe()
-                       : region_t(
-                           spec.range.datumspec.covering_range().to_primary_keyrange())),
+                           ? region_t::universe()
+                           : region_t(
+                               spec.range.datumspec.covering_range().to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
@@ -2754,13 +2826,12 @@ public:
             ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
-                    old_idxs, new_idxs;
+                std::vector<indexed_datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            old_idxs.push_back(idx);
+                            old_idxs.push_back(indexed_datum_t(old_val, idx.second));
                         }
                     }
                 }
@@ -2768,19 +2839,15 @@ public:
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            new_idxs.push_back(idx);
+                            new_idxs.push_back(indexed_datum_t(new_val, idx.second));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     if (!trivial) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(old_idxs.back()),
+                                    std::move(new_idxs.back()));
                     }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2789,9 +2856,7 @@ public:
                     guarantee(new_idxs.size() == 0);
                     if (old_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val,
-                                                    std::move(old_idxs.back().first),
-                                                    std::move(old_idxs.back().second)),
+                                    std::move(old_idxs.back()),
                                     boost::none);
                     }
                     old_idxs.pop_back();
@@ -2801,9 +2866,7 @@ public:
                     if (new_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                     boost::none,
-                                    indexed_datum_t(new_val,
-                                                    std::move(new_idxs.back().first),
-                                                    std::move(new_idxs.back().second)));
+                                    std::move(new_idxs.back()));
                     }
                     new_idxs.pop_back();
                 }
@@ -2811,8 +2874,8 @@ public:
                 if (!trivial) {
                     for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val, datum_t(), boost::none),
-                                    indexed_datum_t(new_val, datum_t(), boost::none));
+                                    indexed_datum_t(old_val, boost::none),
+                                    indexed_datum_t(new_val, boost::none));
                     }
                 }
             }
@@ -2820,20 +2883,21 @@ public:
         feed->on_point_sub(
             change.pkey,
             *lock,
-            std::bind(&point_sub_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      change.pkey,
-                      boost::none,
-                      change.old_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.old_val, datum_t(), boost::none))
-                          : boost::none,
-                      change.new_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.new_val, datum_t(), boost::none))
-                          : boost::none));
+            std::bind(
+                &point_sub_t::add_el,
+                ph::_1,
+                std::cref(server_uuid),
+                stamp,
+                change.pkey,
+                boost::none,
+                change.old_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.old_val, boost::none))
+                    : boost::none,
+                change.new_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.new_val, boost::none))
+                    : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
@@ -2940,10 +3004,10 @@ private:
                         cv,
                         cv.old_val && discard(
                             cv.pkey,
-                            cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                            cv.source_stamp, *cv.old_val),
                         cv.new_val && discard(
                             cv.pkey,
-                            cv.new_val->tag_num, cv.source_stamp, *cv.new_val),
+                            cv.source_stamp, *cv.new_val),
                         sub->include_types);
                     if (el.has()) {
                         batcher.note_el(el);
@@ -2997,12 +3061,11 @@ private:
     }
 
     bool discard(const store_key_t &pkey,
-                 const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
         store_key_t key;
-        if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
+        if (val.btree_index_key) {
+            key = store_key_t(*val.btree_index_key);
         } else {
             key = pkey;
         }
@@ -3116,6 +3179,8 @@ private:
 };
 
 subscription_t::subscription_t(
+    rdb_context_t *_rdb_context,
+    const auth::user_context_t &_user_context,
     feed_t *_feed,
     configured_limits_t _limits,
     const datum_t &_squash,
@@ -3129,6 +3194,8 @@ subscription_t::subscription_t(
       include_types(_include_types),
       mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
+      rdb_context(_rdb_context),
+      user_context(_user_context),
       cond(NULL),
       queue_nearly_full_cond(NULL) {
     guarantee(feed != NULL);
@@ -3233,6 +3300,32 @@ subscription_t::get_els(batcher_t *batcher,
     } else {
         r_sanity_check(false);
     }
+
+    // FIXME changefeeds on artificial tables
+    if (feed != nullptr &&
+            !feed->get_table_id().is_nil() &&
+            feed->get_table_meta_client() != nullptr &&
+            rdb_context != nullptr) {
+        try {
+            table_basic_config_t table_basic_config;
+            feed->get_table_meta_client()->get_name(
+                feed->get_table_id(), &table_basic_config);
+
+            user_context.require_read_permission(
+                rdb_context, table_basic_config.database, feed->get_table_id());
+        } catch (no_such_table_exc_t const &no_such_table_exc) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::OP_FAILED, no_such_table_exc.what())),
+                detach_t::NO);
+        } catch (auth::permission_error_t const permission_error) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::PERMISSION_ERROR, permission_error.what())),
+              detach_t::NO);
+        }
+    }
+
     r_sanity_check(ret.size() != 0);
     return ret;
 }
@@ -3580,11 +3673,13 @@ void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
     r_sanity_check(num_subs == 0);
 }
 
-feed_t::feed_t()
+feed_t::feed_t(namespace_id_t const &_table_id, table_meta_client_t *_table_meta_client)
   : detached(false),
     num_subs(0),
     empty_subs(get_num_threads()),
-    range_subs(get_num_threads()) { }
+    range_subs(get_num_threads()),
+    table_id(_table_id),
+    table_meta_client(_table_meta_client) { }
 
 feed_t::~feed_t() {
     guarantee(num_subs == 0);
@@ -3616,6 +3711,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for range subs.");
             return new range_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3628,6 +3725,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for empty subs.");
             return new empty_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3636,6 +3735,8 @@ scoped_ptr_t<subscription_t> new_sub(
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
             return new limit_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3648,6 +3749,8 @@ scoped_ptr_t<subscription_t> new_sub(
             rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
                          "Cannot include offsets for point subs.");
             return new point_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
                 feed,
                 ss->limits,
                 ss->squash,
@@ -3683,8 +3786,9 @@ streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     const streamspec_t &ss,
-    const namespace_id_t &uuid,
-    backtrace_id_t bt) {
+    const namespace_id_t &table_id,
+    backtrace_id_t bt,
+    table_meta_client_t *table_meta_client) {
     bool is_second_try = false;
     uuid_u last_feed_uuid;
     for (;;) {
@@ -3702,12 +3806,12 @@ counted_t<datum_stream_t> client_t::new_stream(
                 auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
                 rwlock_in_line_t spot(&feeds_lock, access_t::write);
                 spot.read_signal()->wait_lazily_unordered();
-                auto feed_it = feeds.find(uuid);
+                auto feed_it = feeds.find(table_id);
 
                 if (is_second_try) {
                     guarantee(!last_feed_uuid.is_unset());
                     if (feed_it != feeds.end()
-                        && feed_it->second->get_uuid() == last_feed_uuid) {
+                        && feed_it->second->get_table_id() == last_feed_uuid) {
                         // We enter this branch if we got a `RESUMABLE_OP_FAILED`
                         // exception, tried again, and found the same feed (which is
                         // presumably in a broken state and needs to be replaced).
@@ -3725,19 +3829,20 @@ counted_t<datum_stream_t> client_t::new_stream(
                 if (feed_it == feeds.end()) {
                     spot.write_signal()->wait_lazily_unordered();
                     namespace_interface_access_t access =
-                        namespace_source(uuid, &interruptor);
+                        namespace_source(table_id, &interruptor);
                     // Even though we have the user's feed here, multiple
                     // users may share a feed_t, and this code path will
                     // only be run for the first one.  Rather than mess
                     // about, just use the defaults.
                     auto val = make_scoped<real_feed_t>(
-                        lock, this, manager, access.get(), uuid, &interruptor);
-                    feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
+                        lock, this, manager, access.get(), table_id, &interruptor,
+                        table_meta_client);
+                    feed_it = feeds.insert(std::make_pair(table_id, std::move(val))).first;
                 }
 
                 guarantee(feed_it != feeds.end());
                 real_feed_t *feed = feed_it->second.get();
-                last_feed_uuid = feed->get_uuid();
+                last_feed_uuid = feed->get_table_id();
                 addr = feed->get_addr();
 
                 // We need to do this while holding `feeds_lock` to make sure
@@ -3748,7 +3853,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 sub = new_sub(env, feed, ss);
             }
             namespace_interface_access_t access =
-                namespace_source(uuid, env->interruptor);
+                namespace_source(table_id, env->interruptor);
             return sub->to_stream(env, ss.table_name, access.get(),
                                   addr, ss.maybe_src, std::move(sub), bt);
         } catch (const cannot_perform_query_exc_t &e) {
@@ -3811,7 +3916,9 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
 
 class artificial_feed_t : public feed_t {
 public:
-    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
+    explicit artificial_feed_t(artificial_t *_parent)
+        : feed_t(nil_uuid(), nullptr),
+          parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }

@@ -360,6 +360,8 @@ public:
 
 private:
     SSL *conn;
+
+    DISABLE_COPYING(tls_conn_wrapper_t);
 };
 
 class linux_secure_tcp_conn_t :

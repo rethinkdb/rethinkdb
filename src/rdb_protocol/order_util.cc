@@ -69,7 +69,7 @@ build_comparisons_from_single_term(const term_t *target,
                                            std::move(arg),
                                            raw_term));
 
-    return std::move(comparisons);
+    return comparisons;
 }
 std::vector<std::pair<order_direction_t, counted_t<const func_t> > >
 build_comparisons_from_optional_terms(const term_t *target,
@@ -86,7 +86,7 @@ build_comparisons_from_optional_terms(const term_t *target,
                                                std::move(args[i]),
                                                item));
     }
-    return std::move(comparisons);
+    return comparisons;
 }
 
 lt_cmp_t::lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<const func_t> > > _comparisons)

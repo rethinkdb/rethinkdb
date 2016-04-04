@@ -37,7 +37,8 @@ public:
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<directory_key_t, table_query_bcard_t> *directory,
         multi_table_manager_t *multi_table_manager,
-        rdb_context_t *ctx);
+        rdb_context_t *ctx,
+        table_meta_client_t *table_meta_client);
     ~namespace_repo_t();
 
     namespace_interface_access_t get_namespace_interface(const namespace_id_t &ns_id,
@@ -57,6 +58,7 @@ private:
     watchable_map_t<directory_key_t, table_query_bcard_t> * const directory;
     multi_table_manager_t *const multi_table_manager;
     rdb_context_t * const ctx;
+    table_meta_client_t *m_table_meta_client;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;
 

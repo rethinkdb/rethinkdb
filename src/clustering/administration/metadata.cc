@@ -13,9 +13,9 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(cluster_semilattice_metadata_t, databases);
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(auth_semilattice_metadata_t, auth_key);
-RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
-RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_3(auth_semilattice_metadata_t, m_users);
+RDB_IMPL_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, m_users);
+RDB_IMPL_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, m_users);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(heartbeat_semilattice_metadata_t, heartbeat_timeout);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(heartbeat_semilattice_metadata_t, heartbeat_timeout);

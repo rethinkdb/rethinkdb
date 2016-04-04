@@ -5,6 +5,8 @@
 #include <string>
 
 #include "clustering/administration/admin_op_exc.hpp"
+#include "clustering/administration/auth/permissions.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "containers/name_string.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
@@ -133,12 +135,22 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), "Database");
-        admin_err_t error;
+
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->db_create(db_name,
-                env->env->interruptor, &result, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->db_create(
+                    env->env->get_user_context(),
+                    db_name,
+                    env->env->interruptor,
+                    &result,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
+
         return new_val(result);
     }
     virtual const char *name() const { return "db_create"; }
@@ -195,13 +207,25 @@ private:
         }
 
         /* Create the table */
-        admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
-                config_params, primary_key, durability,
-                env->env->interruptor, &result, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->table_create(
+                    env->env->get_user_context(),
+                    tbl_name,
+                    db,
+                    config_params,
+                    primary_key,
+                    durability,
+                    env->env->interruptor,
+                    &result,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
+
         return new_val(result);
     }
     virtual const char *name() const { return "table_create"; }
@@ -216,11 +240,19 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t) const {
         name_string_t db_name = get_name(args->arg(env, 0), "Database");
 
-        admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->db_drop(db_name,
-                env->env->interruptor, &result, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->db_drop(
+                    env->env->get_user_context(),
+                    db_name,
+                    env->env->interruptor,
+                    &result,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
 
         return new_val(result);
@@ -247,11 +279,20 @@ private:
             tbl_name = get_name(args->arg(env, 1), "Table");
         }
 
-        admin_err_t error;
         ql::datum_t result;
-        if (!env->env->reql_cluster_interface()->table_drop(tbl_name, db,
-                env->env->interruptor, &result, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->table_drop(
+                    env->env->get_user_context(),
+                    tbl_name,
+                    db,
+                    env->env->interruptor,
+                    &result,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
 
         return new_val(result);
@@ -325,22 +366,27 @@ private:
         scoped_ptr_t<val_t> selection;
         bool success;
         admin_err_t error;
-        /* Note that we always require an argument; we never take a default `db`
-        argument. So `r.config()` is an error rather than the configuration for the
-        current database. This is why we don't subclass from `table_or_db_meta_term_t`.
-        */
-        if (target->get_type().is_convertible(val_t::type_t::DB)) {
-            success = env->env->reql_cluster_interface()->db_config(
-                    target->as_db(), backtrace(), env->env, &selection, &error);
-        } else {
-            counted_t<table_t> table = target->as_table();
-            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-            success = env->env->reql_cluster_interface()->table_config(
-                    table->db, name, backtrace(), env->env, &selection, &error);
+        try {
+            /* Note that we always require an argument; we never take a default `db`
+            argument. So `r.config()` is an error rather than the configuration for the
+            current database. This is why we don't subclass from `table_or_db_meta_term_t`.
+            */
+            if (target->get_type().is_convertible(val_t::type_t::DB)) {
+                success = env->env->reql_cluster_interface()->db_config(
+                        target->as_db(), backtrace(), env->env, &selection, &error);
+            } else {
+                counted_t<table_t> table = target->as_table();
+                name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
+                success = env->env->reql_cluster_interface()->table_config(
+                        table->db, name, backtrace(), env->env, &selection, &error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
         if (!success) {
             REQL_RETHROW(error);
         }
+
         return selection;
     }
     virtual const char *name() const { return "config"; }
@@ -354,12 +400,18 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
-        admin_err_t error;
+
         scoped_ptr_t<val_t> selection;
-        if (!env->env->reql_cluster_interface()->table_status(
-                table->db, name, backtrace(), env->env, &selection, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->table_status(
+                    table->db, name, backtrace(), env->env, &selection, &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
+
         return selection;
     }
     virtual const char *name() const { return "status"; }
@@ -542,21 +594,36 @@ private:
             bool success;
             datum_t result;
             admin_err_t error;
-            /* Perform the operation */
-            if (static_cast<bool>(name_if_table)) {
-                success = env->env->reql_cluster_interface()->table_reconfigure(
-                        db, *name_if_table, config_params, dry_run,
-                        env->env->interruptor, &result, &error);
-            } else {
-                success = env->env->reql_cluster_interface()->db_reconfigure(
-                        db, config_params, dry_run, env->env->interruptor,
-                        &result, &error);
+            try {
+                /* Perform the operation */
+                if (static_cast<bool>(name_if_table)) {
+                    success = env->env->reql_cluster_interface()->table_reconfigure(
+                        env->env->get_user_context(),
+                        db,
+                        *name_if_table,
+                        config_params,
+                        dry_run,
+                        env->env->interruptor,
+                        &result,
+                        &error);
+                } else {
+                    success = env->env->reql_cluster_interface()->db_reconfigure(
+                        env->env->get_user_context(),
+                        db,
+                        config_params,
+                        dry_run,
+                        env->env->interruptor,
+                        &result,
+                        &error);
+                }
+            } catch (auth::permission_error_t const &permission_error) {
+                rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
             }
             if (!success) {
                 REQL_RETHROW(error);
             }
-            return new_val(result);
 
+            return new_val(result);
         } else {
             /* We're doing an emergency repair */
 
@@ -591,11 +658,22 @@ private:
                     "individually.");
             }
 
+            bool success;
             datum_t result;
             admin_err_t error;
-            bool success = env->env->reql_cluster_interface()->table_emergency_repair(
-                db, *name_if_table, mode, dry_run,
-                env->env->interruptor, &result, &error);
+            try {
+                success = env->env->reql_cluster_interface()->table_emergency_repair(
+                    env->env->get_user_context(),
+                    db,
+                    *name_if_table,
+                    mode,
+                    dry_run,
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            } catch (auth::permission_error_t const &permission_error) {
+                rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+            }
             if (!success) {
                 REQL_RETHROW(error);
             }
@@ -622,12 +700,25 @@ private:
         ql::datum_t result;
         bool success;
         admin_err_t error;
-        if (static_cast<bool>(name_if_table)) {
-            success = env->env->reql_cluster_interface()->table_rebalance(
-                db, *name_if_table, env->env->interruptor, &result, &error);
-        } else {
-            success = env->env->reql_cluster_interface()->db_rebalance(
-                db, env->env->interruptor, &result, &error);
+        try {
+            if (static_cast<bool>(name_if_table)) {
+                success = env->env->reql_cluster_interface()->table_rebalance(
+                    env->env->get_user_context(),
+                    db,
+                    *name_if_table,
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            } else {
+                success = env->env->reql_cluster_interface()->db_rebalance(
+                    env->env->get_user_context(),
+                    db,
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
         if (!success) {
             REQL_RETHROW(error);
@@ -653,6 +744,70 @@ private:
         return new_val(std::move(result).to_datum());
     }
     virtual const char *name() const { return "sync"; }
+};
+
+class grant_term_t : public meta_op_term_t {
+public:
+    grant_term_t(compile_env_t *env, const raw_term_t &term)
+        : meta_op_term_t(env, term, argspec_t(2, 3), optargspec_t({})) { }
+
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
+        auth::username_t username(
+            args->arg(env, args->num_args() - 2)->as_str().to_std());
+        ql::datum_t permissions = args->arg(env, args->num_args() - 1)->as_datum();
+
+        bool success = false;
+        ql::datum_t result;
+        admin_err_t error;
+        try {
+            if (args->num_args() == 2) {
+                success = env->env->reql_cluster_interface()->grant_global(
+                    env->env->get_user_context(),
+                    std::move(username),
+                    std::move(permissions),
+                    env->env->interruptor,
+                    &result,
+                    &error);
+            } else {
+                scoped_ptr_t<val_t> scope = args->arg(env, 0);
+                if (scope->get_type().is_convertible(val_t::type_t::DB)) {
+                    success = env->env->reql_cluster_interface()->grant_database(
+                        env->env->get_user_context(),
+                        scope->as_db()->id,
+                        std::move(username),
+                        std::move(permissions),
+                        env->env->interruptor,
+                        &result,
+                        &error);
+                } else {
+                    counted_t<table_t> table = scope->as_table();
+                    success = env->env->reql_cluster_interface()->grant_table(
+                        env->env->get_user_context(),
+                        table->db->id,
+                        table->get_id(),
+                        std::move(username),
+                        std::move(permissions),
+                        env->env->interruptor,
+                        &result,
+                        &error);
+                }
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+        }
+
+        if (!success) {
+            REQL_RETHROW(error);
+        }
+
+        return new_val(std::move(result));
+    }
+
+    virtual const char *name() const {
+        return "grant";
+    }
 };
 
 class table_term_t : public op_term_t {
@@ -862,6 +1017,11 @@ counted_t<term_t> make_rebalance_term(
 counted_t<term_t> make_sync_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<sync_term_t>(env, term);
+}
+
+counted_t<term_t> make_grant_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<grant_term_t>(env, term);
 }
 
 } // namespace ql

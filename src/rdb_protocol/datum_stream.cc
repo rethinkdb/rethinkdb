@@ -7,6 +7,16 @@
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/geo/geojson.hpp"
+#include "rdb_protocol/geo/geo_visitor.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
+#include "rdb_protocol/geo/s2/s1angle.h"
+#include "rdb_protocol/geo/s2/s2edgeutil.h"
+#include "rdb_protocol/geo/s2/s2.h"
+#include "rdb_protocol/geo/s2/s2latlng.h"
+#include "rdb_protocol/geo/s2/s2latlngrect.h"
+#include "rdb_protocol/geo/s2/s2polygon.h"
+#include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 #include "utils.hpp"
@@ -122,6 +132,25 @@ key_range_t active_ranges_to_range(const active_ranges_t &ranges) {
     // We shouldn't get here unless there's at least one active range.
     r_sanity_check(seen_active);
     return key_range_t(key_range_t::closed, start, key_range_t::open, end);
+}
+
+static void validate_and_record_stamps(
+        const boost::optional<changefeed_stamp_t> &stamp,
+        const boost::optional<changefeed_stamp_response_t> &stamp_response,
+        std::map<uuid_u, shard_stamp_info_t> *out) {
+
+    if (stamp) {
+        r_sanity_check(stamp_response);
+        rcheck_datum(stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Unable to retrieve start stamps.  (Did you just reshard?)");
+        rcheck_datum(stamp_response->stamp_infos->size() != 0,
+                     base_exc_t::RESUMABLE_OP_FAILED,
+                     "Empty start stamps.  Did you just reshard?");
+        for (const auto &pair : *stamp_response->stamp_infos) {
+            // It's OK to blow away old values.
+            (*out)[pair.first] = pair.second;
+        }
+    }
 }
 
 boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
@@ -676,18 +705,7 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
 
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
-    if (stamp) {
-        r_sanity_check(res.stamp_response);
-        rcheck_datum(res.stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
-                     "Unable to retrieve start stamps.  (Did you just reshard?)");
-        rcheck_datum(res.stamp_response->stamp_infos->size() != 0,
-                     base_exc_t::RESUMABLE_OP_FAILED,
-                     "Empty start stamps.  Did you just reshard?");
-        for (const auto &pair : *res.stamp_response->stamp_infos) {
-            // It's OK to blow away old values.
-            shard_stamp_infos[pair.first] = pair.second;
-        }
-    }
+    validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
 
     return unshard(rr->sorting, std::move(res));
 }
@@ -734,13 +752,79 @@ void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     acc->add_res(env, &resp.result, sorting_t::UNORDERED);
 }
 
+class bounding_box_visitor_t : public s2_geo_visitor_t<geo::S2LatLngRect> {
+    geo::S2LatLngRect on_point(const geo::S2Point &pt) {
+        geo::S2EdgeUtil::RectBounder bounds;
+        bounds.AddPoint(&pt);
+        return expand(bounds.GetBound());
+    }
+
+    geo::S2LatLngRect on_line(const geo::S2Polyline &line) {
+        return from_region(line);
+    }
+
+    geo::S2LatLngRect on_polygon(const geo::S2Polygon &poly) {
+        return from_region(poly);
+    }
+
+    geo::S2LatLngRect on_latlngrect(const geo::S2LatLngRect &rect) {
+        return expand(rect);
+    }
+
+    geo::S2LatLngRect from_region(const geo::S2Region &region) {
+        return expand(region.GetRectBound());
+    }
+
+    // We expand bounds by a small amount (1% plus a small constant) to account
+    // for floating point differences across different builds/machines.
+    geo::S2LatLngRect expand(const geo::S2LatLngRect &rect) {
+        geo::S2LatLng size = rect.GetSize();
+        geo::S1Angle lat_expansion = size.lat();
+        geo::S1Angle lng_expansion = size.lng();
+        lat_expansion *= 0.01;
+        lng_expansion *= 0.01;
+        lat_expansion += geo::S1Angle::Degrees(0.00001); // ~1 meter at equator
+        lng_expansion += geo::S1Angle::Degrees(0.00001);
+        geo::S2LatLng expansion(lat_expansion, lng_expansion);
+        geo::S2LatLngRect out = rect.Expanded(expansion);
+        return out;
+    }
+};
+
 bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     while (items_index >= items.size() && !shards_exhausted()) { // read some more
+        read_t read = readgen->next_read(
+                active_ranges, reql_version, stamp, transforms, batchspec);
+
+        intersecting_geo_read_t *gr = boost::get<intersecting_geo_read_t>(&read.read);
+        r_sanity_check(gr != nullptr);
+
+        boost::optional<datum_t> old_query_geometry;
+        if (gr->stamp) {
+            // If this read is done for the initial values on a changefeed, we
+            // need to expand the query geometry sent to the shards to account for
+            // numerical differences, then check against the original geometry
+            // locally.
+
+            old_query_geometry = gr->query_geometry;
+
+            try {
+                bounding_box_visitor_t visitor;
+                geo::S2LatLngRect bounding_box = visit_geojson(
+                        &visitor, gr->query_geometry);
+
+                gr->query_geometry = construct_geo_latlngrect(
+                        bounding_box, configured_limits_t());
+            } catch (const geo_exception_t &e) {
+                rfail_toplevel(ql::base_exc_t::INTERNAL,
+                               "Setting up the `get_intersecting` changefeed failed: %s",
+                               e.what());
+            }
+        }
+
         std::vector<rget_item_t> unfiltered_items = do_intersecting_read(
-            env,
-            readgen->next_read(
-                active_ranges, reql_version, stamp, transforms, batchspec));
+            env, std::move(read));
         if (unfiltered_items.empty()) {
             r_sanity_check(shards_exhausted());
         } else {
@@ -749,13 +833,25 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
             items.reserve(unfiltered_items.size());
             for (size_t i = 0; i < unfiltered_items.size(); ++i) {
                 r_sanity_check(unfiltered_items[i].key.size() > 0);
-                store_key_t pkey(ql::datum_t::extract_primary(unfiltered_items[i].key));
-                if (processed_pkeys.count(pkey) == 0) {
+
+                if (old_query_geometry) {
+                    if (!geo_does_intersect(unfiltered_items[i].sindex_key,
+                                            *old_query_geometry)) {
+                        continue;
+                    }
+                }
+
+                const std::string key_str =
+                    key_to_unescaped_str(unfiltered_items[i].key);
+                boost::optional<uint64_t> tag(ql::datum_t::extract_tag(key_str));
+                std::pair<std::string, boost::optional<uint64_t> > pkey_tag(
+                    ql::datum_t::extract_primary(key_str), tag);
+                if (processed_pkey_tags.count(pkey_tag) == 0) {
                     rcheck_toplevel(
-                        processed_pkeys.size() < env->limits().array_size_limit(),
+                        processed_pkey_tags.size() < env->limits().array_size_limit(),
                         ql::base_exc_t::RESOURCE,
                         "Array size limit exceeded during geospatial index traversal.");
-                    processed_pkeys.insert(pkey);
+                    processed_pkey_tags.insert(pkey_tag);
                     items.push_back(std::move(unfiltered_items[i]));
                 }
             }
@@ -772,16 +868,21 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
     r_sanity_check(gr);
     r_sanity_check(gr->sindex.region);
 
+    r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(gr->stamp));
+    validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
+
     return unshard(sorting_t::UNORDERED, std::move(res));
 }
 
 readgen_t::readgen_t(
     global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
     std::string _table_name,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
     : global_optargs(std::move(_global_optargs)),
+      m_user_context(std::move(user_context)),
       table_name(std::move(_table_name)),
       profile(_profile),
       read_mode(_read_mode),
@@ -789,15 +890,20 @@ readgen_t::readgen_t(
 
 rget_readgen_t::rget_readgen_t(
     global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
     std::string _table_name,
     const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting,
     require_sindexes_t _require_sindex_val)
-    : readgen_t(std::move(_global_optargs),
-                std::move(_table_name),
-                _profile, _read_mode, _sorting),
+    : readgen_t(
+        std::move(_global_optargs),
+        std::move(user_context),
+        std::move(_table_name),
+        _profile,
+        _read_mode,
+        _sorting),
       datumspec(_datumspec),
       require_sindex_val(_require_sindex_val) { }
 
@@ -839,6 +945,7 @@ read_t rget_readgen_t::terminal_read(
 
 primary_readgen_t::primary_readgen_t(
     global_optargs_t global_optargs,
+    auth::user_context_t user_context,
     std::string table_name,
     const datumspec_t &datumspec,
     profile_bool_t _profile,
@@ -846,6 +953,7 @@ primary_readgen_t::primary_readgen_t(
     sorting_t sorting)
     : rget_readgen_t(
         std::move(global_optargs),
+        std::move(user_context),
         std::move(table_name),
         datumspec,
         _profile,
@@ -932,6 +1040,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->get_all_optargs(),
+            env->get_user_context(),
             std::move(table_name),
             datumspec,
             env->profile(),
@@ -955,6 +1064,7 @@ rget_read_t primary_readgen_t::next_read_impl(
         active_ranges_to_hints(sorting(batchspec), active_ranges),
         store_keys,
         global_optargs,
+        m_user_context,
         table_name,
         batchspec,
         std::move(transforms),
@@ -982,11 +1092,13 @@ changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
         std::move(transforms),
         sindex_name(),
         sorting_,
-        datumspec};
+        datumspec,
+        boost::none};
 }
 
 sindex_readgen_t::sindex_readgen_t(
     global_optargs_t global_optargs,
+    auth::user_context_t user_context,
     std::string table_name,
     const std::string &_sindex,
     const datumspec_t &datumspec,
@@ -996,6 +1108,7 @@ sindex_readgen_t::sindex_readgen_t(
     require_sindexes_t require_sindex_val)
     : rget_readgen_t(
         std::move(global_optargs),
+        std::move(user_context),
         std::move(table_name),
         datumspec,
         _profile,
@@ -1016,6 +1129,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->get_all_optargs(),
+            env->get_user_context(),
             std::move(table_name),
             sindex,
             datumspec,
@@ -1068,6 +1182,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         active_ranges_to_hints(sorting(batchspec), active_ranges),
         boost::none,
         global_optargs,
+        m_user_context,
         table_name,
         batchspec,
         std::move(transforms),
@@ -1090,19 +1205,24 @@ boost::optional<std::string> sindex_readgen_t::sindex_name() const {
 changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
         std::vector<transform_variant_t> transforms) const {
     return changefeed::keyspec_t::range_t{
-        std::move(transforms), sindex_name(), sorting_, datumspec};
+        std::move(transforms), sindex_name(), sorting_, datumspec, boost::none};
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
     global_optargs_t global_optargs,
+    auth::user_context_t user_context,
     std::string table_name,
     const std::string &_sindex,
     const datum_t &_query_geometry,
     profile_bool_t _profile,
     read_mode_t _read_mode)
-    : readgen_t(std::move(global_optargs),
-                std::move(table_name),
-                _profile, _read_mode, sorting_t::UNORDERED),
+    : readgen_t(
+        std::move(global_optargs),
+        std::move(user_context),
+        std::move(table_name),
+        _profile,
+        _read_mode,
+        sorting_t::UNORDERED),
       sindex(_sindex),
       query_geometry(_query_geometry) { }
 
@@ -1115,6 +1235,7 @@ scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
     return scoped_ptr_t<readgen_t>(
         new intersecting_readgen_t(
             env->get_all_optargs(),
+            env->get_user_context(),
             std::move(table_name),
             sindex,
             query_geometry,
@@ -1163,12 +1284,19 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
     region_t region = active_ranges
         ? region_t(active_ranges_to_range(*active_ranges))
         : region_t(safe_universe());
+    // For stamped reads, we disable batching. This is a temporary work-around for the
+    // problem that the keys associated with geospatial change events don't match
+    // up with the traversal ranges of an initial intersecting read (which in turn
+    // confuses the splice_stream_t).
+    // By reading everything in a single batch, we avoid this issue.
+    batchspec_t actual_batchspec = stamp ? batchspec.all() : batchspec;
     return intersecting_geo_read_t(
         std::move(stamp),
         region_t::universe(),
         global_optargs,
+        m_user_context,
         table_name,
-        batchspec,
+        actual_batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
         sindex_rangespec_t(
@@ -1193,6 +1321,16 @@ key_range_t intersecting_readgen_t::original_keyrange(reql_version_t rv) const {
 
 boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
     return sindex;
+}
+
+changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
+        std::vector<transform_variant_t> transforms) const {
+    return changefeed::keyspec_t::range_t{
+        std::move(transforms),
+        sindex_name(),
+        sorting_t::UNORDERED,
+        datumspec_t(datum_range_t::universe()),
+        query_geometry};
 }
 
 bool datum_stream_t::add_stamp(changefeed_stamp_t) {
@@ -1858,6 +1996,7 @@ union_datum_stream_t::union_datum_stream_t(
         env->return_empty_normal_batches,
         drainer.get_drain_signal(),
         env->get_all_optargs(),
+        env->get_user_context(),
         trace.has() ? trace.get() : nullptr);
 
     coro_streams.reserve(streams.size());

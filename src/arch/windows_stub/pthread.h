@@ -27,6 +27,17 @@ int pthread_mutex_destroy(pthread_mutex_t*);
 int pthread_mutex_lock(pthread_mutex_t*);
 int pthread_mutex_unlock(pthread_mutex_t*);
 
+struct pthread_rwlock_t {
+    enum class srw_lock_mode_t { SHARED, EXCLUSIVE };
+    srw_lock_mode_t current_acq_mode;
+    PSRWLOCK lock;
+};
+int pthread_rwlock_init(pthread_rwlock_t*, void*);
+int pthread_rwlock_destroy(pthread_rwlock_t*);
+int pthread_rwlock_rdlock(pthread_rwlock_t*);
+int pthread_rwlock_wrlock(pthread_rwlock_t*);
+int pthread_rwlock_unlock(pthread_rwlock_t*);
+
 typedef CONDITION_VARIABLE pthread_cond_t;
 int pthread_cond_init(pthread_cond_t*, void*);
 int pthread_cond_destroy(pthread_cond_t*);

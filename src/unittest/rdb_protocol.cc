@@ -24,6 +24,7 @@
 #include "stl_utils.hpp"
 #include "store_subview.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -74,7 +75,8 @@ void run_with_namespace_interface(
     }
 
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, nullptr);
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+    rdb_context_t ctx(&extproc_pool, nullptr, auth_manager.get_view());
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;
@@ -156,7 +158,12 @@ void run_get_set_test(
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"),
+            &interruptor);
 
         if (point_write_response_t *maybe_point_write_response_t = boost::get<point_write_response_t>(&response.response)) {
             ASSERT_EQ(maybe_point_write_response_t->result, point_write_result_t::STORED);
@@ -171,7 +178,12 @@ void run_get_set_test(
         read_response_t response;
 
         cond_t interruptor;
-        nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
+        nsi->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &response,
+            osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"),
+            &interruptor);
 
         if (point_read_response_t *maybe_point_read_response = boost::get<point_read_response_t>(&response.response)) {
             ASSERT_TRUE(maybe_point_read_response->data.has());
@@ -272,11 +284,12 @@ void run_create_drop_sindex_test(
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write,
-                   &response,
-                   osource->check_in(
-                       "unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
-                   &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         if (point_write_response_t *maybe_point_write_response
             = boost::get<point_write_response_t>(&response.response)) {
@@ -292,7 +305,12 @@ void run_create_drop_sindex_test(
         read_response_t response;
 
         cond_t interruptor;
-        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
+        nsi->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &response,
+            osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -318,7 +336,12 @@ void run_create_drop_sindex_test(
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         if (point_delete_response_t *maybe_point_delete_response = boost::get<point_delete_response_t>(&response.response)) {
             ASSERT_EQ(maybe_point_delete_response->result, point_delete_result_t::DELETED);
@@ -333,7 +356,12 @@ void run_create_drop_sindex_test(
         read_response_t response;
 
         cond_t interruptor;
-        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
+        nsi->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &response,
+            osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -370,11 +398,13 @@ void populate_sindex(namespace_interface_t *nsi,
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write,
-                   &response,
-                   osource->check_in(
-                       "unittest::run_create_drop_sindex_with_data_test(rdb_protocol.cc-A"),
-                   &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in(
+                "unittest::run_create_drop_sindex_with_data_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         /* The result can be either STORED or DUPLICATE (in case this
          * test has been run before on the same store). Either is fine.*/
@@ -430,11 +460,12 @@ void fuzz_sindex(namespace_interface_t *nsi,
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write,
-                   &response,
-                   osource->check_in(
-                       "unittest::fuzz_sindex(rdb_protocol.cc"),
-                   &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in("unittest::fuzz_sindex(rdb_protocol.cc"),
+            &interruptor);
 
         /* The result can be either STORED or DUPLICATE (in case this
          * test has been run before on the same store). Either is fine.*/
@@ -557,7 +588,12 @@ void read_sindex(namespace_interface_t *nsi,
     read_response_t response;
 
     cond_t interruptor;
-    nsi->read(read, &response, osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"), &interruptor);
+    nsi->read(
+        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        read,
+        &response,
+        osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"),
+        &interruptor);
 
     if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
         auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -732,12 +768,13 @@ void run_sindex_oversized_keys_test(
                 write_response_t response;
 
                 cond_t interruptor;
-                nsi->write(write,
-                           &response,
-                           osource->check_in(
-                               "unittest::run_sindex_oversized_keys_test("
-                               "rdb_protocol.cc-A"),
-                           &interruptor);
+                nsi->write(
+                    auth::user_context_t(auth::permissions_t(false, true, false, false)),
+                    write,
+                    &response,
+                    osource->check_in(
+                        "unittest::run_sindex_oversized_keys_test(rdb_protocol.cc-A"),
+                    &interruptor);
 
                 auto resp = boost::get<point_write_response_t>(
                         &response.response);
@@ -755,7 +792,13 @@ void run_sindex_oversized_keys_test(
                 read_response_t response;
 
                 cond_t interruptor;
-                nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol.cc-A"), &interruptor);
+                nsi->read(
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    read,
+                    &response,
+                    osource->check_in(
+                        "unittest::run_sindex_oversized_keys_test(rdb_protocol.cc-A"),
+                    &interruptor);
 
                 if (rget_read_response_t *rget_resp
                     = boost::get<rget_read_response_t>(&response.response)) {
@@ -811,11 +854,13 @@ void run_sindex_missing_attr_test(
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write,
-                   &response,
-                   osource->check_in(
-                       "unittest::run_sindex_missing_attr_test(rdb_protocol.cc-A"),
-                   &interruptor);
+        nsi->write(
+            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            write,
+            &response,
+            osource->check_in(
+                "unittest::run_sindex_missing_attr_test(rdb_protocol.cc-A"),
+            &interruptor);
 
         if (!boost::get<point_write_response_t>(&response.response)) {
             ADD_FAILURE() << "got wrong type of result back";
@@ -899,7 +944,8 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                             ql::datum_t(0.0),
                                             key_range_t::closed,
                                             ql::datum_t(10.0),
-                                            key_range_t::open))}),
+                                            key_range_t::open)),
+                                    boost::none}),
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

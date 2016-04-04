@@ -221,9 +221,11 @@ bool do_serve(io_backender_t *io_backender,
                 server_id,
                 serve_info.ports.local_addresses_cluster,
                 serve_info.ports.canonical_addresses,
+                serve_info.join_delay_secs,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
                 semilattice_manager_heartbeat.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
                 serve_info.tls_configs.cluster.get()));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
@@ -241,7 +243,8 @@ bool do_serve(io_backender_t *io_backender,
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            &server_config_client);
+            &server_config_client,
+            serve_info.join_delay_secs);
 
         /* `initial_joiner` sets up the initial connections to the peers that were
         specified with the `--join` flag on the command line. */
@@ -249,7 +252,8 @@ bool do_serve(io_backender_t *io_backender,
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
                                                      connectivity_cluster_run.get(),
-                                                     serve_info.peers));
+                                                     serve_info.peers,
+                                                     serve_info.join_delay_secs));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -333,6 +337,7 @@ bool do_serve(io_backender_t *io_backender,
             uses to create, destroy, and reconfigure databases and tables. */
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
+                semilattice_manager_auth.get_root_view(),
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
@@ -344,8 +349,8 @@ bool do_serve(io_backender_t *io_backender,
             `rethinkdb` system database. */
             admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
-                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
+                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_heartbeat.get_root_view(),
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
