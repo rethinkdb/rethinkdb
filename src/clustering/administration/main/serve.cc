@@ -225,6 +225,7 @@ bool do_serve(io_backender_t *io_backender,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
                 semilattice_manager_heartbeat.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
                 serve_info.tls_configs.cluster.get()));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));

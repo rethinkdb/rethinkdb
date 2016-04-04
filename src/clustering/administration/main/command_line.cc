@@ -50,6 +50,7 @@
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "crypto/random.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -978,6 +979,7 @@ bool configure_tls(
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
                           const std::set<name_string_t> &server_tags,
+                          const std::string &initial_password,
                           boost::optional<uint64_t> total_cache_size,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
@@ -1013,7 +1015,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
                 write_txn->write(mdkey_cluster_semilattices(),
                     cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
-                    auth_semilattice_metadata_t(), interruptor);
+                    auth_semilattice_metadata_t(initial_password), interruptor);
                 write_txn->write(mdkey_heartbeat_semilattices(),
                     heartbeat_semilattice_metadata_t(), interruptor);
             },
@@ -1072,6 +1074,7 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
+                         const std::string &initial_password,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
                          const boost::optional<boost::optional<uint64_t> >
@@ -1112,7 +1115,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     write_txn->write(mdkey_cluster_semilattices(),
                         *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
-                        auth_semilattice_metadata_t(), interruptor);
+                        auth_semilattice_metadata_t(initial_password), interruptor);
                     write_txn->write(mdkey_heartbeat_semilattices(),
                         heartbeat_semilattice_metadata_t(), interruptor);
                 },
@@ -1150,6 +1153,35 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     txn.write(mdkey_server_config(), config, &non_interruptor);
                 }
             }
+            if (!initial_password.empty()) {
+                /* Apply the initial password if there isn't one already. */
+                metadata_file_t::write_txn_t txn(metadata_file.get(), &non_interruptor);
+                auth_semilattice_metadata_t auth_data =
+                    txn.read(mdkey_auth_semilattices(), &non_interruptor);
+                auto admin_pair = auth_data.m_users.find(auth::username_t("admin"));
+                /* `admin_pair` should always exist. But in case it somehow doesn't,
+                we still create a new admin user so that people can recover from
+                corrupted user metadata. */
+                if (admin_pair == auth_data.m_users.end()
+                    || !static_cast<bool>(admin_pair->second.get_ref())
+                    || admin_pair->second.get_ref()->get_password().is_empty()) {
+                    auto new_admin_pair =
+                        auth_semilattice_metadata_t::create_initial_admin_pair(
+                            initial_password);
+                    /* Note that the `versioned_t` timestmap of the new admin pair might
+                    be smaller than the existing one if the password was previously
+                    explicitly set to empty. This is probably ok. It just means that
+                    if we connect to another node, the configured (non-initial) password
+                    is going to win again. This is consistent with how
+                    `--initial-password` behaves in general. */
+                    auth_data.m_users[new_admin_pair.first] = new_admin_pair.second;
+
+                    txn.write(mdkey_auth_semilattices(), auth_data, &non_interruptor);
+                } else {
+                    logNTC("Ignoring --initial-password option because the admin "
+                           "password is already configured.");
+                }
+            }
         }
 
         // Tell the directory lock that the directory is now good to go, as it will
@@ -1175,6 +1207,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &server_name,
                              const std::set<name_string_t> &server_tag_names,
+                             const std::string &initial_password,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
                              const boost::optional<boost::optional<uint64_t> >
@@ -1184,7 +1217,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+        run_rethinkdb_serve(base_path, serve_info, initial_password, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
                             nullptr, nullptr, nullptr, data_directory_lock,
                             result_out);
@@ -1220,7 +1253,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
             : boost::optional<uint64_t>();   /* default to 'auto' */
         server_config.version = 1;
 
-        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+        run_rethinkdb_serve(base_path, serve_info, initial_password, direct_io_mode,
                             max_concurrent_io_requests,
                             boost::optional<boost::optional<uint64_t> >(),
                             &our_server_id, &server_config, &cluster_metadata,
@@ -1244,17 +1277,25 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
 }
 
 options::help_section_t get_server_options(std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Server name options");
+    options::help_section_t help("Server options");
     options_out->push_back(options::option_t(options::names_t("--server-name", "-n"),
                                              options::OPTIONAL));
     help.add("-n [ --server-name ] arg",
              "the name for this server (as will appear in the metadata).  If not"
              " specified, one will be generated from the hostname and a random "
              "alphanumeric string.");
+
     options_out->push_back(options::option_t(options::names_t("--server-tag", "-t"),
                                              options::OPTIONAL_REPEAT));
     help.add("-t [ --server-tag ] arg",
              "a tag for this server. Can be specified multiple times.");
+
+    options_out->push_back(options::option_t(options::names_t("--initial-password"),
+                                             options::OPTIONAL));
+    help.add("--initial-password {auto | password}",
+             "sets an initial password for the \"admin\" user on a new server.  If set "
+             "to auto, a random password will be generated.");
+
     return help;
 }
 
@@ -1345,6 +1386,27 @@ std::set<name_string_t> parse_server_tag_options(
     }
     server_tag_names.insert(name_string_t::guarantee_valid("default"));
     return server_tag_names;
+}
+
+std::string parse_initial_password_option(
+        const std::map<std::string, options::values_t> &opts) {
+    boost::optional<std::string> initial_password_str =
+        get_optional_option(opts, "--initial-password");
+    if (static_cast<bool>(initial_password_str)) {
+        if (*initial_password_str == "auto") {
+            std::array<unsigned char, 16> random_data = crypto::random_bytes<16>();
+            const uuid_u base_uuid = str_to_uuid("4a3a5542-6a45-4668-a09a-d775e63a52cd");
+            std::string random_pw = uuid_to_str(uuid_u::from_hash(
+                base_uuid,
+                std::string(reinterpret_cast<const char *>(random_data.data()), 16)));
+            printf("Generated random admin password: %s\n", random_pw.c_str());
+            return random_pw;
+        }
+        return *initial_password_str;
+    } else {
+        // The default is an empty admin password
+        return "";
+    }
 }
 
 std::string get_reql_http_proxy_option(const std::map<std::string, options::values_t> &opts) {
@@ -1747,6 +1809,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
+        std::string initial_password = parse_initial_password_option(opts);
         auto total_cache_size = boost::make_optional<uint64_t>(false, 0);
         if (boost::optional<boost::optional<uint64_t> > x =
                 parse_total_cache_size_option(opts)) {
@@ -1779,9 +1842,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
+        run_in_thread_pool(std::bind(&run_rethinkdb_create,
+                                     base_path,
                                      server_name,
                                      server_tag_names,
+                                     initial_password,
                                      total_cache_size,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
@@ -1865,6 +1930,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
@@ -1934,6 +2001,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         run_in_thread_pool(std::bind(&run_rethinkdb_serve,
                                      base_path,
                                      &serve_info,
+                                     initial_password,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
@@ -2116,6 +2184,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
@@ -2208,6 +2278,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      base_path,
                                      server_name,
                                      server_tag_names,
+                                     initial_password,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,

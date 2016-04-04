@@ -29,8 +29,8 @@ user_t::user_t()
         boost::indeterminate) {
 }
 
-user_t::user_t(admin_t)
-    : m_password(password_t("")),
+user_t::user_t(password_t password, admin_t)
+    : m_password(std::move(password)),
       m_global_permissions(true, true, true, true) {
 }
 

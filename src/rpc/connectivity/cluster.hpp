@@ -27,6 +27,7 @@ namespace boost {
 template <class> class optional;
 }
 
+class auth_semilattice_metadata_t;
 class cluster_message_handler_t;
 class co_semaphore_t;
 class heartbeat_semilattice_metadata_t;
@@ -191,6 +192,8 @@ public:
               int client_port,
               boost::shared_ptr<semilattice_read_view_t<
                   heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
+              boost::shared_ptr<semilattice_read_view_t<
+                  auth_semilattice_metadata_t> > auth_sl_view,
               SSL_CTX *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
@@ -238,7 +241,7 @@ public:
                              int index,
                              boost::optional<peer_id_t> expected_id,
                              auto_drainer_t::lock_t drainer_lock,
-                             bool *successful_join,
+                             bool *successful_join_inout,
                              const int join_delay_secs,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
@@ -266,7 +269,7 @@ public:
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t,
-            bool *successful_join,
+            bool *successful_join_inout,
             const int join_delay_secs) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
@@ -311,6 +314,9 @@ public:
 
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             heartbeat_sl_view;
+
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+            auth_sl_view;
 
         auto_drainer_t drainer;
 

@@ -243,6 +243,7 @@ public:
         server_id(server_id_t::generate_server_id()),
         mailbox_manager(&connectivity_cluster, 'M'),
         heartbeat_manager(heartbeat_semilattice_metadata),
+        auth_manager(auth_semilattice_metadata),
         connectivity_cluster_run(&connectivity_cluster,
                                  server_id,
                                  get_unittest_addresses(),
@@ -251,6 +252,7 @@ public:
                                  ANY_PORT,
                                  0,
                                  heartbeat_manager.get_view(),
+                                 auth_manager.get_view(),
                                  nullptr)
         { }
     connectivity_cluster_t *get_connectivity_cluster() {
@@ -277,7 +279,35 @@ private:
     mailbox_manager_t mailbox_manager;
     heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
     dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t> heartbeat_manager;
+    auth_semilattice_metadata_t auth_semilattice_metadata;
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
     connectivity_cluster_t::run_t connectivity_cluster_run;
+};
+
+class test_cluster_run_t {
+public:
+    explicit test_cluster_run_t(connectivity_cluster_t *c,
+                                const peer_address_t &canonical_addr = peer_address_t())
+        : run(c, server_id_t::generate_server_id(),
+            get_unittest_addresses(), canonical_addr, 0, ANY_PORT, 0,
+            heartbeat_manager.get_view(), auth_manager.get_view(), nullptr) { }
+
+    operator connectivity_cluster_t::run_t&() {
+        return run;
+    }
+
+    void join(const peer_address_t &address, const int join_delay_secs) THROWS_NOTHING {
+        run.join(address, join_delay_secs);
+    }
+
+    int get_port() {
+        return run.get_port();
+    }
+
+private:
+    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t> heartbeat_manager;
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+    connectivity_cluster_t::run_t run;
 };
 
 }  // namespace unittest

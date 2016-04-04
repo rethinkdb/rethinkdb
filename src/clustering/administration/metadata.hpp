@@ -38,14 +38,33 @@ RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
 class auth_semilattice_metadata_t {
 public:
-    auth_semilattice_metadata_t()
-        : m_users({
-            {
-                auth::username_t("admin"),
-                versioned_t<boost::optional<auth::user_t>>(
-                    boost::make_optional(auth::user_t(auth::admin_t())))
+    // For deserialization only
+    auth_semilattice_metadata_t() { }
+
+    explicit auth_semilattice_metadata_t(const std::string &initial_password)
+        : m_users({create_initial_admin_pair(initial_password)}) { }
+
+    static std::pair<auth::username_t, versioned_t<boost::optional<auth::user_t>>>
+        create_initial_admin_pair(const std::string &initial_password) {
+        // Generate a timestamp that's minus our current time, so that the oldest
+        // initial password wins. Unless the initial password is empty, which
+        // should always lose.
+        time_t version_ts = std::numeric_limits<time_t>::min();
+        if (!initial_password.empty()) {
+            time_t current_time = time(nullptr);
+            if (current_time > 0) {
+                version_ts = -current_time;
+            } else {
+                logWRN("The system time seems to be incorrectly set. Metadata "
+                       "versioning will behave unexpectedly.");
             }
-        }) {
+        }
+        auth::password_t pw(initial_password);
+        return std::make_pair(
+            auth::username_t("admin"),
+            versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
+                version_ts,
+                boost::make_optional(auth::user_t(std::move(pw), auth::admin_t()))));
     }
 
     std::map<auth::username_t, versioned_t<boost::optional<auth::user_t>>> m_users;

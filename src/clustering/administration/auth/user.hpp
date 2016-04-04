@@ -28,7 +28,7 @@ class admin_t {
 class user_t {
 public:
     user_t();
-    explicit user_t(admin_t);
+    user_t(password_t password, admin_t);
     user_t(password_t password, permissions_t global_permissions);
     explicit user_t(ql::datum_t const &datum);
 
