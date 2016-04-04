@@ -120,6 +120,7 @@ public:
                  boost::optional<std::string> _config_file,
                  std::vector<std::string> &&_argv,
                  const int _join_delay_secs,
+                 const int _node_reconnect_timeout,
                  tls_configs_t _tls_configs) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
@@ -128,7 +129,8 @@ public:
         ports(_ports),
         config_file(_config_file),
         argv(std::move(_argv)),
-        join_delay_secs(_join_delay_secs)
+        join_delay_secs(_join_delay_secs),
+        node_reconnect_timeout(_node_reconnect_timeout)
     {
         tls_configs = _tls_configs;
     }
@@ -148,6 +150,7 @@ public:
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;
     int join_delay_secs;
+    int node_reconnect_timeout;
     tls_configs_t tls_configs;
 };
 

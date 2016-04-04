@@ -58,6 +58,10 @@
 #define RETHINKDB_RESTORE_SCRIPT "rethinkdb-restore"
 #define RETHINKDB_INDEX_REBUILD_SCRIPT "rethinkdb-index-rebuild"
 
+namespace cluster_defaults {
+    const int reconnect_timeout = (24 * 60 * 60 * 1000);    // 24 hours
+}  // namespace cluster_defaults
+
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
@@ -439,6 +443,27 @@ boost::optional<int> parse_join_delay_secs_option(
     } else {
         return boost::optional<int>();
     }
+}
+
+boost::optional<int> parse_node_reconnect_timeout(
+        const std::map<std::string, options::values_t> &opts) {
+    if (exists_option(opts, "--cluster-reconnect-timeout")) {
+        const std::string timeout_opt = get_single_option(opts, "--cluster-reconnect-timeout");
+        uint64_t node_reconnect_timeout;
+        if (!strtou64_strict(timeout_opt, 10, &node_reconnect_timeout)) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: cluster-reconnect-timeout should be a number, got '%s'",
+                    timeout_opt.c_str()));
+        }
+        if (node_reconnect_timeout > std::numeric_limits<int>::max()) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: cluster-reconnect-timeout is too large. Must be at most %d",
+                    std::numeric_limits<int>::max()));
+        }
+        return boost::optional<int>(static_cast<int>(node_reconnect_timeout));
+    }
+
+    return boost::optional<int>();
 }
 
 /* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
@@ -1435,6 +1460,11 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
                                              strprintf("%d", port_defaults::peer_port)));
     help.add("--cluster-port port", "port for receiving connections from other nodes");
 
+    options_out->push_back(options::option_t(options::names_t("--cluster-reconnect-timeout"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", cluster_defaults::reconnect_timeout)));
+    help.add("--cluster-reconnect-timeout ms", "maximum time (in ms) to attempt reconnecting to a node before giving up");
+
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
@@ -1887,6 +1917,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             parse_total_cache_size_option(opts);
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout = parse_node_reconnect_timeout(opts);
 
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
@@ -1926,6 +1957,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout ? node_reconnect_timeout.get() : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -1981,6 +2013,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         }
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout = parse_node_reconnect_timeout(opts);
 
 #ifndef _WIN32
         get_and_set_user_group(opts);
@@ -2021,6 +2054,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout ? node_reconnect_timeout.get() : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         bool result;
@@ -2135,6 +2169,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         update_check_t do_update_checking = parse_update_checking_option(opts);
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout = parse_node_reconnect_timeout(opts);
 
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
@@ -2199,6 +2234,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout ? node_reconnect_timeout.get() : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
