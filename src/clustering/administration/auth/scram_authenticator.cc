@@ -200,11 +200,11 @@ std::string scram_authenticator_t::next_message(std::string const &message)
         size_t value_offset = equals_sign_offset + 1;
         size_t comma_offset = message.find(',', value_offset);
         if (comma_offset == std::string::npos) {
-            attributes.emplace(key, message.substr(value_offset));
+            attributes.insert(std::make_pair(key, message.substr(value_offset)));
             attribute_offset = message.size();
         } else {
-            attributes.emplace(
-                key, message.substr(value_offset, comma_offset - value_offset));
+            attributes.insert(std::make_pair(
+                key, message.substr(value_offset, comma_offset - value_offset)));
             attribute_offset = comma_offset + 1;
         }
     }

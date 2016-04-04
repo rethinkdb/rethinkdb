@@ -431,7 +431,7 @@ boost::optional<int> parse_join_delay_secs_option(
                     "ERROR: join-delay should be a number, got '%s'",
                     delay_opt.c_str()));
         }
-        if (join_delay_secs > std::numeric_limits<int>::max()) {
+        if (join_delay_secs > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
             throw std::runtime_error(strprintf(
                     "ERROR: join-delay is too large. Must be at most %d",
                     std::numeric_limits<int>::max()));
