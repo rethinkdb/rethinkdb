@@ -1,0 +1,49 @@
+desc: Tests for the fold term
+table_variable_name: tbl
+tests:
+
+    # Set up some data
+    - py: tbl.insert(r.range(100).map(lambda i: {'id':i, 'a':i%4}).coerce_to("array"))
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
+      ot: {'deleted':0,'replaced':0,'unchanged':0,'errors':0,'skipped':0,'inserted':100}
+
+    # Fold
+    - py: r.range(0, 10).fold(0, lambda acc, row: acc.add(1))
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); })
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))})
+      ot: 10
+    - py: r.range(0, 10).fold(0, lambda acc, row: acc.add(1), final_emit=lambda acc: acc.mul(2))
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); }, {"final_emit": function(acc) {return acc.mul(2);}})
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))}, :final_emit=>lambda{|acc|(acc.mul(2))})
+      ot: 20
+    - py: r.range(0, 10).fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: [row]).coerce_to("array")
+      js: r.range(0, 10).fold(0, function(acc, row) { return acc.add(1); }, {"emit": function(old,row,acc) {return [row];}}).coerce_to("array")
+      rb: r.range(0, 10).fold(0, lambda{|acc, row|(acc.add(1))}, :emit=>lambda{|old,row,acc|([row])}).coerce_to("array")
+      ot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    - py: r.range(0, 10).fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: r.branch(acc.mod(3).eq(0),[row],[]),final_emit=lambda acc: [acc]).coerce_to("array")
+      js: r.range(0, 10).fold(0, function(acc, row) {return acc.add(1);}, {"emit":function(old,row,n) {return r.branch(n.mod(3).eq(0),[row],[])}, "final_emit" : function (acc) {return [acc]}}).coerce_to("array")
+      rb: r.range(0, 10).fold(0, lambda{|acc,row|(acc.add(1))}, :emit=> lambda{|old,row,acc|(r.branch(acc.mod(3).eq(0),[row],[]))}, :final_emit=> lambda{|acc|([acc])}).coerce_to("array")
+      ot: [2, 5, 8, 10]
+    - py: r.range(0, 10).fold([1, 1], lambda acc, row: [acc[1], acc[0].add(acc[1])], emit=lambda old,row,acc: [acc[0]]).coerce_to("array")
+      ot: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
+    - py: r.range(0, 10).fold(0, lambda acc, row: acc, emit=lambda old,row,acc: acc).type_of()
+      ot: "STREAM"
+    - py: tbl.filter("id").fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: r.branch(old.mod(20).eq(0),[row],[])).coerce_to("array")
+      ot: [{'a': 0, 'id': 20}, {'a': 3, 'id': 15}, {'a': 2, 'id': 46}, {'a': 2, 'id': 78}, {'a': 2, 'id': 90}]
+
+    - py: r.range().fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: [acc]).limit(10)
+      ot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    - py: r.range().fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: [acc]).map(lambda doc: 1).reduce(lambda l, r: l+r)
+      ot: err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.")
+
+    - py: r.range(0, 1000).fold(0, lambda acc, row: acc.add(1), emit=lambda old,row,acc: [acc]).coerce_to("array")
+      ot: [x for x in range(1, 1001)]

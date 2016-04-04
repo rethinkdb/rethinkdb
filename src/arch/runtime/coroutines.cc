@@ -71,8 +71,8 @@ struct coro_globals_t {
 #endif  // NDEBUG
 
     coro_globals_t()
-        : current_coro(NULL)
-        , prev_coro(NULL)
+        : current_coro(nullptr)
+        , prev_coro(nullptr)
 #ifndef NDEBUG
         , coro_count(0)
         , printed_high_coro_count_warning(false)
@@ -303,7 +303,7 @@ void coro_t::notify_now_deprecated() {
     TLS_get_cglobals()->assert_finite_coro_waiting_counter = 0;
 #endif
 
-    if (coro_t::self() != NULL) {
+    if (coro_t::self() != nullptr) {
         PROFILER_CORO_YIELD(1);
     }
     coro_t *prev_prev_coro = TLS_get_cglobals()->prev_coro;
@@ -319,7 +319,7 @@ void coro_t::notify_now_deprecated() {
     rassert(TLS_get_cglobals()->current_coro == this);
     TLS_get_cglobals()->current_coro = TLS_get_cglobals()->prev_coro;
     TLS_get_cglobals()->prev_coro = prev_prev_coro;
-    if (coro_t::self() != NULL) {
+    if (coro_t::self() != nullptr) {
         PROFILER_CORO_RESUME;
     }
 
@@ -401,7 +401,7 @@ bool has_n_bytes_free_stack_space(size_t n) {
 }
 
 bool coroutines_have_been_initialized() {
-    return TLS_get_cglobals() != NULL;
+    return TLS_get_cglobals() != nullptr;
 }
 
 coro_t * coro_t::get_coro() {
@@ -474,7 +474,7 @@ void coro_t::grab_spawn_backtrace() {
     // If we have space left and were called from inside a coroutine,
     // we also append the parent's spawn_backtrace.
     int space_remaining = CROSS_CORO_BACKTRACES_MAX_SIZE - spawn_backtrace_size;
-    if (space_remaining > 0 && self() != NULL) {
+    if (space_remaining > 0 && self() != nullptr) {
         spawn_backtrace_size += self()->copy_spawn_backtrace(spawn_backtrace + spawn_backtrace_size,
                                                              space_remaining);
     }
@@ -487,7 +487,7 @@ int coro_t::copy_spawn_backtrace(void **buffer_out, int size) const {
 int coro_t::copy_spawn_backtrace(void **, int) const {
 #endif
 #ifdef CROSS_CORO_BACKTRACES
-    guarantee(buffer_out != NULL);
+    guarantee(buffer_out != nullptr);
     guarantee(size >= 0);
     int num_frames_to_store = std::min(size, spawn_backtrace_size);
     memcpy(buffer_out,

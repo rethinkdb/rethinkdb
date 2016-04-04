@@ -3,11 +3,20 @@
 
 #include "arch/io/network.hpp"
 
-tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port)
-    : conn_(new tcp_conn_t(host, port, interruptor, local_port)) { }
+tcp_conn_stream_t::tcp_conn_stream_t(
+    tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port
+) :
+    conn_(
+#ifdef ENABLE_TLS
+        (nullptr != tls_ctx) ?
+        new secure_tcp_conn_t(tls_ctx, host, port, interruptor, local_port) :
+#endif
+        new tcp_conn_t(host, port, interruptor, local_port)
+    ) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
-    rassert(conn_ != NULL);
+    rassert(conn_ != nullptr);
 }
 
 tcp_conn_stream_t::~tcp_conn_stream_t() {
@@ -17,33 +26,12 @@ tcp_conn_stream_t::~tcp_conn_stream_t() {
 int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
     // Returns the number of bytes read, or 0 upon EOF, -1 upon error.
     // Right now this function cannot "error".
+    // It also always returns either `n` or 0. It never reads only parts of the data.
     try {
         cond_t non_closer;
-        const_charslice read_data = conn_->peek();
-        if (read_data.end == read_data.beg) {
-            // We didn't get anything from the read buffer. Get some data from
-            // the underlying socket...
-            // For large reads, we read directly into p to avoid an additional copy
-            // and additional round trips.
-            // For smaller reads, we use `read_more_buffered` to read into the
-            // connection's internal buffer and then copy out whatever we can use
-            // to satisfy the current request.
-            if (n >= IO_BUFFER_SIZE) {
-                return conn_->read_some(p, n, &non_closer);
-            } else {
-                conn_->read_more_buffered(&non_closer);
-                read_data = conn_->peek();
-            }
-        }
-        size_t num_read = read_data.end - read_data.beg;
-        if (num_read > static_cast<size_t>(n)) {
-            num_read = static_cast<size_t>(n);
-        }
-        rassert(num_read > 0);
-        memcpy(p, read_data.beg, num_read);
-        // Remove the consumed data from the read buffer
-        conn_->pop(num_read, &non_closer);
-        return num_read;
+        guarantee(n >= 0);
+        conn_->read_buffered(p, static_cast<size_t>(n), &non_closer);
+        return n;
     } catch (const tcp_conn_read_closed_exc_t &) {
         return 0;
     }
@@ -114,13 +102,16 @@ int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n)
 }
 
 
-keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) :
-    tcp_conn_stream_t(host, port, interruptor, local_port),
+keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(
+    tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port
+) :
+    tcp_conn_stream_t(tls_ctx, host, port, interruptor, local_port),
     keepalive_callback(NULL) { }
 
 keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(tcp_conn_t *conn) :
     tcp_conn_stream_t(conn),
-    keepalive_callback(NULL) { }
+    keepalive_callback(nullptr) { }
 
 keepalive_tcp_conn_stream_t::~keepalive_tcp_conn_stream_t() {
     // Do nothing
@@ -133,7 +124,7 @@ void keepalive_tcp_conn_stream_t::set_keepalive_callback(keepalive_callback_t *_
 int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
     int64_t result = tcp_conn_stream_t::read(p, n);
 
-    if (result > 0 && keepalive_callback != NULL) {
+    if (result > 0 && keepalive_callback != nullptr) {
         keepalive_callback->keepalive_read();
     }
 
@@ -141,7 +132,7 @@ int64_t keepalive_tcp_conn_stream_t::read(void *p, int64_t n) {
 }
 
 int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 
@@ -149,7 +140,7 @@ int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
 }
 
 int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 
@@ -157,7 +148,7 @@ int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
 }
 
 bool keepalive_tcp_conn_stream_t::flush_buffer() {
-    if (keepalive_callback != NULL) {
+    if (keepalive_callback != nullptr) {
         keepalive_callback->keepalive_write();
     }
 

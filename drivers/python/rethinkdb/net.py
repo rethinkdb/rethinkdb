@@ -192,10 +192,13 @@ class Cursor(object):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
-    def __str__(self):
-        val_str = ', '.join(map(repr, self.items[:10]))
+    def __summary_string(self, token, end_token):
+        if len(self.items) > 10:
+            val_str = token.join(map(repr, [self.items[i] for i in range(0,10)]))
+        else:
+            val_str = token.join(map(repr, self.items))
         if len(self.items) > 10 or self.error is None:
-            val_str += ', ...'
+            val_str += end_token
 
         if self.error is None:
             err_str = 'streaming'
@@ -204,7 +207,21 @@ class Cursor(object):
         else:
             err_str = 'error: %s' % repr(self.error)
 
-        return "%s (%s):\n[%s]" % (object.__str__(self), err_str, val_str)
+        return val_str, err_str
+
+    def __str__(self):
+        val_str, err_str = self.__summary_string(",\n", ", ...\n")
+        return "%s (%s):\n[\n%s]" % (object.__repr__(self), err_str, val_str)
+
+    def __repr__(self):
+        val_str, err_str = self.__summary_string(", ", ", ...")
+        return "<%s.%s object at %s (%s):\n [%s]>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            hex(id(self)),
+            err_str,
+            val_str
+        )
 
     def _error(self, message):
         # Set an error and extend with a dummy response to trigger any waiters
@@ -257,8 +274,7 @@ class SocketWrapper(object):
         deadline = time.time() + timeout
 
         try:
-            self._socket = \
-                socket.create_connection((self.host, self.port), timeout)
+            self._socket = socket.create_connection((self.host, self.port), timeout)
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
@@ -316,7 +332,7 @@ class SocketWrapper(object):
         return self._socket is not None
 
     def close(self):
-        if self._socket is not None:
+        if self.is_open():
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
@@ -405,6 +421,14 @@ class ConnectionInstance(object):
         self._header_in_progress = None
         self._socket = None
         self._closing = False
+
+    def client_port(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[0]
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -518,6 +542,14 @@ class Connection(object):
             self._json_encoder = kwargs.pop('json_encoder')
         if 'json_decoder' in kwargs:
             self._json_decoder = kwargs.pop('json_decoder')
+
+    def client_port(self):
+        if self.is_open():
+            return self._instance.client_port()
+
+    def client_address(self):
+        if self.is_open():
+            return self._instance.client_address()
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:

@@ -66,8 +66,8 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
 #ifndef NDEBUG
       coroutine_summary(false),
 #endif
-      interrupt_message(NULL),
-      generic_blocker_pool(NULL),
+      interrupt_message(nullptr),
+      generic_blocker_pool(nullptr),
       n_threads(worker_threads + 1),    // we create an extra utility thread
       do_set_affinity(_do_set_affinity)
 {
@@ -76,10 +76,10 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
 
     int res;
 
-    res = pthread_cond_init(&shutdown_cond, NULL);
+    res = pthread_cond_init(&shutdown_cond, nullptr);
     guarantee_xerr(res == 0, res, "Could not create shutdown cond");
 
-    res = pthread_mutex_init(&shutdown_cond_mutex, NULL);
+    res = pthread_mutex_init(&shutdown_cond_mutex, nullptr);
     guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
@@ -117,7 +117,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = sigdelset(&sigmask, SIGBUS);
         guarantee_err(res == 0, "Could not remove SIGBUS from sigmask");
 
-        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+        res = pthread_sigmask(SIG_SETMASK, &sigmask, nullptr);
         guarantee_xerr(res == 0, res, "Could not block signal");
     }
 #endif
@@ -134,7 +134,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_t local_thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &local_thread;
         set_thread(&local_thread);
-        blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
+        blocker_pool_t *generic_blocker_pool = nullptr; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
         running under valgrind, we don't install this handler because Valgrind will print the
@@ -146,7 +146,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         signal_stack.ss_sp = stack_base.get();
         signal_stack.ss_flags = 0;
         signal_stack.ss_size = SIGNAL_HANDLER_STACK_SIZE;
-        int res = sigaltstack(&signal_stack, NULL);
+        int res = sigaltstack(&signal_stack, nullptr);
         guarantee_err(res == 0, "sigaltstack failed");
 
         {
@@ -154,9 +154,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
                 SA_SIGINFO | SA_ONSTACK,
                 &linux_thread_pool_t::fatal_signal_handler);
 
-            res = sigaction(SIGSEGV, &sa, NULL);
+            res = sigaction(SIGSEGV, &sa, nullptr);
             guarantee_err(res == 0, "Could not install SEGV signal handler");
-            res = sigaction(SIGBUS, &sa, NULL);
+            res = sigaction(SIGBUS, &sa, nullptr);
             guarantee_err(res == 0, "Could not install BUS signal handler");
         }
 #endif
@@ -164,7 +164,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
         // First thread should initialize generic_blocker_pool before the start barrier
         if (tdata->initial_message) {
-            rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
+            rassert(tdata->thread_pool->generic_blocker_pool == nullptr, "generic_blocker_pool already initialized");
             generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
                                                       &local_thread.queue);
             tdata->thread_pool->generic_blocker_pool = generic_blocker_pool;
@@ -174,7 +174,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
         tdata->barrier->wait();
-        rassert(tdata->thread_pool->generic_blocker_pool != NULL,
+        rassert(tdata->thread_pool->generic_blocker_pool != nullptr,
                 "Thread passed start barrier while generic_blocker_pool uninitialized");
 
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
@@ -190,17 +190,17 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->barrier->wait();
 
         // If this thread created the generic blocker pool, clean it up
-        if (generic_blocker_pool != NULL) {
+        if (generic_blocker_pool != nullptr) {
             delete generic_blocker_pool;
-            tdata->thread_pool->generic_blocker_pool = NULL;
+            tdata->thread_pool->generic_blocker_pool = nullptr;
         }
 
-        tdata->thread_pool->threads[tdata->current_thread] = NULL;
-        set_thread(NULL);
+        tdata->thread_pool->threads[tdata->current_thread] = nullptr;
+        set_thread(nullptr);
     }
 
     delete tdata;
-    return NULL;
+    return nullptr;
 }
 
 #ifndef NDEBUG
@@ -222,9 +222,9 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         tdata->thread_pool = this;
         tdata->current_thread = i;
         // The initial message gets sent to the utility thread.
-        tdata->initial_message = is_utility_thread ? initial_message : NULL;
+        tdata->initial_message = is_utility_thread ? initial_message : nullptr;
 
-        int res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
+        int res = pthread_create(&pthreads[i], nullptr, &start_thread, tdata);
         guarantee_xerr(res == 0, res, "Could not create thread");
 
         // Don't set affinity for the utility thread
@@ -262,10 +262,10 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     {
         struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
-        int res = sigaction(SIGTERM, &sa, NULL);
+        int res = sigaction(SIGTERM, &sa, nullptr);
         guarantee_err(res == 0, "Could not install TERM handler");
 
-        res = sigaction(SIGINT, &sa, NULL);
+        res = sigaction(SIGINT, &sa, nullptr);
         guarantee_err(res == 0, "Could not install INT handler");
     }
 #endif
@@ -290,14 +290,14 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     {
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
 
-        res = sigaction(SIGTERM, &sa, NULL);
+        res = sigaction(SIGTERM, &sa, nullptr);
         guarantee_err(res == 0, "Could not remove TERM handler");
 
-        res = sigaction(SIGINT, &sa, NULL);
+        res = sigaction(SIGINT, &sa, nullptr);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
 #endif
-    set_thread_pool(NULL);
+    set_thread_pool(nullptr);
 
 #ifndef NDEBUG
     // Save each thread's coroutine counters before shutting down
@@ -321,7 +321,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     for (int i = 0; i < n_threads; i++) {
         // Wait for child thread to actually exit
 
-        res = pthread_join(pthreads[i], NULL);
+        res = pthread_join(pthreads[i], nullptr);
         guarantee_xerr(res == 0, res, "Could not join thread");
     }
 
@@ -464,7 +464,7 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 #endif
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable
-    int res = pthread_mutex_init(&do_shutdown_mutex, NULL);
+    int res = pthread_mutex_init(&do_shutdown_mutex, nullptr);
     guarantee_xerr(res == 0, res, "could not initialize do_shutdown_mutex");
 
     // Watch an eventfd for shutdown notifications
@@ -475,7 +475,7 @@ linux_thread_t::~linux_thread_t() {
 
 #ifndef NDEBUG
     // Save the coroutine counts before they're deleted, should be ready at shutdown
-    rassert(coroutine_counts_at_shutdown != NULL);
+    rassert(coroutine_counts_at_shutdown != nullptr);
     coroutine_counts_at_shutdown->clear();
     coro_runtime.get_coroutine_counts(coroutine_counts_at_shutdown);
 #endif

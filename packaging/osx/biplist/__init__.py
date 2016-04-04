@@ -44,13 +44,12 @@ Plist parsing example:
         print "Not a plist:", e
 """
 
-import sys
 from collections import namedtuple
 import datetime
 import io
 import math
 import plistlib
-from struct import pack, unpack
+from struct import pack, unpack, unpack_from
 from struct import error as struct_error
 import sys
 import time
@@ -79,11 +78,32 @@ __all__ = [
 # Apple uses Jan 1, 2001 as a base for all plist date/times.
 apple_reference_date = datetime.datetime.utcfromtimestamp(978307200)
 
-class Uid(int):
+class Uid(object):
     """Wrapper around integers for representing UID values. This
        is used in keyed archiving."""
+    integer = 0
+    def __init__(self, integer):
+        self.integer = integer
+    
     def __repr__(self):
-        return "Uid(%d)" % self
+        return "Uid(%d)" % self.integer
+    
+    def __eq__(self, other):
+        if isinstance(self, Uid) and isinstance(other, Uid):
+            return self.integer == other.integer
+        return False
+    
+    def __cmp__(self, other):
+        return self.integer - other.integer
+    
+    def __lt__(self, other):
+        return self.integer < other.integer
+    
+    def __hash__(self):
+        return self.integer
+    
+    def __int__(self):
+        return int(self.integer)
 
 class Data(bytes):
     """Wrapper around bytes to distinguish Data values."""
@@ -376,7 +396,7 @@ class PlistReader(object):
     def readAsciiString(self, length):
         result = unpack("!%ds" % length, self.contents[self.currentOffset:self.currentOffset+length])[0]
         self.currentOffset += length
-        return result
+        return str(result.decode('ascii'))
     
     def readUnicode(self, length):
         actual_length = length*2
@@ -423,7 +443,9 @@ class PlistReader(object):
                 result = int.from_bytes(data, 'big')
             else:
                 for byte in data:
-                    result = (result << 8) | unpack('>B', byte)[0]
+                    if not isinstance(byte, int): # Python3.0-3.1.x return ints, 2.x return str
+                        byte = unpack_from('>B', byte)[0]
+                    result = (result << 8) | byte
         else:
             raise InvalidPlistException("Encountered integer longer than 16 bytes.")
         return result
@@ -546,8 +568,7 @@ class PlistWriter(object):
         """
         output = self.header
         wrapped_root = self.wrapRoot(root)
-        should_reference_root = True#not isinstance(wrapped_root, HashableWrapper)
-        self.computeOffsets(wrapped_root, asReference=should_reference_root, isRoot=True)
+        self.computeOffsets(wrapped_root, asReference=True, isRoot=True)
         self.trailer = self.trailer._replace(**{'objectRefSize':self.intSize(len(self.computedUniques))})
         self.writeObjectReference(wrapped_root, output)
         output = self.writeObject(wrapped_root, output, setReferencePosition=True)
@@ -593,6 +614,8 @@ class PlistWriter(object):
             return HashableWrapper(n)
         elif isinstance(root, (str, unicode)) and not isinstance(root, Data):
             return StringWrapper(root)
+        elif isinstance(root, bytes):
+            return Data(root)
         else:
             return root
 
@@ -625,7 +648,7 @@ class PlistWriter(object):
         elif isinstance(obj, BoolWrapper):
             self.incrementByteCount('boolBytes')
         elif isinstance(obj, Uid):
-            size = self.intSize(obj)
+            size = self.intSize(obj.integer)
             self.incrementByteCount('uidBytes', incr=1+size)
         elif isinstance(obj, (int, long)):
             size = self.intSize(obj)
@@ -662,7 +685,7 @@ class PlistWriter(object):
                     self.computeOffsets(key, asReference=True)
                     self.computeOffsets(value, asReference=True)
         else:
-            raise InvalidPlistException("Unknown object type.")
+            raise InvalidPlistException("Unknown object type: %s (%s)" % (type(obj).__name__, repr(obj)))
 
     def writeObjectReference(self, obj, output):
         """Tries to write an object reference, adding it to the references
@@ -694,9 +717,10 @@ class PlistWriter(object):
                 result += pack('!B', (format << 4) | length)
             return result
         
-        if isinstance(obj, (str, unicode)) and obj == unicodeEmpty:
-            # The Apple Plist decoder can't decode a zero length Unicode string.
-            obj = b''
+        def timedelta_total_seconds(td):
+            # Shim for Python 2.6 compatibility, which doesn't have total_seconds.
+            # Make one argument a float to ensure the right calculation.
+            return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10.0**6) / 10.0**6
        
         if setReferencePosition:
             self.referencePositions[obj] = len(output)
@@ -709,9 +733,9 @@ class PlistWriter(object):
             else:
                 output += pack('!B', 0b00001001)
         elif isinstance(obj, Uid):
-            size = self.intSize(obj)
+            size = self.intSize(obj.integer)
             output += pack('!B', (0b1000 << 4) | size - 1)
-            output += self.binaryInt(obj)
+            output += self.binaryInt(obj.integer)
         elif isinstance(obj, (int, long)):
             byteSize = self.intSize(obj)
             root = math.log(byteSize, 2)
@@ -722,7 +746,10 @@ class PlistWriter(object):
             output += pack('!B', (0b0010 << 4) | 3)
             output += self.binaryReal(obj)
         elif isinstance(obj, datetime.datetime):
-            timestamp = (obj - apple_reference_date).total_seconds()
+            try:
+                timestamp = (obj - apple_reference_date).total_seconds()
+            except AttributeError:
+                timestamp = timedelta_total_seconds(obj - apple_reference_date)
             output += pack('!B', 0b00110011)
             output += pack('!d', float(timestamp))
         elif isinstance(obj, Data):

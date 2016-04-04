@@ -288,6 +288,10 @@ backtrace_id_t group_wire_func_t::get_bt() const {
     return bt;
 }
 
+bool wire_func_t::is_simple_selector() const {
+    return func->is_simple_selector();
+}
+
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(count_wire_func_t);

@@ -39,7 +39,7 @@ Or, get started right away with our ten-minute guide in these languages:
 
 Besides our four official drivers, we also have many [third-party drivers](https://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
-* **C#/.NET:** [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
+* **C#/.NET:** [RethinkDb.Driver](https://github.com/bchavez/RethinkDb.Driver), [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
 * **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)

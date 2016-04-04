@@ -24,7 +24,7 @@ except ImportError:
     import repr as reprlib
 
 # == constants
-    
+
 TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
 CANCELED_EXIT_CODE = -278
 
@@ -72,7 +72,7 @@ cancelRun = False
 def setCancelRun(*args):
     global cancelRun
     cancelRun = True
-    print('') # put the ^C on a seperate line
+    print('') # put the ^C on a separate line
 signal.signal(signal.SIGINT, setCancelRun)
 # ToDo: cover all relevant signals
 # ToDo: allow for double-SIGINT to fast-kill
@@ -90,7 +90,7 @@ class SrcLang(object):
     test_types = None
     language_name = None
     display_name = None
-
+    
     interpreter_name_exe_names = None
     interpreter_version = None
     interpreter_env_name = None
@@ -120,7 +120,7 @@ class SrcLang(object):
     
     def __new__(cls, version=''):
         
-        if cls.lang_regex == None:
+        if cls.lang_regex is None:
             cls.lang_regex = re.compile(r'''(?P<quoteChar>["']?)\b(?P<target>%s)\b(?P=quoteChar)''' % '|'.join(cls.lang_replaces.keys()))
         
         singletonName = cls.__name__
@@ -144,15 +144,17 @@ class SrcLang(object):
     
     # Translates names from canonical name representation
     # (underscores) to the convention for this language
-    def nametranslate(self, name):
+    @staticmethod
+    def nametranslate(name):
         return name.replace('__', '_')
-
+    
     # Translates dictionary (object) representation from canonical
     # form (e.g. "{'a':1}") to the appropriate representation for this
     # language
-    def dict_translate(self, dic):
+    @staticmethod
+    def dict_translate(dic):
         return dic
-
+    
     @classmethod
     def term_translate(cls, content):
         '''translate language-specific terms, unless alone in quotes or part of a word'''
@@ -178,7 +180,7 @@ class SrcLang(object):
         '''return the path to the interpreter on this system, respecting the given env variable'''
         
         if self._interpreter_path is not None:
-            return self._interpreter_path 
+            return self._interpreter_path
         
         if self.interpreter_name_exe_names in (None, []):
             raise NotImplementedError('interpreter_name_exe_names is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
@@ -353,7 +355,7 @@ class JsLang(SrcLang):
     def translate_query(self, src, quote=True, name=False):
         '''Handle the errors from `eval({a:1})`: JavaScript thinks it is a code block'''
         result = super(JsLang, self).translate_query(src, quote=quote, name=name)
-        if quote and re.match('["\']\{', result):
+        if quote and re.match(r'["\']\{', result):
             result = result[0] + '(' + result[1:-1] + ')' + result[-1]
         return result
     
@@ -427,7 +429,7 @@ class RbLang(SrcLang):
             
             # in a quote
             if len(stateStack) > 0 and stateStack[-1] in ('"', "'"):
-                if escaped == True:
+                if escaped is True:
                     escaped = False
                 elif char == '\\':
                     escaped = True
@@ -446,7 +448,7 @@ class RbLang(SrcLang):
             elif char in levelChars.keys() and stateStack[-1] == levelChars[char]:
                 stateStack.pop()
             
-            # canidate points
+            # candidate points
             elif char == ':' and stateStack[-1] == '{':
                 
                 # check that to the right and left look good
@@ -474,7 +476,7 @@ class RbLang(SrcLang):
                                     startedWord = True
                                     continue
                                 else:
-                                    break # we need the => to keep it from auto-translateing {nil:1} to {:nil:1}
+                                    break # we need the => to keep it from auto-translating {nil:1} to {:nil:1}
                             break
                         elif checkChar in validPreChars:
                             raise AssertionError() # these are auto-translated by Ruby 1.9+: {a:1} => {:a=>1}
@@ -517,7 +519,7 @@ class RbLang(SrcLang):
         
         versionNumber = str(output.decode('utf-8').split()[1]).strip()
         return distutils.version.LooseVersion(versionNumber)
-    
+
 class JrbLang(RbLang):
     language_name = 'JRuby'
     
@@ -544,7 +546,6 @@ class JrbLang(RbLang):
         self.test_types.append('jrb')
         self.test_types.append('rb')
         self.interpreter_name_exe_names.append('jruby')
-    
 
 interpreters = {
     'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2'), JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
@@ -587,29 +588,24 @@ class TestGroup(object):
     
     @classmethod
     def buildYamlTest(cls, testName, sourceFile, lang, outputPath, shards=1, useSpecificTable=False):
-    
         # -- input validation
         
         # testName
-        
         if testName is None:
             raise ValueError('buildYamlTest requires a testName, got None')
         testName = str(testName)
         
         # sourceFile
-        
         if not sourceFile or not (hasattr(sourceFile, 'read') or os.path.isfile(sourceFile)):
             raise ValueError('buildYamlTest requires a sourceFile, got: %r' % sourceFile)
         
         # lang
-        
         if lang is None:
             raise ValueError('buildYamlTest requires a lang, got None')
         if not isinstance(lang, SrcLang):
             raise ValueError('buildYamlTest requires a subclass of SrcLang, got %s' % lang)
         
         # outputPath
-        
         if outputPath is None:
             raise ValueError('buildYamlTest requires an outputPath, got None')
         if not os.path.isdir(os.path.dirname(outputPath)):
@@ -661,7 +657,7 @@ class TestGroup(object):
             if "table_variable_name" in parsed_data:
                 variableNames = parsed_data['table_variable_name']
                 if hasattr(parsed_data['table_variable_name'], 'upper'):
-                    variableNames = re.findall('([a-zA-Z\d\.\_\-]+)', parsed_data['table_variable_name'])
+                    variableNames = re.findall(r'([a-zA-Z\d\.\_\-]+)', parsed_data['table_variable_name'])
                 
                 for index, variableName in enumerate(variableNames):
                     db_name, table_name = utils.get_test_db_table(tableName=testName, index=index)
@@ -672,7 +668,7 @@ class TestGroup(object):
                     ))
                 outputFile.write('\n')
             else:
-               outputFile.write('%s No auto-created tables\n\n' % lang.line_comment)
+                outputFile.write('%s No auto-created tables\n\n' % lang.line_comment)
             
             # - test that all external tables are claimed
             
@@ -770,7 +766,7 @@ class TestGroup(object):
     def get_lang_entries(cls, source, lang, default='command'):
         assert default in ('command', 'expected', 'definition'), 'get_lang_entries requires that default be one of : command, expected, or definition'
         
-        results = { 'command':None, 'definition':None, 'expected':None, 'runopts':{}, 'testopts':{} }
+        results = {'command':None, 'definition':None, 'expected':None, 'runopts':{}, 'testopts':{}}
         
         if source is None:
             pass
@@ -780,8 +776,6 @@ class TestGroup(object):
         
         elif not hasattr(source, 'get'):
             # leaf, replace appropriate item
-            langcode = (lang.test_types[0] if isinstance(lang.test_types, list) else lang.test_types).replace('.', '')
-            
             if default != 'expected' and hasattr(source, '__iter__') and not hasattr(source, 'capitalize'):
                 results[default] = []
                 for item in source:
@@ -856,44 +850,130 @@ class TestGroup(object):
         
         return returnDict
 
-class RethinkDBRunningServer(object):
+class Server(object):
+    '''Wrapper class for a RethinkdbServer, by default this will spin up a new instance'''
     
-    __driver_port = None
-    __cluster_port = None
+    __conn   = None
+    __server = None
     
-    __reqlConnection = None
+    def __init__(self, scratchDir=None):
+        # - start the server
+        clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=scratchDir)
+        self.__server = driver.Process(name=clusterFolder, console_output=True)
     
-    logfile_path = None
-    
-    def __init__(self, driver_port, cluster_port):
-        self.__driver_port = driver_port
-        self.__cluster_port = cluster_port
+    @property
+    def conn(self):
+        if not self.__conn:
+            self.__conn = r.connect(host=self.host, port=self.driver_port)
+        return self.__conn
     
     @property
     def host(self):
-        return 'localhost'
+        return self.__server.host
+    
+    @property
+    def driver_port(self):
+        return self.__server.driver_port
+    
+    @property
+    def logfile_path(self):
+        return self.__server.logfile_path
+    
+    @property
+    def data_path(self):
+        if self.__server and hasattr(self.__server, 'data_path'):
+            return self.__server.data_path
+        return None
+    
+    @property
+    def console_output(self):
+        if self.__server and hasattr(self.__server, 'console_output'):
+            return self.__server.console_output
+        return None
+    
+    def check(self):
+        '''Check that the server is accessible and minimally sane'''
+        assert r.expr(1).run(self.conn) == 1
+    
+    def clean(self):
+        # - ensure that the test db is present
+        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
+        
+        # - drop all databases except test and rethinkdb
+        r.db_list().set_difference(['test', 'rethinkdb']).for_each(r.db_drop(r.row)).run(self.conn)
+        
+        # - drop all tables in test
+        r.db('test').table_list().for_each(r.db('test').table_drop(r.row)).run(self.conn)
+        
+        # - clean rethinkdb._debug_scratch
+        r.db('rethinkdb').table('_debug_scratch').delete().run(self.conn)
+        
+        # - remove any other connected servers
+        r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.__server.uuid).delete().run(self.conn)
+        
+        # - wait for the test database to be completely ready
+        r.db('test').wait(wait_for='all_replicas_ready', timeout=5).run(self.conn)
+    
+    def stop(self):
+        self.__server.stop()
+
+class ExternalServer(Server):
+    '''Used to wrap externally provided servers'''
+    
+    __driver_port = None
+    __host        = 'localhost'
+    
+    existingDBsToTables = None
+    
+    def __init__(self, driver_port, host=None):
+        assert isinstance(driver_port, int) and driver_port > 0, 'Bad value for driver_port: %r' % driver_port
+        self.__driver_port = driver_port
+        if host:
+            self.__host = host
+        
+        # - collect the list of existing tables
+        self.existingDBsToTables = {}
+        for dbName in r.db_list().run(self.conn):
+            if dbName == 'rethinkdb':
+                continue
+            self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.conn)
+        
+        # - set it up to make sure it gets cleaned
+        atexit.register(self.clean)
+    
+    @property
+    def host(self):
+        return self.__host
     
     @property
     def driver_port(self):
         return self.__driver_port
     
     @property
-    def cluster_port(self):
-        return self.__cluster_port
+    def logfile_path(self):
+        return None # change after https://github.com/rethinkdb/rethinkdb/issues/4512
     
-    @property
-    def executable_path(self):
-        return 'NOT_AVALIBLE_FOR_RUNNING_SERVERS'
-    
-    def check(self):
-        if not self.__reqlConnection:
-            self.__reqlConnection = r.connect(host=self.host, port=self.driver_port)
-        
-        # - a simple query to check availability
-        
-        r.db_list().run(self.__reqlConnection)
+    def clean(self):
+        # - ensure that the test db is present
+        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
 
-# ==== Main
+        # - clean rethinkdb._debug_scratch
+        r.db('rethinkdb').table('_debug_scratch').delete().run(self.conn)
+        
+        # - drop any databases or tables that were not there initially
+        for dbName in r.db_list().run(self.conn):
+            if dbName == 'rethinkdb':
+                continue
+            r.db(dbName).table_list().set_difference(self.existingDBsToTables.get(dbName, [])).for_each(r.db(dbName).table_drop(r.row)).run(self.conn)
+            if dbName not in self.existingDBsToTables and dbName != 'test':
+                r.db_drop(dbName).run(self.conn)
+        
+        # - wait for the test database to be completely ready
+        r.db('test').wait(wait_for='all_replicas_ready', timeout=5).run(self.conn)
+    
+    def stop(self):
+        # we don't stop the server, but we should clean up
+        self.clean()
 
 def check_language(option, opt_str, value, parser):
     if value not in option.choices:
@@ -902,7 +982,7 @@ def check_language(option, opt_str, value, parser):
     if not hasattr(parser.values, option.dest):
         setattr(parser.values, option.dest, [])
     selectedValues = getattr(parser.values, option.dest)
-    if selectedValues == None:
+    if selectedValues is None:
         selectedValues = []
     
     foundAny = False
@@ -1055,7 +1135,7 @@ class Test(object):
         if self.__status != 'setting up':
             raise RuntimeError('Something went wrong, we were going from "%s" to "running"' % self.__status)
         
-        if server is None or not isinstance(server, (driver.Process, RethinkDBRunningServer)):
+        if not isinstance(server, Server):
             raise RuntimeError('startTest requires a server instance, got: %s' % str(server))
         
         self.__status = 'running'
@@ -1068,7 +1148,6 @@ class Test(object):
         # - server info
         envVariables.update({
             'RDB_DRIVER_PORT':str(server.driver_port),
-            'RDB_CLUSTER_PORT':str(server.cluster_port),
             'RDB_SERVER_HOST':server.host
         })
         
@@ -1098,7 +1177,7 @@ class Test(object):
             self.__consoleFile = self.consoleFile if self.consoleFile is sys.stdout else open(self.consoleFile, 'w+')
             self.__testProcess = subprocess.Popen(self.command, stdin=devNull, stdout=self.__consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables, close_fds=True)
     
-    def checkTestDone(self):
+    def check(self):
         '''Check on a running test, reply with True if running, False if ended'''
         
         if self.__status != 'running':
@@ -1121,7 +1200,7 @@ class Test(object):
             self.result = 'failed'
             self.returncode = self.__testProcess.returncode
         
-        # -- set the end markers and clenaup
+        # -- set the end markers and cleanup
         
         self.testDuration = time.time() - self.testStartTime
         self.cleanupTest()
@@ -1189,6 +1268,8 @@ class YamlTest(Test):
         self.srcPath = path
         self.shards = shards
         super(YamlTest, self).__init__(name, None, driverLang=driverLang, timeout=timeout)
+        if print_debug:
+            self.envVariablesToSet.update({'VERBOSE':'true'})
     
     @property
     def interpreter_path(self):
@@ -1311,12 +1392,12 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
                     testLangExtensions = list(itertools.chain.from_iterable((x.test_types for x in languages))) # all selected languages
             
             # -- create tests for all language versions that pass the filters
-            for language in filter(lambda x: any(y in testLangExtensions for y in x.test_types), languages):
+            for language in (x for x in languages if any(y in testLangExtensions for y in x.test_types)):
                 
                 subTestName = '%s.%s' % (testName, language.test_types[0])
                 
                 # - run the filters
-
+                
                 if testFilters is not None and len(testFilters) > 0:
                     foundMatch = False
                     for testFilter in testFilters:
@@ -1347,18 +1428,15 @@ class WorkerThread(threading.Thread):
     
     workQueue = None
     outputQueue = None
+    
     outputDir = None
     scratchDir = None
-    
-    existingServer = None
-    existingDBsToTables = None # dict of arrays of db_name => table_name already on this server
-    
-    server = None
-    reqlConnection = None
-    
     writeToConsole = None
     
-    def __init__(self, workQueue, outputQueue, outputDir, scratchDir, existingServer=None, writeToConsole=False):
+    server = None
+    existingDBsToTables = None # dict of arrays of db_name => table_name already on this server
+    
+    def __init__(self, workQueue, outputQueue, outputDir, scratchDir, externalServer=None, writeToConsole=False):
         if workQueue is None or not isinstance(workQueue, Queue.Queue):
             raise ValueError('workQueue must be a Queue object, got: %r' % workQueue)
         self.workQueue = workQueue
@@ -1375,127 +1453,15 @@ class WorkerThread(threading.Thread):
             raise ValueError('scratchDir must be an existing directory, got: %s' % scratchDir)
         self.scratchDir = scratchDir
         
-        if existingServer is not None:
-            if isinstance(existingServer, RethinkDBRunningServer):
-                self.existingServer = existingServer
-                self.server = existingServer
-                
-                self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
-                self.existingDBsToTables = {}
-                for dbName in r.db_list().run(self.reqlConnection):
-                    self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.reqlConnection)
-            else:
-                raise ValueError('existingServer must be an instance of RethinkDBRunningServer, got: %r' % existingServer)
+        if externalServer is not None:
+            if not isinstance(externalServer, ExternalServer):
+                raise ValueError('externalServer must be an instance of ExternalServer, got: %r' % externalServer)
+            self.server = externalServer
         
-        self.writeToConsole = writeToConsole == True
+        self.writeToConsole = writeToConsole is True
         
         super(WorkerThread, self).__init__()
         self.start()
-    
-    def run_server(self):
-        '''Ensure that we have a running server'''
-        
-        # -- check for an already running server
-        
-        self.check_server()
-        
-        # -- start a new server
-        
-        if self.server is None:
-            clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=self.scratchDir)
-            self.server = driver.Process(name=clusterFolder, console_output=True, wait_until_ready=True)
-        
-        # -- check that it is running
-        
-        if not self.check_server():
-            raise RuntimeError('Server could not be started!') # ToDo: figure out how to report this properly
-    
-    def check_server(self):
-        '''Check that the server is up, an responds to a basic query'''
-        
-        if self.server is None:
-            self.reqlConnection = None # just in case
-            return False
-        
-        try:
-            if self.existingServer is None:
-                self.server.check()
-            
-            # a basic test
-            if self.reqlConnection is None:
-                self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
-            r.db_list().run(self.reqlConnection)
-        
-        except (RuntimeError, r.ReqlDriverError):
-            if self.existingServer:
-                raise Exception('External server stopped responding while testing') # ToDo: make this a better error
-            else:
-                warnings.warn('Server was not running or available, starting a new one') # ToDo: figure out how to link this back to the last test
-                try:
-                    self.server.close()
-                except Exception: pass
-                self.server = None
-                self.reqlConnection = None
-                return False
-        return True
-    
-    def clean_server(self):
-        '''Clean out the server so it only has the rethinkdb and an empty test databases'''
-        
-        if self.reqlConnection is None:
-            raise ValueError('clean_server called when there was no connection')
-        
-        try:
-            
-            # -- ensure that the test db is present
-            
-            r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.reqlConnection)
-            
-            # -- clean out databases/tables
-            
-            if self.existingServer is None:
-                
-                # - drop all databases except test and rethinkdb
-                
-                r.db_list().set_difference(['test', 'rethinkdb']).for_each(r.db_drop(r.row)).run(self.reqlConnection)
-                
-                # - drop all tables in test
-                
-                r.db('test').table_list().for_each(r.db('test').table_drop(r.row)).run(self.reqlConnection)
-                
-            else:
-                
-                # - remove all dbs that were not there initially
-                
-                r.db_list().set_difference(self.existingDBsToTables.keys()).for_each(r.db_drop(r.row)).run(self.reqlConnection)
-                
-                # - groom out the tables that were not there initially
-                
-                for db_name in r.db_list().run(self.reqlConnection):
-                    if db_name == 'rethinkdb':
-                        continue
-                    r.db(db_name).table_list().set_difference(self.existingDBsToTables[db_name]).for_each(r.db(db_name).table_drop(r.row)).run(self.reqlConnection)
-            
-            # -- clean rethinkdb._debug_scratch
-            
-            r.db('rethinkdb').table('_debug_scratch').delete().run(self.reqlConnection)
-            
-            # -- remove any other connected servers
-            
-            if self.existingServer is None:
-                r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.server.uuid).delete().run(self.reqlConnection)
-                r.wait().run(self.reqlConnection)
-            
-        except Exception as e:
-            if self.existingServer:
-                warnings.warn('Unable to clean existing server! Error message: %s' % str(e)) # ToDo: improve logging
-            else:
-                warnings.warn('Unable to clean server, starting a new one. Error message: %s' % str(e)) # ToDo: improve logging
-                try:
-                    self.server.close()
-                except Exception: pass
-                self.server = None
-                self.reqlConnection = None
     
     def run(self):
         
@@ -1509,22 +1475,33 @@ class WorkerThread(threading.Thread):
             try:
                 # -- get a test
                 
+                if cancelRun:
+                    raise CancelRunError()
+                
                 try:
                     test = self.workQueue.get_nowait()
                 except Queue.Empty:
                     break
-                                
-                # -- ensure we have a clean server avalible
+                 
+                # -- make sure we have a running server
                 
-                if cancelRun:
-                    raise CancelRunError()
-                
-                if self.existingServer:
-                    self.check_server()
-                else:
-                    self.run_server()
-                
-                self.clean_server()
+                if self.server is None:
+                    self.server = Server(scratchDir=self.scratchDir)
+                try:
+                    self.server.check()
+                except Exception:
+                    if isinstance(self.server, ExternalServer):
+                        raise CancelRunError('External server no longer responding!')
+                    else:
+                        try:
+                            self.server.stop()
+                        except Exception: pass
+                        self.server = Server(scratchDir=self.scratchDir)
+                        self.server.check()
+                            
+                # -- ensure the server is clean
+                    
+                self.server.clean()
                 
                 # -- pre-process the test
                 
@@ -1546,7 +1523,7 @@ class WorkerThread(threading.Thread):
                 if cancelRun:
                     raise CancelRunError()
                 
-                # - create test ouput folder
+                # - create test output folder
                 testOutputDir = os.path.join(self.outputDir, test.name)
                 if os.path.exists(testOutputDir):
                     # delete the old item
@@ -1582,8 +1559,8 @@ class WorkerThread(threading.Thread):
                     if cancelRun:
                         raise CancelRunError()
                     try:
-                        if test.checkTestDone():
-                            if test.returncode != 0 and self.existingServer is None:
+                        if test.check():
+                            if test.returncode != 0:
                                 restartServer = True
                             break
                         try:
@@ -1620,18 +1597,18 @@ class WorkerThread(threading.Thread):
                             test.errorMessage = 'Server found crashed after test'
                         else:
                             test.errorMessage += ', and the server crashed while running'
-                    
+                
                 # - copy the server contents or just the server log
-                if self.server.logfile_path and testOutputDir: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
+                if self.server.logfile_path and testOutputDir: # in case this is a local server, change after https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
                         shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
                         
                         # try to add the server log to the errorDetails
                         try:
                             if test.errorDetails is None:
-                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_output
+                                test.errorDetails = '\nServer output:\n%s' % self.server.console_output
                             else:
-                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_output
+                                test.errorDetails += '\n\nServer output:\n%s' % self.server.console_output
                         except IOError: pass # stdout will cause this
                         except Exception as e:
                             warnings.warn(str(e))
@@ -1676,25 +1653,28 @@ class WorkerThread(threading.Thread):
                 debug(traceback.format_exc())
                 warnings.warn("Worker failure: %s" % unicode(e))
                 restartServer = True
+                if test:
+                    test.endTest(result='failed', errorMessage='Exception while running `%s`: %s' % (str(test.name), str(e)), errorDetails=traceback.format_exc())
             
             # -- shutdown the server if necessary
             if restartServer:
-                if self.existingServer:
-                    self.clean_server()
-                elif self.server:
+                self.server.stop() # just cleans for external servers
+                if not isinstance(self.server, ExternalServer):
                     try:
-                        self.server.close()
+                        self.server.stop()
                     except Exception: pass
-                self.server = None
+                    self.server = None
         
         # -- shutdown server before worker exit
-        if self.existingServer:
-            self.clean_server()
-        elif self.server:
-            try:
-                self.server.close()
-            except Exception: pass
+        try:
+            if self.server:
+                self.server.stop() # just cleans for external servers
+        except Exception as e:
+            debug(traceback.format_exc())
+            sys.stdout.write('Server issue while stoping worker: %s' % str(e))
         self.server = None
+
+# ==== Main
 
 def main():
     global print_debug
@@ -1707,7 +1687,7 @@ def main():
     scratchDirPath = None # used for temporary files like database files
     
     rethinkdb_exe_path = None
-    existingServer = None
+    externalServer = None
     
     # -- parse command line options
     
@@ -1715,7 +1695,7 @@ def main():
 usage: %prog [options] [patterns]
 
 Tests by default use the drivers from the appropriate folder in this
-repository. To change this set the appropriate environtmental variable
+repository. To change this set the appropriate environmental variable
 from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
 `--INSTALLED--` to use the system-installed version.
 '''.strip()
@@ -1725,15 +1705,14 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
     
     parser.add_option('-b', '--server-binary', dest='rethinkdb_exe_path', default=None, help='path to RethinkDB server binary to test')
-    parser.add_option('-o', '--output-dir', dest='output_dir', default=None, help='parent directory for test ouput folder')
-    parser.add_option(      '--scratch-dir', dest='scratch_dir', default=None, help='parent directory for a temprary scratch folder')
+    parser.add_option('-o', '--output-dir', dest='output_dir', default=None, help='parent directory for test output folder')
+    parser.add_option(      '--scratch-dir', dest='scratch_dir', default=None, help='parent directory for a temporary scratch folder')
     parser.add_option(      '--clean', dest='clean_output_dir', default=False, action='store_true', help='clean the output directory before running')
     
     parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=list(interpreters.keys()), type='choice', default=None, help='the language to test')
     parser.add_option('-s', '--shards', dest='shards', type='int', default=1, help='number of shards to run (default 1)')
     
-    parser.add_option('-c', '--cluster-port', dest='cluster_port', default=None, type='int', help='cluster port of an already-running rethinkdb instance')
-    parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
+    parser.add_option('-d', '--driver-port', dest='driver_port', default=None, help='driver port of an already-running rethinkdb instance')
     parser.add_option('-t', '--table', dest='table', default=None, type='string', help='name of pre-existing table to run queries against')
     
     parser.add_option(      '--debug', dest='debug', default=False, action='store_true', help='show %s debug output' % os.path.basename(__file__))
@@ -1746,29 +1725,11 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     # - options validation
     
     # debug
-    
     print_debug = options.debug
     
-    # cluster_port/driver_port
-    
-    if any([options.cluster_port, options.driver_port]) and not all([options.cluster_port, options.driver_port]):
-        parser.error('If either of the following options are used, both must be specified: -c/--cluster-port, -d/--driver-port')
-    if options.driver_port is not None:
-        existingServer = RethinkDBRunningServer(options.driver_port, options.cluster_port)
-        # TODO: validate that this is actually a running server
-        
-        if options.shards != 1:
-            parser.error('The -c/--cluster-port and -d/--driver-port options can not be used with -s/--shards')
-    elif options.table:
-        parser.error('If you specify -t/--table, you must also specify -c/--cluster-port and -d/--driver-port')
-    
-    if options.table and options.table.count(".") != 1:
-        parser.error('Parameter to -t/--table should be of the form db.table')
-    
     # workerThreads
-    
     if options.workerThreads is None:
-        if options.table or options.verbose is True:
+        if options.table or options.verbose or options.driver_port:
             options.workerThreads = 1
         else:
             options.workerThreads = 2
@@ -1781,7 +1742,6 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         parser.error('-j/--jobs value must be 1 or greater')
     
     # outputDir
-    
     if options.output_dir is None:
         # default to a hidden directory that is deleted at exit
         outputDir = tempfile.mkdtemp(prefix='.rethinkdbTestTemp-', dir=os.getcwd())
@@ -1798,7 +1758,6 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         outputDir = options.output_dir
     
     # scratchDirPath
-    
     if options.scratch_dir is None:
         # default to a hidden subdir of outputDir
         options.scratch_dir = outputDir
@@ -1846,7 +1805,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     
     testList = getTestList(os.path.realpath(os.path.dirname(__file__)), languages=options.languages, testFilters=testFilters, shards=options.shards)
     
-    # -- clean ouput dir if requested
+    # -- clean output dir if requested
     
     if options.clean_output_dir is True:
         try:
@@ -1936,6 +1895,31 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     
     r = utils.import_python_driver()
     
+    # driver_port
+    if options.driver_port is not None:
+        host = 'localhost'
+        port = options.driver_port
+        if ':' in options.driver_port:
+            host, port = options.driver_port.split(':', 1)
+        try:
+            port = int(port)
+            assert port > 0
+        except ValueError:
+            parser.error('-d/--driver-port must be a positive integer or a hostname:integer pair. Got: %s' % options.driver_port)
+        
+        try:
+            externalServer = ExternalServer(port, host=host)
+        except Exception as e:
+            debug(traceback.format_exc())
+            parser.error('Error connecting to the provided server: %s' % str(e))
+        if options.shards != 1:
+            parser.error('-d/--driver-port can not be used with -s/--shards')
+    elif options.table:
+        parser.error('If you specify -t/--table, you must also specify -d/--driver-port')
+    
+    if options.table and options.table.count(".") != 1:
+        parser.error('Parameter to -t/--table should be of the form db.table')
+    
     # -- print pre-testing info
     
     print('Using rethinkdb binary %s' % rethinkdb_exe_path)
@@ -1959,7 +1943,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     workerThreads = [WorkerThread(
         workQueue=testQueue, outputQueue=outputQueue,
         outputDir=outputDir, scratchDir=scratchDirPath,
-        existingServer=existingServer, writeToConsole=options.verbose
+        externalServer=externalServer, writeToConsole=options.verbose
     ) for x in range(options.workerThreads)]
     
     # -- monitor progress
@@ -1975,9 +1959,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     while True:
         
         # - print all status messages
-        
         while True:
-            
             message = None
             test = None
             try:
@@ -2040,19 +2022,16 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
             sys.stdout.flush()
         
         # - end if there are no worker threads
-        
         if len(workerThreads) == 0:
             break
         
         # - reap dead worker threads
-        
         for worker in copy.copy(workerThreads):
             if not worker.isAlive():
                 worker.join(.01) # should never timeout, but just in case
                 workerThreads.remove(worker)
         
         # -
-        
         time.sleep(.1)
     
     # -- check that all tests have a finished status
@@ -2074,16 +2053,18 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
             len(failedTestNames), 's' if len(failedTestNames) != 1 else '',
             waitingTests, 's' if waitingTests != 1 else '',
             ('\n\t%s\n' % ('\n\t'.join(failedTestNames) if len(failedTestNames) > 0 else ''))
-        ))  
+        ))
+        sys.exit(3)
     elif len(failedTests) == 0:
         testNumberMessage = 'the 1 test'
         if len(testList) > 1:
             testNumberMessage = 'all %s tests' % len(testList)
         print('\n== Successfully passed %s in %.2f seconds!' % (testNumberMessage, time.time() - startTime))
-        sys.exit()
+        sys.exit(0)
     else:
         plural = 's' if len(failedTests) > 1 else ''
-        sys.exit('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTestNames)))
+        print('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTestNames)))
+        sys.exit(1)
         
 if __name__ == '__main__':
     main()

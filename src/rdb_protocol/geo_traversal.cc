@@ -1,10 +1,7 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "rdb_protocol/geo_traversal.hpp"
 
 #include <cmath>
-
-#include "errors.hpp"
-#include <boost/variant/get.hpp>
 
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/configured_limits.hpp"
@@ -30,10 +27,9 @@ using geo::S2LatLng;
 const size_t MAX_PROCESSED_SET_SIZE = 10000;
 
 // How many grid cells to use for querying a secondary index.
-// It typically makes sense to use more grid cells (i.e. finer covering) here
-// than it does for inserting data into a geo index, since there is no disk
-// overhead involved here and a finer grid avoids unnecessary post-filtering.
-const int QUERYING_GOAL_GRID_CELLS = GEO_INDEX_GOAL_GRID_CELLS * 2;
+// More cells result in better index traversal granularity, but also increase
+// the CPU overhead for computing the grid covering.
+const int QUERYING_GOAL_GRID_CELLS = 16;
 
 // The radius used for the first batch of a get_nearest traversal.
 // As a fraction of the equator's radius.
@@ -65,7 +61,8 @@ geo_job_data_t::geo_job_data_t(
                   : ql::make_append(std::move(region),
                                     std::move(last_key),
                                     sorting_t::UNORDERED,
-                                    batcher.get())) {
+                                    batcher.get(),
+                                    require_sindexes_t::NO)) {
     for (size_t i = 0; i < _transforms.size(); ++i) {
         transformers.push_back(ql::make_op(_transforms[i]));
     }
@@ -96,12 +93,16 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
 
 void geo_intersecting_cb_t::init_query(const ql::datum_t &_query_geometry) {
     query_geometry = _query_geometry;
+    std::vector<geo::S2CellId> covering(
+        compute_cell_covering(query_geometry, QUERYING_GOAL_GRID_CELLS));
     geo_index_traversal_helper_t::init_query(
-        compute_index_grid_keys(_query_geometry, QUERYING_GOAL_GRID_CELLS));
+        covering, compute_interior_cell_covering(query_geometry, covering));
 }
 
-continue_bool_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalue,
-        concurrent_traversal_fifo_enforcer_signal_t waiter)
+continue_bool_t geo_intersecting_cb_t::on_candidate(
+        scoped_key_value_t &&keyvalue,
+        concurrent_traversal_fifo_enforcer_signal_t waiter,
+        bool definitely_intersects_if_point)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(query_geometry.has());
     sampler->new_sample();
@@ -155,9 +156,20 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalu
             sindex_val = sindex_val.get(*tag, ql::NOTHROW);
             guarantee(sindex_val.has());
         }
+
+        // Check if the index value is a point, so we can use
+        // definitely_intersects_if_point
+        bool definitely_intersects = false;
+        if (definitely_intersects_if_point) {
+            bool is_point = sindex_val.get_field("type").as_str() == "Point";
+            if (is_point) {
+                definitely_intersects = true;
+            }
+        }
+
         // TODO (daniel): This is a little inefficient because we re-parse
         // the query_geometry for each test.
-        if (geo_does_intersect(query_geometry, sindex_val)
+        if ((definitely_intersects || geo_does_intersect(query_geometry, sindex_val))
             && post_filter(sindex_val, val)) {
             if (distinct_emitted->size() >= env->limits().array_size_limit()) {
                 emit_error(ql::exc_t(ql::base_exc_t::RESOURCE,

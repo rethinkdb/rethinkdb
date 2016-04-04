@@ -28,6 +28,8 @@
 #include <ftw.h>
 #endif
 
+#include <google/protobuf/stubs/common.h>
+
 #include <random>
 
 #include "errors.hpp"
@@ -241,20 +243,20 @@ bool parse_time(const std::string &str, local_or_utc_time_t zone,
 }
 
 with_priority_t::with_priority_t(int priority) {
-    rassert(coro_t::self() != NULL);
+    rassert(coro_t::self() != nullptr);
     previous_priority = coro_t::self()->get_priority();
     coro_t::self()->set_priority(priority);
 }
 with_priority_t::~with_priority_t() {
-    rassert(coro_t::self() != NULL);
+    rassert(coro_t::self() != nullptr);
     coro_t::self()->set_priority(previous_priority);
 }
 
 void *raw_malloc_aligned(size_t size, size_t alignment) {
-    void *ptr = NULL;
+    void *ptr = nullptr;
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
         crash_oom();
     }
 #else
@@ -288,7 +290,7 @@ void raw_free_aligned(void *ptr) {
 
 void *rmalloc(size_t size) {
     void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == NULL && size != 0) {
+    if (res == nullptr && size != 0) {
         crash_oom();
     }
     return res;
@@ -296,7 +298,7 @@ void *rmalloc(size_t size) {
 
 void *rrealloc(void *ptr, size_t size) {
     void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == NULL && size != 0) {
+    if (res == nullptr && size != 0) {
         crash_oom();
     }
     return res;
@@ -356,12 +358,12 @@ double rng_t::randdouble() {
     return res / (1LL << 53);
 }
 
-TLS_with_constructor(rng_t, rng)
+TLS_ptr_with_constructor(rng_t, rng)
 
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifdef _WIN32
     HCRYPTPROV hProv;
-    BOOL res = CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+    BOOL res = CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
     guarantee_winerr(res, "CryptAcquireContext failed");
     res = CryptGenRandom(hProv, nbytes, static_cast<BYTE*>(out));
     DWORD err = GetLastError();
@@ -376,11 +378,11 @@ void system_random_bytes(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
-    return TLS_get_rng().randint(n);
+    return TLS_ptr_rng()->randint(n);
 }
 
 uint64_t randuint64(uint64_t n) {
-    return TLS_get_rng().randuint64(n);
+    return TLS_ptr_rng()->randuint64(n);
 }
 
 size_t randsize(size_t n) {
@@ -396,7 +398,7 @@ size_t randsize(size_t n) {
 }
 
 double randdouble() {
-    return TLS_get_rng().randdouble();
+    return TLS_ptr_rng()->randdouble();
 
 }
 
@@ -504,7 +506,7 @@ char int_to_hex(int x) {
 
 bool blocking_read_file(const char *path, std::string *contents_out) {
 #ifdef _WIN32
-    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
     if (hFile == INVALID_HANDLE_VALUE) return false;
     LARGE_INTEGER fileSize;
     BOOL res = GetFileSizeEx(hFile, &fileSize);
@@ -518,7 +520,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
     size_t index = 0;
     while (remaining > 0) {
         DWORD consumed;
-        res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
+        res = ReadFile(hFile, &ret[index], remaining, &consumed, nullptr);
         if (!res) {
             CloseHandle(hFile);
             return false;
@@ -657,7 +659,7 @@ base_path_t::base_path_t(const std::string &path) : path_(path) { }
 void base_path_t::make_absolute() {
 #ifdef _WIN32
     char absolute_path[MAX_PATH];
-    DWORD size = GetFullPathName(path_.c_str(), sizeof(absolute_path), absolute_path, NULL);
+    DWORD size = GetFullPathName(path_.c_str(), sizeof(absolute_path), absolute_path, nullptr);
     guarantee_winerr(size != 0, "GetFullPathName failed");
     if (size < sizeof(absolute_path)) {
       path_.assign(absolute_path);
@@ -665,14 +667,14 @@ void base_path_t::make_absolute() {
     }
     std::string long_absolute_path;
     long_absolute_path.resize(size);
-    DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], NULL);
+    DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], nullptr);
     guarantee_winerr(size != 0, "GetFullPathName failed");
     guarantee(new_size < size, "GetFullPathName: name too long");
     path_ = std::move(long_absolute_path);
 #else
     char absolute_path[PATH_MAX];
     char *res = realpath(path_.c_str(), absolute_path);
-    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
+    guarantee_err(res != nullptr, "Failed to determine absolute path for '%s'", path_.c_str());
     path_.assign(absolute_path);
 #endif
 }

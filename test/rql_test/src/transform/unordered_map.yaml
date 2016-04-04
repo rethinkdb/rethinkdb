@@ -1,0 +1,63 @@
+desc: Tests for ordered_union
+table_variable_name: even odd odd2
+tests:
+
+    # Set up some data
+    - cd: odd.insert([{"id":1, "num":1}, {"id":3, "num":3}, {"id":5, "num":5}])
+    - cd: even.insert([{"id":2, "num":2}, {"id":4, "num":4}, {"id":6, "num":6}])
+    - cd: odd2.insert([{"id":7, "num":1}, {"id":8, "num":3}, {"id":9, "num":2}])
+
+    # Test left to right union
+    - py: odd.order_by("num").union(even.order_by("num"), interleave = false)
+      js: odd.orderBy("num").union(even.orderBy("num"), {"interleave" : false})
+      rb: odd.order_by('num').union(even.order_by('num'), :interleave => False)
+      ot: [{"id":1, "num":1}, {"id":3, "num":3}, {"id":5, "num":5}, {"id":2, "num":2}, {"id":4, "num":4}, {"id":6, "num":6}]
+
+    - py: even.order_by("num").union(odd.order_by("num"), interleave = false)
+      js: even.orderBy("num").union(odd.orderBy("num"), {"interleave" : false})
+      rb: even.order_by('num').union(odd.order_by('num'), :interleave => False)
+      ot: [{"id":2, "num":2}, {"id":4, "num":4}, {"id":6, "num":6}, {"id":1, "num":1}, {"id":3, "num":3}, {"id":5, "num":5}]
+
+    # Test merge sort on "num" term
+    - py: odd.order_by("num").union(even.order_by("num"), interleave="num")
+      js: odd.orderBy("num").union(even.orderBy("num"), {"interleave": "num"})
+      rb: odd.order_by("num").union(even.order_by("num"), :interleave => "num")
+      ot: [{"id":1, "num":1}, {"id":2, "num":2}, {"id":3, "num":3}, {"id":4, "num":4}, {"id":5, "num":5}, {"id":6, "num":6}]
+
+    # Enforce ordering in merge step
+    - py: odd.order_by("num").union(even.order_by("num"), interleave=r.desc("num"))
+      js: odd.orderBy("num").union(even.orderBy("num"), {"interleave": r.desc("num")})
+      rb: odd.order_by("num").union(even.order_by("num"), :interleave => r.desc("num"))
+      ot: err("ReqlQueryLogicError","The streams given as arguments are not ordered by given ordering.")
+
+    # Selector function in merge sort
+    - py: odd.order_by("num").union(even.order_by("num"), interleave=lambda x: x["num"])
+      js: odd.orderBy("num").union(even.orderBy("num"), {"interleave": function(x) {return x("num");}})
+      rb: odd.order_by("num").union(even.order_by("num"), :interleave => lambda{|x|(x["num"])})
+      ot: [{"id":1, "num":1}, {"id":2, "num":2}, {"id":3, "num":3}, {"id":4, "num":4}, {"id":5, "num":5}, {"id":6, "num":6}]
+
+    # Array of selectors, as well as function as selector
+    - py: odd2.order_by("num", r.desc("id")).union(even.order_by("num", r.desc("id")), interleave=[lambda x: x["num"], lambda x: x["id"]])
+      js: odd2.orderBy("num", r.desc("id")).union(even.orderBy("num", r.desc("id")), {"interleave": [function(x) {return x("num");}, function(x) {return x("id");} ]})
+      rb: odd2.order_by("num", r.desc("id")).union(even.order_by("num", r.desc("id")), :interleave => [lambda{|x|(x["num"])}, lambda{|x|(x["id"])}])
+      ot: [{"id": 7, "num": 1}, {"id": 2, "num": 2}, {"id": 9, "num": 2}, {"id": 8, "num": 3}, {"id": 4, "num": 4}, {"id": 6, "num": 6}]
+
+    # DESC isn't allowed inside a function
+    - py: odd.order_by("num").union(even.order_by("num"), interleave=lambda x: r.desc(x["num"]))
+      ot: err("ReqlServerCompileError", "DESC may only be used as an argument to ORDER_BY or UNION.")
+
+    # Wrap a function with DESC
+    - py: odd.order_by(r.desc("num")).union(even.order_by(r.desc("num")), interleave= [r.desc(lambda x: x["num"])])
+      ot: [{"id":6, "num":6}, {"id":5, "num":5}, {"id":4, "num":4}, {"id":3, "num":3}, {"id":2, "num":2}, {"id":1, "num":1}]
+
+    # More than two streams
+    - py: odd.order_by("num", "id").union(even.order_by("num", "id"), odd2.order_by("num", "id"), interleave= ["num", "id"])
+      ot: [{"id":1, "num":1}, {"id":7, "num":1}, {"id":2, "num":2}, {"id":9, "num":2}, {"id":3, "num":3}, {"id":8, "num":3}, {"id":4, "num":4}, {"id":5, "num":5}, {"id":6, "num":6}, ]
+
+      # Enforce ordering on more than two streams
+    - py: odd.order_by("num", "id").union(even.order_by("num", "id"), odd2.order_by(r.desc("num"), "id"), interleave= ["num", "id"])
+      ot: err("ReqlQueryLogicError","The streams given as arguments are not ordered by given ordering.")
+
+      # Large stream
+    - py: r.range().limit(10000).union([1,2,3], interleave= false)
+      ot: [x for x in range(0,10000)] + [1, 2, 3]

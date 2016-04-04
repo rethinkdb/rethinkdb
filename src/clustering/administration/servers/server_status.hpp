@@ -43,6 +43,7 @@ private:
 
     std::map<peer_id_t, microtime_t> connect_times;
 
+    server_config_client_t *server_config_client;
     /* We use `directory_subs` to note when a server first connects. */
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 };

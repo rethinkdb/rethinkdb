@@ -75,11 +75,8 @@ public:
 
     virtual bool read_changes(
         ql::env_t *env,
-        bool include_initial,
-        bool include_states,
-        ql::configured_limits_t limits,
+        const ql::changefeed::streamspec_t &ss,
         ql::backtrace_id_t bt,
-        ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *cfeed_out,
         admin_err_t *error_out) = 0;

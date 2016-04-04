@@ -240,7 +240,7 @@ peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
 class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
-        server_id(generate_uuid()),
+        server_id(server_id_t::generate_server_id()),
         mailbox_manager(&connectivity_cluster, 'M'),
         heartbeat_manager(heartbeat_semilattice_metadata),
         connectivity_cluster_run(&connectivity_cluster,
@@ -249,7 +249,8 @@ public:
                                  peer_address_t(),
                                  ANY_PORT,
                                  0,
-                                 heartbeat_manager.get_view())
+                                 heartbeat_manager.get_view(),
+                                 nullptr)
         { }
     connectivity_cluster_t *get_connectivity_cluster() {
         return &connectivity_cluster;

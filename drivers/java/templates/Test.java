@@ -1,4 +1,4 @@
-package gen;
+package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.*;
@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
 import java.util.Collections;
 import java.nio.charset.StandardCharsets;
 
-import static gen.TestingCommon.*;
-import gen.TestingFramework;
+import static com.rethinkdb.TestingCommon.*;
+import com.rethinkdb.TestingFramework;
 
 public class ${module_name} {
     // ${description}
@@ -45,8 +45,6 @@ public class ${module_name} {
     %endfor
 
     Connection conn;
-    public String hostname = TestingFramework.getConfig().getHostName();
-    public int port = TestingFramework.getConfig().getPort();
 
     @Before
     public void setUp() throws Exception {

@@ -150,7 +150,7 @@ void linux_message_hub_t::on_event(int events) {
             std::max(static_cast<size_t>(1), effective_granularity >> priority_exponent);
 
         for (linux_thread_message_t *m = get_priority_msg_list(current_priority).head();
-             m != NULL && to_process_from_priority > 0;
+             m != nullptr && to_process_from_priority > 0;
              m = get_priority_msg_list(current_priority).head()) {
 
             get_priority_msg_list(current_priority).remove(m);

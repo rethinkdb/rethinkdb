@@ -10,6 +10,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/order_util.hpp"
 
 namespace ql {
 
@@ -172,7 +173,9 @@ public:
     map_term_t(compile_env_t *env, const raw_term_t &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
         streams.reserve(args->num_args() - 1);
         for (size_t i = 0; i < args->num_args() - 1; ++i) {
@@ -204,6 +207,136 @@ private:
         }
     }
     virtual const char *name() const { return "map"; }
+};
+
+class eq_join_term_t : public grouped_seq_op_term_t {
+public:
+    eq_join_term_t(compile_env_t *env, const raw_term_t &term)
+        : grouped_seq_op_term_t(env,
+                                term,
+                                argspec_t(3),
+                                optargspec_t({"index", "ordered"})) { }
+
+    virtual const char *name() const { return "eqjoin"; }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        counted_t<table_t> table = args->arg(env, 2)->as_table();
+
+        // Either a field name or a predicate function:
+        counted_t<const func_t> predicate_function;
+
+        predicate_function = args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
+
+        bool ordered = false;
+        scoped_ptr_t<val_t> maybe_ordered = args->optarg(env, "ordered");
+        if (maybe_ordered.has()) {
+            ordered = maybe_ordered->as_bool();
+        }
+        datum_t key;
+        scoped_ptr_t<val_t> maybe_key = args->optarg(env, "index");
+        if (maybe_key.has()) {
+            key = maybe_key->as_datum();
+        } else {
+            key = datum_t(datum_string_t(table->get_pkey()));
+        }
+        counted_t<eq_join_datum_stream_t> eq_join_stream =
+            make_counted<eq_join_datum_stream_t>(stream,
+                                                 table,
+                                                 key.as_str(),
+                                                 predicate_function,
+                                                 ordered,
+                                                 backtrace());
+
+        return new_val(env->env, eq_join_stream);
+    }
+};
+
+class fold_term_t : public grouped_seq_op_term_t {
+public:
+    fold_term_t(compile_env_t *env, const raw_term_t &term)
+      : grouped_seq_op_term_t(env,
+                              term,
+                              argspec_t(3),
+                              optargspec_t({"emit", "final_emit"})) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+
+        datum_t base = args->arg(env, 1)->as_datum();
+
+        counted_t<const func_t> acc_func =
+            args->arg(env, 2)->as_func();
+        boost::optional<std::size_t> acc_func_arity = acc_func->arity();
+
+        if (static_cast<bool>(acc_func_arity)) {
+            rcheck(acc_func_arity.get() == 0 || acc_func_arity.get() == 2,
+                   base_exc_t::LOGIC,
+                   strprintf("The accumulator function passed to `fold`"
+                             " should expect 2 arguments"));
+        }
+
+        scoped_ptr_t<val_t> emit_arg = args->optarg(env, "emit");
+        scoped_ptr_t<val_t> final_emit_arg = args->optarg(env, "final_emit");
+
+        if (!emit_arg.has()) {
+            // Handle case without emit function.
+            datum_t result = base;
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            {
+                datum_t row;
+                std::vector<datum_t> acc_args;
+                while (row = stream->next(env->env, batchspec), row.has()) {
+                    acc_args.push_back(std::move(result));
+                    acc_args.push_back(std::move(row));
+
+                    result = acc_func->call(env->env, acc_args)->as_datum();
+
+                    r_sanity_check(result.has());
+                    acc_args.clear();
+                }
+            }
+
+            if (final_emit_arg.has()) {
+                datum_t final_result;
+                std::vector<datum_t> final_args{std::move(result)};
+
+                counted_t<const func_t> final_emit_func = final_emit_arg->as_func();
+                final_result = final_emit_func->call(env->env, final_args)->as_datum();
+                r_sanity_check(final_result.has());
+                return new_val(final_result);
+            } else {
+                return new_val(result);
+            }
+        } else {
+            counted_t<const func_t> emit_func = emit_arg->as_func();
+            counted_t<datum_stream_t> fold_stream;
+            if (final_emit_arg.has()) {
+                counted_t<const func_t> final_emit_func = final_emit_arg->as_func();
+                fold_stream
+                    = make_counted<fold_datum_stream_t>(std::move(stream),
+                                                        base,
+                                                        std::move(acc_func),
+                                                        std::move(emit_func),
+                                                        std::move(final_emit_func),
+                                                        backtrace());
+            } else {
+                fold_stream
+                    = make_counted<fold_datum_stream_t>(std::move(stream),
+                                                        base,
+                                                        std::move(acc_func),
+                                                        std::move(emit_func),
+                                                        counted_t<const func_t>(),
+                                                        backtrace());
+            }
+            return new_val(env->env, fold_stream);
+        }
+    }
+    virtual const char *name() const { return "fold"; }
 };
 
 class concatmap_term_t : public grouped_seq_op_term_t {
@@ -359,6 +492,7 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
         case result_hint_t::NO_HINT:
             rfail(base_exc_t::LOGIC, "Cannot call `changes` after `concat_map`.");
             // fallthru
+
         default: unreachable();
         }
     }
@@ -392,6 +526,7 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
                    env->limits().array_size_limit()));
     }
     void operator()(const changefeed::keyspec_t::point_t &) const { }
+    void operator()(const changefeed::keyspec_t::empty_t &) const { }
     env_t *env;
 };
 
@@ -403,7 +538,9 @@ public:
             optargspec_t({"squash",
                           "changefeed_queue_size",
                           "include_initial",
-                          "include_states"})) { }
+                          "include_offsets",
+                          "include_states",
+                          "include_types"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -425,9 +562,19 @@ private:
             include_states = v->as_bool();
         }
 
+        bool include_types = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_types")) {
+            include_types = v->as_bool();
+        }
+
         bool include_initial = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_initial")) {
             include_initial = v->as_bool();
+        }
+
+        bool include_offsets = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_offsets")) {
+            include_offsets = v->as_bool();
         }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -447,14 +594,18 @@ private:
                 streams.push_back(
                     changespec.keyspec.table->read_changes(
                         env->env,
-                        include_initial ? std::move(changespec.stream)
-                                        : counted_t<datum_stream_t>(),
-                        limits,
-                        squash,
-                        include_states,
-                        std::move(changespec.keyspec.spec),
-                        backtrace(),
-                        changespec.keyspec.table_name));
+                        changefeed::streamspec_t(
+                            include_initial
+                                ? std::move(changespec.stream)
+                                : counted_t<datum_stream_t>(),
+                            changespec.keyspec.table_name,
+                            include_offsets,
+                            include_states,
+                            include_types,
+                            limits,
+                            squash,
+                            std::move(changespec.keyspec.spec)),
+                        backtrace()));
             }
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
@@ -468,13 +619,27 @@ private:
                         streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+            auto sel = v->as_single_selection();
             return new_val(
                 env->env,
-                v->as_single_selection()->read_changes(
-                    include_initial,
-                    limits,
-                    squash,
-                    include_states));
+                sel->get_tbl()->tbl->read_changes(
+                    env->env,
+                    changefeed::streamspec_t(
+                        include_initial
+                            // We want to provide an empty stream in this case
+                            // because we get the initial values from the stamp
+                            // read instead.
+                            ? make_counted<vector_datum_stream_t>(
+                                sel->get_bt(), std::vector<datum_t>(), boost::none)
+                            : counted_t<vector_datum_stream_t>(),
+                        sel->get_tbl()->display_name(),
+                        include_offsets,
+                        include_states,
+                        include_types,
+                        limits,
+                        squash,
+                        sel->get_spec()),
+                    sel->get_bt()));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::LOGIC,
@@ -562,18 +727,98 @@ private:
     between_null_t null_behavior;
 };
 
+
 class union_term_t : public op_term_t {
 public:
     union_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(0, -1)) { }
+        : op_term_t(env, term, argspec_t(0, -1), optargspec_t({"interleave"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t eval_flags) const {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < args->num_args(); ++i) {
             streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
-        counted_t<datum_stream_t> union_stream = make_counted<union_datum_stream_t>(
+
+        boost::optional<raw_term_t> r_interleave_arg_op = get_src().optarg("interleave");
+
+        std::vector<scoped_ptr_t<val_t> > evaluated_interleave_args;
+
+        bool allow_unordered_interleave = true;
+        bool order_by_field = false;
+
+        counted_t<datum_stream_t> union_stream;
+
+        if (r_interleave_arg_op) {
+
+            if (r_interleave_arg_op->type() == Term::MAKE_ARRAY) {
+                // Array of elements which may contain functions or r.desc/asc.
+                allow_unordered_interleave = false;
+                order_by_field = true;
+
+                counted_t<const term_t> interleave_term;
+                // Steal arguments from an array as an optarg to allow functions in array.
+                auto it = optargs.find("interleave");
+                r_sanity_check(it != optargs.end());
+                interleave_term = it->second;
+
+                const std::vector<counted_t<const term_t> > &array_args
+                    = interleave_term->get_original_args();
+
+                std::vector<scoped_ptr_t<val_t> > array_args_evaluated;
+                for (auto &arg : array_args) {
+                    array_args_evaluated.push_back(arg->eval(env, eval_flags));
+                }
+
+                union_stream = make_counted<ordered_union_datum_stream_t>(
+                    std::move(streams),
+                    build_comparisons_from_optional_terms(this,
+                                                          env,
+                                                          std::move(array_args_evaluated),
+                                                          *r_interleave_arg_op),
+                    env->env,
+                    backtrace());
+            } else {
+                scoped_ptr_t<val_t> interleave_arg = args->optarg(env, "interleave");
+                // A single element, either a bool or a term as above.
+                datum_t interleave_datum;
+                bool use_as_term = true;
+                if (interleave_arg->get_type().is_convertible(val_t::type_t::DATUM)) {
+                    interleave_datum = interleave_arg->as_datum();
+                    if (interleave_datum.get_type() == datum_t::type_t::R_BOOL) {
+                        order_by_field = false;
+                        allow_unordered_interleave = interleave_datum.as_bool();
+                        use_as_term = false;
+                    }
+                }
+                if (use_as_term) {
+                    allow_unordered_interleave = false;
+                    order_by_field = true;
+
+                    union_stream = make_counted<ordered_union_datum_stream_t>(
+                        std::move(streams),
+                        build_comparisons_from_single_term(this,
+                                                           env,
+                                                           std::move(interleave_arg),
+                                                           *r_interleave_arg_op),
+                        env->env,
+                        backtrace());
+                }
+            }
+        }
+
+        if (allow_unordered_interleave) {
+            union_stream = make_counted<union_datum_stream_t>(
                 env->env, std::move(streams), backtrace());
+        } else if (!order_by_field) {
+            union_stream = make_counted<ordered_union_datum_stream_t>(
+                std::move(streams),
+                std::vector<std::pair<order_direction_t, counted_t<const func_t> > >(),
+                env->env,
+                backtrace());
+        }
+        r_sanity_check(union_stream.has());
         return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }
@@ -652,6 +897,15 @@ counted_t<term_t> make_map_term(
     return make_counted<map_term_t>(env, term);
 }
 
+counted_t<term_t> make_eq_join_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<eq_join_term_t>(env, term);
+}
+
+counted_t<term_t> make_fold_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<fold_term_t>(env, term);
+}
 counted_t<term_t> make_filter_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<filter_term_t>(env, term);

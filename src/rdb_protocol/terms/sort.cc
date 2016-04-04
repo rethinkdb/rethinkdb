@@ -12,6 +12,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/order_util.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
@@ -52,87 +53,11 @@ public:
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"index"})) { }
 private:
-    enum order_direction_t { ASC, DESC };
-    class lt_cmp_t {
-    public:
-        typedef bool result_type;
-        explicit lt_cmp_t(
-            std::vector<std::pair<order_direction_t, counted_t<const func_t> > > _comparisons)
-            : comparisons(std::move(_comparisons)) { }
-
-        bool operator()(env_t *env,
-                        profile::sampler_t *sampler,
-                        datum_t l,
-                        datum_t r) const {
-            sampler->new_sample();
-            for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
-                datum_t lval;
-                datum_t rval;
-                try {
-                    lval = it->second->call(env, l)->as_datum();
-                } catch (const base_exc_t &e) {
-                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
-                        throw;
-                    }
-                }
-
-                try {
-                    rval = it->second->call(env, r)->as_datum();
-                } catch (const base_exc_t &e) {
-                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
-                        throw;
-                    }
-                }
-
-                if (!lval.has() && !rval.has()) {
-                    continue;
-                }
-                if (!lval.has()) {
-                    return true != (it->first == DESC);
-                }
-                if (!rval.has()) {
-                    return false != (it->first == DESC);
-                }
-                int cmp_res = lval.cmp(rval);
-                if (cmp_res == 0) {
-                    continue;
-                }
-                return (cmp_res < 0) != (it->first == DESC);
-            }
-
-            return false;
-        }
-
-    private:
-        const std::vector<std::pair<order_direction_t, counted_t<const func_t> > >
-            comparisons;
-    };
-
-    void check_r_args(const raw_term_t &term) const {
-        // Abort if any of the arguments is `r.args`. We don't currently
-        // support that with `order_by`.
-        rcheck(term.type() != Term::ARGS, base_exc_t::LOGIC,
-               "r.args is not supported in an order_by command yet.");
-    }
-
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
-        const raw_term_t &raw_term = get_src();
-        check_r_args(get_src().arg(0));
-        for (size_t i = 1; i < raw_term.num_args(); ++i) {
-            raw_term_t item = raw_term.arg(i);
-            check_r_args(item);
-            if (item.type() == Term::DESC) {
-                comparisons.push_back(
-                    std::make_pair(
-                        DESC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
-            } else {
-                comparisons.push_back(
-                    std::make_pair(
-                        ASC, args->arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
-            }
-        }
+        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons
+            = build_comparisons_from_raw_term(this, env, args, get_src());
+        raw_term_t raw_term = get_src();
         lt_cmp_t lt_cmp(comparisons);
 
         counted_t<table_slice_t> tbl_slice;

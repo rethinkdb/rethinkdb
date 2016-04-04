@@ -42,7 +42,7 @@ tests:
       # JavaScript auto-converts keys for us
       js:
       ot: err_regex("ReqlCompileError", "Object keys must be strings.*")
-
+    
     - cd: r.expr({'a':{12:'b'}})
       # JavaScript auto-converts keys for us
       js:

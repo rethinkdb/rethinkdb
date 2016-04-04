@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.4
 # -*- coding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument(
         "--test-output-dir",
         help="Directory to render tests to",
-        default="./src/test/java/gen",
+        default="./src/test/java/com/rethinkdb/gen",
     )
     parser.add_argument(
         "--template-dir",
@@ -188,7 +188,7 @@ class TestFile(object):
 
     def load(self):
         '''Load the test file, yaml parse it, extract file-level metadata'''
-        with open(self.full_path) as f:
+        with open(self.full_path, encoding='utf-8') as f:
             parsed_yaml = parsePolyglot.parseYAML(f)
         self.description = parsed_yaml.get('desc', 'No description')
         self.table_var_names = self.get_varnames(parsed_yaml)
@@ -213,6 +213,7 @@ class TestFile(object):
     def render(self):
         '''Renders the converted tests to a runnable test file'''
         defs_and_test = ast_to_java(self.test_generator, self.reql_vars)
+        self.renderer.source_files = [self.full_path]
         self.renderer.render(
             'Test.java',
             output_dir=self.test_output_dir,
@@ -447,7 +448,7 @@ class JavaVisitor(ast.NodeVisitor):
     def cast_null(self, arg, cast='ReqlExpr'):
         '''Emits a cast to (ReqlExpr) if the node represents null'''
         if (type(arg) == ast.Name and arg.id == 'null') or \
-           (type(arg) == ast.NameConstant and arg.value == "None"):
+           (type(arg) == ast.NameConstant and arg.value == None):
             self.write("(")
             self.write(cast)
             self.write(") ")
@@ -465,7 +466,7 @@ class JavaVisitor(ast.NodeVisitor):
             self.write(".optArg(")
             self.to_str(optarg.arg)
             self.write(", ")
-            self.visit(optarg.value)
+            self.cast_null(optarg.value)
             self.write(")")
 
     def generic_visit(self, node):

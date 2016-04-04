@@ -14,6 +14,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
@@ -132,6 +133,7 @@ struct keyspec_t {
         sorting_t sorting;
         datumspec_t datumspec;
     };
+    struct empty_t { };
     struct limit_t {
         range_t range;
         size_t limit;
@@ -160,14 +162,34 @@ struct keyspec_t {
     keyspec_t(const keyspec_t &) = default;
     keyspec_t &operator=(const keyspec_t &) = default;
 
-    typedef boost::variant<range_t, limit_t, point_t> spec_t;
+    typedef boost::variant<range_t, empty_t, limit_t, point_t> spec_t;
     spec_t spec;
     counted_t<base_table_t> table;
     std::string table_name;
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
+struct streamspec_t {
+    counted_t<datum_stream_t> maybe_src; // Non-null iff `include_initial`.
+    std::string table_name;
+    bool include_offsets;
+    bool include_states;
+    bool include_types;
+    configured_limits_t limits;
+    datum_t squash;
+    keyspec_t::spec_t spec;
+    streamspec_t(counted_t<datum_stream_t> _maybe_src,
+                 std::string _table_name,
+                 bool _include_offsets,
+                 bool _include_states,
+                 bool _include_types,
+                 configured_limits_t _limits,
+                 datum_t _squash,
+                 keyspec_t::spec_t _spec);
+};
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::empty_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::point_t);
 
@@ -194,14 +216,9 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
-        counted_t<datum_stream_t> maybe_src,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states,
-        const namespace_id_t &table,
-        backtrace_id_t bt,
-        const std::string &table_name,
-        const keyspec_t::spec_t &spec);
+        const streamspec_t &ss,
+        const namespace_id_t &uuid,
+        backtrace_id_t bt);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
@@ -560,10 +577,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial,
-        bool include_states,
-        configured_limits_t limits,
-        const keyspec_t::spec_t &spec,
+        const streamspec_t &ss,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
         backtrace_id_t bt);
@@ -578,6 +592,7 @@ public:
     virtual void maybe_remove() = 0;
 
 private:
+    new_mutex_t stamp_mutex;
     uint64_t stamp;
     const uuid_u uuid;
     const scoped_ptr_t<artificial_feed_t> feed;

@@ -1,0 +1,20 @@
+desc: 5383 include_offsets problems
+table_variable_name: tbl
+tests:
+  - rb: tbl.index_create('datetime')
+    ot: partial({'created':1})
+  - rb: tbl.index_wait('datetime')
+    ot: [partial({'index':'datetime', 'ready':True})]
+  - rb: tbl.insert([{id:1, datetime:0}, {id:2, datetime:0}, {id:3, datetime:0}])['inserted']
+    ot: 3
+  - rb: c = tbl.order_by(index: 'datetime').limit(3).changes(include_initial: true)
+  - rb: c.next
+    ot: {'new_val':{'id':1, 'datetime':0}}
+  - rb: tbl.get(1).update({datetime: 1})['replaced']
+    ot: 1
+  - rb: c.next
+    ot: {'new_val':{'id':2, 'datetime':0}}
+  - rb: c.next
+    ot: {'new_val':{'id':3, 'datetime':0}}
+  - rb: c.next
+    ot: {'new_val':{'id':1, 'datetime':1}, 'old_val':{'id':1, 'datetime':0}}

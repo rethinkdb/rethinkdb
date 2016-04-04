@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "arch/types.hpp"
+#include "arch/io/openssl.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -18,6 +19,7 @@
 #include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
 
 namespace boost {
@@ -109,18 +111,23 @@ public:
     public:
         /* Returns the peer ID of the other server. Peer IDs change when a node
         restarts, but not when it loses and then regains contact. */
-        peer_id_t get_peer_id() {
+        peer_id_t get_peer_id() const {
             return peer_id;
         }
 
+        /* Returns the server id of the other server. */
+        server_id_t get_server_id() const {
+            return server_id;
+        }
+
         /* Returns the address of the other server. */
-        peer_address_t get_peer_address() {
+        peer_address_t get_peer_address() const {
             return peer_address;
         }
 
         /* Returns `true` if this is the loopback connection */
-        bool is_loopback() {
-            return conn == NULL;
+        bool is_loopback() const {
+            return conn == nullptr;
         }
 
         /* Drops the connection. */
@@ -134,6 +141,7 @@ public:
         connection_t(
             run_t *,
             const peer_id_t &peer_id,
+            const server_id_t &server_id,
             keepalive_tcp_conn_stream_t *,
             const peer_address_t &peer_address) THROWS_NOTHING;
         ~connection_t() THROWS_NOTHING;
@@ -161,6 +169,7 @@ public:
         run_t *parent;
 
         peer_id_t peer_id;
+        server_id_t server_id;
 
         one_per_thread_t<auto_drainer_t> drainers;
     };
@@ -179,7 +188,8 @@ public:
               int port,
               int client_port,
               boost::shared_ptr<semilattice_read_view_t<
-                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view)
+                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
+              tls_ctx_t *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
@@ -202,13 +212,13 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
-                guarantee(*variable == NULL);
+                guarantee(*variable == nullptr);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
                 guarantee(*variable == value);
-                *variable = NULL;
+                *variable = nullptr;
             }
         private:
             run_t **variable;
@@ -259,6 +269,8 @@ public:
         a single connection per server. */
         server_id_t server_id;
         std::set<server_id_t> servers;
+
+        tls_ctx_t *tls_ctx;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to

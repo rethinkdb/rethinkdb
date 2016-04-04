@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "errors.hpp"
+
 #include <boost/optional.hpp>
 
 #include "arch/compiler.hpp"

@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2016 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_GEO_TRAVERSAL_HPP_
 #define RDB_PROTOCOL_GEO_TRAVERSAL_HPP_
 
@@ -90,7 +90,8 @@ public:
     void init_query(const ql::datum_t &_query_geometry);
 
     continue_bool_t on_candidate(scoped_key_value_t &&keyvalue,
-                                   concurrent_traversal_fifo_enforcer_signal_t waiter)
+                                 concurrent_traversal_fifo_enforcer_signal_t waiter,
+                                 bool definitely_intersects)
             THROWS_ONLY(interrupted_exc_t);
 
 protected:

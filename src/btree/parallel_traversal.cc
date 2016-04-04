@@ -356,7 +356,7 @@ void btree_parallel_traversal(superblock_t *superblock,
                               state.stat_block, access_t::read);
         helper->read_stat_block(&stat_block);
     } else {
-        helper->read_stat_block(NULL);
+        helper->read_stat_block(nullptr);
     }
 
     if (helper->progress) {
@@ -389,7 +389,7 @@ void btree_parallel_traversal(superblock_t *superblock,
     } else {
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        counted_t<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
+        counted_t<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, nullptr, nullptr, 0));
         subtrees_traverse(&state,
                           &superblock_releaser, 1, ids_source);
         state.wait();
@@ -431,8 +431,8 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
             is_leaf = node::is_leaf(node);
         }
 
-        const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.btree_key();
-        const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.btree_key();
+        const btree_key_t *left_exclusive_or_null = left_unbounded ? nullptr : left_exclusive.btree_key();
+        const btree_key_t *right_inclusive_or_null = right_unbounded ? nullptr : right_inclusive.btree_key();
 
         if (is_leaf) {
             if (state->helper->progress) {

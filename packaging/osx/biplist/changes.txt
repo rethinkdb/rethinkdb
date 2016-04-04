@@ -1,3 +1,3 @@
 biplist: https://bitbucket.org/wooster/biplist
 
-We have taken the biplist folder from version 0.9 and added modifications to produce 1-byte things when possible. Those modifications have been contributed back: https://bitbucket.org/wooster/biplist/pull-request/4
+This is version 1.0.1 (commit 3c0dfce) of biplist with no modifications.

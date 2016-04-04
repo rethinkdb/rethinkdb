@@ -90,6 +90,23 @@ tests:
       rb: tbl.union(tbl.coerce_to("array")).map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 9900
 
+    # Empty stream test.
+    - py: tbl.get_all().fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc])
+      ot: []
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: acc)
+      ot: err("ReqlQueryLogicError", "Expected type ARRAY but found NUMBER.")
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: r.range())
+      ot: err("ReqlQueryLogicError", "Expected type DATUM but found SEQUENCE:")
+
+    - py: r.range(0, 10).fold(0, lambda acc, _: acc.add(1), emit=lambda old,row,acc: [acc]).changes()
+      ot: err("ReqlQueryLogicError", "Cannot call `changes` on an eager stream.")
+
+    # Return array from final_emit
+    - js: r.expr(["a"]).fold(null, function() {return null;}, {emit: function() {return [0]}, finalEmit: function() {return [1, 2, 3]} })
+      ot: [0, 1, 2, 3]
+
     # Concat-map
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })

@@ -17,8 +17,8 @@ scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
     : key_(movee.key_),
       value_(movee.value_),
       buf_(std::move(movee.buf_)) {
-    movee.key_ = NULL;
-    movee.value_ = NULL;
+    movee.key_ = nullptr;
+    movee.value_ = nullptr;
 }
 
 scoped_key_value_t::~scoped_key_value_t() { }
@@ -88,7 +88,10 @@ continue_bool_t btree_depth_first_traversal(
             // We know that `superblock` is already read-acquired because we call
             // get_block_id() above -- so `starter` won't measure time waiting for
             // the parent to become acquired.
-            profile::starter_t starter("Acquire block for read.", cb->get_trace());
+            PROFILE_STARTER_IF_ENABLED(
+                cb->get_trace() != nullptr,
+                "Acquire block for read.",
+                cb->get_trace());
             root_block = make_counted<counted_buf_lock_and_read_t>(
                 superblock->expose_buf(), root_block_id, access);
             if (release_superblock == release_superblock_t::RELEASE) {
@@ -195,7 +198,10 @@ continue_bool_t btree_depth_first_traversal(
             if (!skip) {
                 counted_t<counted_buf_lock_and_read_t> lock;
                 {
-                    profile::starter_t starter("Acquire block for read.", cb->get_trace());
+                    PROFILE_STARTER_IF_ENABLED(
+                        cb->get_trace() != nullptr,
+                        "Acquire block for read.",
+                        cb->get_trace());
                     lock = make_counted<counted_buf_lock_and_read_t>(
                         &block->lock, pair->lnode, access);
                     wait_interruptible(lock->lock.read_acq_signal(), interruptor);

@@ -108,12 +108,15 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StartStop, 3) {
         heartbeat_manager(heartbeat_semilattice_metadata);
 
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
     let_stuff_happen();
@@ -129,12 +132,15 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, Message, 3) {
 
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T'), a3(&c3, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
     cr2.join(get_cluster_local_address(&c1));
     cr3.join(get_cluster_local_address(&c1));
 
@@ -163,10 +169,12 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
 
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     /* Note that we DON'T join them together. */
 
@@ -176,7 +184,7 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, UnreachablePeer, 3) {
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *conn =
         c1.get_connection(c2.get_me(), &connection_keepalive);
-    EXPECT_TRUE(conn == NULL);
+    EXPECT_TRUE(conn == nullptr);
 
     a1.send(888, c2.get_me());
 
@@ -207,22 +215,23 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, LostPeer, 3) {
 
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *connection;
 
     {
-        connectivity_cluster_t::run_t cr2(&c2, generate_uuid(),
+        connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
             get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-            heartbeat_manager.get_view());
+            heartbeat_manager.get_view(), nullptr);
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
 
         connection = c1.get_connection(c2.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         EXPECT_FALSE(connection_keepalive.get_drain_signal()->is_pulsed());
         EXPECT_TRUE(connection->get_peer_id() == c2.get_me());
 
@@ -252,10 +261,12 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, Ordering, 3) {
 
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1, 'T'), a2(&c2, 'T');
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     cr1.join(get_cluster_local_address(&c2));
 
@@ -283,8 +294,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
         heartbeat_manager(heartbeat_semilattice_metadata);
 
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     /* Make sure `get_connections()` is initially sane */
     std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> list_1 =
@@ -294,9 +306,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, GetConnections, 3) {
 
     {
         connectivity_cluster_t c2;
-        connectivity_cluster_t::run_t cr2(&c2, generate_uuid(),
+        connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
             get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-            heartbeat_manager.get_view());
+            heartbeat_manager.get_view(), nullptr);
         cr2.join(get_cluster_local_address(&c1));
 
         let_stuff_happen();
@@ -335,8 +347,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, StopMidJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), generate_uuid(), get_unittest_addresses(),
-            peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+        runs[i].create(nodes[i].get(), server_id_t::generate_server_id(),
+            get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+            heartbeat_manager.get_view(), nullptr);
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(get_cluster_local_address(nodes[0].get()));
@@ -371,8 +384,9 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BlobJoin, 3) {
     object_buffer_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].create();
-        runs[i].create(nodes[i].get(), generate_uuid(), get_unittest_addresses(),
-            peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+        runs[i].create(nodes[i].get(), server_id_t::generate_server_id(),
+            get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+            heartbeat_manager.get_view(), nullptr);
     }
 
     for (size_t i = 1; i < blob_size; i++) {
@@ -422,10 +436,12 @@ TPTEST(RPCConnectivityTest, Multiplexer) {
     connectivity_cluster_t c1, c2;
     recording_test_application_t c1aA(&c1, 'A'), c2aA(&c2, 'A');
     recording_test_application_t c1aB(&c1, 'B'), c2aB(&c2, 'B');
-    connectivity_cluster_t::run_t c1r(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t c2r(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t c1r(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t c2r(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     c1r.join(get_cluster_local_address(&c2));
     let_stuff_happen();
@@ -473,7 +489,7 @@ public:
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             get_connectivity_cluster()->get_connection(peer, &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         get_connectivity_cluster()->send_message(connection, connection_keepalive,
                                                  get_message_tag(), &writer);
     }
@@ -499,10 +515,12 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, BinaryData, 3) {
 
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
     cr1.join(get_cluster_local_address(&c2));
 
     let_stuff_happen();
@@ -623,13 +641,14 @@ TPTEST(RPCConnectivityTest, CheckHeaders) {
 
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -664,13 +683,14 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
 
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -719,13 +739,14 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
 
     // Set up a cluster node.
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     // Manually connect to the cluster.
     ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
     cond_t non_interruptor;
-    tcp_conn_stream_t stream(addr.ip(), addr.port().value(), &non_interruptor);
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -801,12 +822,15 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
     // Note: this won't have full connectivity in the unit test because we aren't actually using
     //  a proxy or anything
     connectivity_cluster_t c1, c2, c3;
-    connectivity_cluster_t::run_t cr1(&c1, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr2(&c2, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(c2_addresses), ANY_PORT, 0, heartbeat_manager.get_view());
-    connectivity_cluster_t::run_t cr3(&c3, generate_uuid(), get_unittest_addresses(),
-        peer_address_t(c3_addresses), ANY_PORT, 0, heartbeat_manager.get_view());
+    connectivity_cluster_t::run_t cr1(&c1, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr2(&c2, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(c2_addresses), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
+    connectivity_cluster_t::run_t cr3(&c3, server_id_t::generate_server_id(),
+        get_unittest_addresses(), peer_address_t(c3_addresses), ANY_PORT, 0,
+        heartbeat_manager.get_view(), nullptr);
 
     int c2_port = 0;
     peer_address_t c2_self_address = get_cluster_local_address(&c2);
@@ -851,7 +875,7 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             c1.get_connection(c2.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         c2_addr_from_c1 = connection->get_peer_address();
     }
     peer_address_t c3_addr_from_c1;
@@ -859,7 +883,7 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =
             c1.get_connection(c3.get_me(), &connection_keepalive);
-        ASSERT_TRUE(connection != NULL);
+        ASSERT_TRUE(connection != nullptr);
         c3_addr_from_c1 = connection->get_peer_address();
     }
 

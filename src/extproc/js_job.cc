@@ -70,7 +70,7 @@ private:
 #endif
 };
 
-js_instance_t *js_instance_t::instance = NULL;
+js_instance_t *js_instance_t::instance = nullptr;
 
 js_instance_t::js_instance_t() {
     v8::V8::InitializeICU();
@@ -103,7 +103,7 @@ v8::Isolate *js_instance_t::isolate() {
 }
 
 void js_instance_t::maybe_initialize_v8() {
-    if (instance == NULL) {
+    if (instance == nullptr) {
         instance = new js_instance_t;
     }
 }
@@ -405,7 +405,7 @@ static void append_caught_error(std::string *err_out, const v8::TryCatch &try_ca
 
     v8::String::Utf8Value exception(try_catch.Exception());
     const char *message = *exception;
-    guarantee(message != NULL);
+    guarantee(message != nullptr);
     err_out->append(message, strlen(message));
 }
 
@@ -672,7 +672,7 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
                         const ql::configured_limits_t &limits,
                         std::string *err_out) {
     guarantee(!value.IsEmpty());
-    guarantee(err_out != NULL);
+    guarantee(err_out != nullptr);
 
     v8::HandleScope handle_scope(js_instance_t::isolate());
     err_out->assign("Unknown error when converting to ql::datum_t.");

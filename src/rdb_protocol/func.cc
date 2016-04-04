@@ -95,6 +95,10 @@ deterministic_t reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
+bool reql_func_t::is_simple_selector() const {
+    return body->is_simple_selector();
+}
+
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
                      backtrace_id_t backtrace)

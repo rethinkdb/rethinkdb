@@ -16,6 +16,7 @@
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "region/region_map.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/semilattice/joins/macros.hpp"

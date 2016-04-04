@@ -108,6 +108,8 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertLess = self.replacement_assertLess
         if not hasattr(self, 'assertIsNone'):
             self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
         if not hasattr(self, 'assertIn'):
             self.assertIn = self.replacement_assertIn
 
@@ -123,6 +125,10 @@ class TestCaseCompatible(unittest.TestCase):
     def replacement_assertIsNone(self, val):
         if val is not None:
             raise AssertionError('%s is not None' % val)
+
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
 
     def replacement_assertIn(self, val, iterable):
         if not val in iterable:
@@ -350,6 +356,19 @@ class TestNoConnection(TestCaseCompatible):
 
 
 class TestConnection(TestWithConnection):
+    @gen.coroutine
+    def test_client_port_and_address(self):
+        c = yield r.connect(host=sharedServerHost,
+                            port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        yield c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     @gen.coroutine
     def test_connect_close_reconnect(self):
         c = yield r.connect(host=sharedServerHost,

@@ -74,7 +74,7 @@ void run_with_namespace_interface(
     }
 
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, NULL);
+    rdb_context_t ctx(&extproc_pool, nullptr);
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;
@@ -297,11 +297,11 @@ void run_create_drop_sindex_test(
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
                 &rget_resp->result);
-            ASSERT_TRUE(streams != NULL);
+            ASSERT_TRUE(streams != nullptr);
             ASSERT_EQ(1, streams->size());
             // Order doesn't matter because streams->size() is 1.
             auto stream = &streams->begin()->second;
-            ASSERT_TRUE(stream != NULL);
+            ASSERT_TRUE(stream != nullptr);
             ASSERT_EQ(1u, stream->substreams.size());
             ASSERT_EQ(ql::to_datum(data, limits, reql_version_t::LATEST),
                       stream->substreams.begin()->second.stream.at(0).data);
@@ -338,7 +338,7 @@ void run_create_drop_sindex_test(
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
                 &rget_resp->result);
-            ASSERT_TRUE(streams != NULL);
+            ASSERT_TRUE(streams != nullptr);
             ASSERT_EQ(0, streams->size());
         } else {
             ADD_FAILURE() << "got wrong type of result back";
@@ -562,11 +562,11 @@ void read_sindex(namespace_interface_t *nsi,
     if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
         auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
             &rget_resp->result);
-        ASSERT_TRUE(streams != NULL);
+        ASSERT_TRUE(streams != nullptr);
         ASSERT_EQ(1, streams->size());
         // Order doesn't matter because streams->size() is 1.
         ql::stream_t *stream = &streams->begin()->second;
-        ASSERT_TRUE(stream != NULL);
+        ASSERT_TRUE(stream != nullptr);
         ASSERT_EQ(1ul, stream->substreams.size());
         ASSERT_EQ(expected_size, stream->substreams.begin()->second.stream.size());
     } else {
@@ -761,11 +761,11 @@ void run_sindex_oversized_keys_test(
                     = boost::get<rget_read_response_t>(&response.response)) {
                     auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
                         &rget_resp->result);
-                    ASSERT_TRUE(streams != NULL);
+                    ASSERT_TRUE(streams != nullptr);
                     ASSERT_EQ(1, streams->size());
                     // Order doesn't matter because streams->size() is 1.
                     auto stream = &streams->begin()->second;
-                    ASSERT_TRUE(stream != NULL);
+                    ASSERT_TRUE(stream != nullptr);
                     // There should be results equal to the number of iterations
                     // performed
                     ASSERT_EQ(1ul, stream->substreams.size());
@@ -851,37 +851,55 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::backtrace_id_t::empty()),
               point_0(a->subscribe(
                           env,
-                          true,
-                          false,
-                          ql::configured_limits_t(),
-                          keyspec_t::point_t{ql::datum_t(0.0)},
+                          ql::changefeed::streamspec_t(
+                              make_counted<ql::vector_datum_stream_t>(
+                                  bt, std::vector<ql::datum_t>(), boost::none),
+                              "test",
+                              false,
+                              false,
+                              false,
+                              ql::configured_limits_t(),
+                              ql::datum_t::boolean(false),
+                              keyspec_t::point_t{ql::datum_t(0.0)}),
                           "id",
                           std::vector<ql::datum_t>(),
                           bt)),
               point_10(a->subscribe(
                            env,
-                           true,
-                           false,
-                           ql::configured_limits_t(),
-                           keyspec_t::point_t{ql::datum_t(10.0)},
+                           ql::changefeed::streamspec_t(
+                               make_counted<ql::vector_datum_stream_t>(
+                                   bt, std::vector<ql::datum_t>(), boost::none),
+                               "test",
+                               false,
+                               false,
+                               false,
+                               ql::configured_limits_t(),
+                               ql::datum_t::boolean(false),
+                               keyspec_t::point_t{ql::datum_t(10.0)}),
                            "id",
                            std::vector<ql::datum_t>(),
                            bt)),
               range(a->subscribe(
                         env,
-                        true,
-                        false,
-                        ql::configured_limits_t(),
-                        keyspec_t::range_t{
-                            std::vector<ql::transform_variant_t>(),
-                            boost::optional<std::string>(),
-                            sorting_t::UNORDERED,
-                            ql::datumspec_t(
-                                ql::datum_range_t(
-                                    ql::datum_t(0.0),
-                                    key_range_t::closed,
-                                    ql::datum_t(10.0),
-                                    key_range_t::open))},
+                        ql::changefeed::streamspec_t(
+                            make_counted<ql::vector_datum_stream_t>(
+                                bt, std::vector<ql::datum_t>(), boost::none),
+                            "test",
+                            false,
+                            false,
+                            false,
+                            ql::configured_limits_t(),
+                            ql::datum_t::boolean(false),
+                            keyspec_t::range_t{
+                                std::vector<ql::transform_variant_t>(),
+                                    boost::optional<std::string>(),
+                                    sorting_t::UNORDERED,
+                                    ql::datumspec_t(
+                                        ql::datum_range_t(
+                                            ql::datum_t(0.0),
+                                            key_range_t::closed,
+                                            ql::datum_t(10.0),
+                                            key_range_t::open))}),
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

@@ -16,7 +16,7 @@
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
 
-extproc_spawner_t *extproc_spawner_t::instance = NULL;
+extproc_spawner_t *extproc_spawner_t::instance = nullptr;
 
 // This is the class that runs in the external process, doing all the work
 class worker_run_t {
@@ -32,7 +32,7 @@ public:
 
         // Set ourselves to get interrupted when our parent dies
         struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
-        const int sigaction_res = sigaction(SIGALRM, &sa, NULL);
+        const int sigaction_res = sigaction(SIGALRM, &sa, nullptr);
         guarantee_err(sigaction_res == 0, "worker: could not set action for ALRM signal");
 
         struct itimerval timerval;
@@ -133,7 +133,7 @@ public:
             // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
             // this will prevent zombies, but may not be "fully portable".
             struct sigaction sa = make_sa_handler(0, SIG_IGN);
-            const int res = sigaction(SIGCHLD, &sa, NULL);
+            const int res = sigaction(SIGCHLD, &sa, nullptr);
             guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
         }
     }
@@ -167,7 +167,7 @@ private:
 
 extproc_spawner_t::extproc_spawner_t() {
     // TODO: guarantee we aren't in a thread pool
-    guarantee(instance == NULL);
+    guarantee(instance == nullptr);
     instance = this;
 
 #ifdef _WIN32
@@ -182,7 +182,7 @@ extproc_spawner_t::extproc_spawner_t() {
 extproc_spawner_t::~extproc_spawner_t() {
     // TODO: guarantee we aren't in a thread pool
     guarantee(instance == this);
-    instance = NULL;
+    instance = nullptr;
 
 #ifdef _WIN32
     // TODO WINDOWS: cleanup worker processes

@@ -186,7 +186,7 @@ private:
 
         // If we were called from a coroutine, the new coroutine inherits our
         // caller's priority.
-        if (self() != NULL) {
+        if (self() != nullptr) {
             coro->set_priority(self()->get_priority());
         } else {
             // Otherwise, just reset to the default.

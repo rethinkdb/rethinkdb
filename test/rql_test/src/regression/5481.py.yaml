@@ -1,0 +1,5 @@
+desc: multi-stream map works even if one of the streams is empty from the beginning
+table_variable_name: tbl
+tests:
+    - py: r.range(100).map(tbl, lambda x, y: nil)
+      ot: []

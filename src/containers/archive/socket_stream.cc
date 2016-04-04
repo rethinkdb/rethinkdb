@@ -139,7 +139,7 @@ void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
 // -------------------- linux_event_fd_watcher_t --------------------
 linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
     : io_in_progress_(false),
-      event_callback_(NULL),
+      event_callback_(nullptr),
       event_watcher_(fd, this)
 {
     int res = fcntl(fd, F_SETFL, O_NONBLOCK);

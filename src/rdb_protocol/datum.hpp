@@ -68,7 +68,12 @@ enum class use_json_t { NO = 0, YES = 1 };
 
 // When getting the typename of a datum, this should be YES if the name will be
 // used for sorting datums by type, and NO if the name is to be given to a user.
-enum class name_for_sorting_t { NO = 0, YES = 1};
+enum class name_for_sorting_t { NO = 0, YES = 1 };
+
+// `r.minval` and `r.maxval` were encoded in keys differently before 2.3. Determines
+// which encoding should be used.
+enum class extrema_encoding_t { PRE_v2_3, LATEST };
+extrema_encoding_t extrema_encoding_from_reql_version_for_sindex(reql_version_t rv);
 
 // When constructing a secondary index key, extremas should not be used.  They
 // may be used when constructing secondary index ranges (i.e. for `between`).
@@ -143,6 +148,8 @@ public:
     static datum_t boolean(bool value);
     static datum_t binary(datum_string_t &&value);
     static datum_t binary(const datum_string_t &value);
+
+    static datum_t utf8(datum_string_t _data);
 
     static datum_t minval();
     static datum_t maxval();
@@ -348,6 +355,16 @@ public:
     const shared_buf_ref_t<char> *get_buf_ref() const;
 
 private:
+    // We have a special version of `call_with_enough_stack` for datums that only uses
+    // `call_with_enough_stack` if there a chance of additional recursion (based on
+    // the type of this datum). Since some of the datum functions get called a lot,
+    // this is valuable since we can often save the overhead of the extra function
+    // call.
+    template<class result_t, class callable_t>
+    inline result_t call_with_enough_stack_datum(callable_t &&fun) const;
+    template<class callable_t>
+    inline void call_with_enough_stack_datum(callable_t &&fun) const;
+
     friend void pseudo::sanitize_time(datum_t *time);
     // Must only be used during pseudo type sanitization.
     // The key must already exist.
@@ -373,11 +390,18 @@ private:
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
     void num_to_str_key(std::string *str_out) const;
-    void str_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const;
+    void str_to_str_key(escape_nulls_t escape_nulls, std::string *str_out) const;
     void bool_to_str_key(std::string *str_out) const;
-    void array_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const;
+    void array_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        escape_nulls_t escape_nulls,
+        std::string *str_out) const;
     void binary_to_str_key(std::string *str_out) const;
-    void extrema_to_str_key(std::string *str_out) const;
+    void extrema_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        std::string *str_out) const;
 
     int cmp_unchecked_stack(const datum_t &rhs) const;
 

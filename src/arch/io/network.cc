@@ -204,7 +204,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int port,
                                    signal_t *interruptor,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-        write_perfmon(NULL),
+        write_perfmon(nullptr),
         sock(create_socket_wrapper(peer.get_address_family())),
         event_watcher(new event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
@@ -409,6 +409,39 @@ void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONL
     }
 }
 
+void linux_tcp_conn_t::read_buffered(void *buf, size_t size, signal_t *closer)
+        THROWS_ONLY(tcp_conn_read_closed_exc_t) {
+    while (size > 0) {
+        const_charslice read_data = peek();
+        if (read_data.end == read_data.beg) {
+            // We didn't get anything from the read buffer. Get some data from
+            // the underlying socket...
+            // For large reads, we read directly into buf to avoid an additional copy
+            // and additional round trips.
+            // For smaller reads, we use `read_more_buffered` to read into the
+            // connection's internal buffer and then copy out whatever we can use
+            // to satisfy the current request.
+            if (size >= IO_BUFFER_SIZE) {
+                return read(buf, size, closer);
+            } else {
+                read_more_buffered(closer);
+                read_data = peek();
+            }
+        }
+        size_t num_read = read_data.end - read_data.beg;
+        if (num_read > size) {
+            num_read = size;
+        }
+        rassert(num_read > 0);
+        memcpy(buf, read_data.beg, num_read);
+        // Remove the consumed data from the read buffer
+        pop(num_read, closer);
+
+        size -= num_read;
+        buf = static_cast<char *>(buf) + num_read;
+    }
+}
+
 void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     read_op_wrapper_t sentry(this, closer);
 
@@ -422,7 +455,9 @@ void linux_tcp_conn_t::read_more_buffered(signal_t *closer) THROWS_ONLY(tcp_conn
 const_charslice linux_tcp_conn_t::peek() const THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
+    if (read_closed.is_pulsed()) {
+        throw tcp_conn_read_closed_exc_t();
+    }
 
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
@@ -437,7 +472,9 @@ const_charslice linux_tcp_conn_t::peek(size_t size, signal_t *closer) THROWS_ONL
 void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
     assert_thread();
     rassert(!read_in_progress);
-    if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
+    if (read_closed.is_pulsed()) {
+        throw tcp_conn_read_closed_exc_t();
+    }
 
     peek(len, closer);
     read_buffer.erase_front(len);
@@ -475,18 +512,18 @@ linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *_parent) :
 { }
 
 void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {
-    if (operation->buffer != NULL) {
+    if (operation->buffer != nullptr) {
         parent->perform_write(operation->buffer, operation->size);
-        if (operation->dealloc != NULL) {
+        if (operation->dealloc != nullptr) {
             parent->release_write_buffer(operation->dealloc);
             parent->write_queue_limiter.unlock(operation->size);
         }
     }
 
-    if (operation->cond != NULL) {
+    if (operation->cond != nullptr) {
         operation->cond->pulse();
     }
-    if (operation->dealloc != NULL) {
+    if (operation->dealloc != nullptr) {
         parent->release_write_queue_op(operation);
     }
 }
@@ -501,7 +538,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     op->buffer = current_write_buffer->buffer;
     op->size = current_write_buffer->size;
     op->dealloc = current_write_buffer.release();
-    op->cond = NULL;
+    op->cond = nullptr;
     op->keepalive = auto_drainer_t::lock_t(drainer.get());
     current_write_buffer.init(get_write_buffer());
 
@@ -594,7 +631,9 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             rassert(res <= static_cast<ssize_t>(size));
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
-            if (write_perfmon) write_perfmon->record(res);
+            if (write_perfmon) {
+                write_perfmon->record(res);
+            }
         }
     }
 #endif
@@ -607,7 +646,9 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     cond_t to_signal_when_done;
 
     /* Flush out any data that's been buffered, so that things don't get out of order */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
     /* Don't bother acquiring the write semaphore because we're going to block
        until the write is done anyway */
@@ -615,7 +656,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     /* Enqueue the write so it will happen eventually */
     op.buffer = buf;
     op.size = size;
-    op.dealloc = NULL;
+    op.dealloc = nullptr;
     op.cond = &to_signal_when_done;
     write_queue.push(&op);
 
@@ -624,7 +665,9 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
        no-op, so the cond will still get pulsed. */
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
@@ -634,6 +677,11 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *c
     const char *buf = reinterpret_cast<const char *>(vbuf);
 
     while (size > 0) {
+        /* Stop putting more things on the write queue if it's already closed. */
+        if (write_closed.is_pulsed()) {
+            throw tcp_conn_write_closed_exc_t();
+        }
+
         /* Insert the largest chunk that fits in this block */
         size_t chunk = std::min(size, WRITE_CHUNK_SIZE - current_write_buffer->size);
 
@@ -641,13 +689,17 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size, signal_t *c
         current_write_buffer->size += chunk;
 
         rassert(current_write_buffer->size <= WRITE_CHUNK_SIZE);
-        if (current_write_buffer->size == WRITE_CHUNK_SIZE) internal_flush_write_buffer();
+        if (current_write_buffer->size == WRITE_CHUNK_SIZE) {
+            internal_flush_write_buffer();
+        }
 
         buf += chunk;
         size -= chunk;
     }
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
@@ -664,7 +716,9 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
     /* Wait until we know that the write buffer has gone out over the network.
        If the write half of the connection is closed, then the call to
@@ -673,22 +727,28 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
        pulsed. */
     write_queue_op_t op;
     cond_t to_signal_when_done;
-    op.buffer = NULL;
-    op.dealloc = NULL;
+    op.buffer = nullptr;
+    op.dealloc = nullptr;
     op.cond = &to_signal_when_done;
     write_queue.push(&op);
     to_signal_when_done.wait();
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     write_op_wrapper_t sentry(this, closer);
 
     /* Flush the write buffer; it might be half-full. */
-    if (current_write_buffer->size > 0) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) {
+        internal_flush_write_buffer();
+    }
 
-    if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
+    if (write_closed.is_pulsed()) {
+        throw tcp_conn_write_closed_exc_t();
+    }
 }
 
 void linux_tcp_conn_t::shutdown_write() {
@@ -729,8 +789,12 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
 
     // Tell the readers and writers to stop.  The auto drainer will
     // wait for them to stop.
-    if (is_read_open()) shutdown_read();
-    if (is_write_open()) shutdown_write();
+    if (is_read_open()) {
+        shutdown_read();
+    }
+    if (is_write_open()) {
+        shutdown_write();
+    }
 }
 
 void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
@@ -801,22 +865,392 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     event_watcher->stop_watching_for_errors();
 }
 
+#ifdef ENABLE_TLS
+tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
+    ERR_clear_error();
+
+    conn = SSL_new(tls_ctx);
+    if (nullptr == conn) {
+        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+
+        throw linux_tcp_conn_t::connect_failed_exc_t(
+            err_code, ERR_error_string(err_code, nullptr));
+    }
+
+    // Add support for partial writes.
+    SSL_set_mode(conn, SSL_MODE_ENABLE_PARTIAL_WRITE);
+}
+
+tls_conn_wrapper_t::~tls_conn_wrapper_t() {
+    SSL_free(conn);
+}
+
+// Set the underlying IO.
+void tls_conn_wrapper_t::set_fd(fd_t sock)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
+    if (0 == SSL_set_fd(conn, sock)) {
+        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+        throw linux_tcp_conn_t::connect_failed_exc_t(
+            err_code, ERR_error_string(err_code, nullptr));
+    }
+}
+
+/* This is the client version of the constructor. The base class constructor
+will establish a TCP connection to the peer at the given host:port and then we
+wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
+linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
+    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    linux_tcp_conn_t(host, port, interruptor, local_port),
+    conn(tls_ctx) {
+
+    conn.set_fd(sock.get());
+    SSL_set_connect_state(conn.get());
+    perform_handshake(interruptor);
+}
+
+/* This is the server version of the constructor */
+linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
+    SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor)
+    THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    linux_tcp_conn_t(_sock),
+    conn(tls_ctx) {
+
+    conn.set_fd(sock.get());
+    SSL_set_accept_state(conn.get());
+    perform_handshake(interruptor);
+}
+
+linux_secure_tcp_conn_t::~linux_secure_tcp_conn_t() THROWS_NOTHING {
+    assert_thread();
+
+    if (is_open()) shutdown();
+}
+
+void linux_secure_tcp_conn_t::rethread(threadnum_t thread) {
+    closed.rethread(thread);
+
+    linux_tcp_conn_t::rethread(thread);
+}
+
+void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
+    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+    // Perform TLS handshake.
+    while (true) {
+        ERR_clear_error();
+        int ret = SSL_do_handshake(conn.get());
+
+        if (ret > 0) {
+            return; // Successful TLS handshake.
+        }
+
+        if (ret == 0) {
+            // The handshake failed but the connection shut down cleanly.
+            throw linux_tcp_conn_t::connect_failed_exc_t(
+                0, "TLS handshake failed, shutdown cleanly");
+        }
+
+        switch (SSL_get_error(conn.get(), ret)) {
+        case SSL_ERROR_WANT_READ:
+            /* The handshake needs to read data, but the underlying I/O has no data
+            ready to read. Wait for it to be ready or for an interrupt signal. */
+            {
+                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
+                wait_interruptible(&watch, interruptor);
+            }
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            /* The handshake needs to write data, but the underlying I/O is not ready
+            to write. Wait for it to be ready or for an interrupt signal. */
+            {
+                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_out);
+                wait_interruptible(&watch, interruptor);
+            }
+            break;
+        default:
+            // Some other error with the underlying I/O.
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+            throw linux_tcp_conn_t::connect_failed_exc_t(
+                err_code, ERR_error_string(err_code, nullptr));
+        }
+
+        if (interruptor->is_pulsed()) {
+            // The handshake cannot continue because we need to shutdown now.
+            throw interrupted_exc_t();
+        }
+
+        /* Go around the loop and try to complete the handshake. */
+    }
+}
+
+size_t linux_secure_tcp_conn_t::read_internal(void *buffer, size_t size)
+    THROWS_ONLY(tcp_conn_read_closed_exc_t) {
+    assert_thread();
+    rassert(!closed.is_pulsed());
+
+    while(true) {
+        ERR_clear_error();
+
+        int ret = SSL_read(conn.get(), buffer, size);
+
+        if (ret > 0) {
+            return ret; // Operation successful, returns number of bytes read.
+        }
+
+        switch (SSL_get_error(conn.get(), ret)) {
+        case SSL_ERROR_ZERO_RETURN:
+            // Indicates that the peer has sent the "close notify" alert. The
+            // shutdown state is currently SSL_RECEIVED_SHUTDOWN. We must now
+            // send our "close notify" alert.
+            shutdown();
+            throw tcp_conn_read_closed_exc_t();
+        case SSL_ERROR_WANT_READ:
+            /* The underlying I/O has no data ready to read. Wait for it to be
+            ready or for someone to send a close signal. */
+            {
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_in);
+                wait_any_t waiter(&watch, &closed);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            /* Though we are reading, a TLS renegotiation may occur at any time
+            requiring a write. Wait for the underyling I/O to be ready for a
+            write, or for someone to send a close signal. */
+            {
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out);
+                wait_any_t waiter(&watch, &closed);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        default:
+            // Some other error. Assume that the connection is unusable.
+            shutdown_socket();
+            throw tcp_conn_read_closed_exc_t();
+        }
+
+        if (closed.is_pulsed()) {
+            /* We were closed for whatever reason. Whatever signalled us has
+            already called shutdown_socket(). */
+            throw tcp_conn_read_closed_exc_t();
+        }
+
+        /* Go around the loop and try to read again */
+    }
+}
+
+void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
+    assert_thread();
+
+    if (closed.is_pulsed()) {
+        /* The connection was closed, but there are still operations in the
+        write queue; we are one of those operations. Just don't do anything. */
+        return;
+    }
+
+    // Loop for retrying if the underlying socket would block and to retry on
+    // partial writes.
+    while (size > 0) {
+        ERR_clear_error();
+
+        int ret = SSL_write(conn.get(), buffer, size);
+
+        if (ret > 0) {
+            // Operation successful, returns number of bytes written.
+            rassert(static_cast<size_t>(ret) <= size);
+            size -= ret;
+
+            // Slide down the buffer.
+            buffer = reinterpret_cast<const void *>(
+                reinterpret_cast<const char *>(buffer) + ret);
+
+            if (write_perfmon) write_perfmon->record(ret);
+
+            // Go around the loop again if there is more data to write.
+            continue;
+        }
+
+        switch (SSL_get_error(conn.get(), ret)) {
+        case SSL_ERROR_ZERO_RETURN:
+            // Indicates that the peer has sent the "close notify" alert. The
+            // shutdown state is currently SSL_RECEIVED_SHUTDOWN. We must now
+            // send our "close notify" alert.
+            shutdown();
+            return;
+        case SSL_ERROR_WANT_READ:
+            /* Though we are writing, a TLS renegotiation may occur at any time
+            requiring a read. Wait for the underyling I/O to be ready for a
+            read, or for someone to send a close signal. */
+            {
+                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
+                wait_any_t waiter(&watch, &closed);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            /* The underlying I/O is not ready to accept a write. Wait for it
+            to be ready or for someone to send a close signal. */
+            {
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out);
+                wait_any_t waiter(&watch, &closed);
+                waiter.wait_lazily_unordered();
+            }
+            break;
+        default:
+            // Some other error. Assume that the connection is unusable.
+            shutdown_socket();
+            return;
+        }
+
+        if (closed.is_pulsed()) {
+            /* We were closed for whatever reason. Whatever signalled
+            us has already called shutdown_socket(). */
+            throw tcp_conn_read_closed_exc_t();
+        }
+
+        /* Go around the loop and try to read again */
+    }
+}
+
+/* It is not possible to close only the read or write side of a TLS connection
+so we use only a single shutdown method which attempts to shutdown the TLS
+before shutting down the underlying tcp connection */
+void linux_secure_tcp_conn_t::shutdown() {
+    assert_thread();
+
+    // If something else already shut us down, abort immediately.
+    if (closed.is_pulsed()) {
+        return;
+    }
+
+    // Wait at most 5 seconds for the orderly shutdown. If it doesn't complete by then,
+    // we simply shutdown the socket.
+    signal_timer_t shutdown_timeout(5000);
+
+    bool skip_shutdown = false; // Set to true if TLS shutdown encounters an error.
+
+    // If we have not already received a "close notify" alert from the peer,
+    // then we should send one. If we have received one, this loop will respond
+    // with our own "close notify" alert.
+    while (!(skip_shutdown || shutdown_timeout.is_pulsed())) {
+        ERR_clear_error();
+
+        int ret = SSL_shutdown(conn.get());
+
+        if (ret > 0) {
+            // "close notify" has been sent and received.
+            break;
+        }
+
+        if (ret == 0) {
+            // "close notify" has been sent but not yet received from peer.
+            continue;
+        }
+
+        switch(SSL_get_error(conn.get(), ret)) {
+        case SSL_ERROR_WANT_READ:
+            {
+                /* The shutdown needs to read data, but the underlying I/O has no data
+                ready to read. Wait for it to be ready or for a timeout. */
+                linux_event_watcher_t::watch_t watch(get_event_watcher(), poll_event_in);
+                wait_any_t waiter(&watch, &shutdown_timeout);
+                waiter.wait_lazily_unordered();
+            }
+            continue;
+        case SSL_ERROR_WANT_WRITE:
+            {
+                /* The handshake needs to write data, but the underlying I/O is not ready
+                to write. Wait for it to be ready or for a timeout. */
+                linux_event_watcher_t::watch_t watch(
+                    get_event_watcher(), poll_event_out);
+                wait_any_t waiter(&watch, &shutdown_timeout);
+                waiter.wait_lazily_unordered();
+            }
+            continue;
+        default:
+            // Unable to perform clean shutdown. Just skip it.
+            skip_shutdown = true;
+        }
+    }
+
+    shutdown_socket();
+}
+
+void linux_secure_tcp_conn_t::shutdown_socket() {
+    assert_thread();
+    rassert(!closed.is_pulsed());
+    rassert(!read_closed.is_pulsed());
+    rassert(!write_closed.is_pulsed());
+
+    // Shutdown the underlying TCP connection.
+    int res = ::shutdown(sock.get(), SHUT_RDWR);
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR(
+            "Could not shutdown socket for reading and writing: %s",
+            errno_string(get_errno()).c_str());
+    }
+
+    closed.pulse();
+    read_closed.pulse();
+    write_closed.pulse();
+}
+
+#endif /* ENABLE_TLS */
+
 linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
     rassert(fd != INVALID_FD);
 }
 
 linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
-    rassert(fd_ == INVALID_FD);
+    if (fd_ != INVALID_FD) {
+#ifdef _WIN32
+        int res = closesocket(fd_to_socket(fd_));
+        if (res != 0) {
+            logERR("Could not close socket: %s", winerr_string(GetLastError()).c_str());
+        }
+#else
+        int res = ::shutdown(fd_, SHUT_RDWR);
+        if (res != 0 && get_errno() != ENOTCONN) {
+            logERR(
+                "Could not shutdown socket for reading and writing: %s",
+                errno_string(get_errno()).c_str());
+        }
+#endif
+    }
 }
 
-void linux_tcp_conn_descriptor_t::make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
-    tcp_conn->init(new linux_tcp_conn_t(fd_));
+void linux_tcp_conn_descriptor_t::make_server_connection(
+    tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+    // We pass ownership of `fd_` to the connection.
+    fd_t sock = fd_;
     fd_ = INVALID_FD;
+#ifdef ENABLE_TLS
+    if (tls_ctx != nullptr) {
+        tcp_conn->init(new linux_secure_tcp_conn_t(tls_ctx, sock, closer));
+        return;
+    }
+#endif
+    tcp_conn->init(new linux_tcp_conn_t(sock));
 }
 
-void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_conn_out) {
-    *tcp_conn_out = new linux_tcp_conn_t(fd_);
+void linux_tcp_conn_descriptor_t::make_server_connection(
+    tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+    // We pass ownership of `fd_` to the connection.
+    fd_t sock = fd_;
     fd_ = INVALID_FD;
+#ifdef ENABLE_TLS
+    if (tls_ctx != nullptr) {
+        *tcp_conn_out = new linux_secure_tcp_conn_t(tls_ctx, sock, closer);
+        return;
+    }
+#endif
+    *tcp_conn_out = new linux_tcp_conn_t(sock);
 }
 
 /* Network listener object */
@@ -1192,7 +1626,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 #else
     fd_t active_fd = socks[0].get();
     while(!lock.get_drain_signal()->is_pulsed()) {
-        fd_t new_sock = accept(active_fd, NULL, NULL);
+        fd_t new_sock = accept(active_fd, nullptr, nullptr);
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
@@ -1365,8 +1799,8 @@ std::vector<std::string> get_ips() {
     int addr_res = getifaddrs(&if_addrs);
     guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
 
-    for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
-        if (p->ifa_addr == NULL) {
+    for (ifaddrs *p = if_addrs; p != nullptr; p = p->ifa_next) {
+        if (p->ifa_addr == nullptr) {
             continue;
         } else if (p->ifa_addr->sa_family == AF_INET) {
             if (!(p->ifa_flags & IFF_LOOPBACK)) {
@@ -1377,7 +1811,7 @@ std::vector<std::string> get_ips() {
                 char buf[buflength + 1] = { 0 };
                 const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, buflength);
 
-                guarantee_err(res != NULL, "inet_ntop failed");
+                guarantee_err(res != nullptr, "inet_ntop failed");
 
                 ret.push_back(std::string(buf));
             }
@@ -1390,7 +1824,7 @@ std::vector<std::string> get_ips() {
                 memset(buf.data(), 0, buf.size());
                 const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf.data(), buflength);
 
-                guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
+                guarantee_err(res != nullptr, "inet_ntop failed on an ipv6 address");
 
                 ret.push_back(std::string(buf.data()));
             }

@@ -29,6 +29,26 @@ public Iso8601 optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
     return new Iso8601(args, newOptargs);
 }
+public Iso8601 optArg(String optname, ReqlFunction0 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Iso8601(args, newOptargs);
+}
+public Iso8601 optArg(String optname, ReqlFunction1 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Iso8601(args, newOptargs);
+}
+public Iso8601 optArg(String optname, ReqlFunction2 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Iso8601(args, newOptargs);
+}
+public Iso8601 optArg(String optname, ReqlFunction3 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Iso8601(args, newOptargs);
+}
+public Iso8601 optArg(String optname, ReqlFunction4 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Iso8601(args, newOptargs);
+}
 
 
     public static Iso8601 fromString(String iso) {

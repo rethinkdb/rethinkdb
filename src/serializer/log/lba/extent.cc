@@ -53,7 +53,7 @@ struct extent_block_t :
         }
         if (is_last_block) {
             rassert(this == parent->last_block);
-            parent->last_block = NULL;
+            parent->last_block = nullptr;
         }
         delete this;
     }
@@ -61,13 +61,13 @@ struct extent_block_t :
 
 extent_t::extent_t(extent_manager_t *_em, file_t *_file)
     : amount_filled(0), em(_em),
-      file(_file), last_block(NULL), current_block(NULL) {
+      file(_file), last_block(nullptr), current_block(nullptr) {
     extent_ref = em->gen_extent();
     ++em->stats->pm_serializer_lba_extents;
 }
 
 extent_t::extent_t(extent_manager_t *_em, file_t *_file, int64_t loc, size_t size)
-    : amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
+    : amount_filled(size), em(_em), file(_file), last_block(nullptr), current_block(nullptr)
 {
     extent_ref = em->reserve_extent(loc);
 
@@ -120,7 +120,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
 
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             extent_block_t *b = current_block;
-            current_block = NULL;
+            current_block = nullptr;
             b->write(io_account);
             em->stats->bytes_written(DEVICE_BLOCK_SIZE);
         }

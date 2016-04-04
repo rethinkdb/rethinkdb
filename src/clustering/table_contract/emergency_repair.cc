@@ -52,15 +52,15 @@ void calculate_emergency_repair(
     }
 
     /* Pick the server we'll use as a replacement for shards that we end up erasing */
-    server_id_t erase_replacement = nil_uuid();
+    server_id_t erase_replacement = server_id_t::from_server_uuid(nil_uuid());
     for (const auto &pair : old_state.member_ids) {
         if (dead_servers.count(pair.first) == 0) {
             erase_replacement = pair.first;
             break;
         }
     }
-    guarantee(!erase_replacement.is_nil(), "calculate_emergency_repair() should not be "
-        "called if all servers are dead");
+    guarantee(!erase_replacement.get_uuid().is_nil(),
+        "calculate_emergency_repair() should not be called if all servers are dead");
 
     /* Calculate the new contracts. This is the guts of the repair operation. */
     new_state_out->contracts.clear();

@@ -123,6 +123,8 @@ def parse_options():
     parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
     parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
@@ -155,6 +157,8 @@ def parse_options():
     if options.clients < 1:
         raise RuntimeError("Error: --client option too low, must have at least one client connection")
 
+    res["tls_cert"] = ssl_option(options.tls_cert)
+
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
     res["durability"] = "hard" if options.hard else "soft"
@@ -162,7 +166,10 @@ def parse_options():
     res["debug"] = options.debug
     res["create_sindexes"] = options.create_sindexes
 
-    res["create_args"] = {k: getattr(options, k) for k in ['shards', 'replicas'] if getattr(options, k) != 0}
+    res["create_args"] = { }
+    for k in ['shards', 'replicas']:
+        if getattr(options, k) != 0:
+            res["create_args"][k] = getattr(options, k)
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -198,7 +205,7 @@ def parse_options():
         res["directory"] = os.path.abspath(dirname)
 
         if not os.path.exists(res["directory"]):
-            raise RuntimeError("Error: Directory to import does not exist: %d" % res["directory"])
+            raise RuntimeError("Error: Directory to import does not exist: %s" % res["directory"])
 
         # Verify valid --import options
         res["db_tables"] = parse_db_table_options(options.tables)
@@ -323,9 +330,9 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
         task = task_queue.get()
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability, ssl_op):
     try:
-        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
         write_count = [0]
         rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability, write_count)
     except:
@@ -543,25 +550,35 @@ def create_table(progress, conn, db, table, create_args, sindexes):
     # and create them from scratch
     indexes = r.db(db).table(table).index_list().run(conn)
     created_indexes = list()
-    for sindex in sindexes[progress[0]:]:
-        if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
-            if sindex['index'] in indexes:
-                r.db(db).table(table).index_drop(sindex['index']).run(conn)
-            r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
-            created_indexes.append(sindex['index'])
-        progress[0] += 1
-    r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
+    try:
+        for sindex in sindexes[progress[0]:]:
+            if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
+                if sindex['index'] in indexes:
+                    r.db(db).table(table).index_drop(sindex['index']).run(conn)
+                r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+                created_indexes.append(sindex['index'])
+            progress[0] += 1
+        r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
+    except RuntimeError:
+        raise RuntimeError("Sindex warning")
 
-def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
+def table_reader(options, file_info, task_queue, error_queue, warning_queue, progress_info, exit_event):
     try:
         db = file_info["db"]
         table = file_info["table"]
         create_args = dict(options["create_args"])
         create_args["primary_key"] = file_info["info"]["primary_key"]
 
-        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
+        conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
+        try:
+            rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
                          file_info["info"]["indexes"] if options["create_sindexes"] else [])
+        except RuntimeError as e:
+            if str(e) == "Sindex warning":
+                ex_type, ex_class, tb = sys.exc_info()
+                warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
+            else:
+                raise
 
         if file_info["format"] == "json":
             json_reader(task_queue,
@@ -616,6 +633,7 @@ def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
     task_queue = SimpleQueue()
     error_queue = SimpleQueue()
+    warning_queue = SimpleQueue()
     exit_event = multiprocessing.Event()
     interrupt_event = multiprocessing.Event()
     errors = []
@@ -638,7 +656,8 @@ def spawn_import_clients(options, files_info):
                                                               error_queue,
                                                               rows_written,
                                                               options["force"],
-                                                              options["durability"])))
+                                                              options["durability"],
+                                                              options["tls_cert"])))
             client_procs[-1].start()
 
         for file_info in files_info:
@@ -649,6 +668,7 @@ def spawn_import_clients(options, files_info):
                                                               file_info,
                                                               task_queue,
                                                               error_queue,
+                                                              warning_queue,
                                                               progress_info[-1],
                                                               exit_event)))
             reader_procs[-1].start()
@@ -660,6 +680,7 @@ def spawn_import_clients(options, files_info):
             while not error_queue.empty():
                 exit_event.set()
                 errors.append(error_queue.get())
+
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
             update_progress(progress_info)
 
@@ -698,6 +719,16 @@ def spawn_import_clients(options, files_info):
             if len(error) == 4:
                 print("In file: %s" % error[3], file=sys.stderr)
         raise RuntimeError("Errors occurred during import")
+
+    if not warning_queue.empty():
+        while not warning_queue.empty():
+            warning = warning_queue.get()
+            print("%s" % warning[1], file=sys.stderr)
+            if options["debug"]:
+                print("%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr)
+            if len(warning) == 4:
+                print("In file: %s" % warning[3], file=sys.stderr)
+        raise RuntimeError("Warnings occurred during import")
 
 def get_import_info_for_file(filename, db_table_filter):
     file_info = {}
@@ -788,7 +819,7 @@ def import_directory(options):
 
         db_tables.add((file_info["db"], file_info["table"]))
 
-    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -842,7 +873,7 @@ def import_file(options):
     table = options["import_db_table"][1]
 
     # Ensure that the database and table exist with the right primary key
-    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    conn_fn = lambda: r.connect(options["host"], options["port"], ssl= options["tls_cert"], auth_key=options["auth_key"])
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -876,6 +907,8 @@ def main():
             raise RuntimeError("Error: Neither --directory or --file specified")
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
+        if str(ex) == "Warnings occurred during import":
+            return 2
         return 1
     print("  Done (%d seconds)" % (time.time() - start_time))
     return 0

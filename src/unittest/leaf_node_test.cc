@@ -126,7 +126,7 @@ public:
 
         store_key_t replacement;
         bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(),
-                                     replacement.btree_key(), NULL);
+                                     replacement.btree_key(), nullptr);
 
         if (can_level) {
             ASSERT_TRUE(!sibling->kv_.empty());

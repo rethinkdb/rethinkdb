@@ -1,5 +1,5 @@
 *.pyc
-*.swp
+*.sw?
 *~
 .DS_Store
 .tags

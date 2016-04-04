@@ -30,7 +30,7 @@ public:
         void update();
         bool operator< (const entry_t &b) {return Less(b.data, data);}
         entry_t()
-            : pq(0), index(0)
+            : pq(nullptr), index(0)
         {}
     };
 private:

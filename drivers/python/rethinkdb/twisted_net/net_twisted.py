@@ -8,7 +8,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.defer import DeferredQueue, CancelledError
 from twisted.internet.protocol import ClientFactory, Protocol
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
@@ -161,6 +161,12 @@ class CursorItems(DeferredQueue):
     def __len__(self):
         return len(self.pending)
 
+    def __getitem__(self, index):
+        return self.pending[index]
+
+    def __iter__(self):
+        return iter(self.pending)
+
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('items_type', CursorItems)
@@ -238,6 +244,13 @@ class ConnectionInstance(object):
         if start_reactor:
             reactor.run()
 
+    def client_port(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[1]
+    def client_address(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[0]
+
     def _handleResponse(self, token, data):
         try:
             cursor = self._cursor_cache.get(token)
@@ -269,8 +282,14 @@ class ConnectionInstance(object):
     @inlineCallbacks
     def _connectTimeout(self, factory, timeout):
         try:
-            endpoint = TCP4ClientEndpoint(reactor, self._parent.host, self._parent.port,
-                        timeout=timeout)
+            # TODO: use ssl options
+            # TODO: this doesn't work for literal IPv6 addresses like '::1'
+            args = "tcp:%s:%d" % (self._parent.host, self._parent.port)
+
+            if timeout is not None:
+                args = args + (":timeout=%d" % timeout)
+
+            endpoint = clientFromString(reactor, args)
             p = yield endpoint.connect(factory)
             returnValue(p)
         except TimeoutError:

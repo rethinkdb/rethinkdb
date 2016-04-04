@@ -463,7 +463,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
 #ifdef _WIN32
     DWORD bytes_written;
-    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, NULL);
+    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, nullptr);
     if (!res) {
         error_out->assign("cannot write to log file: " + winerr_string(GetLastError()));
         return false;
@@ -563,7 +563,7 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(
 
 void thread_pool_log_writer_t::install_on_thread(int i) {
     on_thread_t thread_switcher((threadnum_t(i)));
-    guarantee(TLS_get_global_log_writer() == NULL);
+    guarantee(TLS_get_global_log_writer() == nullptr);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }

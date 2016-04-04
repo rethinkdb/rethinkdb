@@ -90,7 +90,7 @@ void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
-        head = NULL;
+        head = nullptr;
         write.reset();
         _head.reset();
         add_block_to_head(txn);
