@@ -24,6 +24,7 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -343,6 +344,7 @@ public:
 
     private:
         extproc_pool_t extproc_pool;
+        dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
         rdb_context_t rdb_ctx;
         std::map<name_string_t, database_id_t> databases;
         std::map<std::pair<database_id_t, name_string_t>,

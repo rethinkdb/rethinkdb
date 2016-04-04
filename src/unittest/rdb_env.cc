@@ -294,7 +294,8 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
-    rdb_ctx(&extproc_pool, this)
+    auth_manager(auth_semilattice_metadata_t("")),
+    rdb_ctx(&extproc_pool, this, auth_manager.get_view())
 {
     env.init(
         new ql::env_t(

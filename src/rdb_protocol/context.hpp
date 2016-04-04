@@ -419,7 +419,9 @@ public:
     rdb_context_t();
     // Also used by unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
-                  reql_cluster_interface_t *_cluster_interface);
+                  reql_cluster_interface_t *_cluster_interface,
+                  boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+                      auth_semilattice_view);
 
     // The "real" constructor used outside of unit tests.
     rdb_context_t(
@@ -463,6 +465,10 @@ public:
     clone_ptr_t<watchable_t<auth_semilattice_metadata_t>> get_auth_watchable() const;
 
 private:
+    void init_auth_watchables(
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view);
+
     std::vector<std::unique_ptr<cross_thread_watchable_variable_t<
         auth_semilattice_metadata_t>>> m_cross_thread_auth_watchables;
 

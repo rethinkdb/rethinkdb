@@ -24,6 +24,7 @@
 #include "stl_utils.hpp"
 #include "store_subview.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -74,7 +75,8 @@ void run_with_namespace_interface(
     }
 
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, nullptr);
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+    rdb_context_t ctx(&extproc_pool, nullptr, auth_manager.get_view());
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;
