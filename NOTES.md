@@ -1,7 +1,7 @@
 # Release 2.3.0 (Fantasia)
 
 TODO: Check all the PRs
-TODO: Cutoff point: March 30th 3:22 PM
+TODO: Cutoff point: April 4th 7:41 PM
 
 Released on 2016-04-XX
 
@@ -27,30 +27,42 @@ in the same cluster.
 
 ### API-breaking changes ###
 
-* TODO: eqJoin ordering
-* TODO: Changed geo multi index semantics
+* The `eqJoin` command no longer returns results in the order of its first input. You can
+  pass in the new `{ordered: true}` option to restore the previous behavior.
+* Operations on geospatial multi indexes now emit duplicate results if multiple index
+  keys of a given document match the query. You can append the `.distinct()` command in
+  order to restore the previous behavior.
 * TODO: `returnChanges: "always"` on `insert` now generates {error: } documents
 * Changefeeds on queries of the form `orderBy(...).limit(...).filter(...)` are no longer
   allowed. Previous versions of RethinkDB allowed the creation of such changefeeds, but
   did not provide the correct semantics.
 * TODO: Coercing non-unicode binary to string
 * TODO: r.minval and r.maxval in secondary index functions
-* TODO: No more global r.wait, r.rebalance, r.reconfigure
+* The commands `r.wait`, `r.rebalance` and `r.reconfigure` can no longer be called on the
+  global `r` scope. Previously, these commands defaulted to the `"test"` database
+  implicitly. Now they have to be explicitly called on either a database or table object.
+  For example: `r.db("test").wait()`, `r.db("test").rebalance()`, etc.
 
 ### Deprecated APIs ###
 
 * TODO: deprecated `each`
 * TODO: deprecated `auth_key`. Talk about how it gets migrated etc.
 
+### Supported distributions ###
+
+We no longer provide packages for Debian 7.x (Wheezy).
+
 ## New features ##
 
-* TODO: Users & Permissions
+* TODO: Users & Permissions (#4519)
 * TODO: TLS (Linux and OS X only)
-* TODO: Windows
-* TODO: fold
+* TODO: Windows (64 bit only, Windows 7 and up)
+* Added a `fold` command to allow stateful transformations on ordered streams. (#3736)
 * Added support for changefeeds on `getIntersecting` queries. (#4777)
 
 ## Improvements ##
+
+TODO: Make sure eachAsync is properly mentioned (#5056?)
 
 * Server
  * The `--bind` option can now be specified separately for the web UI (`--bind-http`),
@@ -68,6 +80,11 @@ in the same cluster.
  * Proxy servers now print their server ID on startup. (#5515)
  * Raised the maximum query size from 64 MB to 128 MB. (#4529)
  * Increased the maximum number of shards for a table from 32 to 64. (#5311)
+ * Implemented a `--join-delay` option to better tolerate unstable network conditions
+   (#5319)
+ * Added an `--initial-password` command line option to secure the process of adding new
+   servers to a password-protected cluster. (#5490)
+ * Implemented a new client protocol handshake to support user authentication. (#5406)
 * ReQL
  * Added an `interleave` option to the `union` command to allow merging streams in a
    particular order. (#5090)
@@ -75,8 +92,10 @@ in the same cluster.
    (#3753)
  * The `insert` command now returns changes in the same order in which they were passed
    in when the `returnChanges` option is used. (#5041)
- * Improved the error message from `reconfigure` if too many servers are unreachable
-   (#5267)
+ * Added an `includeOffsets` option to the `changes` command to obtain the positions
+   of changed elements in an `orderBy.limit` changefeeds. (#5334)
+ * Added an `includeTypes` option to the `changes` command that adds a `type` field to
+   every changefeed result. (#5188)
  * Made geospatial multi indexes behave consistently with non-geospatial multi indexes
    if a document is indexed under multiple matching keys. `getIntersecting` and
    `getNearest` now return duplicates if multiple index keys match. (#3351)
@@ -84,6 +103,10 @@ in the same cluster.
    (#4696, #2588)
  * Disallowed calling `r.wait`, `r.rebalance` and `r.reconfigure` on the global scope to
    avoid confusing semantics. (#4382)
+ * The `count` and `slice` commands can now be applied to strings. (#4227, #4228)
+ * Improved the error message from `reconfigure` if too many servers are unreachable.
+   (#5267)
+ * Improved the error message for invalid timezone specifications. (#1280)
 * Performance
  * Implemented efficient batching for distributed joins using the `eqJoin` command.
    (#5115)
@@ -93,8 +116,13 @@ in the same cluster.
  * The web UI now uses the `conn.server()` command for getting information about the
    connected server. (#5059)
 * All drivers
- * TODO
+ * Implemented a new protocol handshake and added `user` and `password` options to the
+   `connect` method to enable user authentication. (#5458, #5459, #5460, #5461)
+ * Added `clientPort` and `clientAddress` functions to the connection objects in the
+   JavaScript, Python and Ruby drivers. (#4796)
 * JavaScript driver
+ * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
+   (#5494)
  * TODO: eachAsync
 * Python driver
  * Added a `"gevent"` loop type to the Python driver. (#4433)
@@ -104,6 +132,10 @@ in the same cluster.
  * Added a `--tls-cert` option to the `rethinkdb import`, `rethinkdb export`,
    `rethinkdb dump`, `rethinkdb restore` and `rethinkdb index-rebuild` commands to enable
    TLS connections. (#5330)
+ * Made `rethinkdb dump` `rethinkdb restore` and `rethinkdb import` able to write to
+   stdout and load data from stdin respectively. (#5525, #3838)
+ * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
+   (#5494)
 
 ## Bug fixes ##
 
@@ -114,6 +146,10 @@ in the same cluster.
    through the `db_config` system table. (#4465)
  * Fixed a crash when trying to restore a backup from a version of RethinkDB that is too
    new. (#5104)
+ * Fixed a bug in data migration from RethinkDB 2.0.x and earlier. (#5570)
+ * Fixed a race condition causing server crashes with the message
+   `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` when rebalancing a
+   table while simultaneously opening new changefeeds. (#5576)
 * ReQL
  * Disallowed changefeeds on queries of the form `orderBy(...).limit(...).filter(...)`,
    since they do not provide the correct semantics. (#5325)
@@ -130,6 +166,9 @@ in the same cluster.
  * TODO
 * Python driver
  * Fixed a bug in the `__str__` function of cursor objects. (#5567)
+ * Fixed the handling of oversized query errors. (#4771)
+* Ruby driver
+ * Fixed the handling of oversized query errors. (#4771)
 
 ## Contributors ##
 
@@ -175,7 +214,7 @@ older version.
   error in certain edge cases (#5438, #5535)
 * Fixed a `SANITY CHECK FAILED: [d.has()]` error when using the `map` command on
   a combination of empty and non-empty input streams (#5481)
-* The result of `conn.server()` now includes an `is_proxy` field (#5485)
+* The result of `conn.server()` now includes a `proxy` field (#5485)
 * Changed the connection behavior of proxy servers to avoid repeating "Rejected a
   connection from server X since one is open already" warnings (#5456)
 * The Python driver now supports connecting to a server via IPv6, even when using the
