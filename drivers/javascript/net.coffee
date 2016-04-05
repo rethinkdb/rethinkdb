@@ -1036,6 +1036,23 @@ class TcpConnection extends Connection
                     res.push(a[i] ^ b[i])
                 return new Buffer(res)
 
+            # We implement this ourselves because early versions of node will ignore the "sha256" option
+            # and just return the hash for sha1.
+            pbkdf2_hmac = (password, salt, iterations) ->
+                mac = crypto.createHmac("sha256", password)
+
+                mac.update(salt)
+                mac.update("\x00\x00\x00\x01")
+                u = mac.digest()
+                t = u
+                for c in [0...iterations-1]
+                    mac = crypto.createHmac("sha256", password)
+                    mac.update(t)
+                    t = mac.digest()
+                    u = xor_bytes(u, t)
+
+                return u
+
             compare_digest = (a, b) ->
                 left = undefined
                 right = b
@@ -1115,7 +1132,7 @@ class TcpConnection extends Connection
 
                             client_final_message_without_proof = "c=biws,r=" + auth_r
 
-                            salted_password = crypto.pbkdf2Sync(@rawSocket.password, auth_salt, auth_i, 32, "sha256")
+                            salted_password = pbkdf2_hmac(@rawSocket.password, auth_salt, auth_i)
                             client_key = crypto.createHmac("sha256", salted_password).update("Client Key").digest()
                             stored_key = crypto.createHash("sha256").update(client_key).digest()
 
