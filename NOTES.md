@@ -2,8 +2,10 @@
 
 Released on 2016-04-06
 
-RethinkDB 2.3 introduces a user and permission system, TLS encrypted connections, a
-Windows beta, and various improvements to the ReQL query language.
+RethinkDB 2.3 introduces a users and permissions system, TLS encrypted connections, a
+Windows beta, and numerous improvements to the ReQL query language. ReQL improvements
+include up to 10x better performance for distributed joins, and a new `fold` command that
+allows you to implement efficient stateful transformations on streams.
 
 Read the [blog post][2.3-release] for more details.
 
@@ -22,11 +24,27 @@ in the same cluster.
 
 [data-migration-docs]: http://www.rethinkdb.com/docs/migration/
 
+### Managing password-protected clusters ###
+
+If you migrate a cluster from a previous version of RethinkDB and have an `auth_key` set,
+the `auth_key` is turned into the password for the `"admin"` user. If no `auth_key` is
+set, a new `"admin"` user with an empty password is automatically created during
+migration.
+
+RethinkDB 2.3 adds a new restriction when adding a server to an existing cluster. If
+the existing cluster has a non-empty password set for the `"admin"` user, a new server
+is only allowed to join the cluster if it has a password set as well. This is to avoid
+insecure states during the join process. You can use the new `--initial-password auto`
+command line option for joining a new server or proxy to a password-protected cluster.
+The `--initial-password auto` option assigns a random `"admin"` password on startup,
+which gets overwritten by the previously configured password on the cluster once the join
+process is complete.
+
 ### API-breaking changes ###
 
 * The `eqJoin` command no longer returns results in the order of its first input. You can
   pass in the new `{ordered: true}` option to restore the previous behavior.
-* Operations on geospatial multi indexes now emit duplicate results if multiple index
+* Operations on geospatial multi-indexes now emit duplicate results if multiple index
   keys of a given document match the query. You can append the `.distinct()` command in
   order to restore the previous behavior.
 * Changefeeds on queries of the form `orderBy(...).limit(...).filter(...)` are no longer
@@ -109,7 +127,7 @@ When compiling from source, the minimum required GCC version is now 4.7.4.
    of changed elements in an `orderBy.limit` changefeeds. (#5334)
  * Added an `includeTypes` option to the `changes` command that adds a `type` field to
    every changefeed result. (#5188)
- * Made geospatial multi indexes behave consistently with non-geospatial multi indexes
+ * Made geospatial multi-indexes behave consistently with non-geospatial multi-indexes
    if a document is indexed under multiple matching keys. `getIntersecting` and
    `getNearest` now return duplicates if multiple index keys match. (#3351)
  * The `and`, `or` and `getAll` commands can now be called with zero arguments.
