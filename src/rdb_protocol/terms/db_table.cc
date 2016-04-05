@@ -373,12 +373,22 @@ private:
             */
             if (target->get_type().is_convertible(val_t::type_t::DB)) {
                 success = env->env->reql_cluster_interface()->db_config(
-                        target->as_db(), backtrace(), env->env, &selection, &error);
+                        env->env->get_user_context(),
+                        target->as_db(),
+                        backtrace(),
+                        env->env,
+                        &selection,
+                        &error);
             } else {
                 counted_t<table_t> table = target->as_table();
                 name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
                 success = env->env->reql_cluster_interface()->table_config(
-                        table->db, name, backtrace(), env->env, &selection, &error);
+                        env->env->get_user_context(),
+                        table->db,
+                        name, backtrace(),
+                        env->env,
+                        &selection,
+                        &error);
             }
         } catch (auth::permission_error_t const &permission_error) {
             rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
