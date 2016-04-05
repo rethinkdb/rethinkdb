@@ -1,11 +1,12 @@
+require 'base64'
+require 'openssl'
 require 'monitor'
+require 'pp' # This is needed for pretty_inspect
 require 'set'
+require 'securerandom'
 require 'socket'
 require 'thread'
 require 'timeout'
-require 'pp' # This is needed for pretty_inspect
-require 'openssl'
-require 'base64'
 
 module RethinkDB
   module Faux_Abort
