@@ -457,6 +457,7 @@ module RethinkDB
 
   class Connection
     include OpenSSL
+
     def auto_reconnect(x=true)
       @auto_reconnect = x
       self
@@ -876,9 +877,50 @@ module RethinkDB
       end
     end
 
-    def pbkdf2_hmac_sha256(*args)
+    @@fast_auth_func = lambda {|*args|
       digest = OpenSSL::Digest::SHA256.new
       OpenSSL::PKCS5.pbkdf2_hmac(*args, digest.digest_length, digest)
+    }
+    @@slow_auth_func = lambda {|password, salt, iter|
+      mac = OpenSSL::HMAC.new(password, OpenSSL::Digest::SHA256.new)
+      acc = t = mac.update(salt + "\0\0\0\1").digest
+      mac.reset
+      (iter-1).times{acc = xor(acc, t = mac.update(t).digest); mac.reset}
+      res = acc
+    }
+    @@auth_func = @@fast_auth_func
+    @@auth_func_mutex = Mutex.new
+
+    @@auth_cache = {}
+    @@auth_cache_mutex = Mutex.new
+
+    def pbkdf2_hmac_sha256(*args)
+      auth_func = res = nil
+      @@auth_cache_mutex.synchronize {
+        res = @@auth_cache[args]
+        return res if res
+      }
+
+      @@auth_func_mutex.synchronize {
+        auth_func = @@auth_func
+      }
+      begin
+        res = auth_func.call(*args)
+      rescue NotImplementedError => e
+        if auth_func != @@slow_auth_func
+          @@auth_func_mutex.synchronize {
+            auth_func = @@auth_func = @@slow_auth_func
+          }
+          res = auth_func.call(*args)
+        else
+          raise e
+        end
+      end
+
+      @@auth_cache_mutex.synchronize {
+        @@auth_cache[args] = res
+      }
+      return res
     end
 
     def hmac(*args)
@@ -890,7 +932,11 @@ module RethinkDB
     end
 
     def xor(str1, str2)
-      str1.unpack('C*').zip(str2.unpack('C*')).map{|a,b| a.to_i ^ b.to_i}.pack('C*')
+      out = str1.dup
+      out.bytesize.times {|i|
+        out.setbyte(i, out.getbyte(i) ^ str2.getbyte(i))
+      }
+      return out
     end
 
     def const_eq(a, b)
@@ -955,7 +1001,7 @@ module RethinkDB
       rescue ReqlError => e
         raise e
       rescue Exception => e
-        raise ReqlDriverError, "Error during handshake: #{e.inspect}"
+        raise ReqlDriverError, "Error during handshake: #{e.inspect} #{e.backtrace}"
       end
     end
 
