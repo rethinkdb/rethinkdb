@@ -49,6 +49,7 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "crypto/random.hpp"
 #include "logger.hpp"
@@ -1135,12 +1136,21 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_auth_metadata_to_v2_2(&io_backender, auth_path, &txn,
+                    logNTC("Migrating auth metadata to v2.1");
+                    migrate_auth_metadata_to_v2_1(&io_backender, auth_path, &txn,
                                                   &non_interruptor);
+                    logNTC("Migrating auth metadata to v2.3");
+                    migrate_auth_metadata_v2_1_to_v2_3(&txn, &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }
-                remove(auth_path.permanent_path().c_str());
+                if (remove(auth_path.permanent_path().c_str()) != 0) {
+                    fail_due_to_user_error(
+                        "Failed to remove legacy 'auth_metadata' configuration file at %s.  "
+                        "If this file remains, it could overwrite future changes to user "
+                        "and password configurations.  Please remove it and try again.",
+                        auth_path.permanent_path().c_str());
+                }
             }
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
