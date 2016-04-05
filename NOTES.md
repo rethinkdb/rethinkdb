@@ -1,9 +1,6 @@
 # Release 2.3.0 (Fantasia)
 
-TODO: Check all the PRs
-TODO: Cutoff point: April 4th 7:41 PM
-
-Released on 2016-04-XX
+Released on 2016-04-06
 
 RethinkDB 2.3 introduces a user and permission system, TLS encrypted connections, a
 Windows beta, and various improvements to the ReQL query language.
@@ -32,47 +29,63 @@ in the same cluster.
 * Operations on geospatial multi indexes now emit duplicate results if multiple index
   keys of a given document match the query. You can append the `.distinct()` command in
   order to restore the previous behavior.
-* TODO: `returnChanges: "always"` on `insert` now generates {error: } documents
 * Changefeeds on queries of the form `orderBy(...).limit(...).filter(...)` are no longer
   allowed. Previous versions of RethinkDB allowed the creation of such changefeeds, but
   did not provide the correct semantics.
-* TODO: Coercing non-unicode binary to string
-* TODO: r.minval and r.maxval in secondary index functions
 * The commands `r.wait`, `r.rebalance` and `r.reconfigure` can no longer be called on the
   global `r` scope. Previously, these commands defaulted to the `"test"` database
   implicitly. Now they have to be explicitly called on either a database or table object.
   For example: `r.db("test").wait()`, `r.db("test").rebalance()`, etc.
+* The `{returnChanges: "always"}` option with the `insert` command will now add
+  `{error: "..."}` documents to the `changes` array if the insert fails for some
+  documents. Previously failed documents were simply omitted from the `changes` result.
+* The special values `r.minval` and `r.maxval` are no longer permitted as return values
+  of secondary index functions.
 
 ### Deprecated APIs ###
 
-* TODO: deprecated `each`
-* TODO: deprecated `auth_key`. Talk about how it gets migrated etc.
+* The JavaScript `each` function is deprecated in favor of `eachAsync`. In a
+  future release, `each` will be turned into an alias of `eachAsync`. We recommend
+  converting existing calls of the form `.each(function(err, row) {})` into the
+  `eachAsync` equivalent `.eachAsync(function(row) {}, function(err) {})`.
+  You can read more about [`eachAsync` in the documentation][eachAsync-api].
+* The `auth_key` option to `connect` in the official drivers is deprecated in favor of
+  the new `user` and `password` options. For now, a provided `auth_key` value is mapped
+  by the drivers to a password for the `"admin"` user, so existing code will keep
+  working.
+
+[eachAsync-api]: http://rethinkdb.com/api/javascript/each_async/
 
 ### Supported distributions ###
 
-We no longer provide packages for Debian 7.x (Wheezy).
+We no longer provide packages for the Debian oldstable distribution 7.x (Wheezy).
+
+When compiling from source, the minimum required GCC version is now 4.7.4.
 
 ## New features ##
 
-* TODO: Users & Permissions (#4519)
-* TODO: TLS (Linux and OS X only)
-* TODO: Windows (64 bit only, Windows 7 and up)
+* Added support for user accounts, user authentication, and access permissions. Users can
+  be configured through the `"users"` system table. Permissions can be configured through
+  either the new `"permissions"` system table or through the `grant` command. (#4519)
+* Driver, intracluster and web UI connections can now be configured to use TLS
+  encryption. For driver and intracluster connections, the server additionally supports
+  certificate verification. (Linux and OS X only, #5381)
+* Added beta support for running RethinkDB on Windows (64 bit only, Windows 7 and up).
+  (#1100)
 * Added a `fold` command to allow stateful transformations on ordered streams. (#3736)
 * Added support for changefeeds on `getIntersecting` queries. (#4777)
 
 ## Improvements ##
 
-TODO: Make sure eachAsync is properly mentioned (#5056?)
-
 * Server
  * The `--bind` option can now be specified separately for the web UI (`--bind-http`),
    client driver port (`--bind-driver`) and cluster port (`--bind-cluster`). (#5467)
  * RethinkDB servers now detect non-transitive connectivity in the cluster and raise a
-   `"non_transitive_error"` issue in the `current_issues` system table when detecting
-   an issue. Additionally, the `server_status` system table now contains information on
+   `"non_transitive_error"` issue in the `"current_issues"` system table when detecting
+   an issue. Additionally, the `"server_status"` system table now contains information on
    each server's connectivity in the new `connected_to` field. (#4936)
- * Added a new `"memory_error"` issue type for the `current_issues` system table that is
-   displayed when the RethinkDB process starts using swap space. (Linux only) (#1023)
+ * Added a new `"memory_error"` issue type for the `"current_issues"` system table that
+   is displayed when the RethinkDB process starts using swap space. (Linux only) (#1023)
  * Reduced the number of scenarios that require index migration after a RethinkDB
    upgrade. Indexes no longer need to be migrated unless they use a custom index
    function. (#5175)
@@ -111,7 +124,7 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
  * Implemented efficient batching for distributed joins using the `eqJoin` command.
    (#5115)
  * Optimized `tableCreate` to complete more quickly. (#4746)
- * TODO Function evaluation overhead
+ * Reduced the CPU overhead of ReQL function calls and term evaluation. (no issue number)
 * Web UI
  * The web UI now uses the `conn.server()` command for getting information about the
    connected server. (#5059)
@@ -121,9 +134,10 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
  * Added `clientPort` and `clientAddress` functions to the connection objects in the
    JavaScript, Python and Ruby drivers. (#4796)
 * JavaScript driver
+ * Added new variants of the `cursor.eachAsync` function. (#5056)
+ * Added a `concurrency` option for `cursor.eachAsync`. (#5529)
  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
    (#5494)
- * TODO: eachAsync
 * Python driver
  * Added a `"gevent"` loop type to the Python driver. (#4433)
  * Printing a cursor object now displays the first few results. (#5331)
@@ -132,10 +146,17 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
  * Added a `--tls-cert` option to the `rethinkdb import`, `rethinkdb export`,
    `rethinkdb dump`, `rethinkdb restore` and `rethinkdb index-rebuild` commands to enable
    TLS connections. (#5330)
+ * Added `--password` and `--password-file` options to the `rethinkdb import`,
+   `rethinkdb export`, `rethinkdb dump`, `rethinkdb restore` and
+   `rethinkdb index-rebuild` commands to connect to password-protected servers. (#5464)
+ * Added a `--format ndjson` option to `rethinkdb export` that allows exporting tables
+   in a newline-separated JSON format. (#5101)
  * Made `rethinkdb dump` `rethinkdb restore` and `rethinkdb import` able to write to
    stdout and load data from stdin respectively. (#5525, #3838)
  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
    (#5494)
+* Java driver:
+ * Made it easier to publish the driver on local Ivy and Maven repositores. (#5054)
 
 ## Bug fixes ##
 
@@ -143,13 +164,15 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
  * Fixed a crash with the message `[cmp != 0]` when querying with `r.minval` or
    `r.maxval` values inside of an array. (#5542)
  * Fixed in issue that caused orphaned tables to be left behind when deleting a database
-   through the `db_config` system table. (#4465)
+   through the `"db_config"` system table. (#4465)
  * Fixed a crash when trying to restore a backup from a version of RethinkDB that is too
    new. (#5104)
  * Fixed a bug in data migration from RethinkDB 2.0.x and earlier. (#5570)
  * Fixed a race condition causing server crashes with the message
    `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` when rebalancing a
    table while simultaneously opening new changefeeds. (#5576)
+ * Fixed an issue causing backfill jobs to remain in the `jobs` system table even after
+   finishing. (#5223)
 * ReQL
  * Disallowed changefeeds on queries of the form `orderBy(...).limit(...).filter(...)`,
    since they do not provide the correct semantics. (#5325)
@@ -163,7 +186,8 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
  * Fixed an empty "Connected to" field when accessing the web UI through a RethinkDB
    proxy server. (#3182)
 * JavaScript driver
- * TODO
+ * Fixed the behavior of `cursor.close` when there are remaining items in the buffer.
+   (#5432)
 * Python driver
  * Fixed a bug in the `__str__` function of cursor objects. (#5567)
  * Fixed the handling of oversized query errors. (#4771)
@@ -175,21 +199,32 @@ TODO: Make sure eachAsync is properly mentioned (#5056?)
 Many thanks to external contributors from the RethinkDB community for helping
 us ship RethinkDB 2.3. In no particular order:
 
-* TODO
+* Aaron Rosen (@aaronorosen)
+* @crockpotveggies
+* Igor Lukanin (@igorlukanin)
+* Joshua Bronson (@jab)
+* Josh Hawn (@jlhawn)
+* Josh Smith (@Qinusty)
+* Marshall Cottrell (@marshall007)
+* Mike Mintz (@mikemintz)
+* Taylor Murphy (@tayloramurphy)
+* Vladislav Botvin (@darrrk)
+* Adam Grandquist (@grandquista)
+* @bakape
+* Bernardo Santana (@bsantanas)
+* Bheesham Persaud (@bheesham)
+* Christopher Cadieux (@ccadieux)
+* Chuck Bassett (@chuckSMASH)
+* Diney Wankhede (@dineyw23)
+* Heinz Fiedler (@heinzf)
+* Mark Yu (@vafada)
+* Mike Krumlauf (@mjkrumlauf)
+* Nicolás Santángelo (@NicoSantangelo)
+* Samuel Volin (@untra)
+* Stefan de Konink (@skinkie)
+* Tommaso (@raspo)
 
 --
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Release 2.2.6 (Modern Times)
 
