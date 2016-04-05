@@ -7,7 +7,7 @@ if [[ "$OS" != Windows ]]; then
     version=3.30.33.16
 
     src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
-    src_url_sha1=
+    src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
 else
     version=4.7.80.23
 
