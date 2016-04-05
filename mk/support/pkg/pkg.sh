@@ -79,9 +79,9 @@ pkg_fetch_archive () {
 
         mkdir -p "$cache_dir"
 
-        if ! geturl "$src_url" > "$archive"; then
+        if ! geturl "$src_url" "$archive"; then
             if [[ -n "${src_url_backup:-}" ]]; then
-                geturl "$src_url_backup" > "$archive"
+                geturl "$src_url_backup" "$archive"
                 url="$src_url_backup"
             fi
             exit 1
@@ -322,7 +322,7 @@ geturl () {
     if [[ -n "${CURL:-}" ]]; then
         $CURL --silent -S --fail --location "$1" -o "$2"
     else
-        ${WGET:-wget} --quiet --output-document="$2" "$1" 
+        ${WGET:-wget} --quiet --output-document="$2" "$1"
     fi
 }
 
