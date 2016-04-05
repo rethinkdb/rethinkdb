@@ -156,7 +156,7 @@ When compiling from source, the minimum required GCC version is now 4.7.4.
  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
    (#5494)
 * Java driver:
- * Made it easier to publish the driver on local Ivy and Maven repositores. (#5054)
+ * Made it easier to publish the driver on local Ivy and Maven repositories. (#5054)
 
 ## Bug fixes ##
 
@@ -190,9 +190,9 @@ When compiling from source, the minimum required GCC version is now 4.7.4.
    (#5432)
 * Python driver
  * Fixed a bug in the `__str__` function of cursor objects. (#5567)
- * Fixed the handling of oversized query errors. (#4771)
+ * Fixed the handling of the error generated for over-sized queries. (#4771)
 * Ruby driver
- * Fixed the handling of oversized query errors. (#4771)
+ * Fixed the handling of the error generated for over-sized queries. (#4771)
 
 ## Contributors ##
 
