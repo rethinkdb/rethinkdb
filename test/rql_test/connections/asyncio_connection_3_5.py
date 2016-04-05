@@ -1,28 +1,19 @@
 #!/usr/bin/env python
-##
-# Tests the driver API for making connections and exercizes the
-# networking code
-###
+'''Tests the driver API for making connections and exercises the networking code'''
 
 from __future__ import print_function
 
-import asyncio
-import datetime
-import os
-import random
-import re
-import socket
-import sys
-import tempfile
-import time
-import traceback
-import unittest
-from collections import defaultdict
+import datetime, os, random, socket, sys, tempfile, time, unittest
+
+try:
+    import asyncio
+    assert sys.version_info >= (3, 5)
+except (ImportError, AssertionError):
+    sys.exit('This test requires the asyncio module from Python 3.5')
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 os.pardir, os.pardir, "common"))
-import driver
-import utils
+import driver, utils
 
 # -- import the rethinkdb driver
 
@@ -39,7 +30,7 @@ DEFAULT_DRIVER_PORT = 28015
 rethinkdb_exe = (sys.argv[1]
                  if len(sys.argv) > 1
                  else utils.find_rethinkdb_executable())
-use_default_port = bool(int(sys.argv[2])) if len(sys.argv) > 2 else 0
+use_default_port = bool(int(sys.argv[2])) if len(sys.argv) > 2 else False
 
 # -- shared server
 
