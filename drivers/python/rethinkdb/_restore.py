@@ -6,7 +6,7 @@ from optparse import OptionParser
 from ._backup import *
 
 info = "'rethinkdb restore' loads data into a RethinkDB cluster from an archive"
-usage = "rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--clients NUM] [--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
+usage = "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] [--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
 
 def print_restore_help():
     print(info)
@@ -19,7 +19,9 @@ def print_restore_help():
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
+    print("  -p [ --password ]                interactively prompt for a password required to connect.")
+    print("  --password-file FILENAME         read password required to connect from file.")
     print("  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may")
     print("                                   be specified multiple times)")
     print("  --clients NUM_CLIENTS            the number of client connections to use (defaults")
@@ -51,7 +53,6 @@ def print_restore_help():
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
 
     parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
@@ -67,6 +68,8 @@ def parse_options():
     parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
+    parser.add_option("--password-file", dest="password_file", default=None, type="string")
     (options, args) = parser.parse_args()
 
     if options.help:
@@ -107,7 +110,6 @@ def parse_options():
         if not os.access(res["temp_dir"], os.W_OK):
             raise RuntimeError("Error: Temporary directory inaccessible: %s" % res["temp_dir"])
 
-    res["auth_key"] = options.auth_key
     res["clients"] = options.clients
     res["shards"] = options.shards
     res["replicas"] = options.replicas
@@ -118,6 +120,8 @@ def parse_options():
     res["debug"] = options.debug
 
     res["tls_cert"] = options.tls_cert
+    res["password"] = options.password
+    res["password-file"] = options.password_file
     return res
 
 def do_unzip(temp_dir, options):
@@ -201,7 +205,10 @@ def do_import(temp_dir, options):
     import_args = ["rethinkdb-import"]
     import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     import_args.extend(["--directory", temp_dir])
-    import_args.extend(["--auth", options["auth_key"]])
+    if options["password"]:
+        import_args.append("--password")
+    if options["password-file"]:
+        import_args.extend(["--password-file", options["password-file"]])
     import_args.extend(["--clients", str(options["clients"])])
     import_args.extend(["--shards", str(options["shards"])])
     import_args.extend(["--replicas", str(options["replicas"])])
