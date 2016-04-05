@@ -98,6 +98,9 @@ configure () {
                     var_append CXXFLAGS -stdlib=libc++ ;;
             *) var_append LDFLAGS -lstdc++ ;;
         esac
+
+        check_clang_bug_5424
+
     fi
     check_cxx11
     require "Precompiled web assets"
@@ -133,6 +136,7 @@ configure () {
     for lib in $required_libs; do
         check_lib $lib require
     done
+
     check_v8_pre_3_19
 
     require malloc
@@ -1068,6 +1072,39 @@ test_protobuf () {
 fetch_allowed () {
      { contains "$please_fetch_list" $1 ||
          { can_fetch $1 && $allow_fetch ; } ; } || return 1
+}
+
+check_clang_bug_5424 () {
+    local tmpfile=$root/mk/gen/check_clang_bug_5424
+    cat > "$tmpfile.cc" <<EOF
+#include <iostream>
+int output = 1;
+class data_t {
+public:
+    data_t(int num) {
+    }
+    ~data_t() {
+        output = 0;
+    }
+};
+struct data_struct_t {
+    data_t some_data;
+    data_t some_other_data;
+};
+int main() {
+  output = 1;
+    {
+        data_struct_t{1, 2};
+    }
+    return output;
+}
+EOF
+    if !($CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
+          -std=c++11 -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
+        $tmpfile.out)
+    then
+       error "You seem to be using a version of Clang with a bug that may affect Rethink DB. Please upgrade Clang or specify a different compiler."
+    fi
 }
 
 # Checks what version of the v8 API is available
