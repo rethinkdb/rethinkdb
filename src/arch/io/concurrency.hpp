@@ -92,6 +92,8 @@ public:
         int res = pthread_rwlock_unlock(&l);
         guarantee_xerr(res == 0, res, "Could not release pthread rwlock.");
     }
+private:
+    DISABLE_COPYING(system_rwlock_t);
 };
 
 #endif /* ARCH_IO_CONCURRENCY_HPP_ */
