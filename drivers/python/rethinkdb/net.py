@@ -3,6 +3,7 @@
 import collections
 import errno
 import imp
+import itertools
 import numbers
 import os
 import socket
@@ -193,7 +194,7 @@ class Cursor(object):
             del self.conn._cursor_cache[res.token]
 
     def __str__(self):
-        val_str = ', '.join(map(repr, self.items[:10]))
+        val_str = ', '.join(map(repr, list(itertools.islice(self.item, 0, 10))))
         if len(self.items) > 10 or self.error is None:
             val_str += ', ...'
 
@@ -615,7 +616,7 @@ def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=
 
 def set_loop_type(library):
     global connection_type
-    
+
     # find module file
     moduleName = 'net_%s' % library
     modulePath = None
@@ -624,10 +625,10 @@ def set_loop_type(library):
         modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
     else:
         raise ValueError('Unknown loop type: %r' % library)
-    
+
     # load the module
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-    
+
     # set the connection type
     connection_type = module.Connection
