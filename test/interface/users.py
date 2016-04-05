@@ -32,10 +32,10 @@ with driver.Process() as process:
     assert res == {"id": "admin", "password": False}, res
     res = users.get("admin").update({"password": None}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a string or boolean for `password`, got null.", res
+    assert res["first_error"] == "Expected an object, string or boolean for `password`, got null.", res
     res = users.get("admin").update({"password": True}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a string to set the password or `false` to keep it unset, got true.", res
+    assert res["first_error"] == "Expected an object or string to set the password, or `false` to keep it unset, got true.", res
     res = users.get("admin").replace({"id": "admin"}).run(conn)
     assert res["errors"] == 1, res
     assert res["first_error"] == "Expected a field named `password`.", res
@@ -52,10 +52,10 @@ with driver.Process() as process:
     assert res["first_error"].startswith("Expected a username as the primary key, got "), res
     res = users.insert({"id": "test", "password": None}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a string or boolean for `password`, got null.", res
+    assert res["first_error"] == "Expected an object, string or boolean for `password`, got null.", res
     res = users.insert({"id": "test", "password": True}).run(conn)
     assert res["errors"] == 1, res
-    assert res["first_error"] == "Expected a string to set the password or `false` to keep it unset, got true.", res
+    assert res["first_error"] == "Expected an object or string to set the password, or `false` to keep it unset, got true.", res
     res = users.insert({"id": "test"}).run(conn)
     assert res["errors"] == 1, res
     assert res["first_error"] == "Expected a field named `password`.", res
@@ -63,6 +63,26 @@ with driver.Process() as process:
     assert res["errors"] == 1, res
     assert res["first_error"] == "Unexpected key(s) `test`.", res
     res = users.insert({"id": "test", "password": False}).run(conn)
+    assert res["inserted"] == 1, res
+
+    res = users.insert({"id": "test-2", "password": {}}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "Expected a field named `iterations`.", res
+    res = users.insert({"id": "test-2", "password": {"iterations": 4096}}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "Expected a field named `password`.", res
+    res = users.insert({"id": "test-2", "password": {"password": "test"}}).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "Expected a field named `iterations`.", res
+    res = users.insert(
+        {
+            "id": "test-2",
+            "password": {"iterations": 4096, "password": "test", "test": "test"}
+        }).run(conn)
+    assert res["errors"] == 1, res
+    assert res["first_error"] == "Unexpected key(s) `test`."
+    res = users.insert(
+        {"id": "test-2", "password": {"iterations": 4096, "password": "test"}}).run(conn)
     assert res["inserted"] == 1, res
 
     res = users.get("test").delete().run(conn)
