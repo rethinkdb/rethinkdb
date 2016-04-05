@@ -42,7 +42,7 @@ public class SocketWrapper {
     /**
      * @param handshake
      */
-    void connect(ByteBuffer handshake) {
+    void connect(Handshake handshake) {
         final Optional<Long> deadline = timeout.map(Util::deadline);
         try {
             // establish connection
@@ -73,11 +73,17 @@ public class SocketWrapper {
             }
 
             // execute RethinkDB handshake
-            writeStream.write(handshake.array());
-            final String msg = readNullTerminatedString(deadline);
-            if (!msg.equals("SUCCESS")) {
-                throw new ReqlDriverError(
-                        "Server dropped connection with message: \"%s\"", msg);
+
+            // initialize handshake
+            Optional<ByteBuffer> toWrite = handshake.nextMessage(null);
+            // Sit in the handshake until it's completed. Exceptions will be thrown if
+            // anything goes wrong.
+            while(!handshake.isFinished()) {
+                if (toWrite.isPresent()) {
+                    write(toWrite.get());
+                }
+                String serverMsg = readNullTerminatedString(deadline);
+                toWrite = handshake.nextMessage(serverMsg);
             }
         } catch (IOException e) {
             throw new ReqlDriverError("Connection timed out.", e);
