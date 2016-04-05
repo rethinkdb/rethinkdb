@@ -38,8 +38,6 @@ class IterableResult
         @_closeCbPromise = null
 
         @next = @_next
-        @each = @_each
-        @eachAsync = @_eachAsync
 
     _addResponse: (response) ->
         if response.t is @_type or response.t is protoResponseType.SUCCESS_SEQUENCE
@@ -211,49 +209,65 @@ class IterableResult
                 ).nodeify(cb)
         return @_closeCbPromise
 
-
-    _each: varar(1, 2, (cb, onFinished) ->
+    each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
             throw new error.ReqlDriverError "First argument to each must be a function."
         if onFinished? and typeof onFinished isnt 'function'
             throw new error.ReqlDriverError "Optional second argument to each must be a function."
 
-        self = @
-        nextCb = (err, data) =>
-            if err?
-                if err.message is 'No more rows in the cursor.'
-                    onFinished?()
-                else
-                    cb(err)
-            else if cb(null, data) isnt false
-                @_next nextCb
-            else
-                onFinished?()
-        @_next nextCb
+        nextCb = =>
+            @_next().then (data) ->
+                return nextCb() if cb(null, data) isnt false
+            .catch (err) ->
+                return if err?.message is 'No more rows in the cursor.'
+                cb(err)
+
+        return nextCb().nodeify(onFinished)
     )
 
-    _eachAsync: varar(1, 2, (cb, errCb) ->
+    eachAsync: varar(1, 3, (cb, errCb, options = { concurrency: 1 }) ->
         unless typeof cb is 'function'
             throw new error.ReqlDriverError 'First argument to eachAsync must be a function.'
 
-        if errCb? and typeof errCb isnt 'function'
-            throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function"
+        if errCb?
+            if typeof errCb is 'object'
+                options = errCb
+                errCb = undefined
+            else if typeof errCb isnt 'function'
+                throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function or `options` object"
+
+        unless options and typeof options.concurrency is 'number' and options.concurrency > 0
+            throw new error.ReqlDriverError "Optional `options.concurrency` argument to eachAsync must be a positive number"
+
+        pending = []
+
+        userCb = (data) ->
+            return Promise.resolve(cb(data)) if cb.length <= 1 # either synchronous or awaits promise
+            return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
 
         nextCb = =>
             if @_closeCbPromise?
                 return Promise.reject(new error.ReqlDriverError("Cursor is closed."))
             else
-                @_next().then (data) ->
-                    return cb(data) if cb.length <= 1 # either synchronous or awaits promise
-                    return Promise.fromNode (handler) -> cb(data, handler) # callback-style async
-                .then (result) ->
-                    return nextCb()
+                return @_next().then (data) ->
+                    return data if pending.length < options.concurrency
+                    return Promise.any(pending)
+                    .catch Promise.AggregateError, (errs) -> throw errs[0]
+                    .return(data)
+                .then (data) ->
+                    p = userCb(data).then ->
+                        pending.splice pending.indexOf(p), 1
+                    pending.push p
+                .then nextCb
                 .catch (err) ->
-                    return if err?.message is 'No more rows in the cursor.'
-                    throw err
+                    throw err if err?.message isnt 'No more rows in the cursor.'
+                    return Promise.all(pending) # await any queued promises before returning
 
         return nextCb().nodeify(errCb)
     )
+
+    _each: @::each
+    _eachAsync: @::eachAsync
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
@@ -402,15 +416,7 @@ class ArrayResult extends IterableResult
             else
                 cb new error.ReqlDriverError "No more rows in the cursor."
 
-        new Promise( (resolve, reject) ->
-            nextCb = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            fn(nextCb)
-        ).nodeify cb
-
+        return Promise.fromNode(fn).nodeify(cb)
 
     toArray: varar 0, 1, (cb) ->
         fn = (cb) =>
@@ -420,15 +426,7 @@ class ArrayResult extends IterableResult
             else
                 cb(null, @)
 
-        new Promise( (resolve, reject) ->
-            toArrayCb = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            fn(toArrayCb)
-        ).nodeify cb
-
+        return Promise.fromNode(fn).nodeify(cb)
 
     close: ->
         return @
@@ -437,10 +435,7 @@ class ArrayResult extends IterableResult
         response.__proto__ = {}
         for name, method of ArrayResult.prototype
             if name isnt 'constructor'
-                if name is '_each'
-                    response.__proto__['each'] = method
-                    response.__proto__['_each'] = method
-                else if name is '_next'
+                if name is '_next'
                     response.__proto__['next'] = method
                     response.__proto__['_next'] = method
                 else
