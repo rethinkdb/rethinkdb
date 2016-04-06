@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """This test repeatedly reconfigures a table in a specific pattern to test the
 efficiency of the reconfiguration logic. It's sort of like `shard_fuzzer.py` but it
@@ -7,12 +7,12 @@ produces a specific workload instead of a random one."""
 
 from __future__ import print_function
 
-import os, pprint, random, string, sys, threading, time
+import os, string, sys, time
 
 startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, scenario_common, utils, vcoptparse
+import driver, rdb_unittest, scenario_common, utils, vcoptparse
 
 try:
     xrange
@@ -28,7 +28,7 @@ opts['num-shards'] = vcoptparse.IntFlag('--num-shards', 32)
 opts['num-replicas'] = vcoptparse.IntFlag('--num-replicas', 1)
 opts['num-phases'] = vcoptparse.IntFlag('--num-phases', 2)
 parsed_opts = opts.parse(sys.argv)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(parsed_opts)
+_, command_prefix, server_options = scenario_common.parse_mode_flags(parsed_opts)
 
 possible_server_names = \
     list(string.ascii_lowercase) + \
@@ -50,47 +50,45 @@ def make_config_shards(phase):
         shards.append(shard)
     return shards
 
-r = utils.import_python_driver()
-
-print("Spinning up %d servers (%.2fs)" % (len(server_names), time.time() - startTime))
-with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix,
-                    extra_options=serve_options, wait_until_ready=True) as cluster:
-    cluster.check()
+class ReconfigureStress(rdb_unittest.RdbTestCase):
+    servers = server_names
+    server_command_prefix = command_prefix
+    server_extra_options = server_options
     
-    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
-    conn = r.connect(host=cluster[0].host, port=cluster[0].driver_port)
-
-    print("Setting up table(s) (%.2fs)" % (time.time() - startTime))
-    res = r.db_create("test").run(conn)
-    assert res["dbs_created"] == 1, res
-    for name in table_names:
-        res = r.db("rethinkdb").table("table_config").insert({
-            "name": name,
-            "db": "test",
-            "shards": [{"primary_replica": "a", "replicas": ["a"]}]
-            }).run(conn)
-        assert res["inserted"] == 1, res
-    for name in table_names:
-        res = r.table(name).wait().run(conn)
-        assert res["ready"] == 1, res
-        res = r.table(name).insert(
-            r.range(0, parsed_opts["num-rows"]).map({"x": r.row})).run(conn)
-        assert res["inserted"] == parsed_opts["num-rows"], res
-
-    for phase in xrange(parsed_opts['num-phases']):
-        print("Beginning reconfiguration phase %d (%.2fs)" % (phase + 1, time.time() - startTime))
-        shards = make_config_shards(phase)
+    def test_reconfigure_stress(self):
+        print("") # to move us off the unittest line
+        
+        # Existing tables
+        existingTables = self.db.table_list().run(self.conn)
+        
+        # Set up tables
+        utils.print_with_time("\tSetting up %d table%s" % (len(table_names), "(s)" if len(table_names) > 1 else ""))
         for name in table_names:
-            res = r.table(name).config().update({"shards": shards}).run(conn)
-            assert res["replaced"] == 1 or res["unchanged"] == 1, res
-        print("Waiting for table(s) to become ready (%.2fs)" % (time.time() - startTime))
-        for name in table_names:
-            res = r.table(name).wait(wait_for = "all_replicas_ready", timeout = 600).run(conn)
-            assert res["ready"] == 1, res
-            for config_shard, status_shard in zip(shards, r.table(name).status()["shards"].run(conn)):
-                # make sure issue #4265 didn't happen
-                assert status_shard["primary_replicas"] == [config_shard["primary_replica"]]
+            res = self.r.db("rethinkdb").table("table_config").insert({
+                "name": name,
+                "db": self.dbName,
+                "shards": [{"primary_replica": "a", "replicas": ["a"]}]
+                }).run(self.conn)
+        res = self.db.wait(wait_for="all_replicas_ready").run(self.conn)
+        self.assert_("ready" in res, "Key 'ready' not in result: %s" % res)
+        self.assertEqual(res["ready"], len(table_names) + len(existingTables))
+        res = self.db.table_list().run(self.conn)
+        for tableName in table_names:
+            self.assert_(tableName in table_names, 'Table "%s" is missing' % tableName)
+        
+        # Run the phases
+        for phase in xrange(parsed_opts['num-phases']):
+            utils.print_with_time("\tBeginning reconfiguration phase %d" % (phase + 1))
+            shards = make_config_shards(phase)
+            for name in table_names:
+                res = self.db.table(name).config().update({"shards": shards}).run(self.conn)
+                assert res["replaced"] == 1 or res["unchanged"] == 1, res
+            utils.print_with_time("\tWaiting for table(s) to become ready")
+            for name in table_names:
+                res = self.db.table(name).wait(wait_for="all_replicas_ready", timeout=600).run(self.conn)
+                assert res["ready"] == 1, res
+                for config_shard, status_shard in zip(shards, self.db.table(name).status()["shards"].run(self.conn)):
+                    # make sure issue #4265 didn't happen
+                    assert status_shard["primary_replicas"] == [config_shard["primary_replica"]]
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
-
+rdb_unittest.main()

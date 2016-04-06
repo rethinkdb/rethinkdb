@@ -42,13 +42,13 @@ $queries = [
 
 for nshards in [1, 2, 5]
   $tbl.reconfigure(replicas: 1, shards: nshards).run
-  $tbl.wait.run
+  $tbl.wait(:wait_for=>"all_replicas_ready").run
   for try in 1..$ntries
     $docs = (0...$ndocs).map{|i| {id: i, ts: 0}}
     puts $tbl.delete.run(durability: 'soft')
     puts $tbl.insert($docs).run(durability: 'soft')
     $tbl.rebalance.run
-    $tbl.wait.run
+    $tbl.wait(:wait_for=>"all_replicas_ready").run
     
 
     puts "\nRUNNING:"

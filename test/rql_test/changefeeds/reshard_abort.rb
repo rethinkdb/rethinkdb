@@ -16,7 +16,7 @@ end
 r.table_create('test').run rescue nil
 r.table('test').index_create('a').run rescue nil
 r.table('test').reconfigure({shards: n_shards(), replicas: 1}).run
-r.table('test').wait.run
+r.table('test').wait(:wait_for=>"all_replicas_ready").run
 r.table('test').delete.run
 r.table('test').insert((0...1000).map{|i| {id: i, a: i}}).run
 
@@ -34,7 +34,7 @@ r.table('test').insert((0...1000).map{|i| {id: i, a: i}}).run
     x = stream.next
     # puts "res_size: #{stream.instance_eval("@results").size}"
     r.table('test').reconfigure(shards: n_shards(), replicas: 1).run
-    r.table('test').wait.run
+    r.table('test').wait(:wait_for=>"all_replicas_ready").run
     y = nil
     begin
       y = stream.to_a.size
@@ -57,7 +57,7 @@ r.table('test').insert((0...1000).map{|i| {id: i, a: i}}).run
     x = stream1.next
     stream2 = op.changes().run(bo)
     r.table('test').reconfigure(shards: n_shards(), replicas: 1).run
-    r.table('test').wait.run
+    r.table('test').wait(:wait_for=>"all_replicas_ready").run
     y = nil
     begin
       puts "Testing #{op.inspect}.changes(include_initial: true).run(#{bo})..."

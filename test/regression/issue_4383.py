@@ -35,7 +35,7 @@ with driver.Cluster(initial_servers=['source1', 'source2', 'target'], console_ou
         "shards": [{"primary_replica":"source1", "replicas":["source1", "source2"]}] * num_shards
         }).run(conn)
     tbl = r.db(dbName).table(tableName)
-    tbl.wait().run(conn)
+    tbl.wait(wait_for="all_replicas_ready").run(conn)
     
     utils.print_with_time("Inserting %d documents" % opts["num_rows"])
     chunkSize = 2000

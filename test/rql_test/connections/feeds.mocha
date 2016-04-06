@@ -85,7 +85,7 @@ var withTable = function() {
     })
     // make sure the table is ready
     .then(function() {
-        return r.db(dbName).table(tableName).wait().run(reqlConn)
+        return r.db(dbName).table(tableName).wait({"waitFor":"all_replicas_ready"}).run(reqlConn)
     })
 }
 

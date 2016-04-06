@@ -20,7 +20,7 @@ $init_pop = (0..25000).map {|i|
 $pop = $init_pop.dup
 PP.pp $tbl.insert($pop).run
 $tbl.reconfigure({shards: 2, replicas: 1}).run
-$tbl.wait().run
+$tbl.wait(:wait_for=>"all_replicas_ready").run
 
 def assert(x, *args)
   raise RuntimeError, "Assert failed (#{args})." if !x

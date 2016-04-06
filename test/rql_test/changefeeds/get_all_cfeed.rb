@@ -7,7 +7,7 @@ ARGV.clear
 $c = r.connect(port: $port).repl
 
 r.table_create('test').run rescue nil
-r.table('test').wait.run
+r.table('test').wait(:wait_for=>"all_replicas_ready").run
 r.table('test').index_create('a').run rescue nil
 r.table('test').index_wait('a').run
 
@@ -90,7 +90,7 @@ end
   r.table('test').insert((0...1000).map{|i| {id: i, a: i}}).run
   # We reconfigure after inserting so that we actually put data on both shards.
   r.table('test').reconfigure(replicas: 1, shards: 2).run
-  r.table('test').wait.run
+  r.table('test').wait(:wait_for=>"all_replicas_ready").run
 
   puts "Testing changefeeds on short keys..."
   EM.run {

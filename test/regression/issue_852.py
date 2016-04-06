@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2012-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
-
 import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
@@ -45,7 +43,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     ]
     res = tbl.config().update({'shards':shards}).run(conn)
     assert res['errors'] == 0, 'Errors after splitting into two shards: %s' % repr(res)
-    r.db(dbName).wait().run(conn)
+    r.db(dbName).wait(wait_for="all_replicas_ready").run(conn)
     cluster.check()
 
     utils.print_with_time("Changing the primary replica")
@@ -54,7 +52,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}
     ]
     assert tbl.config().update({'shards':shards}).run(conn)['errors'] == 0
-    r.db(dbName).wait().run(conn)
+    r.db(dbName).wait(wait_for="all_replicas_ready").run(conn)
     cluster.check()
 
     utils.print_with_time("Changing it back")
@@ -65,10 +63,11 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     assert tbl.config().update({'shards':shards}).run(conn)['errors'] == 0
 
     utils.print_with_time("Waiting for it to take effect")
-    r.db(dbName).wait().run(conn)
+    r.db(dbName).wait(wait_for="all_replicas_ready").run(conn)
     cluster.check()
-
-    assert len(list(r.db('rethinkdb').table('current_issues').run(conn))) == 0
+    
+    res = list(r.db('rethinkdb').table('current_issues').filter(r.row["type"] != "memory_error").run(conn))
+    assert len(res) == 0, 'There were unexpected issues: \n%s' % utils.RePrint.pformat(res)
     
     utils.print_with_time("Cleaning up")
 utils.print_with_time("Done.")

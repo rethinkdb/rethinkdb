@@ -26,7 +26,7 @@ $batchopts = [{max_batch_rows: 1}, {max_batch_rows: 3}, {}]
 $batchopts.each {|bo|
   puts "Testing with batch options: #{bo}"
   r.table_create('test').run rescue nil
-  r.table('test').wait.run
+  r.table('test').wait(:wait_for=>"all_replicas_ready").run
   r.table('test').index_create('A').run rescue nil
   r.table('test').index_wait('A').run
   r.table('test').index_create('Z').run rescue nil
@@ -36,7 +36,7 @@ $batchopts.each {|bo|
     # We reconfigure before deleting so we can use the data inserted
     # by the last run to determine resharding boundaries.
     r.table('test').reconfigure(shards: shards, replicas: 1).run
-    r.table('test').wait.run
+    r.table('test').wait(:wait_for=>"all_replicas_ready").run
     r.table('test').delete.run
     (0...100).each{|i|
       di = doc(i)

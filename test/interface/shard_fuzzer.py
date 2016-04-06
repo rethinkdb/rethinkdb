@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 '''This test randomly rebalances tables and shards to probabilistically find bugs in the system.'''
-
-from __future__ import print_function
 
 import pprint, os, sys, time, random, threading
 
@@ -42,7 +40,7 @@ for table_name in tables:
     table_history[table_name] = []
 
 def populate_table(conn, table, count):
-    print("Populating table '%s' with %d rows (%.2fs)" % (table, count, time.time() - startTime))
+    utils.print_with_time("Populating table '%s' with %d rows" % (table, count))
     r.db(db).table(table).insert(r.range(count).map(lambda x: {'id': x})).run(conn)
 
 def create_tables(conn):
@@ -50,7 +48,7 @@ def create_tables(conn):
     if not dbName in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
 
-    print("Creating %d tables (%.2fs)" % (len(tables), time.time() - startTime))
+    utils.print_with_time("Creating %d tables" % len(tables))
     for i in xrange(len(tables)):
         r.db(db).table_create(tables[i]).run(conn)
         populate_table(conn, tables[i], table_counts[i])
@@ -91,7 +89,7 @@ def fuzz_table(cluster, table, stop_event, random_seed):
             server = random.choice(list(cluster.processes))
             conn = r.connect(server.host, server.driver_port)
         except:
-            print("Failed to connect to a server - something probably broke, stopping fuzz")
+            utils.print_with_time("Failed to connect to a server - something probably broke, stopping fuzz")
             stop_event.set()
             continue
 
@@ -116,7 +114,7 @@ def fuzz_table(cluster, table, stop_event, random_seed):
                pass
             else:
                 fuzz_non_trivial_failures += 1
-                print("Fuzz of table '%s' failed (%.2fs): %s" % (table, time.time() - startTime, str(ex)))
+                utils.print_with_time("Fuzz of table '%s' failed: %s" % (table, str(ex)))
                 try:
                     (config, status) = r.expr([r.db(db).table(table).config(), r.db(db).table(table).status()]).run(conn)
                     print("Table '%s' config:\n%s" % (table, pprint.pformat(config)))
@@ -124,24 +122,23 @@ def fuzz_table(cluster, table, stop_event, random_seed):
                 except Exception as ex:
                     print("Could not get config or status for table '%s': %s" % (table, str(ex)))
                 print("Table '%s' history:\n%s" % (table, pprint.pformat(table_history[table])))
-    print("Stopped fuzzing on table '%s', attempts: %d, successes: %d, non-trivial failures: %d (%.2fs)" %
-          (table, fuzz_attempts, fuzz_successes, fuzz_non_trivial_failures, time.time() - startTime))
+    utils.print_with_time("Stopped fuzzing on table '%s', attempts: %d, successes: %d, non-trivial failures: %d" %
+          (table, fuzz_attempts, fuzz_successes, fuzz_non_trivial_failures))
     sys.stdout.flush()
 
-print("Spinning up %d servers (%.2fs)" % (len(server_names), time.time() - startTime))
+utils.print_with_time("Spinning up %d servers" % len(server_names))
 with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix,
                     extra_options=serve_options, wait_until_ready=True) as cluster:
     cluster.check()
     print("table counts: %s" % table_counts)
     
     print("Server driver ports: %s" % (str([x.driver_port for x in cluster])))
-    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Establishing ReQL connection")
     conn = r.connect(host=cluster[0].host, port=cluster[0].driver_port)
     create_tables(conn)
 
     random.seed(parsed_opts['random-seed'])
-    print("Fuzzing shards for %ds, random seed: %s (%.2fs)" %
-          (parsed_opts['duration'], repr(parsed_opts['random-seed']), time.time() - startTime))
+    utils.print_with_time("Fuzzing shards for %ds, random seed: %s" % (parsed_opts['duration'], repr(parsed_opts['random-seed'])))
     stop_event = threading.Event()
     table_threads = []
     for table in tables:
@@ -155,23 +152,23 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
         time.sleep(0.2)
         current_time = time.time()
         if parsed_opts['progress'] and int((end_time - current_time) / 10) < int((end_time - last_time) / 10):
-            print("%ds remaining (%.2fs)" % (int(end_time - current_time) + 1, time.time() - startTime))
+            utils.print_with_time("%ds remaining" % (int(end_time - current_time) + 1))
         last_time = current_time
         if not all([x.is_alive() for x in table_threads]):
             stop_event.set()
 
-    print("Stopping fuzzing (%d of %d threads remain) (%.2fs)" % (len(table_threads), len(tables), time.time() - startTime))
+    utils.print_with_time("Stopping fuzzing (%d of %d threads remain)" % (len(table_threads), len(tables)))
     stop_event.set()
     for thread in table_threads:
         thread.join()
 
     for i in xrange(len(tables)):
-        print("Checking contents of table '%s' (%.2fs)" % (tables[i], time.time() - startTime))
+        utils.print_with_time("Checking contents of table '%s'" % tables[i])
         # TODO: check row data itself
-        r.db(db).table(tables[i]).wait().run(conn)
+        r.db(db).table(tables[i]).wait(wait_for="all_replicas_ready").run(conn)
         count = r.db(db).table(tables[i]).count().run(conn)
         assert count == table_counts[i], "Incorrect table count following fuzz of table '%s', found %d of expected %d" % (tables[i], count, table_counts[i])
         
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done.")
 
