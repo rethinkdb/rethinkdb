@@ -7,7 +7,6 @@
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 
 // This will migrate all metadata from v2_1 to v2_3 (including auth metadata).
 template <cluster_version_t W>

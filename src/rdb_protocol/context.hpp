@@ -27,8 +27,10 @@
 #include "rdb_protocol/wire_func.hpp"
 
 namespace auth {
-    class user_context_t;
-    class permissions_t;
+
+class user_context_t;
+class permissions_t;
+
 }  // namespace auth
 
 struct admin_err_t;
