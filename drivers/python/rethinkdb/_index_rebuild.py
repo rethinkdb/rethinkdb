@@ -88,7 +88,7 @@ def do_connect(options):
     try:
         return r.connect(options['host'],
                          options['port'],
-                         ssl = options['tls_cert']
+                         ssl = options['tls_cert'],
                          user="admin",
                          password=options["password"])
     except (r.ReqlError, r.ReqlDriverError) as ex:
