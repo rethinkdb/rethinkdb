@@ -84,6 +84,7 @@
               _USE_MATH_DEFINES;
               COMPILER_MSVC;
               RAPIDJSON_HAS_STDSTRING;
+              RAPIDJSON_PARSE_DEFAULT_FLAGS=kParseFullPrecisionFlag;
               V8_NEEDS_BUFFER_ALLOCATOR;
               BOOST_DATE_TIME_NO_LIB;
               <xsl:if test="@configuration = 'Release'">
