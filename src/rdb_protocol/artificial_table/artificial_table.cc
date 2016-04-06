@@ -32,8 +32,12 @@ bool checked_read_row_from_backend(
     return true;
 }
 
-artificial_table_t::artificial_table_t(artificial_table_backend_t *_backend) :
-    backend(_backend), primary_key(backend->get_primary_key_name()) { }
+artificial_table_t::artificial_table_t(
+        artificial_table_backend_t *_backend, bool check_permissions)
+    : backend(_backend),
+      primary_key(backend->get_primary_key_name()),
+      m_check_permissions(check_permissions) {
+}
 
 namespace_id_t artificial_table_t::get_id() const {
     return nil_uuid();
@@ -45,6 +49,11 @@ const std::string &artificial_table_t::get_pkey() const {
 
 ql::datum_t artificial_table_t::read_row(ql::env_t *env,
         ql::datum_t pval, UNUSED read_mode_t read_mode) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
+
     ql::datum_t row;
     admin_err_t error;
     if (!checked_read_row_from_backend(backend, pval, env->interruptor, &row, &error)) {
@@ -64,6 +73,11 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
         UNUSED read_mode_t read_mode) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
+
     if (get_all_sindex_id != primary_key) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "%s",
             error_message_index_not_found(get_all_sindex_id, table_name).c_str());
@@ -82,6 +96,10 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
     ql::env_t *env,
     const ql::changefeed::streamspec_t &ss,
     ql::backtrace_id_t bt) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
 
     counted_t<ql::datum_stream_t> stream;
     admin_err_t error;
@@ -128,6 +146,11 @@ ql::datum_t artificial_table_t::write_batched_replace(
         const counted_t<const ql::func_t> &func,
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
+
     /* Note that we ignore the `durability` optarg. In theory we could assert that it's
     unspecified or specified to be "soft", since durability is irrelevant or effectively
     soft for system tables anyway. But this might lead to some confusing errors if the
@@ -164,6 +187,11 @@ ql::datum_t artificial_table_t::write_batched_insert(
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
+
     ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
     throttled_pmap(inserts.size(), [&] (int i) {
@@ -225,6 +253,11 @@ void artificial_table_t::do_single_update(
         signal_t *interruptor,
         ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout) {
+    rcheck_datum(
+        !m_check_permissions || env->get_user_context().is_admin(),
+        ql::base_exc_t::PERMISSION_ERROR,
+        "Only administrators may access system tables.");
+
     admin_err_t error;
     ql::datum_t old_row;
     if (!checked_read_row_from_backend(backend, pval, interruptor, &old_row, &error)) {
@@ -248,6 +281,25 @@ void artificial_table_t::do_single_update(
         if (new_row.get_type() == ql::datum_t::R_NULL) {
             new_row.reset();
         }
+
+        // This is a hack to disallow users from moving tables into databases that they
+        // don't have permissions on through the `.config()` command.
+        // This logic shouldn't be here, and we should remove this once we implement
+        // proper fine-grained permissions on the artificial tables.
+        if (!m_check_permissions && !env->get_user_context().is_admin()) {
+            if (new_row.get_type() == ql::datum_t::R_OBJECT
+                && new_row.get_field("db", ql::NOTHROW).has()) {
+                // The new document has a `db` field. This is only permissible if the
+                // old document also had a `db` field and it had the same value.
+                rcheck_datum(
+                    old_row.get_type() == ql::datum_t::R_OBJECT
+                    && old_row.get_field("db", ql::NOTHROW).has()
+                    && old_row.get_field("db") == new_row.get_field("db"),
+                    ql::base_exc_t::PERMISSION_ERROR,
+                    "Only administrators may move a table to a different database.");
+            }
+        }
+
         if (!backend->write_row(pval, pkey_was_autogenerated, &new_row,
                 interruptor, &error)) {
             REQL_RETHROW_DATUM(error);

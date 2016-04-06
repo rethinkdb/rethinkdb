@@ -8,7 +8,7 @@ from ._backup import *
 info = "'rethinkdb index-rebuild' recreates outdated secondary indexes in a cluster.\n" + \
        "  This should be used after upgrading to a newer version of rethinkdb.  There\n" + \
        "  will be a notification in the web UI if any secondary indexes are out-of-date."
-usage = "rethinkdb index-rebuild [-c HOST:PORT] [-a AUTH_KEY] [-n NUM] [-r (DB | DB.TABLE)]..."
+usage = "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] [--password-file FILENAME]..."
 
 # Prefix used for indexes that are being rebuilt
 temp_index_prefix = '$reql_temp_index$_'
@@ -21,7 +21,9 @@ def print_restore_help():
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
+    print("  -p [ --password ]                interactively prompt for a password required to connect.")
+    print("  --password-file FILENAME         read password required to connect from file.")
     print("  -r [ --rebuild ] (DB | DB.TABLE) the databases or tables to rebuild indexes on")
     print("                                   (defaults to all databases and tables)")
     print("  -n NUM                           the number of concurrent indexes to rebuild")
@@ -39,13 +41,15 @@ def print_restore_help():
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-r", "--rebuild", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
 
     parser.add_option("-n", dest="concurrent", metavar="NUM", default=1, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
+    parser.add_option("--password-file", dest="password_file", default=None, type="string")
+
     (options, args) = parser.parse_args()
 
     if options.help:
@@ -65,9 +69,10 @@ def parse_options():
     # Verify valid --import options
     res["tables"] = parse_db_table_options(options.tables)
 
-    res["auth_key"] = options.auth_key
     res["concurrent"] = options.concurrent
     res["debug"] = options.debug
+
+    res["password"] = get_password(options.password, options.password_file)
     return res
 
 def print_progress(ratio):
@@ -81,7 +86,11 @@ def print_progress(ratio):
 
 def do_connect(options):
     try:
-        return r.connect(options['host'], options['port'], ssl=options['tls_cert'], auth_key=options['auth_key'])
+        return r.connect(options['host'],
+                         options['port'],
+                         ssl = options['tls_cert']
+                         user="admin",
+                         password=options["password"])
     except (r.ReqlError, r.ReqlDriverError) as ex:
         raise RuntimeError("Error when connecting: %s" % ex.message)
 

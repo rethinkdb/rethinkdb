@@ -49,6 +49,7 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "crypto/random.hpp"
 #include "logger.hpp"
@@ -1135,12 +1136,21 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_auth_metadata_to_v2_2(&io_backender, auth_path, &txn,
+                    logNTC("Migrating auth metadata to v2.1");
+                    migrate_auth_metadata_to_v2_1(&io_backender, auth_path, &txn,
                                                   &non_interruptor);
+                    logNTC("Migrating auth metadata to v2.3");
+                    migrate_auth_metadata_v2_1_to_v2_3(&txn, &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }
-                remove(auth_path.permanent_path().c_str());
+                if (remove(auth_path.permanent_path().c_str()) != 0) {
+                    fail_due_to_user_error(
+                        "Failed to remove legacy 'auth_metadata' configuration file at %s.  "
+                        "If this file remains, it could overwrite future changes to user "
+                        "and password configurations.  Please remove it and try again.",
+                        auth_path.permanent_path().c_str());
+                }
             }
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
@@ -1261,7 +1271,10 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     }
 }
 
-void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
+void run_rethinkdb_proxy(
+        serve_info_t *serve_info,
+        const std::string &initial_password,
+        bool *const result_out) {
 
     os_signal_cond_t sigint_cond;
     guarantee(!serve_info->joins.empty());
@@ -1269,6 +1282,7 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
     try {
         serve_info->look_up_peers();
         *result_out = serve_proxy(*serve_info,
+                                  initial_password,
                                   &sigint_cond);
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
@@ -1289,6 +1303,12 @@ options::help_section_t get_server_options(std::vector<options::option_t> *optio
                                              options::OPTIONAL_REPEAT));
     help.add("-t [ --server-tag ] arg",
              "a tag for this server. Can be specified multiple times.");
+
+    return help;
+}
+
+options::help_section_t get_auth_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Authentication options");
 
     options_out->push_back(options::option_t(options::names_t("--initial-password"),
                                              options::OPTIONAL));
@@ -1663,6 +1683,7 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
                                   std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
@@ -1674,6 +1695,7 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
     help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -1687,6 +1709,7 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_network_options(true, options_out));
     help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
@@ -1701,6 +1724,7 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
     help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -2044,6 +2068,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                     "Run 'rethinkdb help proxy' for more information.\n");
@@ -2094,8 +2120,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 tls_configs);
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
-                           num_workers);
+        run_in_thread_pool(
+            std::bind(&run_rethinkdb_proxy, &serve_info, initial_password, &result),
+            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);

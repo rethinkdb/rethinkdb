@@ -6,6 +6,8 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_14.hpp"
+#include "clustering/administration/persist/migrate/metadata_v1_16.hpp"
+#include "clustering/administration/persist/migrate/metadata_v2_1.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/immediate_consistency/history.hpp"
@@ -530,7 +532,7 @@ void migrate_tables(io_backender_t *io_backender,
 
 }
 
-void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
+void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                                       const base_path_t &base_path,
                                       buf_parent_t buf_parent,
                                       const void *old_superblock,
@@ -608,11 +610,10 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
         interruptor);
 }
 
-void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
+void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                                    const serializer_filepath_t &path,
                                    UNUSED metadata_file_t::write_txn_t *out,
                                    UNUSED signal_t *interruptor) {
-    logNTC("Migrating auth metadata");
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
     log_serializer_t serializer(log_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
@@ -678,9 +679,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
         unreachable();
     }
 
-    // These structures are currently identical, although that could change in the future
-    /* ::auth_semilattice_metadata_t new_metadata;
+    metadata_v1_16::auth_semilattice_metadata_t new_metadata;
     new_metadata.auth_key = metadata.auth_key;
 
-    out->write(mdkey_auth_semilattices(), new_metadata, interruptor);  FIXME */
+    out->write(metadata_v2_1::mdkey_auth_semilattices(), new_metadata, interruptor);
 }

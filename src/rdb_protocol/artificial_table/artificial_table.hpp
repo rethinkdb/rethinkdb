@@ -20,7 +20,8 @@ class artificial_table_backend_t;
 
 class artificial_table_t : public base_table_t {
 public:
-    explicit artificial_table_t(artificial_table_backend_t *_backend);
+    explicit artificial_table_t(
+        artificial_table_backend_t *_backend, bool check_permissions = true);
 
     namespace_id_t get_id() const;
     const std::string &get_pkey() const;
@@ -92,6 +93,7 @@ private:
 
     artificial_table_backend_t *backend;
     std::string primary_key;
+    bool m_check_permissions;
 };
 
 #endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_ */

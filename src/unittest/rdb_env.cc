@@ -398,6 +398,7 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
 }
 
 bool test_rdb_env_t::instance_t::db_config(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED const counted_t<const ql::db_t> &db,
         UNUSED ql::backtrace_id_t bt,
         UNUSED ql::env_t *local_env,
@@ -501,6 +502,7 @@ bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
 }
 
 bool test_rdb_env_t::instance_t::table_config(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
         UNUSED ql::backtrace_id_t bt,

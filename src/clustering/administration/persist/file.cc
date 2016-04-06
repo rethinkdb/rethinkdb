@@ -7,6 +7,7 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
@@ -325,22 +326,26 @@ metadata_file_t::metadata_file_t(
             sb_write.reset();
             sb_lock.reset();
 
-            logNTC("Migrating cluster metadata to v2.2");
-            migrate_cluster_metadata_to_v2_2(
+            logNTC("Migrating cluster metadata to v2.1");
+            migrate_cluster_metadata_to_v2_1(
                 io_backender, base_path,
                 buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
                 interruptor);
-        } break;
-    case cluster_version_t::v2_1: {
-            update_metadata_superblock_version(sb_data);
-            sb_write.reset();
-            sb_lock.reset();
 
-            logNTC("Rewriting cluster metadata for v2.2");
-            rewrite_cluster_metadata(&write_txn, interruptor);
+            // The metadata is now serialized using the latest serialization version
+            metadata_version = cluster_version_t::LATEST_DISK;
+        }                         // fallthrough intentional
+    case cluster_version_t::v2_1: // fallthrough intentional
+    case cluster_version_t::v2_2: {
+            if (sb_lock.has()) {
+                update_metadata_superblock_version(sb_data);
+                sb_write.reset();
+                sb_lock.reset();
+            }
+
+            logNTC("Migrating cluster metadata to v2.3");
+            migrate_metadata_v2_1_to_v2_3(metadata_version, &write_txn, interruptor);
         } break;
-    case cluster_version_t::v2_2:
-        break; // TODO(grey)
     case cluster_version_t::v2_3_is_latest_disk:
         break; // Up-to-date, do nothing
     default: unreachable();

@@ -253,13 +253,15 @@ bool real_reql_cluster_interface_t::db_find(
 }
 
 bool real_reql_cluster_interface_t::db_config(
+        auth::user_context_t const &user_context,
         const counted_t<const ql::db_t> &db,
         ql::backtrace_id_t backtrace_id,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         admin_err_t *error_out) {
     try {
-        // FIXME permissions
+        user_context.require_config_permission(m_rdb_context, db->id);
+
         make_single_selection(
             admin_tables->db_config_backend.get(),
             name_string_t::guarantee_valid("db_config"),
@@ -526,6 +528,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 }
 
 bool real_reql_cluster_interface_t::table_config(
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         ql::backtrace_id_t bt,
@@ -536,7 +539,8 @@ bool real_reql_cluster_interface_t::table_config(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        // FIXME permissions
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
+
         make_single_selection(
             admin_tables->table_config_backend[
                 static_cast<int>(admin_identifier_format_t::name)].get(),
@@ -1393,7 +1397,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         throw no_such_table_exc_t();
     }
     counted_t<ql::table_t> table = make_counted<ql::table_t>(
-        counted_t<base_table_t>(new artificial_table_t(table_backend)),
+        counted_t<base_table_t>(new artificial_table_t(table_backend, false)),
         make_counted<const ql::db_t>(
             nil_uuid(), name_string_t::guarantee_valid("rethinkdb")),
         table_name.str(), read_mode_t::SINGLE, bt);

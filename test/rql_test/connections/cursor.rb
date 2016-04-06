@@ -3,6 +3,12 @@
 
 require 'minitest/autorun'
 
+begin
+  TestBaseClass = MiniTest::Test
+rescue
+  TestBaseClass = MiniTest::Unit::TestCase
+end
+
 # -- import the rethinkdb driver
 
 require_relative '../importRethinkDB.rb'
@@ -21,7 +27,7 @@ def expect_error(m, err_type, err_info)
   raise RuntimeError, "Expected an error, but got success with result: #{res}."
 end
 
-class Cursor_Test < MiniTest::Unit::TestCase
+class Cursor_Test < TestBaseClass
   @conn = nil
   
   def setup

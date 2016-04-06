@@ -12,18 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Closeable;
 import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,13 +27,6 @@ public class Connection implements Closeable {
     // logger
     private static final Logger log = LoggerFactory.getLogger(Connection.class);
 
-    /**
-     * Default SSL/TLS protocol version
-     * <p>
-     * This property is defined as String {@value #DEFAULT_SSL_PROTOCOL}
-     */
-    private static final String DEFAULT_SSL_PROTOCOL = "TLSv1.2";
-
     // public immutable
     public final String hostname;
     public final int port;
@@ -52,7 +37,7 @@ public class Connection implements Closeable {
     private Optional<String> dbname;
     private Optional<Long> connectTimeout;
     private Optional<SSLContext> sslContext;
-    private final ByteBuffer handshake;
+    private final Handshake handshake;
 
     // network stuff
     Optional<SocketWrapper> socket = Optional.empty();
@@ -67,37 +52,16 @@ public class Connection implements Closeable {
 
     public Connection(Builder builder) {
         dbname = builder.dbname;
-        final String authKey = builder.authKey.orElse("");
-        handshake = Util.leByteBuffer(Integer.BYTES + Integer.BYTES + authKey.length() + Integer.BYTES)
-                .putInt(Version.V0_4.value)
-                .putInt(authKey.length())
-                .put(authKey.getBytes())
-                .putInt(Protocol.JSON.value);
-        handshake.flip();
+        if (builder.authKey.isPresent() && builder.user.isPresent()) {
+            throw new ReqlDriverError("Either `authKey` or `user` can be used, but not both.");
+        }
+        String user = builder.user.orElse("admin");
+        String password = builder.password.orElse(builder.authKey.orElse(""));
+        handshake = new Handshake(user, password);
         hostname = builder.hostname.orElse("localhost");
         port = builder.port.orElse(28015);
         // is certFile provided? if so, it has precedence over SSLContext
-        if (builder.certFile.isPresent()) {
-            try {
-                final CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                final X509Certificate caCert = (X509Certificate) cf.generateCertificate(builder.certFile.get());
-
-                final TrustManagerFactory tmf = TrustManagerFactory
-                        .getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-                ks.load(null); // You don't need the KeyStore instance to come from a file.
-                ks.setCertificateEntry("caCert", caCert);
-                tmf.init(ks);
-
-                final SSLContext ssc = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
-                ssc.init(null, tmf.getTrustManagers(), null);
-                sslContext = Optional.of(ssc);
-            } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-                throw new ReqlDriverError(e);
-            }
-        } else {
-            sslContext = builder.sslContext;
-        }
+        this.sslContext = Crypto.handleCertfile(builder.certFile, builder.sslContext);
         connectTimeout = builder.timeout;
     }
 
@@ -358,14 +322,30 @@ public class Connection implements Closeable {
     /**
      * Connection.Builder should be used to build a Connection instance.
      */
-    public static class Builder {
+    public static class Builder implements Cloneable {
         private Optional<String> hostname = Optional.empty();
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
-        private Optional<String> authKey = Optional.empty();
         private Optional<InputStream> certFile = Optional.empty();
         private Optional<SSLContext> sslContext = Optional.empty();
         private Optional<Long> timeout = Optional.empty();
+        private Optional<String> authKey = Optional.empty();
+        private Optional<String> user = Optional.empty();
+        private Optional<String> password = Optional.empty();
+
+        public Builder clone() throws CloneNotSupportedException {
+            Builder c = (Builder)super.clone();
+            c.hostname = hostname;
+            c.port = port;
+            c.dbname = dbname;
+            c.certFile = certFile;
+            c.sslContext = sslContext;
+            c.timeout = timeout;
+            c.authKey = authKey;
+            c.user = user;
+            c.password = password;
+            return c;
+        }
 
         public Builder hostname(String val) {
             hostname = Optional.of(val);
@@ -382,8 +362,14 @@ public class Connection implements Closeable {
             return this;
         }
 
-        public Builder authKey(String val) {
-            authKey = Optional.of(val);
+        public Builder authKey(String key) {
+            authKey = Optional.of(key);
+            return this;
+        }
+
+        public Builder user(String user, String password) {
+            this.user = Optional.of(user);
+            this.password = Optional.of(password);
             return this;
         }
 
