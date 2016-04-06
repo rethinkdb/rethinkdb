@@ -1082,9 +1082,9 @@ class TcpConnection extends Connection
 
             handshake_error = (code, message) =>
                 if 10 <= code <= 20
-                    throw new err.ReqlAuthError(message)
+                    @emit 'error', new err.ReqlAuthError(message)
                 else
-                    throw new err.ReqlDriverError(message)
+                    @emit 'error', new err.ReqlDriverError(message)
 
             handshake_callback = (buf) =>
                 # Once we receive a response, extend the current
@@ -1114,6 +1114,7 @@ class TcpConnection extends Connection
                         if state is 1
                             if not server_reply.success
                                 handshake_error(server_reply.error_code, server_reply.error)
+                                return
                             min = server_reply.min_protocol_version
                             max = server_reply.max_protocol_version
 
@@ -1126,6 +1127,7 @@ class TcpConnection extends Connection
                         else if state is 2
                             if not server_reply.success
                                 handshake_error(server_reply.error_code, server_reply.error)
+                                return
 
                             authentication = {}
                             server_first_message = server_reply.authentication
@@ -1167,6 +1169,7 @@ class TcpConnection extends Connection
                         else if state is 3
                             if not server_reply.success
                                 handshake_error(server_reply.error_code, server_reply.error)
+                                return
 
                             first_equals = server_reply.authentication.indexOf('=')
                             v = server_reply.authentication.slice(first_equals+1)
@@ -1632,13 +1635,12 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     #    or in the browser.
     # 2. Initializes the connection, and when it's complete invokes
     #    the user's callback
-    if host.authKey? && (host.password? || host.user?)
-        throw new err.ReqlDriverError "Cannot use both authKey and password"
-    else if host.authKey
-        host.user = "admin"
-        host.password = host.authKey
-
     new Promise( (resolve, reject) ->
+        if host.authKey? && (host.password? || host.user?)
+            throw new err.ReqlDriverError "Cannot use both authKey and password"
+        else if host.authKey
+            host.user = "admin"
+            host.password = host.authKey
         create_connection = (host, callback) =>
             if TcpConnection.isAvailable()
                 new TcpConnection host, callback
