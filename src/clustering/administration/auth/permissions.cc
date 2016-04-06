@@ -100,7 +100,7 @@ void permissions_t::merge(ql::datum_t const &datum) {
 
     if (!keys.empty()) {
         throw admin_op_exc_t(
-            "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`",
+            "Unexpected key(s) `" + boost::algorithm::join(keys, "`, `") + "`.",
             query_state_t::FAILED);
     }
 }

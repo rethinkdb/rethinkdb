@@ -7,7 +7,6 @@
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 
 // This will migrate all metadata from v2_1 to v2_3 (including auth metadata).
 template <cluster_version_t W>
@@ -39,6 +38,7 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
     // Read out the old auth metadata
     metadata_v1_16::auth_semilattice_metadata_t old_metadata;
     std::string old_auth_key;
+    time_t auth_key_ts = std::numeric_limits<time_t>::min();
 
     // This can fail if we're migrating very old metadata, and it hasn't brought
     // in the auth_metadata file yet.  That will be done later and overwrite the
@@ -47,10 +47,20 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
                         &old_metadata,
                         interruptor)) {
         old_auth_key = old_metadata.auth_key.get_ref().key;
+        auth_key_ts = old_metadata.auth_key.get_timestamp();
     }
 
     // Write out the new auth metadata
-    auth_semilattice_metadata_t new_metadata(old_auth_key);
+    auth_semilattice_metadata_t new_metadata;
+    auth::password_t admin_pw(
+        old_auth_key,
+        1 /* 1 iteration, since auth_key was already insecure. */);
+    auto admin_pair = std::make_pair(
+        auth::username_t("admin"),
+        versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
+            auth_key_ts,
+            boost::make_optional(auth::user_t(std::move(admin_pw), auth::admin_t()))));
+    new_metadata.m_users.insert(std::move(admin_pair));
     txn->write(mdkey_auth_semilattices(), new_metadata, interruptor);
 }
 
