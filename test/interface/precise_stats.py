@@ -18,9 +18,9 @@ server_names = ['grey', 'face']
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
+_, command_prefix, server_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Cluster(initial_servers=server_names) as cluster:
+with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
     
     r.connect(host=cluster[0].host, port=cluster[0].driver_port).repl()
 
