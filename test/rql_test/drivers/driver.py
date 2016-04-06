@@ -562,7 +562,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
             r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
         res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
         assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, str(res))
-        r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
+        r.db(db_name).table(table_name).wait(wait_for="all_replicas_ready").run(driver.cpp_conn)
         
         print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     

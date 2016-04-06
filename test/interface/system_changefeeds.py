@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 """Check that changefeeds on system tablescorrectly notify when changes occur."""
 
@@ -91,7 +91,7 @@ with driver.Cluster(output_folder='.', ) as cluster:
     utils.print_with_time("Adding replicas...")
     res = r.table("test").config().update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
     assert res["errors"] == 0, res
-    r.table("test").wait().run(conn)
+    r.table("test").wait(wait_for="all_replicas_ready").run(conn)
     check(["table_config", "table_status", "test_config", "test_status", "logs"], 1.5)
 
     utils.print_with_time("Renaming server...")

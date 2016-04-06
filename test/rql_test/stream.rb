@@ -12,7 +12,7 @@ $tbl.index_create('a').run rescue nil
 $tbl.index_create('m', multi: true).run rescue nil
 $tbl.index_wait('a').run
 $tbl.index_wait('m').run
-$tbl.wait.run
+$tbl.wait(:wait_for=>"all_replicas_ready").run
 
 $gen = Random.new
 puts "Random seed: #{$gen.seed}"
@@ -60,7 +60,7 @@ $tbl.insert($data).run
   $shards = shards
   puts "Shards: #{shards}"
   $tbl.reconfigure({shards: shards, replicas: 2}).run
-  $tbl.wait.run
+  $tbl.wait(:wait_for=>"all_replicas_ready").run
   [{},
    {max_batch_rows: 1},
    {max_batch_rows: $gen.rand(100)},

@@ -70,7 +70,7 @@ r.table_create('test').run rescue nil
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {id: i, z: 9}}).run
   r.table('test').reconfigure(shards: 2, replicas: 1).run
-  r.table('test').wait.run
+  r.table('test').wait(:wait_for=>"all_replicas_ready").run
   q = r.table('test').between(10, 20).changes(include_initial: true)
   EM.run {
     $h = H.new

@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from copy import deepcopy
-import socket, sys, string, re
+import socket, sys, string, re, getpass
 
 try:
     import rethinkdb as r
@@ -48,6 +48,16 @@ def ssl_option(str):
         return dict()
     else:
         return {"ca_certs": str}
+
+def get_password(interactive, filename):
+    password = ""
+    if filename is not None:
+        password_file = open(filename)
+        password = password_file.read().rstrip('\n')
+        password_file.close()
+    elif interactive:
+        password = getpass.getpass("Password for `admin`: ")
+    return password
 
 # This function is used to wrap rethinkdb calls to recover from connection errors
 # The first argument to the function is an output parameter indicating if progress

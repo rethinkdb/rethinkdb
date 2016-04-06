@@ -187,7 +187,7 @@ def make_changes(conn, table, change_count):
         value = yield cur.next()
         ids.add(value['id'])
 
-    for i in xrange(change_count):
+    for i in range(change_count):
         optype_random = random.random()
 
         if optype_random < 0.2:
@@ -233,22 +233,22 @@ def main():
     yield r.table("test").index_create("g", geo=True).run(conn)
     yield r.table("test").index_wait("g").run(conn)
 
-    print "Starting validators"
+    print("Starting validators")
 
     validators = []
-    for i in xrange(50):
+    for i in range(50):
         query_geo = yield random_geo(conn)
         validators.append(DatasetTracker(conn, "test", query_geo, "inititial-" + str(i)))
 
     for i in range(20):
-        print "Making changes"
+        print("Making changes")
         yield make_changes(conn, "test", random.randint(5,100))
-        print "Validating"
+        print("Validating")
         yield [v.check_validity() for v in validators]
-        print "Adding new validator"
+        print("Adding new validator")
         query_geo = yield random_geo(conn)
         validators.append(DatasetTracker(conn, "test", query_geo, "late-" + str(i)))
-    print "All done!"
+    print("All done!")
 
 if __name__ == '__main__':
     ioloop.IOLoop.current().run_sync(main)

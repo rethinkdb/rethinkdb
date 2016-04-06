@@ -39,7 +39,7 @@ usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)] [--clients NUM]\n\
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
-  rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
+  rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] \n\
       [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
@@ -51,7 +51,9 @@ def print_import_help():
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
+    print("  -p [ --password ]                interactively prompt for a password required to connect.")
+    print("  --password-file FILENAME         read password required to connect from file.")
     print("  --clients NUM_CLIENTS            the number of client connections to use (defaults")
     print("                                   to 8)")
     print("  --hard-durability                use hard durability writes (slower, but less memory")
@@ -111,7 +113,6 @@ def print_import_help():
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
@@ -141,6 +142,8 @@ def parse_options():
     parser.add_option("--no-header", dest="no_header", action="store_true", default=False)
     parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
+    parser.add_option("--password-file", dest="password_file", default=None, type="string")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
@@ -160,8 +163,6 @@ def parse_options():
         raise RuntimeError("Error: --client option too low, must have at least one client connection")
 
     res["tls_cert"] = ssl_option(options.tls_cert)
-
-    res["auth_key"] = options.auth_key
     res["clients"] = options.clients
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
@@ -291,6 +292,7 @@ def parse_options():
     else:
         raise RuntimeError("Error: Must specify one of --directory or --file to import")
 
+    res["password"] = get_password(options.password, options.password_file)
     return res
 
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
@@ -333,9 +335,18 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
         task = task_queue.get()
 
 # This is run for each client requested, and accepts tasks from the reader processes
+<<<<<<< HEAD
 def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability, ssl_op):
     try:
         conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
+=======
+def client_process(host, port, task_queue, error_queue, rows_written, replace_conflicts, durability, admin_password):
+    try:
+        conn_fn = lambda: r.connect(host,
+                                    port,
+                                    user="admin",
+                                    password=admin_password)
+>>>>>>> nighelles/5464
         write_count = [0]
         rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability, write_count)
     except:
@@ -572,7 +583,14 @@ def table_reader(options, file_info, task_queue, error_queue, warning_queue, pro
         create_args = dict(options["create_args"])
         create_args["primary_key"] = file_info["info"]["primary_key"]
 
+<<<<<<< HEAD
         conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
+=======
+        conn_fn = lambda: r.connect(options["host"],
+                                    options["port"],
+                                    user="admin",
+                                    password=options["password"])
+>>>>>>> nighelles/5464
         try:
             rdb_call_wrapper(conn_fn, "create table", create_table, db, table, create_args,
                          file_info["info"]["indexes"] if options["create_sindexes"] else [])
@@ -655,13 +673,16 @@ def spawn_import_clients(options, files_info):
             client_procs.append(multiprocessing.Process(target=client_process,
                                                         args=(options["host"],
                                                               options["port"],
-                                                              options["auth_key"],
                                                               task_queue,
                                                               error_queue,
                                                               rows_written,
                                                               options["force"],
                                                               options["durability"],
+<<<<<<< HEAD
                                                               options["tls_cert"])))
+=======
+                                                              options["password"])))
+>>>>>>> nighelles/5464
             client_procs[-1].start()
 
         for file_info in files_info:
@@ -824,7 +845,14 @@ def import_directory(options):
 
         db_tables.add((file_info["db"], file_info["table"]))
 
+<<<<<<< HEAD
     conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
+=======
+    conn_fn = lambda: r.connect(options["host"],
+                                options["port"],
+                                user="admin",
+                                password=options["password"])
+>>>>>>> nighelles/5464
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -879,7 +907,14 @@ def import_file(options):
     table = options["import_db_table"][1]
 
     # Ensure that the database and table exist with the right primary key
+<<<<<<< HEAD
     conn_fn = lambda: r.connect(options["host"], options["port"], ssl= options["tls_cert"], auth_key=options["auth_key"])
+=======
+    conn_fn = lambda: r.connect(options["host"],
+                                options["port"],
+                                user="admin",
+                                password=options["password"])
+>>>>>>> nighelles/5464
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))

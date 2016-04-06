@@ -323,10 +323,9 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
-                                               "Connection interrupted during"
-                                               " handshake with %s:%d. "
-                                               "Error: Operation timed out."
+            yield self.asyncAssertRaisesRegexp(r.ReqlTimeoutError,
+                                               "Could not connect to %s:%d, "
+                                               "operation timed out."
                                                % (host, port),
                                                r.connect(host=host, port=port,
                                                          timeout=2))

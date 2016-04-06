@@ -191,8 +191,7 @@ describe("JavaScript Callback style", function() {
                 r.connect(
                     {host:serverHost, port:driverPort, authKey: "hunter2"},
                     givesError("ReqlAuthError",
-                               "Could not connect to "+serverHost+":"+driverPort+
-                               ", incorrect authentication key.", done)
+                               "Wrong password", done)
                 );
             });
 
@@ -218,8 +217,7 @@ describe("JavaScript Callback style", function() {
                     r.connect(
                         {host:serverHost, port:driverPort, authKey: "hunter-bad"},
                         givesError("ReqlAuthError",
-                                   "Could not connect to "+serverHost+":"+driverPort+
-                                   ", incorrect authentication key.", done)
+                                   "Wrong password", done)
                     );
                 });
             });

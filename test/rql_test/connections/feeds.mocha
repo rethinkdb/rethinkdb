@@ -11,17 +11,16 @@ var path = require('path');
 
 // -- settings
 
-var driverPort = process.env.RDB_DRIVER_PORT || (process.argv[2] ? parseInt(process.argv[2], 10) : 28015);
-var serverHost = process.env.RDB_SERVER_HOST || (process.argv[3] ? parseInt(process.argv[3], 10) : 'localhost');
+var driverPort  = process.env.RDB_DRIVER_PORT || (process.argv[2] ? parseInt(process.argv[2], 10) : 28015);
+var serverHost  = process.env.RDB_SERVER_HOST || process.argv[3] || 'localhost';
 
-var dbName = 'test';
-var tableName = 'test';
-var numRows = parseInt(process.env.TEST_ROWS) || 100;
-var manyRows = parseInt(process.env.TEST_MANY_ROWS) || 10000; // Keep a "big" value to try hitting `maximum call stack exceed`
+var dbName      = process.env.RDB_DB_NAME || 'test';
+var tableName   = process.env.RDB_TABLE_NAME || 'test';
 
 // -- load rethinkdb from the proper location
 
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
+var Promise = r._bluebird;
 
 // -- globals
 
@@ -86,7 +85,7 @@ var withTable = function() {
     })
     // make sure the table is ready
     .then(function() {
-        return r.db(dbName).table(tableName).wait().run(reqlConn)
+        return r.db(dbName).table(tableName).wait({"waitFor":"all_replicas_ready"}).run(reqlConn)
     })
 }
 
@@ -96,7 +95,10 @@ var withTableFeed = function() {
     // dispose of any old tableFeed
     .then(function() {
         if (tableFeed) {
-            try { tableFeed.removeAllListeners(); } catch (err) {}
+            try {
+                tableFeed.removeAllListeners();
+                tableFeed.on('error', function() {}); // otherwise `close` becomes an unhandled error 
+            } catch (err) {}
             return tableFeed.close();
         }
     })
@@ -265,29 +267,19 @@ describe('JavaScript changefeed', function() {
             .catch(r.Error.ReqlDriverError, function() {})
         });
 
-        it('errors on next after close', function(done) {
-            tbl.changes().run(reqlConn, function(err, tableFeed) {
-                assert.ifError(err);
-                tableFeed.close();
-                var deadline = Date.now() + 200
-
-                // wait a moment then ensure it is closed
-                var checkError = function() {
-                    tableFeed.next()
-                    .then(function() {
-                        if (Date.now() > deadline) {
-                            err = new Error("The expected error when a closed cursor is used was not thrown");
-                            done(err);
-                        } else {
-                            setTimeout(checkError, 5);
-                        }
-                    })
-                    .catch(r.Error.ReqlDriverError, function(err) {
-                        done();
-                    })
-                    .catch(function(err) { done(err); })
-                }
-                setTimeout(checkError, 10) // give it a moment to close
+        it('errors on next after close', function() {
+            return tbl.changes().run(reqlConn)
+            .then(function() {
+                tableFeed.close()
+            })
+            .then(function() {
+                return tableFeed.next();
+            })
+            .then(function() {
+                assert.fail(undefined, undefined, "The expected error when a closed cursor is used was not thrown")
+            })
+            .catch(r.Error.ReqlDriverError, function(err) {
+                assert.equal(err.message, 'Cursor is closed.')
             });
         });
 
@@ -360,7 +352,7 @@ describe('JavaScript changefeed', function() {
 
             // do the inserts
             r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'emits an event to two receivers when data is inserted'}); }).run(reqlConn);
-
+            
             // check on the result periodically, up to a deadline
             var checkEvents = function() {
                 if(eventCounterA == expectedEvents) {
@@ -375,42 +367,7 @@ describe('JavaScript changefeed', function() {
             checkEvents();
         });
 
-        describe('once', function() {
-            it('emits only one event', function(done) {
-                var eventCounter = 0;
-                var deadline = Date.now() + shortTimeout;
-
-                // set the event receiver
-                tableFeed.once('data', function(row) {
-                    if(row.new_val.test == 'data once') {
-                        eventCounter += 1;
-                    }
-                });
-
-                // insert 2 events
-                tbl.insert([{'test':'data once'}, {'test':'data once'}]).run(reqlConn);
-
-                // check on the result periodically, up to a deadline
-                var checkEvents = function() {
-                    if(eventCounter == 1) {
-                        if(tableFeed.listeners('data').length == 0) {
-                            done();
-                        } else {
-                            err = new Error('Expected no event listeners but found ' + tableFeed.listeners('data').length);
-                            done(err);
-                        }
-                    } else if (Date.now() > deadline) {
-                        err = new Error('Expected 1 event but saw ' + eventCounter);
-                        done(err);
-                    } else {
-                        setTimeout(checkEvents, checkDelay);
-                    }
-                }
-                checkEvents();
-            });
-        });
-
-        it('emits error events', function(done) {
+        it('emits error events', function() {
             var eventCounter = 0;
             var expectedEvents = 1;
             var deadline = Date.now() + shortTimeout;
@@ -418,20 +375,13 @@ describe('JavaScript changefeed', function() {
             // set the event receiver
             tableFeed.on('error', function(error) { eventCounter += 1; });
 
-            // check on the result periodically, up to a deadline
-            var checkEvents = function() {
-                if(eventCounter == expectedEvents) {
-                    done();
-                } else if (Date.now() > deadline) {
-                    err = new Error('Expected ' + expectedEvents + ' errors but only saw ' + eventCounter);
-                    done(err);
-                } else {
-                    setTimeout(checkEvents, checkDelay);
-                }
-            }
-            
             // drop the table to generate an error in the feed
-            r.db(dbName).tableDrop(tableName).run(reqlConn).then(checkEvents);
+            return r.db(dbName).tableDrop(tableName).run(reqlConn)
+            // wait shortTimeout then check that we have only the single event
+            .delay(shortTimeout)
+            .then(function() {
+                assert.equal(eventCounter, 1, 'Did not see the single event that was expected, rather saw: ' + eventCounter);
+            });
         });
 
         it('supports removeListener', function() {
@@ -492,31 +442,49 @@ describe('JavaScript changefeed', function() {
             done();
         });
 
-        it("doesn't emit events after close", function(done) {
-            var counter = 0;
-            var deadline = Date.now() + shortTimeout;
-
+        it("doesn't emit events after close", function() {
+            var eventCounter = 0;
+            
             // set the event receiver
-            tableFeed.on('data', function() { counter += 1; });
-
+            tableFeed.on('data', function() { eventCounter += 1; });
+            
+            // add one data item
+            return tbl.insert({}).run(reqlConn)
             // close the cursor
-            tableFeed.close();
-
+            .then(function() {
+                tableFeed.close()
+            })
             // insert an item
-            tbl.insert({}).run(reqlConn);
+            .then(function() {
+                return tbl.insert({}).run(reqlConn);
+            })
+            // wait shortTimeout, and then make sure we only saw one event
+            .delay(shortTimeout)
+            .then(function() {
+                assert.equal(eventCounter, 1, 'Did not see the single event that was expected, rather saw: ' + eventCounter);
+            })
+        });
+        
+        describe('once', function() {
+            it('emits only one event', function() {
+                var eventCounter = 0;
 
-            // check on the result periodically, up to a deadline
-            var checkEvents = function() {
-                if(counter == 0) {
-                    done();
-                } else if (Date.now() > deadline) {
-                    err = new Error('Expected 0 events after a close but saw ' + counter);
-                    done(err);
-                } else {
-                    setTimeout(checkEvents, checkDelay);
-                }
-            }
-            checkEvents();
+                // set the event receiver
+                tableFeed.once('data', function(row) {
+                    if(row.new_val.test == 'data once') {
+                        eventCounter += 1;
+                    }
+                });
+
+                // insert 2 events
+                return tbl.insert([{'test':'data once'}, {'test':'data once'}]).run(reqlConn)
+                // wait shortTimeout then check that we have only the single event
+                .delay(shortTimeout)
+                .then(function() {
+                    assert.equal(eventCounter, 1, 'Did not see the single event that was expected, rather saw: ' + eventCounter);
+                    assert.equal(tableFeed.listeners('data').length, 0, 'Unexpected listeners: ' + tableFeed.listeners('data'));
+                });
+            });
         });
     });
 });

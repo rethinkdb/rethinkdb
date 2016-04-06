@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-import os, pprint, random, string, sys, threading, time
+import os, pprint, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, rdb_unittest, scenario_common, utils, vcoptparse
@@ -30,7 +30,7 @@ class NameCollision(rdb_unittest.RdbTestCase):
         alpha.start()
         
         # -- check for the server name collision
-        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        issues = list(self.r.db("rethinkdb").table("current_issues").filter(self.r.row["type"] != "memory_error").run(self.conn))
         assert len(issues) == 1, pprint.pformat(issues)
         server_issue = issues[0]
         
@@ -61,17 +61,29 @@ class NameCollision(rdb_unittest.RdbTestCase):
         beta.stop()
         
         alpha_db_uuid = self.r.db_create(db_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
-        self.r.db(db_name).wait().run(self.conn)
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            res = self.r.db_list().run(self.conn)
+            if db_name in res:
+                break
+        else:
+            raise AssertionError('Database name is not in db_list: %s' % db_name)
         
         # -- reverse and setup the second server
         alpha.stop()
         beta.start()
         beta_db_uuid = self.r.db_create(db_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
-        self.r.db(db_name).wait().run(self.conn)
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            res = self.r.db_list().run(self.conn)
+            if db_name in res:
+                break
+        else:
+            raise AssertionError('Database name is not in db_list: %s' % db_name)
         
         # -- bring up both servers and observe the error
         alpha.start()
-        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        issues = list(self.r.db("rethinkdb").table("current_issues").filter(self.r.row["type"] != "memory_error").run(self.conn))
         assert len(issues) == 1, pprint.pformat(issues)
         db_issue = issues[0]
         
@@ -102,18 +114,18 @@ class NameCollision(rdb_unittest.RdbTestCase):
         beta.stop()
         
         alpha_table_uuid = self.db.table_create(table_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
-        self.db.table(table_name).wait().run(self.conn)
+        self.db.table(table_name).wait(wait_for='all_replicas_ready').run(self.conn)
         
         # -- reverse and setup the second server
         alpha.stop()
         beta.start()
         
         beta_table_uuid = self.db.table_create(table_name).run(self.conn)["config_changes"][0]["new_val"]["id"]
-        self.db.table(table_name).wait().run(self.conn)
+        self.db.table(table_name).wait(wait_for='all_replicas_ready').run(self.conn)
         
         # -- bring up both servers and observe the error
         alpha.start()
-        issues = list(self.r.db("rethinkdb").table("current_issues").run(self.conn))
+        issues = list(self.r.db("rethinkdb").table("current_issues").filter(self.r.row["type"] != "memory_error").run(self.conn))
         assert len(issues) == 1, pprint.pformat(issues)
         table_issue = issues[0]
 

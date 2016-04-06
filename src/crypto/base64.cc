@@ -42,7 +42,7 @@ std::string base64_encode(unsigned char const *data, size_t size) {
             break;
         case 0:
             break;
-    };
+    }
 
     return encoded;
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 """Checks that the special `rethinkdb.table_config` and `rethinkdb.table_status` tables behave as expected."""
 
@@ -302,7 +302,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         "primary_replica": "a",
         "nonvoting_replicas": []
         }], repr(res)
-    r.db(dbName).table("idf_test").wait().run(conn)
+    r.db(dbName).table("idf_test").wait(wait_for="all_replicas_ready").run(conn)
     
     res = r.db("rethinkdb").table("table_status", identifier_format="uuid").filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 """The `interface.table_reconfigure` test checks that the `table.reconfigure()` method works as expected."""
 
@@ -45,7 +45,7 @@ with driver.Cluster(output_folder='.') as cluster:
     res = r.db(dbName).table(tableName).config() \
         .update({"shards": [{"primary_replica": "s1", "replicas": ["s1"]}]}).run(conn)
     assert res["errors"] == 0
-    r.db(dbName).table(tableName).wait().run(conn)
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn)
     
     # Insert some data so distribution queries can work
     utils.print_with_time("Adding data")

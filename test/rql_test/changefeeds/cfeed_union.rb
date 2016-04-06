@@ -13,6 +13,11 @@ tableName = File.basename(__FILE__).gsub('.', '_')
 r.expr([dbName]).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run
 r.expr([tableName]).set_difference(r.db(dbName).table_list()).for_each{|row| r.db(dbName).table_create(row)}.run
 $t = r.db(dbName).table(tableName)
+$t.wait(:wait_for=>"all_replicas_ready").run
+$t.delete.run
+$t.reconfigure(shards: 2, replicas: 1).run
+$t.insert((0...100).map{|i| {id: i}}).run
+$t.wait(:wait_for=>"all_replicas_ready").run
 
 $streams = [
   $t,
@@ -48,12 +53,6 @@ end
 def nested_union(streams)
   streams.reduce{|a,b| r.union(a, b)}
 end
-
-$t.wait.run
-$t.delete.run
-$t.insert((0...100).map{|i| {id: i}}).run
-$t.reconfigure(shards: 2, replicas: 1).run
-$t.wait.run
 
 $eager_pop = $streams*2 + $empty_streams*2 + $streams
 $eager_union_1 = flat_union($eager_pop)

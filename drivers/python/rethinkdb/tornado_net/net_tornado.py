@@ -9,7 +9,7 @@ from tornado.concurrent import Future
 from tornado.tcpclient import TCPClient
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -124,26 +124,43 @@ class ConnectionInstance(object):
         self._stream.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
         try:
-            self._stream.write(self._parent.handshake)
-            response = yield with_absolute_timeout(
-                deadline,
-                self._stream.read_until(b'\0'),
-                io_loop=self._io_loop,
-                quiet_exceptions=(iostream.StreamClosedError))
+            self._parent.handshake.reset()
+            response = None
+            while True:
+                request = self._parent.handshake.next_message(response)
+                if request is None:
+                    break
+                # This may happen in the `V1_0` protocol where we send two requests as
+                # an optimization, then need to read each separately
+                if request is not "":
+                    self._stream.write(request)
+
+                response = yield with_absolute_timeout(
+                    deadline,
+                    self._stream.read_until(b'\0'),
+                    io_loop=self._io_loop,
+                    quiet_exceptions=(iostream.StreamClosedError))
+                response = response[:-1]
+        except ReqlAuthError:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
+            raise
+        except ReqlTimeoutError:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
+            raise ReqlTimeoutError(self._parent.host, self._parent.port)
         except Exception as err:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
             raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
-
-        message = decodeUTF(response[:-1]).split('\n')[0]
-
-        if message != 'SUCCESS':
-            yield self.close(False, None)
-            if message == "ERROR: Incorrect authorization key":
-                raise ReqlAuthError(self._parent.host, self._parent.port)
-            else:
-                raise ReqlDriverError('Server dropped connection with message: "%s"' %
-                    (message, ))
 
         # Start a parallel function to perform reads
         self._io_loop.add_callback(self._reader)

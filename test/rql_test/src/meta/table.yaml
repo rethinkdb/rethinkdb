@@ -219,7 +219,10 @@ tests:
       rb: db.table('a').reconfigure(:shards => 2, :replicas => 1)
       ot: partial({'reconfigured':1})
 
-    - cd: db.table('a').wait()
+    - py: db.table('a').wait(wait_for="all_replicas_ready")
+      js: db.table('a').wait({"waitFor":"all_replicas_ready"})
+      rb: db.table('a').wait(:wait_for=>"all_replicas_ready")
+      ot: {"ready":1}
 
     # Insert some data so that `reconfigure()` can pick shard points
     - py: db.table('a').insert([{"id":1}, {"id":2}, {"id":3}, {"id":4}])
@@ -238,25 +241,29 @@ tests:
       ot: err('ReqlOpFailedError', 'Can\'t put 2 replicas on servers with the tag `default` because there are only 1 servers with the tag `default`. It\'s impossible to have more replicas of the data than there are servers.', [])
 
     # Test wait and rebalance
-    - cd: db.table('a').wait()
-      ot: partial({'ready':1})
+    - py: db.table('a').wait(wait_for="all_replicas_ready")
+      js: db.table('a').wait({"waitFor":"all_replicas_ready"})
+      rb: db.table('a').wait(:wait_for=>"all_replicas_ready")
+      ot: {"ready":1}
     - cd: db.table('a').rebalance()
       ot: partial({'rebalanced':1})
 
-    - cd: db.wait()
-      ot: partial({'ready':1})
+    - py: db.wait(wait_for="all_replicas_ready")
+      js: db.wait({"waitFor":"all_replicas_ready"})
+      rb: db.wait(:wait_for=>"all_replicas_ready")
+      ot: {"ready":1}
     - cd: db.rebalance()
       ot: partial({'rebalanced':1})
 
     - cd: r.wait()
       ot:
         py: err('AttributeError', "'module' object has no attribute 'wait'", [])
-        js: err('TypeError', "Object function () {\n  var args;\n  args = 1 <= arguments.length ? slice.call(arguments, 0) : [];\n  return rethinkdb.expr.apply(rethinkdb, args);\n} has no method 'wait'")
+        js: err('TypeError', "undefined is not a function")
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])
     - cd: r.rebalance()
       ot:
         py: err('AttributeError', "'module' object has no attribute 'rebalance'", [])
-        js: err('TypeError', "Object function () {\n  var args;\n  args = 1 <= arguments.length ? slice.call(arguments, 0) : [];\n  return rethinkdb.expr.apply(rethinkdb, args);\n} has no method 'rebalance'")
+        js: err('TypeError', "undefined is not a function")
         rb: err('ReqlQueryLogicError', '`rebalance` can only be called on a table or database.', [])
 
     - cd: db.table_drop('a')
@@ -342,7 +349,7 @@ tests:
       rb: r.wait(:wait_for=>'all_replicas_ready', :timeout => 5)
       ot:
         py: err('AttributeError', "'module' object has no attribute 'wait'", [])
-        js: err('TypeError', "Object function () {\n  var args;\n  args = 1 <= arguments.length ? slice.call(arguments, 0) : [];\n  return rethinkdb.expr.apply(rethinkdb, args);\n} has no method 'wait'")
+        js: err('TypeError', "undefined is not a function")
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])
 
     - cd: db.table_drop('testA')

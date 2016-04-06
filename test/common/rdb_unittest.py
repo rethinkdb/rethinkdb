@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 import itertools, os, random, shutil, sys, unittest, warnings
 
@@ -134,7 +134,8 @@ class RdbTestCase(unittest.TestCase):
         
         assert self.cluster is not None, 'The cluster was None'
         self.cluster.check()
-        assert [] == list(self.r.db('rethinkdb').table('current_issues').run(self.conn))
+        res = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
+        assert res == [], 'There were unexpected issues: \n%s' % utils.RePrint.pformat(res)
     
     def setUp(self):
         

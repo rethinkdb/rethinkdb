@@ -266,7 +266,10 @@ class HandshakeV1_0(object):
             return int(hexlify(value), 16)
 
         def to_bytes(value, unhexlify=binascii.unhexlify):
-            return unhexlify("%064x" % value)
+            try:
+                return unhexlify(bytes("%064x" % value, "ascii"))
+            except TypeError:
+                return unhexlify(bytes("%064x" % value))
 
         mac = hmac.new(password, None, hashlib.sha256)
 

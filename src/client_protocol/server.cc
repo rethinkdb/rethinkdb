@@ -49,7 +49,6 @@ http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
     // We always return empty normal batches after the timeout for HTTP
     // connections; I think we have to do this to keep the conn cache
     // from timing out.
-    // FIXME hardcoded "admin" user
     query_cache(
         new ql::query_cache_t(
             rdb_ctx,

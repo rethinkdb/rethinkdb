@@ -6,7 +6,7 @@ from optparse import OptionParser
 from ._backup import *
 
 info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
-usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
+usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
     print(info)
@@ -15,7 +15,9 @@ def print_dump_help():
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
+    print("  -p [ --password ]                interactively prompt for a password required to connect.")
+    print("  --password-file FILENAME         read password required to connect from file.")
     print("  -f [ --file ] FILE               file to write archive to (defaults to")
     print("                                   rethinkdb_dump_DATE_TIME.tar.gz);")
     print("                                   if FILE is -, use standard output (note that")
@@ -42,7 +44,6 @@ def print_dump_help():
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="host:port", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
@@ -54,6 +55,8 @@ def parse_options():
     parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
+    parser.add_option("--password-file", dest="password_file", default=None, type="string")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
@@ -104,9 +107,10 @@ def parse_options():
             raise RuntimeError("Error: Temporary directory inaccessible: %s" % res["temp_dir"])
 
     res["tables"] = options.tables
-    res["auth_key"] = options.auth_key
     res["quiet"] = True if res["out_file"] is sys.stdout else options.quiet
     res["debug"] = options.debug
+    res["password"] = options.password
+    res["password-file"] = options.password_file
     return res
 
 def do_export(temp_dir, options):
@@ -115,7 +119,10 @@ def do_export(temp_dir, options):
     export_args = ["rethinkdb-export"]
     export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
-    export_args.extend(["--auth", options["auth_key"]])
+    if options["password"]:
+        export_args.append("--password")
+    if options["password-file"]:
+        export_args.extend(["--password-file", options["password-file"]])
     export_args.extend(["--clients", str(options["clients"])])
     export_args.extend(["--tls-cert", options["tls_cert"]])
     for table in options["tables"]:

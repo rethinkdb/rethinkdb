@@ -3,7 +3,7 @@ table_variable_name: tbl
 tests:
 
     - py: tbl.index_create('num')
-    - py: tbl.wait()
+    - py: tbl.index_wait('num')
 
     # Test all types on whole document changefeed
     - py: tbl.insert({'id': 1})

@@ -94,7 +94,10 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
-              os_signal_cond_t *stop_cond) {
+              os_signal_cond_t *stop_cond,
+              /* For regular servers, the initial password is already set in the
+              metadata and this will be empty. */
+              const std::string &proxy_initial_password = "") {
     /* This coroutine is responsible for creating and destroying most of the important
     components of the server. */
 
@@ -119,6 +122,7 @@ bool do_serve(io_backender_t *io_backender,
         heartbeat_semilattice_metadata_t heartbeat_metadata;
         server_id_t server_id;
         if (metadata_file != nullptr) {
+            guarantee(proxy_initial_password.empty());
             cond_t non_interruptor;
             metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
             cluster_metadata = txn.read(mdkey_cluster_semilattices(), &non_interruptor);
@@ -129,6 +133,9 @@ bool do_serve(io_backender_t *io_backender,
         } else {
             // We are a proxy, generate a temporary proxy server id.
             server_id = server_id_t::generate_proxy_id();
+            auth_metadata.m_users.insert(
+                auth_semilattice_metadata_t::create_initial_admin_pair(
+                    proxy_initial_password));
         }
 
 #ifndef NDEBUG
@@ -677,6 +684,7 @@ bool serve(io_backender_t *io_backender,
 }
 
 bool serve_proxy(const serve_info_t &serve_info,
+                 const std::string &initial_password,
                  os_signal_cond_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
@@ -685,5 +693,6 @@ bool serve_proxy(const serve_info_t &serve_info,
                     base_path_t(""),
                     nullptr,
                     serve_info,
-                    stop_cond);
+                    stop_cond,
+                    initial_password);
 }

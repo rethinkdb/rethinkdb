@@ -78,14 +78,16 @@ void user_t::merge(ql::datum_t const &datum) {
             query_state_t::FAILED);
     }
 
-    if (password.get_type() == ql::datum_t::R_STR) {
+    if (password.get_type() == ql::datum_t::R_OBJECT) {
+        set_password(password_t(password));
+    } else if (password.get_type() == ql::datum_t::R_STR) {
         set_password(password_t(password.as_str().to_std()));
     } else if (password.get_type() == ql::datum_t::R_BOOL) {
         if (password.as_bool()) {
             if (m_password.is_empty()) {
                 throw admin_op_exc_t(
-                    "Expected a string to set the password or `false` to keep it "
-                    "unset, got " + password.print() + ".",
+                    "Expected an object or string to set the password, or `false` to "
+                    "keep it unset, got " + password.print() + ".",
                     query_state_t::FAILED);
             }
         } else {
@@ -93,7 +95,8 @@ void user_t::merge(ql::datum_t const &datum) {
         }
     } else {
         throw admin_op_exc_t(
-            "Expected a string or boolean for `password`, got " + password.print() + ".",
+            "Expected an object, string or boolean for `password`, got " +
+                password.print() + ".",
             query_state_t::FAILED);
     }
 }

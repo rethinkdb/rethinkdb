@@ -1,17 +1,12 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
-"""The `interface.table_wait` test checks that waiting for a table returns when the table is available for writing."""
+"""Checks that waiting for a table returns when the table is available for writing."""
 
 import multiprocessing, os, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 r = utils.import_python_driver()
 
@@ -36,7 +31,7 @@ def create_tables(conn):
     r.db(db).table_create(delete_table).run(conn) # An extra table to be deleted during a wait
     r.db(db).table_list().for_each(r.db(db).table(r.row).insert(r.range(200).map(lambda i: {'id':i}))).run(conn)
     r.db(db).reconfigure(shards=2, replicas=2).run(conn)
-    r.db(db).wait().run(conn)
+    r.db(db).wait(wait_for="all_replicas_ready").run(conn)
     assert check_table_states(conn, ready=True), \
         "Wait after reconfigure returned before tables were ready, statuses: %s" % str(statuses)
 
@@ -45,9 +40,9 @@ def spawn_table_wait(port, tbl):
         conn = r.connect("localhost", port)
         try:
             if tbl is None:
-                r.db(db).wait().run(conn)
+                r.db(db).wait(wait_for="all_replicas_ready").run(conn)
             else:
-                res = r.db(db).table(tbl).wait().run(conn)
+                res = r.db(db).table(tbl).wait(wait_for="all_replicas_ready").run(conn)
                 assert res["ready"] == 1
         finally:
             done_event.set()
@@ -82,12 +77,12 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
         utils.print_with_time("Creating db")
         r.db_create(db).run(conn)
 
-    utils.print_with_time("Testing simple table (several times)")
-    for i in xrange(5):
+    utils.print_with_time("Testing simple table (multiple times)")
+    for i in range(5):
         res = r.db(db).table_create("simple").run(conn)
         assert res["tables_created"] == 1
         r.db(db).table("simple").reconfigure(shards=12, replicas=1).run(conn)
-        r.db(db).table("simple").wait().run(conn)
+        r.db(db).table("simple").wait(wait_for="all_replicas_ready").run(conn)
         count = r.db(db).table("simple").count().run(conn)
         assert count == 0
         res = r.db(db).table_drop("simple").run(conn)

@@ -92,7 +92,7 @@ bool users_artificial_table_backend_t::write_row(
             }
             m_auth_semilattice_view->join(auth_metadata);
         } catch(admin_op_exc_t const &admin_op_exc) {
-            *error_out = std::move(admin_op_exc.to_admin_err());
+            *error_out = admin_op_exc.to_admin_err();
             return false;
         }
     } else {

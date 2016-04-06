@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """The `interface.table_doc_count_estimates` test checks that the `doc_count_estimates` field on `r.table(...).info()` behaves as expected."""
 
@@ -56,7 +56,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     assert N*2/fudge <= res["doc_count_estimates"][0] <= N*2*fudge
 
     r.db(dbName).table(tableName).reconfigure(shards=2, replicas=1).run(conn)
-    r.db(dbName).table(tableName).wait().run(conn)
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn)
     pprint.pprint(r.db(dbName).table(tableName).status().run(conn))
 
     res = r.db(dbName).table(tableName).info().run(conn)
@@ -66,7 +66,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
 
     # Make sure that oversharding doesn't break distribution queries
     r.db(dbName).table(tableName).reconfigure(shards=2, replicas=2).run(conn)
-    r.db(dbName).table(tableName).wait().run(conn)
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn)
     pprint.pprint(r.db(dbName).table(tableName).status().run(conn))
 
     res = r.db(dbName).table(tableName).info().run(conn)
