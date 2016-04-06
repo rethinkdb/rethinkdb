@@ -931,7 +931,7 @@ module RethinkDB
       OpenSSL::Digest.digest("SHA256", str)
     end
 
-    def xor(str1, str2)
+    def self.xor(str1, str2)
       out = str1.dup
       out.bytesize.times {|i|
         out.setbyte(i, out.getbyte(i) ^ str2.getbyte(i))
@@ -986,7 +986,7 @@ module RethinkDB
         client_key = hmac(salted_password, "Client Key")
         stored_key = sha256(client_key)
         client_signature = hmac(stored_key, auth_message)
-        client_proof = xor(client_key, client_signature)
+        client_proof = Connection::xor(client_key, client_signature)
         cproof_64 = Base64.strict_encode64(client_proof)
 
         msg = "#{client_final_message_without_proof},p=#{cproof_64}"
