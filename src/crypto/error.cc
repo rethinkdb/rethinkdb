@@ -25,4 +25,4 @@ openssl_error_category_t::openssl_error_category_t() {
     }
 }
 
-}  // crypto
+}  // namespace crypto
