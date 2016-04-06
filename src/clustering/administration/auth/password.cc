@@ -36,9 +36,16 @@ password_t::password_t(ql::datum_t const &datum) {
     if (!iterations.has()) {
         throw admin_op_exc_t("Expected a field named `iterations`.", query_state_t::FAILED);
     }
-    if (iterations.get_type() != ql::datum_t::R_NUM || iterations.as_int() < 1) {
-        throw admin_op_exc_t(
-            "Expected iterations to be a number greater than zero, got " +
+    try {
+        if (iterations.get_type() != ql::datum_t::R_NUM || iterations.as_int() < 1) {
+            throw admin_op_exc_t(
+                "Expected `iterations` to be an integer greater than zero, got " +
+                    iterations.print() + ".",
+                query_state_t::FAILED);
+        }
+    } catch (ql::base_exc_t const &) {
+       throw admin_op_exc_t(
+            "Expected `iterations` to be an integer greater than zero, got " +
                 iterations.print() + ".",
             query_state_t::FAILED);
     }
