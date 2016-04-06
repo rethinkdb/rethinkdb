@@ -74,7 +74,7 @@ process is complete.
 
 [eachAsync-api]: http://rethinkdb.com/api/javascript/each_async/
 
-### Supported distributions ###
+### Discontinued packages ###
 
 We no longer provide packages for the Debian oldstable distribution 7.x (Wheezy).
 
