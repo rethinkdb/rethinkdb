@@ -612,8 +612,8 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
 
 void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                                    const serializer_filepath_t &path,
-                                   UNUSED metadata_file_t::write_txn_t *out,
-                                   UNUSED signal_t *interruptor) {
+                                   metadata_file_t::write_txn_t *out,
+                                   signal_t *interruptor) {
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
     log_serializer_t serializer(log_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
