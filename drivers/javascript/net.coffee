@@ -1632,6 +1632,12 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     #    or in the browser.
     # 2. Initializes the connection, and when it's complete invokes
     #    the user's callback
+    if host.authKey? && (host.password? || host.user?)
+        throw new err.ReqlDriverError "Cannot use both authKey and password"
+    else if host.authKey
+        host.user = "admin"
+        host.password = host.authKey
+
     new Promise( (resolve, reject) ->
         create_connection = (host, callback) =>
             if TcpConnection.isAvailable()
