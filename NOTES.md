@@ -219,12 +219,16 @@ us ship RethinkDB 2.3. In no particular order:
 
 * Aaron Rosen (@aaronorosen)
 * @crockpotveggies
+* Daniel Hokka Zakrisson (@dhozac)
 * Igor Lukanin (@igorlukanin)
+* @janisz
 * Joshua Bronson (@jab)
 * Josh Hawn (@jlhawn)
 * Josh Smith (@Qinusty)
 * Marshall Cottrell (@marshall007)
 * Mike Mintz (@mikemintz)
+* Niklas Hambüchen (@nh2)
+* Qian Jin (@QianJin2013)
 * Taylor Murphy (@tayloramurphy)
 * Vladislav Botvin (@darrrk)
 * Adam Grandquist (@grandquista)
