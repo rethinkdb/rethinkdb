@@ -1,12 +1,20 @@
 #!/usr/bin/env ruby
 # Copyright 2014-2016 RethinkDB, all rights reserved.
 
-require 'minitest/autorun'
+begin
+    require 'minitest/autorun'
+rescue LoadError
+    require 'test/unit'
+end
 
 begin
-  TestBaseClass = MiniTest::Test
+  UNIT_TEST_CLASS = MiniTest::Test
 rescue
-  TestBaseClass = MiniTest::Unit::TestCase
+  begin
+    UNIT_TEST_CLASS = MiniTest::Unit::TestCase
+  rescue
+    UNIT_TEST_CLASS = Test::Unit::TestCase
+  end
 end
 
 # -- import the rethinkdb driver
@@ -27,7 +35,7 @@ def expect_error(m, err_type, err_info)
   raise RuntimeError, "Expected an error, but got success with result: #{res}."
 end
 
-class Cursor_Test < TestBaseClass
+class Cursor_Test < UNIT_TEST_CLASS
   @conn = nil
   
   def setup
