@@ -29,6 +29,26 @@ public Table optArg(String optname, Object value) {
     OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
     return new Table(args, newOptargs);
 }
+public Table optArg(String optname, ReqlFunction0 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
+public Table optArg(String optname, ReqlFunction1 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
+public Table optArg(String optname, ReqlFunction2 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
+public Table optArg(String optname, ReqlFunction3 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
+public Table optArg(String optname, ReqlFunction4 value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
 
     public Get get(Object expr) {
         Arguments arguments = new Arguments(this);
@@ -68,6 +88,12 @@ public Table optArg(String optname, Object value) {
     public Sync sync() {
         Arguments arguments = new Arguments(this);
         return new Sync(arguments);
+    }
+    public Grant grant(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new Grant(arguments);
     }
     public IndexCreate indexCreate(Object expr) {
         Arguments arguments = new Arguments(this);

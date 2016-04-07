@@ -1,10 +1,12 @@
+require 'base64'
+require 'openssl'
 require 'monitor'
+require 'pp' # This is needed for pretty_inspect
 require 'set'
+require 'securerandom'
 require 'socket'
 require 'thread'
 require 'timeout'
-require 'pp' # This is needed for pretty_inspect
-require 'openssl'
 
 module RethinkDB
   module Faux_Abort
@@ -456,6 +458,7 @@ module RethinkDB
 
   class Connection
     include OpenSSL
+
     def auto_reconnect(x=true)
       @auto_reconnect = x
       self
@@ -474,7 +477,13 @@ module RethinkDB
       @host = opts[:host] || "localhost"
       @port = (opts[:port] || 28015).to_i
       @default_db = opts[:db]
-      @auth_key = opts[:auth_key] || ""
+      @user = opts[:user] || "admin"
+      @user = @user.gsub("=", "=3D").gsub(",","=2C")
+      if opts[:password] && opts[:auth_key]
+        raise ReqlDriverError, "Cannot specify both a password and an auth key."
+      end
+      @password = opts[:password] || opts[:auth_key] || ""
+      @nonce = SecureRandom.base64(18)
       @timeout = opts[:timeout].to_i
       @timeout = 20 if @timeout <= 0
       @ssl_opts = opts[:ssl] || {}
@@ -489,6 +498,13 @@ module RethinkDB
       connect()
     end
     attr_reader :host, :port, :default_db, :conn_id
+
+    def client_port
+      is_open() ? @socket.addr[1] : nil
+    end
+    def client_address
+      is_open() ? @socket.addr[3] : nil
+    end
 
     def new_token
       @token_cnt_mutex.synchronize{@token_cnt += 1}
@@ -576,9 +592,8 @@ module RethinkDB
       @mon.synchronize {
         written = 0
         while written < packet.length
-
           # need to make sure the socket is ready for reading/writing
-          vals = IO.select([@socket], [@socket], [@socket], @timeout)
+          vals = IO.select(nil, [@socket], nil, @timeout)
           raise Timeout::Error, "Sending failed" if vals.nil?
          
           # Supposedly slice will not copy the array if it goes all the way to the end
@@ -650,7 +665,8 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_4
+    @@magic_number = VersionDummy::Version::V1_0
+    @@protocol_version = 0
     @@wire_protocol = VersionDummy::Protocol::JSON
 
     def debug_socket; @socket; end
@@ -834,6 +850,180 @@ module RethinkDB
       note_data(token, data)
     end
 
+    def rcv_json
+      response = ""
+      while response[-1..-1] != "\0"
+        response += @socket.read_exn(1, @timeout)
+      end
+      begin
+        res = JSON.parse(response[0...-1])
+        if !res['success']
+          msg = "Handshake error (#{res})."
+          ecode = res['error_code']
+          if ecode && ecode >= 10 && ecode <= 20
+            msg = res['error'] if res['error'].to_s != ""
+            raise ReqlAuthError, msg
+          else
+            raise ReqlDriverError, msg
+          end
+        end
+      rescue Exception => e
+        if !e.class.ancestors.include?(ReqlDriverError)
+          raise ReqlDriverError, "Connection closed by server (#{e})."
+        else
+          raise e
+        end
+      end
+      return res
+    end
+
+    def send_json(x)
+      send(x.to_json + "\0")
+    end
+
+    def check_version(server_info)
+      if server_info['min_protocol_version'] > @@protocol_version ||
+          server_info['max_protocol_version'] < @@protocol_version
+        raise ReqlDriverError, "Version mismatch: Driver uses #{@@protocol_version} "+
+          "but server accepts "+
+          "[#{server_info['min_version']}, #{server_info['max_version']}]."
+      end
+    end
+
+    def check_nonce(server_nonce, nonce)
+      if !server_nonce.start_with?(nonce)
+        raise ReqlDriverError, "Invalid nonce #{server_nonce} received from server."
+      end
+    end
+
+    @@fast_auth_func = lambda {|*args|
+      digest = OpenSSL::Digest::SHA256.new
+      OpenSSL::PKCS5.pbkdf2_hmac(*args, digest.digest_length, digest)
+    }
+    @@slow_auth_func = lambda {|password, salt, iter|
+      mac = OpenSSL::HMAC.new(password, OpenSSL::Digest::SHA256.new)
+      acc = t = mac.update(salt + "\0\0\0\1").digest
+      mac.reset
+      (iter-1).times{acc = xor(acc, t = mac.update(t).digest); mac.reset}
+      res = acc
+    }
+    @@auth_func = @@fast_auth_func
+    @@auth_func_mutex = Mutex.new
+
+    @@auth_cache = {}
+    @@auth_cache_mutex = Mutex.new
+
+    def pbkdf2_hmac_sha256(*args)
+      auth_func = res = nil
+      @@auth_cache_mutex.synchronize {
+        res = @@auth_cache[args]
+        return res if res
+      }
+
+      @@auth_func_mutex.synchronize {
+        auth_func = @@auth_func
+      }
+      begin
+        res = auth_func.call(*args)
+      rescue NotImplementedError => e
+        if auth_func != @@slow_auth_func
+          @@auth_func_mutex.synchronize {
+            auth_func = @@auth_func = @@slow_auth_func
+          }
+          res = auth_func.call(*args)
+        else
+          raise e
+        end
+      end
+
+      @@auth_cache_mutex.synchronize {
+        @@auth_cache[args] = res
+      }
+      return res
+    end
+
+    def hmac(*args)
+      OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, *args)
+    end
+
+    def sha256(str)
+      OpenSSL::Digest.digest("SHA256", str)
+    end
+
+    def self.xor(str1, str2)
+      out = str1.dup
+      out.bytesize.times {|i|
+        out.setbyte(i, out.getbyte(i) ^ str2.getbyte(i))
+      }
+      return out
+    end
+
+    def const_eq(a, b)
+      return false if a.size != b.size
+      residue = 0
+      a.unpack('C*').zip(b.unpack('C*')).each{|x,y|
+        residue |= (x ^ y)
+      }
+      return residue == 0
+    end
+
+    def check_server_signature_claim(server_signature_claim, server_signature)
+      if !const_eq(server_signature_claim, server_signature)
+        sig1 = Base64.strict_encode64(server_signature_claim)
+        sig2 = Base64.strict_encode64(server_signature)
+        raise ReqlAuthError, "Server signature #{sig1} does "+
+          "not match expected signature #{sig2}."
+      end
+    end
+
+    def do_handshake
+      begin
+        send([@@magic_number].pack('L<'))
+        client_first_message_bare = "n=#{@user},r=#{@nonce}"
+        send_json({ protocol_version: @@protocol_version,
+                    authentication_method: "SCRAM-SHA-256",
+                    authentication: "n,,#{client_first_message_bare}" })
+
+        server_version_msg = rcv_json
+        check_version(server_version_msg)
+
+        auth_resp = rcv_json
+        server_first_message = auth_resp['authentication']
+
+        fields = Hash[server_first_message.split(',').map{|x| x.split('=', 2)}]
+        server_nonce = fields['r']
+
+        client_final_message_without_proof = "c=biws,r=#{server_nonce}"
+        auth_message = "#{client_first_message_bare},#{server_first_message},"+
+          client_final_message_without_proof
+        check_nonce(server_nonce, @nonce)
+        salt = Base64.decode64(fields['s'])
+        iter = fields['i'].to_i
+
+        salted_password = pbkdf2_hmac_sha256(@password, salt, iter)
+
+        client_key = hmac(salted_password, "Client Key")
+        stored_key = sha256(client_key)
+        client_signature = hmac(stored_key, auth_message)
+        client_proof = Connection::xor(client_key, client_signature)
+        cproof_64 = Base64.strict_encode64(client_proof)
+
+        msg = "#{client_final_message_without_proof},p=#{cproof_64}"
+        send_json({authentication: msg})
+
+        sig_resp = rcv_json
+        fields = Hash[sig_resp['authentication'].split(',').map{|x| x.split('=', 2)}]
+        server_signature_claim = Base64::decode64(fields['v'])
+        server_key = hmac(salted_password, "Server Key")
+        server_signature = hmac(server_key, auth_message)
+        check_server_signature_claim(server_signature_claim, server_signature)
+      rescue ReqlError => e
+        raise e
+      rescue Exception => e
+        raise ReqlDriverError, "Error during handshake: #{e.inspect} #{e.backtrace}"
+      end
+    end
+
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
@@ -849,24 +1039,7 @@ module RethinkDB
           }
         end
       end
-      send([@@magic_number, @auth_key.size].pack('L<L<') +
-            @auth_key + [@@wire_protocol].pack('L<'))
-      response = ""
-      while response[-1..-1] != "\0"
-        response += @socket.read_exn(1, @timeout)
-      end
-      response = response[0...-1]
-      if response == "SUCCESS"
-        # do nothing
-      elsif response == "ERROR: Incorrect authorization key.\n"
-        raise ReqlAuthError, "Incorrect authorization key."
-      else
-        raise ReqlRuntimeError, "Server dropped connection with message: \"#{response}\""
-      end
-
-      if @listener
-        raise ReqlDriverError, "Internal driver error, listener already started."
-      end
+      do_handshake
       @listener = Thread.new {
         while true
           begin

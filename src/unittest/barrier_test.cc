@@ -44,7 +44,7 @@ void *run_barrier_thread(void *v_arg) {
         arg->error |= (bav->values[indexA] == number);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 
@@ -59,9 +59,9 @@ TEST(BarrierTest, OneThousandTest) {
     bav1.error = bav2.error = false;
 
     pthread_t th1, th2;
-    int res = pthread_create(&th1, NULL, run_barrier_thread, &bav1);
+    int res = pthread_create(&th1, nullptr, run_barrier_thread, &bav1);
     guarantee_xerr(res == 0, res, "pthread_create (for th1) failed");
-    res = pthread_create(&th2, NULL, run_barrier_thread, &bav2);
+    res = pthread_create(&th2, nullptr, run_barrier_thread, &bav2);
     guarantee_xerr(res == 0, res, "pthread_create (for th2) failed");
 
     void *dummy;

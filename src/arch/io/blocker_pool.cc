@@ -35,7 +35,7 @@ void* blocker_pool_t::event_loop(void *arg) {
         int res = sigfillset(&sigmask);
         guarantee_err(res == 0, "Could not get a full sigmask");
 
-        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+        res = pthread_sigmask(SIG_SETMASK, &sigmask, nullptr);
         guarantee_xerr(res == 0, res, "Could not block signal");
     }
 #endif
@@ -50,7 +50,7 @@ void* blocker_pool_t::event_loop(void *arg) {
 
         if (parent->shutting_down) {
             // or_lock's destructor gets called, so everything is OK.
-            return NULL;
+            return nullptr;
 
         } else {
 
@@ -132,7 +132,7 @@ blocker_pool_t::~blocker_pool_t() {
 
     /* Wait for stuff to actually shut down */
     for (size_t i = 0; i < threads.size(); ++i) {
-        int res = pthread_join(threads[i], NULL);
+        int res = pthread_join(threads[i], nullptr);
         guarantee_xerr(res == 0, res, "Could not join blocker-pool thread.");
     }
 }

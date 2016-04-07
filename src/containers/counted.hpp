@@ -24,7 +24,7 @@ public:
     template <class U>
     friend class counted_t;
 
-    counted_t() : p_(NULL) { }
+    counted_t() : p_(nullptr) { }
     explicit counted_t(T *p) : p_(p) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
@@ -43,12 +43,12 @@ public:
     }
 
     counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
-        movee.p_ = NULL;
+        movee.p_ = nullptr;
     }
 
     template <class U>
     counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
-        movee.p_ = NULL;
+        movee.p_ = nullptr;
     }
 
 // Avoid a spurious warning when building on Saucy. See issue #1674
@@ -113,7 +113,7 @@ public:
     }
 
     bool has() const {
-        return p_ != NULL;
+        return p_ != nullptr;
     }
 
     bool unique() const {
@@ -121,7 +121,7 @@ public:
     }
 
     explicit operator bool() const {
-        return p_ != NULL;
+        return p_ != nullptr;
     }
 
 private:

@@ -100,7 +100,7 @@
                     return (ER);                                     \
                 }                                                    \
             }                                                        \
-            FOR##_mark = NULL;                                       \
+            FOR##_mark = nullptr;                                      \
         }                                                            \
     } while (0)
   
@@ -586,11 +586,11 @@ size_t http_parser_execute (http_parser *parser,
   char c, ch;
   int8_t unhex_val;
   const char *p = data;
-  const char *header_field_mark = 0;
-  const char *header_value_mark = 0;
-  const char *url_mark = 0;
-  const char *body_mark = 0;
-  const char *status_mark = 0;
+  const char *header_field_mark = nullptr;
+  const char *header_value_mark = nullptr;
+  const char *url_mark = nullptr;
+  const char *body_mark = nullptr;
+  const char *status_mark = nullptr;
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
@@ -2222,7 +2222,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   if (u->field_set & (1 << UF_PORT)) {
     /* Don't bother with endp; we've already validated the string */
-    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULL, 10);
+    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, nullptr, 10);
 
     /* Ports have a max value of 2^16 */
     if (v > 0xffff) {

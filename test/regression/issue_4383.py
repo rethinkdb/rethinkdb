@@ -19,7 +19,7 @@ dbName, tableName = utils.get_test_db_table()
 num_shards = 16
 
 utils.print_with_time("Starting cluster of three servers")
-with driver.Cluster(initial_servers=['source1', 'source2', 'target'], console_output=True, command_prefix=command_prefix, extra_options=server_options) as cluster:
+with driver.Cluster(initial_servers=['source1', 'source2', 'target'], output_folder='.', console_output=True, command_prefix=command_prefix, extra_options=server_options) as cluster:
     source_a = cluster['source1']
     source_b = cluster['source2']
     target = cluster['target']
@@ -35,7 +35,7 @@ with driver.Cluster(initial_servers=['source1', 'source2', 'target'], console_ou
         "shards": [{"primary_replica":"source1", "replicas":["source1", "source2"]}] * num_shards
         }).run(conn)
     tbl = r.db(dbName).table(tableName)
-    tbl.wait().run(conn)
+    tbl.wait(wait_for="all_replicas_ready").run(conn)
     
     utils.print_with_time("Inserting %d documents" % opts["num_rows"])
     chunkSize = 2000
@@ -72,7 +72,7 @@ with driver.Cluster(initial_servers=['source1', 'source2', 'target'], console_ou
 
     utils.print_with_time("Checking that table is available for writes")
     try:
-        tbl.wait(wait_for="ready_for_writes", timeout=10).run(conn)
+        tbl.wait(wait_for="ready_for_writes", timeout=30).run(conn)
     except r.ReqlRuntimeError, e:
         status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn)
         pprint.pprint(status)

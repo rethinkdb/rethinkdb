@@ -30,60 +30,90 @@ class real_reql_cluster_interface_t :
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                cluster_semilattice_metadata_t> > semilattices,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                auth_semilattice_metadata_t> > auth_semilattice_view,
+            boost::shared_ptr<semilattice_readwrite_view_t<
+                cluster_semilattice_metadata_t> > cluster_semilattice_view,
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
             table_meta_client_t *table_meta_client,
             multi_table_manager_t *multi_table_manager,
             watchable_map_t<
                 std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
-                table_query_bcard_t> *table_query_directory
-            );
+                table_query_bcard_t> *table_query_directory);
 
-    bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+    bool db_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool db_drop_uuid(
-            database_id_t db_id,
+            auth::user_context_t const &user_context,
+            database_id_t database_id,
             const name_string_t &name,
             signal_t *interruptor_on_home,
             ql::datum_t *result_out,
             admin_err_t *error_out);
-    bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+    bool db_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool db_list(
             signal_t *interruptor,
-            std::set<name_string_t> *names_out, admin_err_t *error_out);
+            std::set<name_string_t> *names_out,
+            admin_err_t *error_out);
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
-            counted_t<const ql::db_t> *db_out, admin_err_t *error_out);
+            counted_t<const ql::db_t> *db_out,
+            admin_err_t *error_out);
     bool db_config(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
             admin_err_t *error_out);
 
-    bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+    bool table_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
-            const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool table_list(counted_t<const ql::db_t> db,
+            const std::string &primary_key,
+            write_durability_t durability,
             signal_t *interruptor,
-            std::set<name_string_t> *names_out, admin_err_t *error_out);
-    bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool table_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool table_list(
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            std::set<name_string_t> *names_out,
+            admin_err_t *error_out);
+    bool table_find(
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             boost::optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
             std::vector<int64_t> *doc_counts_out,
             admin_err_t *error_out);
     bool table_config(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
@@ -113,6 +143,7 @@ public:
             admin_err_t *error_out);
 
     bool table_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -121,6 +152,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -129,6 +161,7 @@ public:
             admin_err_t *error_out);
 
     bool table_emergency_repair(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -138,18 +171,46 @@ public:
             admin_err_t *error_out);
 
     bool table_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
+    bool grant_global(
+            auth::user_context_t const &user_context,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_database(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_table(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            namespace_id_t const &table_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+
     bool sindex_create(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -157,12 +218,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_drop(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_rename(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -181,10 +244,10 @@ public:
     /* `calculate_split_points_with_distribution` needs access to the underlying
     `namespace_interface_t` and `table_meta_client_t`. */
     table_meta_client_t *get_table_meta_client() {
-        return table_meta_client;
+        return m_table_meta_client;
     }
     namespace_repo_t *get_namespace_repo() {
-        return &namespace_repo;
+        return &m_namespace_repo;
     }
 
     /* This is public because it needs to be set after we're created to solve a certain
@@ -192,20 +255,23 @@ public:
     admin_artificial_tables_t *admin_tables;
 
 private:
-    mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr< semilattice_readwrite_view_t<
-        cluster_semilattice_metadata_t> > semilattice_root_view;
-    table_meta_client_t *table_meta_client;
+    mailbox_manager_t *m_mailbox_manager;
+    boost::shared_ptr<semilattice_readwrite_view_t<
+        auth_semilattice_metadata_t> > m_auth_semilattice_view;
+    boost::shared_ptr<semilattice_readwrite_view_t<
+        cluster_semilattice_metadata_t> > m_cluster_semilattice_view;
+    table_meta_client_t *m_table_meta_client;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
-        databases_semilattice_metadata_t > > > cross_thread_database_watchables;
-    rdb_context_t *rdb_context;
+        databases_semilattice_metadata_t > > > m_cross_thread_database_watchables;
+    rdb_context_t *m_rdb_context;
 
-    namespace_repo_t namespace_repo;
-    ql::changefeed::client_t changefeed_client;
-    server_config_client_t *server_config_client;
+    namespace_repo_t m_namespace_repo;
+    ql::changefeed::client_t m_changefeed_client;
+    server_config_client_t *m_server_config_client;
 
-    void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
-                                        signal_t *interruptor);
+    void wait_for_cluster_metadata_to_propagate(
+            const cluster_semilattice_metadata_t &metadata,
+            signal_t *interruptor);
 
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);

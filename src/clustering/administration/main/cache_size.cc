@@ -239,7 +239,7 @@ bool get_proc_meminfo_available_memory_size(uint64_t *mem_avail_out) {
 bool osx_runtime_version_check() {
     char str[256];
     size_t size = sizeof(str);
-    int ret = sysctlbyname("kern.osrelease", str, &size, NULL, 0);
+    int ret = sysctlbyname("kern.osrelease", str, &size, nullptr, 0);
     if (ret == -1) {
         return false;
     }
@@ -270,6 +270,7 @@ uint64_t get_used_swap() {
     return 0;
 #elif defined(__MACH__)
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+    /*
     // On OSX we return global pageouts, because mach is stingey with info.
     // This is slightly less helpful.
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
@@ -285,6 +286,10 @@ uint64_t get_used_swap() {
     }
     // Since we memset to 0, this will be 0 if it isn't filled in.
     return vmstat.pageouts;
+    */
+    // TODO: There may be a way to return something more helpful here.
+    // OSX is too agressive with swap for the above value to imply a problem.
+    return 0;
 #else
 #error "We don't support Mach kernels other than OS X, sorry."
 #endif // __MAC_OS_X_VERSION_MIN_REQUIRED

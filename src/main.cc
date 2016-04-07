@@ -7,6 +7,7 @@
 #include <set>
 
 #include "clustering/administration/main/command_line.hpp"
+#include "crypto/initialization_guard.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
 
@@ -19,6 +20,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     startup_shutdown_t startup_shutdown;
+    crypto::initialization_guard_t crypto_initialization_guard;
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");

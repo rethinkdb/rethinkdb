@@ -8,7 +8,7 @@ from gevent.event import Event, AsyncResult
 from gevent.lock import Semaphore
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -80,18 +80,29 @@ class SocketWrapper(object):
                     self._socket.close()
                     raise
 
-            self.sendall(parent._parent.handshake)
-
-            # The response from the server is a null-terminated string
-            response = b''
+            parent._parent.handshake.reset()
+            response = None
             while True:
-                char = self.recvall(1)
-                if char == b'\0':
+                request = parent._parent.handshake.next_message(response)
+                if request is None:
                     break
-                response += char
+                # This may happen in the `V1_0` protocol where we send two requests as
+                # an optimization, then need to read each separately
+                if request is not "":
+                    self.sendall(request)
+
+                # The response from the server is a null-terminated string
+                response = b''
+                while True:
+                    char = self.recvall(1)
+                    if char == b'\0':
+                        break
+                    response += char
         except ReqlAuthError:
+            self.close()
             raise
         except ReqlTimeoutError:
+            self.close()
             raise
         except ReqlDriverError as ex:
             self.close()
@@ -103,15 +114,6 @@ class SocketWrapper(object):
             self.close()
             raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
                                   (self.host, self.port, ex))
-
-        if response != b"SUCCESS":
-            self.close()
-            message = decodeUTF(response).strip()
-            if message == "ERROR: Incorrect authorization key.":
-                raise ReqlAuthError(self.host, self.port)
-            else:
-                raise ReqlDriverError("Server dropped connection with message: \"%s\"" %
-                                      (message, ))
 
     def is_open(self):
         return self._socket is not None

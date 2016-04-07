@@ -40,7 +40,8 @@ public:
         OP_INDETERMINATE, // It is unknown whether an operation failed or not.
         USER, // An error caused by `r.error` with arguments.
         EMPTY_USER, // An error caused by `r.error` with no arguments.
-        NON_EXISTENCE // An error related to the absence of an expected value.
+        NON_EXISTENCE, // An error related to the absence of an expected value.
+        PERMISSION_ERROR // An error related to the user permissions.
     };
     explicit base_exc_t(type_t _type) : type(_type) { }
     virtual ~base_exc_t() throw () { }
@@ -57,6 +58,7 @@ public:
         case OP_INDETERMINATE:    return Response::OP_INDETERMINATE;
         case USER:                return Response::USER;
         case NON_EXISTENCE:       return Response::NON_EXISTENCE;
+        case PERMISSION_ERROR:    return Response::PERMISSION_ERROR;
         default: unreachable();
         }
         unreachable();
@@ -66,7 +68,7 @@ protected:
     type_t type;
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::NON_EXISTENCE);
+    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::PERMISSION_ERROR);
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.

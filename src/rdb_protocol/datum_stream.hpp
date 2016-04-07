@@ -26,6 +26,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -536,6 +537,7 @@ class readgen_t {
 public:
     explicit readgen_t(
         global_optargs_t global_optargs,
+        auth::user_context_t user_context,
         std::string table_name,
         profile_bool_t profile,
         read_mode_t read_mode,
@@ -572,6 +574,7 @@ public:
     sorting_t sorting(const batchspec_t &batchspec) const;
 protected:
     const global_optargs_t global_optargs;
+    auth::user_context_t m_user_context;
     const std::string table_name;
     const profile_bool_t profile;
     const read_mode_t read_mode;
@@ -582,11 +585,13 @@ class rget_readgen_t : public readgen_t {
 public:
     explicit rget_readgen_t(
         global_optargs_t global_optargs,
+        auth::user_context_t user_context,
         std::string table_name,
         const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
-        sorting_t sorting);
+        sorting_t sorting,
+        require_sindexes_t require_sindex_val);
 
     virtual read_t terminal_read(
         const std::vector<transform_variant_t> &transform,
@@ -610,6 +615,7 @@ private:
 
 protected:
     datumspec_t datumspec;
+    require_sindexes_t require_sindex_val;
 };
 
 class primary_readgen_t : public rget_readgen_t {
@@ -623,6 +629,7 @@ public:
 
 private:
     primary_readgen_t(global_optargs_t global_optargs,
+                      auth::user_context_t user_context,
                       std::string table_name,
                       const datumspec_t &datumspec,
                       profile_bool_t profile,
@@ -655,7 +662,8 @@ public:
         read_mode_t read_mode,
         const std::string &sindex,
         const datumspec_t &datumspec = datumspec_t(datum_range_t::universe()),
-        sorting_t sorting = sorting_t::UNORDERED);
+        sorting_t sorting = sorting_t::UNORDERED,
+        require_sindexes_t require_sindex_val = require_sindexes_t::NO);
 
     virtual void sindex_sort(std::vector<rget_item_t> *vec,
                              const batchspec_t &batchspec) const;
@@ -665,12 +673,14 @@ public:
 private:
     sindex_readgen_t(
         global_optargs_t global_optargs,
+        auth::user_context_t user_context,
         std::string table_name,
         const std::string &sindex,
         const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
-        sorting_t sorting);
+        sorting_t sorting,
+        require_sindexes_t require_sindex_val);
     virtual rget_read_t next_read_impl(
         const boost::optional<active_ranges_t> &active_ranges,
         const boost::optional<reql_version_t> &reql_version,
@@ -679,7 +689,7 @@ private:
         const batchspec_t &batchspec) const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-            std::vector<transform_variant_t> transforms) const;
+        std::vector<transform_variant_t> transforms) const;
 
     const std::string sindex;
     bool sent_first_read;
@@ -714,14 +724,12 @@ public:
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-        std::vector<transform_variant_t>) const {
-        rfail_datum(base_exc_t::LOGIC,
-                    "%s", "Cannot call `changes` on an intersection read.");
-        unreachable();
-    }
+        std::vector<transform_variant_t>) const;
+
 private:
     intersecting_readgen_t(
         global_optargs_t global_optargs,
+        auth::user_context_t user_context,
         std::string table_name,
         const std::string &sindex,
         const datum_t &query_geometry,
@@ -752,6 +760,8 @@ public:
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(
         env_t *env, const batchspec_t &batchspec) = 0;
+    virtual std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) { unreachable(); }
     virtual bool is_finished() const = 0;
 
     virtual changefeed::keyspec_t get_changespec() const = 0;
@@ -775,6 +785,10 @@ public:
     virtual std::vector<datum_t> next_batch(env_t *, const batchspec_t &) {
         return std::vector<datum_t>();
     }
+    std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) final {
+        return std::vector<rget_item_t>{};
+    }
     virtual bool is_finished() const {
         return true;
     }
@@ -797,6 +811,8 @@ public:
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual std::vector<rget_item_t> raw_next_batch(env_t *env,
+                                                    const batchspec_t &batchspec);
     virtual bool is_finished() const;
 
     virtual changefeed::keyspec_t get_changespec() const {
@@ -870,8 +886,56 @@ protected:
 private:
     std::vector<rget_item_t> do_intersecting_read(env_t *env, const read_t &read);
 
-    // To detect duplicates
-    std::set<store_key_t> processed_pkeys;
+    // Each secondary index value might be inserted into a geospatial index multiple
+    // times, and we need to remove those duplicates across batches.
+    // We keep track of pairs of primary key and optional multi-index tags in order
+    // to detect and remove such duplicates.
+    std::set<std::pair<std::string, boost::optional<uint64_t> > > processed_pkey_tags;
+};
+
+class lazy_datum_stream_t;
+class eq_join_datum_stream_t : public eager_datum_stream_t {
+public:
+    eq_join_datum_stream_t(counted_t<datum_stream_t> _stream,
+                           counted_t<table_t> _table,
+                           datum_string_t _join_index,
+                           counted_t<const func_t> _predicate,
+                           bool _ordered,
+                           backtrace_id_t bt);
+
+    bool is_array() const final {
+        return is_array_eq_join;
+    }
+    bool is_infinite() const final {
+        return is_infinite_eq_join;
+    }
+    bool is_exhausted() const final;
+
+    std::vector<datum_t>
+    next_raw_batch(env_t *env, const batchspec_t &batchspec);
+
+    feed_type_t cfeed_type() const final {
+        return eq_join_type;
+    }
+
+private:
+    counted_t<datum_stream_t> stream;
+    scoped_ptr_t<reader_t> get_all_reader;
+    std::vector<rget_item_t> get_all_items;
+
+    counted_t<table_t> table;
+    datum_string_t join_index;
+
+    std::multimap<ql::datum_t,
+                  ql::datum_t> sindex_to_datum;
+
+    counted_t<const func_t> predicate;
+
+    bool ordered;
+
+    bool is_array_eq_join;
+    bool is_infinite_eq_join;
+    feed_type_t eq_join_type;
 };
 
 class lazy_datum_stream_t : public datum_stream_t {

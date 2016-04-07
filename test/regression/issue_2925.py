@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 import os, multiprocessing, sys, time
 
@@ -55,23 +55,6 @@ def delete_rows(host, port, ready_event, start_event):
         return
     utils.print_with_time("ERROR: Was not interrupted interrupted while deleting entries.")
 
-def check_data(conn):
-    utils.print_with_time("Waiting for index...")
-    r.db(dbName).table(tableName).index_wait('data').run(conn)
-    r.db(dbName).table(tableName).wait().run(conn)
-    utils.print_with_time("Index ready, checking data...")
-    pkey_count = r.db(dbName).table(tableName).count().run(conn)
-
-    # Actually read out all of the rows from the sindexes in case of corruption
-    sindex_count = r.db(dbName).table(tableName).order_by(index='data').count().run(conn)
-    sindex_cursor = r.db(dbName).table(tableName).order_by(index='data').run(conn)
-    rows = list(sindex_cursor)
-
-    if len(rows) != pkey_count or pkey_count != sindex_count:
-        utils.print_with_time("ERROR: inconsistent row counts between the primary and secondary indexes.")
-        print("  primary - %d" % pkey_count)
-        print("  secondary - %d (%d)" % (sindex_count, len(rows)))
-
 utils.print_with_time("Spinning a cluster with one server")
 with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve_options) as process:
     
@@ -116,10 +99,26 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
     utils.print_with_time("Restarting the server")
     process.start()
     process.wait_until_ready()
-
+    
+    # Check the data
     conn = r.connect(process.host, process.driver_port, db=dbName)
-    time.sleep(1)
-    check_data(conn)
+    
+    utils.print_with_time("Waiting for index...")
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn)
+    r.db(dbName).table(tableName).index_wait('data').run(conn)
+    utils.print_with_time("Index ready, checking data...")
+    pkey_count = r.db(dbName).table(tableName).count().run(conn)
+    
+    # Actually read out all of the rows from the sindexes in case of corruption
+    sindex_count = r.db(dbName).table(tableName).order_by(index='data').count().run(conn)
+    sindex_cursor = r.db(dbName).table(tableName).order_by(index='data').run(conn)
+    rows = list(sindex_cursor)
+    
+    if len(rows) != pkey_count or pkey_count != sindex_count:
+        utils.print_with_time("ERROR: inconsistent row counts between the primary and secondary indexes.")
+        print("  primary - %d" % pkey_count)
+        print("  secondary - %d (%d)" % (sindex_count, len(rows)))
+    
     conn.close()
 
     utils.print_with_time("Cleaning up")

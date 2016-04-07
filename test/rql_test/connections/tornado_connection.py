@@ -108,6 +108,8 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertLess = self.replacement_assertLess
         if not hasattr(self, 'assertIsNone'):
             self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
         if not hasattr(self, 'assertIn'):
             self.assertIn = self.replacement_assertIn
 
@@ -123,6 +125,10 @@ class TestCaseCompatible(unittest.TestCase):
     def replacement_assertIsNone(self, val):
         if val is not None:
             raise AssertionError('%s is not None' % val)
+
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
 
     def replacement_assertIn(self, val, iterable):
         if not val in iterable:
@@ -317,10 +323,9 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
-                                               "Connection interrupted during"
-                                               " handshake with %s:%d. "
-                                               "Error: Operation timed out."
+            yield self.asyncAssertRaisesRegexp(r.ReqlTimeoutError,
+                                               "Could not connect to %s:%d, "
+                                               "operation timed out."
                                                % (host, port),
                                                r.connect(host=host, port=port,
                                                          timeout=2))
@@ -350,6 +355,19 @@ class TestNoConnection(TestCaseCompatible):
 
 
 class TestConnection(TestWithConnection):
+    @gen.coroutine
+    def test_client_port_and_address(self):
+        c = yield r.connect(host=sharedServerHost,
+                            port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        yield c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     @gen.coroutine
     def test_connect_close_reconnect(self):
         c = yield r.connect(host=sharedServerHost,
@@ -512,11 +530,13 @@ class TestConnection(TestWithConnection):
         yield r.expr(1).run(c)
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
-                                           "Could not convert port abc to an integer.",
-                                           r.connect(port='abc',
-                                                     host=sharedServerHost))
+        @gen.coroutine
+        def bad_port():
+            yield r.connect(port='abc', host=sharedServerHost)
 
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
+                                           "Could not convert port 'abc' to an integer.",
+                                           bad_port())
 
 class TestShutdown(TestWithConnection):
     @gen.coroutine

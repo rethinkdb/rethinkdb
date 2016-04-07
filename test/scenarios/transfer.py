@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import os, sys, time
 
@@ -44,7 +44,7 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     
     server2 = driver.Process(cluster=cluster, name='second', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True)
     
-    issues = list(r.db('rethinkdb').table('current_issues').run(conn1))
+    issues = list(r.db('rethinkdb').table('current_issues').filter(r.row["type"] != "memory_error").run(conn1))
     assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
     
     utils.print_with_time("Explicitly adding server to the table")
@@ -54,15 +54,14 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
         ]})['errors'].run(conn1) == 0
     
     utils.print_with_time("Waiting for backfill")
-    
-    r.db(dbName).wait().run(conn1)
+    r.db(dbName).wait(wait_for="all_replicas_ready").run(conn1)
     
     utils.print_with_time("Removing the first server from the table")
     assert r.db(dbName).table(tableName).config() \
         .update({'shards':[
             {'primary_replica':server2.name, 'replicas':[server2.name]}
         ]})['errors'].run(conn1) == 0
-    r.db(dbName).table(tableName).wait().run(conn1)
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn1)
     
     utils.print_with_time("Shutting down first server")
     

@@ -417,12 +417,12 @@ void find_keyvalue_location_for_write(
         // its direct children, we might still want to replace the root, so
         // we can't release the superblock yet.
         if (!last_buf.empty() && keyvalue_location_out->superblock) {
-            if (pass_back_superblock != NULL) {
+            if (pass_back_superblock != nullptr) {
                 pass_back_superblock->pulse(superblock);
-                keyvalue_location_out->superblock = NULL;
+                keyvalue_location_out->superblock = nullptr;
             } else {
                 keyvalue_location_out->superblock->release();
-                keyvalue_location_out->superblock = NULL;
+                keyvalue_location_out->superblock = nullptr;
             }
         }
 

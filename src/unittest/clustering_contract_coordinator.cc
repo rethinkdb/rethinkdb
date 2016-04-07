@@ -294,7 +294,8 @@ public:
 
 /* In the `AddReplica` test, we add a single replica to a table. */
 TPTEST(ClusteringContractCoordinator, AddReplica) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id();
+    server_id_t billy = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice}, alice} });
     cpu_branch_ids_t branch = quick_cpu_branch(
@@ -334,7 +335,8 @@ TPTEST(ClusteringContractCoordinator, AddReplica) {
 
 /* In the `RemoveReplica` test, we remove a single replica from a table. */
 TPTEST(ClusteringContractCoordinator, RemoveReplica) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id();
+    server_id_t billy = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice, billy}, alice} });
     cpu_branch_ids_t branch = quick_cpu_branch(
@@ -367,7 +369,8 @@ TPTEST(ClusteringContractCoordinator, RemoveReplica) {
 
 /* In the `ChangePrimary` test, we move the primary from one replica to another. */
 TPTEST(ClusteringContractCoordinator, ChangePrimary) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id();
+    server_id_t billy = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice, billy}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
@@ -427,7 +430,8 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
 
 /* In the `Split` test, we break a shard into two sub-shards. */
 TPTEST(ClusteringContractCoordinator, Split) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id();
+    server_id_t billy = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
@@ -520,9 +524,9 @@ TPTEST(ClusteringContractCoordinator, Split) {
 /* In the `Failover` test, we test that a new primary will be elected if the old primary
 fails. */
 TPTEST(ClusteringContractCoordinator, Failover) {
-    server_id_t alice = generate_uuid(),
-                billy = generate_uuid(),
-                carol = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id(),
+                billy = server_id_t::generate_server_id(),
+                carol = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy, carol });
     test.set_config({ {"*-*", {alice, billy, carol}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
@@ -572,9 +576,9 @@ TPTEST(ClusteringContractCoordinator, Failover) {
 /* In the `FailoverSplit` test, we test a corner case where different servers are
 eligile to be primary for different parts of the new key-space. */
 TPTEST(ClusteringContractCoordinator, FailoverSplit) {
-    server_id_t alice = generate_uuid(),
-                billy = generate_uuid(),
-                carol = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id(),
+                billy = server_id_t::generate_server_id(),
+                carol = server_id_t::generate_server_id();
     coordinator_tester_t test({ alice, billy, carol });
     test.set_config({ {"*-*", {alice, billy, carol}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(

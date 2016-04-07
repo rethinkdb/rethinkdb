@@ -879,6 +879,18 @@ class Server(object):
     def logfile_path(self):
         return self.__server.logfile_path
     
+    @property
+    def data_path(self):
+        if self.__server and hasattr(self.__server, 'data_path'):
+            return self.__server.data_path
+        return None
+    
+    @property
+    def console_output(self):
+        if self.__server and hasattr(self.__server, 'console_output'):
+            return self.__server.console_output
+        return None
+    
     def check(self):
         '''Check that the server is accessible and minimally sane'''
         assert r.expr(1).run(self.conn) == 1
@@ -1004,6 +1016,15 @@ class Test(object):
     
     __status = 'queued' # queued, setting up, running, ended
     __result = None # None, failed setup, failed, crashed, crashed server, timed out, canceled, succeeded
+    __resultInfo = {
+        'failed setup':   {'label':'SETUP  '},
+        'failed':         {'label':'FAILED '},
+        'crashed':        {'label':'CRASHED'},
+        'crashed server': {'label':'SERVER '},
+        'timed out':      {'label':'TIMEOUT'},
+        'canceled':       {'label':'CANCEL '},
+        'succeeded':      {'label':'SUCESS '}
+    }
     __testProcess = None
     __consoleFile = None
     
@@ -1060,7 +1081,7 @@ class Test(object):
             return None
         else:
             return self.__result
-        
+    
     @result.setter
     def result(self, value):
         '''Set the result to one of the following: failed, failed setup, crashed server, crashed, timed out, canceled, succeeded'''
@@ -1069,6 +1090,14 @@ class Test(object):
             raise ValueError('result can not be "%s", rather it must be one of: failed, failed setup, crashed server, crashed, canceled, succeeded' % str(value))
         
         self.__result = value
+    
+    @property
+    def resultLabel(self):
+        resultInfo = self.__resultInfo.get(self.result, None)
+        if resultInfo is None:
+            return None
+        else:
+            return resultInfo['label']
     
     @property
     def duration(self):
@@ -1482,7 +1511,7 @@ class WorkerThread(threading.Thread):
                         raise CancelRunError('External server no longer responding!')
                     else:
                         try:
-                            self.server.close()
+                            self.server.stop()
                         except Exception: pass
                         self.server = Server(scratchDir=self.scratchDir)
                         self.server.check()
@@ -1641,13 +1670,15 @@ class WorkerThread(threading.Thread):
                 debug(traceback.format_exc())
                 warnings.warn("Worker failure: %s" % unicode(e))
                 restartServer = True
+                if test:
+                    test.endTest(result='failed', errorMessage='Exception while running `%s`: %s' % (str(test.name), str(e)), errorDetails=traceback.format_exc())
             
             # -- shutdown the server if necessary
             if restartServer:
                 self.server.stop() # just cleans for external servers
                 if not isinstance(self.server, ExternalServer):
                     try:
-                        self.server.close()
+                        self.server.stop()
                     except Exception: pass
                     self.server = None
         
@@ -2029,16 +2060,16 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     
     # -- report final results
     
-    failedTestNames = sorted([test.name for test in failedTests])
+    failedTestLines = ['\t%s %s' % (test.resultLabel, test.name) for test in sorted(failedTests, key=lambda x: x.name)]
     
     if cancelRun is True:
         print('\n== Canceled after %.2f seconds with %d test%s running. %s test%s passed, %s test%s failed, and %s test%s remaining%s' % (
             time.time() - startTime,
             canceledTests, 's' if canceledTests != 1 else '',
             passedTests, 's' if passedTests != 1 else '',
-            len(failedTestNames), 's' if len(failedTestNames) != 1 else '',
+            len(failedTestLines), 's' if len(failedTestLines) != 1 else '',
             waitingTests, 's' if waitingTests != 1 else '',
-            ('\n\t%s\n' % ('\n\t'.join(failedTestNames) if len(failedTestNames) > 0 else ''))
+            ('\n' + '\n'.join(failedTestLines) + '\n\n' if len(failedTestLines) > 0 else '')
         ))
         sys.exit(3)
     elif len(failedTests) == 0:
@@ -2049,7 +2080,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         sys.exit(0)
     else:
         plural = 's' if len(failedTests) > 1 else ''
-        print('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTestNames)))
+        print('\n== Failed %d test%s (of %d) in %.2f seconds!\n%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n'.join(failedTestLines)))
         sys.exit(1)
         
 if __name__ == '__main__':

@@ -32,11 +32,11 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_3_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
 
-#define CLUSTER_VERSION_STRING "2.2.2"
+#define CLUSTER_VERSION_STRING "2.3.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -217,13 +217,18 @@ connectivity_cluster_t::run_t::run_t(
         const server_id_t &_server_id,
         const std::set<ip_address_t> &local_addresses,
         const peer_address_t &canonical_addresses,
+        const int join_delay_secs,
         int port,
         int client_port,
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
-            _heartbeat_sl_view)
+            _heartbeat_sl_view,
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+            _auth_sl_view,
+        SSL_CTX *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),
+    tls_ctx(_tls_ctx),
 
     /* Create the socket to use when listening for connections from peers */
     cluster_listener_socket(new tcp_bound_socket_t(local_addresses, port)),
@@ -255,14 +260,15 @@ connectivity_cluster_t::run_t::run_t(
     `connection_map` on each thread and notifying any listeners that we're now
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
-    connection_to_ourself(this, parent->me, _server_id, NULL, routing_table[parent->me]),
+    connection_to_ourself(this, parent->me, _server_id, nullptr, routing_table[parent->me]),
 
     heartbeat_sl_view(_heartbeat_sl_view),
+    auth_sl_view(_auth_sl_view),
 
     listener(new tcp_listener_t(
         cluster_listener_socket.get(),
         std::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                 this, ph::_1, auto_drainer_t::lock_t(&drainer))))
+                 this, ph::_1, join_delay_secs, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
@@ -281,7 +287,9 @@ int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
 }
 
-void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::join(
+        const peer_address_t &address,
+        const int join_delay_secs) THROWS_NOTHING {
     parent->assert_thread();
     coro_t::spawn_now_dangerously(std::bind(
         &connectivity_cluster_t::run_t::join_blocking,
@@ -289,20 +297,33 @@ void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_N
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
+        join_delay_secs,
         auto_drainer_t::lock_t(&drainer)));
 }
 
 void connectivity_cluster_t::run_t::on_new_connection(
         const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+        const int join_delay_secs,
         auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the keepalive_tcp_conn_stream_t.
     tcp_conn_t *conn;
-    nconn->make_overcomplicated(&conn);
+
+    try {
+        nconn->make_server_connection(tls_ctx, &conn, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &) {
+        // TLS handshake was interrupted.
+        return;
+    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+        // TLS handshake failed.
+        logERR("Cluster server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        return;
+    }
+
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, NULL);
+    handle(&conn_stream, boost::none, boost::none, lock, nullptr, join_delay_secs);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
@@ -310,7 +331,8 @@ void connectivity_cluster_t::run_t::connect_to_peer(
         int index,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock,
-        bool *successful_join,
+        bool *successful_join_inout,
+        const int join_delay_secs,
         co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
@@ -335,12 +357,15 @@ void connectivity_cluster_t::run_t::connect_to_peer(
     guarantee(index == 0);
 
     // Don't bother if there's already a connection
-    if (!*successful_join) {
+    if (!*successful_join_inout) {
         try {
-            keepalive_tcp_conn_stream_t conn(selected_addr->ip(), selected_addr->port().value(),
-                                             drainer_lock.get_drain_signal(), cluster_client_port);
-            if (!*successful_join) {
-                handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);
+            keepalive_tcp_conn_stream_t conn(
+                tls_ctx, selected_addr->ip(), selected_addr->port().value(),
+                drainer_lock.get_drain_signal(), cluster_client_port);
+            if (!*successful_join_inout) {
+                handle(
+                    &conn, expected_id, boost::optional<peer_address_t>(*address),
+                    drainer_lock, successful_join_inout, join_delay_secs);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -356,6 +381,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
 void connectivity_cluster_t::run_t::join_blocking(
         const peer_address_t peer,
         boost::optional<peer_id_t> expected_id,
+        const int join_delay_secs,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
@@ -383,6 +409,7 @@ void connectivity_cluster_t::run_t::join_blocking(
                    expected_id,
                    drainer_lock,
                    &successful_join,
+                   join_delay_secs,
                    &rate_control));
 
     // All attempts have completed
@@ -686,7 +713,8 @@ enum class handshake_result_code_t {
     UNRECOGNIZED_VERSION = 1,
     INCOMPATIBLE_ARCH = 2,
     INCOMPATIBLE_BUILD = 3,
-    UNKNOWN_ERROR = 4
+    PASSWORD_MISMATCH = 4,
+    UNKNOWN_ERROR = 5
 };
 
 class handshake_result_t {
@@ -723,6 +751,8 @@ private:
                 return "incompatible architecture";
             case handshake_result_code_t::INCOMPATIBLE_BUILD:
                 return "incompatible build mode";
+            case handshake_result_code_t::PASSWORD_MISMATCH:
+                return "no admin password";
             case handshake_result_code_t::UNKNOWN_ERROR:
                 unreachable();
             default:
@@ -816,9 +846,21 @@ void connectivity_cluster_t::run_t::handle(
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock,
-        bool *successful_join) THROWS_NOTHING
+        bool *successful_join_inout,
+        const int join_delay_secs) THROWS_NOTHING
 {
     parent->assert_thread();
+
+    bool has_admin_password = false;
+    {
+        auth_semilattice_metadata_t auth = auth_sl_view->get();
+        auto admin_user_it = auth.m_users.find(auth::username_t("admin"));
+        if (admin_user_it != auth.m_users.end()
+            && admin_user_it->second.get_ref()
+            && !admin_user_it->second.get_ref()->get_password().is_empty()) {
+            has_admin_password = true;
+        }
+    }
 
     /* TODO: If the other peer mysteriously stops talking to us, but doesn't close the
     connection, during the initialization process but before we construct the
@@ -856,6 +898,7 @@ void connectivity_cluster_t::run_t::handle(
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
         wm.append(cluster_build_mode.data(), cluster_build_mode.length());
+        serialize_universal(&wm, has_admin_password);
         serialize_universal(&wm, parent->me);
         serialize_universal(&wm, routing_table[parent->me].hosts());
         if (send_write_message(conn, &wm)) {
@@ -924,7 +967,7 @@ void connectivity_cluster_t::run_t::handle(
         if (servers.count(remote_server_id) != 0) {
             // There currently is another connection open to the server
             logINF("Rejected a connection from server %s since one is open already.",
-                   uuid_to_str(remote_server_id).c_str());
+                   remote_server_id.print().c_str());
             return;
         }
     }
@@ -962,6 +1005,28 @@ void connectivity_cluster_t::run_t::handle(
             logWRN("Connecting nodes with different build modes, local: %s, remote: %s",
                    cluster_build_mode.c_str(),
                    remote_build_mode.c_str());
+        }
+    }
+
+    // Check whether the other server has an admin password
+    {
+        bool remote_has_admin_password;
+
+        if (deserialize_universal_and_check(conn, &remote_has_admin_password, peername)) {
+            return;
+        }
+
+        // It's enough to do this check on one side. The handshake failure we send
+        // will cause a corresponding message to be printed on the other end.
+        if (!has_admin_password && remote_has_admin_password) {
+            auto reason = handshake_result_t::error(
+                handshake_result_code_t::PASSWORD_MISMATCH,
+                "The remote peer has an admin password configured, but we don't. "
+                "Connecting to it could make the cluster insecure. You can run this "
+                "server with the `--initial-password auto` option to allow joining "
+                "the password-protected cluster.");
+            fail_handshake(conn, peername, reason);
+            return;
         }
     }
 
@@ -1127,12 +1192,12 @@ void connectivity_cluster_t::run_t::handle(
 
     // This check is so that when trying multiple connections to a peer in parallel, we can
     //  make sure only one of them succeeds
-    if (successful_join != NULL) {
-        if (*successful_join) {
+    if (successful_join_inout != nullptr) {
+        if (*successful_join_inout) {
             logWRN("Somehow ended up with two successful joins to a peer, closing one");
             return;
         }
-        *successful_join = true;
+        *successful_join_inout = true;
     }
 
     /* For each peer that our new friend told us about that we don't already
@@ -1147,6 +1212,7 @@ void connectivity_cluster_t::run_t::handle(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     peer_address_t(it->second), // This is where we resolve the peer's ip addresses
                     boost::optional<peer_id_t>(it->first),
+                    join_delay_secs,
                     drainer_lock));
             }
         }
@@ -1176,6 +1242,20 @@ void connectivity_cluster_t::run_t::handle(
     // or write gets interrupted.
     cluster_conn_closing_subscription_t conn_closer_2(conn);
     conn_closer_2.reset(&connection_thread_drain_signal);
+
+    // Wait a certain amount to make sure that the connection is table. Only then
+    // add it to the connectivity cluster and start processing messages.
+    if (join_delay_secs > 0) {
+        logINF("Delaying the join with server %s for %d seconds.",
+               remote_server_id.print().c_str(),
+               join_delay_secs);
+        try {
+            nap(static_cast<int64_t>(join_delay_secs) * 1000,
+                &connection_thread_drain_signal);
+        } catch (const interrupted_exc_t &) {
+            // Ignore this here. We will bail out below.
+        }
+    }
 
     {
         /* `connection_t` is the public interface of this coroutine. Its
@@ -1208,7 +1288,7 @@ void connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != NULL, "Got a message for an unfamiliar tag. "
+                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
                         "Apparently we aren't compatible with the cluster on the other "
                         "end.");
 
@@ -1259,12 +1339,12 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     thread_allocator([](threadnum_t a, threadnum_t b) {
         return a.threadnum > b.threadnum;
     }),
-    current_run(NULL),
+    current_run(nullptr),
     connectivity_collection(),
     stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
 {
     for (int i = 0; i < max_message_tag; i++) {
-        message_handlers[i] = NULL;
+        message_handlers[i] = nullptr;
     }
 }
 
@@ -1454,14 +1534,14 @@ cluster_message_handler_t::cluster_message_handler_t(
     rassert(tag != connectivity_cluster_t::heartbeat_tag,
         "Tag %" PRIu8 " is reserved for heartbeat messages.",
         connectivity_cluster_t::heartbeat_tag);
-    rassert(connectivity_cluster->message_handlers[tag] == NULL);
+    rassert(connectivity_cluster->message_handlers[tag] == nullptr);
     connectivity_cluster->message_handlers[tag] = this;
 }
 
 cluster_message_handler_t::~cluster_message_handler_t() {
     guarantee(!connectivity_cluster->current_run);
     rassert(connectivity_cluster->message_handlers[tag] == this);
-    connectivity_cluster->message_handlers[tag] = NULL;
+    connectivity_cluster->message_handlers[tag] = nullptr;
 }
 
 void cluster_message_handler_t::on_local_message(

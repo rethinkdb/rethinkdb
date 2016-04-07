@@ -31,7 +31,7 @@ ql::datum_t convert_replica_status_to_datum(
         const server_name_map_t &server_names) {
     ql::datum_object_builder_t replica_builder;
     replica_builder.overwrite("server", convert_name_or_uuid_to_datum(
-        server_names.get(server_id), server_id, identifier_format));
+        server_names.get(server_id), server_id.get_uuid(), identifier_format));
     replica_builder.overwrite("state", ql::datum_t(status));
     return std::move(replica_builder).to_datum();
 }
@@ -54,7 +54,7 @@ ql::datum_t convert_shard_status_to_datum(
         }
         if (pair.second.primary) {
             primary_replicas_builder.add(convert_name_or_uuid_to_datum(
-                server_names.get(pair.first), pair.first, identifier_format));
+                server_names.get(pair.first), pair.first.get_uuid(), identifier_format));
         }
         const char *status;
         if (pair.second.backfilling) {
@@ -92,10 +92,10 @@ ql::datum_t convert_raft_leader_to_datum(
         const table_status_t &status,
         admin_identifier_format_t identifier_format) {
     if (static_cast<bool>(status.raft_leader)) {
-      return convert_name_or_uuid_to_datum(
-          status.server_names.get(*status.raft_leader),
-          *status.raft_leader,
-          identifier_format);
+        return convert_name_or_uuid_to_datum(
+            status.server_names.get(*status.raft_leader),
+            status.raft_leader->get_uuid(),
+            identifier_format);
     }
 
     return ql::datum_t::null();

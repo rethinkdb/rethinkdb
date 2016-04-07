@@ -209,6 +209,51 @@ private:
     virtual const char *name() const { return "map"; }
 };
 
+class eq_join_term_t : public grouped_seq_op_term_t {
+public:
+    eq_join_term_t(compile_env_t *env, const raw_term_t &term)
+        : grouped_seq_op_term_t(env,
+                                term,
+                                argspec_t(3),
+                                optargspec_t({"index", "ordered"})) { }
+
+    virtual const char *name() const { return "eqjoin"; }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+                                          args_t *args,
+                                          eval_flags_t) const {
+        counted_t<datum_stream_t> stream = args->arg(env, 0)->as_seq(env->env);
+        counted_t<table_t> table = args->arg(env, 2)->as_table();
+
+        // Either a field name or a predicate function:
+        counted_t<const func_t> predicate_function;
+
+        predicate_function = args->arg(env, 1)->as_func(GET_FIELD_SHORTCUT);
+
+        bool ordered = false;
+        scoped_ptr_t<val_t> maybe_ordered = args->optarg(env, "ordered");
+        if (maybe_ordered.has()) {
+            ordered = maybe_ordered->as_bool();
+        }
+        datum_t key;
+        scoped_ptr_t<val_t> maybe_key = args->optarg(env, "index");
+        if (maybe_key.has()) {
+            key = maybe_key->as_datum();
+        } else {
+            key = datum_t(datum_string_t(table->get_pkey()));
+        }
+        counted_t<eq_join_datum_stream_t> eq_join_stream =
+            make_counted<eq_join_datum_stream_t>(stream,
+                                                 table,
+                                                 key.as_str(),
+                                                 predicate_function,
+                                                 ordered,
+                                                 backtrace());
+
+        return new_val(env->env, eq_join_stream);
+    }
+};
+
 class fold_term_t : public grouped_seq_op_term_t {
 public:
     fold_term_t(compile_env_t *env, const raw_term_t &term)
@@ -494,7 +539,8 @@ public:
                           "changefeed_queue_size",
                           "include_initial",
                           "include_offsets",
-                          "include_states"})) { }
+                          "include_states",
+                          "include_types"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -514,6 +560,11 @@ private:
         bool include_states = false;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
+        }
+
+        bool include_types = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_types")) {
+            include_types = v->as_bool();
         }
 
         bool include_initial = false;
@@ -550,6 +601,7 @@ private:
                             changespec.keyspec.table_name,
                             include_offsets,
                             include_states,
+                            include_types,
                             limits,
                             squash,
                             std::move(changespec.keyspec.spec)),
@@ -583,6 +635,7 @@ private:
                         sel->get_tbl()->display_name(),
                         include_offsets,
                         include_states,
+                        include_types,
                         limits,
                         squash,
                         sel->get_spec()),
@@ -842,6 +895,11 @@ counted_t<term_t> make_reduce_term(
 counted_t<term_t> make_map_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<map_term_t>(env, term);
+}
+
+counted_t<term_t> make_eq_join_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<eq_join_term_t>(env, term);
 }
 
 counted_t<term_t> make_fold_term(

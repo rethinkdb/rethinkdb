@@ -12,10 +12,12 @@
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
-        server_config_client_t *server_config_client_) :
+        server_config_client_t *server_config_client_,
+        const int join_delay_secs_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
     server_config_client(server_config_client_),
+    join_delay_secs(join_delay_secs_),
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
@@ -35,8 +37,12 @@ void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
     // what we define in `initial_joiner_t::on_connection_change`, or else we might
     // never start the `try_reconnect` routine for an initial join peer.
     if (static_cast<bool>(conn)) {
-        addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
-        server_ids[peer_id] = conn->first->get_server_id();
+        // We never reconnect *to* proxies. If we are a full server, the proxy is going
+        // to connect to us instead.
+        if (!conn->first->get_server_id().is_proxy()) {
+            addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
+            server_ids[peer_id] = conn->first->get_server_id();
+        }
     } else if (!static_cast<bool>(server_id) && !static_cast<bool>(conn)) {
         auto it = server_ids.find(peer_id);
         if (it != server_ids.end()) {
@@ -80,7 +86,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
         while (!interruptor.is_pulsed()) {
-            connectivity_cluster_run->join(last_known_address);
+            connectivity_cluster_run->join(last_known_address, join_delay_secs);
             backoff.failure(&interruptor);
         }
     } catch (const interrupted_exc_t &) {

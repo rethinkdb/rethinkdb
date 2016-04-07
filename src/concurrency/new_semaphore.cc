@@ -53,24 +53,24 @@ new_semaphore_in_line_t::~new_semaphore_in_line_t() {
 }
 
 void new_semaphore_in_line_t::reset() {
-    if (semaphore_ != NULL) {
+    if (semaphore_ != nullptr) {
         semaphore_->remove_acquirer(this);
-        semaphore_ = NULL;
+        semaphore_ = nullptr;
         count_ = 0;
         cond_.reset();
     }
 }
 
 new_semaphore_in_line_t::new_semaphore_in_line_t()
-    : semaphore_(NULL), count_(0) { }
+    : semaphore_(nullptr), count_(0) { }
 
 new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_t *semaphore, int64_t count)
-    : semaphore_(NULL), count_(0) {
+    : semaphore_(nullptr), count_(0) {
     init(semaphore, count);
 }
 
 void new_semaphore_in_line_t::init(new_semaphore_t *semaphore, int64_t count) {
-    guarantee(semaphore_ == NULL);
+    guarantee(semaphore_ == nullptr);
     rassert(count_ == 0);
     guarantee(count >= 0);
     semaphore_ = semaphore;
@@ -83,7 +83,7 @@ new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_in_line_t &&movee
       semaphore_(movee.semaphore_),
       count_(movee.count_),
       cond_(std::move(movee.cond_)) {
-    movee.semaphore_ = NULL;
+    movee.semaphore_ = nullptr;
     movee.count_ = 0;
     movee.cond_.reset();
 }
@@ -93,7 +93,7 @@ int64_t new_semaphore_in_line_t::count() const {
 }
 
 void new_semaphore_in_line_t::change_count(int64_t new_count) {
-    guarantee(semaphore_ != NULL);
+    guarantee(semaphore_ != nullptr);
     guarantee(new_count >= 0);
 
     if (cond_.is_pulsed()) {

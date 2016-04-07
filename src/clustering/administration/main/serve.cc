@@ -54,13 +54,14 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     return peers;
 }
 
-std::string service_address_ports_t::get_addresses_string() const {
-    std::set<ip_address_t> actual_addresses = local_addresses;
+std::string service_address_ports_t::get_addresses_string(
+    std::set<ip_address_t> actual_addresses) const {
+
     bool first = true;
     std::string result;
 
     // Get the actual list for printing if we're listening on all addresses.
-    if (is_bind_all()) {
+    if (is_bind_all(actual_addresses)) {
         actual_addresses = get_local_ips(std::set<ip_address_t>(),
                                          local_ip_filter_t::ALL);
     }
@@ -73,9 +74,10 @@ std::string service_address_ports_t::get_addresses_string() const {
     return result;
 }
 
-bool service_address_ports_t::is_bind_all() const {
+bool service_address_ports_t::is_bind_all(
+    std::set<ip_address_t> addresses) const {
     // If the set is empty, it means we're listening on all addresses.
-    return local_addresses.empty();
+    return addresses.empty();
 }
 
 #ifdef _WIN32
@@ -92,7 +94,10 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
-              os_signal_cond_t *stop_cond) {
+              os_signal_cond_t *stop_cond,
+              /* For regular servers, the initial password is already set in the
+              metadata and this will be empty. */
+              const std::string &proxy_initial_password = "") {
     /* This coroutine is responsible for creating and destroying most of the important
     components of the server. */
 
@@ -115,8 +120,9 @@ bool do_serve(io_backender_t *io_backender,
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
         heartbeat_semilattice_metadata_t heartbeat_metadata;
-        server_id_t server_id = generate_uuid();
+        server_id_t server_id;
         if (metadata_file != nullptr) {
+            guarantee(proxy_initial_password.empty());
             cond_t non_interruptor;
             metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
             cluster_metadata = txn.read(mdkey_cluster_semilattices(), &non_interruptor);
@@ -124,10 +130,16 @@ bool do_serve(io_backender_t *io_backender,
             heartbeat_metadata = txn.read(
                 mdkey_heartbeat_semilattices(), &non_interruptor);
             server_id = txn.read(mdkey_server_id(), &non_interruptor);
+        } else {
+            // We are a proxy, generate a temporary proxy server id.
+            server_id = server_id_t::generate_proxy_id();
+            auth_metadata.m_users.insert(
+                auth_semilattice_metadata_t::create_initial_admin_pair(
+                    proxy_initial_password));
         }
 
 #ifndef NDEBUG
-        logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
+        logNTC("Our server ID is %s", server_id.print().c_str());
 #endif
 
         /* The `connectivity_cluster_t` maintains TCP connections to other servers in the
@@ -214,11 +226,14 @@ bool do_serve(io_backender_t *io_backender,
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
                 server_id,
-                serve_info.ports.local_addresses,
+                serve_info.ports.local_addresses_cluster,
                 serve_info.ports.canonical_addresses,
+                serve_info.join_delay_secs,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
-                semilattice_manager_heartbeat.get_root_view()));
+                semilattice_manager_heartbeat.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
+                serve_info.tls_configs.cluster.get()));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -235,7 +250,8 @@ bool do_serve(io_backender_t *io_backender,
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            &server_config_client);
+            &server_config_client,
+            serve_info.join_delay_secs);
 
         /* `initial_joiner` sets up the initial connections to the peers that were
         specified with the `--join` flag on the command line. */
@@ -243,7 +259,8 @@ bool do_serve(io_backender_t *io_backender,
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
                                                      connectivity_cluster_run.get(),
-                                                     serve_info.peers));
+                                                     serve_info.peers,
+                                                     serve_info.join_delay_secs));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -259,7 +276,7 @@ bool do_serve(io_backender_t *io_backender,
         needs. */
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
-                              NULL,   /* we'll fill this in later */
+                              nullptr,   /* we'll fill this in later */
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
@@ -327,6 +344,7 @@ bool do_serve(io_backender_t *io_backender,
             uses to create, destroy, and reconfigure databases and tables. */
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
+                semilattice_manager_auth.get_root_view(),
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
@@ -338,8 +356,8 @@ bool do_serve(io_backender_t *io_backender,
             `rethinkdb` system database. */
             admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
-                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
+                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_heartbeat.get_root_view(),
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
@@ -500,11 +518,12 @@ bool do_serve(io_backender_t *io_backender,
                 /* The `rdb_query_server_t` listens for client requests and processes the
                 queries it receives. */
                 rdb_query_server_t rdb_query_server(
-                    serve_info.ports.local_addresses,
+                    serve_info.ports.local_addresses_driver,
                     serve_info.ports.reql_port,
                     &rdb_ctx,
                     &server_config_client,
-                    server_id);
+                    server_id,
+                    serve_info.tls_configs.driver.get());
                 logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
                 /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
@@ -553,10 +572,11 @@ bool do_serve(io_backender_t *io_backender,
                         guarantee(serve_info.ports.http_port < 65536);
                         admin_server_ptr.init(
                             new administrative_http_server_manager_t(
-                                serve_info.ports.local_addresses,
+                                serve_info.ports.local_addresses_http,
                                 serve_info.ports.http_port,
                                 rdb_query_server.get_http_app(),
-                                serve_info.web_assets));
+                                serve_info.web_assets,
+                                serve_info.tls_configs.web.get()));
                         logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
                         /* If `serve_info.ports.http_port` was zero then the OS assigned
@@ -569,12 +589,28 @@ bool do_serve(io_backender_t *io_backender,
                             });
                     }
 
-                    const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logNTC("Listening on address%s: %s\n",
-                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                    std::string addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_cluster);
+                    logNTC("Listening on cluster address%s: %s\n",
+                           serve_info.ports.local_addresses_cluster.size() == 1 ? "" : "es",
                            addresses_string.c_str());
 
-                    if (!serve_info.ports.is_bind_all()) {
+                    addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_driver);
+                    logNTC("Listening on driver address%s: %s\n",
+                           serve_info.ports.local_addresses_driver.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
+
+                    addresses_string =
+                        serve_info.ports.get_addresses_string(
+                            serve_info.ports.local_addresses_http);
+                    logNTC("Listening on http address%s: %s\n",
+                           serve_info.ports.local_addresses_http.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
+
+                    if (!serve_info.ports.is_bind_all(serve_info.ports.local_addresses)) {
                         if(serve_info.config_file) {
                             logNTC("To fully expose RethinkDB on the network, bind to "
                                    "all addresses by adding `bind=all' to the config "
@@ -590,9 +626,9 @@ bool do_serve(io_backender_t *io_backender,
                         logNTC("Server ready, \"%s\" %s\n",
                                server_config_server->get_config()
                                    ->get().config.name.c_str(),
-                               uuid_to_str(server_id).c_str());
+                               server_id.print().c_str());
                     } else {
-                        logNTC("Proxy ready");
+                        logNTC("Proxy ready, %s", server_id.print().c_str());
                     }
 
                     /* `checker` periodically phones home to RethinkDB HQ to check if
@@ -661,13 +697,15 @@ bool serve(io_backender_t *io_backender,
 }
 
 bool serve_proxy(const serve_info_t &serve_info,
+                 const std::string &initial_password,
                  os_signal_cond_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(NULL,
+    return do_serve(nullptr,
                     false,
                     base_path_t(""),
                     nullptr,
                     serve_info,
-                    stop_cond);
+                    stop_cond,
+                    initial_password);
 }

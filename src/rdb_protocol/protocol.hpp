@@ -16,6 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/secondary_operations.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
@@ -133,19 +134,6 @@ struct rget_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
-struct intersecting_geo_read_response_t {
-    boost::variant<ql::datum_t, ql::exc_t> results_or_error;
-
-    intersecting_geo_read_response_t() { }
-    intersecting_geo_read_response_t(
-            const ql::datum_t &_results)
-        : results_or_error(_results) { }
-    intersecting_geo_read_response_t(
-            const ql::exc_t &_error)
-        : results_or_error(_error) { }
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
-
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
     typedef std::vector<dist_pair_t> result_t;
@@ -262,15 +250,22 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        boost::optional<region_t> _region,
-                       ql::datumspec_t _datumspec)
-        : id(_id), region(std::move(_region)), datumspec(std::move(_datumspec)) { }
+                       ql::datumspec_t _datumspec,
+                       require_sindexes_t _require_sindex_val = require_sindexes_t::NO)
+        : id(_id),
+          region(std::move(_region)),
+          datumspec(std::move(_datumspec)),
+          require_sindex_val(_require_sindex_val){ }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
     // For dealing with truncation and `get_all`.
     ql::datumspec_t datumspec;
+    // For forcing sindex values to be returned with sorting::UNORDERED, used in eq_join.
+    require_sindexes_t require_sindex_val;
 };
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
 struct changefeed_stamp_t {
@@ -291,6 +286,7 @@ public:
                 boost::optional<std::map<region_t, store_key_t> > _hints,
                 boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 ql::global_optargs_t _optargs,
+                auth::user_context_t user_context,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
                 std::vector<ql::transform_variant_t> _transforms,
@@ -302,6 +298,7 @@ public:
       hints(std::move(_hints)),
       primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
+      m_user_context(std::move(user_context)),
       table_name(std::move(_table_name)),
       batchspec(std::move(_batchspec)),
       transforms(std::move(_transforms)),
@@ -320,6 +317,7 @@ public:
     boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
 
     ql::global_optargs_t optargs;
+    auth::user_context_t m_user_context;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -344,6 +342,7 @@ public:
         boost::optional<changefeed_stamp_t> &&_stamp,
         region_t _region,
         ql::global_optargs_t _optargs,
+        auth::user_context_t user_context,
         std::string _table_name,
         ql::batchspec_t _batchspec,
         std::vector<ql::transform_variant_t> _transforms,
@@ -353,6 +352,7 @@ public:
         : stamp(std::move(_stamp)),
           region(std::move(_region)),
           optargs(std::move(_optargs)),
+          m_user_context(std::move(user_context)),
           table_name(std::move(_table_name)),
           batchspec(std::move(_batchspec)),
           transforms(std::move(_transforms)),
@@ -364,6 +364,7 @@ public:
 
     region_t region; // Primary key range. We need this because of sharding.
     ql::global_optargs_t optargs;
+    auth::user_context_t m_user_context;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -383,17 +384,26 @@ public:
 
     nearest_geo_read_t(
             const region_t &_region,
-            lon_lat_point_t _center, double _max_dist, uint64_t _max_results,
-            const ellipsoid_spec_t &_geo_system, const std::string &_table_name,
+            lon_lat_point_t _center,
+            double _max_dist,
+            uint64_t _max_results,
+            const ellipsoid_spec_t &_geo_system,
+            const std::string &_table_name,
             const std::string &_sindex_id,
-            ql::global_optargs_t _optargs)
+            ql::global_optargs_t _optargs,
+            auth::user_context_t user_context)
         : optargs(std::move(_optargs)),
-          center(_center), max_dist(_max_dist),
-          max_results(_max_results), geo_system(_geo_system),
-          region(_region), table_name(_table_name),
+          m_user_context(std::move(user_context)),
+          center(_center),
+          max_dist(_max_dist),
+          max_results(_max_results),
+          geo_system(_geo_system),
+          region(_region),
+          table_name(_table_name),
           sindex_id(_sindex_id) { }
 
     ql::global_optargs_t optargs;
+    auth::user_context_t m_user_context;
 
     lon_lat_point_t center;
     double max_dist;
@@ -440,18 +450,21 @@ struct changefeed_limit_subscribe_t {
         ql::changefeed::keyspec_t::limit_t _spec,
         std::string _table,
         ql::global_optargs_t _optargs,
+        auth::user_context_t user_context,
         region_t pkey_region)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
           table(std::move(_table)),
           optargs(std::move(_optargs)),
+          m_user_context(std::move(user_context)),
           region(std::move(pkey_region)) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
     std::string table;
     ql::global_optargs_t optargs;
+    auth::user_context_t m_user_context;
     region_t region;
     boost::optional<region_t> current_shard;
 };
@@ -561,9 +574,13 @@ struct batched_replace_t {
             const std::string &_pkey,
             const counted_t<const ql::func_t> &func,
             ql::global_optargs_t _optargs,
+            auth::user_context_t user_context,
             return_changes_t _return_changes)
-        : keys(std::move(_keys)), pkey(_pkey), f(func),
+        : keys(std::move(_keys)),
+          pkey(_pkey),
+          f(func),
           optargs(std::move(_optargs)),
+          m_user_context(std::move(user_context)),
           return_changes(_return_changes) {
         r_sanity_check(keys.size() != 0);
     }
@@ -571,6 +588,7 @@ struct batched_replace_t {
     std::string pkey;
     ql::wire_func_t f;
     ql::global_optargs_t optargs;
+    auth::user_context_t m_user_context;
     return_changes_t return_changes;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
@@ -578,36 +596,20 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
 struct batched_insert_t {
     batched_insert_t() { }
     batched_insert_t(
-            std::vector<ql::datum_t> &&_inserts,
-            const std::string &_pkey, conflict_behavior_t _conflict_behavior,
-            const ql::configured_limits_t &_limits,
-            return_changes_t _return_changes)
-        : inserts(std::move(_inserts)), pkey(_pkey),
-          conflict_behavior(_conflict_behavior), limits(_limits),
-          return_changes(_return_changes) {
-        r_sanity_check(inserts.size() != 0);
-#ifndef NDEBUG
-        // These checks are done above us, but in debug mode we do them
-        // again.  (They're slow.)  We do them above us because the code in
-        // val.cc knows enough to report the write errors correctly while
-        // still doing the other writes.
-        for (auto it = inserts.begin(); it != inserts.end(); ++it) {
-            ql::datum_t keyval =
-                it->get_field(datum_string_t(pkey), ql::NOTHROW);
-            r_sanity_check(keyval.has());
-            try {
-                keyval.print_primary(); // ERROR CHECKING
-                continue;
-            } catch (const ql::base_exc_t &e) {
-            }
-            r_sanity_check(false); // throws, so can't do this in exception handler
-        }
-#endif // NDEBUG
-    }
+        std::vector<ql::datum_t> &&_inserts,
+        const std::string &_pkey,
+        conflict_behavior_t _conflict_behavior,
+        boost::optional<counted_t<const ql::func_t> > _conflict_func,
+        const ql::configured_limits_t &_limits,
+        auth::user_context_t user_context,
+        return_changes_t _return_changes);
+
     std::vector<ql::datum_t> inserts;
     std::string pkey;
     conflict_behavior_t conflict_behavior;
+    boost::optional<ql::wire_func_t> conflict_func;
     ql::configured_limits_t limits;
+    auth::user_context_t m_user_context;
     return_changes_t return_changes;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);

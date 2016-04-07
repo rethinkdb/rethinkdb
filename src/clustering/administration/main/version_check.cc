@@ -33,17 +33,19 @@ version_checker_t::version_checker_t(
     table_meta_client(_table_meta_client),
     server_config_client(_server_config_client),
     timer(day_in_ms, this) {
-    rassert(rdb_ctx != NULL);
+    rassert(rdb_ctx != nullptr);
     coro_t::spawn_sometime(std::bind(&version_checker_t::do_check,
                                      this, true, drainer.lock()));
 }
 
 void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepalive) {
-    ql::env_t env(rdb_ctx,
-                  ql::return_empty_normal_batches_t::NO,
-                  keepalive.get_drain_signal(),
-                  ql::global_optargs_t(),
-                  nullptr);
+    ql::env_t env(
+        rdb_ctx,
+        ql::return_empty_normal_batches_t::NO,
+        keepalive.get_drain_signal(),
+        ql::global_optargs_t(),
+        auth::user_context_t(auth::permissions_t(false, false, false, true)),
+        nullptr);
     http_opts_t opts;
     opts.limits = env.limits();
     opts.result_format = http_result_format_t::JSON;

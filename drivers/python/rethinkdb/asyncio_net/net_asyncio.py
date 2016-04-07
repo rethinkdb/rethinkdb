@@ -6,7 +6,7 @@ import socket
 import struct
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -128,6 +128,13 @@ class ConnectionInstance(object):
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
+    def client_port(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[1]
+    def client_address(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('socketname')[0]
+
     @asyncio.coroutine
     def connect(self, timeout):
         try:
@@ -140,29 +147,37 @@ class ConnectionInstance(object):
                                 socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
+                                  (self._parent.host, self._parent.port, str(err)))
+
 
         try:
-            self._streamwriter.write(self._parent.handshake)
+            self._parent.handshake.reset()
+            response = None
             with translate_timeout_errors():
-                response = yield from asyncio.wait_for(
-                    _read_until(self._streamreader, b'\0'),
-                    timeout, loop=self._io_loop,
-                )
+                while True:
+                    request = self._parent.handshake.next_message(response)
+                    if request is None:
+                        break
+                    # This may happen in the `V1_0` protocol where we send two requests as
+                    # an optimization, then need to read each separately
+                    if request is not "":
+                        self._streamwriter.write(request)
+
+                    response = yield from asyncio.wait_for(
+                        _read_until(self._streamreader, b'\0'),
+                        timeout, loop=self._io_loop,
+                    )
+                    response = response[:-1]
+        except ReqlAuthError:
+            yield self.close()
+            raise
+        except ReqlTimeoutError:
+            yield self.close()
+            raise
         except Exception as err:
-            raise ReqlDriverError(
-                'Connection interrupted during handshake with %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
-
-        message = decodeUTF(response[:-1]).split('\n')[0]
-
-        if message != 'SUCCESS':
-            self.close(False, None)
-            if message == "ERROR: Incorrect authorization key":
-                raise ReqlAuthError(self._parent.host, self._parent.port)
-            else:
-                raise ReqlDriverError('Server dropped connection with message: "%s"' %
-                    (message, ))
+            yield self.close()
+            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
+                                  (self._parent.host, self._parent.port, str(err)))
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed

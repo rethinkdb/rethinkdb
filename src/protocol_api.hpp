@@ -8,9 +8,12 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/interruptor.hpp"
@@ -23,7 +26,12 @@
 #include "region/region_map.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "utils.hpp"
 #include "version.hpp"
+
+namespace auth {
+class username_t;
+}  // namespace auth
 
 struct backfill_chunk_t;
 struct read_t;
@@ -68,23 +76,28 @@ logic for query routing exposes to the protocol-specific query parser. */
 
 class namespace_interface_t {
 public:
-    virtual void read(const read_t &,
+    virtual void read(auth::user_context_t const &user_context,
+                      const read_t &,
                       read_response_t *response,
                       order_token_t tok,
                       signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const write_t &,
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
+
+    virtual void write(auth::user_context_t const &user_context,
+                       const write_t &,
                        write_response_t *response,
                        order_token_t tok,
                        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
     virtual std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t) = 0;
 
-    virtual signal_t *get_initial_ready_signal() { return NULL; }
+    virtual signal_t *get_initial_ready_signal() { return nullptr; }
 
     virtual bool check_readiness(table_readiness_t readiness,
                                  signal_t *interruptor) = 0;
@@ -100,12 +113,12 @@ protected:
 //    conflict occurs.
 //  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
 //    occurs.
-enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE, FUNCTION };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       int8_t,
                                       conflict_behavior_t::ERROR,
-                                      conflict_behavior_t::UPDATE);
+                                      conflict_behavior_t::FUNCTION);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.

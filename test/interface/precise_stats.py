@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 # This file tests the `rethinkdb.stats` admin table.
 # Here, we run very particular queries and verify that the 'total' stats are exactly
@@ -18,9 +18,9 @@ server_names = ['grey', 'face']
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
+_, command_prefix, server_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Cluster(initial_servers=server_names) as cluster:
+with driver.Cluster(initial_servers=server_names, output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
     
     r.connect(host=cluster[0].host, port=cluster[0].driver_port).repl()
 
@@ -61,12 +61,9 @@ with driver.Cluster(initial_servers=server_names) as cluster:
         query.run()
         check_stats_internal(query, reads, writes)
 
-    def primary_shard(server):
-        return { 'primary_replica': server.name, 'replicas': [ server.name ] }
-
     # Pin the table to one server
-    tbl.config().update({'shards': [ primary_shard(cluster[0]) ]}).run()
-    tbl.wait().run()
+    tbl.config().update({'shards':[{'primary_replica':cluster[0].name, 'replicas':[cluster[0].name]}]}).run()
+    tbl.wait().run(wait_for='all_replicas_ready')
 
     # Create a secondary index that will be used in some of the inserts
     check_query_stats(tbl.index_create('double', r.row['id']), reads=0, writes=0)
@@ -129,9 +126,11 @@ with driver.Cluster(initial_servers=server_names) as cluster:
     backfillee_stats_before = get_stats(cluster[1])
 
     # Shard the table into two shards (1 primary replica on each server)
-    tbl.config().update({'shards': [ primary_shard(cluster[0]),
-                                     primary_shard(cluster[1]) ]}).run()
-    tbl.wait().run()
+    tbl.config().update({'shards': [ 
+        { 'primary_replica': cluster[0].name, 'replicas': [ cluster[0].name ] },
+        { 'primary_replica': cluster[1].name, 'replicas': [ cluster[1].name ] }
+    ]}).run()
+    tbl.wait(wait_for='all_replicas_ready').run()
     # Manually check stats here as the number of reads/writes will be unpredictable
     backfiller_stats_after = get_stats(cluster[0])
     backfillee_stats_after = get_stats(cluster[1])

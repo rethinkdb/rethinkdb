@@ -50,11 +50,13 @@ namespace_repo_t::namespace_repo_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<directory_key_t, table_query_bcard_t> *_directory,
         multi_table_manager_t *_multi_table_manager,
-        rdb_context_t *_ctx)
+        rdb_context_t *_ctx,
+        table_meta_client_t *table_meta_client)
     : mailbox_manager(_mailbox_manager),
       directory(_directory),
       multi_table_manager(_multi_table_manager),
-      ctx(_ctx)
+      ctx(_ctx),
+      m_table_meta_client(table_meta_client)
       { }
 
 namespace_repo_t::~namespace_repo_t() { }
@@ -132,7 +134,8 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
         mailbox_manager,
         directory_converter_on_this_thread.get_watchable(),
         multi_table_manager,
-        ctx);
+        ctx,
+        m_table_meta_client);
 
     try {
         /* Wait for the table to become available for use */
@@ -195,8 +198,8 @@ namespace_interface_access_t namespace_repo_t::get_namespace_interface(
         if (cache->entries.find(ns_id) == cache->entries.end()) {
             cache_entry = new namespace_cache_entry_t;
             cache_entry->ref_count = 0;
-            cache_entry->pulse_when_ref_count_becomes_zero = NULL;
-            cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
+            cache_entry->pulse_when_ref_count_becomes_zero = nullptr;
+            cache_entry->pulse_when_ref_count_becomes_nonzero = nullptr;
 
             namespace_id_t id(ns_id);
             cache->entries.insert(std::make_pair(id,

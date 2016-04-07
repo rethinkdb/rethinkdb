@@ -61,7 +61,6 @@ bool is_uuid(const std::string& str);
 
 typedef uuid_u namespace_id_t;
 typedef uuid_u database_id_t;
-typedef uuid_u server_id_t;
 typedef uuid_u backfill_session_id_t;
 typedef uuid_u branch_id_t;
 typedef uuid_u issue_id_t;

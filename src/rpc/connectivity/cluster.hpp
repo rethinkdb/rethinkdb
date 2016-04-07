@@ -2,6 +2,8 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
+#include <openssl/ssl.h>
+
 #include <map>
 #include <set>
 #include <string>
@@ -18,12 +20,14 @@
 #include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
 
 namespace boost {
 template <class> class optional;
 }
 
+class auth_semilattice_metadata_t;
 class cluster_message_handler_t;
 class co_semaphore_t;
 class heartbeat_semilattice_metadata_t;
@@ -125,7 +129,7 @@ public:
 
         /* Returns `true` if this is the loopback connection */
         bool is_loopback() const {
-            return conn == NULL;
+            return conn == nullptr;
         }
 
         /* Drops the connection. */
@@ -183,10 +187,14 @@ public:
               const server_id_t &server_id,
               const std::set<ip_address_t> &local_addresses,
               const peer_address_t &canonical_addresses,
+              const int join_delay_secs,
               int port,
               int client_port,
               boost::shared_ptr<semilattice_read_view_t<
-                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view)
+                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
+              boost::shared_ptr<semilattice_read_view_t<
+                  auth_semilattice_metadata_t> > auth_sl_view,
+              SSL_CTX *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
@@ -194,7 +202,7 @@ public:
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
-        void join(const peer_address_t &address) THROWS_NOTHING;
+        void join(const peer_address_t &address, const int join_delay_secs) THROWS_NOTHING;
 
         std::set<host_and_port_t> get_canonical_addresses();
         int get_port();
@@ -209,13 +217,13 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
-                guarantee(*variable == NULL);
+                guarantee(*variable == nullptr);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
                 guarantee(*variable == value);
-                *variable = NULL;
+                *variable = nullptr;
             }
         private:
             run_t **variable;
@@ -224,6 +232,7 @@ public:
         };
 
         void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+                const int join_delay_secs,
                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
         /* `connect_to_peer` is spawned for each known ip address of a peer which we want
@@ -232,13 +241,15 @@ public:
                              int index,
                              boost::optional<peer_id_t> expected_id,
                              auto_drainer_t::lock_t drainer_lock,
-                             bool *successful_join,
+                             bool *successful_join_inout,
+                             const int join_delay_secs,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
         /* `join_blocking()` is spawned in a new coroutine by `join()`. It's also run by
         `handle()` when we hear about a new peer from a peer we are connected to. */
         void join_blocking(const peer_address_t hosts,
                            boost::optional<peer_id_t>,
+                           const int join_delay_secs,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
 
         // Normal routing table isn't serializable, so we send just the hosts/ports
@@ -258,7 +269,8 @@ public:
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t,
-            bool *successful_join) THROWS_NOTHING;
+            bool *successful_join_inout,
+            const int join_delay_secs) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
 
@@ -266,6 +278,8 @@ public:
         a single connection per server. */
         server_id_t server_id;
         std::set<server_id_t> servers;
+
+        SSL_CTX *tls_ctx;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to
@@ -300,6 +314,9 @@ public:
 
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             heartbeat_sl_view;
+
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+            auth_sl_view;
 
         auto_drainer_t drainer;
 

@@ -8,12 +8,14 @@
 #include "rdb_protocol/query_params.hpp"
 #include "rdb_protocol/response.hpp"
 
-rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
-                                       int port,
-                                       rdb_context_t *_rdb_ctx,
-                                       server_config_client_t *_server_config_client,
-                                       const server_id_t &_server_id) :
-    server(_rdb_ctx, local_addresses, port, this, default_http_timeout_sec),
+rdb_query_server_t::rdb_query_server_t(
+    const std::set<ip_address_t> &local_addresses, int port,
+    rdb_context_t *_rdb_ctx, server_config_client_t *_server_config_client,
+    const server_id_t &_server_id, SSL_CTX *tls_ctx
+) :
+    server(
+        _rdb_ctx, local_addresses, port, this, default_http_timeout_sec, tls_ctx
+    ),
     rdb_ctx(_rdb_ctx),
     server_config_client(_server_config_client),
     server_id(_server_id),
@@ -80,7 +82,7 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
 }
 
 void rdb_query_server_t::fill_server_info(ql::response_t *out) {
-    datum_string_t id(uuid_to_str(server_id));
+    datum_string_t id(server_id.print());
 
     ql::datum_object_builder_t builder;
     builder.overwrite(datum_string_t("id"), ql::datum_t(id));

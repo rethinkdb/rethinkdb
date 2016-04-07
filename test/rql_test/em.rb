@@ -98,7 +98,7 @@ $runners = [method(:run1), method(:run2), method(:run3), method(:run4),
 
 r.table_create('test').run rescue nil
 r.table('test').reconfigure(shards: 2, replicas: 1).run
-r.table('test').wait.run
+r.table('test').wait(:wait_for=>"all_replicas_ready").run
 r.table('test').delete.run
 r.table('test').insert({id: 0}).run
 EM.run {

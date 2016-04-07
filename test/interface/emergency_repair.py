@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """Ensure the `emergency_repair` mode of `table.reconfigure()` works properly."""
 
@@ -121,10 +121,8 @@ utils.print_with_time("Starting cluster of 2 servers")
 with driver.Cluster(initial_servers=['a', 'x'], output_folder='.', command_prefix=command_prefix, extra_options=server_options) as cluster:
     cluster.check()
     
-    server_a = cluster[0]
-    assert server_a.name == 'a'
-    server_x = cluster[1]
-    assert server_x.name == 'x'
+    server_a = cluster['a']
+    server_x = cluster['x']
     
     # -- setup db/tables
     

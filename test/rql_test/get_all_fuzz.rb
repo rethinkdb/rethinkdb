@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 require_relative './importRethinkDB.rb'
 
@@ -14,8 +14,8 @@ r.expr([dbName]).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.ru
 r.expr([tableName]).set_difference(r.db(dbName).table_list()).for_each{|row| r.db(dbName).table_create(row)}.run
 $tbl = r.db(dbName).table(tableName)
 
+$tbl.wait(:wait_for=>"all_replicas_ready").run
 $tbl.index_create('a').run rescue nil
-$tbl.wait.run
 $tbl.index_wait.run
 
 $ids = (0...100).to_a

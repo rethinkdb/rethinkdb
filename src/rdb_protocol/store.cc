@@ -251,6 +251,7 @@ void do_read(ql::env_t *env,
                 rget.terminal,
                 rget.region.inner,
                 rget.sorting,
+                rget.sindex->require_sindex_val,
                 sindex_info,
                 res,
                 release_superblock_t::RELEASE);
@@ -280,8 +281,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
-        ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
-                      interruptor, s.optargs, trace);
+        ql::env_t env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            s.optargs,
+            s.m_user_context,
+            trace);
         ql::raw_stream_t stream;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
@@ -353,6 +359,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.table,
             ctx,
             s.optargs,
+            s.m_user_context,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -425,12 +432,39 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const intersecting_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            geo_read.optargs,
+            geo_read.m_user_context,
+            trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
+
+        if (geo_read.stamp) {
+            res->stamp_response = changefeed_stamp_response_t();
+
+            store_key_t read_left = geo_read.sindex.region
+                ? geo_read.sindex.region->inner.left
+                : store_key_t::min();
+
+            changefeed_stamp_response_t r = do_stamp(
+                *geo_read.stamp,
+                geo_read.region,
+                read_left);
+            if (r.stamp_infos) {
+                res->stamp_response = r;
+            } else {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::OP_FAILED,
+                    "Feed aborted before initial values were read.",
+                    ql::backtrace_id_t::empty());
+                return;
+            }
+        }
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -474,12 +508,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             geo_read.terminal,
             geo_read.region.inner,
             sindex_info,
+            geo_read.stamp ? is_stamp_read_t::YES : is_stamp_read_t::NO,
             res);
     }
 
     void operator()(const nearest_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            geo_read.optargs,
+            geo_read.m_user_context,
+            trace);
 
         response->response = nearest_geo_read_response_t();
         nearest_geo_read_response_t *res =
@@ -571,8 +611,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.has_optarg("db"));
         }
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, rget.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            rget.optargs,
+            rget.m_user_context,
+            trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
                 release_superblock_t::RELEASE);
     }
@@ -676,26 +721,47 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    explicit datum_replacer_t(const batched_insert_t &bi)
-        : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
-          pkey(bi.pkey), return_changes(bi.return_changes) { }
-    ql::datum_t replace(const ql::datum_t &d, size_t index) const {
+    explicit datum_replacer_t(ql::env_t *_env,
+                              const batched_insert_t &bi)
+        : env(_env),
+          datums(&bi.inserts),
+          conflict_behavior(bi.conflict_behavior),
+          pkey(bi.pkey),
+          return_changes(bi.return_changes) {
+        if (bi.conflict_func) {
+            conflict_func = bi.conflict_func->compile_wire_func();
+        }
+    }
+    ql::datum_t replace(const ql::datum_t &d,
+                        size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        return resolve_insert_conflict(pkey, d, newd, conflict_behavior);
+        return resolve_insert_conflict(env,
+                                       pkey,
+                                       d,
+                                       newd,
+                                       conflict_behavior,
+                                       conflict_func);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
+    ql::env_t *env;
     const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
+boost::optional<counted_t<const ql::func_t> > conflict_func;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, br.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            br.optargs,
+            br.m_user_context,
+            trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -717,7 +783,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(bi);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            ql::global_optargs_t(),
+            bi.m_user_context,
+            trace);
+        datum_replacer_t replacer(&ql_env,
+                                  bi);
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {

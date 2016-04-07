@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 import os, pprint, resource, sys, time
 
@@ -50,7 +50,7 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
     while time.time() < deadline:
         try:
             utils.print_with_time("log size: %d" % os.path.getsize(process.logfile_path))
-            issues = list(r.db("rethinkdb").table("current_issues").run(conn))
+            issues = list(r.db("rethinkdb").table("current_issues").filter(r.row["type"] != "memory_error").run(conn))
             assert len(issues) == 1, "Wrong number of issues. Should have been one, was: % s. Known on Macos: #3699" % pprint.pformat(issues)
             assert issues[0]["type"] == "log_write_error", pprint.pformat(issues)
             assert issues[0]["critical"] == False, pprint.pformat(issues)
@@ -63,7 +63,7 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
         raise last_error
 
     utils.print_with_time("Checking issue with identifier_format='uuid'")
-    issues = list(r.db("rethinkdb").table("current_issues", identifier_format="uuid").run(conn))
+    issues = list(r.db("rethinkdb").table("current_issues", identifier_format="uuid").filter(r.row["type"] != "memory_error").run(conn))
     assert len(issues) == 1, pprint.pformat(issues)
     assert issues[0]["info"]["servers"] == [process.uuid], pprint.pformat(issues)
 
@@ -87,7 +87,7 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
     last_error = None
     while time.time() < deadline:
         try:
-            issues = list(r.db("rethinkdb").table("current_issues").run(conn))
+            issues = list(r.db("rethinkdb").table("current_issues").filter(r.row["type"] != "memory_error").run(conn))
             assert len(issues) == 0, pprint.pformat(issues)
             break
         except AssertionError as e:

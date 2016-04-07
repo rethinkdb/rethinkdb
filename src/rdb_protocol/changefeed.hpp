@@ -14,6 +14,8 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
@@ -37,10 +39,12 @@ class mailbox_manager_t;
 class namespace_interface_access_t;
 class real_superblock_t;
 class sindex_superblock_t;
+class table_meta_client_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
-typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+// The string is the btree index key
+typedef std::pair<ql::datum_t, std::string> index_pair_t;
 typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
 
 namespace ql {
@@ -131,6 +135,7 @@ struct keyspec_t {
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datumspec_t datumspec;
+        boost::optional<datum_t> intersect_geometry;
     };
     struct empty_t { };
     struct limit_t {
@@ -173,6 +178,7 @@ struct streamspec_t {
     std::string table_name;
     bool include_offsets;
     bool include_states;
+    bool include_types;
     configured_limits_t limits;
     datum_t squash;
     keyspec_t::spec_t spec;
@@ -180,6 +186,7 @@ struct streamspec_t {
                  std::string _table_name,
                  bool _include_offsets,
                  bool _include_states,
+                 bool _include_types,
                  configured_limits_t _limits,
                  datum_t _squash,
                  keyspec_t::spec_t _spec);
@@ -214,8 +221,9 @@ public:
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const streamspec_t &ss,
-        const namespace_id_t &uuid,
-        backtrace_id_t bt);
+        const namespace_id_t &table_id,
+        backtrace_id_t bt,
+        table_meta_client_t *table_meta_client);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
@@ -386,6 +394,7 @@ public:
         std::string _table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -460,6 +469,7 @@ public:
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -589,6 +599,7 @@ public:
     virtual void maybe_remove() = 0;
 
 private:
+    new_mutex_t stamp_mutex;
     uint64_t stamp;
     const uuid_u uuid;
     const scoped_ptr_t<artificial_feed_t> feed;

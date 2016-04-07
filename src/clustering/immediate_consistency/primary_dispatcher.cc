@@ -18,7 +18,7 @@ primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
     queue_count_membership(
         &parent->perfmon_collection,
         &queue_count,
-        uuid_to_str(server_id) + "_broadcast_queue_count"),
+        uuid_to_str(server_id.get_uuid()) + "_broadcast_queue_count"),
     background_write_queue(&queue_count),
     background_write_workers(
         DISPATCH_WRITES_CORO_POOL_SIZE,

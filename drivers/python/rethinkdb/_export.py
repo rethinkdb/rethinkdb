@@ -10,6 +10,7 @@ import sys, os, datetime, time, json, traceback, csv
 import multiprocessing, subprocess, re, ctypes, numbers
 from optparse import OptionParser
 from ._backup import *
+
 import rethinkdb as r
 
 try:
@@ -28,7 +29,7 @@ except ImportError:
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
-  rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
+  rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR] [-e (DB | DB.TABLE)]...\n\
       [--format (csv | json | ndjson)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]\n\
       [--clients NUM]"
 
@@ -39,7 +40,9 @@ def print_export_help():
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
     print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
+    print("  -p [ --password ]                interactively prompt for a password required to connect.")
+    print("  --password-file FILENAME         read password required to connect from file.")
     print("  -d [ --directory ] DIR           directory to output to (defaults to")
     print("                                   rethinkdb_export_DATE_TIME)")
     print("  --format (csv | json | ndjson)   format to write (defaults to json.")
@@ -50,6 +53,7 @@ def print_export_help():
     print("                                   be specified multiple times)")
     print("  --clients NUM                    number of tables to export simultaneously (defaults")
     print("                                   to 3)")
+    print("  -q [ --quiet ]                   suppress non-error messages")
     print("")
     print("Export in CSV format:")
     print("  --delimiter CHARACTER            character to be used as field delimiter, or '\\t' for tab")
@@ -61,8 +65,8 @@ def print_export_help():
     print("rethinkdb export -e test -d rdb_export")
     print("  Export only the 'test' database on a local cluster into a named directory.")
     print("")
-    print("rethinkdb export -c hades -e test.subscribers -a hunter2")
-    print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
+    print("rethinkdb export -c hades -e test.subscribers -p")
+    print("  Export a specific table from a cluster running on host 'hades' which requires a password.")
     print("")
     print("rethinkdb export --format csv -e test.history --fields time,message --delimiter ';'")
     print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message',")
@@ -74,15 +78,18 @@ def print_export_help():
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--format", dest="format", metavar="json | csv | ndjson", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
     parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("-q", "--quiet", dest="quiet", default=False, action="store_true")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
+    parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
+    parser.add_option("--password-file", dest="password_file", default=None, type="string")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
@@ -97,6 +104,8 @@ def parse_options():
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
+
+    res["tls_cert"] = ssl_option(options.tls_cert)
 
     # Verify valid --format option
     if options.format not in ["csv", "json", "ndjson"]:
@@ -151,8 +160,11 @@ def parse_options():
         raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
 
-    res["auth_key"] = options.auth_key
+    res["quiet"] = options.quiet
     res["debug"] = options.debug
+
+    res["password"] = options.password
+    res["password-file"] = options.password_file
     return res
 
 # This is called through rdb_call_wrapper and may be called multiple times if
@@ -321,11 +333,15 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
-def get_all_table_sizes(host, port, auth_key, db_table_set):
+def get_all_table_sizes(host, port, db_table_set, ssl_op, admin_password):
     def get_table_size(progress, conn, db, table):
         return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
 
-    conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+    conn_fn = lambda: r.connect(host,
+                                port,
+                                ssl=ssl_op,
+                                user="admin",
+                                password=admin_password)
 
     ret = dict()
     for pair in db_table_set:
@@ -334,14 +350,18 @@ def get_all_table_sizes(host, port, auth_key, db_table_set):
 
     return ret
 
-def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, exit_event):
+def export_table(host, port, db, table, directory, fields, delimiter, format,
+                 error_queue, progress_info, sindex_counter, exit_event, ssl_op, admin_password):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
-        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        conn_fn = lambda: r.connect(host,
+                                    port,
+                                    ssl=ssl_op,
+                                    user="admin",
+                                    password=admin_password)
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
         sindex_counter.value += len(table_info["indexes"])
 
@@ -369,7 +389,7 @@ def abort_export(signum, frame, exit_event, interrupt_event):
 #  This is because table exports can be staggered when there are not enough clients
 #  to export all of them at once.  As a result, the progress bar will not necessarily
 #  move at the same rate for different tables.
-def update_progress(progress_info):
+def update_progress(progress_info, options):
     rows_done = 0
     total_rows = 1
     for current, max_count in progress_info:
@@ -383,9 +403,10 @@ def update_progress(progress_info):
             rows_done += curr_val
             total_rows += max_val
 
-    print_progress(float(rows_done) / total_rows)
+    if not options["quiet"]:
+        print_progress(float(rows_done) / total_rows)
 
-def run_clients(options, db_table_set):
+def run_clients(options, db_table_set, admin_password):
     # Spawn one client for each db.table
     exit_event = multiprocessing.Event()
     processes = []
@@ -397,7 +418,7 @@ def run_clients(options, db_table_set):
     errors = [ ]
 
     try:
-        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set)
+        sizes = get_all_table_sizes(options["host"], options["port"], db_table_set, options["tls_cert"], admin_password)
 
         progress_info = []
 
@@ -407,7 +428,6 @@ def run_clients(options, db_table_set):
                                   multiprocessing.Value(ctypes.c_longlong, sizes[(db, table)])))
             arg_lists.append((options["host"],
                               options["port"],
-                              options["auth_key"],
                               db, table,
                               options["directory_partial"],
                               options["fields"],
@@ -416,7 +436,9 @@ def run_clients(options, db_table_set):
                               error_queue,
                               progress_info[-1],
                               sindex_counter,
-                              exit_event))
+                              exit_event,
+                              options["tls_cert"],
+                              admin_password))
 
 
         # Wait for all tables to finish
@@ -434,22 +456,23 @@ def run_clients(options, db_table_set):
                                                          args=arg_lists.pop(0)))
                 processes[-1].start()
 
-            update_progress(progress_info)
+            update_progress(progress_info, options)
 
         # If we were successful, make sure 100% progress is reported
         # (rows could have been deleted which would result in being done at less than 100%)
-        if len(errors) == 0 and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set() and not options["quiet"]:
             print_progress(1.0)
 
         # Continue past the progress output line and print total rows processed
         def plural(num, text, plural_text):
             return "%d %s" % (num, text if num == 1 else plural_text)
 
-        print("")
-        print("%s exported from %s, with %s" %
-              (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
-               plural(len(db_table_set), "table", "tables"),
-               plural(sindex_counter.value, "secondary index", "secondary indexes")))
+        if not options["quiet"]:
+            print("")
+            print("%s exported from %s, with %s" %
+                  (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
+                   plural(len(db_table_set), "table", "tables"),
+                   plural(sindex_counter.value, "secondary index", "secondary indexes")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -473,7 +496,12 @@ def main():
         return 1
 
     try:
-        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        admin_password = get_password(options["password"], options["password-file"])
+        conn_fn = lambda: r.connect(options["host"],
+                                    options["port"],
+                                    ssl=options["tls_cert"],
+                                    user="admin",
+                                    password=admin_password)
         # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
         # if the user has a database named 'rethinkdb'
         rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
@@ -485,12 +513,13 @@ def main():
 
         prepare_directories(options["directory"], options["directory_partial"], db_table_set)
         start_time = time.time()
-        run_clients(options, db_table_set)
+        run_clients(options, db_table_set, admin_password)
         finalize_directory(options["directory"], options["directory_partial"])
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
         return 1
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if not options["quiet"]:
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

@@ -8,6 +8,10 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <openssl/ssl.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/opensslv.h>
 
 #ifndef _WIN32
 #include <pwd.h>
@@ -45,7 +49,9 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "crypto/random.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -57,7 +63,7 @@
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
-    if (fp1 == NULL) {
+    if (fp1 == nullptr) {
         return false;
     }
     fprintf(fp1, "%d", number);
@@ -165,7 +171,7 @@ bool get_group_id(const char *name, gid_t *group_id_out) {
         } while (res == EINTR);
 
         if (res == 0) {
-            if (result == NULL) {
+            if (result == nullptr) {
                 return false;
             } else {
                 *group_id_out = result->gr_gid;
@@ -207,7 +213,7 @@ bool get_user_ids(const char *name, uid_t *user_id_out, gid_t *user_group_id_out
         } while (res == EINTR);
 
         if (res == 0) {
-            if (result == NULL) {
+            if (result == nullptr) {
                 return false;
             } else {
                 *user_id_out = result->pw_uid;
@@ -416,6 +422,27 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     return std::string();
 }
 
+boost::optional<int> parse_join_delay_secs_option(
+        const std::map<std::string, options::values_t> &opts) {
+    if (exists_option(opts, "--join-delay")) {
+        const std::string delay_opt = get_single_option(opts, "--join-delay");
+        uint64_t join_delay_secs;
+        if (!strtou64_strict(delay_opt, 10, &join_delay_secs)) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: join-delay should be a number, got '%s'",
+                    delay_opt.c_str()));
+        }
+        if (join_delay_secs > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: join-delay is too large. Must be at most %d",
+                    std::numeric_limits<int>::max()));
+        }
+        return boost::optional<int>(static_cast<int>(join_delay_secs));
+    } else {
+        return boost::optional<int>();
+    }
+}
+
 /* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
 empty inner `boost::optional` means the cache size is set to `auto`. */
 boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
@@ -525,9 +552,16 @@ private:
     std::string info;
 };
 
-std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options,
-                                           local_ip_filter_t filter_type) {
+std::set<ip_address_t> get_local_addresses(
+    const std::vector<std::string> &specific_options,
+    const std::vector<std::string> &default_options,
+    local_ip_filter_t filter_type) {
     std::set<ip_address_t> set_filter;
+
+    const std::vector<std::string> &bind_options =
+        specific_options.size() > 0 ?
+        specific_options :
+        default_options;
 
     // Scan through specified bind options
     for (size_t i = 0; i < bind_options.size(); ++i) {
@@ -634,11 +668,25 @@ peer_address_t get_canonical_addresses(const std::map<std::string, options::valu
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
     const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
+
+    local_ip_filter_t filter =
+        exists_option(opts, "--no-default-bind") ?
+            local_ip_filter_t::MATCH_FILTER :
+            local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK;
+
+    const std::vector<std::string> &default_options =
+        all_options(opts, "--bind");
     return service_address_ports_t(
-        get_local_addresses(all_options(opts, "--bind"),
-                            exists_option(opts, "--no-default-bind") ?
-                                local_ip_filter_t::MATCH_FILTER :
-                                local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK),
+        get_local_addresses(default_options, default_options, filter),
+        get_local_addresses(all_options(opts, "--bind-cluster"),
+                            default_options,
+                            filter),
+        get_local_addresses(all_options(opts, "--bind-driver"),
+                            default_options,
+                            filter),
+        get_local_addresses(all_options(opts, "--bind-http"),
+                            default_options,
+                            filter),
         get_canonical_addresses(opts, cluster_port),
         cluster_port,
         get_single_int(opts, "--client-port"),
@@ -648,15 +696,296 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
         port_offset);
 }
 
+bool load_tls_key_and_cert(
+    SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
+    if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+
+    if(SSL_CTX_use_certificate_file(tls_ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+
+    if(1 != SSL_CTX_check_private_key(tls_ctx)) {
+        logERR("The private key and certificate do not match.");
+        return false;
+    }
+
+    return true;
+}
+
+bool configure_web_tls(
+    const std::map<std::string, options::values_t> &opts, SSL_CTX *web_tls) {
+    boost::optional<std::string> key_file = get_optional_option(opts, "--http-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(opts, "--http-tls-cert");
+
+    if (!(key_file && cert_file)) {
+        logERR("--http-tls-key and --http-tls-cert must be specified together.");
+        return false;
+    }
+
+    return load_tls_key_and_cert(web_tls, *key_file, *cert_file);
+}
+
+bool configure_driver_tls(
+    const std::map<std::string, options::values_t> &opts, SSL_CTX *driver_tls) {
+    boost::optional<std::string> key_file = get_optional_option(
+        opts, "--driver-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(
+        opts, "--driver-tls-cert");
+    boost::optional<std::string> ca_file = get_optional_option(opts, "--driver-tls-ca");
+
+    if (!(key_file && cert_file)) {
+        if (key_file || cert_file) {
+            logERR("--driver-tls-key and --driver-tls-cert must be specified together.");
+        } else {
+            rassert(ca_file);
+            logERR("--driver-tls-key and --driver-tls-cert must be specified if "
+                   "--driver-tls-ca is specified.");
+        }
+        return false;
+    }
+
+    if (!load_tls_key_and_cert(driver_tls, *key_file, *cert_file)) {
+        return false;
+    }
+
+    if (ca_file) {
+        if (!SSL_CTX_load_verify_locations(driver_tls, ca_file->c_str(), nullptr)) {
+            ERR_print_errors_fp(stderr);
+            return false;
+        }
+
+        // Mutual authentication.
+        SSL_CTX_set_verify(
+            driver_tls, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr);
+    }
+
+    return true;
+}
+
+bool configure_cluster_tls(
+    const std::map<std::string, options::values_t> &opts, SSL_CTX *cluster_tls) {
+    boost::optional<std::string> key_file = get_optional_option(
+        opts, "--cluster-tls-key");
+    boost::optional<std::string> cert_file = get_optional_option(
+        opts, "--cluster-tls-cert");
+    boost::optional<std::string> ca_file = get_optional_option(opts, "--cluster-tls-ca");
+
+    if (!(key_file && cert_file && ca_file)) {
+        logERR("--cluster-tls-key, --cluster-tls-cert, and --cluster-tls-ca must be "
+               "specified together.");
+        return false;
+    }
+
+    if (!load_tls_key_and_cert(cluster_tls, *key_file, *cert_file)) {
+        return false;
+    }
+
+    if (!SSL_CTX_load_verify_locations(cluster_tls, ca_file->c_str(), nullptr)) {
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+
+    // Mutual authentication.
+    SSL_CTX_set_verify(
+        cluster_tls, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr);
+
+    return true;
+}
+
+class fp_wrapper_t {
+public:
+    fp_wrapper_t(const char *filename, const char *mode) {
+        fp = fopen(filename, mode);
+    }
+
+    ~fp_wrapper_t() {
+        fclose(fp);
+    }
+
+    FILE *get() {
+        return fp;
+    }
+
+private:
+    FILE *fp;
+};
+
+bool initialize_tls_ctx(
+    const std::map<std::string, options::values_t> &opts,
+    shared_ssl_ctx_t *tls_ctx_out) {
+
+    tls_ctx_out->reset(SSL_CTX_new(SSLv23_method()), SSL_CTX_free);
+    if (nullptr == tls_ctx_out->get()) {
+        ERR_print_errors_fp(stderr);
+        return false;
+    }
+
+    // Only allow TLS v1.2, prefer server ciphers, and always generate new keys
+    // for DHE or ECDHE.
+    SSL_CTX_set_options(
+        tls_ctx_out->get(),
+        SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1);
+    SSL_CTX_set_options(
+        tls_ctx_out->get(),
+        SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE);
+
+    /* This is pretty important. We want to use the most secure TLS cipher
+    suite that we can. Our default list only allows ciphers suites which employ
+    ECDHE (Elliptic Curve Diffie-Hellman with Ephemeral keys) for encryption
+    key agreement for Perfect Forward Secrecy and we want to use AESGCM for
+    efficient authenticated encryption. An option exists for system admins to
+    configure their own ciphers list if their SSL/TLS lib doesn't support these
+    options or if they want to use other cipher suites. */
+    boost::optional<std::string> ciphers_opt = get_optional_option(
+        opts, "--tls-ciphers");
+    /* NOTE: I normally prefer the abreviation 'ECDHE', but older versions of
+    OpenSSL do not seem to like 'ECDHE' even though the matching cipher suites
+    have that prefix. Yeah, I know... it's very frustrating. Both older (1.0.1)
+    and newer (1.0.2) versions seem to be okay with 'EECDH' though. */
+    std::string ciphers = ciphers_opt ? *ciphers_opt : "EECDH+AESGCM";
+    if (0 == SSL_CTX_set_cipher_list(tls_ctx_out->get(), ciphers.c_str())) {
+        logNTC("No secure cipher suites available\n");
+        return false;
+    }
+
+    /* The default curve name corresponds to a standard NIST/FIPS curve and is
+    also commonly known as P-256. Some people speculate that the NIST/FIPS
+    curves are compromised in some way by the NSA but most people agree that
+    they are safe to use. Any real risk in using elliptic curves is associated
+    with ECDSA (Elliptic Curve Digital Signature Algorithm) where you must be
+    careful to generate signatures correctly using a secure PRNG. As we are
+    using them only for ECDHE, this should be safe. This is just our default
+    ECDHE curve and is widley supported by TLS libraries, but a system admin
+    may specify any preferred curve which is supported by their local version
+    of libssl with a command line option - for example 'secp256k1' (widely used
+    and popularized by the Bitcoin cryptocurrency) and Daniel J. Bernstein's
+    'Curve25519' (though not currently supported by OpenSSL) would be other
+    good choices.
+    NOTE: For compatibility reasons, we can only support a single elliptic
+    curve since OpenSSL is ridiculous. */
+    boost::optional<std::string> curve_opt = get_optional_option(
+        opts, "--tls-ecdh-curve");
+    std::string curve_name = curve_opt ? *curve_opt : "prime256v1";
+
+    int curve_nid = OBJ_txt2nid(curve_name.c_str());
+    if (NID_undef == curve_nid) {
+        logNTC("No elliptic curve found corresponding to name: %s", curve_name.c_str());
+        return false;
+    }
+
+    EC_KEY *ec_key = EC_KEY_new_by_curve_name(curve_nid);
+    if (nullptr == ec_key) {
+        logNTC("Unable to get Elliptic Curve by name: %s", curve_name.c_str());
+        return false;
+    }
+
+    SSL_CTX_set_tmp_ecdh(tls_ctx_out->get(), ec_key);
+    EC_KEY_free(ec_key);
+
+
+    /* If we only supported OpenSSL 1.0.2 then we could have multiple ECDHE
+    curves with something like this:
+
+    if (0 == SSL_CTX_set1_curves_list(tls_ctx_out->get(), curves.c_str())) {
+        logERR("Not able to set ECDHE curves for perfect forward secrecy\n");
+        return false;
+    }
+
+    // Enabling this option allows the server to select the appropriate curve
+    // that is shared with the client.
+    if (0 == SSL_CTX_set_ecdh_auto(tls_ctx_out->get(), 1)) {
+        logERR("Not able to set ECDHE curve selection mode\n");
+        return false;
+    }
+
+    */
+
+    /* If the client and server do not support ECDHE but do support DHE, an
+    admin must specify a file containing parameters for DHE. */
+    boost::optional<std::string> dhparams_filename = get_optional_option(
+        opts, "--tls-dhparams");
+    if (dhparams_filename) {
+        fp_wrapper_t dhparams_fp(dhparams_filename->c_str(), "r");
+        if (nullptr == dhparams_fp.get()) {
+            logERR(
+                "unable to open %s for reading: %s",
+                dhparams_filename->c_str(),
+                errno_string(get_errno()).c_str());
+            return false;
+        }
+
+        DH *dhparams = PEM_read_DHparams(
+            dhparams_fp.get(), nullptr, nullptr, nullptr);
+        if (nullptr == dhparams) {
+            logERR(
+                "unable to read DH parameters from %s: %s",
+                dhparams_filename->c_str(),
+                ERR_error_string(ERR_get_error(), nullptr));
+            return false;
+        }
+
+        if (1 != SSL_CTX_set_tmp_dh(tls_ctx_out->get(), dhparams)) {
+            logERR(
+                "unable to set DH parameters: %s",
+                ERR_error_string(ERR_get_error(), nullptr));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool configure_tls(
+    const std::map<std::string, options::values_t> &opts,
+    tls_configs_t *tls_configs_out) {
+
+    if(!exists_option(opts, "--no-http-admin") &&
+            (exists_option(opts, "--http-tls-key")
+             || exists_option(opts, "--http-tls-cert"))) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs_out->web)) &&
+              configure_web_tls(opts, tls_configs_out->web.get())
+            )) {
+            return false;
+        }
+    }
+
+    if (exists_option(opts, "--driver-tls-key")
+        || exists_option(opts, "--driver-tls-cert")
+        || exists_option(opts, "--driver-tls-ca")) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs_out->driver)) &&
+              configure_driver_tls(opts, tls_configs_out->driver.get())
+            )) {
+            return false;
+        }
+    }
+
+    if (exists_option(opts, "--cluster-tls-key")
+        || exists_option(opts, "--cluster-tls-cert")
+        || exists_option(opts, "--cluster-tls-ca")) {
+        if (!(initialize_tls_ctx(opts, &(tls_configs_out->cluster)) &&
+              configure_cluster_tls(opts, tls_configs_out->cluster.get())
+            )) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
                           const std::set<name_string_t> &server_tags,
+                          const std::string &initial_password,
                           boost::optional<uint64_t> total_cache_size,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
-    server_id_t our_server_id = generate_uuid();
+    server_id_t our_server_id = server_id_t::generate_server_id();
 
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
@@ -687,7 +1016,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
                 write_txn->write(mdkey_cluster_semilattices(),
                     cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
-                    auth_semilattice_metadata_t(), interruptor);
+                    auth_semilattice_metadata_t(initial_password), interruptor);
                 write_txn->write(mdkey_heartbeat_semilattices(),
                     heartbeat_semilattice_metadata_t(), interruptor);
             },
@@ -746,6 +1075,7 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
+                         const std::string &initial_password,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
                          const boost::optional<boost::optional<uint64_t> >
@@ -786,7 +1116,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     write_txn->write(mdkey_cluster_semilattices(),
                         *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
-                        auth_semilattice_metadata_t(), interruptor);
+                        auth_semilattice_metadata_t(initial_password), interruptor);
                     write_txn->write(mdkey_heartbeat_semilattices(),
                         heartbeat_semilattice_metadata_t(), interruptor);
                 },
@@ -806,12 +1136,21 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_auth_metadata_to_v2_2(&io_backender, auth_path, &txn,
+                    logNTC("Migrating auth metadata to v2.1");
+                    migrate_auth_metadata_to_v2_1(&io_backender, auth_path, &txn,
                                                   &non_interruptor);
+                    logNTC("Migrating auth metadata to v2.3");
+                    migrate_auth_metadata_v2_1_to_v2_3(&txn, &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }
-                remove(auth_path.permanent_path().c_str());
+                if (remove(auth_path.permanent_path().c_str()) != 0) {
+                    fail_due_to_user_error(
+                        "Failed to remove legacy 'auth_metadata' configuration file at %s.  "
+                        "If this file remains, it could overwrite future changes to user "
+                        "and password configurations.  Please remove it and try again.",
+                        auth_path.permanent_path().c_str());
+                }
             }
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
@@ -822,6 +1161,35 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     config.config.cache_size_bytes = *total_cache_size;
                     ++config.version;
                     txn.write(mdkey_server_config(), config, &non_interruptor);
+                }
+            }
+            if (!initial_password.empty()) {
+                /* Apply the initial password if there isn't one already. */
+                metadata_file_t::write_txn_t txn(metadata_file.get(), &non_interruptor);
+                auth_semilattice_metadata_t auth_data =
+                    txn.read(mdkey_auth_semilattices(), &non_interruptor);
+                auto admin_pair = auth_data.m_users.find(auth::username_t("admin"));
+                /* `admin_pair` should always exist. But in case it somehow doesn't,
+                we still create a new admin user so that people can recover from
+                corrupted user metadata. */
+                if (admin_pair == auth_data.m_users.end()
+                    || !static_cast<bool>(admin_pair->second.get_ref())
+                    || admin_pair->second.get_ref()->get_password().is_empty()) {
+                    auto new_admin_pair =
+                        auth_semilattice_metadata_t::create_initial_admin_pair(
+                            initial_password);
+                    /* Note that the `versioned_t` timestmap of the new admin pair might
+                    be smaller than the existing one if the password was previously
+                    explicitly set to empty. This is probably ok. It just means that
+                    if we connect to another node, the configured (non-initial) password
+                    is going to win again. This is consistent with how
+                    `--initial-password` behaves in general. */
+                    auth_data.m_users[new_admin_pair.first] = new_admin_pair.second;
+
+                    txn.write(mdkey_auth_semilattices(), auth_data, &non_interruptor);
+                } else {
+                    logNTC("Ignoring --initial-password option because the admin "
+                           "password is already configured.");
                 }
             }
         }
@@ -849,6 +1217,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &server_name,
                              const std::set<name_string_t> &server_tag_names,
+                             const std::string &initial_password,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
                              const boost::optional<boost::optional<uint64_t> >
@@ -858,14 +1227,14 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+        run_rethinkdb_serve(base_path, serve_info, initial_password, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
-                            NULL, NULL, NULL, data_directory_lock,
+                            nullptr, nullptr, nullptr, data_directory_lock,
                             result_out);
     } else {
         logNTC("Initializing directory %s\n", base_path.path().c_str());
 
-        server_id_t our_server_id = generate_uuid();
+        server_id_t our_server_id = server_id_t::generate_server_id();
 
         cluster_semilattice_metadata_t cluster_metadata;
         if (serve_info->joins.empty()) {
@@ -894,7 +1263,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
             : boost::optional<uint64_t>();   /* default to 'auto' */
         server_config.version = 1;
 
-        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+        run_rethinkdb_serve(base_path, serve_info, initial_password, direct_io_mode,
                             max_concurrent_io_requests,
                             boost::optional<boost::optional<uint64_t> >(),
                             &our_server_id, &server_config, &cluster_metadata,
@@ -902,7 +1271,10 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     }
 }
 
-void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
+void run_rethinkdb_proxy(
+        serve_info_t *serve_info,
+        const std::string &initial_password,
+        bool *const result_out) {
 
     os_signal_cond_t sigint_cond;
     guarantee(!serve_info->joins.empty());
@@ -910,6 +1282,7 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
     try {
         serve_info->look_up_peers();
         *result_out = serve_proxy(*serve_info,
+                                  initial_password,
                                   &sigint_cond);
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
@@ -918,17 +1291,31 @@ void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
 }
 
 options::help_section_t get_server_options(std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Server name options");
+    options::help_section_t help("Server options");
     options_out->push_back(options::option_t(options::names_t("--server-name", "-n"),
                                              options::OPTIONAL));
     help.add("-n [ --server-name ] arg",
              "the name for this server (as will appear in the metadata).  If not"
              " specified, one will be generated from the hostname and a random "
              "alphanumeric string.");
+
     options_out->push_back(options::option_t(options::names_t("--server-tag", "-t"),
                                              options::OPTIONAL_REPEAT));
     help.add("-t [ --server-tag ] arg",
              "a tag for this server. Can be specified multiple times.");
+
+    return help;
+}
+
+options::help_section_t get_auth_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Authentication options");
+
+    options_out->push_back(options::option_t(options::names_t("--initial-password"),
+                                             options::OPTIONAL));
+    help.add("--initial-password {auto | password}",
+             "sets an initial password for the \"admin\" user on a new server.  If set "
+             "to auto, a random password will be generated.");
+
     return help;
 }
 
@@ -1021,6 +1408,27 @@ std::set<name_string_t> parse_server_tag_options(
     return server_tag_names;
 }
 
+std::string parse_initial_password_option(
+        const std::map<std::string, options::values_t> &opts) {
+    boost::optional<std::string> initial_password_str =
+        get_optional_option(opts, "--initial-password");
+    if (static_cast<bool>(initial_password_str)) {
+        if (*initial_password_str == "auto") {
+            std::array<unsigned char, 16> random_data = crypto::random_bytes<16>();
+            const uuid_u base_uuid = str_to_uuid("4a3a5542-6a45-4668-a09a-d775e63a52cd");
+            std::string random_pw = uuid_to_str(uuid_u::from_hash(
+                base_uuid,
+                std::string(reinterpret_cast<const char *>(random_data.data()), 16)));
+            printf("Generated random admin password: %s\n", random_pw.c_str());
+            return random_pw;
+        }
+        return *initial_password_str;
+    } else {
+        // The default is an empty admin password
+        return "";
+    }
+}
+
 std::string get_reql_http_proxy_option(const std::map<std::string, options::values_t> &opts) {
     std::string source;
     boost::optional<std::string> proxy = get_optional_option(opts, "--reql-http-proxy", &source);
@@ -1092,8 +1500,16 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections, loopback addresses are enabled by default");
-
+    options_out->push_back(options::option_t(options::names_t("--bind-cluster"),
+                                             options::OPTIONAL_REPEAT));
+    options_out->push_back(options::option_t(options::names_t("--bind-driver"),
+                                             options::OPTIONAL_REPEAT));
+    options_out->push_back(options::option_t(options::names_t("--bind-http"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections, loopback addresses are enabled by default. Can be overridden by the following three options.");
+    help.add("--bind-cluster {all | addr}", "override the behavior specified by --bind for cluster connections.");
+    help.add("--bind-driver {all | addr}", "override the behavior specified by --bind for client driver connections.");
+    help.add("--bind-http {all | addr}", "override the behavior specified by --bind for web console connections.");
     options_out->push_back(options::option_t(options::names_t("--no-default-bind"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("--no-default-bind", "disable automatic listening on loopback addresses");
@@ -1131,6 +1547,11 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
     help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
+
+    options_out->push_back(options::option_t(options::names_t("--join-delay"),
+                                             options::OPTIONAL));
+    help.add("--join-delay seconds", "hold the TCP connection open for these many "
+             "seconds before joining with another server.");
 
     return help;
 }
@@ -1178,6 +1599,75 @@ options::help_section_t get_setuser_options(std::vector<options::option_t> *opti
     return help;
 }
 
+options::help_section_t get_tls_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("TLS options");
+
+    // Web TLS options.
+    options_out->push_back(options::option_t(options::names_t("--http-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--http-tls-cert"),
+                                             options::OPTIONAL));
+    help.add(
+        "--http-tls-key key_filename",
+        "private key to use for web administration console TLS");
+    help.add(
+        "--http-tls-cert cert_filename",
+        "certificate to use for web administration console TLS");
+
+    // Client Driver TLS options.
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-cert"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--driver-tls-ca"),
+                                             options::OPTIONAL));
+    help.add(
+        "--driver-tls-key key_filename",
+        "private key to use for client driver connection TLS");
+    help.add(
+        "--driver-tls-cert cert_filename",
+        "certificate to use for client driver connection TLS");
+    help.add(
+        "--driver-tls-ca ca_filename",
+        "CA certificate bundle used to verify client certificates; TLS client authentication disabled if omitted");
+
+    // Client Driver TLS options.
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-key"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-cert"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--cluster-tls-ca"),
+                                             options::OPTIONAL));
+    help.add(
+        "--cluster-tls-key key_filename",
+        "private key to use for intra-cluster connection TLS");
+    help.add(
+        "--cluster-tls-cert cert_filename",
+        "certificate to use for intra-cluster connection TLS");
+    help.add(
+        "--cluster-tls-ca ca_filename",
+        "CA certificate bundle used to verify cluster peer certificates");
+
+    // Generic TLS options, for customizing cipher suites.
+    options_out->push_back(options::option_t(options::names_t("--tls-ciphers"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--tls-ecdh-curve"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--tls-dhparams"),
+                                             options::OPTIONAL));
+    help.add(
+        "--tls-ciphers cipher_list",
+        "specify a list of TLS ciphers to use; default is 'EECDH+AESGCM'");
+    help.add(
+        "--tls-ecdh-curve curve_name",
+        "specify a named elliptic curve to use for ECDHE; default is 'prime256v1'");
+    help.add(
+        "--tls-dhparams dhparams_filename",
+        "provide parameters for DHE key agreement; REQUIRED if using DHE cipher suites; at least 2048-bit recommended");
+
+    return help;
+}
+
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
     options_out->push_back(options::option_t(options::names_t("--help", "-h"),
@@ -1193,6 +1683,7 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
                                   std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
@@ -1203,6 +1694,8 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -1215,6 +1708,8 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_network_options(true, options_out));
+    help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
@@ -1228,6 +1723,8 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_tls_options(options_out));
+    help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -1338,6 +1835,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
+        std::string initial_password = parse_initial_password_option(opts);
         auto total_cache_size = boost::make_optional<uint64_t>(false, 0);
         if (boost::optional<boost::optional<uint64_t> > x =
                 parse_total_cache_size_option(opts)) {
@@ -1370,9 +1868,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
+        run_in_thread_pool(std::bind(&run_rethinkdb_create,
+                                     base_path,
                                      server_name,
                                      server_tag_names,
+                                     initial_password,
                                      total_cache_size,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
@@ -1422,13 +1922,13 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
             throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
-        if (freopen("/dev/null", "r", stdin) == NULL) {
+        if (freopen("/dev/null", "r", stdin) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-        if (freopen("/dev/null", "w", stdout) == NULL) {
+        if (freopen("/dev/null", "w", stdout) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-        if (freopen("/dev/null", "w", stderr) == NULL) {
+        if (freopen("/dev/null", "w", stderr) == nullptr) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 #endif
@@ -1456,6 +1956,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
@@ -1476,6 +1978,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
+
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
 
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
@@ -1502,13 +2006,20 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
+                                tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1516,12 +2027,13 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         run_in_thread_pool(std::bind(&run_rethinkdb_serve,
                                      base_path,
                                      &serve_info,
+                                     initial_password,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
-                                     static_cast<server_id_t*>(NULL),
-                                     static_cast<server_config_versioned_t *>(NULL),
-                                     static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                     static_cast<server_id_t*>(nullptr),
+                                     static_cast<server_config_versioned_t *>(nullptr),
+                                     static_cast<cluster_semilattice_metadata_t*>(nullptr),
                                      &data_directory_lock,
                                      &result),
                            num_workers);
@@ -1556,11 +2068,15 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
                     "Run 'rethinkdb help proxy' for more information.\n");
             return EXIT_FAILURE;
         }
+
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
 
 #ifndef _WIN32
         get_and_set_user_group(opts);
@@ -1588,17 +2104,25 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 update_check_t::do_not_perform,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
+                                tls_configs);
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
-                           num_workers);
+        run_in_thread_pool(
+            std::bind(&run_rethinkdb_proxy, &serve_info, initial_password, &result),
+            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
@@ -1689,6 +2213,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
 
+        std::string initial_password = parse_initial_password_option(opts);
+
         std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
@@ -1706,6 +2232,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
 
         update_check_t do_update_checking = parse_update_checking_option(opts);
+
+        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
 
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
@@ -1757,13 +2285,20 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
+        tls_configs_t tls_configs;
+        if (!configure_tls(opts, &tls_configs)) {
+            return EXIT_FAILURE;
+        }
+
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
                                 do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
-                                std::vector<std::string>(argv, argv + argc));
+                                std::vector<std::string>(argv, argv + argc),
+                                join_delay_secs ? join_delay_secs.get() : 0,
+                                tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
@@ -1772,6 +2307,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      base_path,
                                      server_name,
                                      server_tag_names,
+                                     initial_password,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
@@ -1856,34 +2392,34 @@ void help_rethinkdb_proxy() {
 void help_rethinkdb_export() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_EXPORT_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_EXPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_import() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_IMPORT_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_IMPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_dump() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_DUMP_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_DUMP_SCRIPT, args);
 }
 
 void help_rethinkdb_restore() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_RESTORE_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_RESTORE_SCRIPT, args);
 }
 
 void help_rethinkdb_index_rebuild() {
     char help_arg[] = "--help";
     char dummy_arg[] = RETHINKDB_INDEX_REBUILD_SCRIPT;
-    char* args[3] = { dummy_arg, help_arg, NULL };
+    char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, args);
 }

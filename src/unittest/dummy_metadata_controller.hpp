@@ -18,6 +18,8 @@ template<class metadata_t>
 class dummy_semilattice_controller_t {
 
 public:
+    dummy_semilattice_controller_t() :
+        view(boost::make_shared<view_t>(this)) { }
     explicit dummy_semilattice_controller_t(const metadata_t &m) :
         view(boost::make_shared<view_t>(this)),
         metadata(m) { }

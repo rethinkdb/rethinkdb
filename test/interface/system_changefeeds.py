@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 """Check that changefeeds on system tablescorrectly notify when changes occur."""
 
@@ -70,12 +70,6 @@ with driver.Cluster(output_folder='.', ) as cluster:
                 assert len(feed.changes) == 0, "Expected no changes on %s, found %s." % (name, feed.changes)
     check([], 5.0)
 
-    utils.print_with_time("Changing auth key...")
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": "foo"}).run(conn)
-    assert res["replaced"] == 1 and res["errors"] == 0, res
-    res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": None}).run(conn)
-    check(["cluster_config"], 1.0)
-
     utils.print_with_time("Creating database...")
     res = r.db_create("test").run(conn)
     assert res.get("dbs_created", 0) == 1, res
@@ -97,7 +91,7 @@ with driver.Cluster(output_folder='.', ) as cluster:
     utils.print_with_time("Adding replicas...")
     res = r.table("test").config().update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
     assert res["errors"] == 0, res
-    r.table("test").wait().run(conn)
+    r.table("test").wait(wait_for="all_replicas_ready").run(conn)
     check(["table_config", "table_status", "test_config", "test_status", "logs"], 1.5)
 
     utils.print_with_time("Renaming server...")

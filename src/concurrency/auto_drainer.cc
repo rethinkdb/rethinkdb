@@ -15,11 +15,11 @@ auto_drainer_t::~auto_drainer_t() {
     guarantee(refcount == 0);
 }
 
-auto_drainer_t::lock_t::lock_t() : parent(NULL) {
+auto_drainer_t::lock_t::lock_t() : parent(nullptr) {
 }
 
 auto_drainer_t::lock_t::lock_t(auto_drainer_t *p, throw_if_draining_t thr) : parent(p) {
-    guarantee(parent != NULL);
+    guarantee(parent != nullptr);
     if (thr == throw_if_draining_t::YES && parent->is_draining()) {
         throw interrupted_exc_t();
     }
@@ -40,7 +40,7 @@ auto_drainer_t::lock_t &auto_drainer_t::lock_t::operator=(const lock_t &l) {
 }
 
 auto_drainer_t::lock_t::lock_t(lock_t &&l) : parent(l.parent) {
-    l.parent = NULL;
+    l.parent = nullptr;
 }
 
 auto_drainer_t::lock_t &auto_drainer_t::lock_t::operator=(lock_t &&l) {
@@ -55,11 +55,11 @@ auto_drainer_t::lock_t auto_drainer_t::lock() {
 
 void auto_drainer_t::lock_t::reset() {
     if (parent) parent->decref();
-    parent = NULL;
+    parent = nullptr;
 }
 
 bool auto_drainer_t::lock_t::has_lock() const {
-    return parent != NULL;
+    return parent != nullptr;
 }
 
 signal_t *auto_drainer_t::lock_t::get_drain_signal() const {

@@ -21,7 +21,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
         return reinterpret_cast<DWORD>(res);
     };
     HANDLE handle = CreateThread(nullptr, 0, go, static_cast<void*>(data), 0, nullptr);
-    if (handle == NULL) {
+    if (handle == nullptr) {
         logERR("CreateThread failed: %s", winerr_string(GetLastError()));
         return EINVAL;
     } else {
@@ -45,7 +45,7 @@ int pthread_join(pthread_t other, void** retval) {
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
-    rassert(opts == NULL, "this implementation of pthread_mutex_init does not support attributes");
+    rassert(opts == nullptr, "this implementation of pthread_mutex_init does not support attributes");
     InitializeCriticalSection(mutex);
     return 0;
 }
@@ -61,6 +61,41 @@ int pthread_mutex_lock(pthread_mutex_t* mutex) {
 
 int pthread_mutex_unlock(pthread_mutex_t* mutex) {
     LeaveCriticalSection(mutex);
+    return 0;
+}
+
+int pthread_rwlock_init(pthread_rwlock_t *lock, void *opts) {
+    rassert(opts == nullptr, "this implementation of pthread_rwlock_t does not support attributes");
+    InitializeSRWLock(lock->lock);
+    return 0;
+}
+
+int pthread_rwlock_destroy(pthread_rwlock_t *) {
+    // SRWLocks do not need to be explicitly destroyed
+    return 0;
+}
+
+int pthread_rwlock_rdlock(pthread_rwlock_t *lock) {
+    AcquireSRWLockShared(lock->lock);
+    lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::SHARED;
+    return 0;
+}
+
+int pthread_rwlock_wrlock(pthread_rwlock_t *lock) {
+    AcquireSRWLockExclusive(lock->lock);
+    lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE;
+    return 0;
+}
+
+int pthread_rwlock_unlock(pthread_rwlock_t *lock) {
+    switch (lock->current_acq_mode) {
+        case pthread_rwlock_t::srw_lock_mode_t::SHARED:
+            ReleaseSRWLockShared(lock->lock);
+        case pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE:
+            ReleaseSRWLockExclusive(lock->lock);
+        default:
+            unreachable();
+    }
     return 0;
 }
 

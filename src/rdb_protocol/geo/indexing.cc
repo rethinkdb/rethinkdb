@@ -14,6 +14,7 @@
 #include "rdb_protocol/geo/geo_visitor.hpp"
 #include "rdb_protocol/geo/s2/s2cell.h"
 #include "rdb_protocol/geo/s2/s2cellid.h"
+#include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/geo/s2/s2regioncoverer.h"
@@ -23,9 +24,11 @@
 
 using geo::S2Cell;
 using geo::S2CellId;
+using geo::S2LatLngRect;
 using geo::S2Point;
 using geo::S2Polygon;
 using geo::S2Polyline;
+using geo::S2Region;
 using geo::S2RegionCoverer;
 using ql::datum_t;
 
@@ -54,6 +57,11 @@ public:
         coverer_.GetCovering(polygon, result.get());
         return result;
     }
+    scoped_ptr_t<std::vector<S2CellId> > on_latlngrect(const S2LatLngRect &rect) {
+        scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
+        coverer_.GetCovering(rect, result.get());
+        return result;
+    }
 
 private:
     S2RegionCoverer coverer_;
@@ -79,6 +87,14 @@ public:
         return result;
     }
     scoped_ptr_t<std::vector<S2CellId> > on_polygon(const S2Polygon &polygon) {
+        return from_exterior(polygon);
+    }
+    scoped_ptr_t<std::vector<S2CellId> > on_latlngrect(const S2LatLngRect &rect) {
+        return from_exterior(rect);
+    }
+
+private:
+    scoped_ptr_t<std::vector<S2CellId> > from_exterior(const S2Region &region) {
         scoped_ptr_t<std::vector<S2CellId> > result(new std::vector<S2CellId>());
         // S2RegionCoverer has a `GetInteriorCovering` method.
         // However it's *extremely* slow (often in the order of a second or more).
@@ -89,11 +105,11 @@ public:
         for (const auto &cell : exterior_covering_) {
             S2Cell parent(cell);
             S2Cell children[4];
-            if (polygon.Contains(parent)) {
+            if (region.Contains(parent)) {
                 result->push_back(parent.id());
             } else if (parent.Subdivide(children)) {
                 for (size_t i = 0; i < 4; ++i) {
-                    if (polygon.Contains(children[i])) {
+                    if (region.Contains(children[i])) {
                         result->push_back(children[i].id());
                     }
                 }
@@ -102,7 +118,6 @@ public:
         return result;
     }
 
-private:
     std::vector<S2CellId> exterior_covering_;
 };
 

@@ -6,6 +6,8 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_14.hpp"
+#include "clustering/administration/persist/migrate/metadata_v1_16.hpp"
+#include "clustering/administration/persist/migrate/metadata_v2_1.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/immediate_consistency/history.hpp"
@@ -18,7 +20,7 @@
 struct cluster_metadata_superblock_t {
     block_magic_t magic;
 
-    server_id_t server_id;
+    uuid_u server_id;
 
     static const int METADATA_BLOB_MAXREFLEN = 1500;
     char metadata_blob[METADATA_BLOB_MAXREFLEN];
@@ -530,7 +532,7 @@ void migrate_tables(io_backender_t *io_backender,
 
 }
 
-void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
+void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                                       const base_path_t &base_path,
                                       buf_parent_t buf_parent,
                                       const void *old_superblock,
@@ -554,7 +556,8 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                         unreachable();
                       }
@@ -572,7 +575,8 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                         unreachable();
                       }
@@ -593,17 +597,23 @@ void migrate_cluster_metadata_to_v2_2(io_backender_t *io_backender,
               });
 
     migrate_heartbeat(out, interruptor);
-    migrate_server(sb->server_id, metadata, out, interruptor);
+    migrate_server(
+        server_id_t::from_server_uuid(sb->server_id), metadata, out, interruptor);
     migrate_databases(metadata, out, interruptor);
-    migrate_tables(io_backender, base_path,
-                   sb->server_id, metadata, branch_history, out, interruptor);
+    migrate_tables(
+        io_backender,
+        base_path,
+        server_id_t::from_server_uuid(sb->server_id),
+        metadata,
+        branch_history,
+        out,
+        interruptor);
 }
 
-void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
+void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                                    const serializer_filepath_t &path,
                                    metadata_file_t::write_txn_t *out,
                                    signal_t *interruptor) {
-    logNTC("Migrating auth metadata");
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
     log_serializer_t serializer(log_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
@@ -639,7 +649,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_16:
                       case cluster_version_t::v2_0:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                           unreachable();
                       }
@@ -658,7 +669,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
                       case cluster_version_t::v1_14:
                       case cluster_version_t::v1_15:
                       case cluster_version_t::v2_1:
-                      case cluster_version_t::v2_2_is_latest:
+                      case cluster_version_t::v2_2:
+                      case cluster_version_t::v2_3_is_latest:
                       default:
                           unreachable();
                       }
@@ -667,9 +679,8 @@ void migrate_auth_metadata_to_v2_2(io_backender_t *io_backender,
         unreachable();
     }
 
-    // These structures are currently identical, although that could change in the future
-    ::auth_semilattice_metadata_t new_metadata;
+    metadata_v1_16::auth_semilattice_metadata_t new_metadata;
     new_metadata.auth_key = metadata.auth_key;
 
-    out->write(mdkey_auth_semilattices(), new_metadata, interruptor);
+    out->write(metadata_v2_1::mdkey_auth_semilattices(), new_metadata, interruptor);
 }

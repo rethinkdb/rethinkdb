@@ -40,11 +40,15 @@ struct make_sindex_read_t {
                 boost::none,
                 boost::none,
                 ql::global_optargs_t(),
+                auth::user_context_t(auth::permissions_t(false, false, false, false)),
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
-                sindex_rangespec_t(id, boost::none, ql::datumspec_t(rng)),
+                sindex_rangespec_t(id,
+                                   boost::none,
+                                   ql::datumspec_t(rng),
+                                   require_sindexes_t::NO),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE,
             read_mode_t::SINGLE);
@@ -108,7 +112,7 @@ temp_directory_t::temp_directory_t() {
     char tmpl[] = "rdb_unittest.";
     char path[MAX_PATH + 1 + sizeof(tmpl) + 6 + 1];
     DWORD res = GetTempPath(sizeof(path), path);
-    guarantee_winerr(res != NULL && res < MAX_PATH + 1, "GetTempPath failed");
+    guarantee_winerr(res != nullptr && res < MAX_PATH + 1, "GetTempPath failed");
     strcpy(path + res, tmpl); // NOLINT
     char *end = path + strlen(path);
     int tries = 0;

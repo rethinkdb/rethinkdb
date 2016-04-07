@@ -53,15 +53,22 @@ geo_job_data_t::geo_job_data_t(
     store_key_t last_key,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &_transforms,
-    const boost::optional<ql::terminal_variant_t> &_terminal)
+    const boost::optional<ql::terminal_variant_t> &_terminal,
+    is_stamp_read_t is_stamp_read)
     : env(_env),
       batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
       accumulator(_terminal
                   ? ql::make_terminal(*_terminal)
                   : ql::make_append(std::move(region),
                                     std::move(last_key),
-                                    sorting_t::UNORDERED,
-                                    batcher.get())) {
+                                    // This causes the accumulator to include sindex_val
+                                    // in the result, which we need for post-filtering in
+                                    // reads for getIntersecting changefeeds.
+                                    is_stamp_read == is_stamp_read_t::YES
+                                        ? sorting_t::ASCENDING
+                                        : sorting_t::UNORDERED,
+                                    batcher.get(),
+                                    require_sindexes_t::NO)) {
     for (size_t i = 0; i < _transforms.size(); ++i) {
         transformers.push_back(ql::make_op(_transforms[i]));
     }
@@ -73,7 +80,8 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
         btree_slice_t *_slice,
         geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
-        std::set<store_key_t> *_distinct_emitted_in_out)
+        std::set<std::pair<store_key_t, boost::optional<uint64_t> > >
+            *_distinct_emitted_in_out)
     : geo_index_traversal_helper_t(
         ql::skey_version_from_reql_version(_sindex.func_reql_version),
         _env->interruptor),
@@ -114,11 +122,13 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
     }
 
     // Check if this document has already been processed (lower bound).
-    if (already_processed.count(primary_key) > 0) {
+    boost::optional<uint64_t> tag = ql::datum_t::extract_tag(store_key);
+    std::pair<store_key_t, boost::optional<uint64_t> > primary_and_tag(primary_key, tag);
+    if (already_processed.count(primary_and_tag) > 0) {
         return continue_bool_t::CONTINUE;
     }
     // Check if this document has already been emitted.
-    if (distinct_emitted->count(primary_key) > 0) {
+    if (distinct_emitted->count(primary_and_tag) > 0) {
         return continue_bool_t::CONTINUE;
     }
 
@@ -136,7 +146,7 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
     // row.get() or waiter.wait_interruptible() might have blocked, and another
     // coroutine could have found the document in the meantime. Re-check
     // distinct_emitted, so we don't emit the same document twice.
-    if (distinct_emitted->count(primary_key) > 0) {
+    if (distinct_emitted->count(primary_and_tag) > 0) {
         return continue_bool_t::CONTINUE;
     }
 
@@ -150,7 +160,6 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI
             && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
-            boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(store_key);
             guarantee(tag);
             sindex_val = sindex_val.get(*tag, ql::NOTHROW);
             guarantee(sindex_val.has());
@@ -176,7 +185,7 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
                     ql::backtrace_id_t::empty()));
                 return continue_bool_t::ABORT;
             }
-            distinct_emitted->insert(primary_key);
+            distinct_emitted->insert(primary_and_tag);
             return emit_result(std::move(sindex_val),
                                std::move(store_key),
                                std::move(val));
@@ -186,7 +195,7 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
             // encountered multiple times in the index.
             if (already_processed.size() < MAX_PROCESSED_SET_SIZE
                 && sindex_val.get_field("type").as_str() != "Point") {
-                already_processed.insert(primary_key);
+                already_processed.insert(primary_and_tag);
             }
             return continue_bool_t::CONTINUE;
         }

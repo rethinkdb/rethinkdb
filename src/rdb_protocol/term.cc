@@ -121,6 +121,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
     case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
+    case Term::GRANT:              return make_grant_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);
@@ -254,7 +255,7 @@ const raw_term_t &term_t::get_src() const {
 scoped_ptr_t<val_t> runtime_term_t::eval_on_current_stack(
         scope_env_t *env,
         eval_flags_t eval_flags) const {
-    PROFILE_STARTER_IF_ENABLED(
+        PROFILE_STARTER_IF_ENABLED(
         env->env->profile() == profile_bool_t::PROFILE,
         strprintf("Evaluating %s.", name()),
         env->env->trace);

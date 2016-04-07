@@ -48,7 +48,7 @@ bool server_status_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("name",
         convert_name_to_datum(metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_server_id_to_datum(server_id));
 
     ql::datum_object_builder_t proc_builder;
     proc_builder.overwrite("time_started",
@@ -66,8 +66,8 @@ bool server_status_artificial_table_backend_t::format_row(
 
     ASSERT_NO_CORO_WAITING;
     server_config_client->assert_thread();
-    const server_connectivity_t& connect = server_config_client
-                    ->get_server_connectivity();
+    const server_connectivity_t& connect =
+        server_config_client->get_server_connectivity();
     ql::datum_object_builder_t net_builder;
     ql::datum_object_builder_t server_connect_builder;
 
@@ -80,12 +80,13 @@ bool server_status_artificial_table_backend_t::format_row(
                 &server_name_or_uuid,
                 nullptr)) {
             server_name_or_uuid = ql::datum_t(
-                datum_string_t(uuid_to_str(pair.first)));
+                datum_string_t(pair.first.print()));
         }
         if (server_id != pair.first) {
             bool is_connected = false;
-            if (connect.connected_to.at(server_id).find(pair.first)
-                != connect.connected_to.at(server_id).end()) {
+            const auto server_it = connect.connected_to.find(server_id);
+            if (server_it != connect.connected_to.end() &&
+                  server_it->second.count(pair.first) > 0) {
                 is_connected = true;
             }
             guarantee(

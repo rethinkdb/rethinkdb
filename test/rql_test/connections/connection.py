@@ -71,6 +71,10 @@ class TestCaseCompatible(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCaseCompatible, self).__init__(*args, **kwargs)
 
+        if not hasattr(self, 'assertIsNone'):
+            self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
         if not hasattr(self, 'assertRaisesRegexp'):
             self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
         if not hasattr(self, 'skipTest'):
@@ -79,6 +83,14 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertGreaterEqual = self.replacement_assertGreaterEqual
         if not hasattr(self, 'assertLess'):
             self.assertLess = self.replacement_assertLess
+
+    def replacement_assertIsNone(self, val):
+        if val is not None:
+            raise AssertionError('%s is not None' % val)
+
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
 
     def replacement_assertGreaterEqual(self, greater, lesser):
         if not greater >= lesser:
@@ -215,7 +227,7 @@ class TestPrivateServer(TestCaseCompatible):
 
             if cls.authKey is not None:
                 conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
-                result = r.db('rethinkdb').table('cluster_config').get('auth').update({'auth_key':cls.authKey}).run(conn)
+                result = r.db('rethinkdb').table('users').get('admin').update({'password':cls.authKey}).run(conn)
                 if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
                     cls.server = None
                     raise Exception('Unable to set authkey, got: %s' % str(result))
@@ -272,13 +284,13 @@ class TestConnectionDefaultPort(TestPrivateServer):
             return
         self.assertRaisesRegexp(
             r.ReqlAuthError,
-            "Could not connect to %s:%d, incorrect authentication key." % (self.host, self.port),
+            "Could not connect to %s:%d: Wrong password" % (self.host, self.port),
             r.connect,
             auth_key="hunter2")
 
 class TestAuthConnection(TestPrivateServer):
 
-    incorrectAuthMessage = "Could not connect to %s:%d, incorrect authentication key."
+    incorrectAuthMessage = "Could not connect to %s:%d: Wrong password"
     authKey = 'hunter2'
 
     def test_connect_no_auth(self):
@@ -298,24 +310,22 @@ class TestAuthConnection(TestPrivateServer):
             self.incorrectAuthMessage % (self.host, self.port),
             r.connect, port=self.port, auth_key="hunter22")
 
-    def test_connect_long_auth(self):
-        long_key = str("k") * 2049
-        not_long_key = str("k") * 2048
-
-        self.assertRaisesRegexp(
-            r.ReqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
-            r.connect, port=self.port, auth_key=long_key)
-
-        self.assertRaisesRegexp(
-            r.ReqlDriverError,
-            self.incorrectAuthMessage % (self.host, self.port),
-            r.connect, port=self.port, auth_key=not_long_key)
-
     def test_connect_correct_auth(self):
         conn = r.connect(port=self.port, auth_key="hunter2")
         conn.reconnect()
 
 class TestConnection(TestWithConnection):
+    def test_client_port_and_address(self):
+        c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     def test_connect_close_reconnect(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         r.expr(1).run(c)
@@ -447,7 +457,7 @@ class TestConnection(TestWithConnection):
         r.expr(1).run(c)
         c.close()
 
-        self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port abc to an integer.", r.connect, port='abc', host=sharedServerHost)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port 'abc' to an integer.", r.connect, port='abc', host=sharedServerHost)
 
 class TestShutdown(TestWithConnection):
 

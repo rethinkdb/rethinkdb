@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from copy import deepcopy
-import socket, sys, string, re
+import socket, sys, string, re, getpass
 
 try:
     import rethinkdb as r
@@ -43,6 +43,22 @@ def parse_db_table_options(db_table_options):
         res.append(parse_db_table(item))
     return res
 
+def ssl_option(str):
+    if str == "":
+        return dict()
+    else:
+        return {"ca_certs": str}
+
+def get_password(interactive, filename):
+    password = ""
+    if filename is not None:
+        password_file = open(filename)
+        password = password_file.read().rstrip('\n')
+        password_file.close()
+    elif interactive:
+        password = getpass.getpass("Password for `admin`: ")
+    return password
+
 # This function is used to wrap rethinkdb calls to recover from connection errors
 # The first argument to the function is an output parameter indicating if progress
 # has been made since the last call.  This is passed as an array so it works as an
@@ -79,7 +95,7 @@ def check_minimum_version(progress, conn, minimum_version):
     parsed_version = None
     try:
         version = r.db('rethinkdb').table('server_status')[0]['process']['version'].run(conn)
-        matches = re.match(r'rethinkdb (\d+)\.(\d+)\.(\d+)', version)
+        matches = re.match(r'rethinkdb (\d+)\.(\d+)\.(\d+).*', version)
         if matches == None:
             raise RuntimeError("invalid version string format")
         parsed_version = tuple(int(num) for num in matches.groups())

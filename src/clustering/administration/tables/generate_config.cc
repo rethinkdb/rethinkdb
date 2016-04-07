@@ -394,7 +394,7 @@ void table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
-                    guarantee(config_shards_out->at(shard).primary_replica.is_unset());
+                    guarantee(config_shards_out->at(shard).primary_replica.get_uuid().is_unset());
                     config_shards_out->at(shard).all_replicas.insert(server);
                     config_shards_out->at(shard).primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
@@ -437,7 +437,7 @@ void table_generate_config(
 
     for (size_t shard_ix = 0; shard_ix < params.num_shards; ++shard_ix) {
         const table_config_t::shard_t &shard = (*config_shards_out)[shard_ix];
-        guarantee(!shard.primary_replica.is_unset());
+        guarantee(!shard.primary_replica.get_uuid().is_unset());
         guarantee(shard.all_replicas.size() == total_replicas);
         for (const server_id_t &replica : shard.all_replicas) {
             server_names_out->names[replica] = server_names.names.at(replica);

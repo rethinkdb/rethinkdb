@@ -72,6 +72,7 @@ module RethinkDB
             when re::OP_FAILED        then raise ReqlOpFailedError,         r['r'][0]
             when re::OP_INDETERMINATE then raise ReqlOpIndeterminateError,  r['r'][0]
             when re::USER             then raise ReqlUserError,             r['r'][0]
+            when re::PERMISSION_ERROR then raise ReqlPermissionError,       r['r'][0]
             else                           raise ReqlRuntimeError,          r['r'][0]
           end
         when rt::COMPILE_ERROR        then raise ReqlServerCompileError,    r['r'][0]
