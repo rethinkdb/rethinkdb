@@ -448,7 +448,7 @@ class TestConnection(TestWithConnection):
         r.expr(1).run(c)
         c.close()
 
-        self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port abc to an integer.", r.connect, port='abc', host=sharedServerHost)
+        self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port 'abc' to an integer.", r.connect, port='abc', host=sharedServerHost)
 
 class TestShutdown(TestWithConnection):
 

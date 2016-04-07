@@ -516,7 +516,11 @@ class Connection(object):
         self.db = db
 
         self.host = host
-        self.port = port
+        try:
+            self.port = int(port)
+        except ValueError:
+            raise ReqlDriverError("Could not convert port %r to an integer." % port)
+
         self.connect_timeout = timeout
 
         self.ssl = ssl
@@ -542,10 +546,10 @@ class Connection(object):
             raise ReqlDriverError("`auth_key` and `password` are both set.")
 
         if _handshake_version == 4:
-            self.handshake = HandshakeV0_4(host, port, auth_key)
+            self.handshake = HandshakeV0_4(self.host, self.port, auth_key)
         else:
             self.handshake = HandshakeV1_0(
-                self._json_decoder(), self._json_encoder(), host, port, user, password)
+                self._json_decoder(), self._json_encoder(), self.host, self.port, user, password)
 
     def client_port(self):
         if self.is_open():
@@ -560,13 +564,6 @@ class Connection(object):
             timeout = self.connect_timeout
 
         self.close(noreply_wait)
-
-        # Do this here rather than in the constructor so that we don't throw
-        # in the constructor (which doesn't play well with Tornado)
-        try:
-            self.port = int(self.port)
-        except ValueError:
-            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
         self._instance = self._conn_type(self, **self._child_kwargs)
         return self._instance.connect(timeout)
