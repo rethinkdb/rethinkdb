@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # Copyright 2014-2016 RethinkDB, all rights reserved.
 
-"""Check that changefeeds on system tablescorrectly notify when changes occur."""
+"""Check that changefeeds on system tables correctly notify when changes occur."""
 
-import os, pprint, sys, time, threading, traceback
+import os, sys, time, traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -14,60 +14,42 @@ op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 _, command_prefix, server_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-class AsyncChangefeed(threading.Thread):
-    daemon = True
-    
-    conn = None
-    query = None
-    
-    err = None
-    changes = None
-    
-    def __init__(self, server, query):
-        super(AsyncChangefeed, self).__init__()
-        self.conn = r.connect(server.host, server.driver_port)
-        self.changes = []
-        self.query = query
-        self.start()
-        time.sleep(0.5)
-    
-    def run(self):
-        try:
-            for x in self.query.changes().run(self.conn):
-                # Throw away initial values
-                if "old_val" in x:
-                    self.changes.append(x)
-        except Exception as e:
-            self.err = sys.exc_info()
-    
-    def check(self):
-        if self.err is not None:
-            utils.print_with_time("Exception from other thread:")
-            traceback.print_exception(*self.err)
-            sys.exit(1)
-
-with driver.Cluster(output_folder='.', ) as cluster:
+with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, extra_options=server_options) as cluster:
     proc1 = driver.Process(cluster=cluster, name='a', server_tags='a_tag', console_output=True, command_prefix=command_prefix, extra_options=server_options)
     proc2 = driver.Process(cluster=cluster, name='b', server_tags='b_tag', console_output=True, command_prefix=command_prefix, extra_options=server_options)
-    
-    # This is necessary because a few log messages may be printed even after `wait_until_ready()` returns.
-    time.sleep(5.0)
-
     conn = r.connect(proc1.host, proc1.driver_port)
-    tables = ["cluster_config", "db_config", "current_issues", "logs", "server_config", "server_status", "table_config", "table_status"]
+    
+    # wait for all of the startup log messages to be past
+    logMonitor =  r.db('rethinkdb').table('logs').changes().run(conn)
+    while True:
+        try:
+            logMonitor.next(wait=2)
+        except r.ReqlTimeoutError:
+            break
+    
     feeds = { }
-    for name in tables:
-        feeds[name] = AsyncChangefeed(proc1, r.db('rethinkdb').table(name))
-
+    for name in ["cluster_config", "db_config", "current_issues", "logs", "permissions", "server_config", "server_status", "table_config", "table_status", "users"]:
+        feeds[name] = r.db('rethinkdb').table(name).changes().run(conn)
+    
     def check(expected, timer):
         time.sleep(timer)
         for name, feed in feeds.items():
-            feed.check()
+            changes = []
+            try:
+                while True:
+                    change = feed.next(wait=False)
+                    if 'old_val' in change:
+                        changes.append(change)
+            except r.ReqlTimeoutError:
+                pass
+            except r.Error as e:
+                utils.print_with_time('Exception on feed "%s"' % name)
+                traceback.print_exception()
+                sys.exit(1)
             if name in expected:
-                assert len(feed.changes) > 0, "Expected changes on %s, found none." % name
-                feed.changes = []
+                assert len(changes) > 0, "Expected changes on %s, found none." % name
             else:
-                assert len(feed.changes) == 0, "Expected no changes on %s, found %s." % (name, feed.changes)
+                assert len(changes) == 0, "Expected no changes on %s, found:\n%s" % (name, utils.pformat)
     check([], 5.0)
 
     utils.print_with_time("Creating database...")
@@ -83,10 +65,10 @@ with driver.Cluster(output_folder='.', ) as cluster:
     check(["table_config", "table_status", "logs"], 1.5)
     
     utils.print_with_time("Creating feeds...")
-    feeds["test_config"] = AsyncChangefeed(proc1, r.table('test').config())
-    feeds["test_status"] = AsyncChangefeed(proc1,  r.table('test').status())
-    feeds["test2_config"] = AsyncChangefeed(proc1, r.table('test2').config())
-    feeds["test2_status"] = AsyncChangefeed(proc1, r.table('test2').status())
+    feeds["test_config"]  = r.table('test').config().changes().run(conn)
+    feeds["test_status"]  = r.table('test').status().changes().run(conn)
+    feeds["test2_config"] = r.table('test2').config().changes().run(conn)
+    feeds["test2_status"] = r.table('test2').status().changes().run(conn)
     
     utils.print_with_time("Adding replicas...")
     res = r.table("test").config().update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
