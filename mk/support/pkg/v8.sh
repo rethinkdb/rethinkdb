@@ -71,12 +71,12 @@ pkg_install-include () {
        cp -RL "$build_dir/third_party/icu/source/common/." "$install_dir/include"
        sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
     else
-       cp -RL "$src_dir/include/." "$install_dir/include"
-       sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
+        cp -RL "$src_dir/include/." "$install_dir/include"
+        sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
 
-       # -- assemble the icu headers
-       if [[ "$CROSS_COMPILING" = 1 ]]; then
-           ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+        # -- assemble the icu headers
+        if [[ "$CROSS_COMPILING" = 1 ]]; then
+            ( cross_build_env; in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@" )
        else
            in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
        fi
