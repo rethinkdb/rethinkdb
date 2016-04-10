@@ -861,7 +861,7 @@ def import_directory(options):
 
     spawn_import_clients(options, files_info)
 
-def table_check(progress, conn, db, table, create_args, force):
+def table_check(progress, conn, db, table, create_args, force, quiet):
     pkey = None
 
     if db == "rethinkdb":
@@ -882,7 +882,7 @@ def table_check(progress, conn, db, table, create_args, force):
         if 'primary_key' in create_args:
             pkey = create_args["primary_key"]
         else:
-            if not options["quiet"]:
+            if not quiet:
                 print("no primary key specified, using default primary key when creating table")
         r.db(db).table_create(table, **create_args).run(conn)
 
@@ -901,7 +901,7 @@ def import_file(options):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
-    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, options["create_args"], options["force"])
+    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, options["create_args"], options["force"], options["quiet"])
 
     # Make this up so we can use the same interface as with an import directory
     file_info = {}
