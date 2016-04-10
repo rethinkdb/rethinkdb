@@ -14,7 +14,7 @@ pkg_install-include () {
     
     # -- assemble the icu headers
     if [[ "$CROSS_COMPILING" = 1 ]]; then
-        ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+        ( cross_build_env; in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@" )
     else
         in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
     fi
