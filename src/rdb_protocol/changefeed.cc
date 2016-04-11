@@ -3963,11 +3963,17 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
-    r_sanity_check(ss.squash == datum_t::boolean(false));
-    scoped_ptr_t<subscription_t> sub = new_sub(env, feed.get(), ss);
+    const streamspec_t *unsquashed_ss = &ss;
+    scoped_ptr_t<streamspec_t> dup;
+    if (ss.squash != datum_t::boolean(false)) {
+        dup = make_scoped<streamspec_t>(ss);
+        dup->squash = datum_t::boolean(false);
+        unsquashed_ss = &*dup;
+    }
+    scoped_ptr_t<subscription_t> sub = new_sub(env, feed.get(), *unsquashed_ss);
     return sub->to_artificial_stream(
         uuid, primary_key_name, initial_values,
-        ss.maybe_src.has(), std::move(sub), bt);
+        unsquashed_ss->maybe_src.has(), std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
