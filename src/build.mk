@@ -122,7 +122,7 @@ else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default
   else
-    RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+    RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds -Wno-maybe-uninitialized
   endif
 endif
 
