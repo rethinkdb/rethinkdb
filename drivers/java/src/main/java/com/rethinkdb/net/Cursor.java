@@ -33,7 +33,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     protected int threshold = 1;
     protected Optional<RuntimeException> error = Optional.empty();
 
-    protected Future<Response> awatingContinue = null;
+    protected Future<Response> awaitingContinue = null;
 
     public Cursor(Connection connection, Query query, Response firstResponse) {
         this.connection = connection;
@@ -95,7 +95,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                 && items.size() < threshold
                 && outstandingRequests == 0 ) {
             outstandingRequests += 1;
-            this.awatingContinue = connection.continue_(this);
+            this.awaitingContinue = connection.continue_(this);
         }
     }
 
@@ -103,9 +103,9 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         Response res = null;
         try {
             if(timeout.isPresent()){
-                res = this.awatingContinue.get(timeout.get(), TimeUnit.MILLISECONDS);
+                res = this.awaitingContinue.get(timeout.get(), TimeUnit.MILLISECONDS);
             } else {
-                res = this.awatingContinue.get();
+                res = this.awaitingContinue.get();
             }
         }catch(TimeoutException exc){
             throw exc;
