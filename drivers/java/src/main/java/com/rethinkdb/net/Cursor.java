@@ -8,6 +8,7 @@ import com.rethinkdb.gen.proto.ResponseType;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 
@@ -104,6 +105,20 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         this.extend(res);
     }
 
+    protected void waitOnCursorItems(long timeout) throws TimeoutException {
+        Response res = null;
+        try {
+            res = this.awatingContinue.get(timeout, TimeUnit.MILLISECONDS);
+        }
+        catch(TimeoutException e) {
+            throw e;
+        }
+        catch(Exception e){
+            throw new ReqlDriverError(e);
+        }
+        this.extend(res);
+    }
+
     void setError(String errMsg) {
         if(!error.isPresent()){
             error = Optional.of(new ReqlRuntimeError(errMsg));
@@ -180,10 +195,16 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
 
         @SuppressWarnings("unchecked")
         T getNext(Optional<Long> timeout) throws TimeoutException {
+            long endTime = 0;
+            if (timeout.isPresent() && timeout.get() > 0)
+                endTime = System.currentTimeMillis() + timeout.get();
 
             while( items.size() == 0){
                 maybeSendContinue();
-                waitOnCursorItems();
+                if (endTime > 0)
+                    waitOnCursorItems(Math.max(endTime - System.currentTimeMillis(), 1));
+                else
+                    waitOnCursorItems();
 
                 if( items.size() != 0){
                     break;

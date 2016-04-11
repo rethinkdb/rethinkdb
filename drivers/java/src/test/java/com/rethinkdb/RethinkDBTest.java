@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RethinkDBTest{
 
@@ -393,6 +394,17 @@ public class RethinkDBTest{
 
         final Cursor<TestPojo> all = r.db(dbName).table(tableName).run(conn);
         assertEquals(total, all.toList().size());
+    }
+
+    @Test
+    public void testQueryTimeout() {
+        Cursor c = r.db(dbName).table(tableName).changes().run(conn);
+        try {
+            c.next(10*1000);
+            fail();
+        } catch (TimeoutException e) {
+            e = e;
+        }
     }
 }
 
