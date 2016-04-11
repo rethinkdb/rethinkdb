@@ -1207,13 +1207,13 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 try {
                     // This is where we resolve the peer's ip addresses
-                    peer_address_t other_peer_addr(it->second);
+                    peer_address_t next_peer_addr(it->second);
 
                     // `it->first` is the ID of a peer that our peer is connected
                     //  to, but we aren't connected to.
                     coro_t::spawn_now_dangerously(std::bind(
                         &connectivity_cluster_t::run_t::join_blocking, this,
-                        other_peer_addr,
+                        next_peer_addr,
                         boost::optional<peer_id_t>(it->first),
                         join_delay_secs,
                         drainer_lock));
