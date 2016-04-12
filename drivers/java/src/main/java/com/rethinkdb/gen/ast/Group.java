@@ -25,29 +25,29 @@ public class Group extends ReqlExpr {
     public Group(Arguments args, OptArgs optargs) {
         super(TermType.GROUP, args, optargs);
     }
-public Group optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
-public Group optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
-public Group optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
-public Group optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
-public Group optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
-public Group optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Group(args, newOptargs);
-}
+    public Group optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
+    public Group optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
+    public Group optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
+    public Group optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
+    public Group optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
+    public Group optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Group(args, newOptargs);
+    }
 
 }

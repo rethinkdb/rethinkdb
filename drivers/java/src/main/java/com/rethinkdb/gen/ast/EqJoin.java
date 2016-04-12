@@ -25,29 +25,29 @@ public class EqJoin extends ReqlExpr {
     public EqJoin(Arguments args, OptArgs optargs) {
         super(TermType.EQ_JOIN, args, optargs);
     }
-public EqJoin optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
-public EqJoin optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
-public EqJoin optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
-public EqJoin optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
-public EqJoin optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
-public EqJoin optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new EqJoin(args, newOptargs);
-}
+    public EqJoin optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
+    public EqJoin optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
+    public EqJoin optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
+    public EqJoin optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
+    public EqJoin optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
+    public EqJoin optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new EqJoin(args, newOptargs);
+    }
 
 }

@@ -25,29 +25,29 @@ public class Distinct extends ReqlExpr {
     public Distinct(Arguments args, OptArgs optargs) {
         super(TermType.DISTINCT, args, optargs);
     }
-public Distinct optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
-public Distinct optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
-public Distinct optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
-public Distinct optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
-public Distinct optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
-public Distinct optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Distinct(args, newOptargs);
-}
+    public Distinct optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
+    public Distinct optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
+    public Distinct optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
+    public Distinct optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
+    public Distinct optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
+    public Distinct optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Distinct(args, newOptargs);
+    }
 
 }
