@@ -586,11 +586,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
-    server_status_backend.init(new server_status_artificial_table_backend_t(
-        _directory_map_view,
-        _server_config_client));
+    for (int i = 0; i < 2; ++i) {
+        server_status_backend[i].init(new server_status_artificial_table_backend_t(
+            _directory_map_view,
+            _server_config_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
     backends[name_string_t::guarantee_valid("server_status")] =
-        std::make_pair(server_status_backend.get(), server_status_backend.get());
+        std::make_pair(server_status_backend[0].get(), server_status_backend[1].get());
 
     for (int i = 0; i < 2; ++i) {
         stats_backend[i].init(new stats_artificial_table_backend_t(

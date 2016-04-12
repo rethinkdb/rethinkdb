@@ -22,7 +22,8 @@ class server_status_artificial_table_backend_t :
 public:
     server_status_artificial_table_backend_t(
             watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
-            server_config_client_t *_server_config_client);
+            server_config_client_t *_server_config_client,
+            admin_identifier_format_t _admin_format);
     ~server_status_artificial_table_backend_t();
 
     bool write_row(
@@ -44,6 +45,7 @@ private:
     std::map<peer_id_t, microtime_t> connect_times;
 
     server_config_client_t *server_config_client;
+    admin_identifier_format_t admin_format;
     /* We use `directory_subs` to note when a server first connects. */
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 };
