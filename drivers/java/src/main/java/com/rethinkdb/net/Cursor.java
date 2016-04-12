@@ -5,9 +5,15 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 
@@ -27,7 +33,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     protected int threshold = 1;
     protected Optional<RuntimeException> error = Optional.empty();
 
-    protected Future<Response> awatingContinue = null;
+    protected Future<Response> awaitingContinue = null;
 
     public Cursor(Connection connection, Query query, Response firstResponse) {
         this.connection = connection;
@@ -89,16 +95,21 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                 && items.size() < threshold
                 && outstandingRequests == 0 ) {
             outstandingRequests += 1;
-            this.awatingContinue = connection.continue_(this);
+            this.awaitingContinue = connection.continue_(this);
         }
     }
 
-    protected void waitOnCursorItems(){
+    protected void waitOnCursorItems(Optional<Long> timeout) throws TimeoutException {
         Response res = null;
         try {
-            res = this.awatingContinue.get();
-        }
-        catch(Exception e){
+            if(timeout.isPresent()){
+                res = this.awaitingContinue.get(timeout.get(), TimeUnit.MILLISECONDS);
+            } else {
+                res = this.awaitingContinue.get();
+            }
+        }catch(TimeoutException exc){
+            throw exc;
+        }catch(Exception e){
             throw new ReqlDriverError(e);
         }
         this.extend(res);
@@ -162,20 +173,24 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         /* This isn't great, but the Java iterator protocol relies on hasNext,
          so it must be implemented in a reasonable way */
         public boolean hasNext(){
-            if(items.size() > 0){
-                return true;
-            }
-            if(error.isPresent()){
-                return false;
-            }
-            if(_isFeed){
-                return true;
-            }
+            try {
+                if(items.size() > 0){
+                    return true;
+                }
+                if(error.isPresent()){
+                    return false;
+                }
+                if(_isFeed){
+                    return true;
+                }
 
-            maybeSendContinue();
-            waitOnCursorItems();
+                maybeSendContinue();
+                waitOnCursorItems(Optional.empty());
 
-            return items.size() > 0;
+                return items.size() > 0;
+            }catch(TimeoutException toe) {
+                throw new RuntimeException("Timeout can't happen here");
+            }
         }
 
         @SuppressWarnings("unchecked")
@@ -183,7 +198,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
 
             while( items.size() == 0){
                 maybeSendContinue();
-                waitOnCursorItems();
+                waitOnCursorItems(timeout);
 
                 if( items.size() != 0){
                     break;
