@@ -25,29 +25,29 @@ public class Javascript extends ReqlExpr {
     public Javascript(Arguments args, OptArgs optargs) {
         super(TermType.JAVASCRIPT, args, optargs);
     }
-public Javascript optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
-public Javascript optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
-public Javascript optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
-public Javascript optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
-public Javascript optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
-public Javascript optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Javascript(args, newOptargs);
-}
+    public Javascript optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
+    public Javascript optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
+    public Javascript optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
+    public Javascript optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
+    public Javascript optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
+    public Javascript optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Javascript(args, newOptargs);
+    }
 
 }

@@ -25,29 +25,29 @@ public class Replace extends ReqlExpr {
     public Replace(Arguments args, OptArgs optargs) {
         super(TermType.REPLACE, args, optargs);
     }
-public Replace optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
-public Replace optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
-public Replace optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
-public Replace optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
-public Replace optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
-public Replace optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Replace(args, newOptargs);
-}
+    public Replace optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
+    public Replace optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
+    public Replace optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
+    public Replace optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
+    public Replace optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
+    public Replace optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Replace(args, newOptargs);
+    }
 
 }

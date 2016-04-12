@@ -25,29 +25,29 @@ public class Between extends ReqlExpr {
     public Between(Arguments args, OptArgs optargs) {
         super(TermType.BETWEEN, args, optargs);
     }
-public Between optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
-public Between optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
-public Between optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
-public Between optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
-public Between optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
-public Between optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Between(args, newOptargs);
-}
+    public Between optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
+    public Between optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
+    public Between optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
+    public Between optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
+    public Between optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
+    public Between optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Between(args, newOptargs);
+    }
 
 }

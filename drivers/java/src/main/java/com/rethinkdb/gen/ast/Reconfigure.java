@@ -25,29 +25,29 @@ public class Reconfigure extends ReqlExpr {
     public Reconfigure(Arguments args, OptArgs optargs) {
         super(TermType.RECONFIGURE, args, optargs);
     }
-public Reconfigure optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
-public Reconfigure optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
-public Reconfigure optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
-public Reconfigure optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
-public Reconfigure optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
-public Reconfigure optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Reconfigure(args, newOptargs);
-}
+    public Reconfigure optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
+    public Reconfigure optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
+    public Reconfigure optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
+    public Reconfigure optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
+    public Reconfigure optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
+    public Reconfigure optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Reconfigure(args, newOptargs);
+    }
 
 }
