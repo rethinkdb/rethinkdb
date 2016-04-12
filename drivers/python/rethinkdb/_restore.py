@@ -147,7 +147,7 @@ def do_unzip(temp_dir, options):
         path, base = os.path.split(path)
         return (base, db, os.path.splitext(table_file)[0])
 
-    is_fileobj = type(options["in_file"]) is file
+    is_fileobj = type(options["in_file"]) is type(sys.stdin)
 
     # If the in_file is a fileobj (e.g. stdin), stream it to a seekable file
     # first so that the code below can seek in it.
