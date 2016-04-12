@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 /**
- * When save this data to rethink db, skip null properties.
+ * When saving this data to rethink db, skip null properties.
  * To recursively skip null properties of children properties,
  * specify this annotation to the children property's classes.
  */
