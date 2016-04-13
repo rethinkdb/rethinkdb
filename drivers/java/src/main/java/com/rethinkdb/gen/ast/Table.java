@@ -25,30 +25,30 @@ public class Table extends ReqlExpr {
     public Table(Arguments args, OptArgs optargs) {
         super(TermType.TABLE, args, optargs);
     }
-public Table optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
-public Table optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
-public Table optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
-public Table optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
-public Table optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
-public Table optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Table(args, newOptargs);
-}
+    public Table optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
+    public Table optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
+    public Table optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
+    public Table optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
+    public Table optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
+    public Table optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Table(args, newOptargs);
+    }
 
     public Get get(Object expr) {
         Arguments arguments = new Arguments(this);

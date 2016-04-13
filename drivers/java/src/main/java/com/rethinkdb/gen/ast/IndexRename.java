@@ -25,29 +25,29 @@ public class IndexRename extends ReqlExpr {
     public IndexRename(Arguments args, OptArgs optargs) {
         super(TermType.INDEX_RENAME, args, optargs);
     }
-public IndexRename optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
-public IndexRename optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
-public IndexRename optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
-public IndexRename optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
-public IndexRename optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
-public IndexRename optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new IndexRename(args, newOptargs);
-}
+    public IndexRename optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
+    public IndexRename optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
+    public IndexRename optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
+    public IndexRename optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
+    public IndexRename optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
+    public IndexRename optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new IndexRename(args, newOptargs);
+    }
 
 }

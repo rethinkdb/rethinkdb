@@ -25,29 +25,29 @@ public class Fold extends ReqlExpr {
     public Fold(Arguments args, OptArgs optargs) {
         super(TermType.FOLD, args, optargs);
     }
-public Fold optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
-public Fold optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
-public Fold optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
-public Fold optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
-public Fold optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
-public Fold optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Fold(args, newOptargs);
-}
+    public Fold optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
+    public Fold optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
+    public Fold optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
+    public Fold optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
+    public Fold optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
+    public Fold optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Fold(args, newOptargs);
+    }
 
 }
