@@ -5,6 +5,11 @@ import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Cursor;
 
+import java.beans.BeanInfo;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -460,4 +465,87 @@ public final class TestingCommon {
             return "AnythingIsFine";
         }
     };
+
+    /**
+     * deep compare java bean, generic List, array
+     * @param obj1
+     * @param obj2
+     * @return
+     */
+    public static boolean smartDeepEquals(Object obj1, Object obj2) {
+        if ((obj1 == null) != (obj2 == null))
+            return false;
+        if (obj1 == null)
+            return true;
+        if (obj1.equals(obj2))
+            return true;
+
+        /**
+         * compare List<T>  (e.g. ArrayList<SomeClass>)
+         */
+        if (obj1 instanceof List && obj2 instanceof List) {
+            List list1 = (List) obj1;
+            List list2 = (List) obj2;
+
+            int len = list1.size();
+            if (list2.size() != len)
+                return false;
+
+            for (int i = 0; i < len; i++) {
+                if (!smartDeepEquals(list1.get(i), list2.get(i)))
+                    return false;
+            }
+            return true;
+        }
+
+        Class clazz1 = obj1.getClass();
+
+        /**
+         * compare Xxx[] or xxx[]    (xxx means primitive type)
+         */
+        if (clazz1.isArray() && obj2.getClass().isArray()) {
+            int len = Array.getLength(obj1);
+            if (Array.getLength(obj2) != len)
+                return false;
+
+            for (int i = 0; i < len; i++) {
+                if (!smartDeepEquals(Array.get(obj1, i), Array.get(obj2, i)))
+                    return false;
+            }
+            return true;
+        }
+        /**
+         * compare java beans
+         */
+        if (clazz1 == obj2.getClass()) {
+            try {
+                BeanInfo info = Introspector.getBeanInfo(clazz1);
+
+                int beanPropertyCount = 0;
+                for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                    Method reader = descriptor.getReadMethod();
+                    if (reader != null && descriptor.getWriteMethod() != null)
+                        beanPropertyCount++;
+                }
+                if (beanPropertyCount == 0)
+                    return false;
+
+                for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                    Method reader = descriptor.getReadMethod();
+                    if (reader != null && descriptor.getWriteMethod() != null) {
+                        Object prop1 = reader.invoke(obj1);
+                        Object prop2 = reader.invoke(obj2);
+
+                        if (!smartDeepEquals(prop1, prop2))
+                            return false;
+                    }
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        return false;
+    }
 }

@@ -1,5 +1,6 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.annotations.IgnoreNullFields;
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverCompileError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
@@ -85,9 +86,8 @@ public class Util {
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
 
         if (val instanceof LocalDateTime) {
-            ZoneId zid = ZoneId.systemDefault();
-            DateTimeFormatter fmt2 = fmt.withZone(zid);
-            return Iso8601.fromString(((LocalDateTime) val).format(fmt2));
+            ZonedDateTime zdt = ((LocalDateTime)val).atZone(ZoneId.systemDefault());
+            return Iso8601.fromString(zdt.format(fmt));
         }
         if (val instanceof ZonedDateTime) {
             return Iso8601.fromString(((ZonedDateTime) val).format(fmt));
@@ -116,6 +116,10 @@ public class Util {
             return new Datum(null);
         }
 
+        if (val.getClass().isEnum()) {
+            return new Datum(((Enum)val).toString());
+        }
+
         // val is a non-null POJO, let's introspect its public properties
         return toReqlAst(toMap(val));
     }
@@ -137,6 +141,7 @@ public class Util {
             }
 
             BeanInfo info = Introspector.getBeanInfo(pojoClass);
+            boolean notSaveNull = pojoClass.isAnnotationPresent(IgnoreNullFields.class);
 
             for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
                 Method reader = descriptor.getReadMethod();
@@ -144,12 +149,9 @@ public class Util {
                 if (reader != null && reader.getDeclaringClass() == pojoClass) {
                     Object value = reader.invoke(pojo);
 
-                    if (value instanceof Integer) {
-                        throw new IllegalAccessException(String.format(
-                                "Make %s of %s Long instead of Integer", reader.getName(), pojo));
+                    if (!notSaveNull || value != null) {
+                        map.put(descriptor.getName(), value);
                     }
-
-                    map.put(descriptor.getName(), value);
                 }
             }
 
