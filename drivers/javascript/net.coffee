@@ -1109,7 +1109,10 @@ class TcpConnection extends Connection
                         j = i+1
                         status_str = status_buf.toString()
                         # Get the reply from the server, and parse it as JSON
-                        server_reply = JSON.parse(status_str)
+                        try
+                            server_reply = JSON.parse(status_str)
+                        catch json_error
+                            throw new err.ReqlDriverError(status_str)
 
                         if state is 1
                             if not server_reply.success
