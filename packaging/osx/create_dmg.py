@@ -12,6 +12,7 @@ import dmgbuild
 # == defaults
 
 scratchFolder = tempfile.mkdtemp()
+uninstallAppName = 'Uninstall RethinkDB.app'
 
 packagePosition = (470, 170)
 
@@ -24,7 +25,7 @@ defaultOptions = {
 	'icon_size': 64.0,
 	'text_size': 14.0,
 	'icon_locations': {
-		'Uninstall RethinkDB.app': (630, 170),
+		uninstallAppName: (630, 170),
 		'Release Notes.url': (470, 303),
 		'COPYRIGHT': (630, 303)
 	},
@@ -47,8 +48,18 @@ def removeAtExit(removePath):
 			sys.stderr.write('Unable to delete item: %s -- %s\n' % (removePath, str(e)))
 atexit.register(removeAtExit, scratchFolder)
 
-def compileUninstallApp():
-	outputPath = os.path.join(scratchFolder, 'Uninstall RethinkDB.app')
+identityRegex = re.compile(r'^\s+\d+\) (?P<id>\w{40}) "Developer ID (?P<type>Application|Installer): (?P<name>[^"]+)"')
+def getSigningIdentity(signingName, signingType):
+	assert signingType in ("Application", "Installer")
+	for line in subprocess.check_output(['/usr/bin/security', 'find-identity', '-p', 'macappstore', '-v']).splitlines():
+		res = identityRegex.match(line)
+		if res and res.group('type') == signingType and res.group('name') == signingName:
+			return res.group('id')
+	else:
+		raise ValueError('Could not find the requested signingName: "%s" for type: "%s"' % (signingName, signingType))
+
+def compileUninstallApp(signingName=None):
+	outputPath = os.path.join(scratchFolder, uninstallAppName)
 	
 	# - compile the app
 	
@@ -57,7 +68,7 @@ def compileUninstallApp():
 		subprocess.check_call(['/usr/bin/osacompile', '-o', outputPath, os.path.join(thisFolder, 'uninstall.scpt')], stdout=logFile, stderr=logFile)
 	except Exception as e:
 		logFile.seek(0)
-		sys.stderr.write('Failed while compiling %s: %s\n%s' % (os.path.join(thisFolder, 'uninstall.scpt'), str(e), logFile.read()))
+		sys.stderr.write('Failed while compiling %s: %s\n%s' % (uninstallAppName, str(e), logFile.read()))
 		raise
 	
 	# - change the icon - ToDo: re-do this once an icon is chosen
@@ -65,6 +76,17 @@ def compileUninstallApp():
 	#iconPath = os.path.join(outputPath, 'Contents', 'Resources', 'applet.icns')
 	#os.unlink(iconPath)
 	#os.symlink('/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Unsupported.icns', iconPath)
+	
+	# - codesign
+	
+	if signingName is not None:
+		signingIdentity = getSigningIdentity(signingName, 'Application')
+		try:
+			subprocess.check_call(['/usr/bin/codesign', '-s', signingIdentity, outputPath], stdout=logFile, stderr=logFile)
+		except Exception as e:
+			logFile.seek(0)
+			sys.stderr.write('Failed while signing %s: %s\n%s' % (uninstallAppName, str(e), logFile.read()))
+			raise
 	
 	# -
 	
@@ -78,16 +100,6 @@ def makeReleaseNotesLink(version):
 
 def buildPackage(versionString, serverRootPath, installPath=None, signingName=None):
 	'''Generate a .pkg with all of our customizations'''
-	
-	# == check for the identity
-	
-	if signingName is not None:
-		signingName = str(signingName)
-		for line in subprocess.check_output(['/usr/bin/security', 'find-identity', '-p', 'macappstore', '-v']).splitlines():
-			if signingName in line:
-				break
-		else:
-			raise ValueError('Could not find the requested signingName: %s' % signingName)
 	
 	# == build the component packages
 	
@@ -139,8 +151,10 @@ def buildPackage(versionString, serverRootPath, installPath=None, signingName=No
 		'--resources', installerResourcesPath,
 		distributionPath
 	]
+	
 	if signingName is not None:
-		productBuildCommand += ['--sign', signingName]
+		signingIdentity = getSigningIdentity(signingName, 'Installer')
+		productBuildCommand += ['--sign', signingIdentity]
 	
 	logFile = open(os.path.join(scratchFolder, 'rethinkdb_pkg.log'), 'w+')
 	try:
@@ -161,7 +175,7 @@ def main():
 	import optparse
 	parser = optparse.OptionParser()
 	parser.add_option('-s', '--server-root',     dest='serverRoot',    default=None,        help='path to the server component')
-	parser.add_option('-i', '--install-path',    dest='installPath',    default=None,       help='path to install to')
+	parser.add_option('-i', '--install-path',    dest='installPath',   default=None,        help='path to install to')
 	parser.add_option('-o', '--ouptut-location', dest='outputPath',                         help='location for the output file')
 	parser.add_option(      '--rethinkdb-name',  dest='binaryName',    default='rethinkdb', help='name of the rethinkdb server binary')
 	parser.add_option(      '--signing-name',    dest='signingName',   default=None,        help='signing identifier')
@@ -213,8 +227,14 @@ def main():
 	# = --scratch-folder
 	
 	if options.scratchFolder is not None:
-		if not os.path.isdir(options.scratchFolder):
-			parser.error('the --scratch-folder given is not an existing folder: %s' % options.scratchFolder)
+		options.scratchFolder = os.path.realpath(options.scratchFolder)
+		parentDir = os.path.dirname(options.scratchFolder)
+		if not os.path.isdir(parentDir):
+			parser.error('The parent folder of --scratch-folder is not an existing folder: %s' % options.scratchFolder)
+		if os.path.exists(options.scratchFolder) and not os.path.isdir(options.scratchFolder):
+			parser.error('The --scratch-folder is not a folder: %s' % options.scratchFolder)
+		elif not os.path.exists(options.scratchFolder):
+			os.mkdir(options.scratchFolder)
 		scratchFolder = options.scratchFolder
 	
 	# == build the pkg	
@@ -232,7 +252,7 @@ def main():
 	
 	# = uninstall script
 	
-	uninstallAppPath = compileUninstallApp()
+	uninstallAppPath = compileUninstallApp(signingName=options.signingName)
 	dmgOptions['files'].append(uninstallAppPath)
 	
 	# = release notes
