@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2010-2016 RethinkDB, all rights reserved.
+# Copyright 2016 RethinkDB, all rights reserved.
 
-import os, sys, time
+import os, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
 import driver, utils

@@ -3,7 +3,7 @@
 
 """Ensure the `emergency_repair` mode of `table.reconfigure()` works properly."""
 
-import time, os, sys, pprint
+import os, pprint, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse

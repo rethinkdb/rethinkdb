@@ -1,18 +1,1 @@
-# These tests are known to fail
-
-# Issue #2211
-split_workloads.rebalance-2-multi-serial-mix
-
-# Issue 2259
-split_workloads.transfer-multi-serial-mix-2
-split_workloads.rebalance-2-insert-many
-
-# Issue #549
-unit.TimerTest
-
-# Issue #2229
-ql.rb-polyglot
-
-# Bitrotted
-interface.stat
-interface.distribution
+# List tests here to disable them in `default` runs

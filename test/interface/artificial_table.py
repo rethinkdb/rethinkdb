@@ -3,9 +3,7 @@
 
 '''This runs a bunch of the ReQL tests against the `rethinkdb._debug_scratch` artificial table to check that `artificial_table_t` works properly.'''
 
-import os, subprocess, sys, time
-
-startTime = time.time()
+import os, subprocess, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse

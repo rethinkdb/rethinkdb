@@ -7,17 +7,10 @@ produces a specific workload instead of a random one."""
 
 from __future__ import print_function
 
-import os, string, sys, time
-
-startTime = time.time()
+import os, string, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, rdb_unittest, scenario_common, utils, vcoptparse
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
@@ -36,16 +29,16 @@ possible_server_names = \
 assert parsed_opts["num-servers"] <= len(possible_server_names)
 server_names = possible_server_names[:parsed_opts["num-servers"]]
 
-table_names = ["table%d" % i for i in xrange(parsed_opts["num-tables"])]
+table_names = ["table%d" % i for i in range(parsed_opts["num-tables"])]
 
 def make_config_shards(phase):
     shards = []
-    for i in xrange(parsed_opts['num-shards']):
+    for i in range(parsed_opts['num-shards']):
         shard = {}
         shard["primary_replica"] = server_names[(i + phase) % len(server_names)]
         shard["replicas"] = []
         assert parsed_opts["num-replicas"] <= len(server_names)
-        for j in xrange(parsed_opts['num-replicas']):
+        for j in range(parsed_opts['num-replicas']):
             shard["replicas"].append(server_names[(i + j + phase) % len(server_names)])
         shards.append(shard)
     return shards
@@ -77,7 +70,7 @@ class ReconfigureStress(rdb_unittest.RdbTestCase):
             self.assert_(tableName in table_names, 'Table "%s" is missing' % tableName)
         
         # Run the phases
-        for phase in xrange(parsed_opts['num-phases']):
+        for phase in range(parsed_opts['num-phases']):
             utils.print_with_time("\tBeginning reconfiguration phase %d" % (phase + 1))
             shards = make_config_shards(phase)
             for name in table_names:

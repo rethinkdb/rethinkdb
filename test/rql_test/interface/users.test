@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2016 RethinkDB, all rights reserved.
+# Copyright 2016 RethinkDB, all rights reserved.
 
 import os, sys
 

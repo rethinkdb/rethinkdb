@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 '''This test randomly runs db, table, and index creates/drops, as well as reads, writes,
 and optionally changefeeds across any number of client threads and any number of servers
@@ -10,11 +10,6 @@ import bisect, os, random, resource, string, sys, time, threading
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
 
-try:
-    xrange
-except NameError:
-    xrange = range
-
 # Warn if this is run without unlimited size core files - which are really useful for debugging
 if resource.getrlimit(resource.RLIMIT_CORE)[0] != resource.RLIM_INFINITY:
     utils.print_with_time("Warning, running without unlimited size core files")
@@ -23,7 +18,7 @@ opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
 opts['random-seed'] = vcoptparse.FloatFlag('--random-seed', random.random())
 opts['servers'] = vcoptparse.IntFlag('--servers', 1) # Number of servers in the cluster
-opts['duration'] = vcoptparse.IntFlag('--duration', 900) # Time to perform fuzzing in seconds
+opts['duration'] = vcoptparse.IntFlag('--duration', 250) # Time to perform fuzzing in seconds
 opts['progress'] = vcoptparse.BoolFlag('--progress', False) # Write messages every 10 seconds with the time remaining
 opts['threads'] = vcoptparse.IntFlag('--threads', 16) # Number of client threads to run (not counting changefeeds)
 opts['changefeeds'] = vcoptparse.BoolFlag('--changefeeds', False) # Whether or not to use changefeeds
@@ -111,7 +106,7 @@ class Index:
 
 # Utility functions for generating queries
 def make_name():
-    return ''.join(random.choice(string.ascii_lowercase) for i in xrange(4))
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(4))
 
 def rand_shards():
     return random.randint(1, 16)
@@ -298,7 +293,7 @@ class rebalance(TableQuery):
 class config_update(TableQuery):
     def sub_query(self, q):
         shards = []
-        for i in xrange(rand_shards()):
+        for i in range(rand_shards()):
             shards.append({'replicas': random.sample(server_names, rand_replicas())})
             shards[-1]['primary_replica'] = random.choice(shards[-1]['replicas'])
         return q.config().update({'shards': shards})
@@ -456,7 +451,7 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     cluster_lock = threading.Lock()
     fuzz_threads = []
 
-    for i in xrange(parsed_opts['threads']):
+    for _ in range(parsed_opts['threads']):
         fuzz_threads.append(threading.Thread(target=do_fuzz, args=(cluster, cluster_lock, stop_event, random.random())))
         fuzz_threads[-1].start()
 
