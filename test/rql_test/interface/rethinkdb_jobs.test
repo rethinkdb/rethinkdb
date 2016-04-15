@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-import os, socket, sys, threading, time
+import os, sys, threading, time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import rdb_unittest, utils
@@ -29,6 +29,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         # - watch for the query in the rethinkdb.jobs table
 
         latestError = None
+        latestList = None
         deadline = time.time() + self.timeout
         while time.time() < deadline:
             try:
@@ -43,10 +44,11 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
 
                 break # break if successful, leaving query running
             except Exception as e:
+                latestList = self.r.db("rethinkdb").table("jobs").coerce_to("ARRAY").run(self.conn)
                 latestError = e
                 time.sleep(.01)
         else:
-            self.fail('Timed out after %.1f seconds waiting for query to appear. Last error was: %s' % (self.timeout, latestError.message))
+            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\ncontents:\n%s' % (self.timeout, host, port, latestError.message, utils.pformat(latestList)))
 
     def test_job_deletion(self):
         (conn_a, conn_b) = [self.r.connect(host=s.host, port=s.driver_port) for s in self.cluster]
