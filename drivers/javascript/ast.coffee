@@ -16,7 +16,12 @@ rethinkdb = (args...) -> rethinkdb.expr(args...)
 
 # ## Utilities
 
-funcWrap = (val, arity) ->
+funcWrap = (val) -> funcWrapArity val
+
+funcWrapArity = (val, arity) ->
+    if Array.isArray val
+        return val.map (v) -> funcWrapArity v, arity
+
     if val is undefined
         # Pass through the undefined value so it's caught by
         # the appropriate undefined checker
@@ -32,11 +37,10 @@ funcWrap = (val, arity) ->
         return false
 
     if ivarScan(val)
-        return new Func { arity }, -> val
+        return new Func { arity }, (row) -> val
 
     return val
 
-funcWrapArity = (arity) -> (val) -> funcWrap val, arity
 
 hasImplicit = (args) ->
     # args is an array of (strings and arrays)
@@ -182,7 +186,7 @@ class RDBVal extends TermBase
 
     merge: (args...) -> new Merge {}, @, args.map(funcWrap)...
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: (args...) -> new Reduce {}, @, args.map(funcWrapArity(2))...
+    reduce: (args...) -> new Reduce {}, @, funcWrapArity(args, 2)...
     map: varar 1, null, (args..., funcArg) -> new Map {}, @, args..., funcWrap(funcArg)
     fold: aropt (baseArg, accFuncArg, opts) -> new Fold opts, @, baseArg, funcWrap(accFuncArg)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
@@ -1242,7 +1246,7 @@ rethinkdb.expr = varar 1, 2, (val, options = {}) ->
     else if typeof(val) is 'number'
         new DatumTerm val
     else if Object::toString.call(val) is '[object Object]'
-        new MakeObject val, nestingDepth
+        new MakeObject val, options.nestingDepth
     else
         new DatumTerm val
 
@@ -1293,7 +1297,7 @@ rethinkdb.branch = (args...) -> new Branch {}, args...
 rethinkdb.map = varar 1, null, (args..., funcArg) -> new Map {}, args..., funcWrap(funcArg)
 
 rethinkdb.group = (args...) -> new Group {}, args.map(funcWrap)...
-rethinkdb.reduce = (args...) -> new Reduce {}, args.map(funcWrapArity(2))...
+rethinkdb.reduce = (args...) -> new Reduce {}, funcWrapArity(args, 2)...
 rethinkdb.count = (args...) -> new Count {}, args.map(funcWrap)...
 rethinkdb.sum = (args...) -> new Sum {}, args.map(funcWrap)...
 rethinkdb.avg = (args...) -> new Avg {}, args.map(funcWrap)...
