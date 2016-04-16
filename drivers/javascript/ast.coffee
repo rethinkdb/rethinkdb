@@ -519,7 +519,7 @@ class MakeObject extends RDBOp
         for own key,val of obj
             if typeof val is 'undefined'
                 throw new err.ReqlDriverCompileError "Object field '#{key}' may not be undefined"
-            self.optargs[key] = rethinkdb.expr val, nestingDepth: nestingDepth--
+            self.optargs[key] = rethinkdb.expr val, nestingDepth: nestingDepth-1
         return self
 
     compose: (args, optargs) -> kved(optargs)
@@ -1241,7 +1241,7 @@ rethinkdb.expr = varar 1, 2, (val, options = {}) ->
     else if val instanceof Buffer
         new Binary val
     else if Array.isArray val
-        val = (rethinkdb.expr(v, nestingDepth: options.nestingDepth--) for v in val)
+        val = (rethinkdb.expr(v, nestingDepth: options.nestingDepth-1) for v in val)
         new MakeArray {}, val...
     else if typeof(val) is 'number'
         new DatumTerm val
