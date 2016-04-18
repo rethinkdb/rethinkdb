@@ -1142,7 +1142,7 @@ class TcpConnection extends Connection
                             auth_salt = new Buffer(authentication.s, 'base64')
                             auth_i = parseInt(authentication.i)
 
-                            if not auth_r.substr(0, r_string) == r_string
+                            if not (auth_r.substr(0, r_string.length) == r_string)
                                 throw new err.ReqlAuthError("Invalid nonce from server")
 
                             client_final_message_without_proof = "c=biws,r=" + auth_r
