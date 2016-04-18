@@ -241,8 +241,8 @@ def binary(data):
     return ast.Binary(data)
 
 
-def range(*args):
-    return ast.Range(*args)
+def range(*args, **kwargs):
+    return ast.Range(*args, **kwargs)
 
 
 def time(*args):

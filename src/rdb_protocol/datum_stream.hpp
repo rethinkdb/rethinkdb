@@ -396,6 +396,7 @@ public:
     range_datum_stream_t(bool _is_infite_range,
                          int64_t _start,
                          int64_t _stop,
+                         int64_t _step,
                          backtrace_id_t);
 
     virtual std::vector<datum_t>
@@ -412,9 +413,11 @@ public:
         return is_infinite_range;
     }
 
+    bool is_in_range() const;
+
 private:
     bool is_infinite_range;
-    int64_t start, stop;
+    int64_t start, stop, step;
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
