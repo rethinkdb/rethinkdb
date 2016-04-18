@@ -29,8 +29,6 @@
 
 #include <google/protobuf/stubs/common.h>
 
-#include <random>
-
 #include "errors.hpp"
 #include <boost/date_time.hpp>
 
@@ -45,7 +43,6 @@
 #include "debug.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     // Make sure stderr is non-buffered
@@ -309,56 +306,6 @@ bool risfinite(double arg) {
     return isfinite(arg);
 }
 
-rng_t::rng_t(int seed) {
-#ifndef NDEBUG
-    if (seed == -1) {
-        seed = std::random_device{}();
-    }
-#else
-    seed = 314159;
-#endif
-#ifdef _WIN32
-    state.seed(seed);
-#else
-    state[2] = seed / (1 << 16);
-    state[1] = seed % (1 << 16);
-    state[0] = 0x330E;
-#endif
-}
-
-int rng_t::randint(int n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifdef _WIN32
-    unsigned long x = state(); // NOLINT(runtime/int)
-#else
-    long x = nrand48(state.data());  // NOLINT(runtime/int)
-#endif
-    return x % static_cast<unsigned int>(n);
-}
-
-uint64_t rng_t::randuint64(uint64_t n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifdef _WIN32
-    std::uniform_int_distribution<uint64_t> dist(0, n);
-    return dist(state);
-#else
-    uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
-    uint64_t x = x_high;
-    x <<= 32;
-    x += x_low;
-    return x % n;
-#endif
-}
-
-double rng_t::randdouble() {
-    uint64_t x = rng_t::randuint64(1LL << 53);
-    double res = x;
-    return res / (1LL << 53);
-}
-
-TLS_ptr_with_constructor(rng_t, rng)
-
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifdef _WIN32
     HCRYPTPROV hProv;
@@ -374,31 +321,6 @@ void system_random_bytes(void *out, int64_t nbytes) {
     int64_t readres = force_read(&urandom, out, nbytes);
     guarantee(readres == nbytes);
 #endif
-}
-
-int randint(int n) {
-    return TLS_ptr_rng()->randint(n);
-}
-
-uint64_t randuint64(uint64_t n) {
-    return TLS_ptr_rng()->randuint64(n);
-}
-
-size_t randsize(size_t n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    size_t ret = 0;
-    size_t i = SIZE_MAX;
-    while (i != 0) {
-        int x = randint(0x10000);
-        ret = ret * 0x10000 + x;
-        i /= 0x10000;
-    }
-    return ret % n;
-}
-
-double randdouble() {
-    return TLS_ptr_rng()->randdouble();
-
 }
 
 bool begins_with_minus(const char *string) {
@@ -452,10 +374,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
         *out_result = result;
         return true;
     }
-}
-
-bool notf(bool x) {
-    return !x;
 }
 
 std::string vstrprintf(const char *format, va_list ap) {
