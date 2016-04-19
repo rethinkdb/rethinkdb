@@ -6,7 +6,9 @@
 
 #include "errors.hpp"
 
-class rng_t {
+#include "threading.hpp"
+
+class rng_t : public home_thread_mixin_debug_only_t {
 public:
     rng_t();
     rng_t(uint64_t seed);
