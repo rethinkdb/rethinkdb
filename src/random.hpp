@@ -19,7 +19,7 @@ public:
     double randdouble();
 
 private:
-    std::ranlux48 m_ranlux48;
+    std::mt19937_64 m_mt19937;
 
     DISABLE_COPYING(rng_t);
 };
