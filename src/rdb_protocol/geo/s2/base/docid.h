@@ -109,7 +109,7 @@ class DocId {
 
  public:
   DocId()                               { docid_ = 0; }
-  explicit DocId(value_type docid)      { docid_ = docid; }
+  explicit DocId(value_type _docid)     { docid_ = _docid; }
   value_type docid() const              { return docid_; }   // ONLY use here
   value_type* docidptr()                { return &docid_; }  // ie in this file
   DocId& operator=(const DocId& x) {
@@ -209,12 +209,12 @@ class DocId32Bit {
   value_type docid_;
 
  public:
-  DocId32Bit()                          { docid_ = 0; }
-  explicit DocId32Bit(value_type docid) { docid_ = docid; }
-  explicit DocId32Bit(DocId docid) {
+  DocId32Bit()                           { docid_ = 0; }
+  explicit DocId32Bit(value_type _docid) { docid_ = _docid; }
+  explicit DocId32Bit(DocId _docid) {
     // we can't use kMaxDocId32Bit as it is not yet defined
-    assert(DocIdAsNumber(docid) <= 0xFFFFFFFFul);
-    docid_ = static_cast<uint32> (DocIdAsNumber(docid));
+    assert(DocIdAsNumber(_docid) <= 0xFFFFFFFFul);
+    docid_ = static_cast<uint32> (DocIdAsNumber(_docid));
   }
   value_type docid() const              { return docid_; }   // ONLY use here
   value_type* docidptr()                { return &docid_; }  // ie in this file

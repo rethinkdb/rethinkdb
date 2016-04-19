@@ -12,8 +12,8 @@
 template <class element_t, size_t ELEMENTS_PER_SEGMENT = (1 << 14)>
 class segmented_vector_t {
 public:
-    explicit segmented_vector_t(size_t size = 0) : size_(0) {
-        set_size(size);
+    explicit segmented_vector_t(size_t _size = 0) : size_(0) {
+        set_size(_size);
     }
 
     segmented_vector_t(segmented_vector_t &&movee)

@@ -201,12 +201,12 @@ public:
     new_mutex_t mutex;
 };
 
-page_cache_t::page_cache_t(serializer_t *serializer,
+page_cache_t::page_cache_t(serializer_t *_serializer,
                            cache_balancer_t *balancer,
                            alt_txn_throttler_t *throttler)
-    : max_block_size_(serializer->max_block_size()),
-      serializer_(serializer),
-      free_list_(serializer),
+    : max_block_size_(_serializer->max_block_size()),
+      serializer_(_serializer),
+      free_list_(_serializer),
       evicter_(),
       read_ahead_cb_(nullptr),
       drainer_(make_scoped<auto_drainer_t>()) {
@@ -218,14 +218,14 @@ page_cache_t::page_cache_t(serializer_t *serializer,
 
     page_read_ahead_cb_t *local_read_ahead_cb = nullptr;
     {
-        on_thread_t thread_switcher(serializer->home_thread());
+        on_thread_t thread_switcher(_serializer->home_thread());
         if (start_read_ahead) {
-            local_read_ahead_cb = new page_read_ahead_cb_t(serializer, this);
+            local_read_ahead_cb = new page_read_ahead_cb_t(_serializer, this);
         }
-        default_reads_account_.init(serializer->home_thread(),
-                                    serializer->make_io_account(CACHE_READS_IO_PRIORITY));
+        default_reads_account_.init(_serializer->home_thread(),
+                                    _serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         index_write_sink_.init(new page_cache_index_write_sink_t);
-        recencies_ = serializer->get_all_recencies();
+        recencies_ = _serializer->get_all_recencies();
     }
 
     ASSERT_NO_CORO_WAITING;
@@ -434,11 +434,11 @@ current_page_acq_t::current_page_acq_t()
     : page_cache_(nullptr), the_txn_(nullptr) { }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
-                                       block_id_t block_id,
-                                       access_t access,
+                                       block_id_t _block_id,
+                                       access_t _access,
                                        page_create_t create)
     : page_cache_(nullptr), the_txn_(nullptr) {
-    init(txn, block_id, access, create);
+    init(txn, _block_id, _access, create);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
@@ -448,32 +448,32 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     init(txn, create, block_type);
 }
 
-current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
-                                       block_id_t block_id,
+current_page_acq_t::current_page_acq_t(page_cache_t *_page_cache,
+                                       block_id_t _block_id,
                                        read_access_t read)
     : page_cache_(nullptr), the_txn_(nullptr) {
-    init(page_cache, block_id, read);
+    init(_page_cache, _block_id, read);
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
-                              block_id_t block_id,
-                              access_t access,
+                              block_id_t _block_id,
+                              access_t _access,
                               page_create_t create) {
-    if (access == access_t::read) {
+    if (_access == access_t::read) {
         rassert(create == page_create_t::no);
-        init(txn->page_cache(), block_id, read_access_t::read);
+        init(txn->page_cache(), _block_id, read_access_t::read);
     } else {
         txn->page_cache()->assert_thread();
         guarantee(page_cache_ == nullptr);
         page_cache_ = txn->page_cache();
-        the_txn_ = (access == access_t::write ? txn : nullptr);
-        access_ = access;
+        the_txn_ = (_access == access_t::write ? txn : nullptr);
+        access_ = _access;
         declared_snapshotted_ = false;
-        block_id_ = block_id;
+        block_id_ = _block_id;
         if (create == page_create_t::yes) {
-            current_page_ = page_cache_->page_for_new_chosen_block_id(block_id);
+            current_page_ = page_cache_->page_for_new_chosen_block_id(_block_id);
         } else {
-            current_page_ = page_cache_->page_for_block_id(block_id);
+            current_page_ = page_cache_->page_for_block_id(_block_id);
         }
         dirtied_page_ = false;
         touched_page_ = false;
@@ -500,17 +500,17 @@ void current_page_acq_t::init(page_txn_t *txn,
     current_page_->add_acquirer(this);
 }
 
-void current_page_acq_t::init(page_cache_t *page_cache,
-                              block_id_t block_id,
+void current_page_acq_t::init(page_cache_t *_page_cache,
+                              block_id_t _block_id,
                               read_access_t) {
-    page_cache->assert_thread();
+    _page_cache->assert_thread();
     guarantee(page_cache_ == nullptr);
-    page_cache_ = page_cache;
+    page_cache_ = _page_cache;
     the_txn_ = nullptr;
     access_ = access_t::read;
     declared_snapshotted_ = false;
-    block_id_ = block_id;
-    current_page_ = page_cache_->page_for_block_id(block_id);
+    block_id_ = _block_id;
+    current_page_ = page_cache_->page_for_block_id(_block_id);
     dirtied_page_ = false;
     touched_page_ = false;
 
@@ -614,14 +614,14 @@ page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
     return current_page_->the_page_for_write(help(), account);
 }
 
-void current_page_acq_t::set_recency(repli_timestamp_t recency) {
+void current_page_acq_t::set_recency(repli_timestamp_t _recency) {
     assert_thread();
     rassert(access_ == access_t::write);
     rassert(current_page_ != nullptr);
     write_cond_.wait();
     rassert(current_page_ != nullptr);
     touched_page_ = true;
-    page_cache_->set_recency_for_block_id(block_id_, recency);
+    page_cache_->set_recency_for_block_id(block_id_, _recency);
 }
 
 void current_page_acq_t::mark_deleted() {
@@ -947,10 +947,10 @@ page_t *current_page_t::the_page_for_write(current_page_help_t help,
     return page_.get_page_for_write(help.page_cache, account);
 }
 
-page_txn_t::page_txn_t(page_cache_t *page_cache,
+page_txn_t::page_txn_t(page_cache_t *_page_cache,
                        throttler_acq_t throttler_acq,
                        cache_conn_t *cache_conn)
-    : page_cache_(page_cache),
+    : page_cache_(_page_cache),
       cache_conn_(cache_conn),
       throttler_acq_(std::move(throttler_acq)),
       live_acqs_(0),

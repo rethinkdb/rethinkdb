@@ -35,15 +35,15 @@ private:
 class constant_term_t : public op_term_t {
 public:
     constant_term_t(compile_env_t *env, const raw_term_t &term,
-                    double constant, const char *name)
-        : op_term_t(env, term, argspec_t(0)), _constant(constant), _name(name) { }
+                    double constant, const char *_name)
+        : op_term_t(env, term, argspec_t(0)), constant_(constant), name_(_name) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(datum_t(_constant));
+        return new_val(datum_t(constant_));
     }
-    virtual const char *name() const { return _name; }
-    const double _constant;
-    const char *const _name;
+    virtual const char *name() const { return name_; }
+    const double constant_;
+    const char *const name_;
 };
 
 class make_array_term_t : public op_term_t {

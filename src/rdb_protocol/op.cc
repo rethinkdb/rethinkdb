@@ -50,8 +50,8 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(backtrace_id_t bt, datum_t _d, deterministic_t _deterministic)
-        : runtime_term_t(bt), d(std::move(_d)), deterministic(_deterministic) { }
+    faux_term_t(backtrace_id_t _bt, datum_t _d, deterministic_t _deterministic)
+        : runtime_term_t(_bt), d(std::move(_d)), deterministic(_deterministic) { }
     deterministic_t is_deterministic() const final { return deterministic; }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:

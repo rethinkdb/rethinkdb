@@ -13,8 +13,8 @@
 template<class key_t, class value_t>
 directory_map_read_manager_t<key_t, value_t>::directory_map_read_manager_t(
         connectivity_cluster_t *cm,
-        connectivity_cluster_t::message_tag_t tag) :
-    cluster_message_handler_t(cm, tag)
+        connectivity_cluster_t::message_tag_t _tag) :
+    cluster_message_handler_t(cm, _tag)
 {
     guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }

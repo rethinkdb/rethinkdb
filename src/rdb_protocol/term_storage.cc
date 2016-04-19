@@ -68,18 +68,18 @@ void raw_term_t::init_json(const rapidjson::Value *src) {
 
     const rapidjson::Value *raw_type = &(*src)[0];
     r_sanity_check(raw_type->IsInt());
-    Term::TermType type = static_cast<Term::TermType>(raw_type->GetInt64());
+    Term::TermType _type = static_cast<Term::TermType>(raw_type->GetInt64());
 
     const rapidjson::Value *raw_bt = &(*src)[size - 1];
     r_sanity_check(raw_bt->IsInt());
-    backtrace_id_t bt(raw_bt->GetUint());
+    backtrace_id_t _bt(raw_bt->GetUint());
 
     data->args = nullptr;
     data->optargs = nullptr;
     data->datum = nullptr;
 
-    if (type == Term::DATUM) {
-        rcheck_src(bt, size == 3, base_exc_t::LOGIC,
+    if (_type == Term::DATUM) {
+        rcheck_src(_bt, size == 3, base_exc_t::LOGIC,
                    strprintf("Expected 3 items in array, but found %zu.", size));
         data->datum = &(*src)[1];
     } else {
@@ -302,11 +302,11 @@ bool json_term_storage_t::static_optarg_as_bool(const std::string &key,
         return default_value;
     }
 
-    const rapidjson::Value *global_optargs = &query_json[2];
-    r_sanity_check(global_optargs->IsObject());
+    const rapidjson::Value *_global_optargs = &query_json[2];
+    r_sanity_check(_global_optargs->IsObject());
 
-    const auto it = global_optargs->FindMember(key.c_str());
-    if (it == global_optargs->MemberEnd()) {
+    const auto it = _global_optargs->FindMember(key.c_str());
+    if (it == _global_optargs->MemberEnd()) {
         return default_value;
     } else if (it->value.IsBool()) {
         return it->value.GetBool();

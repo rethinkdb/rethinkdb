@@ -250,11 +250,11 @@ public:
         size_t _n,
         region_t region,
         store_key_t last_key,
-        sorting_t sorting,
+        sorting_t _sorting,
         std::vector<scoped_ptr_t<op_t> > *_ops)
         : append_t(region,
                    last_key,
-                   sorting,
+                   _sorting,
                    require_sindexes_t::NO,
                    &batcher),
           is_primary(_is_primary),
@@ -508,17 +508,17 @@ protected:
     explicit terminal_t(T &&t) : grouped_acc_t<T>(std::move(t)) { }
 private:
     virtual void operator()(env_t *env, groups_t *groups) {
-        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
-        const T *default_val = grouped_acc_t<T>::get_default_val();
+        grouped_t<T> *_acc = grouped_acc_t<T>::get_acc();
+        const T *_default_val = grouped_acc_t<T>::get_default_val();
         for (auto it = groups->begin(); it != groups->end(); ++it) {
-            auto pair = acc->insert(std::make_pair(it->first, *default_val));
+            auto pair = _acc->insert(std::make_pair(it->first, *_default_val));
             auto t_it = pair.first;
             bool keep = !pair.second;
             for (auto el = it->second.begin(); el != it->second.end(); ++el) {
                 keep |= accumulate(env, *el, &t_it->second);
             }
             if (!keep) {
-                acc->erase(t_it);
+                _acc->erase(t_it);
             }
         }
         groups->clear();
@@ -528,46 +528,46 @@ private:
                                              bool is_grouped,
                                              UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
-        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
-        const T *default_val = grouped_acc_t<T>::get_default_val();
+        grouped_t<T> *_acc = grouped_acc_t<T>::get_acc();
+        const T *_default_val = grouped_acc_t<T>::get_default_val();
         scoped_ptr_t<val_t> retval;
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             // The order of `acc` doesn't matter here because we're putting stuff
             // into the parallel map, `ret`.
-            for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
+            for (auto kv = _acc->begin(); kv != _acc->end(); ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_scoped<val_t>(std::move(ret), bt);
-        } else if (acc->size() == 0) {
-            T t(*default_val);
+        } else if (_acc->size() == 0) {
+            T t(*_default_val);
             retval = make_scoped<val_t>(unpack(&t), bt);
         } else {
             // Order doesnt' matter here because the size is 1.
-            r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
-            retval = make_scoped<val_t>(unpack(&acc->begin()->second), bt);
+            r_sanity_check(_acc->size() == 1 && !_acc->begin()->first.has());
+            retval = make_scoped<val_t>(unpack(&_acc->begin()->second), bt);
         }
-        acc->clear();
+        _acc->clear();
         return retval;
     }
     virtual datum_t unpack(T *t) = 0;
 
     virtual void add_res(env_t *env, result_t *res, sorting_t) {
-        grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
-        const T *default_val = grouped_acc_t<T>::get_default_val();
+        grouped_t<T> *_acc = grouped_acc_t<T>::get_acc();
+        const T *_default_val = grouped_acc_t<T>::get_default_val();
         if (auto e = boost::get<exc_t>(res)) {
             throw *e;
         }
         grouped_t<T> *gres = boost::get<grouped_t<T> >(res);
         r_sanity_check(gres);
-        if (acc->size() == 0) {
-            acc->swap(*gres);
+        if (_acc->size() == 0) {
+            _acc->swap(*gres);
         } else {
             // Order in fact does NOT matter here.  The reason is, each `kv->first`
             // value is different, which means each operation works on a different
             // key/value pair of `acc`.
             for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
-                auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
+                auto t_it = _acc->insert(std::make_pair(kv->first, *_default_val)).first;
                 unshard_impl(env, &t_it->second, &kv->second);
             }
         }
@@ -660,14 +660,14 @@ private:
 
 class sum_terminal_t : public skip_terminal_t<double> {
 public:
-    explicit sum_terminal_t(const sum_wire_func_t &f)
-        : skip_terminal_t<double>(f, 0.0L) { }
+    explicit sum_terminal_t(const sum_wire_func_t &_f)
+        : skip_terminal_t<double>(_f, 0.0L) { }
 private:
     virtual void maybe_acc(env_t *env,
                            const datum_t &el,
                            double *out,
-                           const acc_func_t &f) {
-        *out += f(env, el).as_num();
+                           const acc_func_t &_f) {
+        *out += _f(env, el).as_num();
     }
     virtual datum_t unpack(double *d) {
         return datum_t(*d);
@@ -679,15 +679,15 @@ private:
 
 class avg_terminal_t : public skip_terminal_t<std::pair<double, uint64_t> > {
 public:
-    explicit avg_terminal_t(const avg_wire_func_t &f)
+    explicit avg_terminal_t(const avg_wire_func_t &_f)
         : skip_terminal_t<std::pair<double, uint64_t> >(
-            f, std::make_pair(0.0L, 0ULL)) { }
+            _f, std::make_pair(0.0L, 0ULL)) { }
 private:
     virtual void maybe_acc(env_t *env,
                            const datum_t &el,
                            std::pair<double, uint64_t> *out,
-                           const acc_func_t &f) {
-        out->first += f(env, el).as_num();
+                           const acc_func_t &_f) {
+        out->first += _f(env, el).as_num();
         out->second += 1;
     }
     virtual datum_t unpack(
@@ -746,18 +746,18 @@ bool datum_gt(const datum_t &val1, const datum_t &val2) {
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
-    optimizing_terminal_t(const skip_wire_func_t &f,
+    optimizing_terminal_t(const skip_wire_func_t &_f,
                           const char *_name,
                           bool (*_cmp)(const datum_t &val1, const datum_t &val2))
-        : skip_terminal_t<optimizer_t>(f, optimizer_t()),
+        : skip_terminal_t<optimizer_t>(_f, optimizer_t()),
           name(_name),
           cmp(_cmp) { }
 private:
     virtual void maybe_acc(env_t *env,
                            const datum_t &el,
                            optimizer_t *out,
-                           const acc_func_t &f) {
-        optimizer_t other(el, f(env, el));
+                           const acc_func_t &_f) {
+        optimizer_t other(el, _f(env, el));
         out->swap_if_other_better(&other, cmp);
     }
     virtual datum_t unpack(optimizer_t *el) {

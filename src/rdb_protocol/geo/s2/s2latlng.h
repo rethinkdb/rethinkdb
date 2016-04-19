@@ -107,7 +107,7 @@ class S2LatLng {
 
  private:
   // Internal constructor.
-  inline S2LatLng(Vector2_d const& coords) : coords_(coords) {}
+  inline S2LatLng(Vector2_d const& _coords) : coords_(_coords) {}
 
   // This is internal to avoid ambiguity about which units are expected.
   inline S2LatLng(double lat_radians, double lng_radians)
@@ -117,8 +117,8 @@ class S2LatLng {
 };
 DECLARE_POD(S2LatLng);
 
-inline S2LatLng::S2LatLng(S1Angle const& lat, S1Angle const& lng)
-    : coords_(lat.radians(), lng.radians()) {}
+inline S2LatLng::S2LatLng(S1Angle const& _lat, S1Angle const& _lng)
+    : coords_(_lat.radians(), _lng.radians()) {}
 
 inline S2LatLng::S2LatLng() : coords_(0, 0) {}
 

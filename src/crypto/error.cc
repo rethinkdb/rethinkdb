@@ -16,11 +16,11 @@ openssl_error_category_t::openssl_error_category_t() {
         case 336027804:
             return "Received a plain HTTP request on the HTTPS port.";
         default:
-            char const *message = ERR_reason_error_string(condition);
-            if (message == nullptr) {
+            char const *_message = ERR_reason_error_string(condition);
+            if (_message == nullptr) {
                 return "unknown error";
             } else {
-                return message;
+                return _message;
             }
     }
 }

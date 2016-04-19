@@ -359,9 +359,9 @@ void nearest_traversal_cb_t::init_query_geometry() {
             state->center, state->current_inradius,
             NEAREST_NUM_VERTICES, state->reference_ellipsoid);
 
-        ql::datum_t query_geometry =
+        ql::datum_t _query_geometry =
             construct_geo_polygon(shell, holes, ql::configured_limits_t::unlimited);
-        init_query(query_geometry);
+        init_query(_query_geometry);
     } catch (const geo_range_exception_t &e) {
         // The radius has become too large for constructing the query geometry.
         // Abort.

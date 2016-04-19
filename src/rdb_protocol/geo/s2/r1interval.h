@@ -30,7 +30,7 @@ using std::endl;
 class R1Interval {
  public:
   // Constructor.  If lo > hi, the interval is empty.
-  R1Interval(double lo, double hi) : bounds_(lo, hi) {}
+  R1Interval(double _lo, double _hi) : bounds_(_lo, _hi) {}
 
   // The default constructor creates an empty interval.  (Any interval where
   // lo > hi is considered to be empty.)

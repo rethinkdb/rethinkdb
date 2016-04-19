@@ -83,30 +83,26 @@ public:
                                 *order_source, rdb_context_t *_ctx,
                                 bool initialize_metadata);
 
-    void read(
-            UNUSED auth::user_context_t const &user_context,
-            const read_t &read,
-            read_response_t *response,
-            order_token_t tok,
-            signal_t *interruptor)
-            THROWS_ONLY(
-                cannot_perform_query_exc_t,
-                interrupted_exc_t,
-                auth::permission_error_t) {
-        return sharder->read(read, response, tok, interruptor);
+    void read(UNUSED auth::user_context_t const &user_context,
+              const read_t &_read,
+              read_response_t *response,
+              order_token_t tok,
+              signal_t *interruptor)
+                  THROWS_ONLY(cannot_perform_query_exc_t,
+                              interrupted_exc_t,
+                              auth::permission_error_t) {
+        return sharder->read(_read, response, tok, interruptor);
     }
 
-    void write(
-            UNUSED auth::user_context_t const &user_context,
-            const write_t &write,
-            write_response_t *response,
-            order_token_t tok,
-            signal_t *interruptor)
-            THROWS_ONLY(
-                cannot_perform_query_exc_t,
-                interrupted_exc_t,
-                auth::permission_error_t) {
-        return sharder->write(write, response, tok, interruptor);
+    void write(UNUSED auth::user_context_t const &user_context,
+               const write_t &_write,
+               write_response_t *response,
+               order_token_t tok,
+               signal_t *interruptor)
+                   THROWS_ONLY(cannot_perform_query_exc_t,
+                               interrupted_exc_t,
+                               auth::permission_error_t) {
+        return sharder->write(_write, response, tok, interruptor);
     }
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);

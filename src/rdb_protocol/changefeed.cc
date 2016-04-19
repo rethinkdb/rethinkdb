@@ -1733,8 +1733,8 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                          namespace_interface_t *ns_if,
                          namespace_id_t const &_table_id,
                          signal_t *interruptor,
-                         table_meta_client_t *table_meta_client)
-    : feed_t(_table_id, table_meta_client),
+                         table_meta_client_t *_table_meta_client)
+    : feed_t(_table_id, _table_meta_client),
       client_lock(std::move(_client_lock)),
       client(_client),
       table_id(_table_id),
@@ -1840,26 +1840,26 @@ void real_feed_t::constructor_cb() {
 
 class empty_sub_t : public flat_sub_t {
 public:
-    empty_sub_t(rdb_context_t *rdb_context,
-                const auth::user_context_t &user_context,
-                feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
-                bool include_types)
+    empty_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types)
     // There will never be any changes, safe to start squashing right away.
     : flat_sub_t(init_squashing_queue_t::YES,
-                 rdb_context,
-                 user_context,
-                 feed,
-                 std::move(limits),
-                 squash,
-                 include_states,
-                 include_types),
+                 _rdb_context,
+                 _user_context,
+                 _feed,
+                 std::move(_limits),
+                 _squash,
+                 _include_states,
+                 _include_types),
       state(state_t::INITIALIZING),
       sent_state(state_t::NONE),
       include_initial(false) {
-        feed->add_empty_sub(this);
+        _feed->add_empty_sub(this);
     }
     virtual ~empty_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_empty_sub, feed, this));
@@ -1923,30 +1923,30 @@ private:
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(rdb_context_t *rdb_context,
-                const auth::user_context_t &user_context,
-                feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
-                bool include_types,
+    point_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types,
                 datum_t _pkey)
         // For point changefeeds we start squashing right away.
         : flat_sub_t(init_squashing_queue_t::YES,
-                     rdb_context,
-                     user_context,
-                     feed,
-                     std::move(limits),
-                     squash,
-                     include_states,
-                     include_types),
+                     _rdb_context,
+                     _user_context,
+                     _feed,
+                     std::move(_limits),
+                     _squash,
+                     _include_states,
+                     _include_types),
           pkey(std::move(_pkey)),
           stamp(0),
           started(false),
           state(state_t::INITIALIZING),
           sent_state(state_t::NONE),
           include_initial(false) {
-        feed->add_point_sub(this, store_key_t(pkey.print_primary()));
+        _feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this,
@@ -2111,25 +2111,25 @@ counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(rdb_context_t *rdb_context,
-                const auth::user_context_t &user_context,
-                feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
-                bool include_types,
+    range_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types,
                 env_t *outer_env,
                 keyspec_t::range_t _spec)
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
         : flat_sub_t(init_squashing_queue_t::NO,
-                     rdb_context,
-                     user_context,
-                     feed,
-                     std::move(limits),
-                     squash,
-                     include_states,
-                     include_types),
+                     _rdb_context,
+                     _user_context,
+                     _feed,
+                     std::move(_limits),
+                     _squash,
+                     _include_states,
+                     _include_types),
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
@@ -2142,7 +2142,7 @@ public:
         if (!store_keys) {
             store_key_range = spec.datumspec.covering_range().to_primary_keyrange();
         }
-        feed->add_range_sub(this);
+        _feed->add_range_sub(this);
     }
     feed_type_t cfeed_type() const final { return feed_type_t::stream; }
     virtual ~range_sub_t() {
@@ -2376,22 +2376,22 @@ class limit_sub_t : public subscription_t {
     };
 public:
     // Throws QL exceptions.
-    limit_sub_t(rdb_context_t *rdb_context,
-                const auth::user_context_t &user_context,
-                feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
+    limit_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
                 bool _include_offsets,
-                bool include_states,
-                bool include_types,
+                bool _include_states,
+                bool _include_types,
                 keyspec_t::limit_t _spec)
-        : subscription_t(rdb_context,
-                         user_context,
-                         feed,
-                         limits,
-                         squash,
-                         include_states,
-                         include_types),
+        : subscription_t(_rdb_context,
+                         _user_context,
+                         _feed,
+                         _limits,
+                         _squash,
+                         _include_states,
+                         _include_types),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -2401,7 +2401,7 @@ public:
           active_data(gt),
           include_initial(false),
           include_offsets(_include_offsets) {
-        feed->add_limit_sub(this, uuid);
+        _feed->add_limit_sub(this, uuid);
     }
 
     virtual ~limit_sub_t() {

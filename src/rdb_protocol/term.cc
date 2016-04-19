@@ -218,8 +218,8 @@ counted_t<const term_t> compile_term(compile_env_t *env, const raw_term_t &t) {
         }, MIN_COMPILE_STACK_SPACE);
 }
 
-runtime_term_t::runtime_term_t(backtrace_id_t bt)
-    : bt_rcheckable_t(bt) { }
+runtime_term_t::runtime_term_t(backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt) { }
 
 runtime_term_t::~runtime_term_t() { }
 

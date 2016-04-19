@@ -16,9 +16,9 @@
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(
-        connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag)
+        connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t _tag)
         THROWS_NOTHING :
-    cluster_message_handler_t(cm, tag),
+    cluster_message_handler_t(cm, _tag),
     variable(change_tracking_map_t<peer_id_t, metadata_t>())
 {
     guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());

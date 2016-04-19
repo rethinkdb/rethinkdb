@@ -677,19 +677,19 @@ private:
     DISABLE_COPYING(rdb_read_visitor_t);
 };
 
-void store_t::protocol_read(const read_t &read,
+void store_t::protocol_read(const read_t &_read,
                             read_response_t *response,
                             real_superblock_t *superblock,
                             signal_t *interruptor) {
-    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(_read.profile);
 
     {
         PROFILE_STARTER_IF_ENABLED(
-            read.profile == profile_bool_t::PROFILE, "Perform read on shard.", trace);
+            _read.profile == profile_bool_t::PROFILE, "Perform read on shard.", trace);
         rdb_read_visitor_t v(btree.get(), this,
                              superblock,
                              ctx, response, trace.get_or_null(), interruptor);
-        boost::apply_visitor(v, read.read);
+        boost::apply_visitor(v, _read.read);
     }
 
     response->n_shards = 1;
@@ -907,12 +907,12 @@ private:
     DISABLE_COPYING(rdb_write_visitor_t);
 };
 
-void store_t::protocol_write(const write_t &write,
+void store_t::protocol_write(const write_t &_write,
                              write_response_t *response,
                              state_timestamp_t timestamp,
                              scoped_ptr_t<real_superblock_t> *superblock,
                              signal_t *interruptor) {
-    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(_write.profile);
 
     {
         profile::sampler_t start_write("Perform write on shard.", trace);
@@ -926,7 +926,7 @@ void store_t::protocol_write(const write_t &write,
                               trace.get_or_null(),
                               response,
                               interruptor);
-        boost::apply_visitor(v, write.write);
+        boost::apply_visitor(v, _write.write);
     }
 
     response->n_shards = 1;
@@ -985,11 +985,11 @@ store_t::sindex_context_map_t *store_t::get_sindex_context_map() {
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
-        const region_t &region,
+        const region_t &_region,
         const rwlock_acq_t *acq) {
     acq->guarantee_is_holding(&changefeed_servers_lock);
     for (auto &&pair : changefeed_servers) {
-        if (pair.first.inner.is_superset(region.inner)) {
+        if (pair.first.inner.is_superset(_region.inner)) {
             return std::make_pair(pair.second.get(), pair.second->get_keepalive());
         }
     }
@@ -1005,9 +1005,9 @@ std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
-        const region_t &region) {
+        const region_t &_region) {
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
-    return changefeed_server(region, &acq);
+    return changefeed_server(_region, &acq);
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
@@ -1023,20 +1023,20 @@ std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefee
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
-        store_t::get_or_make_changefeed_server(const region_t &region) {
+        store_t::get_or_make_changefeed_server(const region_t &_region) {
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
     guarantee(ctx != nullptr);
     guarantee(ctx->manager != nullptr);
-    auto existing = changefeed_server(region, &acq);
+    auto existing = changefeed_server(_region, &acq);
     if (existing.first != nullptr) {
         return existing;
     }
     for (auto &&pair : changefeed_servers) {
-        guarantee(!pair.first.inner.overlaps(region.inner));
+        guarantee(!pair.first.inner.overlaps(_region.inner));
     }
     auto it = changefeed_servers.insert(
         std::make_pair(
-            region_t(region),
+            region_t(_region),
             make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
     return std::make_pair(it->second.get(), it->second->get_keepalive());
 }

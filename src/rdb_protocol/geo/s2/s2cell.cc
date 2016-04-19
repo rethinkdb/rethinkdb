@@ -35,12 +35,12 @@ S2Point S2Cell::GetEdgeRaw(int k) const {
   }
 }
 
-void S2Cell::Init(S2CellId const& id) {
-  id_ = id;
-  int ij[2], orientation;
-  face_ = id.ToFaceIJOrientation(&ij[0], &ij[1], &orientation);
-  orientation_ = orientation;  // Compress int to a byte.
-  level_ = id.level();
+void S2Cell::Init(S2CellId const& _id) {
+  id_ = _id;
+  int ij[2], _orientation;
+  face_ = _id.ToFaceIJOrientation(&ij[0], &ij[1], &_orientation);
+  orientation_ = _orientation;  // Compress int to a byte.
+  level_ = _id.level();
   int cellSize = GetSizeIJ();  // Depends on level_.
   for (int d = 0; d < 2; ++d) {
     int ij_lo = ij[d] & -cellSize;
@@ -60,13 +60,13 @@ bool S2Cell::Subdivide(S2Cell children[4]) const {
   Vector2_d uv_mid = id_.GetCenterUV();
 
   // Create four children with the appropriate bounds.
-  S2CellId id = id_.child_begin();
-  for (int pos = 0; pos < 4; ++pos, id = id.next()) {
+  S2CellId _id = id_.child_begin();
+  for (int pos = 0; pos < 4; ++pos, _id = _id.next()) {
     S2Cell *child = &children[pos];
     child->face_ = face_;
     child->level_ = level_ + 1;
     child->orientation_ = orientation_ ^ S2::kPosToOrientation[pos];
-    child->id_ = id;
+    child->id_ = _id;
     // We want to split the cell in half in "u" and "v".  To decide which
     // side to set equal to the midpoint value, we look at cell's (i,j)
     // position within its parent.  The index for "i" is in bit 1 of ij.

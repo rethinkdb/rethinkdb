@@ -1479,11 +1479,11 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         auto center_pair = unchecked_get_pair(center);
-        const int cmp = key.compare(center_pair.first);
-        if (cmp == 0) {
+        const int cmp_res = key.compare(center_pair.first);
+        if (cmp_res == 0) {
             // Found it
             return center_pair.second;
-        } else if (cmp < 0) {
+        } else if (cmp_res < 0) {
             range_end = center;
         } else {
             range_beg = center + 1;

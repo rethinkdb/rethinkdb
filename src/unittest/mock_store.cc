@@ -75,7 +75,7 @@ void mock_store_t::new_write_token(write_token_t *token_out) {
 region_map_t<binary_blob_t> mock_store_t::get_metainfo(
         order_token_t order_token,
         read_token_t *token,
-        const region_t &region,
+        const region_t &_region,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -88,7 +88,7 @@ region_map_t<binary_blob_t> mock_store_t::get_metainfo(
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
-    return metainfo_.mask(region);
+    return metainfo_.mask(_region);
 }
 
 void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
@@ -116,13 +116,13 @@ void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
 
 void mock_store_t::read(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const read_t &read,
+        const read_t &_read,
         read_response_t *response,
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.region));
-    rassert(region_is_superset(get_region(), read.get_region()));
+    rassert(region_is_superset(get_region(), _read.get_region()));
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t
@@ -141,8 +141,8 @@ void mock_store_t::read(
         }
 
         const distribution_read_t *distribution_read =
-            boost::get<distribution_read_t>(&read.read);
-        const point_read_t *point_read = boost::get<point_read_t>(&read.read);
+            boost::get<distribution_read_t>(&_read.read);
+        const point_read_t *point_read = boost::get<point_read_t>(&_read.read);
         guarantee(!(distribution_read == nullptr && point_read == nullptr));
 
         if (distribution_read != nullptr) {
@@ -155,7 +155,7 @@ void mock_store_t::read(
             for (auto const &pair : table_) {
                 res->key_counts.insert(std::make_pair(pair.first, 1));
             }
-            res->region = read.get_region();
+            res->region = _read.get_region();
         } else {
             response->n_shards = 1;
             response->response = point_read_response_t();
@@ -177,7 +177,7 @@ void mock_store_t::read(
 void mock_store_t::write(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const region_map_t<binary_blob_t> &new_metainfo,
-        const write_t &write,
+        const write_t &_write,
         write_response_t *response,
         UNUSED write_durability_t durability,
         state_timestamp_t timestamp,
@@ -187,7 +187,7 @@ void mock_store_t::write(
     assert_thread();
     rassert(region_is_superset(get_region(), metainfo_checker.region));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-    rassert(region_is_superset(get_region(), write.get_region()));
+    rassert(region_is_superset(get_region(), _write.get_region()));
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
@@ -208,7 +208,7 @@ void mock_store_t::write(
         // deletion entries so that we can backfill them properly.  This code
         // originally was a port of the dummy protocol, so we didn't need to support
         // deletes at first.
-        if (const point_write_t *point_write = boost::get<point_write_t>(&write.write)) {
+        if (const point_write_t *point_write = boost::get<point_write_t>(&_write.write)) {
             response->n_shards = 1;
             response->response = point_write_response_t();
             point_write_response_t *res =
@@ -224,7 +224,7 @@ void mock_store_t::write(
             res->result = had_value
                 ? point_write_result_t::DUPLICATE
                 : point_write_result_t::STORED;
-        } else if (boost::get<sync_t>(&write.write) != nullptr) {
+        } else if (boost::get<sync_t>(&_write.write) != nullptr) {
             response->n_shards = 1;
             response->response = sync_response_t();
         } else {
@@ -459,12 +459,12 @@ continue_bool_t mock_store_t::send_backfill(
 }
 
 continue_bool_t mock_store_t::receive_backfill(
-        const region_t &region,
+        const region_t &_region,
         backfill_item_producer_t *item_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    key_range_t::right_bound_t cursor(region.inner.left);
-    while (cursor < region.inner.right) {
+    key_range_t::right_bound_t cursor(_region.inner.left);
+    while (cursor < _region.inner.right) {
         /* Introduce a random delay to test more code paths */
         if (rng_.randint(2) == 0) {
             nap(rng_.randint(100), interruptor);
@@ -479,7 +479,7 @@ continue_bool_t mock_store_t::receive_backfill(
             return continue_bool_t::ABORT;
         }
 
-        region_t metainfo_mask = region;
+        region_t metainfo_mask = _region;
         metainfo_mask.inner.left = cursor.key();
 
         if (is_item) {
@@ -508,7 +508,7 @@ continue_bool_t mock_store_t::receive_backfill(
 
         item_producer->on_commit(cursor);
     }
-    guarantee(cursor == region.inner.right);
+    guarantee(cursor == _region.inner.right);
     return continue_bool_t::CONTINUE;
 }
 

@@ -81,14 +81,14 @@ primary_dispatcher_t::primary_dispatcher_t(
 }
 
 void primary_dispatcher_t::read(
-        const read_t &read,
+        const read_t &_read,
         fifo_enforcer_sink_t::exit_read_t *lock,
         order_token_t order_token,
         signal_t *interruptor,
         read_response_t *response_out)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     assert_thread();
-    rassert(region_is_superset(branch_bc.get_region(), read.get_region()));
+    rassert(region_is_superset(branch_bc.get_region(), _read.get_region()));
     order_token.assert_read_mode();
 
     dispatchee_registration_t *dispatchee = nullptr;
@@ -109,7 +109,7 @@ void primary_dispatcher_t::read(
             if (!d->is_ready) {
                 continue;
             }
-            if (read.route_to_primary() && !d->dispatchee->is_primary()) {
+            if (_read.route_to_primary() && !d->dispatchee->is_primary()) {
                 continue;
             }
             if (dispatchee == nullptr ||
@@ -133,7 +133,7 @@ void primary_dispatcher_t::read(
 
     try {
         wait_any_t interruptor2(dispatchee_lock.get_drain_signal(), interruptor);
-        dispatchee->dispatchee->do_read(read, min_timestamp, &interruptor2, response_out);
+        dispatchee->dispatchee->do_read(_read, min_timestamp, &interruptor2, response_out);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;

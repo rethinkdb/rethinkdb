@@ -45,9 +45,9 @@ Vector2<VType>::Vector2() {
   Clear();
 }
 template <typename VType>
-Vector2<VType>::Vector2(const VType x, const VType y) {
-  c_[0] = x;
-  c_[1] = y;
+Vector2<VType>::Vector2(const VType _x, const VType _y) {
+  c_[0] = _x;
+  c_[1] = _y;
 }
 template <typename VType>
 Vector2<VType>::Vector2(const Self &vb) {
@@ -72,9 +72,9 @@ Vector2<VType> Vector2<VType>::Cast(const Vector2<VType2> &vb) {
 }
 
 template <typename VType>
-void Vector2<VType>::Set(const VType x, const VType y) {
-  c_[0] = x;
-  c_[1] = y;
+void Vector2<VType>::Set(const VType _x, const VType _y) {
+  c_[0] = _x;
+  c_[1] = _y;
 }
 
 template <typename VType>

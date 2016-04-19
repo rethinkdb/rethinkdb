@@ -32,39 +32,39 @@ extern bool IsSorted(vector<S2CellId> const& cell_ids) {
   return true;
 }
 
-void S2CellUnion::Init(vector<S2CellId> const& cell_ids) {
-  InitRaw(cell_ids);
+void S2CellUnion::Init(vector<S2CellId> const& _cell_ids) {
+  InitRaw(_cell_ids);
   Normalize();
 }
 
-void S2CellUnion::Init(vector<uint64> const& cell_ids) {
-  InitRaw(cell_ids);
+void S2CellUnion::Init(vector<uint64> const& _cell_ids) {
+  InitRaw(_cell_ids);
   Normalize();
 }
 
-void S2CellUnion::InitSwap(vector<S2CellId>* cell_ids) {
-  InitRawSwap(cell_ids);
+void S2CellUnion::InitSwap(vector<S2CellId>* _cell_ids) {
+  InitRawSwap(_cell_ids);
   Normalize();
 }
 
-void S2CellUnion::InitRaw(vector<S2CellId> const& cell_ids) {
-  cell_ids_ = cell_ids;
+void S2CellUnion::InitRaw(vector<S2CellId> const& _cell_ids) {
+  cell_ids_ = _cell_ids;
 }
 
-void S2CellUnion::InitRaw(vector<uint64> const& cell_ids) {
-  cell_ids_.resize(cell_ids.size());
+void S2CellUnion::InitRaw(vector<uint64> const& _cell_ids) {
+  cell_ids_.resize(_cell_ids.size());
   for (int i = 0; i < num_cells(); ++i) {
-    cell_ids_[i] = S2CellId(cell_ids[i]);
+    cell_ids_[i] = S2CellId(_cell_ids[i]);
   }
 }
 
-void S2CellUnion::InitRawSwap(vector<S2CellId>* cell_ids) {
-  cell_ids_.swap(*cell_ids);
-  cell_ids->clear();
+void S2CellUnion::InitRawSwap(vector<S2CellId>* _cell_ids) {
+  cell_ids_.swap(*_cell_ids);
+  _cell_ids->clear();
 }
 
-void S2CellUnion::Detach(vector<S2CellId>* cell_ids) {
-  cell_ids_.swap(*cell_ids);
+void S2CellUnion::Detach(vector<S2CellId>* _cell_ids) {
+  cell_ids_.swap(*_cell_ids);
   cell_ids_.clear();
 }
 

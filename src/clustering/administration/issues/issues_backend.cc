@@ -100,14 +100,14 @@ bool issues_artificial_table_backend_t::read_row(ql::datum_t primary_key,
 
 std::vector<scoped_ptr_t<issue_t> > issues_artificial_table_backend_t::all_issues(
         signal_t *interruptor) const {
-    std::vector<scoped_ptr_t<issue_t> > all_issues;
+    std::vector<scoped_ptr_t<issue_t> > res;
 
     for (auto const &tracker : trackers) {
         std::vector<scoped_ptr_t<issue_t> > issues = tracker->get_issues(interruptor);
-        std::move(issues.begin(), issues.end(), std::back_inserter(all_issues));
+        std::move(issues.begin(), issues.end(), std::back_inserter(res));
     }
 
-    return all_issues;
+    return res;
 }
 
 bool issues_artificial_table_backend_t::write_row(UNUSED ql::datum_t primary_key,

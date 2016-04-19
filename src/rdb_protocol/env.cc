@@ -91,11 +91,11 @@ env_t::env_t(rdb_context_t *ctx,
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor,
              return_empty_normal_batches_t _return_empty_normal_batches,
-             reql_version_t reql_version)
+             reql_version_t _reql_version)
     : global_optargs_(),
       m_user_context(
         auth::user_context_t(auth::permissions_t(false, false, false, false))),
-      reql_version_(reql_version),
+      reql_version_(_reql_version),
       regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),
       interruptor(_interruptor),

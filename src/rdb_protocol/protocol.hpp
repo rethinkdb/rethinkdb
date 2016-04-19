@@ -707,11 +707,11 @@ struct write_t {
      *  durability. */
     template<class T>
     write_t(T &&t,
-            durability_requirement_t durability,
+            durability_requirement_t _durability,
             profile_bool_t _profile,
             const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
-          durability_requirement(durability), profile(_profile),
+          durability_requirement(_durability), profile(_profile),
           limits(_limits) { }
     template<class T>
     write_t(T &&t, profile_bool_t _profile,

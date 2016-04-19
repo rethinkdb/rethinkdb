@@ -28,8 +28,8 @@ class recording_test_application_t :
 {
 public:
     explicit recording_test_application_t(connectivity_cluster_t *cm,
-                                          connectivity_cluster_t::message_tag_t tag) :
-        cluster_message_handler_t(cm, tag),
+                                          connectivity_cluster_t::message_tag_t _tag) :
+        cluster_message_handler_t(cm, _tag),
         sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {

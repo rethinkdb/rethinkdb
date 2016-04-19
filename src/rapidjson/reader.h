@@ -761,7 +761,7 @@ private:
     class NumberStream<InputStream, true> : public NumberStream<InputStream, false> {
         typedef NumberStream<InputStream, false> Base;
     public:
-        NumberStream(GenericReader& reader, InputStream& is) : NumberStream<InputStream, false>(reader, is), stackStream(reader.stack_) {}
+        NumberStream(GenericReader& reader, InputStream& _is) : NumberStream<InputStream, false>(reader, _is), stackStream(reader.stack_) {}
         ~NumberStream() {}
 
         RAPIDJSON_FORCEINLINE Ch TakePush() {

@@ -389,7 +389,7 @@ private:
                           table->get_id().is_nil() ?
                               datum_t::null() :
                               datum_t(datum_string_t(uuid_to_str(table->get_id()))));
-            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
+            name_string_t table_name = name_string_t::guarantee_valid(table->name.c_str());
             {
                 std::vector<int64_t> doc_counts;
                 try {
@@ -397,7 +397,7 @@ private:
                     if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
                             env->env->get_user_context(),
                             table->db,
-                            name,
+                            table_name,
                             env->env,
                             &doc_counts,
                             &error)) {
@@ -417,7 +417,7 @@ private:
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
                     configs_and_statuses;
                 if (!env->env->reql_cluster_interface()->sindex_list(
-                        table->db, name, env->env->interruptor,
+                        table->db, table_name, env->env->interruptor,
                         &error, &configs_and_statuses)) {
                     REQL_RETHROW(error);
                 }

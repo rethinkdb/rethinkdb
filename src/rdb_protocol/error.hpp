@@ -220,17 +220,17 @@ class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &_message,
+    exc_t(base_exc_t::type_t _type, const std::string &_message,
           backtrace_id_t _bt, size_t _dummy_frames = 0)
-        : base_exc_t(type), message(_message), bt(_bt), dummy_frames_(_dummy_frames) { }
+        : base_exc_t(_type), message(_message), bt(_bt), dummy_frames_(_dummy_frames) { }
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
         : base_exc_t(e.get_type()), message(e.what()),
           bt(_bt), dummy_frames_(_dummy_frames) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
-    void rethrow_with_type(base_exc_t::type_t type) const final {
-        throw exc_t(type, message, bt, dummy_frames_);
+    void rethrow_with_type(base_exc_t::type_t _type) const final {
+        throw exc_t(_type, message, bt, dummy_frames_);
     }
 
     backtrace_id_t backtrace() const { return bt; }
@@ -250,13 +250,13 @@ private:
 class datum_exc_t : public base_exc_t {
 public:
     datum_exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
-    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_message)
-        : base_exc_t(type), message(_message) { }
+    explicit datum_exc_t(base_exc_t::type_t _type, const std::string &_message)
+        : base_exc_t(_type), message(_message) { }
     virtual ~datum_exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
-    void rethrow_with_type(base_exc_t::type_t type) const final {
-        throw datum_exc_t(type, message);
+    void rethrow_with_type(base_exc_t::type_t _type) const final {
+        throw datum_exc_t(_type, message);
     }
     RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:

@@ -13,8 +13,8 @@ namespace crypto {
 
 class error_t : public std::runtime_error {
 public:
-    explicit error_t(std::string const &what)
-        : std::runtime_error(what) {
+    explicit error_t(std::string const &_what)
+        : std::runtime_error(_what) {
     }
 };
 

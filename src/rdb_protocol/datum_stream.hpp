@@ -127,8 +127,8 @@ private:
 
 class eager_datum_stream_t : public datum_stream_t {
 protected:
-    explicit eager_datum_stream_t(backtrace_id_t bt)
-        : datum_stream_t(bt) { }
+    explicit eager_datum_stream_t(backtrace_id_t _bt)
+        : datum_stream_t(_bt) { }
     virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
 

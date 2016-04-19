@@ -251,9 +251,9 @@ void metadata_file_t::read_txn_t::read_many_bin(
 }
 
 metadata_file_t::write_txn_t::write_txn_t(
-        metadata_file_t *file,
+        metadata_file_t *_file,
         signal_t *interruptor) :
-    read_txn_t(file, write_access_t::write, interruptor)
+    read_txn_t(_file, write_access_t::write, interruptor)
     { }
 
 void metadata_file_t::write_txn_t::write_bin(

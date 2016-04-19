@@ -570,7 +570,7 @@ void remove_directory_recursive(const char *dirpath) {
 #endif
 }
 
-base_path_t::base_path_t(const std::string &path) : path_(path) { }
+base_path_t::base_path_t(const std::string &_path) : path_(_path) { }
 
 void base_path_t::make_absolute() {
 #ifdef _WIN32
