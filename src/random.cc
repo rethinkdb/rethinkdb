@@ -12,6 +12,7 @@ rng_t::rng_t(uint64_t seed)
 }
 
 int rng_t::randint(int n) {
+    assert_thread();
     guarantee(n > 0, "non-positive argument for randint's [0, n) interval");
 
     // `std::uniform_int_distribution` operates on [a, b]
@@ -19,6 +20,7 @@ int rng_t::randint(int n) {
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
+    assert_thread();
     guarantee(n > 0, "non-positive argument for randint's [0, n) interval");
 
     // `std::uniform_int_distribution` operates on [a, b]
@@ -26,6 +28,7 @@ uint64_t rng_t::randuint64(uint64_t n) {
 }
 
 size_t rng_t::randsize(size_t n) {
+    assert_thread();
     guarantee(n > 0, "non-positive argument for randint's [0, n) interval");
 
     // `std::uniform_int_distribution` operates on [a, b]
@@ -33,6 +36,7 @@ size_t rng_t::randsize(size_t n) {
 }
 
 double rng_t::randdouble() {
+    assert_thread();
     return std::uniform_real_distribution<double>(0, 1)(m_mt19937);
 }
 

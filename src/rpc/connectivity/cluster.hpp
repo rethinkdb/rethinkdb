@@ -373,10 +373,6 @@ private:
 
     cluster_message_handler_t *message_handlers[max_message_tag];
 
-#ifndef NDEBUG
-    rng_t debug_rng;
-#endif
-
 #ifdef ENABLE_MESSAGE_PROFILER
     /* The key is the string passed to `send_message()`. The value is a pair of (number
     of individual messages, total number of bytes). */
