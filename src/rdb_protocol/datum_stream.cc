@@ -2298,6 +2298,11 @@ std::vector<datum_t> eq_join_datum_stream_t::next_raw_batch(
             // Get a new batch of keys
             std::vector<datum_t> stream_batch = stream->next_batch(env,
                                                                    inner_batchspec);
+            if (stream_batch.empty()) {
+                // We got an empty batch from the input stream. It's either exhausted
+                // or a changefeed. In either case we abort and emit our current results.
+                break;
+            }
             // Basically do a get all on the new keys
             // but we get the reader directly so we can read the sindex from the lookup.
             sindex_to_datum.clear();
