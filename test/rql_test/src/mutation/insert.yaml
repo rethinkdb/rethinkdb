@@ -155,6 +155,10 @@ tests:
       rb: tbl.insert({:value => r.maxval})
       ot: partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'})
 
+    # Crash 5683
+    - py: tbl.insert([{'id':666}, {'id':666}], return_changes="always")
+      ot: {'changes': [{'new_val': {'id': 666}, 'old_val': None},{'error': 'Duplicate primary key `id`:\n{\n\t"id":\t666\n}\n{\n\t"id":\t666\n}','new_val': {'id': 666},'old_val': {'id': 666}}],'deleted': 0,'errors': 1,'first_error': 'Duplicate primary key `id`:\n{\n\t"id":\t666\n}\n{\n\t"id":\t666\n}','inserted': 1,'replaced': 0,'skipped': 0,'unchanged': 0}
+
     # Confirm inserts are ordered in return_changes always
     - py: tbl.insert([{'id':100+i, 'ordered-num':i} for i in range(1,100)], return_changes="always")
       ot: partial({'changes':[{'old_val': None, 'new_val': {'id': 100+i, 'ordered-num': i}} for i in range(1,100)] })
