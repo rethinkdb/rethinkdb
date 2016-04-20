@@ -6,12 +6,12 @@ src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$ve
 
 pkg_install-include () {
     pkg_copy_src_to_build
-    
+
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
     cp -RL "$src_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
-    
+
     # -- assemble the icu headers
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         ( cross_build_env; in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@" )
@@ -45,7 +45,13 @@ pkg_install () {
         *)      arch=native ;;
     esac
     mode=release
-    pkg_make $arch.$mode CXX="$CXX" LINK="$CXX" LINK.target="$CXX" GYPFLAGS="-Dwerror= $arch_gypflags" V=1
+
+    configure_gypflags=
+    if [[ "$CROSS_COMPILING" = 1 ]]; then
+        configure_gypflags=" -Dwant_separate_host_toolset=1"
+    fi
+
+    pkg_make $arch.$mode CXX="$CXX" LINK="$CXX" LINK.target="$CXX" GYPFLAGS="-Dwerror= $configure_gypflags $arch_gypflags" V=1
     for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
         name=`basename $lib`
         cp $lib "$install_dir/lib/${name/.$arch/}"
