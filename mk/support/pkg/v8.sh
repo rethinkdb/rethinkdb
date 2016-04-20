@@ -60,16 +60,16 @@ pkg_install-include () {
 
     if [[ "$($CXX -dumpmachine)" = "s390x-linux-gnu" ]]; then
         # for s390x we need to generate correct header files
-       cd $build_dir
-       export PATH=$(pwd)/depot_tools:$PATH
-       #cd v8z
-       make dependencies
-       make s390x -j4 library=static
+        cd $build_dir
+        export PATH=$(pwd)/depot_tools:$PATH
+        #cd v8z
+        make dependencies
+        make s390x -j4 library=static
 
-       #s390x cp -RL "$src_dir/include/." "$install_dir/include"
-       cp -RL "$build_dir/include/." "$install_dir/include"
-       cp -RL "$build_dir/third_party/icu/source/common/." "$install_dir/include"
-       sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
+        #s390x cp -RL "$src_dir/include/." "$install_dir/include"
+        cp -RL "$build_dir/include/." "$install_dir/include"
+        cp -RL "$build_dir/third_party/icu/source/common/." "$install_dir/include"
+        sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
     else
         cp -RL "$src_dir/include/." "$install_dir/include"
         sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
@@ -77,12 +77,11 @@ pkg_install-include () {
         # -- assemble the icu headers
         if [[ "$CROSS_COMPILING" = 1 ]]; then
             ( cross_build_env; in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@" )
-       else
-           in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
-       fi
+        else
+            in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
+        fi
 
-       in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
-
+        in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
     fi
 }
 
@@ -142,7 +141,13 @@ pkg_install () {
            cp $lib "$install_dir/lib/${name/.$arch/}"
        done
     else
-        pkg_make $arch.$mode CXX="$CXX" LINK="$CXX" LINK.target="$CXX" GYPFLAGS="-Dwerror= $arch_gypflags" V=1
+
+        configure_gypflags=
+        if [[ "$CROSS_COMPILING" = 1 ]]; then
+            configure_gypflags=" -Dwant_separate_host_toolset=1"
+        fi
+
+        pkg_make $arch.$mode CXX="$CXX" LINK="$CXX" LINK.target="$CXX" GYPFLAGS="-Dwerror= $configure_gypflags $arch_gypflags" V=1
         for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
             name=`basename $lib`
             cp $lib "$install_dir/lib/${name/.$arch/}"
