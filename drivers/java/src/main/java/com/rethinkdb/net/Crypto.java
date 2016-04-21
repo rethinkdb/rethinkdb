@@ -15,8 +15,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Base64;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.rethinkdb.net.Util.fromUTF8;
 import static com.rethinkdb.net.Util.toUTF8;
@@ -30,8 +30,48 @@ class Crypto {
     private static final Base64.Encoder encoder = Base64.getEncoder();
     private static final Base64.Decoder decoder = Base64.getDecoder();
     private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Map<PasswordLookup, byte[]> pbkdf2Cache = new ConcurrentHashMap<>();
     private static final int NONCE_BYTES = 18;
 
+    private static class PasswordLookup {
+        final byte[] password;
+        final byte[] salt;
+        final int iterations;
+
+        PasswordLookup(byte[] password, byte[] salt, int iterations) {
+            this.password = password;
+            this.salt = salt;
+            this.iterations = iterations;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            PasswordLookup that = (PasswordLookup) o;
+
+            if (iterations != that.iterations) return false;
+            if (!Arrays.equals(password, that.password)) return false;
+            return Arrays.equals(salt, that.salt);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(password);
+            result = 31 * result + Arrays.hashCode(salt);
+            result = 31 * result + iterations;
+            return result;
+        }
+    }
+    private static byte[] cacheLookup(byte[] password, byte[] salt, int iterations) {
+        return pbkdf2Cache.get(new PasswordLookup(password, salt, iterations));
+    }
+
+    private static void setCache(byte[] password, byte[] salt, int iterations, byte[] result) {
+        pbkdf2Cache.put(new PasswordLookup(password, salt, iterations), result);
+    }
 
     static byte[] sha256(byte[] clientKey) {
         try {
@@ -54,12 +94,18 @@ class Crypto {
     }
 
     static byte[] pbkdf2(byte[] password, byte[] salt, Integer iterationCount) {
-        PBEKeySpec spec = new PBEKeySpec(
+        final byte[] cachedValue = cacheLookup(password, salt, iterationCount);
+        if (cachedValue != null) {
+            return cachedValue;
+        }
+        final PBEKeySpec spec = new PBEKeySpec(
                 fromUTF8(password).toCharArray(), salt, iterationCount, 256);
-        SecretKeyFactory skf;
+        final SecretKeyFactory skf;
         try {
             skf = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
-            return skf.generateSecret(spec).getEncoded();
+            final byte[] calculatedValue = skf.generateSecret(spec).getEncoded();
+            setCache(password, salt, iterationCount, calculatedValue);
+            return calculatedValue;
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new ReqlDriverError(e);
         }
