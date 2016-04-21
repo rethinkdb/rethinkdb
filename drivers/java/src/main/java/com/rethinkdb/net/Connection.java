@@ -118,7 +118,7 @@ public class Connection implements Closeable {
                     if (awaiter != null) {
                         awaiter.complete(response);
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     awaiterException = e;
                     this.close();
                     break;
