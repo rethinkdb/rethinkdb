@@ -22,7 +22,8 @@ public:
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
         server_config_client_t *server_config_client,
-        const int join_delay_secs);
+        const int join_delay_secs,
+        const int give_up_ms);
 
 private:
     void on_connect_or_disconnect(const peer_id_t &peer_id);
@@ -48,6 +49,7 @@ private:
     std::multimap<server_id_t, cond_t *> stop_conds;
 
     int join_delay_secs;
+    int give_up_ms;
 
     auto_drainer_t drainer;
 

@@ -251,7 +251,8 @@ bool do_serve(io_backender_t *io_backender,
             &connectivity_cluster,
             connectivity_cluster_run.get(),
             &server_config_client,
-            serve_info.join_delay_secs);
+            serve_info.join_delay_secs,
+            serve_info.node_reconnect_timeout_secs * 1000); // in ms
 
         /* `initial_joiner` sets up the initial connections to the peers that were
         specified with the `--join` flag on the command line. */
