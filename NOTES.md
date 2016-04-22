@@ -62,6 +62,8 @@ OS X 10.7 and 10.8 (#5681). Newer releases of OS X are not affected.
  * Implemented the timeout option for `getNext` (#5603)
  * Losing the server connection while having a changefeed open now correctly results in
    an error (#5660)
+ * The driver now caches authentication nonces in order to speed up connection setup
+   (#5614)
 
 ## Contributors ##
 
