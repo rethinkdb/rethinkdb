@@ -1,3 +1,80 @@
+# Release 2.3.1 (Fantasia)
+
+Released on 2016-04-22
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.1 servers can be mixed with RethinkDB 2.3.0 servers in the same cluster.
+We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.0. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Supported systems ###
+
+We now provide packages for Ubuntu 16.04 (Xenial Xerus).
+
+The `r.http` command no longer supports fetching data from encrypted `https` resources on
+OS X 10.7 and 10.8 (#5681). Newer releases of OS X are not affected.
+
+### Bug fixes ###
+
+* Server
+ * Fixed a segmentation fault triggered by performing a batched `insert` with multiple
+   occurrences of the same primary key (#5683)
+ * Fixed an uncaught exception bug in the `hostname_to_ips` function that could be
+   triggered by connecting a server with an unresolvable address (#5629)
+ * Fixed a query failure when opening a changefeed with the `squash: true` option on a
+   system table (#5644)
+ * Fixed a crash that was triggered when joining servers with identical server names
+   (#5643)
+ * Fixed an issue with the random number generator that stopped initial server names from
+   getting randomized correctly (#5655)
+ * Fixed a bug that caused memory to not be released properly after dropping a table or
+   removing its replicas from a server (#5666)
+ * Fixed a bug causing `eqJoin` to freeze the server when chained after a `changes`
+   command (#5696)
+ * Fixed an issue that caused the `returnChanges: "always"` option of the `insert`
+   command to miss certain types of errors in the `changes` result (#5366)
+ * Fixed a crash on OS X 10.7 when using the .dmg uninstaller (#5671)
+ * The OS X .dmg uninstaller is now signed (#5615)
+ * Fixed an edge case in the error handling for auto-generated primary keys when
+   inserting into a system table (#5691)
+ * RethinkDB can now be compiled with GCC 5.3 (#5635)
+* JavaScript driver
+ * Renamed the `username` option of the `r.connect` command to `user`. The `username`
+   option is still supported for backwards-compatiblity with existing code (#5659)
+ * Improved the error message shown when connecting with the 2.3 driver to an older
+   server (#5667)
+* Python driver
+ * Improved the error message that is emitted when trying to connect to a server with a
+   wrong password (#5624)
+ * Fixed the "global name 'options' is not defined" bug in the `rethinkdb import` script
+   (#5637)
+ * Fixed a Python 3 incompatibility in the `rethinkdb restore` script (#5647)
+* Java driver
+ * Implemented the timeout option for `getNext` (#5603)
+ * Losing the server connection while having a changefeed open now correctly results in
+   an error (#5660)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.1. In no particular order:
+
+* Brian Chavez (@bchavez)
+* Neil Hanlon (@NeilHanlon)
+* Jason Soares (@JasonSoares)
+* Magnus Lundgren (@iorlas1)
+
+--
+
 # Release 2.3.0 (Fantasia)
 
 Released on 2016-04-06
