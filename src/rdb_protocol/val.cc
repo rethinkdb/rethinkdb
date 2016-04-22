@@ -387,7 +387,7 @@ datum_t table_t::batched_insert(
                         .get_field("new_val")
                         .get_field(get_pkey().c_str(), NOTHROW);
                 }
-                pkey_to_change.insert(std::pair<datum_t,datum_t>{pkey, changes.get(i)});
+                pkey_to_change.insert(std::pair<datum_t, datum_t>{pkey, changes.get(i)});
             }
 
             for (const auto &inserted_key : insert_keys) {
