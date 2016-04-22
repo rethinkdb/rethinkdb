@@ -65,8 +65,8 @@ def print_export_help():
     print("rethinkdb export -e test -d rdb_export")
     print("  Export only the 'test' database on a local cluster into a named directory.")
     print("")
-    print("rethinkdb export -c hades -e test.subscribers -a hunter2")
-    print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
+    print("rethinkdb export -c hades -e test.subscribers -p")
+    print("  Export a specific table from a cluster running on host 'hades' which requires a password.")
     print("")
     print("rethinkdb export --format csv -e test.history --fields time,message --delimiter ';'")
     print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message',")
@@ -333,22 +333,15 @@ def launch_writer(format, directory, db, table, fields, delimiter, task_queue, e
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
-<<<<<<< HEAD
-def get_all_table_sizes(host, port, auth_key, db_table_set, ssl_op):
-    def get_table_size(progress, conn, db, table):
-        return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
-
-    conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
-=======
-def get_all_table_sizes(host, port, db_table_set, admin_password):
+def get_all_table_sizes(host, port, db_table_set, ssl_op, admin_password):
     def get_table_size(progress, conn, db, table):
         return r.db(db).table(table).info()['doc_count_estimates'].sum().run(conn)
 
     conn_fn = lambda: r.connect(host,
                                 port,
+                                ssl=ssl_op,
                                 user="admin",
                                 password=admin_password)
->>>>>>> nighelles/5464
 
     ret = dict()
     for pair in db_table_set:
@@ -357,26 +350,18 @@ def get_all_table_sizes(host, port, db_table_set, admin_password):
 
     return ret
 
-<<<<<<< HEAD
-def export_table(host, port, auth_key, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, exit_event, ssl_op):
-=======
 def export_table(host, port, db, table, directory, fields, delimiter, format,
-                 error_queue, progress_info, sindex_counter, exit_event, admin_password):
->>>>>>> nighelles/5464
+                 error_queue, progress_info, sindex_counter, exit_event, ssl_op, admin_password):
     writer = None
 
     try:
         # This will open at least one connection for each rdb_call_wrapper, which is
         # a little wasteful, but shouldn't be a big performance hit
-<<<<<<< HEAD
-        conn_fn = lambda: r.connect(host, port, ssl=ssl_op, auth_key=auth_key)
-=======
         conn_fn = lambda: r.connect(host,
                                     port,
+                                    ssl=ssl_op,
                                     user="admin",
                                     password=admin_password)
->>>>>>> nighelles/5464
         table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
         sindex_counter.value += len(table_info["indexes"])
 
@@ -433,11 +418,7 @@ def run_clients(options, db_table_set, admin_password):
     errors = [ ]
 
     try:
-<<<<<<< HEAD
-        sizes = get_all_table_sizes(options["host"], options["port"], options["auth_key"], db_table_set, options["tls_cert"])
-=======
-        sizes = get_all_table_sizes(options["host"], options["port"], db_table_set, admin_password)
->>>>>>> nighelles/5464
+        sizes = get_all_table_sizes(options["host"], options["port"], db_table_set, options["tls_cert"], admin_password)
 
         progress_info = []
 
@@ -456,11 +437,8 @@ def run_clients(options, db_table_set, admin_password):
                               progress_info[-1],
                               sindex_counter,
                               exit_event,
-<<<<<<< HEAD
-                              options["tls_cert"]))
-=======
+                              options["tls_cert"],
                               admin_password))
->>>>>>> nighelles/5464
 
 
         # Wait for all tables to finish
@@ -518,15 +496,12 @@ def main():
         return 1
 
     try:
-<<<<<<< HEAD
-        conn_fn = lambda: r.connect(options["host"], options["port"], ssl=options["tls_cert"], auth_key=options["auth_key"])
-=======
         admin_password = get_password(options["password"], options["password-file"])
         conn_fn = lambda: r.connect(options["host"],
                                     options["port"],
+                                    ssl=options["tls_cert"],
                                     user="admin",
                                     password=admin_password)
->>>>>>> nighelles/5464
         # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
         # if the user has a database named 'rethinkdb'
         rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))

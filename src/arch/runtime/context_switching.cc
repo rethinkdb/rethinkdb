@@ -226,7 +226,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     /* Register our stack with Valgrind so that it understands what's going on
     and doesn't create spurious errors */
 #ifdef VALGRIND
-    valgrind_stack_id = VALGRIND_STACK_REGISTER(stack, (intptr_t)stack + stack_size);
+    valgrind_stack_id = VALGRIND_STACK_REGISTER(stack.get(), (intptr_t)stack.get() + stack_size);
 #endif
 
     /* Set up the stack... */

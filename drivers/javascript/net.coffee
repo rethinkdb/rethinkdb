@@ -1000,16 +1000,16 @@ class TcpConnection extends Connection
 
             r_string = new Buffer(crypto.randomBytes(18)).toString('base64')
 
-            @rawSocket.username = host["username"]
+            @rawSocket.user = host["user"]
             @rawSocket.password = host["password"]
 
             # Default to admin user with no password if none is given.
-            if @rawSocket.username is undefined
-                @rawSocket.username = "admin"
+            if @rawSocket.user is undefined
+                @rawSocket.user = "admin"
             if @rawSocket.password is undefined
                 @rawSocket.password = ""
 
-            client_first_message_bare = "n=" + @rawSocket.username + ",r=" + r_string
+            client_first_message_bare = "n=" + @rawSocket.user + ",r=" + r_string
 
             message = JSON.stringify({
                 protocol_version: protoVersionNumber,
@@ -1636,11 +1636,17 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     # 2. Initializes the connection, and when it's complete invokes
     #    the user's callback
     new Promise( (resolve, reject) ->
-        if host.authKey? && (host.password? || host.user?)
+        if host.authKey? && (host.password? || host.user? || host.username?)
             throw new err.ReqlDriverError "Cannot use both authKey and password"
+        if host.user && host.username
+            throw new err.ReqlDriverError "Cannot use both user and username"
         else if host.authKey
             host.user = "admin"
             host.password = host.authKey
+        else
+            # Fixing mismatch between drivers
+            if host.username?
+                host.user = host.username
         create_connection = (host, callback) =>
             if TcpConnection.isAvailable()
                 new TcpConnection host, callback

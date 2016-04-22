@@ -42,8 +42,8 @@ def print_restore_help():
     print("rethinkdb restore rdb_dump.tar.gz -i test")
     print("  Import data into a local cluster from only the 'test' database in the named archive file.")
     print("")
-    print("rethinkdb restore rdb_dump.tar.gz -i test.subscribers -c hades -a hunter2")
-    print("  Import data into a cluster running on host 'hades' which requires authorization from only")
+    print("rethinkdb restore rdb_dump.tar.gz -i test.subscribers -c hades -p")
+    print("  Import data into a cluster running on host 'hades' which requires a password from only")
     print("  a specific table from the named archive file.")
     print("")
     print("rethinkdb restore rdb_dump.tar.gz --clients 4 --force")
@@ -147,12 +147,10 @@ def do_unzip(temp_dir, options):
         path, base = os.path.split(path)
         return (base, db, os.path.splitext(table_file)[0])
 
-    is_fileobj = type(options["in_file"]) is file
-
     # If the in_file is a fileobj (e.g. stdin), stream it to a seekable file
     # first so that the code below can seek in it.
     tar_temp_file_path = None
-    if is_fileobj:
+    if options["in_file"] is sys.stdin:
         fileobj = options["in_file"]
         fd, tar_temp_file_path = tempfile.mkstemp(suffix=".tar.gz", dir=options["temp_dir"])
         # Constant memory streaming, buf == "" on EOF

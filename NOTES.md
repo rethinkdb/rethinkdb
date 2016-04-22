@@ -155,7 +155,7 @@ When compiling from source, the minimum required GCC version is now 4.7.4.
  * Added new variants of the `cursor.eachAsync` function. (#5056)
  * Added a `concurrency` option for `cursor.eachAsync`. (#5529)
  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
-   (#5494)
+   (#4594)
 * Python driver
  * Added a `"gevent"` loop type to the Python driver. (#4433)
  * Printing a cursor object now displays the first few results. (#5331)
@@ -219,12 +219,16 @@ us ship RethinkDB 2.3. In no particular order:
 
 * Aaron Rosen (@aaronorosen)
 * @crockpotveggies
+* Daniel Hokka Zakrisson (@dhozac)
 * Igor Lukanin (@igorlukanin)
+* @janisz
 * Joshua Bronson (@jab)
 * Josh Hawn (@jlhawn)
 * Josh Smith (@Qinusty)
 * Marshall Cottrell (@marshall007)
 * Mike Mintz (@mikemintz)
+* Niklas Hambüchen (@nh2)
+* Qian Jin (@QianJin2013)
 * Taylor Murphy (@tayloramurphy)
 * Vladislav Botvin (@darrrk)
 * Adam Grandquist (@grandquista)

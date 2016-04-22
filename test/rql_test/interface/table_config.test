@@ -7,15 +7,8 @@ from __future__ import print_function
 
 import os, pprint, sys, time
 
-startTime = time.time()
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -24,10 +17,10 @@ _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys
 r = utils.import_python_driver()
 dbName, _ = utils.get_test_db_table()
 
-print("Starting cluster of %d servers (%.2fs)" % (3, time.time() - startTime))
+utils.print_with_time("Starting cluster of 3 servers")
 with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as cluster:
     
-    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Establishing ReQL connection")
     
     server = cluster[0]
     conn = r.connect(host=server.host, port=server.driver_port)
@@ -118,7 +111,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     res = r.db("rethinkdb").table("server_config").filter({"name": "never_used"}).update({"tags": []}).run(conn)
     assert res["replaced"] == 1, res
 
-    print("Creating dbs and tables (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Creating dbs and tables")
     
     if dbName not in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
@@ -136,25 +129,25 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         r.db_create("test2").run(conn)
     r.db("test2").table_create("bar2").run(conn)
     
-    print("Inserting data into foo (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Inserting data into foo")
     
-    r.db(dbName).table("foo").insert([{"i": i} for i in xrange(10)]).run(conn)
-    assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(xrange(10))
+    r.db(dbName).table("foo").insert([{"i": i} for i in range(10)]).run(conn)
+    assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(range(10))
 
-    print("Testing that table_config and table_status are sane (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that table_config and table_status are sane")
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar"), ("test2", "bar2")]))
     wait_until(check_status_matches_config)
 
-    print("Testing that we can move around data by writing to table_config (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that we can move around data by writing to table_config")
     def test_shards(shards):
         print("Reconfiguring:", {"shards": shards})
         res = r.db(dbName).table("foo").config().update({"shards": shards}).run(conn)
         assert res["errors"] == 0, repr(res)
         wait_until(lambda: check_foo_config_matches(shards))
         wait_until(check_status_matches_config)
-        assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(xrange(10))
-        print("OK (%.2fs)" % (time.time() - startTime))
+        assert set(row["i"] for row in r.db(dbName).table("foo").run(conn)) == set(range(10))
+        utils.print_with_time("OK")
     test_shards([{"replicas": ["a"], "primary_replica": "a"}])
     test_shards([{"replicas": ["b"], "primary_replica": "b"}])
     test_shards([{"replicas": ["a", "b"], "primary_replica": "a"}])
@@ -171,7 +164,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         {"replicas": ["a", "b"], "primary_replica": "a", "nonvoting_replicas": ["b"]}])
     test_shards([{"replicas": ["a"], "primary_replica": "a"}])
 
-    print("Testing that table_config rejects invalid input (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that table_config rejects invalid input")
     def test_invalid(conf):
         print("Reconfiguring:", conf)
         res = r.db("rethinkdb").table("table_config").filter({"name": "foo"}).replace(conf).run(conn)
@@ -209,8 +202,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     test_invalid(r.row.without("durability"))
     test_invalid(r.row.without("write_acks"))
 
-    print("Testing that table_status is not writable (%.2fs)" %
-        (time.time() - startTime))
+    utils.print_with_time("Testing that table_status is not writable")
     table_count = r.db("rethinkdb").table("table_status").count().run(conn)
     res = r.db("rethinkdb").table("table_status").delete().run(conn)
     assert res["errors"] == table_count, res
@@ -221,17 +213,17 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     res = r.db(dbName).table("bar").status().delete().run(conn)
     assert res["errors"] == 1, res
 
-    print("Testing that we can rename tables through table_config (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that we can rename tables through table_config")
     res = r.db(dbName).table("bar").config().update({"name": "bar2"}).run(conn)
     assert res["errors"] == 0
     wait_until(lambda: check_tables_named(
         [("test", "foo"), ("test", "bar2"), ("test2", "bar2")]))
 
-    print("Testing that we can't rename a table so as to cause a name collision (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that we can't rename a table so as to cause a name collision")
     res = r.db(dbName).table("bar2").config().update({"name": "foo"}).run(conn)
     assert res["errors"] == 1
 
-    print("Testing table_drop() (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing table_drop()")
     foo_config = r.db(dbName).table("foo").config().run(conn)
     res = r.db(dbName).table_drop("foo").run(conn)
     assert res["tables_dropped"] == 1
@@ -239,7 +231,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     assert res["config_changes"][0]["old_val"] == foo_config
     assert res["config_changes"][0]["new_val"] is None
 
-    print("Testing that we can create a table through table_config (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that we can create a table through table_config")
     def test_create(doc, pkey):
         res = r.db("rethinkdb").table("table_config") \
                .insert(doc, return_changes=True).run(conn)
@@ -248,7 +240,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         assert doc["name"] in r.db(dbName).table_list().run(conn)
         assert res["changes"][0]["new_val"]["primary_key"] == pkey
         assert "shards" in res["changes"][0]["new_val"]
-        for i in xrange(10):
+        for i in range(10):
             try:
                 r.db(dbName).table(doc["name"]).insert({}).run(conn)
             except r.ReqlRuntimeError:
@@ -275,13 +267,13 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         "db": "test"
         }, "id")
 
-    print("Testing that we can delete a table through table_config (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that we can delete a table through table_config")
     res = r.db(dbName).table("baz").config().delete().run(conn)
     assert res["errors"] == 0, repr(res)
     assert res["deleted"] == 1, repr(res)
     assert "baz" not in r.db(dbName).table_list().run(conn)
 
-    print("Testing that identifier_format works (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Testing that identifier_format works")
     a_uuid = r.db("rethinkdb").table("server_config").filter({"name": "a"}).nth(0)["id"].run(conn)
     db_uuid = r.db("rethinkdb").table("db_config").filter({"name": "test"}).nth(0)["id"].run(conn)
     res = r.db("rethinkdb").table("table_config", identifier_format="uuid") \
@@ -316,5 +308,5 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         "primary_replicas": ["a"]
         }], repr(res)
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done.")

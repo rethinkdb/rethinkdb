@@ -38,8 +38,8 @@ def print_dump_help():
     print("rethinkdb dump -e test -f rdb_dump.tar.gz")
     print("  Archive only the 'test' database from a local cluster into a named file.")
     print("")
-    print("rethinkdb dump -c hades -e test.subscribers -a hunter2")
-    print("  Archive a specific table from a cluster running on host 'hades' which requires authorization.")
+    print("rethinkdb dump -c hades -e test.subscribers -p")
+    print("  Archive a specific table from a cluster running on host 'hades' which requires a password.")
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)

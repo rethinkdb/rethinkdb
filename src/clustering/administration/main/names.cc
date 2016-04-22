@@ -8,6 +8,7 @@
 #include <string>
 #include <algorithm>
 
+#include "random.hpp"
 #include "utils.hpp"
 
 static const char* names[] = {
