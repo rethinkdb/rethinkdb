@@ -49,7 +49,7 @@ OS X 10.7 and 10.8 (#5681). Newer releases of OS X are not affected.
  * RethinkDB can now be compiled with GCC 5.3 (#5635)
 * JavaScript driver
  * Renamed the `username` option of the `r.connect` command to `user`. The `username`
-   option is still supported for backwards-compatiblity with existing code (#5659)
+   option is still supported for backwards-compatibility with existing code (#5659)
  * Improved the error message shown when connecting with the 2.3 driver to an older
    server (#5667)
 * Python driver
