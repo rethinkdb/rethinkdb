@@ -14,8 +14,6 @@
 #include "threading.hpp"
 #include "time.hpp"
 
-const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
-
 // Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled.
 // We don't enable it on ARM, because taking backtraces currently isn't working
 // reliably and sometimes causes crashes.
@@ -27,6 +25,7 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 threadnum_t get_thread_id();
 struct coro_globals_t;
+class coro_t;
 
 
 struct coro_profiler_mixin_t {
@@ -37,6 +36,12 @@ struct coro_profiler_mixin_t {
 #endif
 };
 
+/* The `coro_lru_entry_t` is used to keep track of coroutines that have protected
+stacks and to eventually unprotect them using a least-recently-used strategy. */
+struct coro_lru_entry_t : public intrusive_list_node_t<coro_lru_entry_t> {
+    explicit coro_lru_entry_t(coro_t *parent) : coro(parent) { }
+    coro_t *coro;
+};
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -174,6 +179,10 @@ private:
     // Generates a spawn-time backtrace and stores it into `spawn_backtrace`.
     void grab_spawn_backtrace();
 
+    // Performs a context switch from `current_context` to this coroutine.
+    // Also enables stack-overflow protection on this coroutine.
+    void switch_to_coro_with_protection(coro_context_ref_t *current_context);
+
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class callable_t>
     static coro_t *get_and_init_coro(callable_t &&action) {
@@ -218,6 +227,9 @@ private:
     bool waiting_;
 
     callable_action_wrapper_t action_wrapper;
+
+    /* Used to eventually unprotect the coroutine if it has been inactive for a while. */
+    coro_lru_entry_t protected_stack_lru_entry_;
 
 #ifndef NDEBUG
     int64_t selfname_number;
