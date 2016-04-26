@@ -379,8 +379,16 @@ datum_t table_t::batched_insert(
             for (size_t i = 0; i < changes.arr_size(); ++i) {
                 ql::datum_t pkey;
                 if (changes.get(i).get_field("error", NOTHROW).has()) {
+                    // There was an error that prevented the insert
                     pkey = changes.get(i)
                         .get_field("fake_new_val")
+                        .get_field(get_pkey().c_str(), NOTHROW);
+                } else if (changes.get(i)
+                    .get_field("new_val")
+                    .get_type() == datum_t::R_NULL) {
+                    // We're deleting using a conflict resolution function in insert
+                    pkey = changes.get(i)
+                        .get_field("old_val")
                         .get_field(get_pkey().c_str(), NOTHROW);
                 } else {
                     pkey = changes.get(i)
