@@ -297,6 +297,7 @@ void connectivity_cluster_t::run_t::join(
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
+        boost::none,
         join_delay_secs,
         auto_drainer_t::lock_t(&drainer)));
 }
@@ -323,13 +324,14 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, lock, nullptr, join_delay_secs);
+    handle(&conn_stream, boost::none, boost::none, boost::none, lock, nullptr, join_delay_secs);
 }
 
 void connectivity_cluster_t::run_t::connect_to_peer(
         const peer_address_t *address,
         int index,
         boost::optional<peer_id_t> expected_id,
+        boost::optional<server_id_t> expected_server_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join_inout,
         join_result_t *join_result_inout,
@@ -364,9 +366,14 @@ void connectivity_cluster_t::run_t::connect_to_peer(
                 tls_ctx, selected_addr->ip(), selected_addr->port().value(),
                 drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join_inout) {
-                *join_result_inout = handle(
+                join_result_t join_result = handle(
                     &conn, expected_id, boost::optional<peer_address_t>(*address),
-                    drainer_lock, successful_join_inout, join_delay_secs);
+                    expected_server_id, drainer_lock, successful_join_inout, join_delay_secs);
+
+                // NOTE: not an ideal way to handle this
+                if (*join_result_inout != join_result_t::PERMANENT_ERROR) {
+                    *join_result_inout = join_result;
+                }
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -384,6 +391,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(
 join_result_t connectivity_cluster_t::run_t::join_blocking(
         const peer_address_t peer,
         boost::optional<peer_id_t> expected_id,
+        boost::optional<server_id_t> expected_server_id,
         const int join_delay_secs,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     drainer_lock.assert_is_holding(&parent->current_run->drainer);
@@ -391,7 +399,10 @@ join_result_t connectivity_cluster_t::run_t::join_blocking(
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);
         if (attempt_table.find(peer) != attempt_table.end()) {
-            return join_result_t::PERMANENT_ERROR;
+            // NOTE: this is triggered all the time in the old code and ignored as what
+            //       we are now calling a temporary error. This should actually be a
+            //       permanent error, but more tracking/synchronization is in order.
+            return join_result_t::TEMPORARY_ERROR;
         }
         attempt_table.insert(peer);
     }
@@ -411,6 +422,7 @@ join_result_t connectivity_cluster_t::run_t::join_blocking(
                    &peer,
                    ph::_1,
                    expected_id,
+                   expected_server_id,
                    drainer_lock,
                    &successful_join,
                    &join_result,
@@ -852,6 +864,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
         keepalive_tcp_conn_stream_t *conn,
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
+        boost::optional<server_id_t> expected_server_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join_inout,
         const int join_delay_secs) THROWS_NOTHING
@@ -971,6 +984,17 @@ join_result_t connectivity_cluster_t::run_t::handle(
             return join_result_t::TEMPORARY_ERROR;
         }
 
+        if (expected_server_id && expected_server_id != remote_server_id) {
+            if (peer_addr.ip().is_loopback()) {
+                return join_result_t::TEMPORARY_ERROR;
+            }
+
+            logINF("Rejected a connection from server %s since it does not have expected id %s.",
+                   remote_server_id.print().c_str(),
+                   expected_server_id->print().c_str());
+            return join_result_t::PERMANENT_ERROR;
+        }
+
         if (servers.count(remote_server_id) != 0) {
             // There currently is another connection open to the server
             logINF("Rejected a connection from server %s since one is open already.",
@@ -978,6 +1002,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
             return join_result_t::TEMPORARY_ERROR;
         }
     }
+
     set_insertion_sentry_t<server_id_t> remote_server_id_sentry(
         &servers, remote_server_id);
 
@@ -1225,6 +1250,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
                         &connectivity_cluster_t::run_t::join_blocking, this,
                         next_peer_addr,
                         boost::optional<peer_id_t>(it->first),
+                        boost::none,
                         join_delay_secs,
                         drainer_lock));
                 } catch (const host_lookup_exc_t &ex) {

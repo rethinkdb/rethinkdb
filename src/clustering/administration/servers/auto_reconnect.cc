@@ -84,20 +84,24 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
     wait_any_t interruptor(&reconnected, &give_up_timer, keepalive.get_drain_signal());
 
+    cond_t join_failed;
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
-        while (!interruptor.is_pulsed()) {
-            join_result_t result =
-                connectivity_cluster_run->join_blocking(
-                    last_known_address, boost::none,
-                    join_delay_secs,
-                    auto_drainer_t::lock_t(&drainer));
+        while (!interruptor.is_pulsed() && !join_failed.is_pulsed()) {
+            coro_t::spawn_now_dangerously([&]() {
+                join_result_t result =
+                    connectivity_cluster_run->join_blocking(
+                        last_known_address, boost::none, server,
+                        join_delay_secs,
+                        auto_drainer_t::lock_t(&connectivity_cluster_run->drainer));
 
-            if (result == join_result_t::PERMANENT_ERROR) {
-                logNTC("Unrecoverable connection error to remote peer: %s\n", server.print().c_str());
-                addresses.erase(it);
-                return;
-            }
+                if (result == join_result_t::PERMANENT_ERROR &&
+                    addresses.find(server) != addresses.end()) {
+                    logNTC("Unrecoverable connection error to remote peer: %s\n", server.print().c_str());
+                    join_failed.pulse_if_not_already_pulsed();
+                    addresses.erase(it);
+                }
+            });
 
             backoff.failure(&interruptor);
         }
