@@ -85,8 +85,8 @@ region_map_t<binary_blob_t> mock_store_t::get_metainfo(
 
     order_sink_.check_out(order_token);
 
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
     return metainfo_.mask(region);
 }
@@ -105,8 +105,8 @@ void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
 
     order_sink_.check_out(order_token);
 
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
 
     metainfo_.update(new_metainfo);
@@ -136,8 +136,8 @@ void mock_store_t::read(
         metainfo_.visit(metainfo_checker.region, metainfo_checker.callback);
 #endif
 
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
+        if (randint(2) == 0) {
+            nap(randint(10), interruptor);
         }
 
         const distribution_read_t *distribution_read =
@@ -169,8 +169,8 @@ void mock_store_t::read(
             }
         }
     }
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
 }
 
@@ -200,8 +200,8 @@ void mock_store_t::write(
         metainfo_.visit(metainfo_checker.region, metainfo_checker.callback);
 #endif
 
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
+        if (randint(2) == 0) {
+            nap(randint(10), interruptor);
         }
 
         // Note that if we want to support point deletes, we'll need to store
@@ -233,8 +233,8 @@ void mock_store_t::write(
 
         metainfo_.update(new_metainfo);
     }
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
 }
 
@@ -249,8 +249,8 @@ continue_bool_t mock_store_t::send_backfill_pre(
     key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
     while (true) {
         /* Randomly block in order to more effectively test the code */
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(100), interruptor);
+        if (randint(2) == 0) {
+            nap(randint(100), interruptor);
         }
         auto it = table_.lower_bound(cursor);
         if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
@@ -264,7 +264,7 @@ continue_bool_t mock_store_t::send_backfill_pre(
         if (it->second.first > start_point.lookup(it->first).to_repli_timestamp()) {
             /* We need to rewind this key */
             backfill_pre_item_t item;
-            if (rng_.randint(10) != 0) {
+            if (randint(10) != 0) {
                 item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
             } else {
@@ -287,8 +287,8 @@ continue_bool_t mock_store_t::send_backfill_pre(
             break;
         }
     }
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
     return continue_bool_t::CONTINUE;
 }
@@ -337,8 +337,8 @@ continue_bool_t mock_store_t::send_backfill(
 
     while (table_cursor < right_bound) {
         /* Randomly block in order to more effectively test the code */
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(100), interruptor);
+        if (randint(2) == 0) {
+            nap(randint(100), interruptor);
         }
 
         /* On each iteration through the loop, we emit at most one item. There are two
@@ -452,8 +452,8 @@ continue_bool_t mock_store_t::send_backfill(
             }
         }
     }
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(10), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(10), interruptor);
     }
     return continue_bool_t::CONTINUE;
 }
@@ -466,8 +466,8 @@ continue_bool_t mock_store_t::receive_backfill(
     key_range_t::right_bound_t cursor(region.inner.left);
     while (cursor < region.inner.right) {
         /* Introduce a random delay to test more code paths */
-        if (rng_.randint(2) == 0) {
-            nap(rng_.randint(100), interruptor);
+        if (randint(2) == 0) {
+            nap(randint(100), interruptor);
         }
 
         /* Fetch the next item from the producer */
@@ -514,13 +514,13 @@ continue_bool_t mock_store_t::receive_backfill(
 
 void mock_store_t::wait_until_ok_to_receive_backfill(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    if (rng_.randint(2) == 0) {
-        nap(rng_.randint(100), interruptor);
+    if (randint(2) == 0) {
+        nap(randint(100), interruptor);
     }
 }
 
 bool mock_store_t::check_ok_to_receive_backfill() THROWS_NOTHING {
-    return rng_.randint(20) == 0;
+    return randint(20) == 0;
 }
 
 void mock_store_t::reset_data(
