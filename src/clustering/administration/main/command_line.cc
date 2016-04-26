@@ -60,6 +60,10 @@
 #define RETHINKDB_RESTORE_SCRIPT "rethinkdb-restore"
 #define RETHINKDB_INDEX_REBUILD_SCRIPT "rethinkdb-index-rebuild"
 
+namespace cluster_defaults {
+const int reconnect_timeout = (24 * 60 * 60);    // 24 hours (in secs)
+}  // namespace cluster_defaults
+
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
@@ -441,6 +445,28 @@ boost::optional<int> parse_join_delay_secs_option(
     } else {
         return boost::optional<int>();
     }
+}
+
+boost::optional<int> parse_node_reconnect_timeout_secs_option(
+        const std::map<std::string, options::values_t> &opts) {
+    if (exists_option(opts, "--cluster-reconnect-timeout")) {
+        const std::string timeout_opt = get_single_option(opts, "--cluster-reconnect-timeout");
+        uint64_t node_reconnect_timeout_secs;
+        if (!strtou64_strict(timeout_opt, 10, &node_reconnect_timeout_secs)) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: cluster-reconnect-timeout should be a number, got '%s'",
+                    timeout_opt.c_str()));
+        }
+        if (node_reconnect_timeout_secs > std::numeric_limits<int>::max() ||
+            node_reconnect_timeout_secs * 1000 > std::numeric_limits<int>::max()) {
+            throw std::runtime_error(strprintf(
+                "ERROR: cluster-reconnect-timeout is too large. Must be at most %d",
+                std::numeric_limits<int>::max() / 1000));
+        }
+        return boost::optional<int>(static_cast<int>(node_reconnect_timeout_secs));
+    }
+
+    return boost::optional<int>();
 }
 
 /* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
@@ -1517,13 +1543,13 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::peer_port)));
-    help.add("--cluster-port port", "port for receiving connections from other nodes");
+    help.add("--cluster-port port", "port for receiving connections from other servers");
 
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
 #ifndef NDEBUG
-    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+    help.add("--client-port port", "port to use when connecting to other servers (for development)");
 #endif  // NDEBUG
 
     options_out->push_back(options::option_t(options::names_t("--driver-port"),
@@ -1538,7 +1564,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
                                              join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
-    help.add("-j [ --join ] host[:port]", "host and port of a rethinkdb node to connect to");
+    help.add("-j [ --join ] host[:port]", "host and port of a rethinkdb server to connect to");
 
     options_out->push_back(options::option_t(options::names_t("--reql-http-proxy"),
                                              options::OPTIONAL));
@@ -1551,7 +1577,15 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--join-delay"),
                                              options::OPTIONAL));
     help.add("--join-delay seconds", "hold the TCP connection open for these many "
-             "seconds before joining with another server.");
+             "seconds before joining with another server");
+
+    options_out->push_back(options::option_t(options::names_t("--cluster-reconnect-timeout"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", cluster_defaults::reconnect_timeout)));
+    help.add("--cluster-reconnect-timeout seconds", "maximum number of seconds to "
+                                                    "attempt reconnecting to a server "
+                                                    "before giving up, the default is "
+                                                    "24 hours");
 
     return help;
 }
@@ -1980,6 +2014,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             parse_total_cache_size_option(opts);
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout_secs =
+            parse_node_reconnect_timeout_secs_option(opts);
 
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
@@ -2019,6 +2055,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout_secs
+                                    ? node_reconnect_timeout_secs.get()
+                                    : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -2077,6 +2116,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         }
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout_secs =
+            parse_node_reconnect_timeout_secs_option(opts);
 
 #ifndef _WIN32
         get_and_set_user_group(opts);
@@ -2117,6 +2158,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout_secs
+                                    ? node_reconnect_timeout_secs.get()
+                                    : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         bool result;
@@ -2234,6 +2278,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         update_check_t do_update_checking = parse_update_checking_option(opts);
 
         boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        boost::optional<int> node_reconnect_timeout_secs =
+            parse_node_reconnect_timeout_secs_option(opts);
 
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
@@ -2298,6 +2344,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
                                 join_delay_secs ? join_delay_secs.get() : 0,
+                                node_reconnect_timeout_secs
+                                    ? node_reconnect_timeout_secs.get()
+                                    : cluster_defaults::reconnect_timeout,
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -2339,7 +2388,7 @@ void help_rethinkdb_porcelain() {
     }
 
     printf("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
-    printf("  and serve as a RethinkDB cluster node.\n");
+    printf("  and serve as a RethinkDB server.\n");
     printf("%s", format_help(help_sections).c_str());
     printf("\n");
     printf("There are a number of subcommands for more specific tasks:\n");
@@ -2363,7 +2412,7 @@ void help_rethinkdb_create() {
     }
 
     printf("'rethinkdb create' is used to prepare a directory to act"
-                " as the storage location for a RethinkDB cluster node.\n");
+                " as the storage location for a RethinkDB server.\n");
     printf("%s", format_help(help_sections).c_str());
 }
 
@@ -2374,7 +2423,7 @@ void help_rethinkdb_serve() {
         get_rethinkdb_serve_options(&help_sections, &options);
     }
 
-    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    printf("'rethinkdb serve' is the actual process for a RethinkDB server.\n");
     printf("%s", format_help(help_sections).c_str());
 }
 
