@@ -106,7 +106,6 @@ private:
 
     order_sink_t order_sink_;
 
-    rng_t rng_;
     region_map_t<binary_blob_t> metainfo_;
     std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > table_;
 
