@@ -11,11 +11,15 @@ namespace profile { class trace_t; }
 
 class concurrent_traversal_fifo_enforcer_signal_t {
 public:
+    // Do not use wait-interruptible and wait in the same traversal handler,
+    // or ordering will no longer be guaranteed.
     void wait_interruptible() THROWS_ONLY(interrupted_exc_t);
+    void wait() THROWS_NOTHING;
 
 private:
     friend class concurrent_traversal_adapter_t;
 
+    void wait_with_interruptor(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     concurrent_traversal_fifo_enforcer_signal_t(signal_t *eval_exclusivity_signal,
                                                 concurrent_traversal_adapter_t *parent);
 

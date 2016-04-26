@@ -142,8 +142,18 @@ concurrent_traversal_fifo_enforcer_signal_t(
     : eval_exclusivity_signal_(eval_exclusivity_signal),
       parent_(parent) { }
 
+void concurrent_traversal_fifo_enforcer_signal_t::wait() THROWS_NOTHING {
+    cond_t non_interruptor;
+    wait_with_interruptor(&non_interruptor);
+}
+
 void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
     THROWS_ONLY(interrupted_exc_t) {
+    wait_with_interruptor(parent_->failure_cond_);
+}
+
+void concurrent_traversal_fifo_enforcer_signal_t::wait_with_interruptor(
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     incr_decr_t incr_decr(&parent_->sink_waiters_);
 
     if (parent_->sink_waiters_ >= 2) {
@@ -163,7 +173,7 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
                               parent_->semaphore_.get_capacity() + 1));
     }
 
-    ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
+    ::wait_interruptible(eval_exclusivity_signal_, interruptor);
 }
 
 continue_bool_t btree_concurrent_traversal(
