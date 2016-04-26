@@ -80,11 +80,11 @@ public:
                base_exc_t::LOGIC,
                "MAKE_OBJ term must not have any args.");
 
-        term.each_optarg([&](const raw_term_t &o, const std::string &name) {
+        term.each_optarg([&](const raw_term_t &o, const std::string &arg_name) {
                 counted_t<const term_t> t = compile_term(env, o);
-                auto res = optargs.insert(std::make_pair(name, std::move(t)));
+                auto res = optargs.insert(std::make_pair(arg_name, std::move(t)));
                 rcheck(res.second, base_exc_t::LOGIC,
-                       strprintf("Duplicate object key: %s.", name.c_str()));
+                       strprintf("Duplicate object key: %s.", arg_name.c_str()));
             });
     }
 
