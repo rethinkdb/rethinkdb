@@ -81,8 +81,14 @@ public:
         counted_t<ql::datum_stream_t> *cfeed_out,
         admin_err_t *error_out) = 0;
 
+    cross_thread_mutex_t::acq_t aquire_transaction_mutex() {
+        return cross_thread_mutex_t::acq_t(&transaction_mutex);
+    }
 protected:
     virtual ~artificial_table_backend_t() { }
+
+private:
+    cross_thread_mutex_t transaction_mutex;
 };
 
 #endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_BACKEND_HPP_ */
