@@ -1,13 +1,14 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, random
-from optparse import OptionParser
-from ._backup import *
+import optparse, os, random, sys, time
+from . import utils_common, net
+r = utils_common.r
 
-info = "'rethinkdb index-rebuild' recreates outdated secondary indexes in a cluster.\n" + \
-       "  This should be used after upgrading to a newer version of rethinkdb.  There\n" + \
-       "  will be a notification in the web UI if any secondary indexes are out-of-date."
+info = """'rethinkdb index-rebuild' recreates outdated secondary indexes in a cluster.
+  This should be used after upgrading to a newer version of rethinkdb.  There
+  will be a notification in the web UI if any secondary indexes are out-of-date."""
 usage = "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] [--password-file FILENAME]..."
 
 # Prefix used for indexes that are being rebuilt
@@ -16,41 +17,41 @@ temp_index_prefix = '$reql_temp_index$_'
 def print_restore_help():
     print(info)
     print(usage)
-    print("")
-    print("  FILE                             the archive file to restore data from")
-    print("  -h [ --help ]                    print this help")
-    print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
-    print("                                   to (defaults to localhost:28015)")
-    print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
-    print("  -p [ --password ]                interactively prompt for a password required to connect.")
-    print("  --password-file FILENAME         read password required to connect from file.")
-    print("  -r [ --rebuild ] (DB | DB.TABLE) the databases or tables to rebuild indexes on")
-    print("                                   (defaults to all databases and tables)")
-    print("  -n NUM                           the number of concurrent indexes to rebuild")
-    print("                                   (defaults to 1)")
-    print("")
-    print("EXAMPLES:")
-    print("rethinkdb index-rebuild -c mnemosyne:39500")
-    print("  rebuild all outdated secondary indexes from the cluster on the host 'mnemosyne',")
-    print("  one at a time")
-    print("")
-    print("rethinkdb index-rebuild -r test -r production.users -n 5")
-    print("  rebuild all outdated secondary indexes from a local cluster on all tables in the")
-    print("  'test' database as well as the 'production.users' table, five at a time")
+    print("""
+  FILE                             the archive file to restore data from
+  -h [ --help ]                    print this help
+  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect
+                                   to (defaults to localhost:%d)
+  --tls-cert FILENAME              certificate file to use for TLS encryption.
+  -p [ --password ]                interactively prompt for a password required to connect.
+  --password-file FILENAME         read password required to connect from file.
+  -r [ --rebuild ] (DB | DB.TABLE) the databases or tables to rebuild indexes on
+                                   (defaults to all databases and tables)
+  -n NUM                           the number of concurrent indexes to rebuild
+                                   (defaults to 1)
 
-def parse_options():
-    parser = OptionParser(add_help_option=False, usage=usage)
-    parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-r", "--rebuild", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
-    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+EXAMPLES:
+rethinkdb index-rebuild -c mnemosyne:39500
+  rebuild all outdated secondary indexes from the cluster on the host 'mnemosyne',
+  one at a time
+
+rethinkdb index-rebuild -r test -r production.users -n 5
+  rebuild all outdated secondary indexes from a local cluster on all tables in the
+  'test' database as well as the 'production.users' table, five at a time""" % net.DEFAULT_PORT)
+
+def parse_options(argv):
+    parser = optparse.OptionParser(add_help_option=False, usage=usage)
+    parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT")
+    parser.add_option("-r", "--rebuild", dest="tables", metavar="DB | DB.TABLE", default=[], action="append")
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="")
 
     parser.add_option("-n", dest="concurrent", metavar="NUM", default=1, type="int")
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
-    parser.add_option("--password-file", dest="password_file", default=None, type="string")
+    parser.add_option("--password-file", dest="password_file", default=None)
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     if options.help:
         print_restore_help()
@@ -63,26 +64,17 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    (res["host"], res["port"]) = parse_connect_option(options.host)
+    (res["host"], res["port"]) = utils_common.parse_connect_option(options.host)
 
-    res["tls_cert"] = ssl_option(options.tls_cert)
+    res["tls_cert"] = utils_common.ssl_option(options.tls_cert)
     # Verify valid --import options
-    res["tables"] = parse_db_table_options(options.tables)
+    res["tables"] = utils_common.parse_db_table_options(options.tables)
 
     res["concurrent"] = options.concurrent
     res["debug"] = options.debug
 
-    res["password"] = get_password(options.password, options.password_file)
+    res["password"] = utils_common.get_password(options.password, options.password_file)
     return res
-
-def print_progress(ratio):
-    total_width = 40
-    done_width = int(ratio * total_width)
-    equals = "=" * done_width
-    spaces = " " * (total_width - done_width)
-    percent = int(100 * ratio)
-    print("\r[%s%s] %3d%%" % (equals, spaces, percent), end='')
-    sys.stdout.flush()
 
 def do_connect(options):
     try:
@@ -157,11 +149,11 @@ def rebuild_indexes(options):
     conn_store = [do_connect(options)]
     conn_fn = lambda: new_connection(conn_store, options)
 
-    indexes_to_build = rdb_call_wrapper(conn_fn, "get outdated indexes", get_outdated_indexes, options["tables"])
+    indexes_to_build = utils_common.rdb_call_wrapper(conn_fn, "get outdated indexes", get_outdated_indexes, options["tables"])
     indexes_in_progress = [ ]
 
     # Drop any outdated indexes with the temp_index_prefix
-    rdb_call_wrapper(conn_fn, "drop temporary outdated indexes", drop_outdated_temp_indexes, indexes_to_build)
+    utils_common.rdb_call_wrapper(conn_fn, "drop temporary outdated indexes", drop_outdated_temp_indexes, indexes_to_build)
 
     random.shuffle(indexes_to_build)
     total_indexes = len(indexes_to_build)
@@ -183,8 +175,8 @@ def rebuild_indexes(options):
             index['ready'] = False
 
             try:
-                rdb_call_wrapper(conn_fn, "create `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                                 create_temp_index, index)
+                utils_common.rdb_call_wrapper(conn_fn, "create `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                              create_temp_index, index)
             except RuntimeError as ex:
                 # This may be caused by a suprious failure (see github issue #2904), ignore if so
                 if ex.message != "ReQL error during 'create `%s.%s` index `%s`': Index `%s` already exists on table `%s.%s`." % \
@@ -193,25 +185,25 @@ def rebuild_indexes(options):
 
         # Report progress
         highest_progress = max(highest_progress, progress_ratio)
-        print_progress(highest_progress)
+        utils_common.print_progress(highest_progress)
 
         # Check the status of indexes in progress
         progress_ratio = 0.0
         for index in indexes_in_progress:
-            index_progress = rdb_call_wrapper(conn_fn, "progress `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                                              get_index_progress, index)
+            index_progress = utils_common.rdb_call_wrapper(conn_fn, "progress `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                                           get_index_progress, index)
             if index_progress is None:
                 index['ready'] = True
                 try:
-                    rdb_call_wrapper(conn_fn, "rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                                     rename_index, index)
+                    utils_common.rdb_call_wrapper(conn_fn, "rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                                  rename_index, index)
                 except r.ReqlRuntimeError as ex:
                     # This may be caused by a spurious failure (see github issue #2904), check if it actually succeeded
                     if ex.message != "ReQL error during 'rename `%s.%s` index `%s`': Index `%s` does not exist on table `%s.%s`." % \
                                      (index['db'], index['table'], index['name'], index['temp_name'], index['db'], index['table']):
                         raise
-                    rdb_call_wrapper(conn_fn, "check rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
-                                     check_index_renamed, index)
+                    utils_common.rdb_call_wrapper(conn_fn, "check rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
+                                                  check_index_renamed, index)
             else:
                 progress_ratio += index_progress / total_indexes
 
@@ -225,12 +217,14 @@ def rebuild_indexes(options):
             time.sleep(0.1)
 
     # Make sure the progress bar says we're done and get past the progress bar line
-    print_progress(1.0)
+    utils_common.print_progress(1.0)
     print("")
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     try:
-        options = parse_options()
+        options = parse_options(argv)
     except RuntimeError as ex:
         print("Usage: %s" % usage, file=sys.stderr)
         print(ex, file=sys.stderr)

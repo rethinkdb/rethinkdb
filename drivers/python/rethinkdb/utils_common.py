@@ -1,30 +1,34 @@
+'''Common tools for interactive utilities such as repl or backup'''
+
 from __future__ import print_function
 
-from copy import deepcopy
-import socket, sys, string, re, getpass
+import copy, getpass, os, re, socket, string, sys
 
-try:
-    import rethinkdb as r
-except ImportError:
-    print("The RethinkDB python driver is required to use this command.")
-    print("Please install the driver via `pip install rethinkdb`.")
-    exit(1)
+from . import net
+r = net.Connection._r
 
 # This file contains common functions used by the import/export/dump/restore scripts
 
-def os_call_wrapper(fn, filename, error_str):
-    try:
-        fn(filename)
-    except OSError as ex:
-        raise RuntimeError(error_str % (filename, ex.strerror))
-
+portRegex = re.compile(r'^\s*(?P<hostname>[\w\.-]+)(:(?P<port>\d+))?\s*$')
 def parse_connect_option(connect):
-    host_port = connect.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % connect)
-    return host_port
+    hostname = os.environ.get('RETHINKDB_HOSTNAME', 'localhost')
+    port = os.environ.get('RETHINKDB_DRIVER_PORT')
+    try:
+        port = int(port)
+    except (TypeError, ValueError): # nonsense or None
+        port = net.DEFAULT_PORT
+    
+    if connect:
+        res = portRegex.match(connect)
+        if not res:
+            raise ValueError("Error: Invalid 'host:port' format: %s" % connect)
+        
+        if res.group('hostname'):
+            hostname = res.group('hostname')
+        if res.group('port'):
+            port = int(res.group('port'))
+    
+    return (hostname, port)
 
 def parse_db_table(item):
     if not all(c in string.ascii_letters + string.digits + "._" for c in item):
@@ -72,7 +76,7 @@ def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
     max_attempts = 5
     progress = [None]
     while True:
-        last_progress = deepcopy(progress[0])
+        last_progress = copy.deepcopy(progress[0])
         try:
             conn = conn_fn()
             return fn(progress, conn, *args, **kwargs)

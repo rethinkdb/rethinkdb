@@ -1,9 +1,9 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tarfile, tempfile, subprocess, os.path
-from optparse import OptionParser
-from ._backup import *
+import datetime, optparse, os, shutil, sys, tarfile, tempfile, time
+from . import utils_common, net
 
 info = "'rethinkdb restore' loads data into a RethinkDB cluster from an archive"
 usage = "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] [--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
@@ -18,7 +18,7 @@ def print_restore_help():
     print("                                   the --temp-dir directory)")
     print("  -h [ --help ]                    print this help")
     print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
-    print("                                   to (defaults to localhost:28015)")
+    print("                                   to (defaults to localhost:%d)" % net.DEFAULT_PORT)
     print("  --tls-cert FILENAME              certificate file to use for TLS encryption.")
     print("  -p [ --password ]                interactively prompt for a password required to connect.")
     print("  --password-file FILENAME         read password required to connect from file.")
@@ -50,17 +50,17 @@ def print_restore_help():
     print("  Import data to a local cluster from the named archive file using only 4 client connections")
     print("  and overwriting any existing rows with the same primary key.")
 
-def parse_options():
-    parser = OptionParser(add_help_option=False, usage=usage)
-    parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+def parse_options(argv):
+    parser = optparse.OptionParser(add_help_option=False, usage=usage)
+    parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT")
+    parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append")
 
     parser.add_option("--shards", dest="shards", metavar="NUM_SHARDS", default=0, type="int")
     parser.add_option("--replicas", dest="replicas", metavar="NUM_REPLICAS", default=0, type="int")
 
-    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="", type="string")
+    parser.add_option("--tls-cert", dest="tls_cert", metavar="TLS_CERT", default="")
 
-    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
+    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None)
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
@@ -69,8 +69,8 @@ def parse_options():
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     parser.add_option("-p", "--password", dest="password", default=False, action="store_true")
-    parser.add_option("--password-file", dest="password_file", default=None, type="string")
-    (options, args) = parser.parse_args()
+    parser.add_option("--password-file", dest="password_file", default=None)
+    (options, args) = parser.parse_args(argv)
 
     if options.help:
         print_restore_help()
@@ -85,7 +85,7 @@ def parse_options():
     res = {}
 
     # Verify valid host:port --connect option
-    (res["host"], res["port"]) = parse_connect_option(options.host)
+    (res["host"], res["port"]) = utils_common.parse_connect_option(options.host)
 
     in_file_argument = args[0]
 
@@ -99,7 +99,7 @@ def parse_options():
             raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
-    res["tables"] = parse_db_table_options(options.tables)
+    res["tables"] = utils_common.parse_db_table_options(options.tables)
 
     # Make sure the temporary directory exists and is accessible
     res["temp_dir"] = options.temp_dir
@@ -164,17 +164,16 @@ def do_unzip(temp_dir, options):
         name = options["in_file"]
 
     try:
-        with tarfile.open(name, "r:gz") as f:
+        with tarfile.open(name, "r:*") as f:
             os.chdir(temp_dir)
             try:
                 for member in f:
-                    (base, db, table) = parse_path(member)
-
+                    base, db, table = parse_path(member)
                     if len(base) > 0:
                         if sub_path is None:
                             sub_path = base
                         elif sub_path != base:
-                            raise RuntimeError("Error: Archive file has an unexpected directory structure")
+                            raise RuntimeError("Error: Archive file has an unexpected directory structure (%s vs %s)" % (sub_path, base))
 
                         if len(tables_to_export) == 0 or \
                            (db, table) in tables_to_export or \
@@ -182,7 +181,7 @@ def do_unzip(temp_dir, options):
                             members.append(member)
 
                 if sub_path is None:
-                    raise RuntimeError("Error: Archive file has an unexpected directory structure")
+                    raise RuntimeError("Error: Archive file had no files")
 
                 f.extractall(members=members)
 
@@ -197,21 +196,24 @@ def do_unzip(temp_dir, options):
     return os.path.join(temp_dir, sub_path)
 
 def do_import(temp_dir, options):
+    from . import _import
+    
     if not options["quiet"]:
         print("Importing from directory...")
 
-    import_args = ["rethinkdb-import"]
-    import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
-    import_args.extend(["--directory", temp_dir])
+    import_args = [
+        "--connect", "%s:%s" % (options["host"], options["port"]),
+        "--directory", temp_dir,
+        "--clients", str(options["clients"]),
+        "--shards", str(options["shards"]),
+        "--replicas", str(options["replicas"]),
+        "--tls-cert", options["tls_cert"]
+    ]
     if options["password"]:
         import_args.append("--password")
     if options["password-file"]:
         import_args.extend(["--password-file", options["password-file"]])
-    import_args.extend(["--clients", str(options["clients"])])
-    import_args.extend(["--shards", str(options["shards"])])
-    import_args.extend(["--replicas", str(options["replicas"])])
-    import_args.extend(["--tls-cert", options["tls_cert"]])
-
+    
     for db, table in options["tables"]:
         if table is None:
             import_args.extend(["--import", db])
@@ -228,13 +230,13 @@ def do_import(temp_dir, options):
         import_args.extend(["--no-secondary-indexes"])
     if options["quiet"]:
         import_args.extend(["--quiet"])
-
-    res = subprocess.call(import_args)
+    
+    res = _import.main(import_args)
 
     if res == 2:
-        raise RuntimeError("Warning: rethinkdb-import did not create some secondary indexes.")
+        raise RuntimeError("Warning: import did not create some secondary indexes.")
     elif res != 0:
-        raise RuntimeError("Error: rethinkdb-import failed")
+        raise RuntimeError("Error: import failed")
     # 'Done' message will be printed by the import script
 
 def run_rethinkdb_import(options):
@@ -251,9 +253,11 @@ def run_rethinkdb_import(options):
     finally:
         shutil.rmtree(temp_dir)
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     try:
-        options = parse_options()
+        options = parse_options(argv)
     except RuntimeError as ex:
         print("Usage: %s" % usage, file=sys.stderr)
         print(ex, file=sys.stderr)
