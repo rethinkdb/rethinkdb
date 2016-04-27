@@ -253,6 +253,7 @@ void artificial_table_t::do_single_update(
         signal_t *interruptor,
         ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout) {
+    cross_thread_mutex_t::acq_t txn = backend->aquire_transaction_mutex();
     rcheck_datum(
         !m_check_permissions || env->get_user_context().is_admin(),
         ql::base_exc_t::PERMISSION_ERROR,

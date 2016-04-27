@@ -204,6 +204,12 @@ tests:
     - js: tbl.get(42)
       ot: {'id':42, 'foo':1, 'bar':7}
 
+      # Inserting and deleting an item
+    - js: tbl.insert({id: "toggle"},{conflict: function(x,y,z) { return null},returnChanges: true})
+      ot: partial({'inserted': 1})
+    - js: tbl.insert({id: "toggle"},{conflict: function(x,y,z) { return null},returnChanges: true})
+      ot: partial({'deleted': 1})
+
       # Returning the wrong thing from the conflict function
     - py: tbl.insert({'id':42, 'foo':1, 'bar':1}, conflict=lambda a,b,c: 2)
       ot: partial({'first_error': 'Inserted value must be an OBJECT (got NUMBER):\n2'})

@@ -106,4 +106,28 @@ TEST(CoroutinesTest, NotifyNow) {
     });
 }
 
+// The following test does not work on 32 bit architectures because it will exceed
+// their virtual memory.
+#if defined (__x86_64__) || defined (_WIN64)
+TEST(CoroutinesTest, LotsOfCoroutines) {
+    // Test that we can spawn a lot of coroutines without exceeding kernel resources or
+    // memory. (This test is still going to need about 2 GB of RAM.)
+    run_in_thread_pool([&]() {
+        // Spawn 200k coroutines
+        int num_waiting = 200000;
+        cond_t all_ran;
+        for (int i = 0; i < num_waiting; ++i) {
+            coro_t::spawn_sometime([&]() {
+                coro_t::yield();
+                --num_waiting;
+                if (num_waiting == 0) {
+                    all_ran.pulse();
+                }
+            });
+        }
+        all_ran.wait_lazily_unordered();
+    });
+}
+#endif
+
 }   /* namespace unittest */

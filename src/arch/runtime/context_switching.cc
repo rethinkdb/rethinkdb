@@ -168,6 +168,7 @@ void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *
 
 #include "arch/runtime/context_switching.hpp"
 
+#include <errno.h>
 #include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -206,22 +207,13 @@ bool artificial_stack_context_ref_t::is_nil() {
 }
 
 artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
-    : stack(_stack_size), stack_size(_stack_size) {
+    : stack(_stack_size), stack_size(_stack_size), overflow_protection_enabled(false) {
 
     /* Tell the operating system that it can unmap the stack space
     (except for the first page, which we are definitely going to need).
     This is an optimization to keep memory consumption in check. */
     guarantee(stack_size >= static_cast<size_t>(getpagesize()));
     madvise(stack.get(), stack_size - getpagesize(), MADV_DONTNEED);
-
-    /* Protect the end of the stack so that we crash when we get a stack
-    overflow instead of corrupting memory. */
-#ifndef THREADED_COROUTINES
-    mprotect(stack.get(), getpagesize(), PROT_NONE);
-#else
-    /* Instruments hangs when running with mprotect and having object identification enabled.
-    We don't need it for THREADED_COROUTINES anyway, so don't use it then. */
-#endif
 
     /* Register our stack with Valgrind so that it understands what's going on
     and doesn't create spurious errors */
@@ -312,9 +304,7 @@ artificial_stack_t::~artificial_stack_t() {
 #endif
 
     /* Undo protections changes */
-#ifndef THREADED_COROUTINES
-    mprotect(stack.get(), getpagesize(), PROT_READ | PROT_WRITE);
-#endif
+    disable_overflow_protection();
 
     /* Return the memory to the operating system right away. This makes
     sense because we keep our own cache of coroutine stacks around and
@@ -326,6 +316,45 @@ artificial_stack_t::~artificial_stack_t() {
     madvise(stack.get(), stack_size, MADV_FREE);
 #else
     madvise(stack.get(), stack_size, MADV_DONTNEED);
+#endif
+}
+
+/* Wrapper around `mprotect` that checks the return code. */
+void checked_mprotect_page(void *page_addr, int prot) {
+    int res = mprotect(page_addr, getpagesize(), prot);
+    if (res != 0) {
+#ifdef __linux__
+        if (get_errno() == ENOMEM) {
+            crash("Failed to (un-)protect a coroutine stack (`mprotect` failed with "
+                  "`ENOMEM`). Try increasing the value of `/proc/sys/vm/max_map_count`.");
+        }
+#endif
+        crash("Failed to (un-)protect a coroutine stack. `mprotect` failed with error "
+              "code %d.", get_errno());
+    }
+}
+
+void artificial_stack_t::enable_overflow_protection() {
+    /* Protect the end of the stack so that we crash when we get a stack
+    overflow instead of corrupting memory. */
+    if (overflow_protection_enabled) {
+        return;
+    }
+    /* OS X Instruments hangs when running with mprotect and having object identification
+    enabled. We don't need it for THREADED_COROUTINES anyway, so don't use it then. */
+#ifndef THREADED_COROUTINES
+    checked_mprotect_page(stack.get(), PROT_NONE);
+    overflow_protection_enabled = true;
+#endif
+}
+
+void artificial_stack_t::disable_overflow_protection() {
+    if (!overflow_protection_enabled) {
+        return;
+    }
+#ifndef THREADED_COROUTINES
+    checked_mprotect_page(stack.get(), PROT_READ | PROT_WRITE);
+    overflow_protection_enabled = false;
 #endif
 }
 

@@ -13,11 +13,13 @@ auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
         server_config_client_t *server_config_client_,
-        const int join_delay_secs_) :
+        const int join_delay_secs_,
+        const int give_up_ms_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
     server_config_client(server_config_client_),
     join_delay_secs(join_delay_secs_),
+    give_up_ms(give_up_ms_),
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
@@ -60,7 +62,6 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
-    static const int give_up_ms = 24 * 60 * 60 * 1000;
     signal_timer_t give_up_timer;
     give_up_timer.start(give_up_ms);
 
