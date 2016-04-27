@@ -1,6 +1,13 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from . import net, query, errors, ast, version
+from . import version
+from .ast import *
+from .errors import *
+from .net import *
+from .query import *
+
+__all__ = ['r', 'rethinkdb'] + errors.__all__
+__version__ = version.version
 
 try:
     import __builtin__ as builtins # Python 2
@@ -19,6 +26,4 @@ rethinkdb = r
 # set the _r attribute to net.Connection
 net.Connection._r = r
 
-__version__ = version.version
 
-__all__ = ['r', 'rethinkdb'] + errors.__all__
