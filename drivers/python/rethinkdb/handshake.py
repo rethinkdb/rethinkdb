@@ -119,7 +119,10 @@ class HandshakeV1_0(object):
                 }).encode("utf-8") + \
                 b'\0'
         elif self._state == 1:
-            json = self._json_decoder.decode(response.decode("utf-8"))
+            response = response.decode("utf-8")
+            if response.startswith("ERROR"):
+                raise ReqlDriverError("Received an unexpected reply, you may be connected to an earlier version of the RethinkDB server.")
+            json = self._json_decoder.decode(response)
             try:
                 if json["success"] == False:
                     if 10 <= json["error_code"] <= 20:
