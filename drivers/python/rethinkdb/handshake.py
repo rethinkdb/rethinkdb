@@ -121,7 +121,7 @@ class HandshakeV1_0(object):
         elif self._state == 1:
             response = response.decode("utf-8")
             if response.startswith("ERROR"):
-                raise ReqlDriverError("Received an unexpected reply, you may be connected to an earlier version of the RethinkDB server.")
+                raise ReqlDriverError("Received an unexpected reply.  You may be attempting to connect to a RethinkDB server that is too old for this driver.  The minimum supported server version is 2.3.0.")
             json = self._json_decoder.decode(response)
             try:
                 if json["success"] == False:
