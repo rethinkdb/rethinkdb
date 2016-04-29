@@ -2,7 +2,7 @@
 
 '''Dispatcher for interactive functions such as repl and backup'''
 
-import os, sys
+import os, sys, traceback
 from . import utils_common, net
 
 def startInterpreter(prog, argv):
@@ -24,6 +24,7 @@ def startInterpreter(prog, argv):
     parser.add_option("-p", "--password",    dest="password",    action="store_true", help="interactively prompt for a password  to connect")
     parser.add_option("--password-file",     dest="password",    metavar="FILENAME",  help="read password required to connect from file")
     parser.add_option("--tls-cert",          dest="tls_cert",    metavar="TLS_CERT",  help="certificate file to use for TLS encryption")
+    parser.add_option("--debug",             dest="debug",       default=False,       help=optparse.SUPPRESS_HELP, action="store_true")
     
     options, _ = parser.parse_args(argv)
     
@@ -53,7 +54,7 @@ def startInterpreter(prog, argv):
     
     ssl_options = None
     if options.tls_cert:
-        connectOptions['ssl_options'] = {'ca_certs':options.tls_cert}
+        connectOptions['ssl'] = {'ca_certs':options.tls_cert}
     
     # -- open connection
     
@@ -65,6 +66,8 @@ def startInterpreter(prog, argv):
     and can be used by calling `run()` on a query without any arguments.''' % (hostname, port)
     except utils_common.r.ReqlDriverError as e:
         banner += '\nWarning: %s' % str(e)
+        if options.debug:
+            banner += '\n' + traceback.format_exc()
     
     # -- start interpreter
     

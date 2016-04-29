@@ -8,8 +8,7 @@ from gevent.event import Event, AsyncResult
 from gevent.lock import Semaphore
 
 from . import ql2_pb2 as p
-from .net import Query, Response, Cursor, maybe_profile
-from .net import Connection as ConnectionBase
+from . import net
 from .errors import *
 
 __all__ = ['Connection']
@@ -23,9 +22,9 @@ class GeventCursorEmpty(ReqlCursorEmpty, StopIteration):
 
 
 # TODO: allow users to set sync/async?
-class GeventCursor(Cursor):
+class GeventCursor(net.Cursor):
     def __init__(self, *args, **kwargs):
-        Cursor.__init__(self, *args, **kwargs)
+        super(GeventCursor, self).__init__(*args, **kwargs)
         self.new_response = Event()
 
     def __iter__(self):
@@ -38,7 +37,7 @@ class GeventCursor(Cursor):
         return GeventCursorEmpty()
 
     def _extend(self, res):
-        Cursor._extend(self, res)
+        super(GeventCursor, self)._extend(res)
         self.new_response.set()
         self.new_response.clear()
 
@@ -67,13 +66,23 @@ class SocketWrapper(object):
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
             if len(self.ssl) > 0:
-                ssl_context = self._get_ssl_context(self.ssl["ca_certs"])
                 try:
-                    self._socket = ssl_context.wrap_socket(self._socket,
-                                                           server_hostname=self.host)
+                    if hasattr(ssl, 'SSLContext'): # Python2.7 and 3.2+, or backports.ssl
+                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                        if hasattr(ssl_context, "options"):
+                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
+                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
+                        self.ssl_context.verify_mode = ssl.CERT_REQUIRED
+                        self.ssl_context.check_hostname = True # redundant with match_hostname
+                        self.ssl_context.load_verify_locations(self.ssl["ca_certs"])
+                        self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
+                    else: # this does not disable SSLv2 or SSLv3
+                        self._socket = ssl.wrap_socket(
+                            self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
+                            ca_certs=self.ssl["ca_certs"])
                 except IOError as exc:
                     self._socket.close()
-                    raise ReqlDriverError("SSL handshake failed: %s" % (str(exc),))
+                    raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
                 try:
                     match_hostname(self._socket.getpeercert(), hostname=self.host)
                 except CertificateError:
@@ -114,9 +123,6 @@ class SocketWrapper(object):
             self.close()
             raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
                                   (self.host, self.port, ex))
-
-    def is_open(self):
-        return self._socket is not None
 
     def close(self):
         if self._socket is not None:
@@ -181,16 +187,6 @@ class SocketWrapper(object):
                 self.close()
                 raise
 
-    def _get_ssl_context(self, ca_certs):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        if hasattr(ctx, "options"):
-            ctx.options |= getattr(ssl, "OP_NO_SSLv2", 0)
-            ctx.options |= getattr(ssl, "OP_NO_SSLv3", 0)
-
-        ctx.verify_mode = ssl.CERT_REQUIRED
-        ctx.check_hostname = True
-        ctx.load_verify_locations(ca_certs)
-        return ctx
 
 class ConnectionInstance(object):
     def __init__(self, parent, io_loop=None):
@@ -231,7 +227,7 @@ class ConnectionInstance(object):
         self._cursor_cache = { }
 
         if noreply_wait:
-            noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
+            noreply = net.Query(pQuery.NOREPLY_WAIT, token, None, None)
             self.run_query(noreply, False)
 
         try:
@@ -274,13 +270,13 @@ class ConnectionInstance(object):
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, async_res = self._user_queries[token]
-                    res = Response(token, buf, self._parent._get_json_decoder(query))
+                    res = net.Response(token, buf, self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
-                        async_res.set(maybe_profile(res.data[0], res))
+                        async_res.set(net.maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
                         cursor = GeventCursor(self, query, res)
-                        async_res.set(maybe_profile(cursor, res))
+                        async_res.set(net.maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
                         async_res.set(None)
                     else:
@@ -293,6 +289,6 @@ class ConnectionInstance(object):
                 self.close(False, None, ex)
 
 
-class Connection(ConnectionBase):
+class Connection(net.Connection):
     def __init__(self, *args, **kwargs):
-        ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
