@@ -5,6 +5,7 @@ import hmac
 import random
 import struct
 import sys
+import threading
 
 from . import ql2_pb2
 from .errors import *
@@ -261,6 +262,21 @@ class HandshakeV1_0(object):
 
         return result == 0
 
+    class thread_local_cache(threading.local):
+        def __init__(self):
+            self.cache = {}
+
+        def set(self, key, val):
+            self.cache[key] = val
+
+        def get(self, key):
+            return self.cache[key]
+
+        def has(self, key):
+            return key in self.cache
+
+    pbkdf2_cache = thread_local_cache()
+
     @staticmethod
     def __pbkdf2_hmac(hash_name, password, salt, iterations):
         assert hash_name == "sha256", hash_name
@@ -274,6 +290,11 @@ class HandshakeV1_0(object):
             except TypeError:
                 return unhexlify(bytes("%064x" % value))
 
+        cache_string = password + "," + salt + "," + str(iterations)
+
+        if HandshakeV1_0.pbkdf2_cache.has(cache_string):
+            return HandshakeV1_0.pbkdf2_cache.get(cache_string)
+
         mac = hmac.new(password, None, hashlib.sha256)
 
         def digest(msg, mac=mac):
@@ -286,4 +307,7 @@ class HandshakeV1_0(object):
         for c in xrange(iterations - 1):
             t = digest(t)
             u ^= from_bytes(t)
-        return to_bytes(u)
+
+        u = to_bytes(u)
+        HandshakeV1_0.pbkdf2_cache.set(cache_string, u)
+        return u
