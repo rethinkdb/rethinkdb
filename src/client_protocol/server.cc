@@ -264,9 +264,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     } catch (const interrupted_exc_t &) {
         // TLS handshake was interrupted.
         return;
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+    } catch (const crypto::openssl_error_t &err) {
         // TLS handshake failed.
-        logWRN("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        logWRN("Driver connection TLS handshake failed: %s", err.what());
         return;
     }
 

@@ -1,6 +1,8 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "crypto/error.hpp"
 
+#include "utils.hpp"
+
 namespace crypto {
 
 openssl_error_category_t::openssl_error_category_t() {
@@ -17,11 +19,9 @@ openssl_error_category_t::openssl_error_category_t() {
             return "Received a plain HTTP request on the HTTPS port.";
         default:
             char const *_message = ERR_reason_error_string(condition);
-            if (_message == nullptr) {
-                return "unknown error";
-            } else {
-                return _message;
-            }
+            return strprintf("%s (OpenSSL error %d)",
+                             _message == nullptr ? "unknown error" : _message,
+                             condition);
     }
 }
 
