@@ -829,7 +829,9 @@ public:
     }
 
     ~fp_wrapper_t() {
-        fclose(fp);
+        if (fp != nullptr) {
+            fclose(fp);
+        }
     }
 
     FILE *get() {
@@ -938,7 +940,7 @@ bool initialize_tls_ctx(
         fp_wrapper_t dhparams_fp(dhparams_filename->c_str(), "r");
         if (nullptr == dhparams_fp.get()) {
             logERR(
-                "unable to open %s for reading: %s",
+                "Unable to open %s for reading: %s",
                 dhparams_filename->c_str(),
                 errno_string(get_errno()).c_str());
             return false;
@@ -947,17 +949,23 @@ bool initialize_tls_ctx(
         DH *dhparams = PEM_read_DHparams(
             dhparams_fp.get(), nullptr, nullptr, nullptr);
         if (nullptr == dhparams) {
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+            const char *err_str = ERR_reason_error_string(err_code);
             logERR(
-                "unable to read DH parameters from %s: %s",
+                "Unable to read DH parameters from %s: %s (OpenSSL error %lu)",
                 dhparams_filename->c_str(),
-                ERR_error_string(ERR_get_error(), nullptr));
+                err_str == nullptr ? "unknown error" : err_str,
+                err_code);
             return false;
         }
 
         if (1 != SSL_CTX_set_tmp_dh(tls_ctx_out->get(), dhparams)) {
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+            const char *err_str = ERR_reason_error_string(err_code);
             logERR(
-                "unable to set DH parameters: %s",
-                ERR_error_string(ERR_get_error(), nullptr));
+                "Unable to set DH parameters: %s (OpenSSL error %lu)",
+                err_str == nullptr ? "unknown error" : err_str,
+                err_code);
             return false;
         }
     }
