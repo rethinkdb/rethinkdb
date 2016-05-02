@@ -150,14 +150,17 @@ class Metacluster(object):
 class Cluster(object):
     """A group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
     
-    metacluster = None
-    processes = None
+    tlsKeyPath    = None
+    tlsCertPath   = None # used as the CA and cert
+    
+    metacluster   = None
+    processes     = None
     output_folder = None
     
     _startLock = thread.allocate_lock()
     _hasStartLock = None # the Process that has it
     
-    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
+    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=False):
         
         # -- input validation
         
@@ -193,6 +196,19 @@ class Cluster(object):
                 initial_servers[i] = str(initial_servers[i])
         else:
             raise ValueError('the initial_servers input must be a number or a list of names/paths, got: %r' % initial_servers)
+        
+        # - tls
+        
+        if tls is True:
+            try:
+                self.tlsKeyPath, self.tlsCertPath = self.generateTlsCerts(self.output_folder)
+            except Exception as e:
+                traceback.print_exc()
+                raise Exception('Unable to create tls key/certificate: %s' % str(e))
+        elif tls is False or None:
+            tls = None
+        elif not hasattr(tls, 'has_key') or not 'key' in tls or not 'cert' in tls:
+            raise ValueError('Incorrect value for tls: %s' % tls)
         
         # -- start servers
         
@@ -243,6 +259,58 @@ class Cluster(object):
         finally:
             for server in self.processes:
                 server.stop()
+    
+    @staticmethod
+    def generateTlsCerts(folder):
+        import OpenSSL
+        
+        assert os.path.isdir(folder)
+        keyPath = os.path.join(folder, 'key.pem')
+        certPath = os.path.join(folder, 'cert.pem')
+        
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        
+        assert not os.path.exists(keyPath)
+        assert not os.path.exists(certPath)
+        
+        # key
+        key = None
+        if not os.path.exists(keyPath):
+            key = OpenSSL.crypto.PKey()
+            key.generate_key(OpenSSL.crypto.TYPE_RSA, 1024)
+            keyPath = os.path.join(folder, 'key.pem')
+            with open(keyPath, 'wb') as keyFile:
+                keyFile.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
+        
+        # ToDo: switch this to create a CA rather than a self-signed cert
+        
+        # certificiate
+        if not os.path.exists(certPath):
+            if key is None:
+                with open(keyPath, 'rb') as keyFile:
+                    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, keyFile.read())
+            
+            cert = OpenSSL.crypto.X509()
+            cert.get_subject().C  = "US"
+            cert.get_subject().ST = "California"
+            cert.get_subject().L  = "Mountain View"
+            cert.get_subject().O  = "RethinkDB"
+            cert.get_subject().OU = "Department of Testing"
+            cert.get_subject().CN = 'localhost'
+            cert.set_serial_number(1)
+            cert.gmtime_adj_notBefore(0)
+            cert.gmtime_adj_notAfter(60*60*24*4) # 4 days
+            cert.set_issuer(cert.get_subject())
+            cert.set_pubkey(key)
+            cert.sign(key, 'sha1')
+            certPath = os.path.join(folder, 'cert.pem')
+            with open(certPath, 'wb') as certFile:
+                certFile.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+        
+        return (keyPath, certPath)
     
     def update_routing(self, target=None):
         '''Update the routing tables that block servers from one cluster from seeing those from another'''
@@ -557,17 +625,19 @@ class Process(object):
         self.returncode = None
         self.killed = False
         
-        # -- copy the options
+        # -- setup options
+        
+        # - copy the options
         
         options = copy.copy(self.args)
         
-        # -- set the local_cluster_port
+        # - set the local_cluster_port
         
         if not '--client-port' in options and not any([x.startswith('--client-port=') for x in options]):
             # allows resunder to know what port to block
             options += ['--client-port', str(self.local_cluster_port)]
         
-        # -- set to join the cluster
+        # - set to join the cluster
         
         joinOptions = []
         try:
@@ -581,6 +651,16 @@ class Process(object):
             if joinOptions and self.cluster._hasStartLock is self:
                 self.cluster._hasStartLock = None
                 self.cluster._startLock.release()
+        
+        # - tls options
+        
+        if self.cluster.tlsKeyPath and self.cluster.tlsCertPath:
+            options += [
+                '--http-tls-key', self.cluster.tlsKeyPath, '--http-tls-cert', self.cluster.tlsCertPath, 
+                '--driver-tls-key', self.cluster.tlsKeyPath, '--driver-tls-cert', self.cluster.tlsCertPath,
+                '--cluster-tls-key', self.cluster.tlsKeyPath, '--cluster-tls-cert', self.cluster.tlsCertPath,
+                '--cluster-tls-ca', self.cluster.tlsCertPath
+            ]
         
         # -- get the length of an exiting log file
         
