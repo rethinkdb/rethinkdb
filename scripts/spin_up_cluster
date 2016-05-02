@@ -30,7 +30,8 @@ def main():
     parser.add_option(      '--io-threads', dest='io_threads', metavar='COUNT',        default=None, type="int")
     parser.add_option('-o', '--output-dir', dest='output_dir', metavar='DIRNAME',      default=None)
     parser.add_option('-s', '--servers',    dest='servers',    metavar='COUNT',        default=2,    type="int")
-    (options, args) = parser.parse_args()
+    parser.add_option(      '--tls',        dest='tls',        action='store_true',    default=False)
+    options, args = parser.parse_args()
     
     options.valgrind = False
     
@@ -74,6 +75,18 @@ def main():
             parser.error('--io-threads must be 1 or greater')
         extraOptions += ['--io-threads', str(options.io_threads)]
     
+    if options.output_dir:
+        if os.path.exists(options.output_dir) and not os.path.isdir(options.output_dir):
+            parser.error('A file already existed at the -o/--output-dir location: %s' % options.output_dir)
+        options.output_dir = os.path.realpath(options.output_dir)
+        if not os.path.exists(os.path.dirname(options.output_dir)):
+            parser.error('The parent directory of -o/--output-dir does not exist: %s' % os.path.dirname(options.output_dir))
+        if not os.path.exists(options.output_dir):
+            try:
+                os.mkdir(options.output_dir)
+            except Exception as e:
+                parser.error('Unable to create ouput dir: %s' % e)
+    
     # - command prefix
     
     commandPrefix = []
@@ -82,32 +95,53 @@ def main():
         commandPrefix = ['valgrind', '--leak-check=full', '--track-origins=yes', '--suppressions=' + os.path.join(__file__, 'rethinkdb-valgrind-suppressions.supp')]
     
     # -- print the server information
+    
     print(options.binary)
     versionString = ''
     try:
         versionString, _ = subprocess.Popen([options.binary, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
     except Exception as e:
         parser.error('Unable to get RethinkDB version: %s' % str(e))
-    print('Using rethinkdb binary from: %s\n\tversion: %s' % (options.binary, versionString.strip()))
-
+    print('Using rethinkdb binary from: %s\n\tversion:  %s' % (options.binary, versionString.strip()))
+    
     # -- start the cluster
     
-    cluster = driver.Cluster(
-        initial_servers = options.servers,
-        output_folder   = options.output_dir,
-        console_output  = True,
-        executable_path = options.binary,
-        command_prefix  = commandPrefix,
-        extra_options   = extraOptions
-    )
+    cluster = None
+    try:
+        cluster = driver.Cluster(
+            initial_servers = options.servers,
+            output_folder   = options.output_dir,
+            console_output  = True,
+            executable_path = options.binary,
+            command_prefix  = commandPrefix,
+            extra_options   = extraOptions,
+            tls             = options.tls
+        )
+    except Exception as e:
+        parser.error('Starting the cluster failed! %s' % str(e))
     
     # - print the cluster information
     
     print('\t%sdata dir: %s' % ('' if options.output_dir else 'temporary ', cluster.output_folder))
-
+    if options.tls:
+        print('\tcert:     %s' % cluster.tlsCertPath)
+    
     for server in cluster:
-        print('Server %s (pid: %d)\n\tdata folder:  %s\n\tcluster port: %d\n\tdriver port:  %d\n\tweb admin:    http://%s:%s' %
-            (server.name, server.pid, server.data_path, server.cluster_port, server.driver_port, server.host, server.http_port))
+        print('''\
+Server %(name)s (pid: %(pid)d)
+    data folder:  %(folder)s
+    cluster port: %(cluster)d
+    driver port:  %(driver)d
+    web admin:    http%(secure)s://%(host)s:%(http)s''' % {
+                'name':server.name,
+                'pid':server.pid,
+                'folder':server.data_path,
+                'cluster':server.cluster_port,
+                'driver':server.driver_port,
+                'host':server.host,
+                'secure':'s' if options.tls else '',
+                'http':server.http_port
+            })
     
     print('To shut down servers use ctl-c')
     
