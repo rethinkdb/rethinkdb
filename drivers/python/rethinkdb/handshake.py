@@ -270,10 +270,7 @@ class HandshakeV1_0(object):
             self.cache[key] = val
 
         def get(self, key):
-            return self.cache[key]
-
-        def has(self, key):
-            return key in self.cache
+            return self.cache.get(key)
 
     pbkdf2_cache = thread_local_cache()
 
@@ -290,10 +287,12 @@ class HandshakeV1_0(object):
             except TypeError:
                 return unhexlify(bytes("%064x" % value))
 
-        cache_string = password + "," + salt + "," + str(iterations)
+        cache_key = (password, salt, iterations)
 
-        if HandshakeV1_0.pbkdf2_cache.has(cache_string):
-            return HandshakeV1_0.pbkdf2_cache.get(cache_string)
+        cache_result = HandshakeV1_0.pbkdf2_cache.get(cache_key)
+
+        if cache_result is not None:
+            return cache_result
 
         mac = hmac.new(password, None, hashlib.sha256)
 
@@ -309,5 +308,5 @@ class HandshakeV1_0(object):
             u ^= from_bytes(t)
 
         u = to_bytes(u)
-        HandshakeV1_0.pbkdf2_cache.set(cache_string, u)
+        HandshakeV1_0.pbkdf2_cache.set(cache_key, u)
         return u
