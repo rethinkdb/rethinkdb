@@ -83,9 +83,9 @@ private:
         /* Add a sorting to the table if we're doing indexed sorting. */
         } else if (index.has()) {
             rcheck(tbl_slice.has(), base_exc_t::LOGIC,
-                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE, not on a `NAME_OF_TYPE_ORDER_BY_WAS_CALLED_ON`.  Make sure ORDER_BY comes before any transformations such as MAP or FILTER.");
             rcheck(!seq.has(), base_exc_t::LOGIC,
-                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE, not on a `NAME_OF_TYPE_ORDER_BY_WAS_CALLED_ON`.  Make sure ORDER_BY comes before any transformations such as MAP or FILTER.");
             sorting_t sorting = sorting_t::UNORDERED;
             if (auto _optarg = raw_term.optarg("index")) {
                 sorting = (_optarg->type() == Term::DESC) ?
