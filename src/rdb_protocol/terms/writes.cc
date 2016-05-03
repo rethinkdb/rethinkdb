@@ -278,7 +278,7 @@ private:
             rcheck(args->arg_is_deterministic(1) == deterministic_t::always,
                    base_exc_t::LOGIC,
                    "Could not prove argument deterministic.  "
-                   "Maybe you want to use the non_atomic flag?");
+                   "Maybe you want to use the non_atomic flag in the Update function");
         }
         counted_t<const func_t> f =
             args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
