@@ -332,7 +332,7 @@ class SocketWrapper(object):
         except Exception as ex:
             self.close()
             raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
-                                  (self.host, self.port, ex))
+                                  (self.host, self.port, str(ex)))
 
     def is_open(self):
         return self._socket is not None
