@@ -399,11 +399,10 @@ def do_fuzz(cluster, cluster_lock, stop_event, random_seed):
         if server is not None:
             try:
                 conn = r.connect(server.host, server.driver_port)
+                while conn.is_open() and not stop_event.is_set():
+                    run_random_query(conn, weighted_ops)
             except r.ReqlError as ex:
                 check_error("Connection creation", ex)
-
-            while conn.is_open() and not stop_event.is_set():
-                run_random_query(conn, weighted_ops)
         else:
             time.sleep(1) # No ready servers - try again later
 
