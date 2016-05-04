@@ -52,7 +52,7 @@ class GeventCursor(net.Cursor):
 
 
 # TODO: would be nice to share this code with net.py
-class SocketWrapper(object):
+class SocketWrapper(net.SocketWrapper):
     def __init__(self, parent):
         self.host = parent._parent.host
         self.port = parent._parent.port
