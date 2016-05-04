@@ -24,7 +24,7 @@ public:
     public:
         acq_t() : lock_(nullptr) { }
         explicit acq_t(cross_thread_mutex_t *l);
-        acq_t(cross_thread_mutex_t::acq_t &&movee)
+        acq_t(acq_t &&movee)
             : lock_(nullptr) {
             swap(movee);
         }
