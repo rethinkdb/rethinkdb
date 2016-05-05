@@ -20,8 +20,7 @@ from twisted.internet import reactor, defer, threads
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.failure import Failure
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                os.pardir, os.pardir, "common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver
 import utils
 
