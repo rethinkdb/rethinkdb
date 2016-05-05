@@ -354,8 +354,7 @@ void table_query_client_t::dispatch_outdated_read(
             }
             if (!chosen_relationship && !potential_relationships.empty()) {
                 chosen_relationship
-                    = potential_relationships[
-                        distributor_rng.randint(potential_relationships.size())];
+                    = potential_relationships[randint(potential_relationships.size())];
             }
             if (!chosen_relationship) {
                 /* Don't bother looking for masters; if there are no direct

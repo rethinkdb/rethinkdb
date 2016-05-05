@@ -160,8 +160,6 @@ private:
     rdb_context_t *const ctx;
     table_meta_client_t *m_table_meta_client;
 
-    rng_t distributor_rng;
-
     std::map<std::pair<peer_id_t, uuid_u>, scoped_ptr_t<cond_t> > coro_stoppers;
     region_map_t<std::set<relationship_t *> > relationships;
 
