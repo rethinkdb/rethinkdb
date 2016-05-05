@@ -3439,6 +3439,9 @@ void feed_t::del_sub_with_lock(
 template<class Map, class Key, class Sub>
 size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
     auto subvec_it = map->find(key);
+    if (subvec_it == map->end()) {
+        return 0;
+    }
     size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
     // If there are no more subscribers, remove the key from the map.
     auto it = subvec_it->second.begin();

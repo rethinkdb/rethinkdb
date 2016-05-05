@@ -270,9 +270,9 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        auto cserver = store->get_or_make_changefeed_server(s.shard_region);
         guarantee(cserver.first != nullptr);
-        cserver.first->add_client(s.addr, s.region, cserver.second);
+        cserver.first->add_client(s.addr, s.shard_region, cserver.second);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
@@ -351,7 +351,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(s.current_shard);
+        auto cserver = store->get_or_make_changefeed_server(*s.current_shard);
         guarantee(cserver.first != nullptr);
         cserver.first->add_limit_client(
             s.addr,
