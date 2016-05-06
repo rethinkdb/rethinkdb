@@ -30,7 +30,7 @@ older version.
    (#5708)
  * Fixed a crash with the message
    `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` that could occur when
-   using `orderBy.limit` changefeeds on the primary index (#5745)
+   using changefeeds while resharding (#5745)
  * Added a `--tls-min-protocol` server option for reducing the minimum required TLS
    protocol version. Drivers using an old OpenSSL version (e.g. on OS X) might require
    this option in order to connect to a TLS-enabled RethinkDB server (#5734)
