@@ -218,8 +218,10 @@ void query_cache_t::ref_t::fill_response(response_t *res) {
             res->set_profile(trace->as_datum());
         }
     } catch (const interrupted_exc_t &ex) {
+        // We grab this before `terminate_internal` which will always pulse it.
+        bool persistent_interruptor_pulsed = entry->persistent_interruptor.is_pulsed();
         query_cache->terminate_internal(entry);
-        if (entry->persistent_interruptor.is_pulsed()) {
+        if (persistent_interruptor_pulsed) {
             std::string message;
             switch (entry->interrupt_reason) {
             case interrupt_reason_t::DELETE:

@@ -871,15 +871,12 @@ void linux_tcp_conn_t::on_event(int /* events */) {
 
 #ifdef ENABLE_TLS
 tls_conn_wrapper_t::tls_conn_wrapper_t(SSL_CTX *tls_ctx)
-    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
+    THROWS_ONLY(crypto::openssl_error_t) {
     ERR_clear_error();
 
     conn = SSL_new(tls_ctx);
     if (nullptr == conn) {
-        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
-
-        throw linux_tcp_conn_t::connect_failed_exc_t(
-            err_code, ERR_error_string(err_code, nullptr));
+        throw crypto::openssl_error_t(ERR_get_error());
     }
 
     // Add support for partial writes.
@@ -892,11 +889,9 @@ tls_conn_wrapper_t::~tls_conn_wrapper_t() {
 
 // Set the underlying IO.
 void tls_conn_wrapper_t::set_fd(fd_t sock)
-    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t) {
+    THROWS_ONLY(crypto::openssl_error_t) {
     if (0 == SSL_set_fd(conn, sock)) {
-        unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
-        throw linux_tcp_conn_t::connect_failed_exc_t(
-            err_code, ERR_error_string(err_code, nullptr));
+        throw crypto::openssl_error_t(ERR_get_error());
     }
 }
 
@@ -904,8 +899,9 @@ void tls_conn_wrapper_t::set_fd(fd_t sock)
 will establish a TCP connection to the peer at the given host:port and then we
 wrap the tcp connection in TLS using the configuration in the given tls_ctx. */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
-    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
-    signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+        SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+        signal_t *interruptor, int local_port)
+        THROWS_ONLY(connect_failed_exc_t, crypto::openssl_error_t, interrupted_exc_t) :
     linux_tcp_conn_t(host, port, interruptor, local_port),
     conn(tls_ctx) {
 
@@ -916,8 +912,8 @@ linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
 
 /* This is the server version of the constructor */
 linux_secure_tcp_conn_t::linux_secure_tcp_conn_t(
-    SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor)
-    THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+        SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor)
+        THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t) :
     linux_tcp_conn_t(_sock),
     conn(tls_ctx) {
 
@@ -939,7 +935,7 @@ void linux_secure_tcp_conn_t::rethread(threadnum_t thread) {
 }
 
 void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
-    THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+        THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t) {
     // Perform TLS handshake.
     while (true) {
         ERR_clear_error();
@@ -951,8 +947,7 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
 
         if (ret == 0) {
             // The handshake failed but the connection shut down cleanly.
-            throw linux_tcp_conn_t::connect_failed_exc_t(
-                0, "TLS handshake failed, shutdown cleanly");
+            throw crypto::openssl_error_t(ERR_get_error());
         }
 
         switch (SSL_get_error(conn.get(), ret)) {
@@ -974,9 +969,7 @@ void linux_secure_tcp_conn_t::perform_handshake(signal_t *interruptor)
             break;
         default:
             // Some other error with the underlying I/O.
-            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
-            throw linux_tcp_conn_t::connect_failed_exc_t(
-                err_code, ERR_error_string(err_code, nullptr));
+            throw crypto::openssl_error_t(ERR_get_error());
         }
 
         if (interruptor->is_pulsed()) {
@@ -1229,7 +1222,7 @@ linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
     tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
-) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+) THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t) {
     // We pass ownership of `fd_` to the connection.
     fd_t sock = fd_;
     fd_ = INVALID_FD;
@@ -1244,7 +1237,7 @@ void linux_tcp_conn_descriptor_t::make_server_connection(
 
 void linux_tcp_conn_descriptor_t::make_server_connection(
     tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
-) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t) {
+) THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t) {
     // We pass ownership of `fd_` to the connection.
     fd_t sock = fd_;
     fd_ = INVALID_FD;

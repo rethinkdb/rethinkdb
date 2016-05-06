@@ -69,6 +69,9 @@ class ReqlError(Exception):
                 self.message.rstrip("."),
                 self.query_printer.print_query(),
                 self.query_printer.print_carrots()))
+    
+    def __repr__(self):
+        return "<%s instance: %s >" % (self.__class__.__name__, str(self))
 
 RqlError = ReqlError
 

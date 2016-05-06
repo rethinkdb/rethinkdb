@@ -18,20 +18,29 @@
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/table_common.hpp"
 
-void store_t::note_reshard() {
-    // We acquire `changefeed_servers_lock` and move all pointers out of
-    // `changefeed_servers`. We then destruct the servers in a separate step,
+void store_t::note_reshard(const region_t &shard_region) {
+    // We acquire `changefeed_servers_lock` and move the matching pointer out of
+    // `changefeed_servers`. We then destruct the server in a separate step,
     // after releasing the lock.
     // The reason we do this is to avoid deadlocks that could happen if someone
     // was holding a lock on the drainer in one of the changefeed servers,
     // and was at the same time trying to acquire the `changefeed_servers_lock`.
-    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > to_destruct;
+    scoped_ptr_t<ql::changefeed::server_t> to_destruct;
     {
         rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
         ASSERT_NO_CORO_WAITING;
-        std::swap(changefeed_servers, to_destruct);
+        // Shards use unbounded right boundaries, while changefeed queries use MAX_KEY.
+        // We must convert the boundary here so it matches.
+        region_t modified_region = shard_region;
+        modified_region.inner.right =
+            key_range_t::right_bound_t(modified_region.inner.right_or_max());
+        auto it = changefeed_servers.find(modified_region);
+        if (it != changefeed_servers.end()) {
+            to_destruct = std::move(it->second);
+            changefeed_servers.erase(it);
+        }
     }
-    // The changefeed servers are actually getting destructed here. This might
+    // The changefeed server is actually getting destructed here. This might
     // block.
 }
 
@@ -270,9 +279,9 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        auto cserver = store->get_or_make_changefeed_server(s.shard_region);
         guarantee(cserver.first != nullptr);
-        cserver.first->add_client(s.addr, s.region, cserver.second);
+        cserver.first->add_client(s.addr, s.shard_region, cserver.second);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
@@ -351,7 +360,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(s.current_shard);
+        auto cserver = store->get_or_make_changefeed_server(*s.current_shard);
         guarantee(cserver.first != nullptr);
         cserver.first->add_limit_client(
             s.addr,
@@ -1025,6 +1035,9 @@ std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefee
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
         store_t::get_or_make_changefeed_server(const region_t &region) {
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+    // We assume that changefeeds use MAX_KEY instead of `unbounded` right bounds.
+    // If this ever changes, `note_reshard` will need to be updated.
+    guarantee(!region.inner.right.unbounded);
     guarantee(ctx != nullptr);
     guarantee(ctx->manager != nullptr);
     auto existing = changefeed_server(region, &acq);

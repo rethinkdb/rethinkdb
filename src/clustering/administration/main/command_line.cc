@@ -833,7 +833,9 @@ public:
     }
 
     ~fp_wrapper_t() {
-        fclose(fp);
+        if (fp != nullptr) {
+            fclose(fp);
+        }
     }
 
     FILE *get() {
@@ -854,11 +856,25 @@ bool initialize_tls_ctx(
         return false;
     }
 
-    // Only allow TLS v1.2, prefer server ciphers, and always generate new keys
-    // for DHE or ECDHE.
-    SSL_CTX_set_options(
-        tls_ctx_out->get(),
-        SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1);
+    boost::optional<std::string> min_protocol_opt = get_optional_option(
+        opts, "--tls-min-protocol");
+    long protocol_flags = // NOLINT(runtime/int)
+        SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1;
+    if (min_protocol_opt) {
+        if (*min_protocol_opt == "TLSv1") {
+            protocol_flags ^= SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1;
+        } else if (*min_protocol_opt == "TLSv1.1") {
+            protocol_flags ^= SSL_OP_NO_TLSv1_1;
+        } else if (*min_protocol_opt == "TLSv1.2") {
+            // Already the default
+        } else {
+            logERR("Unrecognized TLS protocol version '%s'.", min_protocol_opt->c_str());
+            return false;
+        }
+    }
+    SSL_CTX_set_options(tls_ctx_out->get(), protocol_flags);
+
+    // Prefer server ciphers, and always generate new keys for DHE or ECDHE.
     SSL_CTX_set_options(
         tls_ctx_out->get(),
         SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE);
@@ -878,7 +894,7 @@ bool initialize_tls_ctx(
     and newer (1.0.2) versions seem to be okay with 'EECDH' though. */
     std::string ciphers = ciphers_opt ? *ciphers_opt : "EECDH+AESGCM";
     if (0 == SSL_CTX_set_cipher_list(tls_ctx_out->get(), ciphers.c_str())) {
-        logNTC("No secure cipher suites available\n");
+        logERR("No secure cipher suites available.\n");
         return false;
     }
 
@@ -903,13 +919,13 @@ bool initialize_tls_ctx(
 
     int curve_nid = OBJ_txt2nid(curve_name.c_str());
     if (NID_undef == curve_nid) {
-        logNTC("No elliptic curve found corresponding to name: %s", curve_name.c_str());
+        logERR("No elliptic curve found corresponding to name '%s'.", curve_name.c_str());
         return false;
     }
 
     EC_KEY *ec_key = EC_KEY_new_by_curve_name(curve_nid);
     if (nullptr == ec_key) {
-        logNTC("Unable to get Elliptic Curve by name: %s", curve_name.c_str());
+        logERR("Unable to get elliptic curve by name '%s'.", curve_name.c_str());
         return false;
     }
 
@@ -942,7 +958,7 @@ bool initialize_tls_ctx(
         fp_wrapper_t dhparams_fp(dhparams_filename->c_str(), "r");
         if (nullptr == dhparams_fp.get()) {
             logERR(
-                "unable to open %s for reading: %s",
+                "Unable to open '%s' for reading: %s",
                 dhparams_filename->c_str(),
                 errno_string(get_errno()).c_str());
             return false;
@@ -951,17 +967,23 @@ bool initialize_tls_ctx(
         DH *dhparams = PEM_read_DHparams(
             dhparams_fp.get(), nullptr, nullptr, nullptr);
         if (nullptr == dhparams) {
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+            const char *err_str = ERR_reason_error_string(err_code);
             logERR(
-                "unable to read DH parameters from %s: %s",
+                "Unable to read DH parameters from '%s': %s (OpenSSL error %lu)",
                 dhparams_filename->c_str(),
-                ERR_error_string(ERR_get_error(), nullptr));
+                err_str == nullptr ? "unknown error" : err_str,
+                err_code);
             return false;
         }
 
         if (1 != SSL_CTX_set_tmp_dh(tls_ctx_out->get(), dhparams)) {
+            unsigned long err_code = ERR_get_error(); // NOLINT(runtime/int)
+            const char *err_str = ERR_reason_error_string(err_code);
             logERR(
-                "unable to set DH parameters: %s",
-                ERR_error_string(ERR_get_error(), nullptr));
+                "Unable to set DH parameters: %s (OpenSSL error %lu)",
+                err_str == nullptr ? "unknown error" : err_str,
+                err_code);
             return false;
         }
     }
@@ -1687,13 +1709,19 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
         "--cluster-tls-ca ca_filename",
         "CA certificate bundle used to verify cluster peer certificates");
 
-    // Generic TLS options, for customizing cipher suites.
+    // Generic TLS options, for customizing the supported protocols and cipher suites.
+    options_out->push_back(options::option_t(options::names_t("--tls-min-protocol"),
+                                             options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--tls-ciphers"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--tls-ecdh-curve"),
                                              options::OPTIONAL));
     options_out->push_back(options::option_t(options::names_t("--tls-dhparams"),
                                              options::OPTIONAL));
+    help.add(
+        "--tls-min-protocol protocol",
+        "the minimum TLS protocol version that the server accepts; options are "
+        "'TLSv1', 'TLSv1.1', 'TLSv1.2'; default is 'TLSv1.2'");
     help.add(
         "--tls-ciphers cipher_list",
         "specify a list of TLS ciphers to use; default is 'EECDH+AESGCM'");
@@ -1702,7 +1730,8 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
         "specify a named elliptic curve to use for ECDHE; default is 'prime256v1'");
     help.add(
         "--tls-dhparams dhparams_filename",
-        "provide parameters for DHE key agreement; REQUIRED if using DHE cipher suites; at least 2048-bit recommended");
+        "provide parameters for DHE key agreement; REQUIRED if using DHE cipher suites; "
+        "at least 2048-bit recommended");
 
     return help;
 }

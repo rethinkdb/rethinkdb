@@ -50,7 +50,7 @@ public:
         return region;
     }
 
-    virtual void note_reshard() = 0;
+    virtual void note_reshard(const region_t &shard_region) = 0;
 
     virtual void new_read_token(read_token_t *token_out) = 0;
     virtual void new_write_token(write_token_t *token_out) = 0;

@@ -6,6 +6,10 @@
 
 #include "debug.hpp"
 
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to destruct an `op_term_t`.
+const size_t MIN_TERM_DESTRUCT_STACK_SPACE = 16 * KILOBYTE;
+
 namespace ql {
 argspec_t::argspec_t(int n) : min(n), max(n), eval_flags(NO_FLAGS) { }
 argspec_t::argspec_t(int _min, int _max)
@@ -194,7 +198,15 @@ op_term_t::op_term_t(compile_env_t *env, const raw_term_t &term,
 
         });
 }
-op_term_t::~op_term_t() { }
+
+op_term_t::~op_term_t() {
+    // Delete `arg_terms` and `optargs` explicitly to avoid stack overflows during
+    // destruction.
+    call_with_enough_stack([&] {
+        optargs.clear();
+        arg_terms.reset();
+    }, MIN_TERM_DESTRUCT_STACK_SPACE);
+}
 
 scoped_ptr_t<val_t> op_term_t::term_eval(scope_env_t *env,
                                          eval_flags_t eval_flags) const {
