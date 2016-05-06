@@ -51,5 +51,5 @@ if not utils.supportsTerminalColors():
 
 os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
 
-command = ['mocha'] + mochaOptions + [os.path.join(os.path.dirname(__file__), 'http.js')]
+command = ['mocha'] + mochaOptions + [os.path.join(os.path.dirname(__file__), 'r_http.js')]
 sys.exit(subprocess.call(command, stderr=subprocess.STDOUT))

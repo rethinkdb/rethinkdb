@@ -44,5 +44,5 @@ os.environ['HTTPS_TEST_ADDRESS'] = 'localhost:%d' % targetServer.sslPort
 
 # -- run test
 
-command = [os.environ.get('INTERPRETER_PATH', 'ruby'), os.path.join(os.path.dirname(__file__), 'http.rb')]
+command = [os.environ.get('INTERPRETER_PATH', 'ruby'), os.path.join(os.path.dirname(__file__), 'r_http.rb')]
 sys.exit(subprocess.call(command, stderr=subprocess.STDOUT))

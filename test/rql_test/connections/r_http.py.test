@@ -2,4 +2,4 @@
 
 import os, sys, subprocess
 
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'http.py')]))
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'r_http.py')]))
