@@ -29,7 +29,7 @@ public:
         order_sink_.rethread(new_thread);
     }
 
-    void note_reshard() { }
+    void note_reshard(const region_t &) { }
 
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
