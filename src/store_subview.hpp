@@ -53,8 +53,10 @@ public:
     ~store_subview_t() {
         home_thread_mixin_t::real_home_thread = get_thread_id();
     }
-    void note_reshard() {
-        store_view->note_reshard();
+
+    void note_reshard(const region_t &shard_region) {
+        guarantee(get_region() == shard_region);
+        store_view->note_reshard(shard_region);
     }
 
     using store_view_t::get_region;

@@ -208,7 +208,6 @@ private:
     static coro_t *get_coro();
 
     static void return_coro_to_free_list(coro_t *coro);
-    static void maybe_evict_from_free_list();
 
     NORETURN static void run();
 

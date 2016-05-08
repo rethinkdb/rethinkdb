@@ -336,6 +336,7 @@ def run_changefeed(query, host, port):
     def thread_fn(self, host, port):
         duration = 10
         end_time = time.time() + duration
+        conn = None
         try:
             conn = r.connect(host, port)
             feed = query.changes().run(conn)
@@ -348,15 +349,58 @@ def run_changefeed(query, host, port):
             pass # These are perfectly normal during fuzzing due to concurrent queries
         except r.ReqlError as ex:
             check_error("Feed", ex)
+        finally:
+            if conn is not None:
+                conn.close(noreply_wait=False)
     feed_thread = threading.Thread(target=thread_fn, args=(query, host, port))
     feed_thread.daemon = True
     feed_thread.start()
 
-class changefeed(IndexQuery):
+class between_changefeed(IndexQuery):
     def sub_query(self, q):
         run_changefeed(r.db(self.index.table.db.name) \
                         .table(self.index.table.name) \
                         .between(r.minval, r.maxval, index=self.index.name),
+                       self.conn.host, self.conn.port)
+        return r.expr(0) # dummy query for silly reasons
+
+class limit_changefeed(IndexQuery):
+    def sub_query(self, q):
+        run_changefeed(r.db(self.index.table.db.name) \
+                        .table(self.index.table.name) \
+                        .order_by(index=self.index.name).limit(10),
+                       self.conn.host, self.conn.port)
+        return r.expr(0) # dummy query for silly reasons
+
+class point_changefeed(IndexQuery):
+    def sub_query(self, q):
+        run_changefeed(r.db(self.index.table.db.name) \
+                        .table(self.index.table.name) \
+                        .get(1),
+                       self.conn.host, self.conn.port)
+        return r.expr(0) # dummy query for silly reasons
+
+class empty_primary_changefeed(IndexQuery):
+    def sub_query(self, q):
+        run_changefeed(r.db(self.index.table.db.name) \
+                        .table(self.index.table.name) \
+                        .get_all(index="id"),
+                       self.conn.host, self.conn.port)
+        return r.expr(0) # dummy query for silly reasons
+
+class empty_secondary_changefeed(IndexQuery):
+    def sub_query(self, q):
+        run_changefeed(r.db(self.index.table.db.name) \
+                        .table(self.index.table.name) \
+                        .get_all(index=self.index.name),
+                       self.conn.host, self.conn.port)
+        return r.expr(0) # dummy query for silly reasons
+
+class get_all_changefeed(IndexQuery):
+    def sub_query(self, q):
+        run_changefeed(r.db(self.index.table.db.name) \
+                        .table(self.index.table.name) \
+                        .get_all(0, 1, 2, 3, "non-existent", index="id"),
                        self.conn.host, self.conn.port)
         return r.expr(0) # dummy query for silly reasons
 
@@ -385,8 +429,13 @@ def do_fuzz(cluster, cluster_lock, stop_event, random_seed):
                     (system_table_read, 10)]
 
     if parsed_opts['changefeeds']:
-        weighted_ops.append((changefeed, 10))
-        weighted_ops.append((system_changefeed, 10))
+        weighted_ops.append((between_changefeed, 20))
+        weighted_ops.append((limit_changefeed, 20))
+        weighted_ops.append((point_changefeed, 20))
+        weighted_ops.append((empty_primary_changefeed, 20))
+        weighted_ops.append((empty_secondary_changefeed, 20))
+        weighted_ops.append((get_all_changefeed, 20))
+        weighted_ops.append((system_changefeed, 20))
 
     while not stop_event.is_set():
         server = None
@@ -397,13 +446,16 @@ def do_fuzz(cluster, cluster_lock, stop_event, random_seed):
                 pass
 
         if server is not None:
+            conn = None
             try:
                 conn = r.connect(server.host, server.driver_port)
+                while conn.is_open() and not stop_event.is_set():
+                    run_random_query(conn, weighted_ops)
             except r.ReqlError as ex:
                 check_error("Connection creation", ex)
-
-            while conn.is_open() and not stop_event.is_set():
-                run_random_query(conn, weighted_ops)
+            finally:
+                if conn is not None:
+                    conn.close(noreply_wait=False)
         else:
             time.sleep(1) # No ready servers - try again later
 

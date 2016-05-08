@@ -33,10 +33,8 @@ db = 'test'
 server_names = ['nate', 'grey']
 table_names = ['foo', 'bar']
 
-def read_write_workload(port, table, stop_event):
+def read_write_workload(port, table, ids, stop_event):
     conn = r.connect("localhost", port)
-    ids = list(r.range(100).map(lambda x: r.uuid()).run(conn))
-    r.db(db).table(table).insert([{'id': i, 'value': 0} for i in ids]).run(conn)
 
     # Increment this every loop so the update actually results in a write
     counter = 0
@@ -228,7 +226,13 @@ with driver.Cluster(initial_servers=server_names, command_prefix=command_prefix,
         r.db(db).table_create(name, shards=2, replicas=1).run(conn)
         info['db_id'] = r.db(db).config()['id'].run(conn)
         info['id'] = r.db(db).table(info['name']).config()['id'].run(conn)
-        info['workload'] = multiprocessing.Process(target=read_write_workload, args=(cluster[0].driver_port, name, stop_event))
+
+        # Insert an initial set of documents, which will then be modified by `read_write_workload`.
+        ids = list(r.range(100).map(lambda x: r.uuid()).run(conn))
+        r.db(db).table(name).insert([{'id': i, 'value': 0} for i in ids], durability="soft").run(conn)
+
+        # Run the workload
+        info['workload'] = multiprocessing.Process(target=read_write_workload, args=(cluster[0].driver_port, name, ids, stop_event))
         info['workload'].start()
         tables.append(info)
 

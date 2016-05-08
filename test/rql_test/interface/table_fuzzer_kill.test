@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+import os, sys, subprocess
+
+sys.exit(subprocess.call([os.path.join(os.path.dirname(__file__), 'table_fuzzer.test'), "--kill", "--servers", "3"]))

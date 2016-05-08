@@ -1822,7 +1822,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, table_id);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, this);
         guarantee(detached);
         if (self.has()) {
             guarantee(lock.has());
@@ -3438,6 +3438,9 @@ void feed_t::del_sub_with_lock(
 template<class Map, class Key, class Sub>
 size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
     auto subvec_it = map->find(key);
+    if (subvec_it == map->end()) {
+        return 0;
+    }
     size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
     // If there are no more subscribers, remove the key from the map.
     auto it = subvec_it->second.begin();
@@ -3908,7 +3911,7 @@ void client_t::maybe_remove_feed(
 }
 
 scoped_ptr_t<real_feed_t> client_t::detach_feed(
-    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
+        const auto_drainer_t::lock_t &lock, real_feed_t *expected_feed) {
     assert_thread();
     lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> ret;
@@ -3916,8 +3919,10 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
     spot.write_signal()->wait_lazily_unordered();
     // The feed might have been removed in `maybe_remove_feed`, in which case
     // there's nothing to detach.
-    auto feed_it = feeds.find(uuid);
-    if (feed_it != feeds.end()) {
+    // It's also possible that the feed had been removed and a new feed has since been
+    // added for this table uuid, so we need to compare the pointer to `expected_feed`.
+    auto feed_it = feeds.find(expected_feed->get_table_id());
+    if (feed_it != feeds.end() && feed_it->second.get_or_null() == expected_feed) {
         ret.swap(feed_it->second);
         ret->mark_detached();
         feeds.erase(feed_it);
