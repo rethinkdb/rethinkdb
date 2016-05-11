@@ -23,6 +23,7 @@
                 No results returned.
             {{else}}
                 {{num_results}} {{pluralize_noun 'row' num_results}} returned
+                {{~#if show_more_data}} so far{{/if}}
                 {{~#if execution_time_pretty}}
                     in {{execution_time_pretty}}
                 {{~/if~}}.
