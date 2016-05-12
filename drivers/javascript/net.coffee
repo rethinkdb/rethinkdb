@@ -1662,3 +1662,8 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
                 resolve(result)
         create_connection(host, wrappedCb)
     ).nodeify callback
+
+# Exposing the connection classes
+module.exports.Connection = Connection
+module.exports.HttpConnection = HttpConnection
+module.exports.TcpConnection = TcpConnection
