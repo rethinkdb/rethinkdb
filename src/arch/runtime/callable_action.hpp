@@ -49,6 +49,10 @@ public:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #endif
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 600)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wplacement-new="
+#endif
         // Allocate the action inside this object, if possible, or the heap otherwise
         if (sizeof(callable_action_instance_t<Callable>) > CALLABLE_CUTOFF_SIZE) {
             action_ = new callable_action_instance_t<Callable>(
@@ -59,6 +63,9 @@ public:
                     std::forward<Callable>(action));
             action_on_heap = false;
         }
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 600)
+#pragma GCC diagnostic pop
+#endif
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
