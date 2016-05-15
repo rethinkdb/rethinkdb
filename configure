@@ -26,7 +26,7 @@ init () {
 
     optional_libs="gtest termcap boost_system"
     required_libs="protobuf v8 re2 z crypto ssl curl"
-    other_libs="unwind tcmalloc jemalloc"
+    other_libs="tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
@@ -323,7 +323,6 @@ dep_descrs=':
 cxx:C++ Compiler
 protoc:Protobuf compiler
 npm:Node.js package manager
-unwind:libunwind
 v8:v8 javascript engine
 protobuf:Protobuf library
 browserify:Browserify
