@@ -28,9 +28,6 @@ set -eu
 
 unset DESTDIR
 
-src_url_backup=""
-src_url_sha1=""
-
 # Print the version number of the package
 pkg_version () {
     echo $version
@@ -65,24 +62,37 @@ pkg_remove_tmp_fetch_dir () {
 pkg_fetch_archive () {
     pkg_make_tmp_fetch_dir
 
-    local archive="${src_url##*/}"
-    set +e # turn off auto-fail so we can fall back to $src_url_backup
-    error_text=$(geturl "$src_url" "$tmp_dir/$archive")
-    local download_failed=$?
-    if [[ $download_failed -ne "0" ]] && [[ $src_url_backup ]]; then
-        error_text=$(geturl "$src_url_backup" "$tmp_dir/$archive")
-        download_failed=$?
-    fi
-    set -e # reenable auto-fail
-    if [[ $download_failed -ne "0" ]]; then
-        if [[ ! -z $error_text ]]; then
-            error_text=": $error_text"
+    local archive_name="${src_url##*/}"
+    local archive="$cache_dir/$archive_name"
+    local actual_sha1
+
+    if [[ -e "$archive" ]]; then
+        actual_sha1=`getsha1 "$archive"`
+        if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
+            echo "warning: cached file has wrong hash, deleting. (Expected $src_url_sha1, actual $actual_sha1)."
+            rm "$archive"
         fi
-        error "failed to download $pkg from $src_url$error_text"
     fi
 
-    if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
-        error "sha1 for $pkg was incorrect: `getsha1  "$tmp_dir/$archive"` vs. expected: $src_url_sha1"
+    if [[ ! -e "$archive" ]]; then
+        local url
+
+        mkdir -p "$cache_dir"
+
+        if ! geturl "$src_url" "$archive"; then
+            if [[ -n "${src_url_backup:-}" ]]; then
+                geturl "$src_url_backup" "$archive"
+                url="$src_url_backup"
+            fi
+            exit 1
+        else
+            url="$src_url"
+        fi
+
+        actual_sha1=`getsha1 "$archive"`
+        if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
+            error "downloaded file has wrong hash: expected '$src_url_sha1' but found '$actual_sha1' for $url ($tmp_dir/archive)"
+        fi
     fi
 
     local ext
@@ -92,7 +102,7 @@ pkg_fetch_archive () {
         *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
         *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
         *.zip)     ext=zip;     in_dir "$tmp_dir" unzip    "$archive" ;;
-        *) error "don't know how to extract $archive"
+        *) error "don't know how to extract $archive_name"
     esac
 
     set -- "$tmp_dir"/*/
@@ -101,11 +111,21 @@ pkg_fetch_archive () {
         error "invalid archive contents: $archive"
     fi
 
-    test -e "$src_dir" && rm -rf "$src_dir"
+    pkg_patch "$1"
 
+    test -e "$src_dir" && rm -rf "$src_dir"
     mv "$1" "$src_dir"
 
     pkg_remove_tmp_fetch_dir
+}
+
+pkg_patch () {
+    for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
+        case "$patch" in
+            *_\*.patch) ;;
+            *) in_dir "$1" patch -fp1 < "$patch" ;;
+        esac
+    done
 }
 
 pkg_fetch_git () {
@@ -243,6 +263,7 @@ load_pkg () {
     src_dir=$(niceabspath "$external_dir/$pkg""_$version")
     install_dir=$(niceabspath "$root_build_dir/external/$pkg""_$version")
     build_dir=$(niceabspath "$install_dir/build")
+    cache_dir=$(niceabspath "$external_dir/.cache")
 }
 
 contains () {
