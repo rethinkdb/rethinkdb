@@ -66,7 +66,7 @@ pkg_fetch_archive () {
     local archive="$cache_dir/$archive_name"
     local actual_sha1
 
-    if [[ -e "$archive" ]]; then
+    if [[ -e "$archive" && "$VERIFY_FETCH_HASH" = 1 ]]; then
         actual_sha1=`getsha1 "$archive"`
         if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
             echo "warning: cached file has wrong hash, deleting. (Expected $src_url_sha1, actual $actual_sha1)."
@@ -89,9 +89,12 @@ pkg_fetch_archive () {
             url="$src_url"
         fi
 
-        actual_sha1=`getsha1 "$archive"`
-        if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
-            error "downloaded file has wrong hash: expected '$src_url_sha1' but found '$actual_sha1' for $url ($tmp_dir/archive)"
+        if [[ "$VERIFY_FETCH_HASH" = 1 ]]; then
+            actual_sha1=`getsha1 "$archive"`
+            if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
+                error "downloaded file has wrong hash: expected '$src_url_sha1' but found '$actual_sha1' for $url ($archive)." \
+                      "Disable this check with VERIFY_FETCH_HASH=0 or add correct hash to '$pkg_dir/$pkg.sh'"
+            fi
         fi
     fi
 
@@ -315,7 +318,7 @@ getsha1 () {
     elif hash sha1 1>/dev/null 2>/dev/null; then
         sha1 -q "$@"
     else
-        error "Unable to get the sha1 checksum of $pkg, please install one of these tools: openssl, sha1sum, shasum, sha1"
+        error "Unable to get the sha1 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha1sum, shasum, sha1"
     fi
 }
 
