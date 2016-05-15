@@ -1,0 +1,12 @@
+diff -ruN --label original original ./Makefile
+--- original
++++ ./Makefile	2016-05-15 11:34:41.150565687 -0700
+@@ -38,7 +38,7 @@
+ # REBUILD_TABLES=1
+ 
+ ifeq ($(shell uname),Darwin)
+-MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) -exported_symbols_list libre2.symbols.darwin
++MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) 
+ else
+ MAKE_SHARED_LIBRARY=$(CXX) -shared -Wl,-soname,libre2.so.$(SONAME),--version-script=libre2.symbols $(LDFLAGS)
+ endif

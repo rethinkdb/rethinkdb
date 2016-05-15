@@ -98,15 +98,7 @@ pkg_fetch_archive () {
         fi
     fi
 
-    local ext
-    case "$archive" in
-        *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;
-        *.tar.gz)  ext=tar.gz;  in_dir "$tmp_dir" tar -xzf "$archive" ;;
-        *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
-        *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
-        *.zip)     ext=zip;     in_dir "$tmp_dir" unzip    "$archive" ;;
-        *) error "don't know how to extract $archive_name"
-    esac
+    pkg_extract "$tmp_dir" "$archive"
 
     set -- "$tmp_dir"/*/
 
@@ -122,6 +114,18 @@ pkg_fetch_archive () {
     pkg_remove_tmp_fetch_dir
 }
 
+pkg_extract () {
+    local ext
+    case "$2" in
+        *.tgz)     in_dir "$1" tar -xzf "$2" ;;
+        *.tar.gz)  in_dir "$1" tar -xzf "$2" ;;
+        *.tar.bz2) in_dir "$1" tar -xjf "$2" ;;
+        *.tar.xz)  in_dir "$1" tar -xJf "$2" ;;
+        *.zip)     in_dir "$1" unzip    "$2" ;;
+        *) error "don't know how to extract $(basename "$archive_name")"
+    esac
+}
+
 pkg_patch () {
     for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
         case "$patch" in
@@ -129,6 +133,35 @@ pkg_patch () {
             *) in_dir "$1" patch -fp1 < "$patch" ;;
         esac
     done
+}
+
+pkg_list_patches () {
+    printf "%s\n" "$pkg_dir"/patch/"$pkg"_*
+}
+
+pkg_save_patch () {
+    pkg_make_tmp_fetch_dir
+
+    local patch_name="$@"
+    if [[ -z "$patch_name" ]]; then
+        error "no patch name specified"
+    fi
+
+    local archive_name="${src_url##*/}"
+    pkg_extract "$tmp_dir" "$cache_dir/$archive_name"
+    set -- "$tmp_dir"/*/
+    pkg_patch "$1"
+
+    if in_dir "$src_dir" diff -ruN --label original "$1" .  > "$tmp_dir"/out.patch; then
+        error "Empty diff"
+    elif [[ $? != 1 ]]; then
+        exit $?
+    fi
+    mv "$tmp_dir"/out.patch "$pkg_dir/patch/${pkg}_$patch_name.patch"
+
+    echo "Wrote $pkg_dir/patch/${pkg}_$patch_name.patch"
+
+    pkg_remove_tmp_fetch_dir
 }
 
 pkg_fetch_git () {

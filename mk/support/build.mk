@@ -72,6 +72,13 @@ clean-$2: clean-$2_$3
 shrinkwrap-$2:
 	$(PKG_SCRIPT_TRACE) shrinkwrap $2_$3
 
+.PHONY: list-patches-$2
+list-patches-$2:
+	$(PKG_SCRIPT) list_patches $2_$3
+
+save-patch-$2-%:
+	$(PKG_SCRIPT) save_patch $2_$3 "$$*"
+
 # Depend on node for fetching node packages
 $(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
 
