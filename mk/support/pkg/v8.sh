@@ -7,29 +7,25 @@ src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
 
 pkg_install-include () {
     pkg_copy_src_to_build
-    
+
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
     cp -RL "$src_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
-    
+
     # -- assemble the icu headers
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
     else
         in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
     fi
-    # The install-headers-recursive target is missing. Let's patch it.
-    sed -i.bak $'s/distclean-recursive/install-headers-recursive/g;$a\\\ninstall-headers-local:' "$build_dir/third_party/icu/source/Makefile"
-    for file in "$build_dir"/third_party/icu/source/*/Makefile; do
-        sed -i.bak $'$a\\\ninstall-headers:' "$file"
-    done
+
     in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
 }
 
 pkg_install () {
     pkg_copy_src_to_build
-    sed -i.bak '/unittests/d;/cctest/d' "$build_dir/build/all.gyp" # don't build the tests
+
     mkdir -p "$install_dir/lib"
     if [[ "$OS" = Darwin ]]; then
         export CXXFLAGS="-stdlib=libc++ ${CXXFLAGS:-}"
