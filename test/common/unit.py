@@ -47,7 +47,6 @@ class UnitTest(test_framework.Test):
         filter = self.test
         if self.child_tests:
             filter = filter + ".*"
-        print self.unit_executable
         command = self.unit_executable + " --gtest_filter=" + filter
         exit_code = os.system(command)
         if exit_code:
