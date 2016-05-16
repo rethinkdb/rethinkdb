@@ -43,8 +43,8 @@ class S2PointRegion : public S2Region {
   DISALLOW_EVIL_CONSTRUCTORS(S2PointRegion);
 };
 
-S2PointRegion::S2PointRegion(S2Point const& point) : point_(point) {
-  DCHECK(S2::IsUnitLength(point));
+S2PointRegion::S2PointRegion(S2Point const& _point) : point_(_point) {
+  DCHECK(S2::IsUnitLength(_point));
 }
 
 }  // namespace geo

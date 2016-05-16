@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 
+#include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace auth {
@@ -21,6 +22,7 @@ public:
     explicit password_t(
         std::string const &password,
         uint32_t iteration_count = default_iteration_count);
+    explicit password_t(ql::datum_t const &datum);
 
     static password_t generate_password_for_unknown_user();
 

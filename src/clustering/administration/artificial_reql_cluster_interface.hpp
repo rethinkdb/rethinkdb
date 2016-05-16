@@ -72,6 +72,7 @@ public:
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, admin_err_t *error_out);
     bool db_config(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             ql::backtrace_id_t bt,
             ql::env_t *env,
@@ -110,6 +111,7 @@ public:
             std::vector<int64_t> *doc_counts_out,
             admin_err_t *error_out);
     bool table_config(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
@@ -283,7 +285,7 @@ public:
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
     scoped_ptr_t<logs_artificial_table_backend_t> logs_backend[2];
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
-    scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
+    scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend[2];
     scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];

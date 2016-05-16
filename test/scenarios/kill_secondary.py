@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import os, sys, time
 from pprint import pformat
@@ -31,8 +31,8 @@ class KillSecondary(rdb_unittest.RdbTestCase):
         
         conn = self.r.connect(host=primary.host, port=primary.driver_port)
         
-        issues = list(self.r.db('rethinkdb').table('current_issues').run(conn))
-        self.assertEqual(issues, [], 'The issues list was not empty: %r' % issues)
+        issues = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
+        self.assertEqual(issues, [], 'The issues list was not empty:\n%r' % utils.RePrint.pformat(issues))
 
         workload_ports = workload_runner.RDBPorts(host=primary.host, http_port=primary.http_port, rdb_port=primary.driver_port, db_name=self.dbName, table_name=self.tableName)
         with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
@@ -41,8 +41,8 @@ class KillSecondary(rdb_unittest.RdbTestCase):
             workload.run_before()
             
             self.cluster.check()
-            issues = list(self.r.db('rethinkdb').table('current_issues').run(conn))
-            self.assertEqual(issues, [], 'The issues list was not empty: %r' % issues)
+            issues = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
+            self.assertEqual(issues, [], 'The issues list was not empty:\n%r' % utils.RePrint.pformat(issues))
         
             print_with_time("Killing the secondary")
             secondary.kill()

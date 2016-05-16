@@ -408,14 +408,9 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     } catch (const interrupted_exc_t &) {
         // TLS handshake was interrupted.
         return;
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+    } catch (const crypto::openssl_error_t &err) {
         // TLS handshake failed.
-        // FIXME move this TLS to use crypto/
-        if (err.error == 336027804) {
-            logNTC("Received a plain HTTP request on the HTTPS port.");
-        } else {
-            logWRN("HTTP server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
-        }
+        logWRN("HTTP server connection TLS handshake failed: %s", err.what());
         return;
     }
 
@@ -433,6 +428,17 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             maybe_gzip_response(req, &res);
         } else {
             res = http_res_t(http_status_code_t::BAD_REQUEST);
+        }
+
+        // Disable keepalive on Safari because it seems like a partial cause of #3983
+        auto user_agent = req.header_lines.find("user-agent");
+        if (user_agent != req.header_lines.end()) {
+            if (user_agent->second.find("Safari") != std::string::npos) {
+                // Chrome also has "Safari" in the user-agent string.
+                if (user_agent->second.find("Chrome") == std::string::npos) {
+                    res.add_header_line("Connection", "close");
+                }
+            }
         }
         write_http_msg(conn.get(), res, keepalive.get_drain_signal());
     } catch (const interrupted_exc_t &) {

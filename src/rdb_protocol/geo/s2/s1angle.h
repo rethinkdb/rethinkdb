@@ -96,7 +96,7 @@ class S1Angle {
   void Normalize();
 
  private:
-  explicit S1Angle(double radians) : radians_(radians) {}
+  explicit S1Angle(double _radians) : radians_(_radians) {}
   double radians_;
 };
 DECLARE_POD(S1Angle);

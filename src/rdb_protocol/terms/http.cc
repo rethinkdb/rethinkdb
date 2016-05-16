@@ -140,8 +140,8 @@ public:
     http_datum_stream_t(http_opts_t &&_opts,
                         counted_t<const func_t> &&_depaginate_fn,
                         int64_t _depaginate_limit,
-                        backtrace_id_t bt) :
-        eager_datum_stream_t(bt),
+                        backtrace_id_t _bt) :
+        eager_datum_stream_t(_bt),
         opts(std::move(_opts)),
         depaginate_fn(_depaginate_fn),
         depaginate_limit(_depaginate_limit),

@@ -2026,7 +2026,9 @@ public:
 
         // Update the traversed range boundary (everything below here will happen in
         // key order).
-        waiter.wait_interruptible();
+        // This can't be interrupted, because we have already called rdb_update_sindexes,
+        // so now we /must/ update traversed_right_bound.
+        waiter.wait();
         traversed_right_bound_ = primary_key;
 
         // Release the write transaction and secondary index locks once we've reached the

@@ -402,65 +402,65 @@ void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
     }
 }
 
-void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
-                                access_t access) {
-    buf_lock_t::wait_for_parent(parent, access);
+void buf_lock_t::help_construct(buf_parent_t parent, block_id_t _block_id,
+                                access_t _access) {
+    buf_lock_t::wait_for_parent(parent, _access);
     ASSERT_FINITE_CORO_WAITING;
     if (parent.lock_or_null_ != nullptr && parent.lock_or_null_->snapshot_node_ != nullptr) {
-        rassert(access == access_t::read);
+        rassert(_access == access_t::read);
         buf_lock_t *parent_lock = parent.lock_or_null_;
         rassert(!parent_lock->current_page_acq_.has());
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_,
-                                                block_id);
+                                                _block_id);
         guarantee(snapshot_node_ != nullptr,
                   "Tried to acquire (in cache %p) a deleted block (%" PRIu64
                   " as child of %" PRIu64 ") (with read access).",
                   txn_->cache(),
-                  block_id, parent_lock->block_id());
+                  _block_id, parent_lock->block_id());
         ++snapshot_node_->ref_count_;
     } else {
-        if (access == access_t::write && parent.lock_or_null_ != nullptr) {
+        if (_access == access_t::write && parent.lock_or_null_ != nullptr) {
             create_child_snapshot_attachments(txn_->cache(),
                                               parent.lock_or_null_->current_page_acq()->block_version(),
                                               parent.lock_or_null_->block_id(),
-                                              block_id);
+                                              _block_id);
         }
-        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
-                                                      access));
+        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), _block_id,
+                                                      _access));
     }
 
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p %s %" PRIu64 "\n", cache(), this, show(access), block_id);
+    debugf("%p: buf_lock_t %p %s %" PRIu64 "\n", cache(), this, show(_access), _block_id);
 #endif
 }
 
 buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       block_id_t block_id,
-                       access_t access)
+                       block_id_t _block_id,
+                       access_t _access)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(nullptr),
       access_ref_count_(0) {
-    help_construct(parent, block_id, access);
+    help_construct(parent, _block_id, _access);
 }
 
 buf_lock_t::buf_lock_t(buf_lock_t *parent,
-                       block_id_t block_id,
-                       access_t access)
+                       block_id_t _block_id,
+                       access_t _access)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(nullptr),
       access_ref_count_(0) {
-    help_construct(buf_parent_t(parent), block_id, access);
+    help_construct(buf_parent_t(parent), _block_id, _access);
 }
 
 bool is_subordinate(access_t parent, access_t child) {
     return parent == access_t::write || child == access_t::read;
 }
 
-void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
+void buf_lock_t::help_construct(buf_parent_t parent, block_id_t _block_id,
                                 alt_create_t) {
     buf_lock_t::wait_for_parent(parent, access_t::write);
 
@@ -471,7 +471,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  block_id,
+                                                  _block_id,
                                                   access_t::write,
                                                   alt::page_create_t::yes));
 
@@ -492,24 +492,24 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     }
 }
 
-buf_lock_t::buf_lock_t(txn_t *txn,
-                       block_id_t block_id,
+buf_lock_t::buf_lock_t(txn_t *_txn,
+                       block_id_t _block_id,
                        alt_create_t create)
-    : txn_(txn),
+    : txn_(_txn),
       current_page_acq_(),
       snapshot_node_(nullptr),
       access_ref_count_(0) {
-    help_construct(buf_parent_t(txn), block_id, create);
+    help_construct(buf_parent_t(_txn), _block_id, create);
 }
 
 buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       block_id_t block_id,
+                       block_id_t _block_id,
                        alt_create_t create)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(nullptr),
       access_ref_count_(0) {
-    help_construct(parent, block_id, create);
+    help_construct(parent, _block_id, create);
 }
 
 void buf_lock_t::mark_deleted() {
@@ -670,12 +670,12 @@ void buf_lock_t::snapshot_subdag() {
         snapshot_node_ = matching_node;
         ++matching_node->ref_count_;
     } else {
-        const block_id_t block_id = current_page_acq_->block_id();
+        const block_id_t _block_id = current_page_acq_->block_id();
         alt_snapshot_node_t *node
             = new alt_snapshot_node_t(std::move(current_page_acq_));
         rassert(node->ref_count_ == 0);
         ++node->ref_count_;
-        txn_->cache()->add_snapshot_node(block_id, node);
+        txn_->cache()->add_snapshot_node(_block_id, node);
         snapshot_node_ = node;
         node->current_page_acq_->declare_snapshotted();
     }

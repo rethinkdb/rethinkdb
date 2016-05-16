@@ -20,10 +20,10 @@
 
 template<class metadata_t>
 semilattice_manager_t<metadata_t>::semilattice_manager_t(
-        connectivity_cluster_t *connectivity_cluster,
+        connectivity_cluster_t *_connectivity_cluster,
         connectivity_cluster_t::message_tag_t message_tag,
         const metadata_t &initial_metadata) :
-    cluster_message_handler_t(connectivity_cluster, message_tag),
+    cluster_message_handler_t(_connectivity_cluster, message_tag),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata_version(0),
     metadata(initial_metadata),

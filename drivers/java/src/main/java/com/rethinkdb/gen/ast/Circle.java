@@ -25,29 +25,29 @@ public class Circle extends ReqlExpr {
     public Circle(Arguments args, OptArgs optargs) {
         super(TermType.CIRCLE, args, optargs);
     }
-public Circle optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
-public Circle optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
-public Circle optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
-public Circle optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
-public Circle optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
-public Circle optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Circle(args, newOptargs);
-}
+    public Circle optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
+    public Circle optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
+    public Circle optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
+    public Circle optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
+    public Circle optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
+    public Circle optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Circle(args, newOptargs);
+    }
 
 }

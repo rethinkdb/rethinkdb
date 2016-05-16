@@ -18,6 +18,7 @@
 #include "containers/map_sentries.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
+#include "random.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
@@ -370,10 +371,6 @@ private:
     one_per_thread_t<watchable_map_var_t<peer_id_t, connection_pair_t> > connections;
 
     cluster_message_handler_t *message_handlers[max_message_tag];
-
-#ifndef NDEBUG
-    rng_t debug_rng;
-#endif
 
 #ifdef ENABLE_MESSAGE_PROFILER
     /* The key is the string passed to `send_message()`. The value is a pair of (number

@@ -23,6 +23,9 @@
 
 /*! \file reader.h */
 
+// RethinkDB modification: For `call_with_enough_stack`
+#include "arch/runtime/coroutines.hpp"
+
 #include "rapidjson.h"
 #include "encodings.h"
 #include "internal/meta.h"
@@ -761,7 +764,7 @@ private:
     class NumberStream<InputStream, true> : public NumberStream<InputStream, false> {
         typedef NumberStream<InputStream, false> Base;
     public:
-        NumberStream(GenericReader& reader, InputStream& is) : NumberStream<InputStream, false>(reader, is), stackStream(reader.stack_) {}
+        NumberStream(GenericReader& reader, InputStream& _is) : NumberStream<InputStream, false>(reader, _is), stackStream(reader.stack_) {}
         ~NumberStream() {}
 
         RAPIDJSON_FORCEINLINE Ch TakePush() {
@@ -990,13 +993,23 @@ private:
     // Parse any JSON value
     template<unsigned parseFlags, typename InputStream, typename Handler>
     void ParseValue(InputStream& is, Handler& handler) {
+        // RethinkDB modification: Use `call_with_enough_stack` to avoid stack overflows.
+        const size_t MIN_PARSING_STACK_SPACE = 16 * 1024;
         switch (is.Peek()) {
             case 'n': ParseNull  <parseFlags>(is, handler); break;
             case 't': ParseTrue  <parseFlags>(is, handler); break;
             case 'f': ParseFalse <parseFlags>(is, handler); break;
             case '"': ParseString<parseFlags>(is, handler); break;
-            case '{': ParseObject<parseFlags>(is, handler); break;
-            case '[': ParseArray <parseFlags>(is, handler); break;
+            case '{':
+                call_with_enough_stack([&]() {
+                    ParseObject<parseFlags>(is, handler);
+                }, MIN_PARSING_STACK_SPACE);
+                break;
+            case '[':
+                call_with_enough_stack([&]() {
+                    ParseArray <parseFlags>(is, handler);
+                }, MIN_PARSING_STACK_SPACE);
+                break;
             default : ParseNumber<parseFlags>(is, handler);
         }
     }

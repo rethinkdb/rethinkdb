@@ -8,8 +8,8 @@ namespace client_protocol {
 
 class client_server_error_t : public std::runtime_error {
 public:
-    client_server_error_t(uint32_t error_code, std::string const &what)
-        : std::runtime_error(what),
+    client_server_error_t(uint32_t error_code, std::string const &_what)
+        : std::runtime_error(_what),
           m_error_code(error_code) {
     }
 

@@ -6,6 +6,10 @@
 
 #include "debug.hpp"
 
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to destruct an `op_term_t`.
+const size_t MIN_TERM_DESTRUCT_STACK_SPACE = 16 * KILOBYTE;
+
 namespace ql {
 argspec_t::argspec_t(int n) : min(n), max(n), eval_flags(NO_FLAGS) { }
 argspec_t::argspec_t(int _min, int _max)
@@ -50,8 +54,8 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(backtrace_id_t bt, datum_t _d, deterministic_t _deterministic)
-        : runtime_term_t(bt), d(std::move(_d)), deterministic(_deterministic) { }
+    faux_term_t(backtrace_id_t _bt, datum_t _d, deterministic_t _deterministic)
+        : runtime_term_t(_bt), d(std::move(_d)), deterministic(_deterministic) { }
     deterministic_t is_deterministic() const final { return deterministic; }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
@@ -182,19 +186,27 @@ op_term_t::op_term_t(compile_env_t *env, const raw_term_t &term,
     }
     arg_terms.init(new arg_terms_t(term, std::move(argspec), std::move(original_args)));
 
-    term.each_optarg([&](const raw_term_t &o, const std::string &name) {
-            rcheck_src(o.bt(), optargspec.contains(name),
+    term.each_optarg([&](const raw_term_t &o, const std::string &arg_name) {
+            rcheck_src(o.bt(), optargspec.contains(arg_name),
                        base_exc_t::LOGIC,
-                       strprintf("Unrecognized optional argument `%s`.", name.c_str()));
+                       strprintf("Unrecognized optional argument `%s`.", arg_name.c_str()));
             counted_t<const term_t> t = compile_term(env, o);
-            auto res = optargs.insert(std::make_pair(name, std::move(t)));
+            auto res = optargs.insert(std::make_pair(arg_name, std::move(t)));
             rcheck_src(o.bt(), res.second,
                        base_exc_t::LOGIC,
-                       strprintf("Duplicate optional argument: %s", name.c_str()));
+                       strprintf("Duplicate optional argument: %s", arg_name.c_str()));
 
         });
 }
-op_term_t::~op_term_t() { }
+
+op_term_t::~op_term_t() {
+    // Delete `arg_terms` and `optargs` explicitly to avoid stack overflows during
+    // destruction.
+    call_with_enough_stack([&] {
+        optargs.clear();
+        arg_terms.reset();
+    }, MIN_TERM_DESTRUCT_STACK_SPACE);
+}
 
 scoped_ptr_t<val_t> op_term_t::term_eval(scope_env_t *env,
                                          eval_flags_t eval_flags) const {

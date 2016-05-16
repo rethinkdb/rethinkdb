@@ -119,6 +119,7 @@ public:
                  boost::optional<std::string> _config_file,
                  std::vector<std::string> &&_argv,
                  const int _join_delay_secs,
+                 const int _node_reconnect_timeout_secs,
                  tls_configs_t _tls_configs) :
         joins(std::move(_joins)),
         reql_http_proxy(std::move(_reql_http_proxy)),
@@ -127,7 +128,8 @@ public:
         ports(_ports),
         config_file(_config_file),
         argv(std::move(_argv)),
-        join_delay_secs(_join_delay_secs)
+        join_delay_secs(_join_delay_secs),
+        node_reconnect_timeout_secs(_node_reconnect_timeout_secs)
     {
         tls_configs = _tls_configs;
     }
@@ -147,6 +149,7 @@ public:
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;
     int join_delay_secs;
+    int node_reconnect_timeout_secs;
     tls_configs_t tls_configs;
 };
 
@@ -160,6 +163,7 @@ bool serve(io_backender_t *io_backender,
            os_signal_cond_t *stop_cond);
 
 bool serve_proxy(const serve_info_t& serve_info,
+                 const std::string &initial_password,
                  os_signal_cond_t *stop_cond);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */

@@ -76,7 +76,7 @@ const char* sindex_not_ready_exc_t::what() const throw() {
 
 sindex_not_ready_exc_t::~sindex_not_ready_exc_t() throw() { }
 
-store_t::store_t(const region_t &region,
+store_t::store_t(const region_t &_region,
                  serializer_t *serializer,
                  cache_balancer_t *balancer,
                  const std::string &perfmon_name,
@@ -86,8 +86,8 @@ store_t::store_t(const region_t &region,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
                  namespace_id_t _table_id,
-                 update_sindexes_t update_sindexes)
-    : store_view_t(region),
+                 update_sindexes_t _update_sindexes)
+    : store_view_t(_region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
@@ -162,7 +162,7 @@ store_t::store_t(const region_t &region,
         }
     }
 
-    switch (update_sindexes) {
+    switch (_update_sindexes) {
     case update_sindexes_t::UPDATE:
         help_construct_bring_sindexes_up_to_date();
         break;
@@ -180,7 +180,7 @@ store_t::~store_t() {
 
 void store_t::read(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const read_t &read,
+        const read_t &_read,
         read_response_t *response,
         read_token_t *token,
         signal_t *interruptor)
@@ -191,16 +191,16 @@ void store_t::read(
 
     acquire_superblock_for_read(token, &txn, &superblock,
                                 interruptor,
-                                read.use_snapshot());
+                                _read.use_snapshot());
     DEBUG_ONLY_CODE(metainfo->visit(
         superblock.get(), metainfo_checker.region, metainfo_checker.callback));
-    protocol_read(read, response, superblock.get(), interruptor);
+    protocol_read(_read, response, superblock.get(), interruptor);
 }
 
 void store_t::write(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const region_map_t<binary_blob_t>& new_metainfo,
-        const write_t &write,
+        const write_t &_write,
         write_response_t *response,
         const write_durability_t durability,
         state_timestamp_t timestamp,
@@ -213,13 +213,13 @@ void store_t::write(
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     // We assume one block per document, plus changes to the stats block and superblock.
-    const int expected_change_count = 2 + write.expected_document_changes();
+    const int expected_change_count = 2 + _write.expected_document_changes();
     acquire_superblock_for_write(expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
     DEBUG_ONLY_CODE(metainfo->visit(
         real_superblock.get(), metainfo_checker.region, metainfo_checker.callback));
     metainfo->update(real_superblock.get(), new_metainfo);
-    protocol_write(write, response, timestamp, &real_superblock, interruptor);
+    protocol_write(_write, response, timestamp, &real_superblock, interruptor);
 }
 
 void store_t::reset_data(
@@ -758,8 +758,8 @@ void store_t::clear_sindex_data(
                         buf_parent_t(&kv_location.buf), kv_location.value.get());
                     kv_location.value.reset();
 
-                    buf_write_t write(&kv_location.buf);
-                    auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
+                    buf_write_t buf_write(&kv_location.buf);
+                    auto leaf_node = static_cast<leaf_node_t *>(buf_write.get_data_write());
                     leaf::remove(sizer,
                                  leaf_node,
                                  keys[i].btree_key(),
@@ -1114,7 +1114,7 @@ bool store_t::acquire_sindex_superblocks_for_write(
 region_map_t<binary_blob_t> store_t::get_metainfo(
         UNUSED order_token_t order_token,  // TODO
         read_token_t *token,
-        const region_t &region,
+        const region_t &_region,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -1124,7 +1124,7 @@ region_map_t<binary_blob_t> store_t::get_metainfo(
                                 &txn, &superblock,
                                 interruptor,
                                 false /* KSI: christ */);
-    return metainfo->get(superblock.get(), region);
+    return metainfo->get(superblock.get(), _region);
 }
 
 void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,

@@ -100,22 +100,22 @@ int S2CellId::level() const {
   if (is_leaf()) return kMaxLevel;
 
   uint32 x = static_cast<uint32>(id_);
-  int level = -1;
+  int _level = -1;
   if (x != 0) {
-    level += 16;
+    _level += 16;
   } else {
     x = static_cast<uint32>(id_ >> 32);
   }
   // We only need to look at even-numbered bits to determine the
   // level of a valid cell id.
   x &= -x;  // Get lowest bit.
-  if (x & 0x00005555) level += 8;
-  if (x & 0x00550055) level += 4;
-  if (x & 0x05050505) level += 2;
-  if (x & 0x11111111) level += 1;
-  DCHECK_GE(level, 0);
-  DCHECK_LE(level, kMaxLevel);
-  return level;
+  if (x & 0x00005555) _level += 8;
+  if (x & 0x00550055) _level += 4;
+  if (x & 0x05050505) _level += 2;
+  if (x & 0x11111111) _level += 1;
+  DCHECK_GE(_level, 0);
+  DCHECK_LE(_level, kMaxLevel);
+  return _level;
 }
 
 S2CellId S2CellId::advance(int64 steps) const {
@@ -267,8 +267,8 @@ int S2CellId::ToFaceIJOrientation(int* pi, int* pj, int* orientation) const {
   MaybeInit();
 
   int i = 0, j = 0;
-  int face = this->face();
-  int bits = (face & kSwapMask);
+  int _face = this->face();
+  int bits = (_face & kSwapMask);
 
   // Each iteration maps 8 bits of the Hilbert curve position into
   // 4 bits of "i" and "j".  The lookup table transforms a key of the
@@ -316,7 +316,7 @@ int S2CellId::ToFaceIJOrientation(int* pi, int* pj, int* orientation) const {
     }
     *orientation = bits;
   }
-  return face;
+  return _face;
 }
 
 inline int S2CellId::GetCenterSiTi(int* psi, int* pti) const {
@@ -338,13 +338,13 @@ inline int S2CellId::GetCenterSiTi(int* psi, int* pti) const {
   // In the code below, the expression ((i ^ (int(id_) >> 2)) & 1) is true
   // if we are in the second case described above.
   int i, j;
-  int face = ToFaceIJOrientation(&i, &j, NULL);
+  int _face = ToFaceIJOrientation(&i, &j, NULL);
   int delta = is_leaf() ? 1 : ((i ^ (static_cast<int>(id_) >> 2)) & 1) ? 2 : 0;
 
   // Note that (2 * {i,j} + delta) will never overflow a 32-bit integer.
   *psi = 2 * i + delta;
   *pti = 2 * j + delta;
-  return face;
+  return _face;
 }
 
 S2Point S2CellId::ToPointRaw() const {
@@ -352,8 +352,8 @@ S2Point S2CellId::ToPointRaw() const {
   // but this method is heavily used and it's 25% faster to include
   // the method inline.
   int si, ti;
-  int face = GetCenterSiTi(&si, &ti);
-  return S2::FaceUVtoXYZ(face,
+  int _face = GetCenterSiTi(&si, &ti);
+  return S2::FaceUVtoXYZ(_face,
                          S2::STtoUV((0.5 / kMaxSize) * si),
                          S2::STtoUV((0.5 / kMaxSize) * ti));
 }
@@ -406,33 +406,33 @@ inline S2CellId S2CellId::FromFaceIJSame(int face, int i, int j,
 
 void S2CellId::GetEdgeNeighbors(S2CellId neighbors[4]) const {
   int i, j;
-  int level = this->level();
-  int size = GetSizeIJ(level);
-  int face = ToFaceIJOrientation(&i, &j, NULL);
+  int _level = this->level();
+  int size = GetSizeIJ(_level);
+  int _face = ToFaceIJOrientation(&i, &j, NULL);
 
   // Edges 0, 1, 2, 3 are in the S, E, N, W directions.
-  neighbors[0] = FromFaceIJSame(face, i, j - size, j - size >= 0)
-                 .parent(level);
-  neighbors[1] = FromFaceIJSame(face, i + size, j, i + size < kMaxSize)
-                 .parent(level);
-  neighbors[2] = FromFaceIJSame(face, i, j + size, j + size < kMaxSize)
-                 .parent(level);
-  neighbors[3] = FromFaceIJSame(face, i - size, j, i - size >= 0)
-                 .parent(level);
+  neighbors[0] = FromFaceIJSame(_face, i, j - size, j - size >= 0)
+                 .parent(_level);
+  neighbors[1] = FromFaceIJSame(_face, i + size, j, i + size < kMaxSize)
+                 .parent(_level);
+  neighbors[2] = FromFaceIJSame(_face, i, j + size, j + size < kMaxSize)
+                 .parent(_level);
+  neighbors[3] = FromFaceIJSame(_face, i - size, j, i - size >= 0)
+                 .parent(_level);
 }
 
-void S2CellId::AppendVertexNeighbors(int level,
+void S2CellId::AppendVertexNeighbors(int _level,
                                      vector<S2CellId>* output) const {
   // "level" must be strictly less than this cell's level so that we can
   // determine which vertex this cell is closest to.
-  DCHECK_LT(level, this->level());
+  DCHECK_LT(_level, this->level());
   int i, j;
-  int face = ToFaceIJOrientation(&i, &j, NULL);
+  int _face = ToFaceIJOrientation(&i, &j, NULL);
 
   // Determine the i- and j-offsets to the closest neighboring cell in each
   // direction.  This involves looking at the next bit of "i" and "j" to
-  // determine which quadrant of this->parent(level) this cell lies in.
-  int halfsize = GetSizeIJ(level + 1);
+  // determine which quadrant of this->parent(_level) this cell lies in.
+  int halfsize = GetSizeIJ(_level + 1);
   int size = halfsize << 1;
   bool isame, jsame;
   int ioffset, joffset;
@@ -451,21 +451,21 @@ void S2CellId::AppendVertexNeighbors(int level,
     jsame = (j - size) >= 0;
   }
 
-  output->push_back(parent(level));
-  output->push_back(FromFaceIJSame(face, i + ioffset, j, isame).parent(level));
-  output->push_back(FromFaceIJSame(face, i, j + joffset, jsame).parent(level));
+  output->push_back(parent(_level));
+  output->push_back(FromFaceIJSame(_face, i + ioffset, j, isame).parent(_level));
+  output->push_back(FromFaceIJSame(_face, i, j + joffset, jsame).parent(_level));
   // If i- and j- edge neighbors are *both* on a different face, then this
   // vertex only has three neighbors (it is one of the 8 cube vertices).
   if (isame || jsame) {
-    output->push_back(FromFaceIJSame(face, i + ioffset, j + joffset,
-                                     isame && jsame).parent(level));
+    output->push_back(FromFaceIJSame(_face, i + ioffset, j + joffset,
+                                     isame && jsame).parent(_level));
   }
 }
 
 void S2CellId::AppendAllNeighbors(int nbr_level,
                                   vector<S2CellId>* output) const {
   int i, j;
-  int face = ToFaceIJOrientation(&i, &j, NULL);
+  int _face = ToFaceIJOrientation(&i, &j, NULL);
 
   // Find the coordinates of the lower left-hand leaf cell.  We need to
   // normalize (i,j) to a known position within the cell because nbr_level
@@ -488,16 +488,16 @@ void S2CellId::AppendAllNeighbors(int nbr_level,
     } else {
       same_face = true;
       // North and South neighbors.
-      output->push_back(FromFaceIJSame(face, i + k, j - nbr_size,
+      output->push_back(FromFaceIJSame(_face, i + k, j - nbr_size,
                                        j - size >= 0).parent(nbr_level));
-      output->push_back(FromFaceIJSame(face, i + k, j + size,
+      output->push_back(FromFaceIJSame(_face, i + k, j + size,
                                        j + size < kMaxSize).parent(nbr_level));
     }
     // East, West, and Diagonal neighbors.
-    output->push_back(FromFaceIJSame(face, i - nbr_size, j + k,
+    output->push_back(FromFaceIJSame(_face, i - nbr_size, j + k,
                                      same_face && i - size >= 0)
                       .parent(nbr_level));
-    output->push_back(FromFaceIJSame(face, i + size, j + k,
+    output->push_back(FromFaceIJSame(_face, i + size, j + k,
                                      same_face && i + size < kMaxSize)
                       .parent(nbr_level));
     if (k >= size) break;

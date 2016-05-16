@@ -315,9 +315,9 @@ void connectivity_cluster_t::run_t::on_new_connection(
     } catch (const interrupted_exc_t &) {
         // TLS handshake was interrupted.
         return;
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+    } catch (const crypto::openssl_error_t &err) {
         // TLS handshake failed.
-        logERR("Cluster server connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        logERR("Cluster server connection TLS handshake failed: %s", err.what());
         return;
     }
 
@@ -368,6 +368,8 @@ void connectivity_cluster_t::run_t::connect_to_peer(
                     drainer_lock, successful_join_inout, join_delay_secs);
             }
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
+            /* Ignore */
+        } catch (const crypto::openssl_error_t &) {
             /* Ignore */
         } catch (const interrupted_exc_t &) {
             /* Ignore */
@@ -1064,12 +1066,11 @@ void connectivity_cluster_t::run_t::handle(
 
     try {
         other_peer_addr.create(other_peer_addr_hosts);
-    } catch (host_lookup_exc_t) {
+    } catch (const host_lookup_exc_t &) {
         printf_buffer_t hostnames;
-        for (auto it = other_peer_addr_hosts.begin();
-             it != other_peer_addr_hosts.end(); ++it) {
-            hostnames.appendf("%s%s", it != other_peer_addr_hosts.begin() ? ", " : "",
-                              it->host().c_str());
+        for (auto const &host_and_port : other_peer_addr_hosts) {
+            hostnames.appendf("%s%s", hostnames.size() > 0 ? ", " : "",
+                              host_and_port.host().c_str());
         }
         logERR("Connected to peer with unresolvable hostname%s: %s, closing "
                "connection.  Consider using the '--canonical-address' launch option.",
@@ -1206,14 +1207,29 @@ void connectivity_cluster_t::run_t::handle(
     if (!drainer_lock.get_drain_signal()->is_pulsed()) {
         for (auto it = other_routing_table.begin(); it != other_routing_table.end(); ++it) {
             if (routing_table.find(it->first) == routing_table.end()) {
-                // `it->first` is the ID of a peer that our peer is connected
-                //  to, but we aren't connected to.
-                coro_t::spawn_now_dangerously(std::bind(
-                    &connectivity_cluster_t::run_t::join_blocking, this,
-                    peer_address_t(it->second), // This is where we resolve the peer's ip addresses
-                    boost::optional<peer_id_t>(it->first),
-                    join_delay_secs,
-                    drainer_lock));
+                try {
+                    // This is where we resolve the peer's ip addresses
+                    peer_address_t next_peer_addr(it->second);
+
+                    // `it->first` is the ID of a peer that our peer is connected
+                    //  to, but we aren't connected to.
+                    coro_t::spawn_now_dangerously(std::bind(
+                        &connectivity_cluster_t::run_t::join_blocking, this,
+                        next_peer_addr,
+                        boost::optional<peer_id_t>(it->first),
+                        join_delay_secs,
+                        drainer_lock));
+                } catch (const host_lookup_exc_t &ex) {
+                    printf_buffer_t hostnames;
+                    for (auto const &host_and_port : it->second) {
+                        hostnames.appendf("%s%s", hostnames.size() > 0 ? ", " : "",
+                                          host_and_port.host().c_str());
+                    }
+                    logERR("Informed of peer with unresolvable hostname%s: %s. We will not be "
+                           "able to connect to this peer, which could result in diminished "
+                           "availability.  Consider using the '--canonical-address' launch option.",
+                           it->second.size() > 1 ? "s" : "", hostnames.c_str());
+                }
             }
         }
     }
@@ -1442,7 +1458,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
 
     /* We're allowed to block indefinitely, but it's tempting to write code on
     the assumption that we won't. This might catch some programming errors. */
-    if (debug_rng.randint(10) == 0) {
+    if (randint(10) == 0) {
         nap(10);
     }
 #endif

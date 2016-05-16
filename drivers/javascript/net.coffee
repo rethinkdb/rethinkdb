@@ -50,11 +50,14 @@ cursors = require('./cursor')
 # Note that it's a plain JavaScript file, not a CoffeeScript file.
 protodef = require('./proto-def')
 
+crypto = require("crypto")
+
 # Each version of the protocol has a magic number specified in
 # `./proto-def.coffee`. The most recent version is 4. Generally the
 # official driver will always be updated to the newest version of the
 # protocol, though RethinkDB supports older versions for some time.
-protoVersion = protodef.VersionDummy.Version.V0_4
+protoVersion = protodef.VersionDummy.Version.V1_0
+protoVersionNumber = 0
 
 # We are using the JSON protocol for RethinkDB, which is the most
 # recent version. The older protocol is based on Protocol Buffers, and
@@ -902,6 +905,11 @@ class Connection extends events.EventEmitter
         # string.
         @_writeQuery(query.token, JSON.stringify(data))
 
+
+# Global cache variable for storing the results of pbkdf2_hmac
+
+pbkdf2_cache = {}
+
 # ### TcpConnection
 #
 # This class implements all of the TCP specific behavior for normal
@@ -973,10 +981,8 @@ class TcpConnection extends Connection
 
         # Once the TCP socket successfully connects, we can begin the
         # handshake with the server to establish the connection on the
-        # server. This is where we decide what protocol to use, and
-        # send things like the authKey etc.
+        # server.
         @rawSocket.once 'connect', =>
-
             # The protocol specifies that the magic number for the
             # version should be given as a little endian 32 bit
             # unsigned integer. The value is given in the `proto-def`
@@ -986,27 +992,100 @@ class TcpConnection extends Connection
             version = new Buffer(4)
             version.writeUInt32LE(protoVersion, 0)
 
-            # Since the auth key has a variable length, we need to
-            # both encode its length in the wire format (little endian
-            # 32 bit), and the bytes themselves.
-            auth_buffer = new Buffer(@authKey, 'ascii')
-            auth_length = new Buffer(4)
-            auth_length.writeUInt32LE(auth_buffer.length, 0)
-
             # Send the protocol type that we will be using to
             # communicate with the server. Json is the only currently
             # supported protocol.
             protocol = new Buffer(4)
             protocol.writeUInt32LE(protoProtocol, 0)
 
-            # Write the version, auth key length, auth key, and
-            # protocol number to the socket, in that order.
-            @rawSocket.write Buffer.concat([version, auth_length, auth_buffer, protocol])
+            r_string = new Buffer(crypto.randomBytes(18)).toString('base64')
+
+            @rawSocket.user = host["user"]
+            @rawSocket.password = host["password"]
+
+            # Default to admin user with no password if none is given.
+            if @rawSocket.user is undefined
+                @rawSocket.user = "admin"
+            if @rawSocket.password is undefined
+                @rawSocket.password = ""
+
+            client_first_message_bare = "n=" + @rawSocket.user + ",r=" + r_string
+
+            message = JSON.stringify({
+                protocol_version: protoVersionNumber,
+                authentication_method: "SCRAM-SHA-256",
+                authentication: "n,," + client_first_message_bare})
+
+            nullbyte = new Buffer('\0', "binary")
+
+            @rawSocket.write Buffer.concat([version, Buffer(message.toString()), nullbyte])
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection. The following callback
             # will be invoked when the server sends the first few
             # bytes over the socket.
+
+            state = 1
+            min = 0
+            max = 0
+            server_first_message = ""
+            server_signature = ""
+            auth_r = ""
+            auth_salt = ""
+            auth_i = 0
+
+            xor_bytes = (a, b) ->
+                res = []
+                len = Math.min(a.length, b.length)
+                for i in [0...len]
+                    res.push(a[i] ^ b[i])
+                return new Buffer(res)
+
+            # We implement this ourselves because early versions of node will ignore the "sha256" option
+            # and just return the hash for sha1.
+            pbkdf2_hmac = (password, salt, iterations) =>
+                cache_string = password.toString("base64") + "," + salt.toString("base64") + "," + iterations.toString()
+                if pbkdf2_cache[cache_string]
+                    return pbkdf2_cache[cache_string]
+
+                mac = crypto.createHmac("sha256", password)
+
+                mac.update(salt)
+                mac.update("\x00\x00\x00\x01")
+                u = mac.digest()
+                t = u
+                for c in [0...iterations-1]
+                    mac = crypto.createHmac("sha256", password)
+                    mac.update(t)
+                    t = mac.digest()
+                    u = xor_bytes(u, t)
+
+                pbkdf2_cache[cache_string] = u
+                return u
+
+            compare_digest = (a, b) ->
+                left = undefined
+                right = b
+                result = undefined
+                if a.length is b.length
+                    left = a
+                    result = 0
+                else
+                    left = b
+                    result = 1
+
+                len = Math.min(a.length, b.length)
+                for i in [0...len]
+                    result |= xor_bytes(a[i],b[i])
+
+                return result is 0
+
+            handshake_error = (code, message) =>
+                if 10 <= code <= 20
+                    @emit 'error', new err.ReqlAuthError(message)
+                else
+                    @emit 'error', new err.ReqlDriverError(message)
+
             handshake_callback = (buf) =>
                 # Once we receive a response, extend the current
                 # buffer with the data from the server. The reason we
@@ -1017,42 +1096,99 @@ class TcpConnection extends Connection
                 # response, and only disable this event listener at
                 # that time.
                 @buffer = Buffer.concat([@buffer, buf])
+                # Next we read bytes until we get a null byte. Then we follow
+                # the new handshake logic to authenticate the user with the
+                # server.
 
-                # Next we read bytes until we get a null byte. This is
-                # the response string from the server and should just
-                # be "SUCCESS\0". Anything else is an error.
+                j = 0
                 for b,i in @buffer
                     if b is 0
-                        # Once we get the null byte, the server
-                        # response has been received and we can turn
-                        # off the handshake callback
-                        @rawSocket.removeListener('data', handshake_callback)
-
                         # Here we pull the status string out of the
                         # buffer and convert it into a string.
-                        status_buf = @buffer.slice(0, i)
-                        @buffer = @buffer.slice(i + 1)
+                        status_buf = @buffer.slice(j, i)
+                        j = i+1
                         status_str = status_buf.toString()
+                        # Get the reply from the server, and parse it as JSON
+                        try
+                            server_reply = JSON.parse(status_str)
+                        catch json_error
+                            throw new err.ReqlDriverError(status_str)
 
-                        # We also want to cancel the timeout error
-                        # callback that we set earlier. Even though we
-                        # haven't checked `status_str` yet, we've
-                        # gotten a response so it isn't a timeout.
-                        clearTimeout(timeout)
+                        if state is 1
+                            if not server_reply.success
+                                handshake_error(server_reply.error_code, server_reply.error)
+                                return
+                            min = server_reply.min_protocol_version
+                            max = server_reply.max_protocol_version
 
-                        # Finally, check the status string.
-                        if status_str == HANDSHAKE_SUCCESS
-                            # Set up the `_data` method to receive all
-                            # further responses from the server. This
-                            # callback is only for the initial
-                            # connection, all future responses will be
-                            # in reply to queries.
-                            #
-                            # We wrap @_data in a function instead of
-                            # just giving it as a callback directly so
-                            # that it gets bound to the correct
-                            # `this`.
+                            if min > protoVersionNumber or max < protoVersionNumber
+                                # We don't actually support changing the protocol yet, so just error.
+                                throw new err.ReqlDriverError(
+                                    """Unsupported protocol version #{protoVersionNumber}, \
+                                    expected between #{min} and #{max}.""")
+                            state = 2
+                        else if state is 2
+                            if not server_reply.success
+                                handshake_error(server_reply.error_code, server_reply.error)
+                                return
+
+                            authentication = {}
+                            server_first_message = server_reply.authentication
+
+                            for item in server_first_message.split(",")
+                                i = item.indexOf("=")
+                                authentication[item.slice(0, i)] = item.slice(i+1)
+                            auth_r = authentication.r
+                            auth_salt = new Buffer(authentication.s, 'base64')
+                            auth_i = parseInt(authentication.i)
+
+                            if not (auth_r.substr(0, r_string.length) == r_string)
+                                throw new err.ReqlAuthError("Invalid nonce from server")
+
+                            client_final_message_without_proof = "c=biws,r=" + auth_r
+
+                            salted_password = pbkdf2_hmac(@rawSocket.password, auth_salt, auth_i)
+                            client_key = crypto.createHmac("sha256", salted_password).update("Client Key").digest()
+                            stored_key = crypto.createHash("sha256").update(client_key).digest()
+
+                            auth_message =
+                                client_first_message_bare + "," +
+                                server_first_message + "," +
+                                client_final_message_without_proof
+
+                            client_signature = crypto.createHmac("sha256", stored_key).update(auth_message).digest()
+                            client_proof = xor_bytes(client_key, client_signature)
+
+                            server_key = crypto.createHmac("sha256", salted_password).update("Server Key").digest()
+                            server_signature = crypto.createHmac("sha256", server_key).update(auth_message).digest()
+
+                            state = 3
+
+                            message = JSON.stringify({authentication: client_final_message_without_proof + ",p=" + client_proof.toString("base64")})
+
+                            nullbyte = new Buffer('\0', "binary")
+
+                            @rawSocket.write Buffer.concat([Buffer(message.toString()), nullbyte])
+                        else if state is 3
+                            if not server_reply.success
+                                handshake_error(server_reply.error_code, server_reply.error)
+                                return
+
+                            first_equals = server_reply.authentication.indexOf('=')
+                            v = server_reply.authentication.slice(first_equals+1)
+
+                            if not compare_digest(v, server_signature.toString("base64"))
+                                throw new err.ReqlAuthError("Invalid server signature")
+
+                            state = 4
+                            @rawSocket.removeListener('data', handshake_callback)
                             @rawSocket.on 'data', (buf) => @_data(buf)
+
+                            # We also want to cancel the timeout error
+                            # callback that we set earlier. Even though we
+                            # haven't checked `status_str` yet, we've
+                            # gotten a response so it isn't a timeout.
+                            clearTimeout(timeout)
 
                             # Notify listeners we've connected
                             # successfully. Notably, the Connection
@@ -1062,22 +1198,13 @@ class TcpConnection extends Connection
                             # callback passed to the `r.connect`
                             # function.
                             @emit 'connect'
-                            return
-                        else if status_str == HANDSHAKE_AUTHFAIL
-                            # Since there's a special error for
-                            # authorization failure, we have to look
-                            # for this specific error message.
-                            @emit 'error',
-                                new err.ReqlAuthError(
-                                    """Could not connect to #{@host}:#{@port}, \
-                                    incorrect authentication key.""")
                         else
-                            # The protocol dictates that any other
-                            # string but `SUCCESS` is an error
-                            # indicating the problem, and that we
-                            # should report the error to the user.
-                            @emit 'error', new err.ReqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
-                            return
+                            throw new err.ReqlDriverError("Unexpected handshake state")
+
+                # We may have more messages if we're in the middle of the handshake,
+                # so we have to update the buffer.
+                @buffer = @buffer.slice(j + 1)
+                # This is the end of the handshake callback.
 
             # Register the handshake callback on the socket. Once the
             # handshake completes, it will unregister itself and
@@ -1512,6 +1639,17 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     # 2. Initializes the connection, and when it's complete invokes
     #    the user's callback
     new Promise( (resolve, reject) ->
+        if host.authKey? && (host.password? || host.user? || host.username?)
+            throw new err.ReqlDriverError "Cannot use both authKey and password"
+        if host.user && host.username
+            throw new err.ReqlDriverError "Cannot use both user and username"
+        else if host.authKey
+            host.user = "admin"
+            host.password = host.authKey
+        else
+            # Fixing mismatch between drivers
+            if host.username?
+                host.user = host.username
         create_connection = (host, callback) =>
             if TcpConnection.isAvailable()
                 new TcpConnection host, callback
@@ -1527,3 +1665,8 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
                 resolve(result)
         create_connection(host, wrappedCb)
     ).nodeify callback
+
+# Exposing the connection classes
+module.exports.Connection = Connection
+module.exports.HttpConnection = HttpConnection
+module.exports.TcpConnection = TcpConnection

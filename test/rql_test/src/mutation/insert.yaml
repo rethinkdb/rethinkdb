@@ -155,6 +155,10 @@ tests:
       rb: tbl.insert({:value => r.maxval})
       ot: partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'})
 
+    # Crash 5683
+    - py: tbl.insert([{'id':666}, {'id':666}], return_changes="always")
+      ot: {'changes': [{'new_val': {'id': 666}, 'old_val': None},{'error': 'Duplicate primary key `id`:\n{\n\t"id":\t666\n}\n{\n\t"id":\t666\n}','new_val': {'id': 666},'old_val': {'id': 666}}],'deleted': 0,'errors': 1,'first_error': 'Duplicate primary key `id`:\n{\n\t"id":\t666\n}\n{\n\t"id":\t666\n}','inserted': 1,'replaced': 0,'skipped': 0,'unchanged': 0}
+
     # Confirm inserts are ordered in return_changes always
     - py: tbl.insert([{'id':100+i, 'ordered-num':i} for i in range(1,100)], return_changes="always")
       ot: partial({'changes':[{'old_val': None, 'new_val': {'id': 100+i, 'ordered-num': i}} for i in range(1,100)] })
@@ -170,6 +174,10 @@ tests:
     # Confirm errors are property returned with return_changes="always"
     - py: tbl.insert([{'id':100 + i, 'ordered-num':i} for i in range(1,100)], return_changes="always")
       ot: partial({'changes':[{'old_val': {'id':100+i, 'ordered-num':i}, 'new_val': {'id':100+i, 'ordered-num':i}, 'error':'Duplicate primary key `id`:\n{\n\t"id":\t'+str(100+i)+',\n\t"ordered-num":\t'+str(i)+'\n}\n{\n\t"id":\t'+str(100+i)+',\n\t"ordered-num":\t'+str(i)+'\n}'} for i in range(1,100)]})
+
+    # Trivial errors with return_changes="always", this has to be long test, testing order and message for this type
+    - py: tbl.insert([{'id':123}, {'id':'a'*500}, {'id':321}], return_changes="always")
+      ot: {'changes': [{'error': 'Duplicate primary key `id`:\n{\n\t"id":\t123,\n\t"ordered-num":\t23\n}\n{\n\t"id":\t123\n}', 'new_val': {'id': 123, 'ordered-num': 23}, 'old_val': {'id': 123, 'ordered-num': 23}}, {'error': 'Primary key too long (max 127 characters): "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"', 'new_val': None, 'old_val': None}, {'new_val': {'id': 321}, 'old_val': None}], 'deleted': 0, 'errors': 2, 'first_error': 'Primary key too long (max 127 characters): "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"', 'inserted': 1, 'replaced': 0, 'skipped': 0, 'unchanged': 0}
 
     # No errors returned with return_changes=true
     - py: tbl.insert([{'id':100 + i, 'ordered-num':i} for i in range(1,100)], return_changes=true)
@@ -195,6 +203,12 @@ tests:
       ot: partial({'replaced':1})
     - js: tbl.get(42)
       ot: {'id':42, 'foo':1, 'bar':7}
+
+      # Inserting and deleting an item
+    - js: tbl.insert({id: "toggle"},{conflict: function(x,y,z) { return null},returnChanges: true})
+      ot: partial({'inserted': 1})
+    - js: tbl.insert({id: "toggle"},{conflict: function(x,y,z) { return null},returnChanges: true})
+      ot: partial({'deleted': 1})
 
       # Returning the wrong thing from the conflict function
     - py: tbl.insert({'id':42, 'foo':1, 'bar':1}, conflict=lambda a,b,c: 2)

@@ -94,10 +94,11 @@ void user_context_t::require_write_permission(
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
             // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_write() == true;
+            return permissions.get_read() == true && permissions.get_write() == true;
         },
         [&](user_t const &user) -> bool {
-            return user.has_write_permission(database_id, table_id);
+            return user.has_read_permission(database_id, table_id) &&
+                user.has_write_permission(database_id, table_id);
         },
         "write");
 }

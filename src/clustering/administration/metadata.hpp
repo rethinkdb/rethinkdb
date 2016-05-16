@@ -59,7 +59,12 @@ public:
                        "versioning will behave unexpectedly.");
             }
         }
-        auth::password_t pw(initial_password);
+        // Use a single iteration for better efficiency when starting out with an empty
+        // password.
+        uint32_t iterations = initial_password.empty()
+                              ? 1
+                              : auth::password_t::default_iteration_count;
+        auth::password_t pw(initial_password, iterations);
         return std::make_pair(
             auth::username_t("admin"),
             versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(

@@ -13,8 +13,8 @@ namespace crypto {
 
 class error_t : public std::runtime_error {
 public:
-    error_t(std::string const &what)
-        : std::runtime_error(what) {
+    explicit error_t(std::string const &_what)
+        : std::runtime_error(_what) {
     }
 };
 
@@ -28,7 +28,7 @@ public:
 
 class openssl_error_t : public std::system_error {
 public:
-    explicit openssl_error_t(unsigned long ec)
+    explicit openssl_error_t(unsigned long ec)  // NOLINT(runtime/int)
         : std::system_error(ec, openssl_error_category) {
     }
 };

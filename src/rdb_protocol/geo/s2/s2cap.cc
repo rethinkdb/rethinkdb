@@ -50,8 +50,8 @@ S1Angle S2Cap::angle() const {
 S2Cap S2Cap::Complement() const {
   // The complement of a full cap is an empty cap, not a singleton.
   // Also make sure that the complement of an empty cap has height 2.
-  double height = is_full() ? -1 : 2 - max(height_, 0.0);
-  return S2Cap::FromAxisHeight(-axis_, height);
+  double _height = is_full() ? -1 : 2 - max(height_, 0.0);
+  return S2Cap::FromAxisHeight(-axis_, _height);
 }
 
 bool S2Cap::Contains(S2Cap const& other) const {

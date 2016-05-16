@@ -443,7 +443,7 @@ class S2 {
   // Defines a cell metric of the given dimension (1 == length, 2 == area).
   template <int dim> class Metric {
    public:
-    explicit Metric(double deriv) : deriv_(deriv) {}
+    explicit Metric(double _deriv) : deriv_(_deriv) {}
 
     // The "deriv" value of a metric is a derivative, and must be multiplied by
     // a length or area in (s,t)-space to get a useful value.

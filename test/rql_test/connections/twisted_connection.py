@@ -20,8 +20,7 @@ from twisted.internet import reactor, defer, threads
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.failure import Failure
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                os.pardir, os.pardir, "common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver
 import utils
 
@@ -228,11 +227,10 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            with self.assertRaisesRegexp(r.ReqlDriverError,
-                                               "Connection interrupted during"
-                                               " handshake with %s:%d. "
-                                               "Error: Operation timed out."
-                                               % (host, port)):
+            with self.assertRaisesRegexp(r.ReqlTimeoutError,
+                                         "Could not connect to %s:%d, "
+                                         "operation timed out."
+                                         % (host, port)):
                 yield r.connect(host=host, port=port, timeout=2)
         finally:
             useSocket.close()

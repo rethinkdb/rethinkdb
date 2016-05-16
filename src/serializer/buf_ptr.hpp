@@ -24,9 +24,9 @@ public:
     }
 
     buf_ptr_t(block_size_t size,
-              scoped_device_block_aligned_ptr_t<ser_buffer_t> ser_buffer)
+              scoped_device_block_aligned_ptr_t<ser_buffer_t> _ser_buffer)
         : block_size_(size),
-          ser_buffer_(std::move(ser_buffer)) {
+          ser_buffer_(std::move(_ser_buffer)) {
         guarantee(block_size_.ser_value() != 0);
         guarantee(ser_buffer_.has());
     }

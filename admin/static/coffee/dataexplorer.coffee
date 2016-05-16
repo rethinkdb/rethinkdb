@@ -1519,7 +1519,7 @@ class Container extends Backbone.View
         comma: /^(\s)*,(\s)*/
         semicolon: /^(\s)*;(\s)*/
         number: /^[0-9]+\.?[0-9]*/
-        inline_comment: /^(\s)*\/\/.*\n/
+        inline_comment: /^(\s)*\/\/.*\n|$/
         multiple_line_comment: /^(\s)*\/\*[^(\*\/)]*\*\//
         get_first_non_white_char: /\s*(\S+)/
         last_char_is_white: /.*(\s+)$/

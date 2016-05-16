@@ -463,31 +463,35 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         return datum_t::boolean(true);
     } break;
     case rapidjson::kObjectType: {
-        datum_object_builder_t builder;
-        for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
-             it != json.MemberEnd();
-             ++it) {
-            fail_if_invalid(it->name.GetString(),
-                            it->name.GetStringLength());
-            datum_string_t key(it->name.GetStringLength(),
-                               it->name.GetString());
-            bool dup = builder.add(key, to_datum(it->value, limits, reql_version));
-            rcheck_datum(!dup, base_exc_t::LOGIC,
-                         strprintf("Duplicate key %s in JSON.",
-                                   datum_t(key).print().c_str()));
-        }
-        const std::set<std::string> pts = { pseudo::literal_string };
-        return std::move(builder).to_datum(pts);
+        return call_with_enough_stack<datum_t>([&]() {
+            datum_object_builder_t builder;
+            for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
+                 it != json.MemberEnd();
+                 ++it) {
+                fail_if_invalid(it->name.GetString(),
+                                it->name.GetStringLength());
+                datum_string_t key(it->name.GetStringLength(),
+                                   it->name.GetString());
+                bool dup = builder.add(key, to_datum(it->value, limits, reql_version));
+                rcheck_datum(!dup, base_exc_t::LOGIC,
+                             strprintf("Duplicate key %s in JSON.",
+                                       datum_t(key).print().c_str()));
+            }
+            const std::set<std::string> pts = { pseudo::literal_string };
+            return std::move(builder).to_datum(pts);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
     } break;
     case rapidjson::kArrayType: {
-        datum_array_builder_t builder(limits);
-        builder.reserve(json.Size());
-        for (rapidjson::Value::ConstValueIterator it = json.Begin();
-             it != json.End();
-             ++it) {
-            builder.add(to_datum(*it, limits, reql_version));
-        }
-        return std::move(builder).to_datum();
+        return call_with_enough_stack<datum_t>([&]() {
+            datum_array_builder_t builder(limits);
+            builder.reserve(json.Size());
+            for (rapidjson::Value::ConstValueIterator it = json.Begin();
+                 it != json.End();
+                 ++it) {
+                builder.add(to_datum(*it, limits, reql_version));
+            }
+            return std::move(builder).to_datum();
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
     } break;
     case rapidjson::kStringType: {
         fail_if_invalid(json.GetString(), json.GetStringLength());
@@ -1479,11 +1483,11 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         auto center_pair = unchecked_get_pair(center);
-        const int cmp = key.compare(center_pair.first);
-        if (cmp == 0) {
+        const int cmp_res = key.compare(center_pair.first);
+        if (cmp_res == 0) {
             // Found it
             return center_pair.second;
-        } else if (cmp < 0) {
+        } else if (cmp_res < 0) {
             range_end = center;
         } else {
             range_beg = center + 1;

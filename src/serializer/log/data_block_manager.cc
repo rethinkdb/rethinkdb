@@ -130,47 +130,47 @@ public:
 
     // Returns the ostensible size of the block_index'th block.  Note that
     // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
-    block_size_t block_size(unsigned int block_index) const {
+    block_size_t block_size(unsigned int _block_index) const {
         guarantee(state != state_reconstructing);
-        guarantee(block_index < block_infos.size());
-        return block_infos[block_index].block_size;
+        guarantee(_block_index < block_infos.size());
+        return block_infos[_block_index].block_size;
     }
 
     // Returns block_boundaries()[block_index].
-    uint32_t relative_offset(unsigned int block_index) const {
+    uint32_t relative_offset(unsigned int _block_index) const {
         guarantee(state != state_reconstructing);
-        guarantee(block_index < block_infos.size());
-        return block_infos[block_index].relative_offset;
+        guarantee(_block_index < block_infos.size());
+        return block_infos[_block_index].relative_offset;
     }
 
     unsigned int block_index(int64_t offset) const {
         guarantee(state != state_reconstructing);
         guarantee(offset >= extent_ref.offset());
         guarantee(offset < extent_ref.offset() + UINT32_MAX);
-        const uint32_t relative_offset = offset - extent_ref.offset();
+        const uint32_t _relative_offset = offset - extent_ref.offset();
 
-        auto it = find_lower_bound_iter(relative_offset);
+        auto it = find_lower_bound_iter(_relative_offset);
         guarantee(it != block_infos.end());
         return it - block_infos.begin();
     }
 
-    bool new_offset(block_size_t block_size,
+    bool new_offset(block_size_t _block_size,
                     uint32_t *relative_offset_out,
                     unsigned int *block_index_out) {
         // Returns true if there's enough room at the end of the extent for the new
         // block.
         guarantee(state == state_active);
-        guarantee(block_size.ser_value() <= parent->static_config->extent_size());
+        guarantee(_block_size.ser_value() <= parent->static_config->extent_size());
 
         uint32_t offset = back_relative_offset();
         guarantee(offset <= parent->static_config->extent_size());
 
-        if (offset > parent->static_config->extent_size() - block_size.ser_value()) {
+        if (offset > parent->static_config->extent_size() - _block_size.ser_value()) {
             return false;
         } else {
             *relative_offset_out = offset;
             *block_index_out = block_infos.size();
-            block_infos.push_back(block_info_t{offset, block_size, false, false});
+            block_infos.push_back(block_info_t{offset, _block_size, false, false});
             update_stats(nullptr, &block_infos.back());
             return true;
         }
@@ -195,26 +195,27 @@ public:
         return garbage_bytes_stat;
     }
 
-    bool block_is_garbage(unsigned int block_index) const {
+    bool block_is_garbage(unsigned int _block_index) const {
         guarantee(state != state_reconstructing);
-        guarantee(block_index < block_infos.size());
-        return !block_infos[block_index].token_referenced && !block_infos[block_index].index_referenced;
+        guarantee(_block_index < block_infos.size());
+        return !block_infos[_block_index].token_referenced &&
+            !block_infos[_block_index].index_referenced;
     }
 
-    void mark_live_tokenwise(unsigned int block_index) {
+    void mark_live_tokenwise(unsigned int _block_index) {
         guarantee(state != state_reconstructing);
-        guarantee(block_index < block_infos.size());
-        const block_info_t old_info = block_infos[block_index];
-        block_infos[block_index].token_referenced = true;
-        update_stats(&old_info, &block_infos[block_index]);
+        guarantee(_block_index < block_infos.size());
+        const block_info_t old_info = block_infos[_block_index];
+        block_infos[_block_index].token_referenced = true;
+        update_stats(&old_info, &block_infos[_block_index]);
     }
 
-    void mark_garbage_tokenwise(unsigned int block_index) {
+    void mark_garbage_tokenwise(unsigned int _block_index) {
         guarantee(state != state_reconstructing);
-        guarantee(block_index < block_infos.size());
-        const block_info_t old_info = block_infos[block_index];
-        block_infos[block_index].token_referenced = false;
-        update_stats(&old_info, &block_infos[block_index]);
+        guarantee(_block_index < block_infos.size());
+        const block_info_t old_info = block_infos[_block_index];
+        block_infos[_block_index].token_referenced = false;
+        update_stats(&old_info, &block_infos[_block_index]);
     }
 
     uint32_t token_bytes() const {
@@ -231,43 +232,46 @@ public:
         return info.relative_offset < relative_offset;
     }
 
-    std::vector<block_info_t>::const_iterator find_lower_bound_iter(uint32_t relative_offset) const {
-        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    std::vector<block_info_t>::const_iterator find_lower_bound_iter(uint32_t _relative_offset) const {
+        return std::lower_bound(block_infos.begin(),
+                                block_infos.end(),
+                                _relative_offset,
+                                &gc_entry_t::info_less);
     }
 
-    void mark_live_indexwise_with_offset(int64_t offset, block_size_t block_size) {
+    void mark_live_indexwise_with_offset(int64_t offset, block_size_t _block_size) {
         guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
-        uint32_t relative_offset = offset - extent_ref.offset();
+        uint32_t _relative_offset = offset - extent_ref.offset();
 
-        auto it = find_lower_bound_iter(relative_offset);
+        auto it = find_lower_bound_iter(_relative_offset);
         if (it == block_infos.end()) {
-            block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
+            block_infos.push_back(block_info_t{_relative_offset, _block_size, false, true});
             update_stats(nullptr, &block_infos.back());
-        } else if (it->relative_offset > relative_offset) {
-            guarantee(it->relative_offset >= relative_offset + aligned_value(block_size));
-            auto new_block = block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+        } else if (it->relative_offset > _relative_offset) {
+            guarantee(it->relative_offset >= _relative_offset + aligned_value(_block_size));
+            auto new_block = block_infos.insert(it, block_info_t{_relative_offset, _block_size, false, true});
             update_stats(nullptr, &*new_block);
         } else {
-            guarantee(it->relative_offset == relative_offset);
-            guarantee(it->block_size == block_size);
+            guarantee(it->relative_offset == _relative_offset);
+            guarantee(it->block_size == _block_size);
             const block_info_t old_info = *it;
             it->index_referenced = true;
             update_stats(&old_info, &*it);
         }
     }
 
-    void mark_garbage_indexwise(unsigned int block_index) {
+    void mark_garbage_indexwise(unsigned int _block_index) {
         guarantee(state != state_reconstructing);
-        guarantee(block_infos[block_index].index_referenced);
-        const block_info_t old_info = block_infos[block_index];
-        block_infos[block_index].index_referenced = false;
-        update_stats(&old_info, &block_infos[block_index]);
+        guarantee(block_infos[_block_index].index_referenced);
+        const block_info_t old_info = block_infos[_block_index];
+        block_infos[_block_index].index_referenced = false;
+        update_stats(&old_info, &block_infos[_block_index]);
     }
 
-    bool block_referenced_by_index(unsigned int block_index) const {
-        guarantee(block_index < block_infos.size());
-        return block_infos[block_index].index_referenced;
+    bool block_referenced_by_index(unsigned int _block_index) const {
+        guarantee(_block_index < block_infos.size());
+        return block_infos[_block_index].index_referenced;
     }
 
     uint32_t index_bytes() const {
@@ -301,8 +305,11 @@ public:
 private:
     // Private because we cannot guarantee that our stats remain consistent if somebody
     // gets a non-const iterator.
-    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
-        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t _relative_offset) {
+        return std::lower_bound(block_infos.begin(),
+                                block_infos.end(),
+                                _relative_offset,
+                                &gc_entry_t::info_less);
     }
 
     // old_block can be NULL if a block_info was freshly added

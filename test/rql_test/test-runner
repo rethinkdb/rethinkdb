@@ -1013,6 +1013,7 @@ class Test(object):
     type = None
     path = None
     driverLang = None
+    resultDir = None # where the test ouput goes
     
     __status = 'queued' # queued, setting up, running, ended
     __result = None # None, failed setup, failed, crashed, crashed server, timed out, canceled, succeeded
@@ -1165,7 +1166,8 @@ class Test(object):
         # - server info
         envVariables.update({
             'RDB_DRIVER_PORT':str(server.driver_port),
-            'RDB_SERVER_HOST':server.host
+            'RDB_SERVER_HOST':server.host,
+            'TEST_RESULT_DIR':self.resultDir
         })
         
         # - driver info
@@ -1192,7 +1194,7 @@ class Test(object):
         
         with testLock:
             self.__consoleFile = self.consoleFile if self.consoleFile is sys.stdout else open(self.consoleFile, 'w+')
-            self.__testProcess = subprocess.Popen(self.command, stdin=devNull, stdout=self.__consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables, close_fds=True)
+            self.__testProcess = subprocess.Popen(self.command, stdin=devNull, stdout=self.__consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, cwd=self.resultDir, env=envVariables, close_fds=True)
     
     def check(self):
         '''Check on a running test, reply with True if running, False if ended'''
@@ -1381,7 +1383,6 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
             groupName = 'polyglot' + groupName.lstrip('src')
         
         for fileName in [x for x in files if x.count('.') > 0]:
-            
             testName, extension = os.path.splitext(fileName)
             extension = extension.lstrip('.').strip().lower()
             
@@ -1409,29 +1410,38 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
                     testLangExtensions = list(itertools.chain.from_iterable((x.test_types for x in languages))) # all selected languages
             
             # -- create tests for all language versions that pass the filters
-            for language in (x for x in languages if any(y in testLangExtensions for y in x.test_types)):
-                
-                subTestName = '%s.%s' % (testName, language.test_types[0])
+            
+            if testLangExtensions:
+                for language in (x for x in languages if any(y in testLangExtensions for y in x.test_types)):
+                    subTestName = '%s.%s' % (testName, language.test_types[0])
+                    
+                    # - run the filters
+                    if testFilters is not None and len(testFilters) > 0:
+                        for testFilter in testFilters:
+                            if testFilter.match(subTestName) is not None:
+                                break
+                        else:
+                            continue
+                    
+                    # - add the test
+                    if extension == 'yaml':
+                        foundTests.append(YamlTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
+                    elif extension == 'mocha':
+                        foundTests.append(MochaTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
+                    else:
+                        foundTests.append(Test(name=subTestName, path=os.path.join(root, fileName), driverLang=language))
+            elif extension == 'test':
+                # non-language test
                 
                 # - run the filters
-                
                 if testFilters is not None and len(testFilters) > 0:
-                    foundMatch = False
                     for testFilter in testFilters:
-                        if testFilter.match(subTestName) is not None:
-                            foundMatch = True
+                        if testFilter.match(testName) is not None:
                             break
-                    if foundMatch is False:
+                    else:
                         continue
                 
-                # - add the test
-                
-                if extension == 'yaml':
-                    foundTests.append(YamlTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
-                elif extension == 'mocha':
-                    foundTests.append(MochaTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
-                else:
-                    foundTests.append(Test(name=subTestName, path=os.path.join(root, fileName), driverLang=language))
+                foundTests.append(Test(name=testName, path=os.path.join(root, fileName), driverLang=None))
                     
     # -- return a sorted list
     
@@ -1487,8 +1497,7 @@ class WorkerThread(threading.Thread):
         
         while cancelRun is False:
             test = None
-            testOutputDir = None
-                
+            
             try:
                 # -- get a test
                 
@@ -1541,17 +1550,17 @@ class WorkerThread(threading.Thread):
                     raise CancelRunError()
                 
                 # - create test output folder
-                testOutputDir = os.path.join(self.outputDir, test.name)
-                if os.path.exists(testOutputDir):
+                test.resultDir = os.path.join(self.outputDir, test.name)
+                if os.path.exists(test.resultDir):
                     # delete the old item
-                    if os.path.isdir(testOutputDir):
-                        shutil.rmtree(testOutputDir)
+                    if os.path.isdir(test.resultDir):
+                        shutil.rmtree(test.resultDir)
                     else:
-                        os.unlink(testOutputDir)
-                os.makedirs(testOutputDir)
+                        os.unlink(test.resultDir)
+                os.makedirs(test.resultDir)
                 
                 # - set consoleFile
-                test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(testOutputDir, 'console.txt')
+                test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(test.resultDir, 'console.txt')
                 
                 # - run the test
                 if cancelRun:
@@ -1616,9 +1625,9 @@ class WorkerThread(threading.Thread):
                             test.errorMessage += ', and the server crashed while running'
                 
                 # - copy the server contents or just the server log
-                if self.server.logfile_path and testOutputDir: # in case this is a local server, change after https://github.com/rethinkdb/rethinkdb/issues/4512
+                if self.server.logfile_path and test.resultDir: # in case this is a local server, change after https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
-                        shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
+                        shutil.copytree(self.server.data_path, os.path.join(test.resultDir, 'server'))
                         
                         # try to add the server log to the errorDetails
                         try:
@@ -1630,10 +1639,10 @@ class WorkerThread(threading.Thread):
                         except Exception as e:
                             warnings.warn(str(e))
                     else:
-                        shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
+                        shutil.copyfile(self.server.logfile_path, os.path.join(test.resultDir, 'server_log.txt'))
                 
                 # - write test metadata file
-                with open(os.path.join(testOutputDir, 'metadata.json'), 'w+') as metadataFile:
+                with open(os.path.join(test.resultDir, 'metadata.json'), 'w+') as metadataFile:
                     command = ''
                     try:
                         command = test.command
@@ -1657,7 +1666,6 @@ class WorkerThread(threading.Thread):
                 self.workQueue.task_done() # not really important
                 
                 test = None
-                testOutputDir = None
         
             except CancelRunError:
                 if test:

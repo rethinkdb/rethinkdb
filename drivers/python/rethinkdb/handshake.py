@@ -5,6 +5,7 @@ import hmac
 import random
 import struct
 import sys
+import threading
 
 from . import ql2_pb2
 from .errors import *
@@ -119,7 +120,10 @@ class HandshakeV1_0(object):
                 }).encode("utf-8") + \
                 b'\0'
         elif self._state == 1:
-            json = self._json_decoder.decode(response.decode("utf-8"))
+            response = response.decode("utf-8")
+            if response.startswith("ERROR"):
+                raise ReqlDriverError("Received an unexpected reply.  You may be attempting to connect to a RethinkDB server that is too old for this driver.  The minimum supported server version is 2.3.0.")
+            json = self._json_decoder.decode(response)
             try:
                 if json["success"] == False:
                     if 10 <= json["error_code"] <= 20:
@@ -258,6 +262,18 @@ class HandshakeV1_0(object):
 
         return result == 0
 
+    class thread_local_cache(threading.local):
+        def __init__(self):
+            self.cache = {}
+
+        def set(self, key, val):
+            self.cache[key] = val
+
+        def get(self, key):
+            return self.cache.get(key)
+
+    pbkdf2_cache = thread_local_cache()
+
     @staticmethod
     def __pbkdf2_hmac(hash_name, password, salt, iterations):
         assert hash_name == "sha256", hash_name
@@ -266,7 +282,17 @@ class HandshakeV1_0(object):
             return int(hexlify(value), 16)
 
         def to_bytes(value, unhexlify=binascii.unhexlify):
-            return unhexlify("%064x" % value)
+            try:
+                return unhexlify(bytes("%064x" % value, "ascii"))
+            except TypeError:
+                return unhexlify(bytes("%064x" % value))
+
+        cache_key = (password, salt, iterations)
+
+        cache_result = HandshakeV1_0.pbkdf2_cache.get(cache_key)
+
+        if cache_result is not None:
+            return cache_result
 
         mac = hmac.new(password, None, hashlib.sha256)
 
@@ -280,4 +306,7 @@ class HandshakeV1_0(object):
         for c in xrange(iterations - 1):
             t = digest(t)
             u ^= from_bytes(t)
-        return to_bytes(u)
+
+        u = to_bytes(u)
+        HandshakeV1_0.pbkdf2_cache.set(cache_key, u)
+        return u

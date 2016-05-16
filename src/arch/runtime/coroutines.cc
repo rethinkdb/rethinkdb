@@ -24,7 +24,33 @@
 #include "thread_local.hpp"
 #include "utils.hpp"
 
-size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
+//Default, can be set through `set_coro_stack_size()`
+size_t coro_stack_size = COROUTINE_STACK_SIZE;
+
+// How many unused coroutine stacks to keep around (at most), before they are
+// freed. This value is per thread.
+const size_t COROUTINE_FREE_LIST_SIZE = 64;
+
+// In debug mode, we print a warning if more than this many coroutines have been
+// allocated on one thread.
+#ifndef NDEBUG
+const int COROS_PER_THREAD_WARN_LEVEL = 10000;
+#endif
+
+// The maximum (global) number of stack-protected coroutine stacks.
+// On Linux, this number is limited by the setting in `/proc/sys/vm/max_map_count`,
+// which is 65536 by default. We use a quarter of that, to leave enough room for the
+// memory allocator and other things that might fragment the memory space (note that
+// a single protected coroutine consumes two mapped memory regions).
+// Exception: debug-mode, where we use a smaller value to exercise the code path more
+// often.
+#ifdef NDEBUG
+const size_t MAX_PROTECTED_COROS = 16384;
+#else
+const size_t MAX_PROTECTED_COROS = 128;
+#endif
+
+
 
 /* `coro_globals_t` holds all of the thread-local variables that coroutines need
 to operate. There is one per thread; it is constructed by the constructor for
@@ -44,6 +70,10 @@ struct coro_globals_t {
 
     /* A list of coro_t objects that are not in use. */
     intrusive_list_t<coro_t> free_coros;
+
+    /* A list of coroutines that currently have protected stacks. The least recently
+    used protected coroutine is always at the front of the list. */
+    intrusive_list_t<coro_lru_entry_t> protected_coros_lru;
 
 #ifndef NDEBUG
 
@@ -136,7 +166,8 @@ coro_t::coro_t() :
     stack(&coro_t::run, coro_stack_size),
     current_thread_(linux_thread_pool_t::get_thread_id()),
     notified_(false),
-    waiting_(false)
+    waiting_(false),
+    protected_stack_lru_entry_(this)
 #ifndef NDEBUG
     , selfname_number(get_thread_id().threadnum + MAX_THREADS *
           // The comma here is the comma operator, to implement the semantics
@@ -162,26 +193,63 @@ coro_t::coro_t() :
 }
 
 void coro_t::return_coro_to_free_list(coro_t *coro) {
-    TLS_get_cglobals()->free_coros.push_back(coro);
-}
-
-void coro_t::maybe_evict_from_free_list() {
     coro_globals_t *cglobals = TLS_get_cglobals();
-    while (cglobals->free_coros.size() > COROUTINE_FREE_LIST_SIZE) {
+    // Note that we must guarantee that `coro` is never evicted immediately. We do so
+    // by checking the free list size *before* we push `coro` onto it.
+    // This is important because when we call `return_coro_to_free_list` in
+    // `coro_t::run`, that coroutine is still active and must not be deleted yet.
+    static_assert(COROUTINE_FREE_LIST_SIZE > 0, "COROUTINE_FREE_LIST_SIZE cannot be 0");
+    if (cglobals->free_coros.size() >= COROUTINE_FREE_LIST_SIZE) {
         coro_t *coro_to_delete = cglobals->free_coros.tail();
         cglobals->free_coros.remove(coro_to_delete);
         delete coro_to_delete;
     }
+    rassert(cglobals->free_coros.size() < COROUTINE_FREE_LIST_SIZE);
+    cglobals->free_coros.push_back(coro);
 }
 
 coro_t::~coro_t() {
-    /* We never move contexts from one thread to another any more. */
+    /* We never move contexts from one thread to another. */
     rassert(get_thread_id() == home_thread());
 
 #ifndef NDEBUG
     TLS_get_cglobals()->coro_count--;
 #endif
     --pm_allocated_coroutines;
+}
+
+/* Helper function for switching into a new context and making sure that the new context
+is protected against stack overflows. Might also unprotect old contexts to avoid
+exhausting kernel limits on memory-mapped regions. */
+void coro_t::switch_to_coro_with_protection(coro_context_ref_t *current_context) {
+    /* Move ourselves to the back of the `protected_coros_lru` list. */
+    coro_globals_t *cglobals = TLS_get_cglobals();
+    if (protected_stack_lru_entry_.in_a_list()) {
+        cglobals->protected_coros_lru.remove(&protected_stack_lru_entry_);
+    }
+    cglobals->protected_coros_lru.push_back(&protected_stack_lru_entry_);
+
+    /* If there are too many protected coroutines, unprotect the oldest one and pop it of
+    the list. */
+    size_t max_protected_coros_per_thread =
+        MAX_PROTECTED_COROS / static_cast<size_t>(get_num_threads());
+    while (cglobals->protected_coros_lru.size() > max_protected_coros_per_thread) {
+        cglobals->protected_coros_lru.head()->coro->stack.disable_overflow_protection();
+        cglobals->protected_coros_lru.pop_front();
+    }
+
+    /* Enable protection for us. (if `max_protected_coros_per_thread` was rounded to 0,
+    we exceed the limit here but that's fine. It's important that the currently active
+    coroutine is protected.) */
+    stack.enable_overflow_protection();
+
+    /* Now actually perform the context switch. */
+    context_switch(current_context, &stack.context);
+}
+
+void switch_to_scheduler(
+        coro_context_ref_t *current_context, coro_context_ref_t *scheduler) {
+    context_switch(current_context, scheduler);
 }
 
 void coro_t::run() {
@@ -218,14 +286,44 @@ void coro_t::run() {
         // Destroy the Callable object which was either allocated within the coro_t or on the heap
         coro->action_wrapper.reset();
 
-        /* Return the context to the free-contexts list we took it from. */
+        coro_globals_t *cglobals_on_final_thread = TLS_get_cglobals();
+
+        /* Remove the coroutine from the `protected_coros_lru` list before we return it
+        to the free list. We must do this now rather than in `~coro_t` because
+        `~coro_t` is going to run on the home thread of the coroutine, which is not
+        necessarily the latest thread on which the coroutine has been executing.
+        The `protected_coros_lru` entry (if any) will be on the latest thread where it
+        has been executing, so it must be removed there.
+        We don't call `disable_stack_protection()` here to increase the efficiency
+        of the free list. This means that we can slightly exceed the maximum number of
+        protected coroutines (`MAX_PROTECTED_COROS`), by at most
+        `COROUTINE_FREE_LIST_SIZE` per thread. */
+        if (coro->protected_stack_lru_entry_.in_a_list()) {
+            cglobals_on_final_thread->protected_coros_lru.remove(
+                &coro->protected_stack_lru_entry_);
+        }
+
+        /* Return the context to the free-contexts list we took it from.
+
+        Important: This is ok only because `do_on_thread` and the `linux_message_hub_t`
+        are *push* based when delivering messages to another thread. That property
+        guarantees that the message is not executed on another thread before we yield to
+        the message hub on this one.
+        If it was executed immediately on another thread, `coro` could get deleted from
+        the free list before we have performed the next context switch, meaning that we
+        would free a coroutine that's still running.
+        `do_on_thread` does execute `return_coro_to_free_list` immediately if the
+        `coro`'s home thread is the current thread. That too is ok though, because the
+        implementation of `return_coro_to_free_list` guarantees that `coro` is not going
+        to be freed immediately. */
         do_on_thread(coro->home_thread(), std::bind(&coro_t::return_coro_to_free_list, coro));
         --pm_active_coroutines;
 
-        if (TLS_get_cglobals()->prev_coro) {
-            context_switch(&coro->stack.context, &TLS_get_cglobals()->prev_coro->stack.context);
+        if (cglobals_on_final_thread->prev_coro) {
+            cglobals_on_final_thread->prev_coro->switch_to_coro_with_protection(
+                &coro->stack.context);
         } else {
-            context_switch(&coro->stack.context, &TLS_get_cglobals()->scheduler);
+            switch_to_scheduler(&coro->stack.context, &cglobals_on_final_thread->scheduler);
         }
     }
 }
@@ -264,9 +362,10 @@ void coro_t::wait() {   /* class method */
 
     PROFILER_CORO_YIELD(1);
     if (TLS_get_cglobals()->prev_coro) {
-        context_switch(&self()->stack.context, &TLS_get_cglobals()->prev_coro->stack.context);
+        TLS_get_cglobals()->prev_coro->switch_to_coro_with_protection(
+            &self()->stack.context);
     } else {
-        context_switch(&self()->stack.context, &TLS_get_cglobals()->scheduler);
+        switch_to_scheduler(&self()->stack.context, &TLS_get_cglobals()->scheduler);
     }
     PROFILER_CORO_RESUME;
 
@@ -311,9 +410,9 @@ void coro_t::notify_now_deprecated() {
     TLS_get_cglobals()->current_coro = this;
 
     if (TLS_get_cglobals()->prev_coro) {
-        context_switch(&TLS_get_cglobals()->prev_coro->stack.context, &this->stack.context);
+        switch_to_coro_with_protection(&TLS_get_cglobals()->prev_coro->stack.context);
     } else {
-        context_switch(&TLS_get_cglobals()->scheduler, &this->stack.context);
+        switch_to_coro_with_protection(&TLS_get_cglobals()->scheduler);
     }
 
     rassert(TLS_get_cglobals()->current_coro == this);
@@ -354,6 +453,17 @@ void coro_t::move_to_thread(threadnum_t thread) {
     if (thread.threadnum == linux_thread_pool_t::get_thread_id()) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
+    }
+    /* Remove ourselves from the `protected_coros_lru` list on the old thread, since
+    those lists are not thread-safe.
+    We will be added to the one on the new thread once we are woken up there, so there's
+    no need to add ourselves now even if we're currently protected.
+    Note that this can lead to us temporarily exceeding the protected coro limit if a lot
+    of coroutines are in flight between threads at the same time. Hopefully this isn't
+    going to be too common. */
+    if (self()->protected_stack_lru_entry_.in_a_list()) {
+        TLS_get_cglobals()->protected_coros_lru.remove(
+            &self()->protected_stack_lru_entry_);
     }
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
@@ -413,18 +523,6 @@ coro_t * coro_t::get_coro() {
     } else {
         coro = TLS_get_cglobals()->free_coros.tail();
         TLS_get_cglobals()->free_coros.remove(coro);
-
-        /* We cannot easily delete coroutines at the time where we return
-        them to the free list, because coro_t::run() requires the coro_t pointer to remain
-        valid until it switches out of the coroutine context.
-        We could use call_later_on_this_thread() to place a message on the message
-        hub that would delete the coroutine later, but that would make the shut down
-        process more complicated because we would have to wait for those messages
-        to get processed.
-        Instead, we delete unused coroutines from the free list here. It's not perfect,
-        but the important thing is that unused coroutines get evicted eventually
-        so we can reclaim the memory. */
-        maybe_evict_from_free_list();
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());

@@ -533,7 +533,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
     end
     res = r.db(db_name).table_create(table_name).run($reql_conn)
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
-    r.db(db_name).table(table_name).wait().run($reql_conn)
+    r.db(db_name).table(table_name).wait(:wait_for=>"all_replicas_ready").run($reql_conn)
     
     print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush

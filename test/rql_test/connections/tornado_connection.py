@@ -323,10 +323,9 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
-                                               "Connection interrupted during"
-                                               " handshake with %s:%d. "
-                                               "Error: Operation timed out."
+            yield self.asyncAssertRaisesRegexp(r.ReqlTimeoutError,
+                                               "Could not connect to %s:%d, "
+                                               "operation timed out."
                                                % (host, port),
                                                r.connect(host=host, port=port,
                                                          timeout=2))
@@ -531,11 +530,13 @@ class TestConnection(TestWithConnection):
         yield r.expr(1).run(c)
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
-                                           "Could not convert port abc to an integer.",
-                                           r.connect(port='abc',
-                                                     host=sharedServerHost))
+        @gen.coroutine
+        def bad_port():
+            yield r.connect(port='abc', host=sharedServerHost)
 
+        yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
+                                           "Could not convert port 'abc' to an integer.",
+                                           bad_port())
 
 class TestShutdown(TestWithConnection):
     @gen.coroutine

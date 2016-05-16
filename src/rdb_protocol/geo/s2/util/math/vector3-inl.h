@@ -54,17 +54,17 @@ Vector3<VType>::Vector3() {
 }
 
 template <typename VType>
-Vector3<VType>::Vector3(const VType x, const VType y, const VType z) {
-  c_[0] = x;
-  c_[1] = y;
-  c_[2] = z;
+Vector3<VType>::Vector3(const VType _x, const VType _y, const VType _z) {
+  c_[0] = _x;
+  c_[1] = _y;
+  c_[2] = _z;
 }
 
 template <typename VType>
-Vector3<VType>::Vector3(const Vector2<VType> &vb, VType z) {
+Vector3<VType>::Vector3(const Vector2<VType> &vb, VType _z) {
   c_[0] = vb.x();
   c_[1] = vb.y();
-  c_[2] = z;
+  c_[2] = _z;
 }
 
 template <typename VType>
@@ -131,10 +131,10 @@ bool Vector3<VType>::operator>=(const Self &vb) const {
 }
 
 template <typename VType>
-void Vector3<VType>::Set(const VType x, const VType y, const VType z) {
-  c_[0] = x;
-  c_[1] = y;
-  c_[2] = z;
+void Vector3<VType>::Set(const VType _x, const VType _y, const VType _z) {
+  c_[0] = _x;
+  c_[1] = _y;
+  c_[2] = _z;
 }
 
 template <typename VType>

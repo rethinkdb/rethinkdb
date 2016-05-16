@@ -139,7 +139,7 @@ void insert_data(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(false, true, false, false)),
+            auth::user_context_t(auth::permissions_t(true, true, false, false)),
             write,
             &response,
             osource->check_in("unittest::insert_data(geo_indexes.cc"),

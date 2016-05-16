@@ -76,7 +76,7 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 write_t w(dummy_write_t(), profile_bool_t::DONT_PROFILE,
                           ql::configured_limits_t::unlimited);
                 write(
-                    auth::user_context_t(auth::permissions_t(false, true, false, false)),
+                    auth::user_context_t(auth::permissions_t(true, true, false, false)),
                     w,
                     &res,
                     order_token_t::ignore,
@@ -207,7 +207,12 @@ void table_query_client_t::dispatch_immediate_op(
         if (op.shard(reg, &new_op_info->sharded_op)) {
             relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
-                if ((*jt)->primary_client) {
+                // If some shards are currently intersecting (this should only happen
+                // temporarily while resharding). `reg` might be a subset of the region
+                // of the relationships in `rels`.
+                // We need to test for that, so we don't send operations to a shard with
+                // the wrong boundaries.
+                if ((*jt)->primary_client && (*jt)->region == reg) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t(
                             "too many primary replicas available",
@@ -343,7 +348,9 @@ void table_query_client_t::dispatch_outdated_read(
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
-                if ((*jt)->direct_bcard != nullptr) {
+                // See the comment in `dispatch_immediate_op` about why we need to
+                // check that `region` and the relationship's region are the same.
+                if ((*jt)->direct_bcard != nullptr && (*jt)->region == region) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
                         break;
@@ -354,8 +361,7 @@ void table_query_client_t::dispatch_outdated_read(
             }
             if (!chosen_relationship && !potential_relationships.empty()) {
                 chosen_relationship
-                    = potential_relationships[
-                        distributor_rng.randint(potential_relationships.size())];
+                    = potential_relationships[randint(potential_relationships.size())];
             }
             if (!chosen_relationship) {
                 /* Don't bother looking for masters; if there are no direct
@@ -499,6 +505,10 @@ class region_map_set_membership_t {
 public:
     region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
+        // Note that `visit_mutable` might split the region up if there are existing
+        // partially overlapping entries (e.g. during a rebalance).
+        // Once those entries go away, `region_map_t` should automatically merge the
+        // regions again.
         map->visit_mutable(region, [&](const region_t &, std::set<value_t> *set) {
             rassert(set->count(value) == 0);
             set->insert(value);

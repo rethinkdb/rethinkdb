@@ -205,7 +205,7 @@ public:
         remove(key, repli_timestamp_t::distant_past);
     }
 
-    void range(const key_range_t &range) {
+    void range(const key_range_t &_range) {
         std::map<store_key_t, std::string> bt_map;
 
         run_txn_fn(false, [&](scoped_ptr_t<real_superblock_t> &&superblock){
@@ -215,7 +215,7 @@ public:
 
             btree_depth_first_traversal(
                 superblock.get(),
-                range,
+                _range,
                 &filler_cb,
                 access_t::read,
                 direction_t::FORWARD,
@@ -226,7 +226,7 @@ public:
         std::map<store_key_t, std::string> kv_map;
 
         for (auto it = kv.begin(), last = kv.end(); it != last; ++it) {
-            if (range.contains_key(it->first)) {
+            if (_range.contains_key(it->first)) {
                 kv_map[it->first] = it->second;
             }
         }

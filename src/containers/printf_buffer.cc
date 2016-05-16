@@ -58,20 +58,20 @@ void printf_buffer_t::vappendf(const char *format, va_list ap) {
 
         // the snprintfs return the number of characters they _would_
         // have written, not including the '\0'.
-        int size = vsnprintf(ptr_ + length_, STATIC_DATA_SIZE - length_, format, ap);
-        rassert(size >= 0, "vsnprintf failed, bad format string?");
+        int _size = vsnprintf(ptr_ + length_, STATIC_DATA_SIZE - length_, format, ap);
+        rassert(_size >= 0, "vsnprintf failed, bad format string?");
 
-        if (size < STATIC_DATA_SIZE - length_) {
-            length_ += size;
+        if (_size < STATIC_DATA_SIZE - length_) {
+            length_ += _size;
         } else {
             char *new_ptr;
-            alloc_copy_and_format(ptr_, length_, size,
-                                  int64_round_up_to_power_of_two(length_ + size + 1),
+            alloc_copy_and_format(ptr_, length_, _size,
+                                  int64_round_up_to_power_of_two(length_ + _size + 1),
                                   format, aq, &new_ptr);
 
             // TODO: Have valgrind mark data_ memory undefined.
             ptr_ = new_ptr;
-            length_ += size;
+            length_ += _size;
         }
 
     } else {
@@ -79,24 +79,24 @@ void printf_buffer_t::vappendf(const char *format, va_list ap) {
 
         char tmp[1];
 
-        int size = vsnprintf(tmp, sizeof(tmp), format, ap);
-        rassert(size >= 0, "vsnprintf failed, bad format string?");
+        int _size = vsnprintf(tmp, sizeof(tmp), format, ap);
+        rassert(_size >= 0, "vsnprintf failed, bad format string?");
 
         int64_t alloc_limit = int64_round_up_to_power_of_two(length_ + 1);
-        if (length_ + size + 1 <= alloc_limit) {
-            DEBUG_VAR int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
-            rassert(size == size2);
-            length_ += size;
+        if (length_ + _size + 1 <= alloc_limit) {
+            DEBUG_VAR int size2 = vsnprintf(ptr_ + length_, _size + 1, format, aq);
+            rassert(_size == size2);
+            length_ += _size;
         } else {
 
             char *new_ptr;
-            alloc_copy_and_format(ptr_, length_, size,
-                                  int64_round_up_to_power_of_two(length_ + size + 1),
+            alloc_copy_and_format(ptr_, length_, _size,
+                                  int64_round_up_to_power_of_two(length_ + _size + 1),
                                   format, aq, &new_ptr);
 
             delete[] ptr_;
             ptr_ = new_ptr;
-            length_ += size;
+            length_ += _size;
         }
     }
 

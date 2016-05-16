@@ -160,11 +160,11 @@ public:
         scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t name_datum = args->arg(env, 1)->as_datum();
-        std::string name = name_datum.as_str().to_std();
-        rcheck(name != table->get_pkey(),
+        std::string index_name = name_datum.as_str().to_std();
+        rcheck(index_name != table->get_pkey(),
                base_exc_t::LOGIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
-                         name.c_str()));
+                         index_name.c_str()));
 
         /* Parse the sindex configuration */
         sindex_config_t config;
@@ -225,7 +225,7 @@ public:
                     env->env->get_user_context(),
                     table->db,
                     name_string_t::guarantee_valid(table->name.c_str()),
-                    name,
+                    index_name,
                     config,
                     env->env->interruptor,
                     &error)) {
@@ -250,7 +250,7 @@ public:
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        std::string name = args->arg(env, 1)->as_datum().as_str().to_std();
+        std::string index_name = args->arg(env, 1)->as_datum().as_str().to_std();
 
         try {
             admin_err_t error;
@@ -258,7 +258,7 @@ public:
                     env->env->get_user_context(),
                     table->db,
                     name_string_t::guarantee_valid(table->name.c_str()),
-                    name,
+                    index_name,
                     env->env->interruptor,
                     &error)) {
                 REQL_RETHROW(error);

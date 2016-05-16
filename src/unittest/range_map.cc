@@ -7,6 +7,7 @@
 #include "unittest/gtest.hpp"
 
 #include "containers/range_map.hpp"
+#include "random.hpp"
 #include "utils.hpp"
 
 namespace unittest {

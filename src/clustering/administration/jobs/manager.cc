@@ -95,7 +95,8 @@ void jobs_manager_t::on_get_job_reports(
                         time - std::min(pair.second->start_time, time),
                         server_id,
                         query_cache->get_client_addr_port(),
-                        pretty_print(printed_query_columns, render));
+                        pretty_print(printed_query_columns, render),
+                        query_cache->get_user_context());
                 }
             }
         }

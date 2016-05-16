@@ -49,7 +49,6 @@ http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
     // We always return empty normal batches after the timeout for HTTP
     // connections; I think we have to do this to keep the conn cache
     // from timing out.
-    // FIXME hardcoded "admin" user
     query_cache(
         new ql::query_cache_t(
             rdb_ctx,
@@ -265,9 +264,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     } catch (const interrupted_exc_t &) {
         // TLS handshake was interrupted.
         return;
-    } catch (const tcp_conn_t::connect_failed_exc_t &err) {
+    } catch (const crypto::openssl_error_t &err) {
         // TLS handshake failed.
-        logWRN("Driver connection TLS handshake failed: %d - %s", err.error, err.info.c_str());
+        logWRN("Driver connection TLS handshake failed: %s", err.what());
         return;
     }
 

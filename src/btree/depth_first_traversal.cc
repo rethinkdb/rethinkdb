@@ -6,10 +6,10 @@
 #include "concurrency/interruptor.hpp"
 #include "rdb_protocol/profile.hpp"
 
-scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
-                                       const void *value,
+scoped_key_value_t::scoped_key_value_t(const btree_key_t *_key,
+                                       const void *_value,
                                        movable_t<counted_buf_lock_and_read_t> &&buf)
-    : key_(key), value_(value), buf_(std::move(buf)) {
+    : key_(_key), value_(_value), buf_(std::move(buf)) {
     guarantee(buf_.has());
 }
 

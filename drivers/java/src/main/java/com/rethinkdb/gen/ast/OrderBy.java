@@ -25,29 +25,29 @@ public class OrderBy extends ReqlExpr {
     public OrderBy(Arguments args, OptArgs optargs) {
         super(TermType.ORDER_BY, args, optargs);
     }
-public OrderBy optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
-public OrderBy optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
-public OrderBy optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
-public OrderBy optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
-public OrderBy optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
-public OrderBy optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new OrderBy(args, newOptargs);
-}
+    public OrderBy optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
+    public OrderBy optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
+    public OrderBy optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
+    public OrderBy optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
+    public OrderBy optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
+    public OrderBy optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new OrderBy(args, newOptargs);
+    }
 
 }

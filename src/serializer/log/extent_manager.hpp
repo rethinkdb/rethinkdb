@@ -35,9 +35,9 @@ public:
         std::swap(extent_offset_, tmp.extent_offset_);
     }
 
-    void init(int64_t offset) {
+    void init(int64_t _offset) {
         guarantee(extent_offset_ == -1);
-        extent_offset_ = offset;
+        extent_offset_ = _offset;
     }
 
     int64_t offset() const {

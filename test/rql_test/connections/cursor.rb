@@ -1,8 +1,21 @@
 #!/usr/bin/env ruby
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
-require 'test/unit'
-require 'test/unit/assertions'
+begin
+    require 'minitest/autorun'
+rescue LoadError
+    require 'test/unit'
+end
+
+begin
+  UNIT_TEST_CLASS = MiniTest::Test
+rescue
+  begin
+    UNIT_TEST_CLASS = MiniTest::Unit::TestCase
+  rescue
+    UNIT_TEST_CLASS = Test::Unit::TestCase
+  end
+end
 
 # -- import the rethinkdb driver
 
@@ -22,7 +35,7 @@ def expect_error(m, err_type, err_info)
   raise RuntimeError, "Expected an error, but got success with result: #{res}."
 end
 
-class Cursor_Test < Test::Unit::TestCase
+class Cursor_Test < UNIT_TEST_CLASS
   @conn = nil
   
   def setup
@@ -125,17 +138,17 @@ class Cursor_Test < Test::Unit::TestCase
   
   def test_cursor_false_wait()
     reads, timeouts = cursor_wait_internal(false)
-    assert_not_equal(timeouts, 0, "Did not get timeouts using zero (false) wait.")
+    assert(timeouts > 0, "Did not get timeouts using zero (false) wait.")
   end
   
   def test_cursor_zero_wait()
     reads, timeouts = cursor_wait_internal(0)
-    assert_not_equal(timeouts, 0, "Did not get timeouts using zero wait.")
+    assert(timeouts > 0, "Did not get timeouts using zero wait.")
   end
   
   def test_cursor_short_wait()
     reads, timeouts = cursor_wait_internal(0.001)
-    assert_not_equal(timeouts, 0, "Did not get timeouts using short (1 millisecond) wait.")
+    assert(timeouts > 0, "Did not get timeouts using short (1 millisecond) wait.")
   end
   
   def test_cursor_long_wait()

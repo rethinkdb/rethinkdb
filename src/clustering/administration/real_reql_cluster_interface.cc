@@ -253,13 +253,15 @@ bool real_reql_cluster_interface_t::db_find(
 }
 
 bool real_reql_cluster_interface_t::db_config(
+        auth::user_context_t const &user_context,
         const counted_t<const ql::db_t> &db,
         ql::backtrace_id_t backtrace_id,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         admin_err_t *error_out) {
     try {
-        // FIXME permissions
+        user_context.require_config_permission(m_rdb_context, db->id);
+
         make_single_selection(
             admin_tables->db_config_backend.get(),
             name_string_t::guarantee_valid("db_config"),
@@ -274,7 +276,7 @@ bool real_reql_cluster_interface_t::db_config(
             query_state_t::FAILED};
         return false;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     }
 }
@@ -337,7 +339,7 @@ bool real_reql_cluster_interface_t::table_create(
             admin_identifier_format_t::name, config.server_names);
 
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -526,6 +528,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 }
 
 bool real_reql_cluster_interface_t::table_config(
+        auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &name,
         ql::backtrace_id_t bt,
@@ -536,7 +539,8 @@ bool real_reql_cluster_interface_t::table_config(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
 
-        // FIXME permissions
+        user_context.require_config_permission(m_rdb_context, db->id, table_id);
+
         make_single_selection(
             admin_tables->table_config_backend[
                 static_cast<int>(admin_identifier_format_t::name)].get(),
@@ -544,7 +548,7 @@ bool real_reql_cluster_interface_t::table_config(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -566,7 +570,7 @@ bool real_reql_cluster_interface_t::table_status(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -590,7 +594,7 @@ bool real_reql_cluster_interface_t::table_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -621,7 +625,7 @@ bool real_reql_cluster_interface_t::db_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     }
 }
@@ -735,7 +739,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
             result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -780,7 +784,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
             deleted before the operation even began. */
             continue;
         } catch (const admin_op_exc_t &admin_op_exc) {
-            *error_out = std::move(admin_op_exc.to_admin_err());
+            *error_out = admin_op_exc.to_admin_err();
             return false;
         } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been reconfigured.",
@@ -907,7 +911,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
             &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -991,7 +995,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
         rebalance_internal(table_id, &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
-        *error_out = std::move(admin_op_exc.to_admin_err());
+        *error_out = admin_op_exc.to_admin_err();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -1031,7 +1035,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
             just ignore it to avoid making a confusing error message. */
             continue;
         } catch (const admin_op_exc_t &admin_op_exc) {
-            *error_out = std::move(admin_op_exc.to_admin_err());
+            *error_out = admin_op_exc.to_admin_err();
             return false;
         } CATCH_OP_ERRORS(db->name, table_names.at(table_id).name, error_out,
             "The tables may or may not have been rebalanced.",
@@ -1393,7 +1397,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         throw no_such_table_exc_t();
     }
     counted_t<ql::table_t> table = make_counted<ql::table_t>(
-        counted_t<base_table_t>(new artificial_table_t(table_backend)),
+        counted_t<base_table_t>(new artificial_table_t(table_backend, false)),
         make_counted<const ql::db_t>(
             nil_uuid(), name_string_t::guarantee_valid("rethinkdb")),
         table_name.str(), read_mode_t::SINGLE, bt);

@@ -47,8 +47,8 @@ enum class block_type_t { normal, aux };
 
 class cache_conn_t {
 public:
-    explicit cache_conn_t(cache_t *cache)
-        : cache_(cache),
+    explicit cache_conn_t(cache_t *_cache)
+        : cache_(_cache),
           newest_txn_(nullptr) { }
     ~cache_conn_t();
 

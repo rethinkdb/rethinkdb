@@ -67,10 +67,12 @@ local_replicator_t::local_replicator_t(
 }
 
 local_replicator_t::~local_replicator_t() {
+    // This has to happen before `note_reshard` to make sure outstanding reads complete.
+    registration.reset();
     /* Since `local_replicator_t` is the primary dispatchee, changefeeds are always
     routed here. But when the primary changes we need to shut off the changefeed. This
     destructor is a good place to do it. */
-    store->note_reshard();
+    store->note_reshard(store->get_region());
 }
 
 void local_replicator_t::do_read(

@@ -61,8 +61,11 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
 }
 
 bool artificial_reql_cluster_interface_t::db_config(
-        const counted_t<const ql::db_t> &db, ql::backtrace_id_t bt,
-        ql::env_t *env, scoped_ptr_t<ql::val_t> *selection_out,
+        auth::user_context_t const &user_context,
+        const counted_t<const ql::db_t> &db,
+        ql::backtrace_id_t bt,
+        ql::env_t *env,
+        scoped_ptr_t<ql::val_t> *selection_out,
         admin_err_t *error_out) {
     if (db->name == m_database) {
         *error_out = admin_err_t{
@@ -71,7 +74,7 @@ bool artificial_reql_cluster_interface_t::db_config(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->db_config(db, bt, env, selection_out, error_out);
+    return m_next->db_config(user_context, db, bt, env, selection_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_create(
@@ -214,8 +217,11 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 }
 
 bool artificial_reql_cluster_interface_t::table_config(
-        counted_t<const ql::db_t> db, const name_string_t &name,
-        ql::backtrace_id_t bt, ql::env_t *env,
+        auth::user_context_t const &user_context,
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        ql::backtrace_id_t bt,
+        ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out, admin_err_t *error_out) {
     if (db->name == m_database) {
         *error_out = admin_err_t{
@@ -224,7 +230,8 @@ bool artificial_reql_cluster_interface_t::table_config(
             query_state_t::FAILED};
         return false;
     }
-    return m_next->table_config(db, name, bt, env, selection_out, error_out);
+    return m_next->table_config(
+        user_context, db, name, bt, env, selection_out, error_out);
 }
 
 bool artificial_reql_cluster_interface_t::table_status(
@@ -579,11 +586,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
-    server_status_backend.init(new server_status_artificial_table_backend_t(
-        _directory_map_view,
-        _server_config_client));
+    for (int i = 0; i < 2; ++i) {
+        server_status_backend[i].init(new server_status_artificial_table_backend_t(
+            _directory_map_view,
+            _server_config_client,
+            static_cast<admin_identifier_format_t>(i)));
+    }
     backends[name_string_t::guarantee_valid("server_status")] =
-        std::make_pair(server_status_backend.get(), server_status_backend.get());
+        std::make_pair(server_status_backend[0].get(), server_status_backend[1].get());
 
     for (int i = 0; i < 2; ++i) {
         stats_backend[i].init(new stats_artificial_table_backend_t(

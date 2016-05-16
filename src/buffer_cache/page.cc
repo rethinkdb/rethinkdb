@@ -52,8 +52,8 @@ private:
 static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 1;
 
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
-    : block_id_(block_id),
+page_t::page_t(block_id_t _block_id, page_cache_t *page_cache)
+    : block_id_(_block_id),
       loader_(nullptr),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
@@ -61,13 +61,13 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
 
     coro_t::spawn_now_dangerously(std::bind(&page_t::deferred_load_with_block_id,
                                             this,
-                                            block_id,
+                                            _block_id,
                                             page_cache));
 }
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
+page_t::page_t(block_id_t _block_id, page_cache_t *page_cache,
                cache_account_t *account)
-    : block_id_(block_id),
+    : block_id_(_block_id),
       loader_(nullptr),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
@@ -75,14 +75,14 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
 
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
                                             this,
-                                            block_id,
+                                            _block_id,
                                             page_cache,
                                             account));
 }
 
-page_t::page_t(block_id_t block_id, buf_ptr_t buf,
+page_t::page_t(block_id_t _block_id, buf_ptr_t buf,
                page_cache_t *page_cache)
-    : block_id_(block_id),
+    : block_id_(_block_id),
       loader_(nullptr),
       buf_(std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
@@ -91,14 +91,14 @@ page_t::page_t(block_id_t block_id, buf_ptr_t buf,
     page_cache->evicter().add_to_evictable_unbacked(this);
 }
 
-page_t::page_t(block_id_t block_id,
+page_t::page_t(block_id_t _block_id,
                buf_ptr_t buf,
-               const counted_t<standard_block_token_t> &block_token,
+               const counted_t<standard_block_token_t> &_block_token,
                page_cache_t *page_cache)
-    : block_id_(block_id),
+    : block_id_(_block_id),
       loader_(nullptr),
       buf_(std::move(buf)),
-      block_token_(block_token),
+      block_token_(_block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
       snapshot_refcount_(0) {
     rassert(buf_.has());
@@ -200,8 +200,8 @@ public:
 
 class deferred_page_loader_t final : public page_loader_t {
 public:
-    explicit deferred_page_loader_t(page_t *page)
-        : page_(page), block_token_ptr_(new deferred_block_token_t) { }
+    explicit deferred_page_loader_t(page_t *_page)
+        : page_(_page), block_token_ptr_(new deferred_block_token_t) { }
 
     deferred_block_token_t *block_token_ptr() {
         return block_token_ptr_.get();
@@ -585,13 +585,13 @@ void page_t::init_block_token(counted_t<standard_block_token_t> token,
 page_acq_t::page_acq_t() : page_(nullptr), page_cache_(nullptr) {
 }
 
-void page_acq_t::init(page_t *page, page_cache_t *page_cache,
+void page_acq_t::init(page_t *page, page_cache_t *_page_cache,
                       cache_account_t *account) {
     rassert(page_ == nullptr);
     rassert(page_cache_ == nullptr);
     rassert(!buf_ready_signal_.is_pulsed());
     page_ = page;
-    page_cache_ = page_cache;
+    page_cache_ = _page_cache;
     page_->add_waiter(this, account);
 }
 
@@ -717,13 +717,13 @@ bool timestamped_page_ptr_t::has() const {
     return page_ptr_.has();
 }
 
-void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
+void timestamped_page_ptr_t::init(repli_timestamp_t _timestamp,
                                   page_t *page) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
     rassert(page == nullptr ||
-            timestamp != repli_timestamp_t::invalid ||
+            _timestamp != repli_timestamp_t::invalid ||
             is_aux_block_id(page->block_id()));
-    timestamp_ = timestamp;
+    timestamp_ = _timestamp;
     page_ptr_.init(page);
 }
 

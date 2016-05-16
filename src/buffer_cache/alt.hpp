@@ -284,9 +284,9 @@ public:
         guarantee(!lock->empty());
     }
 
-    explicit buf_parent_t(txn_t *txn)
-        : txn_(txn), lock_or_null_(nullptr) {
-        rassert(txn != NULL);
+    explicit buf_parent_t(txn_t *_txn)
+        : txn_(_txn), lock_or_null_(nullptr) {
+        rassert(_txn != NULL);
     }
 
     void detach_child(block_id_t child_id) {

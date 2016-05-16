@@ -25,29 +25,29 @@ public class Slice extends ReqlExpr {
     public Slice(Arguments args, OptArgs optargs) {
         super(TermType.SLICE, args, optargs);
     }
-public Slice optArg(String optname, Object value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
-public Slice optArg(String optname, ReqlFunction0 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
-public Slice optArg(String optname, ReqlFunction1 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
-public Slice optArg(String optname, ReqlFunction2 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
-public Slice optArg(String optname, ReqlFunction3 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
-public Slice optArg(String optname, ReqlFunction4 value) {
-    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
-    return new Slice(args, newOptargs);
-}
+    public Slice optArg(String optname, Object value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
+    public Slice optArg(String optname, ReqlFunction0 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
+    public Slice optArg(String optname, ReqlFunction1 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
+    public Slice optArg(String optname, ReqlFunction2 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
+    public Slice optArg(String optname, ReqlFunction3 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
+    public Slice optArg(String optname, ReqlFunction4 value) {
+        OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+        return new Slice(args, newOptargs);
+    }
 
 }

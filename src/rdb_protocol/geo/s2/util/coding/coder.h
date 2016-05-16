@@ -289,12 +289,12 @@ inline void Decoder::getn(void* dst, int n) {
 }
 
 inline void Decoder::getcn(void* dst, int c, int n) {
-  void *ptr;
-  ptr = memccpy(dst, buf_, c, n);
-  if (ptr == NULL)
+  void *_ptr;
+  _ptr = memccpy(dst, buf_, c, n);
+  if (_ptr == NULL)
     buf_ = buf_ + n;
   else
-    buf_ = buf_ + (reinterpret_cast<unsigned char *>(ptr) -
+    buf_ = buf_ + (reinterpret_cast<unsigned char *>(_ptr) -
                    reinterpret_cast<unsigned char *>(dst));
 }
 

@@ -187,14 +187,14 @@ class S1Interval {
 };
 DECLARE_POD(S1Interval);
 
-inline S1Interval::S1Interval(double lo, double hi) : bounds_(lo, hi) {
-  if (lo == -M_PI && hi != M_PI) set_lo(M_PI);
-  if (hi == -M_PI && lo != M_PI) set_hi(M_PI);
+inline S1Interval::S1Interval(double _lo, double _hi) : bounds_(_lo, _hi) {
+  if (_lo == -M_PI && _hi != M_PI) set_lo(M_PI);
+  if (_hi == -M_PI && _lo != M_PI) set_hi(M_PI);
   DCHECK(is_valid());
 }
 
-inline S1Interval::S1Interval(double lo, double hi, UNUSED ArgsChecked dummy)
-  : bounds_(lo, hi) {
+inline S1Interval::S1Interval(double _lo, double _hi, UNUSED ArgsChecked dummy)
+  : bounds_(_lo, _hi) {
   DCHECK(is_valid());
 }
 
