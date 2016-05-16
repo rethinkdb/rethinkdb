@@ -30,7 +30,7 @@ int pthread_mutex_unlock(pthread_mutex_t*);
 struct pthread_rwlock_t {
     enum class srw_lock_mode_t { SHARED, EXCLUSIVE };
     srw_lock_mode_t current_acq_mode;
-    PSRWLOCK lock;
+    SRWLOCK lock;
 };
 int pthread_rwlock_init(pthread_rwlock_t*, void*);
 int pthread_rwlock_destroy(pthread_rwlock_t*);

@@ -35,6 +35,10 @@
 #include "perfmon/perfmon.hpp"
 #include "errors.hpp"
 
+#ifdef _WIN32
+#include "concurrency/pmap.hpp"
+#endif
+
 #ifdef TRACE_WINSOCK
 #define winsock_debugf(...) debugf("winsock: " __VA_ARGS__)
 #else
@@ -1464,6 +1468,7 @@ void linux_nonthrowing_tcp_listener_t::bind_sockets() {
         size_t i = 0;
         for (std::set<ip_address_t>::iterator addr = local_addresses.begin();
              addr != local_addresses.end(); ++i, ++addr) {
+            winsock_debugf("binding to %s\n", addr->to_string().c_str());
             switch (addr->get_address_family()) {
             case AF_INET:
                 res = bind_ipv4_interface(socks[i].get(), &local_port, addr->get_ipv4_addr());
@@ -1496,51 +1501,58 @@ void linux_nonthrowing_tcp_listener_t::bind_sockets() {
 }
 
 #ifdef _WIN32
-// Used by accept_loop to manage concurrent accept operations
-struct accept_op_t {
-    // From the AcceptEx documentation: at least 16 bytes more than the maximum address
-    // length for the transport protocol in use.
+void linux_nonthrowing_tcp_listener_t::accept_loop_single(
+       const auto_drainer_t::lock_t &lock,
+       exponential_backoff_t backoff,
+       windows_event_watcher_t *event_watcher) {
+
     static const int ADDRESS_SIZE = INET6_ADDRSTRLEN + 16;
 
-    accept_op_t(fd_t sock, event_watcher_t *event_watcher)
-        : listening_sock(sock), op(event_watcher) {
-        WSAPROTOCOL_INFO pinfo;
-        int pinfo_size = sizeof(pinfo);
-        DWORD res = getsockopt(fd_to_socket(sock), SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size);
-        guarantee_winerr(res == 0, "getsockopt failed");
-        address_family = pinfo.iAddressFamily;
+    fd_t listening_sock = event_watcher->handle;
 
-        queue_accept();
-    }
+    WSAPROTOCOL_INFO pinfo;
+    int pinfo_size = sizeof(pinfo);
+    DWORD res = getsockopt(fd_to_socket(listening_sock), SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size);
+    guarantee_winerr(res == 0, "getsockopt failed");
+    int address_family = pinfo.iAddressFamily;
 
-    void queue_accept() {
-        op.reset();
-        new_sock = socket_to_fd(WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
+    while (!lock.get_drain_signal()->is_pulsed()) {
+        overlapped_operation_t op(event_watcher);
+        fd_t new_sock = socket_to_fd(WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
         winsock_debugf("new socket for accepting: %x\n", new_sock);
         guarantee_winerr(new_sock != INVALID_FD, "WSASocket failed");
         winsock_debugf("accepting on socket %x\n", listening_sock);
+        DWORD bytes_recieved;
+        char addresses[ADDRESS_SIZE][2];
         BOOL res = get_AcceptEx(listening_sock)(fd_to_socket(listening_sock), fd_to_socket(new_sock), addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
+
         if (res) {
             op.set_result(0, NO_ERROR);
         } else {
             DWORD error = GetLastError();
             if (error != ERROR_IO_PENDING) {
                 op.set_result(0, error);
+            } else {
+                op.wait_abortable(lock.get_drain_signal());
+                if (lock.get_drain_signal()->is_pulsed()) {
+                    return;
+                }
             }
         }
+        if (op.error != NO_ERROR) {
+            logERR("AcceptEx failed: %s", winerr_string(op.error).c_str());
+            try {
+                backoff.failure(lock.get_drain_signal());
+            } catch (const interrupted_exc_t &) {
+                return;
+            }
+        } else {
+            winsock_debugf("accepted %x from %x\n", new_sock, listening_sock);
+            coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
+            backoff.success();
+        }
     }
-
-    ~accept_op_t() {
-        op.abort_op();
-    }
-
-    fd_t listening_sock;
-    int address_family;
-    char addresses[ADDRESS_SIZE][2];
-    overlapped_operation_t op;
-    fd_t new_sock;
-    DWORD bytes_recieved;
-};
+}
 #else
 fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t::lock_t &lock) {
     scoped_array_t<scoped_ptr_t<linux_event_watcher_t::watch_t> > watches(event_watchers.size());
@@ -1577,45 +1589,10 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
 #ifdef _WIN32
 
-    scoped_array_t<object_buffer_t<accept_op_t>> accept_ops(socks.size());
-    for (size_t i = 0; i < socks.size(); i++) {
-        accept_ops[i].create(socks[i].get(), event_watchers[i].get());
-    }
+    pmap(event_watchers.size(), [this, &lock, &backoff](int i){
+        accept_loop_single(lock, backoff, event_watchers[i].get());
+    });
 
-    while(!lock.get_drain_signal()->is_pulsed()) {
-        {
-            wait_any_t waiter(lock.get_drain_signal());
-            for (size_t i = 0; i < accept_ops.size(); i++) {
-                waiter.add(accept_ops[i]->op.get_completed_signal());
-            }
-            waiter.wait_lazily_unordered();
-        }
-
-        if (lock.get_drain_signal()->is_pulsed()) {
-            return;
-        }
-
-        for (size_t i = 0; i < accept_ops.size(); i++) {
-            accept_op_t *accepted = accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()].get();
-            if (accepted->op.get_completed_signal()->is_pulsed()) {
-                if (accepted->op.error != NO_ERROR) {
-                    logERR("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
-                    try {
-                        backoff.failure(lock.get_drain_signal());
-                    } catch (const interrupted_exc_t &) {
-                        return;
-                    }
-                    accepted->queue_accept();
-                } else {
-                    winsock_debugf("accepted %x from %x\n", accepted->new_sock, accepted->listening_sock);
-                    fd_t new_sock = accepted->new_sock;
-                    accepted->queue_accept();
-                    coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
-                    backoff.success();
-                }
-            }
-        }
-    }
 #else
     fd_t active_fd = socks[0].get();
     while(!lock.get_drain_signal()->is_pulsed()) {

@@ -1,5 +1,5 @@
 full_npm_package=rethinkdb-webui
-version=2.0.3
+version=2.0.4
 
 npm_conf=$(niceabspath "$conf_dir/npm.conf")
 
@@ -11,10 +11,14 @@ pkg_shrinkwrap () {
 
 pkg_fetch () {
     pkg_make_tmp_fetch_dir
-    cp "$root_dir/admin/npm-shrinkwrap.json" "$tmp_dir"
+    if [[ "$OS" != Windows ]]; then
+        # With this file, `npm install' fails on Windows for me with a lot of ECONNRESET errors
+        # Not using the shrinkwrap file may break things
+        cp "$root_dir/admin/npm-shrinkwrap.json" "$tmp_dir"
+    fi
     cp "$root_dir/admin/package.json" "$tmp_dir"
     mkdir "$tmp_dir/node_modules"
-    in_dir "$tmp_dir" npm --cache "$tmp_dir/npm-cache" install
+    in_dir "$tmp_dir" npm install -dd
     sed -i.bak '$d' "$tmp_dir/package.json" # remove the last '}'
     {   echo '  ,"bundleDependencies": ['
         comma=

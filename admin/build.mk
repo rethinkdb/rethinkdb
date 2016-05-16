@@ -15,3 +15,17 @@ web-assets-watch:
 
 .PHONY: web-assets
 web-assets: $(ALL_WEB_ASSETS)
+
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(PRECOMPILED_DIR)/web_assets/web_assets.cc | $(BUILD_ROOT_DIR)/web_assets/.
+	$P CP
+	cp -f $< $@
+
+else # Don't use precompiled assets
+
+$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
+	$P GENERATE
+	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
+
+endif

@@ -19,7 +19,11 @@
 
 microtime_t current_microtime() {
     FILETIME time;
+#if _WIN32_WINNT >= 0x602 // Windows 8
     GetSystemTimePreciseAsFileTime(&time);
+#else
+    GetSystemTimeAsFileTime(&time);
+#endif
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
@@ -93,7 +97,11 @@ timespec clock_realtime() {
     return ret;
 #elif defined(_MSC_VER)
     FILETIME time;
+#if _WIN32_WINNT >= 0x602 // Windows 8
     GetSystemTimePreciseAsFileTime(&time);
+#else
+    GetSystemTimeAsFileTime(&time);
+#endif
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;

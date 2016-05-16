@@ -9,9 +9,13 @@
 .PHONY: default-goal
 default-goal: real-default-goal
 
-# Build the drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/drivers/all
+ifeq (Windows,$(OS))
+  all: windows-all
+else
+  # Build the drivers and executable
+  all: $(TOP)/src/all $(TOP)/drivers/all
+endif
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
@@ -34,6 +38,25 @@ include $(TOP)/mk/paths.mk
 # Download and build internal tools like v8 and gperf
 include $(TOP)/mk/support/build.mk
 
+ifeq (Windows,$(OS))
+
+# make install
+include $(TOP)/mk/install.mk
+
+# Windows build
+include $/mk/windows.mk
+
+# Python driver
+include $/drivers/python/build.mk
+
+# JavaScript driver
+include $/drivers/javascript/build.mk
+
+# Build the web assets
+include $(TOP)/admin/build.mk
+
+else # Windows
+
 # make install
 include $(TOP)/mk/install.mk
 
@@ -54,6 +77,8 @@ include $(TOP)/mk/tools.mk
 
 # Tests
 include $(TOP)/test/build.mk
+
+endif # Windows
 
 .PHONY: clean
 clean: build-clean

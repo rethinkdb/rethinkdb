@@ -1,0 +1,73 @@
+--- ../../../../external/re2_2015-11-01/re2.vcxproj	2016-01-28 11:24:55.107833600 -0800
++++ ./re2.vcxproj	2016-01-28 11:51:01.928959300 -0800
+@@ -1,4 +1,4 @@
+-﻿<?xml version="1.0" encoding="utf-8"?>
++<?xml version="1.0" encoding="utf-8"?>
+ <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <ItemGroup Label="ProjectConfigurations">
+     <ProjectConfiguration Include="Debug|Win32">
+@@ -138,60 +138,12 @@
+     </Link>
+   </ItemDefinitionGroup>
+   <ItemGroup>
+-    <ClCompile Include="re2\bitstate.cc" />
+-    <ClCompile Include="re2\compile.cc" />
+-    <ClCompile Include="re2\dfa.cc" />
+-    <ClCompile Include="re2\filtered_re2.cc" />
+-    <ClCompile Include="re2\mimics_pcre.cc" />
+-    <ClCompile Include="re2\nfa.cc" />
+-    <ClCompile Include="re2\onepass.cc" />
+-    <ClCompile Include="re2\parse.cc" />
+-    <ClCompile Include="re2\perl_groups.cc" />
+-    <ClCompile Include="re2\prefilter.cc" />
+-    <ClCompile Include="re2\prefilter_tree.cc" />
+-    <ClCompile Include="re2\prog.cc" />
+-    <ClCompile Include="re2\re2.cc" />
+-    <ClCompile Include="re2\regexp.cc" />
+-    <ClCompile Include="re2\set.cc" />
+-    <ClCompile Include="re2\simplify.cc" />
+-    <ClCompile Include="re2\stringpiece.cc" />
+-    <ClCompile Include="re2\tostring.cc" />
+-    <ClCompile Include="re2\unicode_casefold.cc" />
+-    <ClCompile Include="re2\unicode_groups.cc" />
+-    <ClCompile Include="util\hash.cc" />
+-    <ClCompile Include="util\random.cc" />
+-    <ClCompile Include="util\rune.cc" />
+-    <ClCompile Include="util\stringprintf.cc" />
+-    <ClCompile Include="util\strutil.cc" />
+-    <ClCompile Include="util\test.cc" />
+-    <ClCompile Include="util\threadwin.cc" />
+-    <ClCompile Include="util\valgrind.cc" />
++    <ClCompile Include="re2\*.cc" />
++    <ClCompile Include="util\*.cc" />
+   </ItemGroup>
+   <ItemGroup>
+-    <ClInclude Include="re2\filtered_re2.h" />
+-    <ClInclude Include="re2\prefilter.h" />
+-    <ClInclude Include="re2\prefilter_tree.h" />
+-    <ClInclude Include="re2\prog.h" />
+-    <ClInclude Include="re2\re2.h" />
+-    <ClInclude Include="re2\regexp.h" />
+-    <ClInclude Include="re2\set.h" />
+-    <ClInclude Include="re2\stringpiece.h" />
+-    <ClInclude Include="re2\unicode_casefold.h" />
+-    <ClInclude Include="re2\unicode_groups.h" />
+-    <ClInclude Include="re2\variadic_function.h" />
+-    <ClInclude Include="re2\walker-inl.h" />
+-    <ClInclude Include="util\atomicops.h" />
+-    <ClInclude Include="util\flags.h" />
+-    <ClInclude Include="util\logging.h" />
+-    <ClInclude Include="util\mutex.h" />
+-    <ClInclude Include="util\random.h" />
+-    <ClInclude Include="util\sparse_array.h" />
+-    <ClInclude Include="util\sparse_set.h" />
+-    <ClInclude Include="util\test.h" />
+-    <ClInclude Include="util\thread.h" />
+-    <ClInclude Include="util\utf.h" />
+-    <ClInclude Include="util\util.h" />
+-    <ClInclude Include="util\valgrind.h" />
++    <ClInclude Include="re2\*.h" />
++    <ClInclude Include="util\*.h" />
+   </ItemGroup>
+   <ItemGroup>
+     <None Include="doc\syntax.html" />

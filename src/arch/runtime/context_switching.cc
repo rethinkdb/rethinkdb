@@ -110,8 +110,10 @@ void save_stack_info(fiber_stack_t *stack) {
 fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
     auto tuple = std::make_tuple(initial_fun, this, GetCurrentFiber());
     typedef decltype(tuple) data_t;
-    context.fiber = CreateFiber(
+    context.fiber = CreateFiberEx(
         stack_size,
+        stack_size,
+        0, // don't switch floating-point state
         [](void* data) {
             void (*initial_fun)();
             fiber_stack_t *self;

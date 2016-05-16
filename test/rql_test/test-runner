@@ -7,7 +7,7 @@ from __future__ import print_function
 import atexit, collections, copy, datetime, distutils.version, distutils.spawn, itertools, json, optparse, os
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "../common"))
 import driver, parsePolyglot, test_exceptions, utils
 
 try:

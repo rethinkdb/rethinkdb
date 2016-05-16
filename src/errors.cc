@@ -261,7 +261,7 @@ int windows_runtime_debug_failure_handler(int type, char *message, int *retval) 
     return false;
 }
 
-BOOL windows_ctrl_handler(DWORD type) {
+BOOL WINAPI windows_ctrl_handler(DWORD type) {
     thread_pool_t::interrupt_handler(type);
     return true;
 }

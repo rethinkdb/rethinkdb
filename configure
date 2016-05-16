@@ -21,6 +21,10 @@ init () {
     max_browserify_version=12.0.1
     min_python_version=2.6.0
 
+    min_msbuild_version=14.0
+    min_nmake_version=14.0
+    min_cl_version=19.0
+
     must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
@@ -39,7 +43,7 @@ init () {
     default_allocator_linux=jemalloc
     default_allocator_osx=system
 
-    allowed_arg_vars="CXXFLAGS LDFLAGS"
+    allowed_arg_vars="CXXFLAGS LDFLAGS PLATFORM MSBUILD VCVARSALL NMAKE"
 }
 
 # The main configuration steps
@@ -55,6 +59,21 @@ configure () {
             var $var "$val"
         fi
     done
+    check_windows
+    if $windows; then
+        configure_windows
+    else
+        configure_unixlike
+    fi
+    require Installation prefix
+    var PREFIX ${arg_prefix:-/usr/local}
+    require Configuration prefix
+    var SYSCONFDIR ${arg_sysconfdir:-$PREFIX/etc}
+    require Runtime data prefix
+    var LOCALSTATEDIR ${arg_localstatedir:-$PREFIX/var}
+}
+
+configure_unixlike () {
     var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Use ccache"
     boolvar USE_CCACHE $use_ccache
@@ -103,15 +122,7 @@ configure () {
 
     fi
     check_cxx11
-    require "Precompiled web assets"
-    if [[ -z "$enable_precompiled_web" ]]; then
-        if test -d precompiled/web_assets; then
-            enable_precompiled_web=true
-        else
-            enable_precompiled_web=false
-        fi
-    fi
-    boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
+    check_precompiled_web
     for bin in $required_bin_deps; do
         require_dep $bin
         check_bin $bin
@@ -158,12 +169,6 @@ configure () {
     check_openssl
     boolvar STATIC_V8 contains "$static_libs" v8
     boolvar ALLOW_FETCH $allow_fetch
-    require Installation prefix
-    var PREFIX ${arg_prefix:-/usr/local}
-    require Configuration prefix
-    var SYSCONFDIR ${arg_sysconfdir:-$PREFIX/etc}
-    require Runtime data prefix
-    var LOCALSTATEDIR ${arg_localstatedir:-$PREFIX/var}
     for pkg in $must_fetch_list; do
         if ! contains "$FETCH_LIST" $pkg; then
             require_dep $pkg
@@ -173,6 +178,38 @@ configure () {
     if [ -n "${final_warning:-}" ]; then
         echo "* Warning: $final_warning"
     fi
+}
+
+configure_windows () {
+    for tool in msbuild vcvarsall cmake; do
+        require $tool
+        check_vs_bin $tool
+    done
+    require Platform
+    check_windows_platform
+    var COMPILER MSC
+    var DEFAULT_ALLOCATOR system
+    var ALLOCATOR system
+    var PTHREAD_LIBS
+    var CROSS_COMPILING 0
+    var CXX false
+    check_precompiled_web
+    for pkg in protobuf curl v8 zlib re2 openssl gtest boost; do
+        require_dep $pkg
+        fetch_lib $pkg
+    done
+    fetch_bin protoc
+    require_dep npm
+    check_bin npm
+    require_dep coffee
+    fetch_bin coffee
+    require_dep bluebird
+    fetch_pkg bluebird
+    require_dep browserify
+    fetch_bin browserify
+    check_admin_deps
+    optional Python
+    check_bin python
 }
 
 # Entry point
@@ -296,6 +333,7 @@ read_args () {
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
             --localstatedir) $has_arg; arg_localstatedir=$arg ;;
+            --windows-platform) $has_arg; requested_platform=$arg ;;
             --help) show_help; exit ;;
             -*) die "Unknown option '$option'" ;;
             *) if contains "$all_deps" "$(lc $option)"; then
@@ -369,6 +407,7 @@ EOF
   --enable-precompiled-web
   --disable-precompiled-web Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
+  --windows-platform      Windows platform: Win32 (32 bit, default) or x64 (64 bit)
 EOF
 }
 
@@ -646,8 +685,8 @@ test_bin_version () {
     test -z "$min$max$invalid" && return 0
     local output
     local ver
-    if output=$("$2" --version 2>&1) &&
-       ver=$(echo "$output" | extract_version_string) &&
+    output=$("$2" ${3:---version} 2>&1)
+    if ver=$(echo "$output" | extract_version_string) &&
        test -n "$ver" ;
     then
         local version=$(read_version "$ver")
@@ -756,7 +795,7 @@ check_bin () {
 
 # Invoke pkg.sh with the required environment variables
 pkg () {
-    FETCH_LIST="$FETCH_LIST" bash $root/mk/support/pkg/pkg.sh "$@"
+    FETCH_LIST="$FETCH_LIST" PLATFORM="${PLATFORM:-}" OS="$OS" bash $root/mk/support/pkg/pkg.sh "$@"
 }
 
 # add_fetch <name>
@@ -1249,6 +1288,65 @@ check_admin_deps () {
     add_fetch admin-deps
     macro "GULP"         "\$(abspath \$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp)"
     macro "GULP_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp"
+}
+
+check_vs_bin () {
+    local ucname=$(uc $1)
+    local exe=${!ucname:-}
+    if [[ -z "$exe" ]] || ! lookup "$arg_vars" $ucname exe; then
+        # TODO: what is a better way to find these?
+        for it in /cygdrive/*/Program\ Files*/{MSBuild/14.0,Microsoft\ Visual\ Studio\ 14.0/VC,CMake*}{,/bin}/$1.{exe,bat}; do
+            case "$it" in
+                *\**) ;;
+                *) exe=$it; break;;
+            esac
+        done
+    fi
+
+    if [[ -n "$exe" ]]; then
+        test_bin_version $1 "$exe" /version
+        var $ucname "$exe"
+    else
+        not_found $1
+    fi
+}
+
+check_windows () {
+    if winver=`cmd /c ver` 2>&1; then
+        require "Operating System"
+        show "$winver"
+        windows=true
+        var OS Windows
+    else
+        windows=false
+    fi
+}
+
+check_windows_platform () {
+    if [[ -n "${requested_platform:-}" ]]; then
+        case "$requested_platform" in
+            x64) var PLATFORM x64 ;;
+            Win32) var PLATFORM Win32 ;;
+            *) error "invalid platform '$requested_platform', should be Win32 or x64"
+        esac
+    else
+        case "`uname -m`" in
+            *64*) var PLATFORM x64 ;;
+            *) var PLATFORM Win32 ;;
+        esac
+    fi
+}
+
+check_precompiled_web () {
+    optional "Precompiled web assets"
+    if [[ -z "$enable_precompiled_web" ]]; then
+        if test -d precompiled/web_assets; then
+            enable_precompiled_web=true
+        else
+            enable_precompiled_web=false
+        fi
+    fi
+    boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
 }
 
 # The root of the source tree

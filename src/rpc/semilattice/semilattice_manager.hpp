@@ -74,14 +74,6 @@ private:
         const peer_id_t &peer_id,
         const connectivity_cluster_t::connection_pair_t *pair);
 
-    /* These are spawned in new coroutines. */
-    void send_metadata_to_peer(peer_id_t, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
-    void deliver_metadata_on_home_thread(peer_id_t sender, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
-    void deliver_sync_from_query_on_home_thread(peer_id_t sender, sync_from_query_id_t query_id, auto_drainer_t::lock_t);
-    void deliver_sync_from_reply_on_home_thread(peer_id_t sender, sync_from_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
-    void deliver_sync_to_query_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
-    void deliver_sync_to_reply_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, auto_drainer_t::lock_t);
-
     void join_metadata_locally(metadata_t);
     void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 

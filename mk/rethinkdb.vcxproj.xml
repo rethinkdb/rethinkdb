@@ -1,0 +1,11 @@
+<config ImproveParallelBuild="yes"
+        RethinkDBVersion="RETHINKDB_VERSION"
+        PreprocessToFile="no"
+        ShowIncludes="no" >
+  <target version="8.1" toolset="v140" winver="0x600" />
+
+  <build configuration="Debug"   platform="x64" />
+  <build configuration="Release" platform="x64" />
+  <build configuration="Debug"   platform="Win32" />
+  <build configuration="Release" platform="Win32" />
+</config>

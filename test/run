@@ -9,10 +9,7 @@ import time
 sys.path.insert(0, abspath(join(dirname(__file__), "common")))
 import shelltest, test_framework, unit, utils
 
-# Initialise the list of tests with the dumy tests and the unit tests
-tests = test_framework.TestTree({
-    'unit': unit.AllUnitTests()
-})
+tests = None
 
 # helper function for loading tests from full_test/*.test
 def generate_test(tree):
@@ -57,12 +54,16 @@ def configure(reqs, args):
         build_dir = utils.latest_build_dir()
     return dict(SRC_ROOT=src_root, BUILD_DIR=build_dir)
 
-argparser = argparse.ArgumentParser(parents=[test_framework.argparser])
-argparser.add_argument('-b', '--build-dir', default=None,
-                       help='The rethinkdb build directory (Default: the latest one)')
-
-
 if __name__ == '__main__':
+    # Initialise the list of tests with the dumy tests and the unit tests
+    tests = test_framework.TestTree({
+        'unit': unit.AllUnitTests()
+    })
+
+    argparser = argparse.ArgumentParser(parents=[test_framework.argparser])
+    argparser.add_argument('-b', '--build-dir', default=None,
+                           help='The rethinkdb build directory (Default: the latest one)')
+
     args = argparser.parse_args(sys.argv[1:])
     load_tests()
     load_groups()

@@ -2,14 +2,12 @@
 version=2.5.0
 
 src_url=http://protobuf.googlecode.com/files/protobuf-$version.tar.bz2
+src_url_sha1=62c10dcdac4b69cc8c6bb19f73db40c264cb2726
 
 pkg_install-include () {
-    pkg_copy_src_to_build
-    find "$build_dir/src" -name \*.h | while read -r file; do
-        relative=${file#$build_dir/src/}
-        dir=$install_dir/include/${file%/*}
-        mkdir -p "$dir"
-        cp -avf "$file" "$dir"
+    in_dir "$src_dir/src" find . -name \*.h | while read -r file; do
+        mkdir -p "$install_dir/include/$(dirname "$file")"
+        cp -af "$src_dir/src/$file" "$install_dir/include/$file"
     done
 }
 
@@ -44,15 +42,16 @@ pkg_install () (
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         cp -f $cross_build_dir/src/protoc $install_dir/bin/protoc
     fi
-
-    # TODO: is there a platform that needs the library path to be adjusted like this?
-    # local protoc="$install_dir/bin/protoc"
-    # if test -e "$protoc"; then
-    #     mv "$protoc" "$protoc-orig"
-    #     echo '#!/bin/sh' > "$protoc"
-    #     echo "export LD_LIBRARY_PATH='$install_dir/lib':\$LD_LIBRARY_PATH" >> "$protoc"
-    #     echo "export PATH='$install_dir/bin':\$PATH" >> "$protoc"
-    #     echo 'exec protoc-orig "$@"' >> "$protoc"
-    #     chmod +x "$protoc"
-    # fi
 )
+
+pkg_install-windows () {
+    pkg_copy_src_to_build
+
+    for project in libprotobuf libprotoc protoc; do
+        in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM vsprojects\\$project.vcxproj
+    done
+
+    cp "$build_dir/vsprojects/$VS_OUTPUT_DIR/libprotobuf.lib" "$windows_deps_libs/"
+    mkdir -p "$install_dir/bin"
+    cp "$build_dir/vsprojects/$VS_OUTPUT_DIR/protoc.exe" "$install_dir/bin/"
+}

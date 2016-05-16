@@ -40,6 +40,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/exponential_backoff.hpp"
 #include "containers/intrusive_list.hpp"
 #include "crypto/error.hpp"
 #include "perfmon/types.hpp"
@@ -425,13 +426,13 @@ public:
     ~linux_tcp_conn_descriptor_t();
 
     void make_server_connection(
-        tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
+        tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer)
         THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the server connection on.
     void make_server_connection(
-        tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
+        tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer)
         THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t);
 
 private:
@@ -477,7 +478,14 @@ private:
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
     void accept_loop(auto_drainer_t::lock_t lock);
+
+#ifdef _WIN32
+    void accept_loop_single(const auto_drainer_t::lock_t &lock,
+                            exponential_backoff_t backoff,
+                            windows_event_watcher_t *event_watcher);
+#else
     fd_t wait_for_any_socket(const auto_drainer_t::lock_t &lock);
+#endif
     scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);

@@ -1037,7 +1037,7 @@ std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
     // We assume that changefeeds use MAX_KEY instead of `unbounded` right bounds.
     // If this ever changes, `note_reshard` will need to be updated.
-    guarantee(!_region.inner.right.unbounded);
+    guarantee(!region.inner.right.unbounded);
     guarantee(ctx != nullptr);
     guarantee(ctx->manager != nullptr);
     auto existing = changefeed_server(_region, &acq);

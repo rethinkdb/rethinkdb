@@ -23,6 +23,11 @@ public:
     bool address_in_stack(const void *addr) const;
     bool address_is_stack_overflow(const void *addr) const;
     size_t free_space_below(const void *addr) const;
+
+    /* These two are currently not implemented for fiber stacks.
+    I think fibers always have some overflow protection though? */
+    void enable_overflow_protection() {}
+    void disable_overflow_protection() {}
 };
 
 void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);
