@@ -1312,7 +1312,7 @@ check_vs_bin () {
 }
 
 check_windows () {
-    if winver=`cmd /c ver` 2>&1; then
+    if winver=`cmd /c ver 2>&1`; then
         require "Operating System"
         show "$winver"
         windows=true

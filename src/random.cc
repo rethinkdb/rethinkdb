@@ -41,16 +41,16 @@ double rng_t::randdouble() {
     return std::uniform_real_distribution<double>(0, 1)(m_mt19937);
 }
 
-TLS_ptr_with_constructor(scoped_ptr_t<rng_t>, rng)
+TLS_with_init(rng_t*, rng, nullptr)
 
 rng_t *get_TLS_rng() {
     // This lazy construction is to ensure that we construct the thread local
     // rng_t on the correct thread, instead of creating it on startup.
 
-    if (!TLS_ptr_rng()->has()) {
-        TLS_ptr_rng()->init(new rng_t());
+    if (TLS_get_rng() == nullptr) {
+        TLS_set_rng(new rng_t());
     }
-    return TLS_ptr_rng()->get();
+    return TLS_get_rng();
 }
 
 int randint(int n) {
