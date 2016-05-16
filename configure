@@ -846,7 +846,11 @@ fetch_lib () {
     var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
-    macro "$(uc "$1")_INCLUDE_DEP"      "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
+    if pkg separate-install-include "$pkg"; then
+        macro "$(uc "$1")_INCLUDE_DEP"  "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
+    else
+        macro "$(uc "$1")_INCLUDE_DEP"  "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
+    fi
     static_libs="$static_libs $1"
 }
 

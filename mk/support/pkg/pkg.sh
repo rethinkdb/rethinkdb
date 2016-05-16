@@ -154,6 +154,12 @@ pkg_copy_src_to_build () {
     cp -af "$src_dir/." "$build_dir"
 }
 
+separate_install_include=true
+
+pkg_separate-install-include () {
+    $separate_install_include
+}
+
 pkg_install-include () {
     test -e "$install_dir/include" && rm -rf "$install_dir/include"
     if [[ -e "$src_dir/include" ]]; then

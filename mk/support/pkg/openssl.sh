@@ -22,6 +22,8 @@ pkg_configure () {
     fi
 }
 
+separate_install_include=false
+
 pkg_install () {
     pkg_copy_src_to_build
 
@@ -56,6 +58,9 @@ pkg_install-windows () {
     in_dir "$build_dir" with_vs_env nmake -f 'ms\nt.mak'
 
     cp "$build_dir/$out"/{ssleay32,libeay32}.lib "$windows_deps_libs/"
+
+    mkdir -p "$windows_deps/include/"
+    cp -R "$build_dir"/inc32/* "$windows_deps/include/"
 }
 
 pkg_link-flags () {

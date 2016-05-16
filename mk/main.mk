@@ -9,14 +9,6 @@
 .PHONY: default-goal
 default-goal: real-default-goal
 
-.PHONY: all
-ifeq (Windows,$(OS))
-  all: windows-all
-else
-  # Build the drivers and executable
-  all: $(TOP)/src/all $(TOP)/drivers/all
-endif
-
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
 
@@ -82,3 +74,12 @@ endif # Windows
 
 .PHONY: clean
 clean: build-clean
+
+.PHONY: all
+ifeq (Windows,$(OS))
+  all: windows-all
+else
+  # Build the drivers and executable
+  all: $(TOP)/src/all $(TOP)/drivers/all
+endif
+
