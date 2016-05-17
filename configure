@@ -193,7 +193,6 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    check_precompiled_web
     for pkg in protobuf curl v8 zlib re2 openssl gtest boost; do
         require_dep $pkg
         fetch_lib $pkg

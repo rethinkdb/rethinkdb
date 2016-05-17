@@ -113,9 +113,11 @@ gulp.task('browserify-watch', ['rethinkdb-version'], function(){
 function createBundler(watch) {
   // This is the browserify bundler, used by both the build and watch
   // tasks. Only one should be created, and re-used so that it can
-  // cache build results when rebuilding on file changes
+    // cache build results when rebuilding on file changes
+    console.log("BAR: " + BROWSERIFY_BUNDLE_ENTRY_POINT);
+    console.log("FOO: " + BROWSERIFY_BUNDLE_ENTRY_POINT.replace(/\//g, "\\"));
   var retval = uberWatchify(browserify({
-    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
+    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT.replace(/\//g, "\\")],
     cache: uberWatchify.getCache(BROWSERIFY_CACHE_FILE),
     extensions: ['.coffee', '.hbs'],
     packageCache: {},

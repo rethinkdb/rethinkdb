@@ -27,7 +27,7 @@ LIB_DEPS := $(foreach dep, $(FETCH_LIST), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_V
 
 PROTO_DEPS := $(PROTO_DIR)/rdb_protocol/ql2.pb.h $(PROTO_DIR)/rdb_protocol/ql2.pb.cc
 
-WEB_ASSETS_DEPS := $(BUILD_ROOT_DIR)/web_assets/web_assets.cc
+WEB_ASSETS_DEPS := $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc $(BUILD_ROOT_DIR)/bundle_assets/web_assets.rc
 
 MSBUILD_FLAGS := /nologo /maxcpucount
 MSBUILD_FLAGS += /p:Configuration=$(CONFIGURATION)
