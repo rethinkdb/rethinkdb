@@ -813,7 +813,7 @@ void datum_t::array_to_str_key(
         case R_NULL:
             item.type_error(
                 strprintf("Array keys can only contain numbers, strings, bools, "
-                          " pseudotypes, or arrays (got %s of type %s).",
+                          "binary objects, dates/times, or arrays (got %s of type %s).",
                           item.print().c_str(), item.get_type_name().c_str()));
             break;
         case UNINITIALIZED: // fallthru
@@ -1052,7 +1052,7 @@ std::string datum_t::print_primary_internal() const {
         // fallthru
     case R_NULL:
         type_error(strprintf(
-            "Primary keys must be either a number, string, bool, pseudotype "
+            "Primary keys must be either a number, string, bool, binary, date/time, "
             "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
@@ -1178,7 +1178,7 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
         pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, pseudotype, "
+            "Secondary keys must be a number, string, bool, binary, date/time, "
             "or array (got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
     }
@@ -1320,7 +1320,7 @@ store_key_t datum_t::truncated_secondary(
         extrema_to_str_key(extrema_encoding, extrema_ok, &s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, pseudotype, "
+            "Secondary keys must be a number, string, bool, binary, date/time, "
             "or array (got %s of type %s).",
             print().c_str(), get_type_name().c_str()));
     }
