@@ -375,8 +375,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
-                    strprintf("%s",format_array_size_error(env->limits()
-                              .array_size_limit()).c_str()));
+                    format_array_size_error(env->limits()
+                              .array_size_limit()).c_str());
             }
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
@@ -405,8 +405,8 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
-                    strprintf("%s",format_array_size_error(env->limits()
-                              .array_size_limit()).c_str()));
+                          format_array_size_error(env->limits()
+                              .array_size_limit()).c_str());
             }
 
             // It's safe to YOLO unshard like this without considering
