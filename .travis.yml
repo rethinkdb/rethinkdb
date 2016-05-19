@@ -1,5 +1,6 @@
 # Environment
 language: cpp
+ccache: ccache
 compiler:
   - gcc
   - clang
