@@ -81,6 +81,7 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                     &res,
                     order_token_t::ignore,
                     interruptor);
+
             }
             break;
         case table_readiness_t::unavailable:
