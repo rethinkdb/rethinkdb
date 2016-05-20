@@ -12,7 +12,7 @@
 
 #include <openssl/ssl.h>
 
-#if FINAL_WAS_DEFINED
+#ifdef FINAL_WAS_DEFINED
 #define final
 #undef FINAL_WAS_DEFINED
 #endif

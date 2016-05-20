@@ -33,7 +33,7 @@ var ROOT_DIR = path.resolve(__dirname, '..'),
     JS_DIR = STATIC_DIR+'/js',
     DRIVER_BUILD_DIR = BUILD_DIR+'/packages/js',
     VERSION_FILE = WEB_OBJ_DIR+'/version.coffee',
-    BROWSERIFY_BUNDLE_ENTRY_POINT = COFFEE_DIR+'/body.coffee',
+    BROWSERIFY_BUNDLE_ENTRY_POINT = (COFFEE_DIR+'/body.coffee').replace(/\//g, path.sep),
     BROWSERIFY_CACHE_FILE = WEB_OBJ_DIR+'/browserify-cache.json',
     INDEX_FILE = WEBUI_DIR+'/templates/cluster.html';
 
@@ -113,11 +113,9 @@ gulp.task('browserify-watch', ['rethinkdb-version'], function(){
 function createBundler(watch) {
   // This is the browserify bundler, used by both the build and watch
   // tasks. Only one should be created, and re-used so that it can
-    // cache build results when rebuilding on file changes
-    console.log("BAR: " + BROWSERIFY_BUNDLE_ENTRY_POINT);
-    console.log("FOO: " + BROWSERIFY_BUNDLE_ENTRY_POINT.replace(/\//g, "\\"));
+  // cache build results when rebuilding on file changes
   var retval = uberWatchify(browserify({
-    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT.replace(/\//g, "\\")],
+    entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
     cache: uberWatchify.getCache(BROWSERIFY_CACHE_FILE),
     extensions: ['.coffee', '.hbs'],
     packageCache: {},
