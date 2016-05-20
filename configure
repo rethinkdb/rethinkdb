@@ -166,7 +166,6 @@ configure_unixlike () {
 
     test_protobuf
     check_boost
-    check_openssl
     boolvar STATIC_V8 contains "$static_libs" v8
     boolvar ALLOW_FETCH $allow_fetch
     for pkg in $must_fetch_list; do
@@ -906,12 +905,16 @@ int main(){
     static_assert(JEMALLOC_VERSION_MAJOR >= 4, "jemalloc version 4 or above is required");
 }
 
-~openssl:
+~crypto:
 
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
-#include <openssl/ssl.h>
 #include <openssl/bn.h>
+int main(){ return 0; }
+
+~ssl:
+
+#include <openssl/ssl.h>
 int main(){ return 0; }
 
 ~'
@@ -1193,24 +1196,6 @@ check_boost () {
         fi
     else
         empty_deps_lib boost true
-    fi
-}
-
-check_openssl () {
-    require "Test OpenSSL"
-    if contains "$please_fetch_list" openssl; then
-        fetch_lib openssl
-        return
-    fi
-    check_lib_compile "" openssl
-    if $can_show; then
-        if fetch_allowed openssl; then
-            fetch_lib openssl
-        else
-            show_no "openssl"
-        fi
-    else
-        empty_deps_lib openssl true
     fi
 }
 
