@@ -387,7 +387,7 @@ getsha1 () {
     elif hash sha1 1>/dev/null 2>/dev/null; then
         sha1 -q "$1"
     else
-        error "Unable to calculate the sha1 checksum of '$1', please install one of these tools: openssl, sha1sum, shasum, sha1"
+        error "Unable to get the sha1 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha1sum, shasum, sha1"
     fi
 }
 
