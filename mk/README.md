@@ -123,6 +123,8 @@ Dependencies
 * `install-include-<dep>`: Copy the include files from the given
   dependency.
 
+* `VERIFY_FETCH_HASH=0`: Don't verify the hash of fetched archives.
+
 
 Installation
 ---

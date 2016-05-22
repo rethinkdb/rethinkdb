@@ -49,11 +49,7 @@ pkg_install-include () {
     else
         in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
     fi
-    # The install-headers-recursive target is missing. Let's patch it.
-    sed -i.bak $'s/distclean-recursive/install-headers-recursive/g;$a\\\ninstall-headers-local:' "$build_dir/third_party/icu/source/Makefile"
-    for file in "$build_dir"/third_party/icu/source/*/Makefile; do
-        sed -i.bak $'$a\\\ninstall-headers:' "$file"
-    done
+
     in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
 }
 
@@ -87,7 +83,7 @@ pkg_install-windows () {
 
 pkg_install () {
     pkg_copy_src_to_build
-    sed -i.bak '/unittests/d;/cctest/d' "$build_dir/build/all.gyp" # don't build the tests
+
     mkdir -p "$install_dir/lib"
     if [[ "$OS" = Darwin ]]; then
         export CXXFLAGS="-stdlib=libc++ ${CXXFLAGS:-}"

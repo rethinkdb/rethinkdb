@@ -1,0 +1,107 @@
+diff -ruN --label original original ./third_party/icu/source/common/Makefile.in
+--- original
++++ ./third_party/icu/source/common/Makefile.in	2016-05-15 11:58:23.171949530 -0700
+@@ -223,3 +223,4 @@
+ endif
+ endif
+ 
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/data/Makefile.in
+--- original
++++ ./third_party/icu/source/data/Makefile.in	2016-05-15 11:58:23.171949530 -0700
+@@ -887,3 +887,4 @@
+ 	(cd ../common && $(MAKE) RECURSIVE=YES) || exit;
+ endif
+ 
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/extra/Makefile.in
+--- original
++++ ./third_party/icu/source/extra/Makefile.in	2016-05-15 11:58:23.175949491 -0700
+@@ -77,3 +77,4 @@
+ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+ 	cd $(top_builddir) \
+ 	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/i18n/Makefile.in
+--- original
++++ ./third_party/icu/source/i18n/Makefile.in	2016-05-15 11:58:23.175949491 -0700
+@@ -194,3 +194,4 @@
+ -include $(DEPS)
+ endif
+ endif
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/io/Makefile.in
+--- original
++++ ./third_party/icu/source/io/Makefile.in	2016-05-15 11:58:23.175949491 -0700
+@@ -168,3 +168,4 @@
+ endif
+ endif
+ 
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/Makefile.in
+--- original
++++ ./third_party/icu/source/Makefile.in	2016-05-15 11:58:23.167949572 -0700
+@@ -70,7 +70,7 @@
+ ## List of phony targets
+ .PHONY : all all-local all-recursive install install-local install-udata install-udata-files install-udata-dlls		\
+ install-recursive clean clean-local clean-recursive distclean		\
+-distclean-local distclean-recursive doc dist dist-local dist-recursive	\
++distclean-local install-headers-recursive doc dist dist-local dist-recursive	\
+ check check-local check-recursive clean-recursive-with-twist install-icu \
+ doc install-doc tests icu4j-data icu4j-data-install update-windows-makefiles xcheck-local xcheck-recursive xperf xcheck xperf-recursive \
+ check-exhaustive check-exhaustive-local check-exhaustive-recursive releaseDist
+@@ -82,7 +82,7 @@
+ all: all-local all-recursive
+ install: install-recursive install-local
+ clean: clean-recursive-with-twist clean-local
+-distclean : distclean-recursive distclean-local
++distclean : install-headers-recursive distclean-local
+ dist: dist-recursive dist-local
+ check: all check-recursive
+ check-recursive: all
+@@ -137,7 +137,7 @@
+ 	-$(MKINSTALLDIRS) $@
+ 
+ ## Recursive targets
+-all-recursive install-recursive clean-recursive distclean-recursive dist-recursive check-recursive check-exhaustive-recursive: $(LIBDIR) $(BINDIR)
++all-recursive install-recursive clean-recursive install-headers-recursive dist-recursive check-recursive check-exhaustive-recursive: $(LIBDIR) $(BINDIR)
+ 	@dot_seen=no; \
+ 	target=`echo $@ | sed s/-recursive//`; \
+ 	list='$(LOCAL_SUBDIRS)'; for subdir in $$list; do \
+@@ -389,3 +389,4 @@
+ 	$(INSTALLED_INVOKE) $(bindir)/genrb$(EXEEXT) -V
+ 	$(INSTALLED_INVOKE) $(bindir)/gencnval$(EXEEXT) -h
+ 	@echo INSTALLED ICU IN "$(prefix)" OK!
++install-headers-local:
+diff -ruN --label original original ./third_party/icu/source/samples/Makefile.in
+--- original
++++ ./third_party/icu/source/samples/Makefile.in	2016-05-15 11:58:23.175949491 -0700
+@@ -102,3 +102,4 @@
+ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+ 	cd $(top_builddir) \
+ 	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/stubdata/Makefile.in
+--- original
++++ ./third_party/icu/source/stubdata/Makefile.in	2016-05-15 11:58:23.179949454 -0700
+@@ -147,3 +147,4 @@
+ endif
+ endif
+ 
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/test/Makefile.in
+--- original
++++ ./third_party/icu/source/test/Makefile.in	2016-05-15 11:58:23.179949454 -0700
+@@ -170,3 +170,4 @@
+ 	cd $(top_builddir) \
+ 	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+ 
++install-headers:
+diff -ruN --label original original ./third_party/icu/source/tools/Makefile.in
+--- original
++++ ./third_party/icu/source/tools/Makefile.in	2016-05-15 11:58:23.183949415 -0700
+@@ -79,3 +79,4 @@
+ 	cd $(top_builddir) \
+ 	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+ 
++install-headers:
