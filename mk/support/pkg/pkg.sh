@@ -79,14 +79,13 @@ pkg_fetch_archive () {
 
         mkdir -p "$cache_dir"
 
-        if ! geturl "$src_url" "$archive"; then
-            if [[ -n "${src_url_backup:-}" ]]; then
-                geturl "$src_url_backup" "$archive"
-                url="$src_url_backup"
-            fi
-            exit 1
-        else
+        if geturl "$src_url" "$archive"; then
             url="$src_url"
+        elif [[ -n "${src_url_backup:-}" ]]; then
+            geturl "$src_url_backup" "$archive"
+            url="$src_url_backup"
+        else
+            exit 1
         fi
 
         if [[ "$VERIFY_FETCH_HASH" = 1 ]]; then
