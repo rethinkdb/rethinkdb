@@ -141,6 +141,12 @@ class Cursor(object):
         self._maybe_fetch_batch()
         self._extend_internal(first_response)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def close(self):
         if self.error is None:
             self.error = self._empty_error()
