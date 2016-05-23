@@ -30,11 +30,6 @@ except ImportError:
     from backports.ssl_match_hostname import match_hostname, CertificateError
 
 try:
-    xrange
-except NameError:
-    xrange = range
-
-try:
     {}.iteritems
     dict_items = lambda d: d.iteritems()
 except AttributeError:
