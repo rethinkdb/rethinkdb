@@ -1057,7 +1057,10 @@ class Test(object):
     
     @property
     def interpreter_path(self):
-        return None
+        if self.driverLang:
+            return self.driverLang.interpreter_path
+        else:
+            return None
     
     @property
     def command(self):
