@@ -906,3 +906,5 @@ class RePrint(pprint.PrettyPrinter, object):
             return (('%r' % item)[1:], True, False) # string, readable, recursed
         else:
             return super(RePrint, self).format(item, context, maxlevels, level)
+pprint  = RePrint.pprint
+pformat = RePrint.pformat

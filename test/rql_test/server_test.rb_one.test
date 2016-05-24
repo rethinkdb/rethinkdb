@@ -1,11 +1,19 @@
 #!/usr/bin/env ruby
 
 begin
-  require 'minitest/autorun'
+    require 'minitest/autorun'
+rescue LoadError
+    require 'test/unit'
+end
+
+begin
   UNIT_TEST_CLASS = MiniTest::Test
 rescue
-  require 'test/unit'
-  UNIT_TEST_CLASS = Test::Unit::TestCase
+  begin
+    UNIT_TEST_CLASS = MiniTest::Unit::TestCase
+  rescue
+    UNIT_TEST_CLASS = Test::Unit::TestCase
+  end
 end
 require 'pp'
 
