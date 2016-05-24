@@ -455,7 +455,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 
     if (fd.get() == INVALID_FD) {
-        error_out->assign("cannot open or find log file");
+        error_out->assign("logging module is not yet initialized");
         return false;
     }
 #ifndef _WIN32
