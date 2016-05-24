@@ -2,85 +2,38 @@
 
 '''Tests the http term'''
 
-import atexit, datetime, os, re, subprocess, sys, tempfile, time, unittest
+import atexit, collections, datetime, os, re, subprocess, sys, tempfile, time, unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common'))
-import driver, utils
-
-sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-import http_support
+import driver, utils, rdb_unittest
 
 r = utils.import_python_driver()
 
-_httpbin_server = None
-def closeServer():
-    global _httpbin_server
-    _httpbin_server.endServer()
-    _httpbin_server = None
+HttpbinServer = collections.namedtuple('HttpbinServer', ['host', 'httpbinPort', 'httpContentPort', 'sslPort'])
 
-class WithServer(unittest.TestCase):
-    
+missing = []
+for env in ('HTTPBIN_HOST', 'HTTPBIN_HTTPBIN_PORT', 'HTTPBIN_HTTPCONTENT_PORT', 'HTTPBIN_HTTPS_PORT'):
+    if not env in os.environ:
+        missing.append(env)
+if missing:
+    raise Exception('Not all httpbin ENV variables are set, missing: %s' % ", ".join(missing))
+
+
+class TestHttpTerm(rdb_unittest.RdbTestCase):
+    targetServer = None
     host = 'localhost'
     
-    targetServer = None
-    
-    conn = None
-    _server = None
-    _server_log = None
-    
     def setUp(self):
-        global _httpbin_server
-        
-        # -- startup local httpbin server
-        
-        if _httpbin_server is None:
-            _httpbin_server = http_support.HttpTargetServer()
-        else:
-            try:
-                _httpbin_server.checkOnServer()
-            except Exception:
-                _httpbin_server = http_support.HttpTargetServer()
-        
-        self.targetServer = _httpbin_server
-        
-        # -- startup the RethinkDB server
-        
-        if self.conn == None:
-            try:
-                self._server.driver_port = int(os.getenv('RDB_DRIVER_PORT') or sys.argv[1])
-            except Exception:
-                self.__class__._server_log = tempfile.NamedTemporaryFile('w+')
-                self.__class__._server = driver.Process(console_output=self._server_log.name)
-                self.__class__.conn = self._server.driver_port
-            
-            self.__class__.conn = r.connect('localhost', self._server.driver_port)
-        
-        # -- patch the Python2.6 version of unittest to have assertRaisesRegex
-        
-        if not hasattr(self, 'assertRaisesRegex'):
-            def assertRaisesRegex_replacement(self, exception, regexp, function, *args, **kwds):
-                result = None
-                try:
-                    result = function(*args, **kwds)
-                except Exception as e:
-                    if not isinstance(e, exception):
-                        raise AssertionError('Got the wrong type of exception: %s vs. expected: %s' % (e.__class__.__name__, exception.__name__))
-                    if not re.match(regexp, str(e)):
-                        raise AssertionError('Error message: "%s" does not match "%s"' % (str(regexp), str(e)))
-                    return
-                else:
-                    raise AssertionError('%s not raised for: %s, rather got: %s' % (exception.__name__, repr(function), repr(result)))
-            self.__class__.assertRaisesRegex = assertRaisesRegex_replacement
+        super(TestHttpTerm, self).setUp()
+        self.targetServer = HttpbinServer(os.environ['HTTPBIN_HOST'], int(os.environ['HTTPBIN_HTTPBIN_PORT']), int(os.environ['HTTPBIN_HTTPCONTENT_PORT']), int(os.environ['HTTPBIN_HTTPS_PORT']))
     
     def err_string(self, method, url, msg):
         return 'Error in HTTP %s of `%s`: %s' % (method, url, msg)
-
-class TestHttpTerm(WithServer):
     
     def getHttpBinURL(self, *path):
         if len(path) == 0:
             path = ['get']
-        return 'http://%s:%d/%s' % (self.host, self.targetServer.httpbinPort, '/'.join(path))
+        return 'http://%s:%d/%s' % (self.targetServer.host, self.targetServer.httpbinPort, '/'.join(path))
     
     # =============
     
@@ -187,7 +140,7 @@ class TestHttpTerm(WithServer):
         self.assertRaisesRegex(r.ReqlRuntimeError, self.err_string('GET', url, 'status code 302'), r.http(url, redirects=0).run, self.conn)
         self.assertRaisesRegex(r.ReqlRuntimeError, self.err_string('GET', url, 'Number of redirects hit maximum amount'), r.http(url, redirects=1).run, self.conn)
         res = r.http(url, redirects=2).run(self.conn)
-        self.assertEqual(res['headers']['Host'], '%s:%d' % (self.host, self.targetServer.httpbinPort))
+        self.assertEqual(res['headers']['Host'], '%s:%d' % (self.targetServer.host, self.targetServer.httpbinPort))
     
     def test_gzip(self):
         url = self.getHttpBinURL('gzip')
@@ -267,7 +220,7 @@ class TestHttpTerm(WithServer):
         )
     
     def test_binary(self):
-        res = r.http('http://%s:%d/quickstart.png' % (self.host, self.targetServer.httpPort)) \
+        res = r.http('http://%s:%d/quickstart.png' % (self.host, self.targetServer.httpContentPort)) \
            .do(lambda row: [row.type_of(), row.count().gt(0)]) \
            .run(self.conn)
         self.assertEqual(res, ['PTYPE<BINARY>', True])
@@ -289,7 +242,7 @@ class TestHttpTerm(WithServer):
         self.assertEqual(res, None)
     
     def test_redirect_http_to_bad_https(self):
-        self.bad_https_helper('http://%s:%d/redirect' % (self.host, self.targetServer.httpPort)) # 302 redirection to https port
+        self.bad_https_helper('http://%s:%d/redirect' % (self.host, self.targetServer.httpContentPort)) # 302 redirection to https port
     
     def test_bad_https(self):
         self.bad_https_helper('https://%s:%d' % (self.host, self.targetServer.sslPort))

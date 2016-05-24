@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import copy, itertools, os, random, sys, subprocess
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
+import driver, utils, rdb_unittest
+
+seed = random.randint(1, 10**9)
+random.seed(seed)
+print('Random seed: %d' % seed)
+
+digits = 3
+
+class Stream(rdb_unittest.RdbTestCase):
+    '''Test complicated streaming.'''
+    servers=2
+    recordsToGenerate = 10 ** digits
+    
+    maxDiff = None
+    
+    def generateRecords(self):
+        digits = 3
+        idPrefix = '%%0%dd' % digits
+        idFormat = idPrefix + '%%s%%0%dd' % (10 - digits)
+        
+        # - create the indexes
+        self.table.index_create('a').run(self.conn)
+        self.table.index_create('m', multi=True).run(self.conn)
+        self.table.index_wait('a', 'm').run(self.conn)
+        self.table.wait(wait_for='all_replicas_ready').run(self.conn)
+        
+        # - create expected lists
+        
+        self.expected = {}
+        
+        # 5 will never be truncated or go over the minimum truncation length.
+        # 80 will never be truncated but may go over the minimum truncation length.
+        # 200 will somtimes be truncated but will always go over the minimum truncation length.
+        # 300 will always be truncated and will always go over the minimum truncation length.
+        prefixes = [''] + list(itertools.chain.from_iterable([n*5, n*80, n*200, n*300] for n in ['0', '1', '2']))
+        
+        self.expected['id'] = [{
+            # 'id' varies between 10 and 100 characters so that the truncation boundary moves all over the place.
+            'id': idFormat % (i, 'a'*random.randint(1, 90), random.randint(1, 10 ** (10 - digits))),
+            'a':  prefix + str(random.random()),
+            'm':  random.sample([prefix + str(random.random()), prefix + (idPrefix % i) + str(random.random()), idPrefix % i], 3)
+        } for i, prefix in ((y, random.choice(prefixes)) for y in range(self.recordsToGenerate))]
+        
+        self.expected['a'] = sorted(self.expected['id'], key=lambda x: x['a'])
+        # the this_m array creates a line for each of the 3 items in the multi-index for each line, and records the choice for each
+        self.expected['this_m'] = [dict(row.items() + [('this_m', this_m)]) for row in self.expected['id'] for this_m in row['m']]
+        self.expected['this_m'].sort(key=lambda x: (x['this_m'], x['id']))
+        # the m array is the same as this_m, but minus the this_m key
+        self.expected['m'] = [z for z, _ in ((y, y.__delitem__('this_m')) for y in (copy.copy(x) for x in self.expected['this_m']))]
+        
+        # - insert data
+        for pos in range(0, self.recordsToGenerate, 100):
+            chunkSize = min(self.recordsToGenerate - pos, 100)
+            res = self.table.insert(self.expected['id'][pos:pos + chunkSize]).run(self.conn)
+            self.assertEqual(res['inserted'], chunkSize, (pos, chunkSize, res))
+            
+    def test_simple(self):
+        print('')
+        for shards in [1,4]:
+            print('  Shards: %d' % shards)
+            self.table.reconfigure(shards=shards, replicas=self.servers).run(self.conn)
+            self.table.wait(wait_for='all_replicas_ready').run(self.conn)
+            
+            for options in [
+                {'max_batch_rows':1},
+                {'max_batch_rows':random.randint(1, 100)},
+                {'max_batch_rows':10**9, 'max_batch_bytes':10**12, 'max_batch_seconds':600}
+            ]:
+                print('    Batch options: %s' % options)
+                for index in ['id', 'a', 'm']:
+                    print('      Index: %s' % index)
+                    
+                    # - order_by
+                    print('        Ordering by: %s' % index)
+                    res = list(self.table.order_by(index=index).run(self.conn))
+                    self.assertEqual(res, self.expected[index])
+                    
+                    # - r.dec(order_by)
+                    print('        Ordering by: r.desc(%s)' % index)
+                    res = list(self.table.order_by(index=self.r.desc(index)).run(self.conn))
+                    self.assertEqual(res, list(reversed(self.expected[index])))
+                    
+                    # - get a random range of data
+                    searchIndex = 'this_m' if index == 'm' else index
+                    startIndex, endIndex = sorted([random.randint(0, len(self.expected[index]) - 1), random.randint(0, len(self.expected[index]) - 1)])
+                    assert startIndex < endIndex
+                    
+                    left  = self.expected[searchIndex][startIndex][searchIndex]
+                    right = self.expected[searchIndex][endIndex][searchIndex]
+                    
+                    # adjust ranges to include all duplicates of left value
+                    while startIndex > 0 and left == self.expected[searchIndex][startIndex - 1][searchIndex]:
+                        startIndex -= 1
+                    
+                    # adjust range to remove all instances of right value
+                    while endIndex > startIndex and right == self.expected[searchIndex][endIndex + 1][searchIndex]:
+                        endIndex -= 1
+                    
+                    expectedRange = self.expected[index][startIndex:endIndex]
+                    self.assertEqual(len(expectedRange), endIndex - startIndex)
+                    print('        Using range of %d items: %s -> %s' % (len(expectedRange), left, right))
+                    
+                    # - between
+                    print('        Between')
+                    res = list(self.table.between(left, right, index=index).run(self.conn))
+                    res.sort(key=lambda x: x['id'])
+                    self.assertEqual(res, sorted(expectedRange, key=lambda x: x['id']))
+                    
+                    # - between order_by
+                    print('        Between.order_by')
+                    res = list(self.table.between(left, right, index=index).order_by(index=index).run(self.conn))
+                    self.assertEqual(res, expectedRange)
+                    
+                    # - between order_by
+                    print('        Between.r.desc(order_by)')
+                    res = list(self.table.between(left, right, index=index).order_by(index=self.r.desc(index)).run(self.conn))
+                    self.assertEqual(res, list(reversed(expectedRange)))
+                    
+
+if __name__ == '__main__':
+    rdb_unittest.main()

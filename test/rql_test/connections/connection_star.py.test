@@ -1,37 +1,88 @@
 #!/usr/bin/env python
 
-import os, sys, subprocess
+'''Basic test that `from rethinkdb import *` works'''
+
+import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import utils
+import driver, utils
 
-# -- start rethinkdb server if necessary
+dbName, tableName = utils.get_test_db_table()
 
-server = None
-host = None
-port = None
+# -- import rethikndb driver via star method
 
-if not ('RDB_SERVER_HOST' in os.environ or 'RDB_DRIVER_PORT' in os.environ):
-    import driver
+proto_r = utils.import_python_driver()
+sys.path.insert(0, os.path.dirname(os.path.realpath(proto_r.__file__)))
+from rethinkdb import *
+
+# -- import tests
+
+assert r == rethinkdb
+assert issubclass(r, object)
+assert issubclass(rethinkdb, object)
+
+"""ReqlCursorEmpty
+ReqlError
+    ReqlCompileError
+    ReqlRuntimeError
+    ReqlQueryLogicError
+        ReqlNonExistenceError
+    ReqlResourceLimitError
+    ReqlUserError
+    ReqlInternalError
+    ReqlTimeoutError
+    ReqlAvailabilityError
+        ReqlOpFailedError
+        ReqlOpIndeterminateError
+    ReqlDriverError
+        ReqlAuthError"""
+
+assert issubclass(ReqlCursorEmpty, Exception)
+assert issubclass(ReqlError, Exception)
+assert issubclass(ReqlCompileError, ReqlError)
+assert issubclass(ReqlRuntimeError, ReqlError)
+assert issubclass(ReqlRuntimeError, ReqlError)
+assert issubclass(ReqlNonExistenceError, ReqlQueryLogicError)
+assert issubclass(ReqlResourceLimitError, ReqlError)
+assert issubclass(ReqlUserError, ReqlError)
+assert issubclass(ReqlInternalError, ReqlError)
+assert issubclass(ReqlTimeoutError, ReqlError)
+assert issubclass(ReqlAvailabilityError, ReqlError)
+assert issubclass(ReqlOpFailedError, ReqlAvailabilityError)
+assert issubclass(ReqlOpIndeterminateError, ReqlAvailabilityError)
+assert issubclass(ReqlDriverError, ReqlError)
+assert issubclass(ReqlAuthError, ReqlDriverError)
+
+assert issubclass(RqlError, Exception)
+assert issubclass(RqlClientError, RqlError)
+assert issubclass(RqlCompileError, RqlError)
+assert issubclass(RqlRuntimeError, RqlError)
+assert issubclass(RqlDriverError, Exception)
+
+# -- simple tests
+
+with driver.Process(wait_until_ready=True) as server:
     
-    serverExe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
-    server = driver.Process(executable_path=serverExe)
+    # - connect
     
-    # expose the server info for the subprocess
+    r.connect(host=server.host, port=server.driver_port)
+    conn = rethinkdb.connect(host=server.host, port=server.driver_port)
     
-    os.environ['RDB_DRIVER_PORT'] = port = str(server.driver_port)
-    os.environ['RDB_SERVER_HOST'] = host = server.host
-else:
-    host = os.environ.get('RDB_SERVER_HOST', 'localhost')
-    port = int(os.environ.get('RDB_DRIVER_PORT', 28015))
-
-# -- create the 'test' database
-
-r = utils.import_python_driver()
-conn = r.connect(host=host, port=port)
-r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
-
-# -- run test
-
-command = [os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'connection_star.py')]
-sys.exit(subprocess.call(command, stderr=subprocess.STDOUT))
+    # - create database
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    # - create table
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    # - simple querys
+    
+    r.db_list().run(conn)
+    rethinkdb.db_list().run(conn)
+    
+    assert len(r.db(dbName).table_list().run(conn)) > 0
+    assert len(rethinkdb.db(dbName).table_list().run(conn)) > 0
