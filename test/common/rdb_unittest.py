@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2015-2016 RethinkDB, all rights reserved.
 
-import itertools, os, random, shutil, sys, unittest, warnings
+import itertools, os, random, re, shutil, sys, unittest, warnings
 
 import driver, utils
 
@@ -22,6 +22,7 @@ class RdbTestCase(unittest.TestCase):
     
     fieldName = 'id'
     recordsToGenerate = 0
+    generateRecords = None # a method on some subclasses
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
     
@@ -56,6 +57,8 @@ class RdbTestCase(unittest.TestCase):
                 self.__class__.dbName = defaultDb
             if self.tableName is None:
                 self.__class__.tableName = defaultTable
+            elif self.tableName is False:
+                self.__class__.tableName = None
         
         self.__class__.db = self.r.db(self.dbName)
         self.__class__.table = self.db.table(self.tableName)
@@ -196,7 +199,9 @@ class RdbTestCase(unittest.TestCase):
             
             # - add initial records
             
-            if self.recordsToGenerate:
+            if hasattr(self.generateRecords, '__call__'):
+                self.generateRecords()
+            elif self.recordsToGenerate:
                 utils.populateTable(conn=self.conn, table=self.table, records=self.recordsToGenerate, fieldName=self.fieldName)
             
             # - shard and replicate the table
@@ -210,6 +215,12 @@ class RdbTestCase(unittest.TestCase):
                 shardPlan.append({'primary_replica':primary.name, 'replicas':[primary.name] + chosenReplicas})
             assert (self.r.db(self.dbName).table(self.tableName).config().update({'shards':shardPlan}).run(self.conn))['errors'] == 0
             self.r.db(self.dbName).table(self.tableName).wait().run(self.conn)
+        
+        # -- run setUpClass if not run otherwise
+        
+        if not hasattr(unittest.TestCase, 'setUpClass') and hasattr(self.__class__, 'setUpClass') and not hasattr(self.__class__, self.__class__.__name__ + '_setup'):
+            self.setUpClass()
+            setattr(self.__class__, self.__class__.__name__ + '_setup', True)
     
     def tearDown(self):
         
@@ -298,3 +309,21 @@ class RdbTestCase(unittest.TestCase):
         
         changedRecordIds.sort()
         return changedRecordIds
+
+# ==== class fixups
+
+if not hasattr(RdbTestCase, 'assertRaisesRegex'):
+    # -- patch the Python2.6 version of unittest to have assertRaisesRegex
+    def assertRaisesRegex_replacement(self, exception, regexp, function, *args, **kwds):
+        result = None
+        try:
+            result = function(*args, **kwds)
+        except Exception as e:
+            if not isinstance(e, exception):
+                raise AssertionError('Got the wrong type of exception: %s vs. expected: %s' % (e.__class__.__name__, exception.__name__))
+            if not re.match(regexp, str(e)):
+                raise AssertionError('Error message: "%s" does not match "%s"' % (str(regexp), str(e)))
+            return
+        else:
+            raise AssertionError('%s not raised for: %s, rather got: %s' % (exception.__name__, repr(function), repr(result)))
+    RdbTestCase.assertRaisesRegex = assertRaisesRegex_replacement

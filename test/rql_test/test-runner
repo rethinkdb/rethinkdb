@@ -8,7 +8,7 @@ import atexit, collections, copy, datetime, distutils.version, distutils.spawn, 
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"))
-import driver, parsePolyglot, test_exceptions, utils
+import driver, parsePolyglot, test_exceptions, utils, http_support
 
 try:
     unicode
@@ -55,7 +55,7 @@ except Exception as e:
 
 # -- settings
 
-testExtensions = ['test', 'yaml', 'mocha']
+testExtensions = ['httpbin', 'mocha', 'test', 'yaml']
 
 r = None
 
@@ -1336,7 +1336,47 @@ class MochaTest(Test):
             mochaOptions += ['--no-colors'] # handle visionmedia/mocha#1304
         return [self.interpreter_path, self.mochaPath] + mochaOptions + [str(self.path)]
 
-def getTestList(rootPath, languages, testFilters=None, shards=0):
+class HttpbinTest(Test):
+    '''Test that uses a httpbin target'''
+    
+    targetServer = None # shared
+    mochaPath = distutils.spawn.find_executable('mocha')
+    
+    def __init__(self, name, path, driverLang=None, timeout=None, shards=1):
+        self.shards = shards
+        super(HttpbinTest, self).__init__(name, path, driverLang=driverLang, timeout=timeout)
+        if print_debug:
+            self.envVariablesToSet.update({'VERBOSE':'true'})
+    
+    @property
+    def interpreter_path(self):
+        return self.driverLang.interpreter_path
+    
+    @property
+    def command(self):
+        if self.path is None:
+            raise RuntimeError('%s %s has no path defined when `command` was called' % (self.__class__.__name__, self.name))
+        
+        if self.driverLang and self.driverLang.language_name == 'JavaScript':
+            mochaOptions = ['--reporter', 'spec']
+            if not utils.supportsTerminalColors():
+                mochaOptions += ['--no-colors'] # handle visionmedia/mocha#1304
+            return [self.interpreter_path, self.mochaPath] + mochaOptions + [str(self.path)]
+        else:
+            return super(HttpbinTest, self).command
+    
+    def subclassSetup(self):
+        '''Start the httpbin server'''
+        if self.targetServer is None:
+            self.__class__.targetServer = http_support.HttpTargetServer()
+        self.envVariablesToSet.update({
+            'HTTPBIN_HOST':             'localhost',
+            'HTTPBIN_HTTPBIN_PORT':     str(self.targetServer.httpbinPort),
+            'HTTPBIN_HTTPCONTENT_PORT': str(self.targetServer.httpPort),
+            'HTTPBIN_HTTPS_PORT':       str(self.targetServer.sslPort)
+        })
+
+def getTestList(rootPath, allowedLanguages, testFilters=None, shards=0):
     '''Get a list of Test objects for tests found in the given folder'''
     
     # -- input validation
@@ -1358,21 +1398,27 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
             if not hasattr(testFilter, 'match'):
                 raise ValueError('getTestList got a non-regex value as a filter: %s' % str(testFilter))
     
-    # languages
+    # allowedLanguages
     
-    if languages is None:
+    if allowedLanguages is None:
         raise ValueError('getTestList requires one or more languages to look for')
     
-    if not hasattr(languages, '__iter__'):
-        languages = [languages]
+    if not hasattr(allowedLanguages, '__iter__'):
+        allowedLanguages = [allowedLanguages]
     
-    for language in languages:
+    for language in allowedLanguages:
         if not isinstance(language, SrcLang):
             raise ValueError('getTestList got a language that it does not know how to process: %s' % language)
         
     # -- find items in the directory
     
     foundTests = []
+    langSetsCache = { # cache of: testLangExtensions -> set(langauges)
+        'mocha': [x for x in interpreters['js'] if x in allowedLanguages],
+        'yaml':  allowedLanguages
+    } 
+    testNameRegex = re.compile(r'^(?P<name>\w+)(\.(?P<langs>\+?([a-zA-Z]+(\d+(_\d+)*)?)(_one)?\+?(,\+?([a-zA-Z]+(\d+(_\d+)*)?)(_one)?\+?)*))?\.(?P<ext>\w+)$', re.IGNORECASE)
+    langExtRegex = re.compile(r'^(?P<pre>\+)?(?P<lang>[a-zA-Z]+)(?P<version>\d+(_\d+)*)?(?P<single>_one)?(?P<post>\+)?$', re.IGNORECASE)
     
     for root, dirs, files in os.walk(rootPath):
         
@@ -1382,67 +1428,82 @@ def getTestList(rootPath, languages, testFilters=None, shards=0):
         if groupName == 'src' or groupName.startswith('src/'):
             groupName = 'polyglot' + groupName.lstrip('src')
         
-        for fileName in [x for x in files if x.count('.') > 0]:
-            testName, extension = os.path.splitext(fileName)
-            extension = extension.lstrip('.').strip().lower()
-            
-            testName, testLangExtensions = os.path.splitext(testName)
-            testLangExtensions = testLangExtensions.lstrip('.').strip().lower().replace('_', '.')
-            if testLangExtensions:
-                testLangExtensions = testLangExtensions.split(',')
-            else:
-                testLangExtensions = []
-            
-            testName = os.path.join(groupName, testName.strip())
-            
-            # -- skip file types we don't work with
+        for fileName, testName, testLangExtensions, extension in ((xa, ) + y.group('name', 'langs', 'ext') for xa, y in ((x, testNameRegex.match(x)) for x in files) if y is not None):
+            testName = os.path.join(groupName, testName)
+            filePath = os.path.join(root, fileName)
             
             if extension not in testExtensions:
                 continue
             
-            # - default testLangExtensions
+            # - process testLangExtensions
             
-            if testLangExtensions == []:
-                if extension == 'mocha':
-                    testLangExtensions = list(itertools.chain.from_iterable((x.test_types for x in interpreters['js']))) # all versions of Node/JavaScript
-                
-                elif extension == 'yaml':
-                    testLangExtensions = list(itertools.chain.from_iterable((x.test_types for x in languages))) # all selected languages
+            testLanguages = set() if testLangExtensions else None
+            if testLangExtensions and testLangExtensions in langSetsCache:
+                testLanguages = langSetsCache[testLangExtensions]
+            elif testLangExtensions:
+                for langExt in testLangExtensions.split(','):
+                    res = langExtRegex.match(langExt)
+                    if not res:
+                        warnings.warn('File somehow has a bad language extension (%s): %s' % (langExt, filePath)) # should not be possible with the regex
+                        break
+                    pre, lang, version, single, post = res.group('pre', 'lang', 'version', 'single', 'post')
+                    
+                    if lang not in interpreters:
+                        warnings.warn('File has unknown interpreter `%s`: %s' % (lang, filePath))
+                        break
+                    
+                    if pre and post:
+                        warnings.warn('File uses both prefix and suffix `+` symbols in the language portion: %s' % filePath)
+                        break
+                    elif pre:
+                        preVersion = distutils.version.LooseVersion(version.replace('_', '.').lower() + '.99999')
+                        for language in (x for x in interpreters[lang] if x in allowedLanguages):
+                            if language.interpreter_version <= preVersion:
+                                testLanguages.add(language)
+                                if single:
+                                    break
+                    elif post:
+                        postVersion = distutils.version.LooseVersion(version.replace('_', '.').lower())
+                        for language in (x for x in interpreters[lang] if x in allowedLanguages):
+                            if language.interpreter_version >= postVersion:
+                                testLanguages.add(language)
+                                if single:
+                                    break
+                    else:
+                        # all of the versions this works for
+                        testLanguages = [x for x in interpreters[lang] if x in allowedLanguages] or None
+                        if single and testLanguages:
+                            testLanguages = [testLanguages[0]]
+                langSetsCache[testLangExtensions] = testLanguages
+            
+            elif extension in ('mocha', 'yaml'):
+                testLanguages = langSetsCache[extension]
+            else:
+                testLanguages = [None]
             
             # -- create tests for all language versions that pass the filters
             
-            if testLangExtensions:
-                for language in (x for x in languages if any(y in testLangExtensions for y in x.test_types)):
-                    subTestName = '%s.%s' % (testName, language.test_types[0])
-                    
-                    # - run the filters
-                    if testFilters is not None and len(testFilters) > 0:
-                        for testFilter in testFilters:
-                            if testFilter.match(subTestName) is not None:
-                                break
-                        else:
-                            continue
-                    
-                    # - add the test
-                    if extension == 'yaml':
-                        foundTests.append(YamlTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
-                    elif extension == 'mocha':
-                        foundTests.append(MochaTest(name=subTestName, path=os.path.join(root, fileName), driverLang=language, shards=shards))
-                    else:
-                        foundTests.append(Test(name=subTestName, path=os.path.join(root, fileName), driverLang=language))
-            elif extension == 'test':
-                # non-language test
+            for language in testLanguages or []:
+                subTestName = '%s.%s' % (testName, language.test_types[0]) if language else testName
                 
                 # - run the filters
                 if testFilters is not None and len(testFilters) > 0:
                     for testFilter in testFilters:
-                        if testFilter.match(testName) is not None:
+                        if testFilter.match(subTestName) is not None:
                             break
                     else:
                         continue
                 
-                foundTests.append(Test(name=testName, path=os.path.join(root, fileName), driverLang=None))
-                    
+                # - add the test
+                if extension == 'yaml':
+                    foundTests.append(YamlTest(name=subTestName, path=filePath, driverLang=language, shards=shards))
+                elif extension == 'mocha':
+                    foundTests.append(MochaTest(name=subTestName, path=filePath, driverLang=language, shards=shards))
+                elif extension == 'httpbin':
+                    foundTests.append(HttpbinTest(name=subTestName, path=filePath, driverLang=language, shards=shards))
+                else:
+                    foundTests.append(Test(name=subTestName, path=filePath, driverLang=language))
+    
     # -- return a sorted list
     
     foundTests.sort(key=lambda x: (x.name, x.type))
@@ -1828,7 +1889,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
     
     # -- get the list of tests
     
-    testList = getTestList(os.path.realpath(os.path.dirname(__file__)), languages=options.languages, testFilters=testFilters, shards=options.shards)
+    testList = getTestList(os.path.realpath(os.path.dirname(__file__)), allowedLanguages=options.languages, testFilters=testFilters, shards=options.shards)
     
     # -- clean output dir if requested
     
