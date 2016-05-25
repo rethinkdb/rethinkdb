@@ -645,17 +645,20 @@ class DefaultConnection(Connection):
 
 connection_type = DefaultConnection
 
-def connect(
-        host='localhost',
-        port=DEFAULT_PORT,
-        db=None,
-        auth_key=None,
-        user='admin',
-        password=None,
-        timeout=20,
-        ssl=dict(),
-        _handshake_version=10,
-        **kwargs):
+def connect(host=None, port=None, db=None, auth_key=None, user=None, password=None, timeout=20, ssl=None, _handshake_version=10, **kwargs):
+    if host is None:
+        host = 'localhost'
+    if port is None:
+        port = DEFAULT_PORT
+    if user is None:
+        user = 'admin'
+    if timeout is None:
+        timeout = 20
+    if ssl is None:
+        ssl = dict()
+    if _handshake_version is None:
+        _handshake_version = 10
+    
     conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
 
