@@ -50,11 +50,17 @@ def retryQuery(name, query, times=5, runOptions=None):
     else:
         raise lastError
 
-def print_progress(ratio, padding=0):
+def print_progress(ratio, indent=0, read=None, write=None):
     total_width = 40
-    done_width = int(ratio * total_width)
-    undone_width = total_width - done_width
-    print("\r%s[%s%s] %3d%%" % (" " * padding, "=" * done_width, " " * undone_width, int(100 * ratio)), end=' ')
+    done_width = min(int(ratio * total_width), total_width)
+    sys.stdout.write("\r%(indent)s[%(done)s%(undone)s] %(percent)3d%%%(readRate)s%(writeRate)s\x1b[K" % {
+        "indent":    " " * indent,
+        "done":      "=" * done_width,
+        "undone":    " " * (total_width - done_width),
+        "percent":   int(100 * ratio),
+        "readRate":  (" r: %d" % read) if read is not None else '',
+        "writeRate": (" r: %d" % write) if write is not None else ''
+    })
     sys.stdout.flush()
 
 def check_minimum_version(minimum_version='1.6'):

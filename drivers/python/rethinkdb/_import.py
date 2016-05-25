@@ -634,6 +634,14 @@ def table_reader(table, options, work_queue, error_queue, warning_queue, exit_ev
         )
         utils_common.retryQuery("wait for %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).wait(timeout=30))
         
+        # - ensure that the primary key on the table is correct
+        primaryKey = utils_common.retryQuery(
+            "primary key %s.%s" % (table.db, table.table),
+            r.db(table.db).table(table.table).info()["primary_key"],
+        )
+        if primaryKey != table.primary_key:
+            raise RuntimeError("Error: table %s.%s primary key was `%s` rather than the expected: %s" % (table.db, table.table, primaryKey, table.primary_key))
+        
         # - recreate secondary indexes - droping existing on the assumption they are wrong
         if options.sindexes:
             existing_indexes = utils_common.retryQuery("indexes from: %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).index_list())
@@ -705,7 +713,7 @@ def update_progress(tables, options, done_event, exit_event, sleep=0.2):
     # give weights to each of the tables based on file size
     totalSize = sum([x.bytes_size for x in tables])
     for table in tables:
-        table.weight = float(table.size) / totalSize
+        table.weight = float(table.bytes_size) / totalSize
     
     lastComplete = None
     startTime    = time.time()
@@ -730,11 +738,14 @@ def update_progress(tables, options, done_event, exit_event, sleep=0.2):
                 if options.debug and len(readWrites) > 1:
                     readRate  = max((readWrites[-1][1] - readWrites[0][1]) / timeDelta, 0)
                     writeRate = max((readWrites[-1][2] - readWrites[0][2]) / timeDelta, 0)
-                utils_common.print_progress(complete, padding=2, read=readRate, write=writeRate)
+                utils_common.print_progress(complete, indent=2, read=readRate, write=writeRate)
                 lastComplete = complete
             time.sleep(sleep)
         except KeyboardInterrupt: break
-        except Exception: pass
+        except Exception as e:
+            if options.debug:
+                print(e)
+                traceback.print_exc()
 
 def import_tables(options, files_info):
     start_time = time.time()
@@ -821,7 +832,7 @@ def import_tables(options, files_info):
         
         # - append enough StopIterations to signal all writers
         if not exit_event.is_set():
-            for _ in range(options.clients):
+            for _ in writers:
                 work_queue.put((None, None, StopIteration()))
         
         # - wait for all of the writers
@@ -842,7 +853,7 @@ def import_tables(options, files_info):
             done_event.set()
             progressBar.join(progressBarSleep * 2)
             if not interrupt_event.is_set():
-                utils_common.print_progress(1, padding=2)
+                utils_common.print_progress(1, indent=2)
             if progressBar.is_alive():
                 progressBar.terminate()
         
@@ -853,7 +864,7 @@ def import_tables(options, files_info):
         
         # - If we were successful, make sure 100% progress is reported
         if len(errors) == 0 and not interrupt_event.is_set() and not options.quiet:
-            utils_common.print_progress(1.0, padding=2)
+            utils_common.print_progress(1.0, indent=2)
         
         plural = lambda num, text: "%d %s%s" % (num, text, "" if num == 1 else "s")
         if not options.quiet:

@@ -274,7 +274,7 @@ def update_progress(progress_info, options):
             total_rows += max_val
 
     if not options.quiet:
-        utils_common.print_progress(float(rows_done) / total_rows, padding=4)
+        utils_common.print_progress(float(rows_done) / total_rows, indent=4)
 
 def run_clients(options, partialDirectory, db_table_set):
     # Spawn one client for each db.table
@@ -328,7 +328,7 @@ def run_clients(options, partialDirectory, db_table_set):
         # If we were successful, make sure 100% progress is reported
         # (rows could have been deleted which would result in being done at less than 100%)
         if len(errors) == 0 and not interrupt_event.is_set() and not options.quiet:
-            utils_common.print_progress(1.0, padding=4)
+            utils_common.print_progress(1.0, indent=4)
 
         # Continue past the progress output line and print total rows processed
         def plural(num, text, plural_text):
