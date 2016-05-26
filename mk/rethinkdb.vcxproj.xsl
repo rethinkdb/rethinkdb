@@ -163,7 +163,6 @@
             </AdditionalDependencies>
             <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
             <AdditionalOptions>
-              /NODEFAULTLIB:MSVCRT.lib <!-- work-around linker errors, possibly caused by openssl -->
             </AdditionalOptions>
             <xsl:if test="@platform = 'Win32'">
               <TargetMachine>MachineX86</TargetMachine>

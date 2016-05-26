@@ -6,7 +6,7 @@ diff -ruN ../zlib_1.2.8/win32/Makefile.msc ./win32/Makefile.msc
  AR = lib
  RC = rc
 -CFLAGS  = -nologo -MD -W3 -O2 -Oy- -Zi -Fd"zlib" $(LOC)
-+RUNTIME = -MD
++RUNTIME = -MT
 +CFLAGS  = -nologo -W3 -O2 -Oy- -Zi -Fd"zlib" $(LOC) $(RUNTIME)
  WFLAGS  = -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE
  ASFLAGS = -coff -Zi $(LOC)
