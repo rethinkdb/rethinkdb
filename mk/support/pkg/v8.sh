@@ -4,9 +4,9 @@ if [[ "$OS" != Windows ]]; then
     # V8 3.30 doesn't play well with Visual Studio 2015
     # But 4.7 has no source distribution, making it harder to build on Linux
 
-    version=3.30.33.16
+    version=3.30.33.16-patched
 
-    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-$version.tar.bz2
+    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched/}.tar.bz2
     src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
 else
     version=4.7.80.23
