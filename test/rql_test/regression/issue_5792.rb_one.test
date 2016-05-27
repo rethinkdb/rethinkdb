@@ -10,7 +10,7 @@ r.table('issue_5792').wait(:wait_for=>"all_replicas_ready").run
 
 # There appears to be a "sweet spot" at which a long chain of terms crashed the server. Find it:
 $q = r.table('issue_5792')
-for i in 0..1000
+for i in 0..200
   $q = $q.changes
   begin
     $q.run
