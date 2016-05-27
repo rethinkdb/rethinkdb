@@ -27,6 +27,8 @@ microtime_t current_microtime() {
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
+    // Convert to Unix epoch
+    nanos100.QuadPart -= 116444736000000000ULL;
     return nanos100.QuadPart / 10;
 }
 
@@ -105,6 +107,8 @@ timespec clock_realtime() {
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
+    // Convert to Unix epoch
+    nanos100.QuadPart -= 116444736000000000ULL;
     timespec ret;
     ret.tv_sec = nanos100.QuadPart / (MILLION * 10);
     ret.tv_nsec = (nanos100.QuadPart % (MILLION * 10)) * 100;
