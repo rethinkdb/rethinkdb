@@ -98,11 +98,11 @@ public:
         nap(5000);
 
         RAFT_DEBUG("running final test writes\n");
-        do_writes_raft(&cluster, 100, 20000);
+        do_writes_raft(&cluster, 100, 60000);
 
         RAFT_DEBUG("running final test config change\n");
         signal_timer_t final_interruptor;
-        final_interruptor.start(10000); // Allow up to 10 seconds to finish the final verification
+        final_interruptor.start(30000); // Allow up to 30 seconds to finish the final verification
         raft_member_id_t leader = cluster.find_leader(&final_interruptor);
         raft_config_t final_config;
         final_config.voting_members.insert(leader);
