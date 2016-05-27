@@ -2422,6 +2422,10 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 
     while (!is_exhausted() && !batcher.should_send_batch()) {
         datum_t row = stream->next(env, batchspec);
+        if (!row.has()) {
+            // This can happen if `stream` is a changefeed.
+            continue;
+        }
         datum_t new_acc = acc_func->call(
             env,
             std::vector<datum_t>{acc, row})->as_datum();
