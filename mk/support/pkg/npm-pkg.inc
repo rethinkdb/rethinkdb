@@ -55,7 +55,7 @@ pkg_install () {
     local pkg
     pkg=$(niceabspath "$src_dir")
     if [[ "$OS" = Windows ]]; then
-        in_dir "$install_dir" npm install "$(cygpath -w "$pkg")"
+        in_dir "$install_dir" npm install "$(cpdir "$pkg")"
     else
         in_dir "$install_dir" npm install "$pkg"
     fi
