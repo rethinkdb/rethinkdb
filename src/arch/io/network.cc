@@ -1522,9 +1522,9 @@ void linux_nonthrowing_tcp_listener_t::accept_loop_single(
         winsock_debugf("new socket for accepting: %x\n", new_sock);
         guarantee_winerr(new_sock != INVALID_FD, "WSASocket failed");
         winsock_debugf("accepting on socket %x\n", listening_sock);
-        DWORD bytes_recieved;
+        DWORD bytes_received;
         char addresses[ADDRESS_SIZE][2];
-        BOOL res = get_AcceptEx(listening_sock)(fd_to_socket(listening_sock), fd_to_socket(new_sock), addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
+        BOOL res = get_AcceptEx(listening_sock)(fd_to_socket(listening_sock), fd_to_socket(new_sock), addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_received, &op.overlapped);
 
         if (res) {
             op.set_result(0, NO_ERROR);
@@ -1644,7 +1644,7 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 }
 
 void linux_nonthrowing_tcp_listener_t::on_event(int) {
-    /* This is only called in cases of error; normal input events are recieved
+    /* This is only called in cases of error; normal input events are received
        via event_listener.watch(). */
 }
 
