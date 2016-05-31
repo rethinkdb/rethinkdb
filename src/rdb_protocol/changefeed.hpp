@@ -277,6 +277,10 @@ public:
     typedef typename
     std::set<diterator, std::function<bool(const diterator &,
                                            const diterator &)> >::iterator iterator;
+    typedef typename
+    std::set<diterator, std::function<bool(const diterator &,
+                                           const diterator &)> >::const_iterator
+    const_iterator;
 
     explicit index_queue_t(Gt gt) : index(gt) { }
 
@@ -303,13 +307,15 @@ public:
         return std::make_pair(it, p.second);
     }
 
-    size_t size() {
+    size_t size() const {
         guarantee(data.size() == index.size());
         return data.size();
     }
 
     iterator begin() { return index.begin(); }
     iterator end() { return index.end(); }
+    const_iterator begin() const { return index.begin(); }
+    const_iterator end() const { return index.end(); }
     // This is sometimes called after `**raw_it` has been invalidated, so we
     // can't just dispatch to the `erase(diterator)` implementation above.
     void erase(const iterator &raw_it) {
@@ -425,9 +431,7 @@ private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
     std::vector<item_t> read_more(
         const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-        sorting_t sorting,
-        const boost::optional<item_queue_t::iterator> &start,
-        size_t n);
+        const boost::optional<item_t> &start);
     void send(msg_t &&msg);
 
     scoped_ptr_t<env_t> env;
@@ -441,8 +445,8 @@ private:
     limit_order_t gt;
     item_queue_t item_queue;
 
-    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
-    std::vector<std::string> deleted;
+    std::map<std::string, std::pair<datum_t, datum_t> > added;
+    std::set<std::string> deleted;
 
     bool aborted;
 public:
