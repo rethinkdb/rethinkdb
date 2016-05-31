@@ -98,7 +98,7 @@ void set_errno(int new_errno);
 #define crash(msg, ...) do {                                        \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         BREAKPOINT; /* this used to be abort(), but it didn't cause VALGRIND to print a backtrace */ \
-        abort();                                                    \
+        ::abort();                                                  \
     } while (0)
 
 #define crash_or_trap(msg, ...) do {                                \

@@ -318,18 +318,23 @@ private:
                 if (start_sindex) {
                     std::string cur =
                         datum_t::extract_secondary(key_to_unescaped_str(last->key));
-                    // We need to do this because the truncated sindex keys might be
-                    // different sizes depending on the length of the primary key.
-                    // (Also, I hate literally everything about our on-disk key format.)
-                    size_t minlen = std::min(cur.size(), (*start_sindex).size());
-                    if (cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
+                    size_t minlen = ql::datum_t::max_trunc_size();
+                    if (cur.size() < minlen
+                        || cur.compare(0, minlen, *start_sindex, 0, minlen) != 0) {
                         seen_distinct = true;
                     }
                 } else {
                     if (seen >= n) {
-                        if (datum_t::key_is_truncated(last->key)) {
-                            start_sindex = datum_t::extract_secondary(
-                                key_to_unescaped_str(last->key));
+                        std::string cur = ql::datum_t::extract_secondary(
+                            key_to_unescaped_str(last->key));
+                        // If the sindex portion of the key is long enough that
+                        // it might be >= the length of a truncated sindex, we
+                        // need to rember the key so we can make sure not to
+                        // stop in the middle of a sindex range where some of
+                        // the values are out of order because of truncation.
+                        bool remember_key = (cur.size() >= ql::datum_t::max_trunc_size());
+                        if (remember_key) {
+                            start_sindex = std::move(cur);
                         } else {
                             seen_distinct = true;
                         }
