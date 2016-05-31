@@ -1,3 +1,64 @@
+# Release 2.3.3 (Fantasia)
+
+Released on 2016-06-01
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.3 servers can be mixed with older RethinkDB 2.3.x servers in the same
+cluster. We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Windows support ###
+
+RethinkDB has been available for Windows since version 2.3.0. With RethinkDB 2.3.3, we
+are dropping the "beta" label from the Windows port. We now offer the same level of
+support for RethinkDB on Windows as for Linux and OS X, including full
+[commercial support][comm-support].
+
+Please note: while we consider RethinkDB for Windows as stable, there are a few
+[remaining limitations][windows-tag]. The Windows port also hasn't received as much
+performance tuning as the Linux and OS X releases yet.
+
+[comm-support]: https://rethinkdb.com/services/
+[windows-tag]: https://github.com/rethinkdb/rethinkdb/issues?q=is%3Aopen+is%3Aissue+label%3Awindows
+
+### Bug fixes ###
+
+* Server
+ * Fixed a bug in `orderBy.limit` changefeeds that caused the server to crash with
+   `Guarantee failed: [sub_it != real_added.end()]` (#5561)
+ * Improved the performance of the `table_status` system table when the cluster is under
+   high load (#5586)
+ * Fixed a race condition in the cluster connection logic that could cause occasional
+   crashes with a `Guarantee failed: [refcount == 0]` error (#5783)
+ * Fixed a stack overflow when executing queries with a very high number of chained
+   commands (#5792)
+ * Made the `fold` command work on a changefeed stream (#5800)
+ * Fixed the server uptime calculation on Windows (#5388)
+ * Fixed source code incompatibilities with GCC 6.0 (#5757)
+* JavaScript driver
+ * The `Connection` class is now exported from the RethinkDB JavaScript module (#5758)
+* Java driver
+ * Added the `clientPort` and `clientAddress` methods to the `Connection` class in the
+   Java driver (#5571)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.3. In no particular order:
+
+* Gergely Nemeth (@gergelyke)
+
+--
+
 # Release 2.3.2 (Fantasia)
 
 Released on 2016-05-06
