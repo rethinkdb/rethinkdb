@@ -756,8 +756,7 @@ continue_bool_t rget_cb_t::handle_pair(
     // are out of order because of truncation.
     bool remember_key_for_sindex_batching = sindex
         ? (ql::datum_t::extract_secondary(key_to_unescaped_str(key)).size()
-           >= ql::datum_t::max_trunc_size(
-               ql::skey_version_from_reql_version(sindex->func_reql_version)))
+           >= ql::datum_t::max_trunc_size())
         : false;
     if (last_truncated_secondary_for_abort) {
         std::string cur_truncated_secondary =
@@ -855,9 +854,7 @@ continue_bool_t rget_cb_t::handle_pair(
                 of copies to 0. We do the slightly less optimal but simpler thing and
                 just check the number of copies in this case, so that we can share the
                 code path with case 1. */
-            const size_t max_trunc_size =
-                ql::datum_t::max_trunc_size(
-                    ql::skey_version_from_reql_version(sindex->func_reql_version));
+            const size_t max_trunc_size = ql::datum_t::max_trunc_size();
             sindex->datumspec.visit<void>(
             [&](const ql::datum_range_t &r) {
                 bool must_check_copies = false;
@@ -1444,7 +1441,6 @@ std::vector<std::string> expand_geo_key(
             //   support: We must be able to truncate geo keys and handle such
             //   truncated keys.
             rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
-                        ql::skey_version_from_reql_version(reql_version),
                         key_to_unescaped_str(primary_key).length()));
 
             result.push_back(

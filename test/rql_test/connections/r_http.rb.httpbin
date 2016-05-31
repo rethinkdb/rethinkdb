@@ -6,20 +6,15 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-$port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
-$httpbinAddress = ARGV[1] || ENV['HTTPBIN_TEST_ADDRESS'] || 'httpbin.org'
-$httpAddress = ARGV[2] || ENV['HTTP_TEST_ADDRESS'] || 'dev.rethinkdb.com'
-$httpsAddress = ARGV[3] || ENV['HTTPS_TEST_ADDRESS'] || 'dev.rethinkdb.com'
+$driverPort      = (ARGV[0] || ENV['RDB_DRIVER_PORT']          || raise('driver port not supplied')).to_i
+$httpbinHost     =  ARGV[1] || ENV['HTTPBIN_HOST']             || raise('httpbin host not supplied')
+$httpbinPort     = (ARGV[2] || ENV['HTTPBIN_HTTPBIN_PORT']     || raise('httpbin port not supplied')).to_i
+$httpContentPort = (ARGV[3] || ENV['HTTPBIN_HTTPCONTENT_PORT'] || raise('httpbin http content port not supplied')).to_i
+$httpsPort       = (ARGV[4] || ENV['HTTPBIN_HTTPS_PORT']       || raise('httpbin https content port not supplied')).to_i
 
-if $httpAddress == 'dev.rethinkdb.com'
-    $imageAddress = 'www.rethinkdb.com/assets/images/docs/api_illustrations'
-else
-    $imageAddress = $httpAddress
-end
+puts 'RethinkDB Driver Port: ' + $driverPort.to_s
 
-puts 'RethinkDB Driver Port: ' + $port.to_s
-
-$c = r.connect(:host => 'localhost', :port => $port).repl
+$c = r.connect(:host => 'localhost', :port => $driverPort).repl
 
 def expect_eq(left, right)
     if left != right
@@ -44,7 +39,7 @@ def err_string(method, url, msg)
 end
 
 def test_get()
-    url = 'http://' + $httpbinAddress + '/get'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/get"
 
     res = r.http(url).run()
     expect_eq(res['args'], {})
@@ -53,7 +48,7 @@ def test_get()
 end
 
 def test_params()
-    url = 'http://' + $httpbinAddress + '/get'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/get"
 
     res = r.http(url, {:params => {'fake' => 123, 'things' => 'stuff', 'nil' => nil}}).run()
     expect_eq(res['args']['fake'], '123')
@@ -66,7 +61,7 @@ def test_params()
 end
 
 def test_headers()
-    url = 'http://' + $httpbinAddress + '/headers'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}//headers"
 
     res = r.http(url, {:header => {'Test' => 'entry', 'Accept-Encoding' => 'override'}}).run()
     expect_eq(res['headers']['Test'], 'entry')
@@ -78,7 +73,7 @@ def test_headers()
 end
 
 def test_head()
-    url = 'http://' + $httpbinAddress + '/get'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/get"
 
     res = r.http(url, {:method => 'HEAD', :result_format => 'text'}).run()
     expect_eq(res, nil)
@@ -88,7 +83,7 @@ def test_head()
 end
 
 def test_post()
-    url = 'http://' + $httpbinAddress + '/post'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/post"
     post_data = {'str' => '%in fo+', 'number' => 135.5,'nil' => nil}
     res = r.http(url, {:method => 'POST',
                        :data => post_data}).run()
@@ -123,7 +118,7 @@ $obj_data = {'nested' => {'arr' => [123.45, ['a', 555], 0.123],
 $str_data = '<arbitrary> +%data!$%^</arbitrary>'
 
 def test_put()
-    url = 'http://' + $httpbinAddress + '/put'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/put"
     res = r.http(url, {:method => 'PUT', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -133,7 +128,7 @@ def test_put()
 end
 
 def test_patch()
-    url = 'http://' + $httpbinAddress + '/patch'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/patch"
     res = r.http(url, {:method => 'PATCH', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -143,7 +138,7 @@ def test_patch()
 end
 
 def test_delete()
-    url = 'http://' + $httpbinAddress + '/delete'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/delete"
     res = r.http(url, {:method => 'DELETE', :data => $obj_data}).run()
     expect_eq(res['json']['nested'], $obj_data['nested'])
     expect_eq(res['json']['time'], Time.at(1000));
@@ -153,36 +148,32 @@ def test_delete()
 end
 
 def test_redirects()
-    url = 'http://' + $httpbinAddress + '/redirect/2'
-    expect_error(r.http(url, {:redirects => 0}),
-                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 302'))
-    expect_error(r.http(url, {:redirects => 1}),
-                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/redirect/2"
+    expect_error(r.http(url, {:redirects => 0}), RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 302'))
+    expect_error(r.http(url, {:redirects => 1}), RethinkDB::ReqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
     res = r.http(url, {:redirects => 2}).run()
-    expect_eq(res['headers']['Host'], $httpbinAddress)
+    expect_eq(res['headers']['Host'], "#{$httpbinHost}:#{$httpbinPort}")
 end
 
 def test_gzip()
-    res = r.http('http://' + $httpbinAddress + '/gzip').run()
+    res = r.http("http://#{$httpbinHost}:#{$httpbinPort}/gzip").run()
     expect_eq(res['gzipped'], true)
 end
 
 def test_failed_json_parse()
-    url = 'http://' + $httpbinAddress + '/html'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/html"
     expect_error(r.http(url, {:result_format => 'json'}),
                  RethinkDB::ReqlRuntimeError, err_string('GET', url, 'failed to parse JSON response: Invalid value.'))
 end
 
 def test_basic_auth()
-    url = 'http://' + $httpbinAddress + '/basic-auth/azure/hunter2'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/basic-auth/azure/hunter2"
 
     # Wrong password
-    expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'wrong'}}),
-                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'wrong'}}), RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong username
-    expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'fake', :pass => 'hunter2'}}),
-                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'fake', :pass => 'hunter2'}}), RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong authentication type
     expect_error(r.http(url, {:auth => {:type => 'digest', :user => 'azure', :pass => 'hunter2'}}),
@@ -198,7 +189,7 @@ def test_basic_auth()
 end
 
 def test_digest_auth()
-    url = 'http://' + $httpbinAddress + '/digest-auth/auth/azure/hunter2'
+    url = "http://#{$httpbinHost}:#{$httpbinPort}/digest-auth/auth/azure/hunter2"
 
     # Wrong password
     expect_error(r.http(url, {:redirects => 5,
@@ -230,17 +221,17 @@ def test_verify()
         expect_eq(res, nil)
     end
 
-    test_part('http://' + $httpAddress + '/redirect')
-    test_part('https://' + $httpsAddress)
+    test_part("http://#{$httpbinHost}:#{$httpContentPort}/redirect")
+    test_part("https://#{$httpbinHost}:#{$httpsPort}")
 end
 
 def test_binary()
-    res = r.http('http://' + $imageAddress + '/quickstart.png') \
+    res = r.http("http://#{$httpbinHost}:#{$httpContentPort}/quickstart.png") \
            .do{|row| [row.type_of(), row.count().gt(0)]} \
            .run()
     expect_eq(res, ['PTYPE<BINARY>', true])
 
-    res = r.http('http://' + $httpbinAddress + '/get',{:result_format => 'binary'}) \
+    res = r.http("http://#{$httpbinHost}:#{$httpbinPort}/get", {:result_format => 'binary'}) \
            .do{|row| [row.type_of(), row.slice(0,1).coerce_to("string")]} \
            .run()
     expect_eq(res, ['PTYPE<BINARY>', '{'])

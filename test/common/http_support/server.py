@@ -4,7 +4,7 @@ __all__ = ['HttpTargetServer']
 
 import atexit, datetime, os, re, subprocess, sys, tempfile, time, warnings
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, os.pardir, "common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 import utils
 
 # --
@@ -34,11 +34,15 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     certificate.flush()
     
     def printStrtupInfo():
-        sys.stdout.write('''Testing server is running
-	httpbin running on:          %d http://localhost:%d
-	http redirect to https:      %d http://localhost:%d/redirect
-	ssl self-signed certificate: %d https://localhost:%d/quickstart.png
-''' % (httpbinPort, httpbinPort, httpPort, httpPort, sslPort, sslPort))
+        print('''Testing server is running
+	httpbin running on:          %(httpbinPort)d http://localhost:%(httpbinPort)d
+	http content:                %(httpContentPort)d http://localhost:%(httpContentPort)d/quickstart.png
+	http redirect to https:      %(httpContentPort)d http://localhost:%(httpContentPort)d/redirect
+	ssl self-signed certificate: %(httpsPort)d https://localhost:%(httpsPort)d/quickstart.png''' % {
+            'httpbinPort':     httpbinPort,
+            'httpContentPort': httpPort,
+            'httpsPort':       sslPort
+        })
         sys.stdout.flush()
     
     twisted.internet.reactor.callWhenRunning(printStrtupInfo) 
@@ -86,7 +90,7 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     
     localContentInstance.putChild('quickstart.png', twisted.web.static.File(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'quickstart.png')))
     localContentInstance.putChild('redirect',  twisted.web.util.Redirect('https://localhost:%d' % sslPort))
-    
+        
     # -- start the server
     
     twisted.internet.reactor.run()

@@ -1137,7 +1137,7 @@ std::string datum_t::compose_secondary(
     }
 
     const std::string truncated_secondary_key =
-        secondary_key.substr(0, trunc_size(skey_version, primary_key_string.length()));
+        secondary_key.substr(0, trunc_size(primary_key_string.length()));
 
     return mangle_secondary(
         skey_version, truncated_secondary_key, primary_key_string, tag_string);
@@ -1273,7 +1273,7 @@ std::string datum_t::extract_truncated_secondary(
     const std::string &secondary_and_primary) {
     components_t components = parse_secondary(secondary_and_primary);
     std::string skey = std::move(components.secondary);
-    size_t mts = max_trunc_size(components.skey_version);
+    size_t mts = max_trunc_size();
     if (skey.length() >= mts) {
         skey.erase(mts);
     }
@@ -1332,7 +1332,7 @@ store_key_t datum_t::truncated_secondary(
     s.push_back('\0');
 
     // Truncate the key if necessary
-    size_t mts = max_trunc_size(skey_version);
+    size_t mts = max_trunc_size();
     if (s.length() >= mts) {
         s.erase(mts);
     }
@@ -1940,18 +1940,17 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits,
     }
 }
 
-size_t datum_t::max_trunc_size(skey_version_t skey_version) {
-    return trunc_size(skey_version, rdb_protocol::MAX_PRIMARY_KEY_SIZE);
+size_t datum_t::max_trunc_size() {
+    return trunc_size(rdb_protocol::MAX_PRIMARY_KEY_SIZE);
 }
 
-size_t datum_t::trunc_size(skey_version_t skey_version, size_t primary_key_size) {
+size_t datum_t::trunc_size(size_t primary_key_size) {
     // We subtract three bytes because of the NULL byte we pad on the end of the
     // primary key and the two 1-byte offsets at the end of the key (which are
     // used to extract the primary key and tag num).
     size_t terminated_primary_key_size = primary_key_size;
 
     // Since 1.16, we're adding a null byte to the end of the secondary index key.
-    guarantee(skey_version == skey_version_t::post_1_16);
     terminated_primary_key_size += 1;
 
     return MAX_KEY_SIZE - terminated_primary_key_size - tag_size - 2;

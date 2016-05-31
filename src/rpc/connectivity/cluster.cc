@@ -1345,6 +1345,12 @@ void connectivity_cluster_t::run_t::handle(
         blocks until all references to `conn_structure` have been released (using its
         `auto_drainer_t`s). */
     }
+
+    /* Before we destruct the `rethread_tcp_conn_stream_t`s, we must make sure that
+    any pending network writes have either been transmitted or aborted.
+    `shutdown_write()` which we call above initiates aborting pending writes, but it
+    doesn't wait until the process is done. */
+    conn->flush_buffer();
 }
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :

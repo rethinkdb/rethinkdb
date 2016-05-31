@@ -334,8 +334,8 @@ public:
                                const char *test, const char *file, int line,
                                std::string msg) const;
 
-    static size_t max_trunc_size(skey_version_t skey_version);
-    static size_t trunc_size(skey_version_t skey_version, size_t primary_key_size);
+    static size_t max_trunc_size();
+    static size_t trunc_size(size_t primary_key_size);
     /* Note key_is_truncated returns true if the key is of max size. This gives
      * a false positive if the sum sizes of the keys is exactly the maximum but
      * not over at all. This means that a key of exactly max_trunc_size counts

@@ -377,10 +377,9 @@ region_t monokey_region(const store_key_t &k) {
 
 key_range_t sindex_key_range(const store_key_t &start,
                              const store_key_t &end,
-                             key_range_t::bound_t end_type,
-                             ql::skey_version_t skey_version) {
+                             key_range_t::bound_t end_type) {
 
-    const size_t max_trunc_size = ql::datum_t::max_trunc_size(skey_version);
+    const size_t max_trunc_size = ql::datum_t::max_trunc_size();
 
     // If `end` is not truncated and right bound is open, we don't increment the right
     // bound.

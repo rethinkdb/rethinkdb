@@ -19,7 +19,7 @@ namespace ql {
 // The minimum amount of stack space we require to be available on a coroutine
 // before attempting to compile or evaluate a term.
 const size_t MIN_COMPILE_STACK_SPACE = 16 * KILOBYTE;
-const size_t MIN_EVAL_STACK_SPACE = 16 * KILOBYTE;
+const size_t MIN_EVAL_STACK_SPACE = 32 * KILOBYTE;
 
 counted_t<const term_t> compile_on_current_stack(
         compile_env_t *env,

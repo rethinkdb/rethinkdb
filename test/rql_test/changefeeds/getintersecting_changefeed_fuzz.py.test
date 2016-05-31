@@ -1,5 +1,0 @@
-#!/usr/bin/env python
-
-import os, sys, subprocess
-
-sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'getintersecting_changefeed_fuzz.py')]))

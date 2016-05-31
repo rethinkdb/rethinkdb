@@ -735,8 +735,7 @@ region_t monokey_region(const store_key_t &k);
 // TODO consider relocating this
 key_range_t sindex_key_range(const store_key_t &start,
                              const store_key_t &end,
-                             key_range_t::bound_t end_type,
-                             ql::skey_version_t skey_version);
+                             key_range_t::bound_t end_type);
 }  // namespace rdb_protocol
 
 

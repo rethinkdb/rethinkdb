@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Optional;
@@ -153,6 +154,19 @@ public class SocketWrapper {
         return ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN);
     }
 
+    public Optional<Integer> clientPort() {
+        Optional<Integer> ret;
+        if (socket != null) {
+            ret = Optional.ofNullable(socket.getLocalPort());
+        } else {
+            ret = Optional.empty();
+        }
+        return ret;
+    }
+
+    public Optional<SocketAddress> clientAddress() {
+        return Optional.ofNullable(socket.getLocalSocketAddress());
+    }
     /**
      * Tells whether we have a working connection or not.
      *
