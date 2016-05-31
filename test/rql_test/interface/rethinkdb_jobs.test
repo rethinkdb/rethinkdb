@@ -40,6 +40,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.assertTrue(0 < response[0]["duration_sec"] <= taskLength)
                 self.assertEqual(response[0]["id"][0], "query")
                 self.assertEqual(response[0]["servers"], [server.name])
+                self.assertEqual(response[0]["info"]["user"], "admin")
 
                 break # break if successful, leaving query running
             except Exception as e:

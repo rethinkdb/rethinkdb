@@ -258,12 +258,14 @@ tests:
     - cd: r.wait()
       ot:
         py: err('AttributeError', "'module' object has no attribute 'wait'", [])
-        js: err('TypeError', "undefined is not a function")
+        # different sub-versions of node have different messages #5617
+        js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])
     - cd: r.rebalance()
       ot:
         py: err('AttributeError', "'module' object has no attribute 'rebalance'", [])
-        js: err('TypeError', "undefined is not a function")
+        # different sub-versions of node have different messages #5617
+        js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`rebalance` can only be called on a table or database.', [])
 
     - cd: db.table_drop('a')
@@ -349,7 +351,8 @@ tests:
       rb: r.wait(:wait_for=>'all_replicas_ready', :timeout => 5)
       ot:
         py: err('AttributeError', "'module' object has no attribute 'wait'", [])
-        js: err('TypeError', "undefined is not a function")
+        # different sub-versions of node have different messages #5617
+        js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])
 
     - cd: db.table_drop('testA')
