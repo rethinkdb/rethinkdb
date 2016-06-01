@@ -55,10 +55,18 @@ with driver.Cluster(initial_servers=['source1', 'source2', 'target'], output_fol
         }).run(conn)
     
     utils.print_with_time("Waiting a few seconds for backfill to get going")
-    time.sleep(2)
-    status = tbl.status().run(conn)
-    assert status["status"]["ready_for_writes"] == True, 'Table is not ready for writes:\n' + pprint.pformat(status)
-    assert status["status"]["all_replicas_ready"] == False, 'All replicas incorrectly reporting ready:\n' + pprint.pformat(status)
+    deadline = time.time() + 2
+    while True:
+        status = tbl.status().run(conn)
+        try:
+            assert status["status"]["ready_for_writes"] == True, 'Table is not ready for writes:\n' + pprint.pformat(status)
+            assert status["status"]["all_replicas_ready"] == False, 'All replicas incorrectly reporting ready:\n' + pprint.pformat(status)
+            break
+        except AssertionError:
+            if time.time() > deadline:
+                raise
+            else:
+                time.sleep(.05)
     
     utils.print_with_time("Shutting down servers")
     cluster.check_and_stop()
