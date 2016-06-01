@@ -149,7 +149,6 @@ class ConnectionInstance(object):
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
 
-
         try:
             self._parent.handshake.reset()
             response = None
@@ -168,10 +167,7 @@ class ConnectionInstance(object):
                         timeout, loop=self._io_loop,
                     )
                     response = response[:-1]
-        except ReqlAuthError:
-            yield self.close()
-            raise
-        except ReqlTimeoutError:
+        except (ReqlAuthError, ReqlTimeoutError):
             yield self.close()
             raise
         except Exception as err:
@@ -188,7 +184,7 @@ class ConnectionInstance(object):
         return not (self._closing or self._streamreader.at_eof())
 
     @asyncio.coroutine
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -263,7 +259,7 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield from self.close(False, None, ex)
+                yield from self.close(exception=ex)
 
 
 class Connection(ConnectionBase):

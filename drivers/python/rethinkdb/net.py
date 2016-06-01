@@ -315,10 +315,7 @@ class SocketWrapper(object):
                     if char == b'\0':
                         break
                     response += char
-        except ReqlAuthError:
-            self.close()
-            raise
-        except ReqlTimeoutError:
+        except (ReqlAuthError, ReqlTimeoutError):
             self.close()
             raise
         except ReqlDriverError as ex:
@@ -432,7 +429,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._socket.is_open()
 
-    def close(self, noreply_wait, token):
+    def close(self, noreply_wait=False, token=None):
         self._closing = True
 
         # Cursors may remove themselves when errored, so copy a list of them
@@ -505,7 +502,7 @@ class ConnectionInstance(object):
                     self._parent._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
-                self.close(False, None)
+                self.close()
                 raise ReqlDriverError("Unexpected response received.")
 
 
