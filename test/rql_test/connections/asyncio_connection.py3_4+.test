@@ -433,7 +433,7 @@ class TestConnection(TestWithConnection):
         yield from c.close()
 
         with self.assertRaisesRegexp(r.ReqlDriverError,
-                               "Could not convert port abc to an integer."):
+                               "Could not convert port 'abc' to an integer."):
             yield from r.connect(port='abc', host=sharedServerHost)
 
 

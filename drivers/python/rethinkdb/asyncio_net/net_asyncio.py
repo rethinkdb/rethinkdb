@@ -117,6 +117,7 @@ class AsyncioCursor(Cursor):
 class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
+    _reader_task  = None
 
     def __init__(self, parent, io_loop=None):
         self._parent = parent
@@ -167,9 +168,14 @@ class ConnectionInstance(object):
                         timeout, loop=self._io_loop,
                     )
                     response = response[:-1]
-        except (ReqlAuthError, ReqlTimeoutError):
-            yield self.close()
+        except ReqlAuthError:
+            yield from self.close()
             raise
+        except ReqlTimeoutError as err:
+            yield from self.close()
+            raise ReqlDriverError(
+                'Connection interrupted during handshake with %s:%s. Error: %s' %
+                    (self._parent.host, self._parent.port, str(err)))
         except Exception as err:
             yield self.close()
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
@@ -206,7 +212,8 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
-        yield from self._reader_task
+        if self._reader_task:
+            yield from self._reader_task
 
         return None
 
@@ -264,7 +271,7 @@ class ConnectionInstance(object):
 
 class Connection(ConnectionBase):
     def __init__(self, *args, **kwargs):
-        ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
         try:
             self.port = int(self.port)
         except ValueError:
