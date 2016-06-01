@@ -18,14 +18,15 @@ older version.
 
 ### Windows support ###
 
-RethinkDB has been available for Windows since version 2.3.0. With RethinkDB 2.3.3, we
-are dropping the "beta" label from the Windows port. We now offer the same level of
-support for RethinkDB on Windows as for Linux and OS X, including full
-[commercial support][comm-support].
+RethinkDB 2.3.0 was the first version to include native Windows compatibility. In
+RethinkDB 2.3.3, the Windows port is ready to emerge from "beta" testing. We now
+officially support RethinkDB on the Windows platform alongside our existing support for
+Linux and Mac OS X. We're also extending our [commercial support][comm-support] services
+to include RethinkDB on Windows.
 
-Please note: while we consider RethinkDB for Windows as stable, there are a few
-[remaining limitations][windows-tag]. The Windows port also hasn't received as much
-performance tuning as the Linux and OS X releases yet.
+Although RethinkDB is now stable on Windows, there are still a few [remaining limitations][windows-tag]
+that we are actively working to address. We also haven't yet carried out as much
+performance tuning on the Windows port as we have on the Linux and OS X releases.
 
 [comm-support]: https://rethinkdb.com/services/
 [windows-tag]: https://github.com/rethinkdb/rethinkdb/issues?q=is%3Aopen+is%3Aissue+label%3Awindows
@@ -53,7 +54,7 @@ performance tuning as the Linux and OS X releases yet.
 ## Contributors ##
 
 Many thanks to external contributors from the RethinkDB community for helping
-us ship RethinkDB 2.3.3. In no particular order:
+us ship RethinkDB 2.3.3.
 
 * Gergely Nemeth (@gergelyke)
 
