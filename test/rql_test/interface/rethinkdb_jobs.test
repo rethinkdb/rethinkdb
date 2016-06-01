@@ -13,14 +13,14 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
     timeout = 20
 
     def test_query(self):
-        taskLength = .5
-
-        server = self.cluster[0]
+        taskLength = self.timeout / 2
+        server     = self.cluster[0]
         targetConn = self.r.connect(host=server.host, port=server.driver_port)
-        host, port, _, _ = targetConn._instance._socket._socket.getsockname()
+        host       = targetConn.client_address()
+        port       = targetConn.client_port()
 
         filterObject = {"type":"query", "info":{"client_address":host, "client_port":port}}
-        query = self.r.db("rethinkdb").table("jobs").filter(filterObject).coerce_to("ARRAY")
+        query = self.r.db("rethinkdb").table("jobs").filter(filterObject)
 
         # - start the target query
 
@@ -29,26 +29,34 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         # - watch for the query in the rethinkdb.jobs table
 
         latestError = None
-        latestList = None
-        deadline = time.time() + self.timeout
+        jobsSeen    = {}
+        deadline    = time.time() + self.timeout
         while time.time() < deadline:
             try:
-                response = query.run(self.conn)
-
-                # Note the "info" and "type" fields are implicitly checked by the filter
-                self.assertEqual(len(response), 1, 'Looking for 1 query, got: %d' % len(response))
-                self.assertTrue(0 < response[0]["duration_sec"] <= taskLength)
-                self.assertEqual(response[0]["id"][0], "query")
-                self.assertEqual(response[0]["servers"], [server.name])
-                self.assertEqual(response[0]["info"]["user"], "admin")
-
+                for response in query.run(self.conn):
+                    jobsSeen[response['id'][1]] = response
+                    try:
+                        if response["info"]["query"] == 'r.js("while(true) {}", {"timeout": %d})' % taskLength:
+                            self.assertTrue(0 < response["duration_sec"] <= taskLength)
+                            self.assertEqual(response["id"][0], "query")
+                            self.assertEqual(response["servers"], [server.name])
+                            self.assertEqual(response["info"]["client_port"], port)
+                            self.assertEqual(response["info"]["client_address"], host)
+                            self.assertEqual(response["info"]["user"], "admin")
+                            break # found what we are looking for
+                        else:
+                            continue
+                        raise Exception('Did not find target query')
+                    except Exception as e:
+                        latestError = e
+                else:
+                    raise latestError
                 break # break if successful, leaving query running
             except Exception as e:
-                latestList = self.r.db("rethinkdb").table("jobs").coerce_to("ARRAY").run(self.conn)
                 latestError = e
                 time.sleep(.01)
         else:
-            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\ncontents:\n%s' % (self.timeout, host, port, latestError.message, utils.pformat(latestList)))
+            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (self.timeout, host, port, latestError.message, utils.pformat(jobsSeen.values())))
 
     def test_job_deletion(self):
         (conn_a, conn_b) = [self.r.connect(host=s.host, port=s.driver_port) for s in self.cluster]
