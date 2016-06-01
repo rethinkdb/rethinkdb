@@ -130,10 +130,10 @@ class ConnectionInstance(object):
 
     def client_port(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('socketname')[1]
+            return self._streamwriter.get_extra_info('sockname')[1]
     def client_address(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('socketname')[0]
+            return self._streamwriter.get_extra_info('sockname')[0]
 
     @asyncio.coroutine
     def connect(self, timeout):
