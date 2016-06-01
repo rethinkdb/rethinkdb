@@ -278,7 +278,7 @@ class ConnectionInstance(object):
                 raise ReqlDriverError("Unexpected response received.")
         except Exception as e:
             if not self._closing:
-                self.close(False, None, e)
+                self.close(exception=e)
 
     @inlineCallbacks
     def _connectTimeout(self, factory, timeout):
@@ -327,7 +327,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._connection._open
 
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         d = defer.succeed(None)
         self._closing = True
         error_message = "Connection is closed"

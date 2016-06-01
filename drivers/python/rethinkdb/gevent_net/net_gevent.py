@@ -107,10 +107,7 @@ class SocketWrapper(net.SocketWrapper):
                     if char == b'\0':
                         break
                     response += char
-        except ReqlAuthError:
-            self.close()
-            raise
-        except ReqlTimeoutError:
+        except (ReqlAuthError, ReqlTimeoutError):
             self.close()
             raise
         except ReqlDriverError as ex:
@@ -209,7 +206,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._socket is not None and self._socket.is_open()
 
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -286,7 +283,7 @@ class ConnectionInstance(object):
                     raise RqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                self.close(False, None, ex)
+                self.close(exception=ex)
 
 
 class Connection(net.Connection):

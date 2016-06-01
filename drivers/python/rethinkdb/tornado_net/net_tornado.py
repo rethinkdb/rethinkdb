@@ -170,7 +170,7 @@ class ConnectionInstance(object):
         return not self._stream.closed()
 
     @gen.coroutine
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -248,7 +248,7 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield self.close(False, None, ex)
+                yield self.close(exception=ex)
 
 
 # Wrap functions from the base connection class that may throw - these will
