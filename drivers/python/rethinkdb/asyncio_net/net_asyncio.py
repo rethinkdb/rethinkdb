@@ -177,7 +177,7 @@ class ConnectionInstance(object):
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
         except Exception as err:
-            yield self.close()
+            yield from self.close()
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
 
