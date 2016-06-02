@@ -61,14 +61,14 @@ if 'RDB_DRIVER_PORT' in os.environ:
 
 @asyncio.coroutine
 def checkSharedServer():
+    global sharedServerHost, sharedServerDriverPort
     if sharedServerDriverPort is not None:
         conn = yield from r.connect(host=sharedServerHost,
                                port=sharedServerDriverPort)
         if 'test' not in (yield from r.db_list().run(conn)):
             yield from r.db_create('test').run(conn)
+        yield from conn.close(noreply_wait=False)
 
-
-@asyncio.coroutine
 def closeSharedServer():
     global sharedServer, sharedServerOutput, sharedServerHost, \
         sharedServerDriverPort
@@ -160,7 +160,7 @@ class TestWithConnection(TestCaseCompatible):
                 yield from sharedServer.check()
             except Exception:
                 # ToDo: figure out how to blame the last test
-                yield from closeSharedServer()
+                closeSharedServer()
 
         if sharedServerDriverPort is None:
             sharedServerOutput = tempfile.NamedTemporaryFile('w+')
@@ -183,7 +183,7 @@ class TestWithConnection(TestCaseCompatible):
             try:
                 yield from checkSharedServer()
             except Exception:
-                yield from closeSharedServer()
+                closeSharedServer()
                 raise  # ToDo: figure out how to best give the server log
 
 # == Test Classes
@@ -281,6 +281,7 @@ class TestConnection(TestWithConnection):
         yield from c.close()
         yield from c.reconnect()
         yield from r.expr(1).run(c)
+        yield from c.close()
 
     @asyncio.coroutine
     def test_connect_close_expr(self):
@@ -300,6 +301,7 @@ class TestConnection(TestWithConnection):
         yield from c.noreply_wait()
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
+        yield from c.close()
 
     @asyncio.coroutine
     def test_close_waits_by_default(self):
@@ -320,6 +322,7 @@ class TestConnection(TestWithConnection):
         yield from c.reconnect()
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
+        yield from c.close()
 
     @asyncio.coroutine
     def test_close_does_not_wait_if_requested(self):
@@ -340,6 +343,7 @@ class TestConnection(TestWithConnection):
         yield from c.reconnect(noreply_wait=False)
         duration = time.time() - t
         self.assertLess(duration, 0.5)
+        yield from c.close()
 
     @asyncio.coroutine
     def test_db(self):
@@ -392,6 +396,8 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield from r.table('t2').run(c, db='db2')
 
+        yield from c.close()
+
     @asyncio.coroutine
     def test_outdated_read(self):
         c = yield from r.connect(host=sharedServerHost,
@@ -406,6 +412,8 @@ class TestConnection(TestWithConnection):
 
         yield from r.table('t1', read_mode='outdated').run(c)
         yield from r.table('t1').run(c, read_mode='outdated')
+
+        yield from c.close()
 
     @asyncio.coroutine
     def test_repl(self):
@@ -440,24 +448,28 @@ class TestConnection(TestWithConnection):
 class TestShutdown(TestWithConnection):
     @asyncio.coroutine
     def setUp(self):
+        global sharedServer
         if sharedServer is None:
             # we need to be able to kill the server, so can't use one
             # from outside
-            yield from closeSharedServer()
+            closeSharedServer()
         yield from super(TestShutdown, self).setUp()
 
     @asyncio.coroutine
     def test_shutdown(self):
+        global sharedServerHost, sharedServerDriverPort
         c = yield from r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         yield from r.expr(1).run(c)
 
-        yield from closeSharedServer()
+        closeSharedServer()
         yield from asyncio.sleep(0.2)
 
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                "Connection is closed."):
             yield from r.expr(1).run(c)
+
+        yield from c.close(noreply_wait=False)
 
 
 # Another non-connection connection test. It's to test that get_intersecting()
@@ -530,6 +542,8 @@ class TestGetIntersectingBatching(TestWithConnection):
 
         yield from r.db('test').table_drop('t1').run(c)
 
+        yield from c.close()
+
 
 class TestBatching(TestWithConnection):
     @asyncio.coroutine
@@ -562,6 +576,8 @@ class TestBatching(TestWithConnection):
             yield from cursor.next()
         yield from r.db('test').table_drop('t1').run(c)
 
+        yield from c.close()
+
 
 class TestGroupWithTimeKey(TestWithConnection):
     @asyncio.coroutine
@@ -592,6 +608,8 @@ class TestGroupWithTimeKey(TestWithConnection):
         self.assertEqual(groups, {dt1: [expected_row1],
                                   dt2: [expected_row2]})
 
+        yield from c.close()
+
 
 class TestSuccessAtomFeed(TestWithConnection):
     @asyncio.coroutine
@@ -617,6 +635,8 @@ class TestSuccessAtomFeed(TestWithConnection):
         changes = yield from t1.get(0).changes(include_initial=True).run(c)
         self.assertTrue(changes.error is None)
         self.assertEqual(len(changes.items), 1)
+
+        yield from c.close()
 
 class TestCursor(TestWithConnection):
     @asyncio.coroutine

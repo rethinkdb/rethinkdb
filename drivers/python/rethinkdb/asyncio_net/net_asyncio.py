@@ -212,7 +212,9 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
-        if self._reader_task:
+        # We must not wait for the _reader_task if we got an exception, because that
+        # means that we were called from it. Waiting would lead to a deadlock.
+        if self._reader_task and exception is None:
             yield from self._reader_task
 
         return None
