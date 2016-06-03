@@ -172,8 +172,8 @@ class RdbTestCase(unittest.TestCase):
         
         # - ensure we have the proper number of servers
         # note: we start up enough servers to make sure they each have only one role
-        
-        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers)
+        print(self.servers)
+        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers or 0)
         for _ in range(serverCount - len(self.cluster)):
             firstServer = len(self.cluster) == 0
             driver.Process(cluster=self.cluster, console_output=True, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options, wait_until_ready=firstServer)
