@@ -33,38 +33,43 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, mes
 #pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
 template <cluster_version_t W>
-void serialize(write_message_t *wm, const struct timespec &thing) {
-    // We ignore out-of-range values for secs in release mode, assuming that wrong
-    // timestamps are better than crashing if for example the system clock is set
-    // incorrectly (or someone runs an old version of RethinkDB in the future).
-    rassert(thing.tv_sec >= std::numeric_limits<int64_t>::min()
-            && thing.tv_sec <= std::numeric_limits<int64_t>::max());
-    serialize<W>(wm, static_cast<int64_t>(thing.tv_sec));
-    guarantee(thing.tv_nsec >= std::numeric_limits<int64_t>::min()
-            && thing.tv_nsec <= std::numeric_limits<int64_t>::max());
-    serialize<W>(wm, static_cast<int64_t>(thing.tv_nsec));
+void serialize(write_message_t *wm, const struct timespec &ts) {
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_sec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_sec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_sec));
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_nsec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_nsec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_nsec));
 }
 template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
+archive_result_t deserialize(read_stream_t *s, struct timespec *ts_out) {
     archive_result_t res = archive_result_t::SUCCESS;
 
     int64_t tv_sec;
     res = deserialize<W>(s, &tv_sec);
     if (bad(res)) { return res; }
-    if(!(tv_sec >= std::numeric_limits<decltype(thing->tv_sec)>::min()
-         && tv_sec <= std::numeric_limits<decltype(thing->tv_sec)>::max())) {
+    if(!(tv_sec >= std::numeric_limits<decltype(ts_out->tv_sec)>::min()
+         && tv_sec <= std::numeric_limits<decltype(ts_out->tv_sec)>::max())) {
         return archive_result_t::RANGE_ERROR;
     }
-    thing->tv_sec = tv_sec;
+    ts_out->tv_sec = tv_sec;
 
     int64_t tv_nsec;
     res = deserialize<W>(s, &tv_nsec);
     if (bad(res)) { return res; }
-    if(!(tv_nsec >= std::numeric_limits<decltype(thing->tv_nsec)>::min()
-         && tv_nsec <= std::numeric_limits<decltype(thing->tv_nsec)>::max())) {
+    if(!(tv_nsec >= std::numeric_limits<decltype(ts_out->tv_nsec)>::min()
+         && tv_nsec <= std::numeric_limits<decltype(ts_out->tv_nsec)>::max())) {
         return archive_result_t::RANGE_ERROR;
     }
-    thing->tv_nsec = tv_nsec;
+    ts_out->tv_nsec = tv_nsec;
 
     return res;
 }
