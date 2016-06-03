@@ -1,3 +1,43 @@
+# Release 2.3.4 (Fantasia)
+
+Released on 2016-06-03
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.4 servers should not
+be mixed with older RethinkDB 2.3.x servers in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.4 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+ * Fixed a segmentation fault in the `orderBy.limit` changefeed implementation (#5824)
+ * Fixed an incompatibility in the cluster protocol between Windows and Linux / OS X
+   servers (#5819)
+* Python driver
+ * Fixed various bugs in the connection class for the asyncio event loop (#5795, #5816, #5820)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.4.
+
+* Ultrabug (@ultrabug)
+
+--
+
 # Release 2.3.3 (Fantasia)
 
 Released on 2016-06-01
