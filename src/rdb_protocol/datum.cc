@@ -223,6 +223,7 @@ void datum_t::data_wrapper_t::destruct() {
     } break;
     default: unreachable();
     }
+    internal_type = internal_type_t::UNINITIALIZED;
 }
 
 void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee) {
@@ -291,7 +292,6 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
 #ifndef NDEBUG
     // De-initialize `movee` to make it easier to catch use-after-move bugs
     movee.destruct();
-    movee.internal_type = internal_type_t::UNINITIALIZED;
 #endif
 }
 
