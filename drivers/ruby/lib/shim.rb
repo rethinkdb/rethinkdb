@@ -22,7 +22,7 @@ module RethinkDB
       case x
       when Hash
         if parse_time && x['$reql_type$'] == 'TIME'
-          t = Time.at(x['epoch_time']).round(3)
+          t = Time.at((x['epoch_time'] * 1000).to_i / 1000.0)
           tz = x['timezone']
           return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
         elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
