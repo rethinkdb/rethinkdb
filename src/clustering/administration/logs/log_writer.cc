@@ -23,8 +23,50 @@
 #include "thread_local.hpp"
 
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
+
+// `struct timestamp` has platform-dependent integers, which is not good for
+// serialization. We serialize them as fixed types that are compatible with the types
+// we have on AMD64 Linux.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const struct timespec &thing) {
+    guarantee(thing.tv_sec >= std::numeric_limits<int64_t>::min()
+              && thing.tv_sec <= std::numeric_limits<int64_t>::max());
+    serialize<W>(wm, static_cast<int32_t>(thing.tv_sec));
+    guarantee(thing.tv_nsec >= std::numeric_limits<int32_t>::min()
+              && thing.tv_nsec <= std::numeric_limits<int32_t>::max());
+    serialize<W>(wm, static_cast<int32_t>(thing.tv_nsec));
+}
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
+    archive_result_t res = archive_result_t::SUCCESS;
+
+    int32_t tv_sec;
+    res = deserialize<W>(s, &tv_sec);
+    if (bad(res)) { return res; }
+    if(!(tv_sec >= std::numeric_limits<decltype(thing->tv_sec)>::min()
+         && tv_sec <= std::numeric_limits<decltype(thing->tv_sec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    int32_t tv_nsec;
+    res = deserialize<W>(s, &tv_nsec);
+    if (bad(res)) { return res; }
+    if(!(tv_nsec >= std::numeric_limits<decltype(thing->tv_nsec)>::min()
+         && tv_nsec <= std::numeric_limits<decltype(thing->tv_nsec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    return res;
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(struct timespec);
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
