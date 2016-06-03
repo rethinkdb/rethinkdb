@@ -55,6 +55,7 @@ archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
          && tv_sec <= std::numeric_limits<decltype(thing->tv_sec)>::max())) {
         return archive_result_t::RANGE_ERROR;
     }
+    thing->tv_sec = tv_sec;
 
     int64_t tv_nsec;
     res = deserialize<W>(s, &tv_nsec);
@@ -63,6 +64,7 @@ archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
          && tv_nsec <= std::numeric_limits<decltype(thing->tv_nsec)>::max())) {
         return archive_result_t::RANGE_ERROR;
     }
+    thing->tv_nsec = tv_nsec;
 
     return res;
 }
