@@ -246,14 +246,12 @@ bool query_job_report_t::info_derived(
     info_builder_out->overwrite("client_port",
         convert_port_to_datum(client_addr_port.port().value()));
     info_builder_out->overwrite("query", convert_string_to_datum(query));
-    info_builder_out->overwrite(
-        "user", convert_string_to_datum(user_context.to_string()));
 
     return true;
 }
 
-RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
-    query_job_report_t, type, id, duration, servers, client_addr_port, query, user_context);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+    query_job_report_t, type, id, duration, servers, client_addr_port, query);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
                                     get_job_reports_mailbox_address,
