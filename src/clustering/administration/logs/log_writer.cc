@@ -34,18 +34,21 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, mes
 #endif
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const struct timespec &thing) {
-    guarantee(thing.tv_sec >= std::numeric_limits<int64_t>::min()
-              && thing.tv_sec <= std::numeric_limits<int64_t>::max());
-    serialize<W>(wm, static_cast<int32_t>(thing.tv_sec));
+    // We ignore out-of-range values for secs in release mode, assuming that wrong
+    // timestamps are better than crashing if for example the system clock is set
+    // incorrectly (or someone runs an old version of RethinkDB in the future).
+    rassert(thing.tv_sec >= std::numeric_limits<int64_t>::min()
+            && thing.tv_sec <= std::numeric_limits<int64_t>::max());
+    serialize<W>(wm, static_cast<int64_t>(thing.tv_sec));
     guarantee(thing.tv_nsec >= std::numeric_limits<int32_t>::min()
-              && thing.tv_nsec <= std::numeric_limits<int32_t>::max());
-    serialize<W>(wm, static_cast<int32_t>(thing.tv_nsec));
+            && thing.tv_nsec <= std::numeric_limits<int32_t>::max());
+    serialize<W>(wm, static_cast<int64_t>(thing.tv_nsec));
 }
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
     archive_result_t res = archive_result_t::SUCCESS;
 
-    int32_t tv_sec;
+    int64_t tv_sec;
     res = deserialize<W>(s, &tv_sec);
     if (bad(res)) { return res; }
     if(!(tv_sec >= std::numeric_limits<decltype(thing->tv_sec)>::min()
@@ -53,7 +56,7 @@ archive_result_t deserialize(read_stream_t *s, struct timespec *thing) {
         return archive_result_t::RANGE_ERROR;
     }
 
-    int32_t tv_nsec;
+    int64_t tv_nsec;
     res = deserialize<W>(s, &tv_nsec);
     if (bad(res)) { return res; }
     if(!(tv_nsec >= std::numeric_limits<decltype(thing->tv_nsec)>::min()
