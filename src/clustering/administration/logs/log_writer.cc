@@ -23,8 +23,60 @@
 #include "thread_local.hpp"
 
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
+
+// `struct timestamp` has platform-dependent integers, which is not good for
+// serialization. We serialize them as fixed types that are compatible with the types
+// we have on AMD64 Linux.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const struct timespec &ts) {
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_sec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_sec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_sec));
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_nsec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_nsec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_nsec));
+}
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, struct timespec *ts_out) {
+    archive_result_t res = archive_result_t::SUCCESS;
+
+    int64_t tv_sec;
+    res = deserialize<W>(s, &tv_sec);
+    if (bad(res)) { return res; }
+    if(!(tv_sec >= std::numeric_limits<decltype(ts_out->tv_sec)>::min()
+         && tv_sec <= std::numeric_limits<decltype(ts_out->tv_sec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    ts_out->tv_sec = tv_sec;
+
+    int64_t tv_nsec;
+    res = deserialize<W>(s, &tv_nsec);
+    if (bad(res)) { return res; }
+    if(!(tv_nsec >= std::numeric_limits<decltype(ts_out->tv_nsec)>::min()
+         && tv_nsec <= std::numeric_limits<decltype(ts_out->tv_nsec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    ts_out->tv_nsec = tv_nsec;
+
+    return res;
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(struct timespec);
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
