@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+# Copyright 2015-2016 RethinkDB, all rights reserved.
+require 'eventmachine'
+
+require_relative '../importRethinkDB.rb'
+
+$port ||= (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+ARGV.clear
+$c = r.connect(port: $port).repl
+
+dbName = 'test'
+tableName = File.basename(__FILE__).gsub('.', '_')
+
+r.expr([dbName]).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run
+r.expr([tableName]).set_difference(r.db(dbName).table_list()).for_each{|row| r.db(dbName).table_create(row)}.run
+$t = r.db(dbName).table(tableName)
+$t.index_create('a').run rescue nil
+$t.index_wait('a').run
+$t.delete.run
+
+$ticks = 0
+$n = 6
+$lim = 10
+$stopping = false
+def tick
+  if ($ticks += 1) >= 50
+    if !$stopping
+      $stopping = true
+      EM.defer {
+        $h.stop
+        EM.stop
+      }
+    end
+  else
+    $t.insert({a: r.expr(rand($n)).coerce_to('string')}).run
+    $t.get_all(rand($n), index: 'a').update({a: r.expr(rand($n)).coerce_to('string')}).run
+    $t.get_all(rand($n), index: 'a').delete.run
+    EM.defer {
+      tick
+    }
+  end
+end
+
+class H < RethinkDB::Handler
+  def on_open()
+    tick
+  end
+end
+
+$h = H.new
+
+EM.run {
+  $t.insert([{a: "0"}, {a: "1"}]).em_run {
+    $t.order_by(index: 'a').limit($lim).changes.em_run($h)
+  }
+}
