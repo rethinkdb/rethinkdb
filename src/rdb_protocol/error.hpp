@@ -120,6 +120,9 @@ private:
     backtrace_id_t bt;
 };
 
+// Helper function for formatting array over size error message.
+std::string format_array_size_error(size_t limit);
+
 // Use these macros to return errors to users.
 // TODO: all these arguments should be in parentheses inside the expansion.
 #define rcheck_target(target, pred, type, msg) do {                  \
@@ -150,14 +153,14 @@ private:
         auto _limit = (limit);                                          \
         rcheck_datum((arr).size() <= _limit.array_size_limit(),         \
                      ql::base_exc_t::RESOURCE,                          \
-                     strprintf("Array over size limit `%zu`.",          \
-                               _limit.array_size_limit()).c_str());     \
+                     format_array_size_error(_limit     \
+                              .array_size_limit()).c_str());     \
     } while (0)
 #define rcheck_array_size(arr, limit) do {                              \
         auto _limit = (limit);                                          \
         rcheck((arr).size() <= _limit.array_size_limit(), ql::base_exc_t::RESOURCE, \
-               strprintf("Array over size limit `%zu`.",                \
-                         _limit.array_size_limit()).c_str());           \
+                    format_array_size_error(_limit     \
+                        .array_size_limit()).c_str());     \
     } while (0)
 #define rcheck(pred, type, msg) rcheck_target(this, pred, type, msg)
 #define rcheck_toplevel(pred, type, msg) \
