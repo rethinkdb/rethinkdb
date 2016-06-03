@@ -288,6 +288,11 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
     } break;
     default: unreachable();
     }
+#ifndef NDEBUG
+    // De-initialize `movee` to make it easier to catch use-after-move bugs
+    movee.destruct();
+    movee.internal_type = internal_type_t::UNINITIALIZED;
+#endif
 }
 
 datum_t::datum_t() : data() { }
