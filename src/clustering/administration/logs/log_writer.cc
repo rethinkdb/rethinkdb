@@ -40,8 +40,8 @@ void serialize(write_message_t *wm, const struct timespec &thing) {
     rassert(thing.tv_sec >= std::numeric_limits<int64_t>::min()
             && thing.tv_sec <= std::numeric_limits<int64_t>::max());
     serialize<W>(wm, static_cast<int64_t>(thing.tv_sec));
-    guarantee(thing.tv_nsec >= std::numeric_limits<int32_t>::min()
-            && thing.tv_nsec <= std::numeric_limits<int32_t>::max());
+    guarantee(thing.tv_nsec >= std::numeric_limits<int64_t>::min()
+            && thing.tv_nsec <= std::numeric_limits<int64_t>::max());
     serialize<W>(wm, static_cast<int64_t>(thing.tv_nsec));
 }
 template <cluster_version_t W>
