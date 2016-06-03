@@ -299,7 +299,6 @@ public:
             guarantee(pair.second);
             it = pair.first;
         } else {
-            guarantee(k == p.first->second.first);
             it = index.find(p.first);
             guarantee(it != index.end());
         }
