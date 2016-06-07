@@ -263,6 +263,16 @@ public class RethinkDBTest{
     }
 
     @Test
+    public void testCursorTryWithResources() {
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "123")).run(conn);
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "456")).run(conn);
+
+        try(Cursor<Map<String, String>> allEntries = r.db(dbName).table(tableName).run(conn)) {
+            assertEquals(2, allEntries.toList().size());
+        }
+    }
+
+    @Test
     public void testTableSelectOfPojo() {
         TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
         Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
