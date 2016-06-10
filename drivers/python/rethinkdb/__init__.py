@@ -25,5 +25,3 @@ rethinkdb = r
 
 # set the _r attribute to net.Connection
 net.Connection._r = r
-
-

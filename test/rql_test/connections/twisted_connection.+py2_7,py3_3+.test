@@ -1,28 +1,17 @@
 #!/usr/bin/env python
-##
-# Tests the driver API for making connections and exercizes the
-# networking code
-###
+
+'''Tests the driver API for making connections and exercizes the networking code'''
 
 from __future__ import print_function
 
-import datetime
-import os
-import random
-import re
-import sys
-import tempfile
-import time
-import unittest
-import socket
+import datetime, os, random, re, socket, sys, tempfile, time, unittest
 
 from twisted.internet import reactor, defer, threads
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.failure import Failure
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import driver
-import utils
+import driver, rdb_unittest, utils
 
 print(sys.version)
 
@@ -94,24 +83,9 @@ def closeSharedServer():
 
 # == Test Base Classes
 
-class TestCaseCompatible(unittest.TestCase):
+class TestCaseCompatible(rdb_unittest.TestCaseCompatible):
     # can't use standard TestCase run here because async.
-
-    def __init__(self, *args, **kwargs):
-        super(TestCaseCompatible, self).__init__(*args, **kwargs)
-        if not hasattr(self, 'assertIsNone'):
-            self.assertIsNone = self.replacement_assertIsNone
-        if not hasattr(self, 'assertIsNotNone'):
-            self.assertIsNotNone = self.replacement_assertIsNotNone
-
-    def replacement_assertIsNone(self, val):
-        if val is not None:
-            raise AssertionError('%s is not None' % val)
-
-    def replacement_assertIsNotNone(self, val):
-        if val is None:
-            raise AssertionError('%s is None' % val)
-
+    
     def setUp(self):
         return defer.succeed(None)
 
@@ -394,21 +368,22 @@ class TestConnection(TestWithConnection):
 
     @inlineCallbacks
     def test_repl(self):
-        # Calling .repl() should set this connection as global state
-        # to be used when `run` is not otherwise passed a connection.
-        c = (yield r.connect(host=sharedServerHost,
-                             port=sharedServerDriverPort)).repl()
-
-        yield r.expr(1).run()
-
-        c.repl()                # is idempotent
-
-        yield r.expr(1).run()
-
-        yield c.close()
-
-        with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
+        try:
+            # Calling .repl() should set this connection as global state
+            # to be used when `run` is not otherwise passed a connection.
+            c = (yield r.connect(host=sharedServerHost, port=sharedServerDriverPort)).repl()
+    
             yield r.expr(1).run()
+    
+            c.repl()                # is idempotent
+    
+            yield r.expr(1).run()
+    
+            yield c.close()
+            with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
+                yield r.expr(1).run()
+        finally:
+            r.Repl.clear()
 
     @inlineCallbacks
     def test_port_conversion(self):
@@ -418,7 +393,7 @@ class TestConnection(TestWithConnection):
         yield c.close()
 
         with self.assertRaisesRegexp(r.ReqlDriverError,
-                               "Could not convert port abc to an integer."):
+                               "Could not convert port 'abc' to an integer."):
             yield r.connect(port='abc', host=sharedServerHost)
 
 
@@ -440,8 +415,7 @@ class TestShutdown(TestWithConnection):
         closeSharedServer()
         yield sleep(0.02)
 
-        with self.assertRaisesRegexp(r.ReqlDriverError,
-                               "Connection is closed."):
+        with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
             yield r.expr(1).run(c)
 
 
@@ -963,8 +937,7 @@ if __name__ == '__main__':
                 sharedServer.check_and_stop()
         except Exception as e:
             serverClosedCleanly = False
-            sys.stderr.write('The server did not close cleanly after testing: %s'
-                            % str(e))
+            sys.stderr.write('The server did not close cleanly after testing: %s' % str(e))
 
         reactor.stop()
         if not res.wasSuccessful() or not serverClosedCleanly:

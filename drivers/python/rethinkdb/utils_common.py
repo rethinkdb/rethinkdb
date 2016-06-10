@@ -2,23 +2,12 @@
 
 from __future__ import print_function
 
-import collections, copy, distutils.version, getpass, inspect, optparse, os, re, socket, string, sys, threading
-import traceback
+import collections, copy, distutils.version, getpass, inspect, optparse, os, re, sys, threading
+
 from . import net
 r = net.Connection._r
 
 _connection_info = None # set by CommonOptionsParser
-
-# This file contains common functions used by the import/export/dump/restore scripts
-
-# This function is used to wrap rethinkdb calls to recover from connection errors
-# The first argument to the function is an output parameter indicating if progress
-# has been made since the last call.  This is passed as an array so it works as an
-# output parameter. The first item in the array is compared each attempt to check
-# if progress has been made.
-# Using this wrapper, the given function will be called until 5 connection errors
-# occur in a row with no progress being made.  Care should be taken that the given
-# function will terminate as long as the progress parameter is changed.
 
 def retryQuery(name, query, times=5, runOptions=None):
     '''Try a query multiple times to guard against bad connections'''
