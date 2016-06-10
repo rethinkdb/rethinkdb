@@ -163,12 +163,12 @@ tests:
     - py: tbl.order_by('id').order_by(index='id')[0]
       js: tbl.orderBy('id').orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :id)[0]
-      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.', [0])
 
     - py: tbl.order_by('id').order_by(index='a')[0]
       js: tbl.orderBy('id').orderBy({index:'a'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :a)[0]
-      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.', [0])
 
     - py: tbl.between(5, r.maxval, index='id').order_by(index='id')[0]
       js: tbl.between(5, r.maxval, {index:'id'}).orderBy({index:'id'}).nth(0)
@@ -234,7 +234,7 @@ tests:
     - py: tbl.order_by('missing').order_by(index='id').nth(0)
       js: tbl.order_by('missing').order_by({index:'id'}).nth(0)
       rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
-      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+      ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.', [0])
 
     - cd: tbl.order_by('id', 'missing').nth(0)
       ot: {'id':0, 'a':0}
