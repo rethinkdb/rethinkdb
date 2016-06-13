@@ -1629,7 +1629,7 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
         # Otherwise, the `callback` variable is already correctly
         # holding the callback, and the host variable is the first
         # argument
-        host = hostOrCallback
+        host = hostOrCallback || {}
 
     # `r.connect` returns a Promise which does the following:
     #
