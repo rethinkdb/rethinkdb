@@ -48,7 +48,7 @@ def print_progress(ratio, indent=0, read=None, write=None):
         "undone":    " " * (total_width - done_width),
         "percent":   int(100 * ratio),
         "readRate":  (" r: %d" % read) if read is not None else '',
-        "writeRate": (" r: %d" % write) if write is not None else ''
+        "writeRate": (" w: %d" % write) if write is not None else ''
     })
     sys.stdout.flush()
 
@@ -94,7 +94,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
         def checkPoitiveInt(option, opt_str, value):
             try:
                 intValue = int(value)
-                assert value >= 1
+                assert intValue >= 1
                 return intValue
             except (AssertionError, ValueError):
                 raise optparse.OptionValueError('%s value must be an integer greater that 1: %s' % (opt_str, value))

@@ -5,7 +5,7 @@
 from __future__ import print_function
 
 import copy, datetime, multiprocessing, optparse, os, shutil, sys, tarfile, tempfile, time, traceback
-from . import utils_common, net
+from . import net, utils_common, _import
 
 usage = "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] [--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
 help_epilog = '''
@@ -45,7 +45,7 @@ def parse_options(argv, prog=None):
     parser.add_option("--no-secondary-indexes", dest="sindexes",   action="store_false",  default=True,   help="do not create secondary indexes for the restored tables")
 
     parser.add_option("--writers-per-table",    dest="writers",    metavar="WRITERS",     default=multiprocessing.cpu_count(), help=optparse.SUPPRESS_HELP, type="pos_int")
-    parser.add_option("--batch-size",           dest="batch_size", metavar="BATCH",       default=200,                         help=optparse.SUPPRESS_HELP, type="pos_int")
+    parser.add_option("--batch-size",           dest="batch_size", metavar="BATCH",       default=_import.default_batch_size,  help=optparse.SUPPRESS_HELP, type="pos_int")
     
     # Replication settings
     replicationOptionsGroup = optparse.OptionGroup(parser, 'Replication Options')
@@ -157,8 +157,6 @@ def do_unzip(temp_dir, options):
     return os.path.join(temp_dir, sub_path)
 
 def do_import(temp_dir, options):
-    from . import _import
-    
     # - default _import options
     
     options.fields = None

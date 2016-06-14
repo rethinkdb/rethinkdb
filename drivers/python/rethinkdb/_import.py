@@ -20,6 +20,7 @@ PY3 = sys.version > "3"
 json_read_chunk_size = 32 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
 max_nesting_depth = 100
+default_batch_size = 200
 
 from . import utils_common
 r = utils_common.r
@@ -106,7 +107,7 @@ class SourceFile(object):
         # - add read percentage
         if self.__bytes_size.value <= 0 or self.__bytes_size.value <= self.__bytes_read.value:
             completed += 1.0
-        elif self.__bytes_read < 0 and self.__total_rows.value >= 0:
+        elif self.__bytes_read.value < 0 and self.__total_rows.value >= 0:
             # done by rows read
             if self.__rows_read > 0:
                 completed += float(self.__rows_read) / float(self.__total_rows.value)
