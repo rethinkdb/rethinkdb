@@ -365,7 +365,7 @@ def run(options):
         db_table_set = allTables # default to all tables
     else:
         allDatabases = utils_common.retryQuery('list dbs', r.db_list().filter(r.row.ne('rethinkdb')))
-        for db_table in db_table_set:
+        for db_table in options.db_tables:
             db, table = db_table
             assert db != 'rethinkdb', "Error: Cannot export tables from the system database: 'rethinkdb'" # should not be possible
             if db not in allDatabases:

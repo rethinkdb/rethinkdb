@@ -84,7 +84,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
                 raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt, value))
         
         def checkDbTableOption(option, opt_str, value):
-            res = self._tableNameRegex.match(value)
+            res = _tableNameRegex.match(value)
             if not res:
                 raise optparse.OptionValueError('Invalid db or db.table name: %s' % value)
             if res.group('db') == 'rethinkdb':
