@@ -266,29 +266,39 @@ class RqlConstant(ast.RqlQuery):
         return 'r.'+self.st
 
 # Time enum values
-monday      = type('monday', (RqlConstant,), {'tt':pTerm.MONDAY, 'st': 'monday'})()
-tuesday     = type('tuesday', (RqlConstant,), {'tt':pTerm.TUESDAY, 'st': 'tuesday'})()
-wednesday   = type('wednesday', (RqlConstant,), {'tt':pTerm.WEDNESDAY, 'st': 'wednesday'})()
-thursday    = type('thursday', (RqlConstant,), {'tt':pTerm.THURSDAY, 'st': 'thursday'})()
-friday      = type('friday', (RqlConstant,), {'tt':pTerm.FRIDAY, 'st': 'friday'})()
-saturday    = type('saturday', (RqlConstant,), {'tt':pTerm.SATURDAY, 'st': 'saturday'})()
-sunday      = type('sunday', (RqlConstant,), {'tt':pTerm.SUNDAY, 'st': 'sunday'})()
+_moduleSelf = globals()
+def _new_const(name, bases, members):
+    """To support the pickle protocol for queries, the types underlying each
+    constant must be available.  This utility function mitigates the creation
+    of a new type so that pickle works.
+    """
+    typName = '_{}Type'.format(name)
+    typ = type(typName, bases, members)
+    _moduleSelf[typName] = typ
+    return typ()
+monday      = _new_const('monday', (RqlConstant,), {'tt':pTerm.MONDAY, 'st': 'monday'})
+tuesday     = _new_const('tuesday', (RqlConstant,), {'tt':pTerm.TUESDAY, 'st': 'tuesday'})
+wednesday   = _new_const('wednesday', (RqlConstant,), {'tt':pTerm.WEDNESDAY, 'st': 'wednesday'})
+thursday    = _new_const('thursday', (RqlConstant,), {'tt':pTerm.THURSDAY, 'st': 'thursday'})
+friday      = _new_const('friday', (RqlConstant,), {'tt':pTerm.FRIDAY, 'st': 'friday'})
+saturday    = _new_const('saturday', (RqlConstant,), {'tt':pTerm.SATURDAY, 'st': 'saturday'})
+sunday      = _new_const('sunday', (RqlConstant,), {'tt':pTerm.SUNDAY, 'st': 'sunday'})
 
-january     = type('january', (RqlConstant,), {'tt':pTerm.JANUARY, 'st': 'january'})()
-february    = type('february', (RqlConstant,), {'tt':pTerm.FEBRUARY, 'st': 'february'})()
-march       = type('march', (RqlConstant,), {'tt': pTerm.MARCH, 'st': 'march'})()
-april       = type('april', (RqlConstant,), {'tt': pTerm.APRIL, 'st': 'april'})()
-may         = type('may', (RqlConstant,), {'tt': pTerm.MAY, 'st': 'may'})()
-june        = type('june', (RqlConstant,), {'tt': pTerm.JUNE, 'st': 'june'})()
-july        = type('july', (RqlConstant,), {'tt': pTerm.JULY, 'st': 'july'})()
-august      = type('august', (RqlConstant,), {'tt': pTerm.AUGUST, 'st': 'august'})()
-september   = type('september', (RqlConstant,), {'tt': pTerm.SEPTEMBER, 'st': 'september'})()
-october     = type('october', (RqlConstant,), {'tt': pTerm.OCTOBER, 'st': 'october'})()
-november    = type('november', (RqlConstant,), {'tt': pTerm.NOVEMBER, 'st': 'november'})()
-december    = type('december', (RqlConstant,), {'tt': pTerm.DECEMBER, 'st': 'december'})()
+january     = _new_const('january', (RqlConstant,), {'tt':pTerm.JANUARY, 'st': 'january'})
+february    = _new_const('february', (RqlConstant,), {'tt':pTerm.FEBRUARY, 'st': 'february'})
+march       = _new_const('march', (RqlConstant,), {'tt': pTerm.MARCH, 'st': 'march'})
+april       = _new_const('april', (RqlConstant,), {'tt': pTerm.APRIL, 'st': 'april'})
+may         = _new_const('may', (RqlConstant,), {'tt': pTerm.MAY, 'st': 'may'})
+june        = _new_const('june', (RqlConstant,), {'tt': pTerm.JUNE, 'st': 'june'})
+july        = _new_const('july', (RqlConstant,), {'tt': pTerm.JULY, 'st': 'july'})
+august      = _new_const('august', (RqlConstant,), {'tt': pTerm.AUGUST, 'st': 'august'})
+september   = _new_const('september', (RqlConstant,), {'tt': pTerm.SEPTEMBER, 'st': 'september'})
+october     = _new_const('october', (RqlConstant,), {'tt': pTerm.OCTOBER, 'st': 'october'})
+november    = _new_const('november', (RqlConstant,), {'tt': pTerm.NOVEMBER, 'st': 'november'})
+december    = _new_const('december', (RqlConstant,), {'tt': pTerm.DECEMBER, 'st': 'december'})
 
-minval      = type('minval', (RqlConstant,), {'tt': pTerm.MINVAL, 'st': 'minval'})()
-maxval      = type('maxval', (RqlConstant,), {'tt': pTerm.MAXVAL, 'st': 'maxval'})()
+minval      = _new_const('minval', (RqlConstant,), {'tt': pTerm.MINVAL, 'st': 'minval'})
+maxval      = _new_const('maxval', (RqlConstant,), {'tt': pTerm.MAXVAL, 'st': 'maxval'})
 
 
 def make_timezone(*args):
