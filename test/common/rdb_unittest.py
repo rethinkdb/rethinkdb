@@ -18,10 +18,14 @@ class TestCaseCompatible(unittest.TestCase):
             self.assertIsNone = self.replacement_assertIsNone
         if not hasattr(self, 'assertIsNotNone'):
             self.assertIsNotNone = self.replacement_assertIsNotNone
+        if not hasattr(self, 'assertGreater'):
+            self.assertGreater = self.replacement_assertGreater
         if not hasattr(self, 'assertGreaterEqual'):
             self.assertGreaterEqual = self.replacement_assertGreaterEqual
         if not hasattr(self, 'assertLess'):
             self.assertLess = self.replacement_assertLess
+        if not hasattr(self, 'assertLessEqual'):
+            self.assertLessEqual = self.replacement_assertLessEqual
         if not hasattr(self, 'assertIn'):
             self.assertIn = self.replacement_assertIn
         if not hasattr(self, 'assertRaisesRegexp'):
@@ -38,17 +42,25 @@ class TestCaseCompatible(unittest.TestCase):
         if val is None:
             raise AssertionError('%s is None' % val)
     
-    def replacement_assertGreaterEqual(self, greater, lesser):
-        if not greater >= lesser:
-            raise AssertionError('%s not greater than or equal to %s' % (greater, lesser))
+    def replacement_assertGreater(self, actual, expected):
+        if not actual > expected:
+            raise AssertionError('%s not greater than %s' % (actual, expected))
     
-    def replacement_assertLess(self, lesser, greater):
-        if not greater > lesser:
-            raise AssertionError('%s not less than %s' % (lesser, greater))
+    def replacement_assertGreaterEqual(self, actual, expected):
+        if not actual >= expected:
+            raise AssertionError('%s not greater than or equal to %s' % (actual, expected))
+    
+    def replacement_assertLess(self, actual, expected):
+        if not actual < expected:
+            raise AssertionError('%s not less than %s' % (actual, expected))
+    
+    def replacement_assertLessEqual(self, actual, expected):
+        if not actual <= expected:
+            raise AssertionError('%s not less than or equal to %s' % (actual, expected))
     
     def replacement_assertIsNotNone(self, val):
         if val is None:
-            raise AssertionError('%s is None' % val)
+            raise AssertionError('Result is None')
     
     def replacement_assertIn(self, val, iterable):
         if not val in iterable:

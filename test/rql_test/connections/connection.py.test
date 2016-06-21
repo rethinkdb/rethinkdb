@@ -65,10 +65,7 @@ def closeSharedServer():
 # == Test Base Classes
 
 class TestWithConnection(rdb_unittest.TestCaseCompatible):
-
-    port = None
-    server = None
-    serverOutput = None
+    _conn = None
 
     def setUp(self):
         global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
@@ -99,6 +96,30 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
             except Exception:
                 closeSharedServer()
                 raise # ToDo: figure out how to best give the server log
+    
+    @property
+    def port(self):
+        return sharedServerDriverPort
+    
+    @property
+    def server(self):
+        return sharedServerHost
+    
+    @property
+    def conn(self):
+        try:
+            if self._conn:
+                r.expr(1).run(self._conn)
+        except Exception:
+            try:
+                self._conn.close()
+            except Exception: pass
+            self._conn = None
+        
+        if not self._conn:
+            self._conn = r.connect(host=self.server, port=self.port)
+        
+        return self._conn
 
 # == Test Classes
 
@@ -440,6 +461,28 @@ class TestPrinting(rdb_unittest.TestCaseCompatible):
         output = str(r.db('db1').table('tbl1').map(lambda x: x))
         if not re.match(r"r\.db\('db1'\)\.table\('tbl1'\)\.map\(lambda var_(\d+): var_\1\)", output):
             self.fail('Printing query did not have the expected output, rather: %s' % output)
+
+
+class TestPickle(TestWithConnection):
+    '''Test the queries can be pickled'''
+    
+    def runTest(self):
+        import pickle
+        conn = self.conn
+        
+        # we need a db and table to run a query against to verify round-trip to the server
+        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
+        r.expr(['test']).set_difference(r.db('test').table_list()).for_each(r.db('test').table_create(r.row)).run(conn)
+        
+        query = r.db('test').table('test').between(r.maxval, r.maxval).limit(2).count()
+        expected = query.run(conn)
+        self.assertLessEqual(expected, 2) # sanity check
+        
+        pickled = pickle.dumps(query)
+        unpickled = pickle.loads(pickled)
+        self.assertEqual(str(unpickled), str(query))
+        self.assertEqual(unpickled.run(conn), expected)
+
 
 # Another non-connection connection test. It's to test that get_intersecting()
 # batching works properly.
