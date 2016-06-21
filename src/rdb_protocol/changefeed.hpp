@@ -36,7 +36,6 @@ class auto_drainer_t;
 class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
-class namespace_interface_access_t;
 class real_superblock_t;
 class sindex_superblock_t;
 class table_meta_client_t;
