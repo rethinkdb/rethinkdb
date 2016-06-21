@@ -1477,12 +1477,13 @@ def getTestList(rootPath, allowedLanguages, testFilters=None, shards=0):
                         testLanguages = [x for x in interpreters[lang] if x in allowedLanguages] or None
                         if single and testLanguages:
                             testLanguages = [testLanguages[0]]
+                        testLanguages = set(testLanguages or [])
                 langSetsCache[testLangExtensions] = testLanguages
             
             elif extension in ('mocha', 'yaml'):
                 testLanguages = langSetsCache[extension]
             else:
-                testLanguages = [None]
+                testLanguages = set([None])
             
             # -- create tests for all language versions that pass the filters
             
