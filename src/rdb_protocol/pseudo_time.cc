@@ -41,13 +41,17 @@ typedef boost::gregorian::date date_t;
 //   in parsing right now.  This will theoretically change at some point in the
 //   future.
 // * I hate boost, I hate dates, and most of all, I hate myself.
-const std::locale daycount_format =
-    std::locale(std::locale::classic(), new input_timefmt_t("%Y-%jT%H:%M:%s%ZP"));
+const std::locale &daycount_format() {
+    static const std::locale it(std::locale::classic(), new input_timefmt_t("%Y-%jT%H:%M:%s%ZP"));
+    return it;
+}
 // One day...
 // const std::locale weekcount_format =
 //     std::locale(std::locale::classic(), new input_timefmt_t("%Y-W%V-%uT%H:%M:%s%ZP"));
-const std::locale month_day_format =
-    std::locale(std::locale::classic(), new input_timefmt_t("%Y-%m-%dT%H:%M:%s%ZP"));
+const std::locale &month_day_format() {
+    static const std::locale it(std::locale::classic(), new input_timefmt_t("%Y-%m-%dT%H:%M:%s%ZP"));
+    return it;
+}
 
 const ptime_t raw_epoch(date_t(1970, 1, 1));
 const boost::local_time::time_zone_ptr utc(
@@ -356,7 +360,7 @@ datum_t iso8601_to_time(
         ss.exceptions(std::ios_base::failbit);
         switch (df) {
         case UNSET: r_sanity_check(false); break;
-        case MONTH_DAY: ss.imbue(month_day_format); break;
+        case MONTH_DAY: ss.imbue(month_day_format()); break;
         case WEEKCOUNT: {
             rfail_target(target, base_exc_t::LOGIC, "%s",
                          "Due to limitations in the boost time library we use for "
@@ -364,7 +368,7 @@ datum_t iso8601_to_time(
                          "Sorry about that!  Please use years, calendar dates, or "
                          "ordinal dates instead.");
         } break;
-        case DAYCOUNT: ss.imbue(daycount_format); break;
+        case DAYCOUNT: ss.imbue(daycount_format()); break;
         default: unreachable();
         }
         time_t t(boost::date_time::not_a_date_time);
@@ -414,10 +418,16 @@ time_t time_to_boost(datum_t d) {
     }
 }
 
-const std::locale tz_format =
-    std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
-const std::locale no_tz_format =
-    std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
+const std::locale &tz_format() {
+    static const std::locale it(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
+    return it;
+}
+
+const std::locale &no_tz_format() {
+    static const std::locale it(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
+    return it;
+}
+
 std::string time_to_iso8601(datum_t d) {
     try {
         time_t t = time_to_boost(d);
@@ -431,9 +441,9 @@ std::string time_to_iso8601(datum_t d) {
         ss.exceptions(std::ios_base::failbit);
         const datum_t tz = d.get_field(timezone_key, NOTHROW);
         if (tz.has()) {
-            ss.imbue(tz_format);
+            ss.imbue(tz_format());
         } else {
-            ss.imbue(no_tz_format);
+            ss.imbue(no_tz_format());
         }
         ss << time_to_boost(d);
         std::string s = ss.str();

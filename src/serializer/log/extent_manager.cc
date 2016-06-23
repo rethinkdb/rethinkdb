@@ -88,7 +88,12 @@ public:
             extents.resize(id + 1);
         }
 
-        rassert(extents[id].state() == extent_info_t::state_unreserved);
+        rassert(extents[id].state() == extent_info_t::state_unreserved,
+                "current state: %d (%s)",
+                extents[id].state(),
+                extents[id].state() == extent_info_t::state_in_use ? "in_use"
+                  : extents[id].state() == extent_info_t::state_free ? "free"
+                  : "unknown");
         extents[id].set_state(extent_info_t::state_in_use);
         return make_extent_reference(extent);
     }

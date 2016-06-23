@@ -108,5 +108,4 @@ enum class reql_version_t {
 
 // Serialization of reql_version_t is defined in protocol_api.hpp.
 
-
 #endif  // VERSION_HPP_

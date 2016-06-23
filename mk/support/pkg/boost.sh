@@ -1,8 +1,8 @@
 
-version=1.56.0
+version=1.60.0
 
 src_url=http://sourceforge.net/projects/boost/files/boost/${version}/boost_${version//./_}.tar.bz2
-src_url_sha1=f94bb008900ed5ba1994a1072140590784b9b5df
+src_url_sha1=7f56ab507d3258610391b47fef6b11635861175a
 
 pkg_install-include () {
     mkdir -p "$install_dir/include/boost"
@@ -15,4 +15,8 @@ pkg_install () {
     in_dir "$build_dir" ./b2
     mkdir -p "$install_dir/lib"
     in_dir "$build_dir" cp "stage/lib/libboost_system.a" "$install_dir/lib"
+}
+
+pkg_install-windows () {
+    : # Include files only
 }

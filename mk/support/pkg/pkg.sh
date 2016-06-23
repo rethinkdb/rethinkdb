@@ -164,6 +164,15 @@ pkg_save_patch () {
     pkg_remove_tmp_fetch_dir
 }
 
+pkg_patch () {
+    for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
+        case "$patch" in
+            *_\*.patch) ;;
+            *) in_dir "$1" patch -fp1 < "$patch" ;;
+        esac
+    done
+}
+
 pkg_fetch_git () {
     pkg_make_tmp_fetch_dir
 
@@ -190,12 +199,24 @@ pkg_copy_src_to_build () {
     cp -af "$src_dir/." "$build_dir"
 }
 
+separate_install_include=true
+
+pkg_separate-install-include () {
+    $separate_install_include
+}
+
 pkg_install-include () {
     test -e "$install_dir/include" && rm -rf "$install_dir/include"
     if [[ -e "$src_dir/include" ]]; then
         mkdir -p "$install_dir/include"
-        cp -RL "$src_dir/include/." "$install_dir/include"
+        cp -vRL "$src_dir/include/." "$install_dir/include"
     fi
+}
+
+pkg_install-include-windows () {
+    pkg_install-include "$@"
+    mkdir -p "$windows_deps/include/"
+    cp -R "$install_dir"/include/* "$windows_deps/include/"
 }
 
 pkg_configure () {
@@ -244,6 +265,21 @@ cross_build_env () {
     unset RANLIB
     unset CC
     unset LD
+}
+
+with_vs_env () {
+    local vcvarsall="$(cygpath --windows --short-name "$VCVARSALL")"
+
+    local machine
+    case "$PLATFORM" in
+        Win32) machine=x86 ;;
+        x64) machine=x64 ;;
+    esac
+
+    # GNU make sets $MAKE and $MAKEFLAGS to values that are not
+    # compatible with Windows' nmake
+
+    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "&&" "$@"
 }
 
 error () {
@@ -337,22 +373,42 @@ geturl () {
     if [[ -n "${CURL:-}" ]]; then
         $CURL --silent -S --fail --location "$1" -o "$2"
     else
-        ${WGET:-wget} --quiet --output-document="$2" "$1" 
+        ${WGET:-wget} --quiet --output-document="$2" "$1"
     fi
 }
 
 getsha1 () {
     if hash openssl 1>/dev/null 2>/dev/null; then
-        openssl sha1 "$@" | awk '{print $NF}'
+        openssl sha1 "$1" | awk '{print $NF}'
     elif hash sha1sum 1>/dev/null 2>/dev/null; then
-        sha1sum "$@" | awk '{print $1}'
+        sha1sum "$1" | awk '{print $1}'
     elif hash shasum 1>/dev/null 2>/dev/null; then
-        shasum -a 1 "$@" | awk '{print $NF}'
+        shasum -a 1 "$1" | awk '{print $NF}'
     elif hash sha1 1>/dev/null 2>/dev/null; then
-        sha1 -q "$@"
+        sha1 -q "$1"
     else
         error "Unable to get the sha1 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha1sum, shasum, sha1"
     fi
+}
+
+# Cross-platform directory
+cpdir () {
+    if [[ "$OS" = Windows ]]; then
+        cygpath -w "$1"
+    else
+        printf "%s" "$1"
+    fi
+}
+
+nocygpath () {
+    local newpath cmd
+    newpath=$(echo "$PATH" | sed 's/:/\n/g' | grep ^/cygdrive | while read -r line; do echo -n "$line:"; done)
+    cmd=$(hash -t "$1" || echo "$1")
+    if [[ -e "$cmd.cmd" ]]; then
+        cmd="$cmd.cmd"
+    fi
+    shift
+    PATH="${newpath%:}" "$cmd" "$@"
 }
 
 # lowercase
@@ -383,6 +439,29 @@ OS=${OS:-}
 # Read the command
 cmd=$1
 shift
+
+# Windows-specific settings
+if [ "$OS" = "Windows" ]; then
+    case "$cmd" in
+        install|install-include) cmd=$cmd-windows
+    esac
+
+    if [[ "${DEBUG:-}" = 1 ]]; then
+        CONFIGURATION=Debug
+    else
+        CONFIGURATION=Release
+    fi
+
+    if [[ "$PLATFORM" = "Win32" ]]; then
+        VS_OUTPUT_DIR=$CONFIGURATION
+    else
+        VS_OUTPUT_DIR=$PLATFORM/$CONFIGURATION
+    fi
+
+    windows_deps=$root_build_dir/windows_deps
+    windows_deps_libs=$windows_deps/lib/$PLATFORM/$CONFIGURATION
+    mkdir -p "$windows_deps_libs"
+fi
 
 # Load the package
 load_pkg "$1"

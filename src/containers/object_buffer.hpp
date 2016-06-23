@@ -30,6 +30,7 @@ public:
     };
 
     object_buffer_t() : state(EMPTY) { }
+
     ~object_buffer_t() {
         // The buffer cannot be destroyed while an object is in the middle of
         //  constructing or destructing
@@ -42,7 +43,7 @@ public:
 
     template <class... Args>
     T *create(Args &&... args) {
-        rassert(state == EMPTY);
+        rassert(state == EMPTY, "state is %s", state_string());
         state = CONSTRUCTING;
         try {
             new (&object_data[0]) T(std::forward<Args>(args)...);
@@ -97,6 +98,16 @@ private:
         INSTANTIATED,
         DESTRUCTING
     } state;
+
+    const char *state_string() {
+        switch (state) {
+        case buffer_state_t::EMPTY: return "EMPTY";
+        case buffer_state_t::CONSTRUCTING: return "CONSTRUCTING";
+        case buffer_state_t::INSTANTIATED: return "INSTANTIATED";
+        case buffer_state_t::DESTRUCTING: return "DESTRUCTING";
+        default: return "corrupted!";
+        }
+    }
 
     DISABLE_COPYING(object_buffer_t);
 };

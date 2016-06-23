@@ -103,8 +103,6 @@ public:
 
     void shutdown();
 
-    void read_next_metablock();
-
 private:
     struct head_t {
     private:
@@ -132,7 +130,6 @@ private:
 
     void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
     void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
-    void on_io_complete();
 
     mutex_t write_lock;
 

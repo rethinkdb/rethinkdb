@@ -2,12 +2,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
-#include <openssl/ssl.h>
-
 #include <map>
 #include <set>
 #include <string>
 
+#include "arch/io/openssl.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/http.hpp"
@@ -28,7 +27,7 @@ public:
         int port,
         http_app_t *reql_app,
         std::string _path,
-        SSL_CTX *tls_ctx);
+        tls_ctx_t *tls_ctx);
     ~administrative_http_server_manager_t();
 
     int get_port() const;

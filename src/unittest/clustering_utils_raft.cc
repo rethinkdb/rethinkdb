@@ -411,6 +411,7 @@ void do_writes_raft(dummy_raft_cluster_t *cluster, int expect, int ms) {
     RAFT_DEBUG("begin do_writes(%d, %d)\n", expect, ms);
     microtime_t start = current_microtime();
 #endif /* ENABLE_RAFT_DEBUG */
+
     std::set<uuid_u> committed_changes;
     signal_timer_t timer;
     timer.start(ms);

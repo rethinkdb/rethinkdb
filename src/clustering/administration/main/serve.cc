@@ -644,20 +644,7 @@ bool do_serve(io_backender_t *io_backender,
                     /* This is the end of the startup process. `stop_cond` will be pulsed
                     when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
-#ifndef _WIN32
-                    if (stop_cond->get_source_signo() == SIGINT) {
-                        logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-                    } else if (stop_cond->get_source_signo() == SIGTERM) {
-                        logNTC("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-
-                    } else {
-                        logNTC("Server got signal %d from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_signo(),
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-                    }
-#endif
+                    logNTC("Server got %s; shutting down...", stop_cond->format().c_str());
                 }
 
                 cond_t non_interruptor;

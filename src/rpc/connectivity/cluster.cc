@@ -105,7 +105,7 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
 
 #if defined (__x86_64__) || defined (_WIN64)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__) || defined(__arm__)
+#elif defined (__i386__) || defined(__arm__) || defined(_WIN32)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
@@ -224,7 +224,7 @@ connectivity_cluster_t::run_t::run_t(
             _heartbeat_sl_view,
         boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
             _auth_sl_view,
-        SSL_CTX *_tls_ctx)
+        tls_ctx_t *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(_parent),
     server_id(_server_id),

@@ -60,7 +60,7 @@ struct variant_serializer_t<W, N> {
     explicit variant_serializer_t(write_message_t *wm) : wm_(wm) { }
 
     void operator()(const end_of_variant&){
-        unreachable();
+        unreachable("variant_serializer_t: no more types");
     }
 
     static const uint8_t size = N;

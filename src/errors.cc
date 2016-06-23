@@ -19,6 +19,7 @@
 #include "thread_local.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "arch/timing.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
 TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
 
@@ -74,7 +75,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logERR("Error in %s at line %d:", file, line);
+    logERR("Error in thread %d in %s at line %d:", get_thread_id().threadnum, file, line);
     vlogERR(msg, args);
     va_end(args);
 
@@ -247,7 +248,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     }
 
     logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());
-    logERR("backtrace:\n%s", format_backtrace(exception->ContextRecord).c_str());
+    logERR("backtrace:\n%s", format_backtrace().c_str());
 
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;
@@ -257,15 +258,20 @@ int windows_runtime_debug_failure_handler(int type, char *message, int *retval) 
     logERR("run-time debug failure:\n%s", message);
     logERR("backtrace:\n%s", format_backtrace().c_str());
 
-    return FALSE;
+    return false;
 }
 
+BOOL WINAPI windows_ctrl_handler(DWORD type) {
+    thread_pool_t::interrupt_handler(type);
+    return true;
+}
 #endif
 
 void install_generic_crash_handler() {
 #ifdef _WIN32
     // TODO WINDOWS: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
+    SetConsoleCtrlHandler(windows_ctrl_handler, true);
 #ifdef _MSC_VER
     _CrtSetReportHook(windows_runtime_debug_failure_handler);
 #endif

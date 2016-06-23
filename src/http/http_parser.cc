@@ -31,7 +31,9 @@
 #include "http/http_parser.hpp"
 
 // Disable warnings for not-handled enumeration values in switch statements
+#ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wswitch-enum"
+#endif
 
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */

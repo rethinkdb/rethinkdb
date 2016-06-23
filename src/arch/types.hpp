@@ -8,6 +8,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;

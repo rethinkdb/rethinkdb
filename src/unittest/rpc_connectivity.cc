@@ -1,11 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
-
 #include <functional>
+
+#ifdef _WIN32
+#include "windows.hpp"
+#include <ws2tcpip.h> // NOLINT
+#include <iphlpapi.h> // NOLINT
+#endif
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
@@ -461,69 +461,91 @@ TPTEST_MULTITHREAD(RPCConnectivityTest, PeerIDSemantics, 3) {
     ASSERT_FALSE(cluster_node.get_me().is_nil());
 }
 
-fd_t connect_to_node_ipv4(const ip_and_port_t &ip_port) {
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(ip_port.port().value());
-    addr.sin_addr = ip_port.ip().get_ipv4_addr();
+class meanwhile_t {
+public:
+    meanwhile_t() DEBUG_ONLY(: started(false)) { }
 
-    fd_t sock(::socket(AF_INET, SOCK_STREAM, 0));
-    guarantee_err(sock != INVALID_FD, "could not open socket to connect to cluster node");
-    int res = ::connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
-    guarantee_err(res == 0, "could not connect to cluster node");
-    return sock;
-}
-
-fd_t connect_to_node_ipv6(const ip_and_port_t &ip_port) {
-    struct sockaddr_in6 addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(ip_port.port().value());
-    addr.sin6_addr = ip_port.ip().get_ipv6_addr();
-
-    fd_t sock(::socket(AF_INET6, SOCK_STREAM, 0));
-    guarantee_err(sock != INVALID_FD, "could not open socket to connect to cluster node");
-    int res = ::connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
-    guarantee_err(res == 0, "could not connect to cluster node");
-    return sock;
-}
-
-fd_t connect_to_node(const ip_and_port_t &ip_port) {
-    fd_t result;
-
-    if (ip_port.ip().is_ipv4()) {
-        result = connect_to_node_ipv4(ip_port);
-    } else if (ip_port.ip().is_ipv6()) {
-        result = connect_to_node_ipv6(ip_port);
-    } else {
-        crash("unknown address type");
+    template <class callable_t>
+    explicit meanwhile_t(callable_t&& run) DEBUG_ONLY(: started(false)) {
+        start(std::forward<callable_t>(run));
     }
 
-    return result;
-}
+    template <class callable_t>
+    void start(callable_t run) {
+#ifndef NDEBUG
+        rassert(!started);
+        started = true;
+#endif
+        run_ = run;
+        coro_t::spawn_sometime([this](){
+            run_(&interrupt);
+            done.pulse();
+        });
+    }
+
+    ~meanwhile_t() {
+        if (!done.is_pulsed()) {
+            interrupt.pulse();
+            done.wait_lazily_ordered();
+        }
+    }
+
+private:
+#ifndef NDEBUG
+    bool started;
+#endif
+    cond_t interrupt;
+    cond_t done;
+    std::function<void(signal_t*)> run_;
+};
+
+class on_timeout_t {
+public:
+    template <class callable_t>
+    on_timeout_t(int64_t ms, callable_t handler) {
+        handler_ = handler;
+        timer.start(ms);
+        waiter.start([this](signal_t *interruptor) {
+            wait_any_t both(&timer, interruptor);
+            both.wait();
+            if (timer.is_pulsed()) {
+                handler_();
+            }
+        });
+    }
+
+    bool timed_out() {
+        return timer.is_pulsed();
+    }
+
+private:
+    std::function<void()> handler_;
+    signal_timer_t timer;
+    meanwhile_t waiter;
+};
 
 // Make sure each side of the connection is closed
-void check_tcp_closed(socket_stream_t *stream) {
+void check_tcp_closed(tcp_conn_stream_t *stream) {
+
     // Allow 6 seconds before timing out
-    signal_timer_t interruptor;
-    interruptor.start(6000);
+    on_timeout_t timeout(6000, [stream](){
+        stream->shutdown_read();
+        stream->shutdown_write();
+    });
 
-    stream->set_interruptor(&interruptor);
+    char buffer[1024];
+    int64_t res;
+    do {
+        res = stream->read(&buffer, 1024);
+    } while (res > 0);
 
-    try {
-        char buffer[1024];
-        int64_t res;
-        do {
-            res = stream->read(&buffer, 1024);
-        } while (res > 0);
+    do {
+        let_stuff_happen();
+        res = stream->write("a", 1);
+    } while(res != -1);
 
-        do {
-            let_stuff_happen();
-            res = stream->write("a", 1);
-        } while(res != -1);
-    } catch (const interrupted_exc_t &ex) {
-        FAIL() << "test took too long to detect connection was down";
+    if (timeout.timed_out()) {
+        FAIL() << "timed out";
     }
 
     ASSERT_FALSE(stream->is_write_open());
@@ -537,9 +559,9 @@ TPTEST(RPCConnectivityTest, CheckHeaders) {
     test_cluster_run_t cr1(&c1);
 
     // Manually connect to the cluster.
-    peer_address_t addr = get_cluster_local_address(&c1);
-    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
-    socket_stream_t stream(sock.get());
+    ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
+    cond_t non_interruptor;
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -572,9 +594,9 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
     test_cluster_run_t cr1(&c1);
 
     // Manually connect to the cluster.
-    peer_address_t addr = get_cluster_local_address(&c1);
-    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
-    socket_stream_t stream(sock.get());
+    ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
+    cond_t non_interruptor;
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -621,9 +643,9 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     test_cluster_run_t cr1(&c1);
 
     // Manually connect to the cluster.
-    peer_address_t addr = get_cluster_local_address(&c1);
-    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
-    socket_stream_t stream(sock.get());
+    ip_and_port_t addr = *get_cluster_local_address(&c1).ips().begin();
+    cond_t non_interruptor;
+    tcp_conn_stream_t stream(nullptr, addr.ip(), addr.port().value(), &non_interruptor);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -779,5 +801,3 @@ TPTEST(RPCConnectivityTest, CanonicalAddress) {
 }
 
 }   /* namespace unittest */
-
-#endif

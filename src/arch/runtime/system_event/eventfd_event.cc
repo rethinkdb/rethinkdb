@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifdef __linux
-#ifndef NO_EVENTFD
+#if defined(__linux) && !defined(NO_EVENTFD)
+
 #include "arch/runtime/system_event/eventfd_event.hpp"
 
 #include <fcntl.h>
@@ -49,5 +49,4 @@ void eventfd_event_t::wakey_wakey() {
     guarantee(res == sizeof(value), "Somehow completed a partial write to an eventfd.");
 }
 
-#endif  // NO_EVENTFD
-#endif  // __linux
+#endif

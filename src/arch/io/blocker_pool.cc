@@ -18,7 +18,9 @@ NOINLINE bool i_am_in_blocker_pool_thread() {
     return thread_is_blocker_pool_thread == 1;
 }
 // Make sure thread_is_blocker_pool_thread is not accessed directly
+#ifdef __GNUC__
 #pragma GCC poison thread_is_blocker_pool_thread
+#endif
 
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {

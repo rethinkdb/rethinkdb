@@ -8,10 +8,12 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef ENABLE_TLS
 #include <openssl/ssl.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
+#endif
 
 #ifndef _WIN32
 #include <pwd.h>
@@ -31,6 +33,7 @@
 #include <re2/re2.h>
 
 #include "arch/io/disk.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "arch/filesystem.hpp"
@@ -722,6 +725,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
         port_offset);
 }
 
+#ifdef ENABLE_TLS
 bool load_tls_key_and_cert(
     SSL_CTX *tls_ctx, const std::string &key_file, const std::string &cert_file) {
     if(SSL_CTX_use_PrivateKey_file(tls_ctx, key_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
@@ -1023,7 +1027,7 @@ bool configure_tls(
 
     return true;
 }
-
+#endif /* ENABLE_TLS */
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
@@ -1391,13 +1395,12 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
     help.add("--io-threads n",
              "how many simultaneous I/O operations can happen at the same time");
-    options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
-                                             options::OPTIONAL_NO_PARAMETER));
-    // `--no-direct-io` is deprecated (it's now the default). Not adding to help.
-    // TODO: Remove it completely after 1.16
+#ifndef _WIN32
+    // TODO WINDOWS: accept this option, but error out if it is passed
     options_out->push_back(options::option_t(options::names_t("--direct-io"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("--direct-io", "use direct I/O for file access");
+#endif
     options_out->push_back(options::option_t(options::names_t("--cache-size"),
                                              options::OPTIONAL));
     help.add("--cache-size mb", "total cache size (in megabytes) for the process. Can "
@@ -1645,16 +1648,18 @@ options::help_section_t get_service_options(std::vector<options::option_t> *opti
 
 options::help_section_t get_setuser_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Set User/Group options");
+#ifndef _WIN32
     options_out->push_back(options::option_t(options::names_t("--runuser"),
                                              options::OPTIONAL));
     help.add("--runuser user", "run as the specified user");
     options_out->push_back(options::option_t(options::names_t("--rungroup"),
                                              options::OPTIONAL));
     help.add("--rungroup group", "run with the specified group");
-
+#endif
     return help;
 }
 
+#ifdef ENABLE_TLS
 options::help_section_t get_tls_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("TLS options");
 
@@ -1730,6 +1735,7 @@ options::help_section_t get_tls_options(std::vector<options::option_t> *options_
 
     return help;
 }
+#endif
 
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
@@ -1757,7 +1763,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
@@ -1771,7 +1779,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     help_out->push_back(get_network_options(true, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
@@ -1786,7 +1796,9 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_server_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
+#ifdef ENABLE_TLS
     help_out->push_back(get_tls_options(options_out));
+#endif
     help_out->push_back(get_auth_options(options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_cpu_options(options_out));
@@ -1870,11 +1882,6 @@ update_check_t parse_update_checking_option(const std::map<std::string, options:
 }
 
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
-    if (exists_option(opts, "--no-direct-io")) {
-        logWRN("Ignoring 'no-direct-io' option. 'no-direct-io' is deprecated and "
-               "will be removed in future versions of RethinkDB. "
-               "Indirect (buffered) I/O is now used by default.");
-    }
     return exists_option(opts, "--direct-io") ?
         file_direct_io_mode_t::direct_desired :
         file_direct_io_mode_t::buffered_desired;
@@ -1963,7 +1970,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
 #ifdef _WIN32
-        crash("TODO WINDOWS: --daemon is not implemented");
+        // TODO WINDOWS
+        fail_due_to_user_error("--daemon not implemented on windows");
 #else
         pid_t pid = fork();
         if (pid < 0) {
@@ -2072,9 +2080,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
@@ -2175,9 +2185,11 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
@@ -2361,9 +2373,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         extproc_spawner_t extproc_spawner;
 
         tls_configs_t tls_configs;
+#ifdef ENABLE_TLS
         if (!configure_tls(opts, &tls_configs)) {
             return EXIT_FAILURE;
         }
+#endif
 
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),

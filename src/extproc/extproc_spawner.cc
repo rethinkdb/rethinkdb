@@ -3,11 +3,15 @@
 
 #include <sys/wait.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#else
+#include <atomic>
+#endif
+#include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
 
+#include "arch/process.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
@@ -17,9 +21,13 @@ extproc_spawner_t *extproc_spawner_t::instance = nullptr;
 // This is the class that runs in the external process, doing all the work
 class worker_run_t {
 public:
-    worker_run_t(fd_t _socket, pid_t _spawner_pid) :
-        socket(_socket), socket_stream(socket.get(), &blocking_watcher) {
-        guarantee(spawner_pid == -1);
+    worker_run_t(fd_t _socket, process_id_t _spawner_pid) :
+        socket(_socket), socket_stream(socket.get(), make_scoped<blocking_fd_watcher_t>()) {
+
+#ifdef _WIN32
+        // TODO WINDOWS: make sure the worker process gets killed
+#else
+        guarantee(spawner_pid == INVALID_PROCESS_ID);
         spawner_pid = _spawner_pid;
 
         // Set ourselves to get interrupted when our parent dies
@@ -36,17 +44,19 @@ public:
         guarantee_err(itimer_res == 0, "worker: setitimer failed");
         guarantee(old_timerval.it_value.tv_sec == 0 && old_timerval.it_value.tv_usec == 0,
                   "worker: setitimer saw that we already had an itimer!");
-
         // Send our pid over to the main process (because it didn't fork us directly)
         write_message_t wm;
         serialize<cluster_version_t::LATEST_OVERALL>(&wm, getpid());
         int res = send_write_message(&socket_stream, &wm);
         guarantee(res == 0);
+#endif
     }
 
     ~worker_run_t() {
-        guarantee(spawner_pid != -1);
-        spawner_pid = -1;
+#ifndef _WIN32
+        guarantee(spawner_pid != INVALID_PROCESS_ID);
+        spawner_pid = INVALID_PROCESS_ID;
+#endif
     }
 
     // Returning from this indicates an error, orderly shutdown will exit() manually
@@ -59,11 +69,9 @@ public:
             if (read_res != read_size) {
                 break;
             }
-
             if (!fn(&socket_stream, &socket_stream)) {
                 break;
             }
-
             // Trade magic numbers with the parent
             uint64_t magic_from_parent;
             {
@@ -75,7 +83,6 @@ public:
                     break;
                 }
             }
-
             write_message_t wm;
             serialize<cluster_version_t::LATEST_OVERALL>(
                     &wm, extproc_worker_t::worker_to_parent_magic);
@@ -87,6 +94,7 @@ public:
     }
 
 private:
+#ifndef _WIN32
     static pid_t spawner_pid;
 
     static void check_ppid_for_death(int) {
@@ -95,14 +103,17 @@ private:
             ::_exit(EXIT_FAILURE);
         }
     }
+#endif
 
     scoped_fd_t socket;
-    blocking_fd_watcher_t blocking_watcher;
     socket_stream_t socket_stream;
 };
 
+#ifndef _WIN32
 pid_t worker_run_t::spawner_pid = -1;
+#endif
 
+#ifndef _WIN32
 class spawner_run_t {
 public:
     explicit spawner_run_t(fd_t _socket) :
@@ -128,7 +139,7 @@ public:
     }
 
     void main_loop() {
-        pid_t spawner_pid = getpid();
+        process_id_t spawner_pid = current_process();
 
         while(true) {
             fd_t worker_socket;
@@ -136,7 +147,6 @@ public:
             if (recv_res != FD_RECV_OK) {
                 break;
             }
-
             pid_t res = ::fork();
             if (res == 0) {
                 // Worker process here
@@ -145,7 +155,6 @@ public:
                 worker_runner.main_loop();
                 ::_exit(EXIT_FAILURE);
             }
-
             guarantee_err(res != -1, "could not fork worker process");
             scoped_fd_t closer(worker_socket);
         }
@@ -154,15 +163,20 @@ public:
 private:
     scoped_fd_t socket;
 };
+#endif
 
-extproc_spawner_t::extproc_spawner_t() :
-    spawner_pid(-1)
-{
+extproc_spawner_t::extproc_spawner_t() {
     // TODO: guarantee we aren't in a thread pool
     guarantee(instance == nullptr);
     instance = this;
 
+#ifdef _WIN32
+    // TODO WINDOWS: ensure the workers die if the parent process does,
+    // perhaps using CreateJobObject and JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+#else
+    spawner_pid = INVALID_PROCESS_ID;
     fork_spawner();
+#endif
 }
 
 extproc_spawner_t::~extproc_spawner_t() {
@@ -170,6 +184,9 @@ extproc_spawner_t::~extproc_spawner_t() {
     guarantee(instance == this);
     instance = nullptr;
 
+#ifdef _WIN32
+    // TODO WINDOWS: cleanup worker processes
+#else
     // This should trigger the spawner to exit
     spawner_socket.reset();
 
@@ -177,12 +194,14 @@ extproc_spawner_t::~extproc_spawner_t() {
     int status;
     int res = waitpid(spawner_pid, &status, 0);
     guarantee_err(res == spawner_pid, "failed to wait for extproc spawner process to exit");
+#endif
 }
 
 extproc_spawner_t *extproc_spawner_t::get_instance() {
     return instance;
 }
 
+#ifndef _WIN32
 void extproc_spawner_t::fork_spawner() {
     guarantee(spawner_socket.get() == INVALID_FD);
 
@@ -208,9 +227,56 @@ void extproc_spawner_t::fork_spawner() {
     scoped_fd_t closer(fds[1]);
     spawner_socket.reset(fds[0]);
 }
+#endif
 
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
-fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out) {
+fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
+#ifdef _WIN32
+    static std::atomic<uint64_t> unique = 0;
+
+    char rethinkdb_path[MAX_PATH];
+    DWORD res = GetModuleFileName(NULL, rethinkdb_path, sizeof(rethinkdb_path));
+    guarantee_winerr(res != 0 && res != sizeof(rethinkdb_path), "GetModuleFileName failed");
+
+    scoped_fd_t fd;
+    std::string pipe_path = strprintf("\\\\.\\pipe\\rethinkdb-worker-%d-%d", GetCurrentProcessId(), ++unique);
+    fd.reset(CreateNamedPipe(pipe_path.c_str(),
+                             PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+                             PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,
+                             1,
+                             2048,
+                             2048,
+                             0,
+                             nullptr));
+    guarantee_winerr(fd.get() != INVALID_FD, "CreateNamedPipe failed");
+
+    std::string command_line = strprintf("RethinkDB " SUBCOMMAND_START_WORKER " %s", pipe_path.c_str());
+    std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
+    mutable_command_line.push_back('\0');
+
+    STARTUPINFO startup_info;
+    memset(&startup_info, 0, sizeof(startup_info));
+    startup_info.cb = sizeof(startup_info);
+    PROCESS_INFORMATION process_info;
+    BOOL res2 = CreateProcess(rethinkdb_path,
+                              &mutable_command_line[0],
+                              nullptr,
+                              nullptr,
+                              false,
+                              NORMAL_PRIORITY_CLASS,
+                              nullptr,
+                              nullptr,
+                              &startup_info,
+                              &process_info);
+
+    guarantee_winerr(res2, "CreateProcess failed");
+
+    // TODO WINDOWS: add new process to job group
+
+    *pid_out = process_id_t(GetProcessId(process_info.hProcess));
+    CloseHandle(process_info.hThread);
+    return fd.release();
+#else
     guarantee(spawner_socket.get() != INVALID_FD);
 
     fd_t fds[2];
@@ -220,17 +286,42 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     res = send_fds(spawner_socket.get(), 1, &fds[1]);
     guarantee_err(res == 0, "could not send socket file descriptor to worker process");
 
-    stream_out->create(fds[0], reinterpret_cast<fd_watcher_t*>(NULL));
+    socket_stream_t stream_out(fds[0]);
 
     // Get the pid of the new worker process
     archive_result_t archive_res;
-    archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_out->get(),
+    archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(&stream_out,
                                                                  pid_out);
     guarantee_deserialization(archive_res, "pid_out");
-    guarantee(*pid_out != -1);
+    guarantee(*pid_out != INVALID_PROCESS_ID);
 
     scoped_fd_t closer(fds[1]);
     return fds[0];
+#endif
+}
+
+#ifdef _WIN32
+bool extproc_maybe_run_worker(int argc, char **argv) {
+    if (argc != 3 || strcmp(argv[1], SUBCOMMAND_START_WORKER)) {
+        return false;
+    }
+
+    // Don't handle signals like ^C in the extproc worker process
+    SetConsoleCtrlHandler(nullptr, true);
+
+    fd_t fd = CreateFile(argv[2],
+                         GENERIC_READ | GENERIC_WRITE,
+                         0,
+                         nullptr,
+                         OPEN_EXISTING,
+                         FILE_ATTRIBUTE_NORMAL,
+                         nullptr);
+    guarantee_winerr(fd != INVALID_FD, "opening '%s'", argv[2]);
+
+    worker_run_t worker(fd, INVALID_PROCESS_ID);
+    worker.main_loop();
+    ::_exit(EXIT_SUCCESS);
+    return true;
 }
 
 #endif

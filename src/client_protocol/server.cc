@@ -191,7 +191,7 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
                                int port,
                                query_handler_t *_handler,
                                uint32_t http_timeout_sec,
-                               SSL_CTX *_tls_ctx) :
+                               tls_ctx_t *_tls_ctx) :
         tls_ctx(_tls_ctx),
         rdb_ctx(_rdb_ctx),
         handler(_handler),
@@ -649,7 +649,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    int64_t token;
+    int64_t token = 0;
     if (req.body.size() < sizeof(token)) {
         *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Client is buggy (request too small).");

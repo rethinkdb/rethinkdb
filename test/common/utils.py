@@ -132,7 +132,7 @@ def latest_build_dir(check_executable=True, mode=None):
         candidateMtime = None
         for name in os.listdir(masterBuildDir):
             path = os.path.join(masterBuildDir, name)
-            if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
+            if os.path.isdir(path) and any(map(lambda x: name.lower().startswith(x + '_') or name.lower() == x, mode)):
                 if check_executable == True:
                     if not os.path.isfile(os.path.join(path, 'rethinkdb')):
                         continue

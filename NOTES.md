@@ -1,3 +1,164 @@
+# Release 2.3.2 (Fantasia)
+
+Released on 2016-05-06
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.2 servers can be mixed with older RethinkDB 2.3.x servers in the same
+cluster. We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+ * Fixed a data corruption issue in the secondary index construction logic. The issue
+   could be triggered by creating a secondary index while the table is under write load
+   and could result in a `Guarantee failed: [token.has()]` error when accessing
+   the index (#5715)
+ * Fixed an issue in the Windows beta release that caused data corruption whenever
+   growing a table to more than 4 GB (#5719)
+ * Fixed a crash with the message `Guarantee failed: [num_subs == 0]` that could occur
+   when shutting down a server while trying to start new changefeeds at the same time
+   (#5708)
+ * Fixed a crash with the message
+   `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` that could occur when
+   using changefeeds while resharding (#5745)
+ * Added a `--tls-min-protocol` server option for reducing the minimum required TLS
+   protocol version. Drivers using an old OpenSSL version (e.g. on OS X) might require
+   this option in order to connect to a TLS-enabled RethinkDB server (#5734)
+ * Added a check to disallow using `order_by` with a non-deterministic predicate function
+   (#5548)
+ * Fixed a segmentation fault at address 0x18 that could occur in low-memory conditions
+   on Linux (#5348)
+ * Fixed a stack overflow issue when parsing very deeply nested objects (#5601)
+ * Improved the stack protection logic in order to avoid exceeding the system's memory
+   map limit. This issue affected Linux servers when having a very high number of
+   concurrently running queries (#5591)
+ * The server is now built with jemalloc version 4.1 on Linux (#5712)
+ * Fixed the message that is displayed when a query times out in the Data Explorer
+   (#5113)
+ * Improved the handling and reporting of OpenSSL-related errors (#5551)
+ * Added a new server option `--cluster-reconnect-timeout` to control how quickly
+   RethinkDB gives up trying to reconnect to a previously connected server (#5701)
+ * Fixed a race condition when writing to system tables that could lead to incorrect
+   update results (#5711)
+ * A custom conflict resolution function for the `insert` command can now return `null`
+   in order to delete a conflicting document (#5713)
+ * Improved the error message emitted when opening a changefeed on an `orderBy.limit`
+   query that has additional transformations (#5721)
+ * Fixed an incompatibility with Safari that could cause undesired page reloads in the
+   web UI (#3983)
+* Python driver
+ * The Python driver's `ssl` option now supports older Python versions from 2.7 up
+   (#4815)
+ * Added a REPL mode that can be launched through the new `python -m rethinkdb` command
+   (#5147)
+ * Added a cache for PBKDF2 authentication tokens to reduce the costs of repeatedly
+   opening connections (#5614)
+ * Refactored how the RethinkDB import and export scripts load the driver (#4970)
+ * Improved the error message reported when attempting to connect to a pre-2.3.0 server
+   (#5678)
+ * Fixed an incompatibility with Python 3 in the `rethinkdb dump` script that caused
+   `name 'file' is not defined` errors (#5694)
+ * Fixed an incompatibility with Python 3.3 in the protocol handshake code (#5742)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.2. In no particular order:
+
+* Matt Broadstone (@mbroadst)
+* Saad Abdullah (@saadqc)
+
+--
+
+# Release 2.3.1 (Fantasia)
+
+Released on 2016-04-22
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.1 servers can be mixed with RethinkDB 2.3.0 servers in the same cluster.
+We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.0. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Supported systems ###
+
+We now provide packages for Ubuntu 16.04 (Xenial Xerus).
+
+The `r.http` command no longer supports fetching data from encrypted `https` resources on
+OS X 10.7 and 10.8 (#5681). Newer releases of OS X are not affected.
+
+### Bug fixes ###
+
+* Server
+ * Fixed a segmentation fault triggered by performing a batched `insert` with multiple
+   occurrences of the same primary key (#5683)
+ * Fixed an uncaught exception bug in the `hostname_to_ips` function that could be
+   triggered by connecting a server with an unresolvable address (#5629)
+ * Fixed a query failure when opening a changefeed with the `squash: true` option on a
+   system table (#5644)
+ * Fixed a crash that was triggered when joining servers with identical server names
+   (#5643)
+ * Fixed an issue with the random number generator that stopped initial server names from
+   getting randomized correctly (#5655)
+ * Fixed a bug that caused memory to not be released properly after dropping a table or
+   removing its replicas from a server (#5666)
+ * Fixed a bug causing `eqJoin` to freeze the server when chained after a `changes`
+   command (#5696)
+ * Fixed an issue that caused the `returnChanges: "always"` option of the `insert`
+   command to miss certain types of errors in the `changes` result (#5366)
+ * Fixed a crash on OS X 10.7 when using the .dmg uninstaller (#5671)
+ * The OS X .dmg uninstaller is now signed (#5615)
+ * Fixed an edge case in the error handling for auto-generated primary keys when
+   inserting into a system table (#5691)
+ * RethinkDB can now be compiled with GCC 5.3 (#5635)
+* JavaScript driver
+ * Renamed the `username` option of the `r.connect` command to `user`. The `username`
+   option is still supported for backwards-compatibility with existing code (#5659)
+ * Improved the error message shown when connecting with the 2.3 driver to an older
+   server (#5667)
+* Python driver
+ * Improved the error message that is emitted when trying to connect to a server with a
+   wrong password (#5624)
+ * Fixed the "global name 'options' is not defined" bug in the `rethinkdb import` script
+   (#5637)
+ * Fixed a Python 3 incompatibility in the `rethinkdb restore` script (#5647)
+* Java driver
+ * Implemented the timeout option for `getNext` (#5603)
+ * Losing the server connection while having a changefeed open now correctly results in
+   an error (#5660)
+ * The driver now caches authentication nonces in order to speed up connection setup
+   (#5614)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.1. In no particular order:
+
+* Brian Chavez (@bchavez)
+* Neil Hanlon (@NeilHanlon)
+* Jason Soares (@JasonSoares)
+* Magnus Lundgren (@iorlas1)
+
+--
+
 # Release 2.3.0 (Fantasia)
 
 Released on 2016-04-06

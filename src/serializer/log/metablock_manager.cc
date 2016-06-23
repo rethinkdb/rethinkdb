@@ -71,7 +71,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
       extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(nullptr) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
-    rassert(mb_buffer.get());
+    rassert(mb_buffer.has());
     mb_buffer_in_use = false;
 
     /* Build the list of metablock locations in the file */

@@ -19,10 +19,16 @@
 
 microtime_t current_microtime() {
     FILETIME time;
+#if _WIN32_WINNT >= 0x602 // Windows 8
     GetSystemTimePreciseAsFileTime(&time);
+#else
+    GetSystemTimeAsFileTime(&time);
+#endif
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
+    // Convert to Unix epoch
+    nanos100.QuadPart -= 116444736000000000ULL;
     return nanos100.QuadPart / 10;
 }
 
@@ -93,10 +99,16 @@ timespec clock_realtime() {
     return ret;
 #elif defined(_MSC_VER)
     FILETIME time;
+#if _WIN32_WINNT >= 0x602 // Windows 8
     GetSystemTimePreciseAsFileTime(&time);
+#else
+    GetSystemTimeAsFileTime(&time);
+#endif
     ULARGE_INTEGER nanos100;
     nanos100.LowPart = time.dwLowDateTime;
     nanos100.HighPart = time.dwHighDateTime;
+    // Convert to Unix epoch
+    nanos100.QuadPart -= 116444736000000000ULL;
     timespec ret;
     ret.tv_sec = nanos100.QuadPart / (MILLION * 10);
     ret.tv_nsec = (nanos100.QuadPart % (MILLION * 10)) * 100;

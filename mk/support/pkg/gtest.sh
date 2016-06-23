@@ -8,3 +8,19 @@ pkg_install () {
     mkdir -p "$install_dir/lib"
     cp "$build_dir/make/gtest.a" "$install_dir/lib/libgtest.a"
 }
+
+pkg_install-windows () {
+    pkg_copy_src_to_build
+
+    local generator
+    case "$PLATFORM" in
+        x64) generator="Visual Studio 14 Win64" ;;
+        Win32) generator="Visual Studio 14 2015" ;;
+    esac
+
+    rm -rf "$build_dir"/{CMakeCache.txt,CMakeFiles}
+    in_dir "$build_dir" "$CMAKE" -G"$generator"
+    in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM gtest.vcxproj
+
+    cp "$build_dir/$CONFIGURATION/gtest.lib" "$windows_deps_libs/"
+}

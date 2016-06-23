@@ -278,7 +278,7 @@ void run_tests(cache_t *cache) {
     combinations_test(cache);
 }
 
-TPTEST(BlobTest, all_tests) {
+TPTEST(BlobTest, AllTests) {
     mock_file_opener_t file_opener;
     log_serializer_t::create(
             &file_opener,

@@ -1,10 +1,122 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
 #ifdef _WIN32
 
-// TODO WINDOWS
+#include "concurrency/wait_any.hpp"
+
+#ifdef TRACE_OVERLAPPED
+#include "debug.hpp"
+#define debugf_overlapped(...) debugf("overlapped: " __VA_ARGS__)
+#else
+#define debugf_overlapped(...) ((void)0)
+#endif
+
+overlapped_operation_t::overlapped_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+    debugf_overlapped("[%p] init from watcher %p\n", this, ew);
+    rassert(event_watcher != nullptr);
+    rassert(event_watcher->current_thread() == get_thread_id());
+    memset(&overlapped, 0, sizeof(overlapped));
+}
+
+overlapped_operation_t::~overlapped_operation_t() {
+    debugf_overlapped("[%p] destroy\n", this);
+    // Always call wait_abortable, set_cancel, set_result or abort_op before destructing
+    rassert(completed.is_pulsed());
+}
+
+void overlapped_operation_t::set_cancel() {
+    debugf_overlapped("[%p] set_cancel\n", this);
+    set_result(0, ERROR_CANCELLED);
+}
+
+void overlapped_operation_t::abort_op() {
+    if (completed.is_pulsed()) {
+        debugf_overlapped("[%p] abort_op: already pulsed\n", this);
+    } else {
+        debugf_overlapped("[%p] abort_op: cancelling\n", this);
+        BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
+        if (!res) {
+            switch (GetLastError()) {
+            case ERROR_NOT_FOUND:
+            case ERROR_INVALID_HANDLE:
+                debugf_overlapped("[%p] abort_op: not found or invalid\n", this);
+                // Assume the operation has already completed asynchonously and is
+                // currently queued on the completion port
+                break;
+            default:
+                guarantee_winerr(res, "CancelIoEx failed");
+            }
+        }
+
+        // After a successful CancelIoEx, the operation gets queued
+        // onto the completion port. In most cases the error code will
+        // be ERROR_OPERATION_ABORTED. However the operation might
+        // also complete succesfully or fail with another error.
+        completed.wait_lazily_unordered();
+    }
+}
+
+void overlapped_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+    debugf_overlapped("[%p] set_result(%zu, %u)\n", this, nb_bytes_, error_);
+    rassert(!completed.is_pulsed());
+    nb_bytes = nb_bytes_;
+    error = error_;
+    if (error != NO_ERROR) {
+        event_watcher->on_error(error);
+    }
+    completed.pulse();
+}
+
+windows_event_watcher_t::windows_event_watcher_t(fd_t handle_, linux_event_callback_t *eh) :
+    handle(handle_), error_handler(eh), original_thread(get_thread_id()), current_thread_(get_thread_id()) {
+    linux_thread_pool_t::get_thread()->queue.add_handle(handle);
+}
+
+void windows_event_watcher_t::rethread(threadnum_t new_thread) {
+    current_thread_ = new_thread;
+}
+
+void windows_event_watcher_t::stop_watching_for_errors() {
+    error_handler = nullptr;
+}
+
+void windows_event_watcher_t::on_error(UNUSED DWORD error) {
+    rassert(current_thread_ == get_thread_id());
+    if (error_handler != nullptr) {
+        linux_event_callback_t *eh = error_handler;
+        error_handler = nullptr;
+        eh->on_event(poll_event_err);
+    }
+}
+
+windows_event_watcher_t::~windows_event_watcher_t() {
+    // WINDOWS TODO: Is there a way to make sure no more operations are
+    // queued for this handle, or that the handle is closed?
+}
+
+void overlapped_operation_t::wait_interruptible(const signal_t *interruptor) {
+    debugf_overlapped("[%p] wait_interruptible\n", this);
+    try {
+        ::wait_interruptible(&completed, interruptor);
+    } catch (const interrupted_exc_t &) {
+        debugf_overlapped("[%p] interrupted\n", this);
+        abort_op();
+        throw;
+    }
+}
+
+void overlapped_operation_t::wait_abortable(const signal_t *aborter) {
+    debugf_overlapped("[%p] wait_abortable\n", this);
+    wait_any_t waiter(&completed, aborter);
+    waiter.wait_lazily_unordered();
+    if (aborter->is_pulsed()) {
+        debugf_overlapped("[%p] aborted\n", this);
+        abort_op();
+    }
+}
 
 #else
 

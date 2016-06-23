@@ -10,7 +10,7 @@
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
     typedef std::tuple<void *(*)(void*), void*> data_t;
     data_t* data = new data_t(start_routine, arg);
-    static const auto go = [](void* rawdata) {
+    static const auto go = [](void* rawdata) -> DWORD {
         data_t* data = static_cast<data_t*>(rawdata);
         auto f = std::get<0>(*data);
         auto args = std::get<1>(*data);
@@ -18,7 +18,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
         void* res = f(args);
         // void* may be bigger than DWORD
         rassert(reinterpret_cast<uintptr_t>(res) | 0xFFFFFFFF == 0xFFFFFFFF);
-        return reinterpret_cast<DWORD>(res);
+        return reinterpret_cast<uintptr_t>(res);
     };
     HANDLE handle = CreateThread(nullptr, 0, go, static_cast<void*>(data), 0, nullptr);
     if (handle == nullptr) {
@@ -38,10 +38,33 @@ int pthread_join(pthread_t other, void** retval) {
         if (retval != nullptr) {
             DWORD exit_code;
             guarantee_winerr(GetExitCodeThread(other, &exit_code));
-            *retval = reinterpret_cast<void*>(exit_code);
+            *retval = reinterpret_cast<void*>(static_cast<uintptr_t>(exit_code));
         }
         return 0;
     }
+}
+
+int pthread_spin_init(pthread_spinlock_t* lock, int type) {
+    rassert(type == PTHREAD_PROCESS_PRIVATE);
+    static const int spin_count = 40; // TODO WINDOWS: this spin count is arbitrary
+    InitializeCriticalSectionAndSpinCount(lock, spin_count);
+    return 0;
+}
+
+
+int pthread_spin_destroy(pthread_mutex_t* lock) {
+    DeleteCriticalSection(lock);
+    return 0;
+}
+
+int pthread_spin_lock(pthread_mutex_t* lock) {
+    EnterCriticalSection(lock);
+    return 0;
+}
+
+int pthread_spin_unlock(pthread_spinlock_t* lock) {
+    LeaveCriticalSection(lock);
+    return 0;
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
@@ -51,6 +74,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
 }
 
 int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
     return 0;
 }
 
@@ -66,7 +90,7 @@ int pthread_mutex_unlock(pthread_mutex_t* mutex) {
 
 int pthread_rwlock_init(pthread_rwlock_t *lock, void *opts) {
     rassert(opts == nullptr, "this implementation of pthread_rwlock_t does not support attributes");
-    InitializeSRWLock(lock->lock);
+    InitializeSRWLock(&lock->lock);
     return 0;
 }
 
@@ -76,13 +100,13 @@ int pthread_rwlock_destroy(pthread_rwlock_t *) {
 }
 
 int pthread_rwlock_rdlock(pthread_rwlock_t *lock) {
-    AcquireSRWLockShared(lock->lock);
+    AcquireSRWLockShared(&lock->lock);
     lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::SHARED;
     return 0;
 }
 
 int pthread_rwlock_wrlock(pthread_rwlock_t *lock) {
-    AcquireSRWLockExclusive(lock->lock);
+    AcquireSRWLockExclusive(&lock->lock);
     lock->current_acq_mode = pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE;
     return 0;
 }
@@ -90,9 +114,11 @@ int pthread_rwlock_wrlock(pthread_rwlock_t *lock) {
 int pthread_rwlock_unlock(pthread_rwlock_t *lock) {
     switch (lock->current_acq_mode) {
         case pthread_rwlock_t::srw_lock_mode_t::SHARED:
-            ReleaseSRWLockShared(lock->lock);
+            ReleaseSRWLockShared(&lock->lock);
+            break;
         case pthread_rwlock_t::srw_lock_mode_t::EXCLUSIVE:
-            ReleaseSRWLockExclusive(lock->lock);
+            ReleaseSRWLockExclusive(&lock->lock);
+            break;
         default:
             unreachable();
     }

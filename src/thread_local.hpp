@@ -61,22 +61,6 @@
  * cannot be inlined, and that it does not use on_thread_t.
  */
 
-#ifdef _MSC_VER
-#define TLS_ptr_with_constructor(type, name) TLS_ptr(type, name)
-#else
-#define TLS_ptr_with_constructor(type, name)                            \
-    typedef char TLS_ ## name ## _t[sizeof(type)];                      \
-    TLS_ptr(TLS_ ## name ## _t, name ## _)                              \
-    TLS_with_init(bool, name ## _initialised, false)                    \
-    NOINLINE type *TLS_ptr_ ## name () {                                \
-        if (!TLS_get_ ## name ## _initialised()) {                      \
-            new (reinterpret_cast<void *>(TLS_ptr_ ## name ## _())) type(); \
-            TLS_set_ ## name ## _initialised(true);                     \
-        }                                                               \
-        return reinterpret_cast<type *>(TLS_ptr_ ## name ## _());       \
-    }
-#endif
-
 #ifndef THREADED_COROUTINES
 
 #define DEFINE_TLS_ACCESSORS(type, name)                                \
@@ -96,13 +80,6 @@
 #define TLS_with_init(type, name, initial)                              \
     static THREAD_LOCAL type TLS_ ## name(initial);                     \
     DEFINE_TLS_ACCESSORS(type, name)
-
-#define TLS_ptr(type, name)                                             \
-    static THREAD_LOCAL type TLS_ ## name;                              \
-                                                                        \
-    NOINLINE type *TLS_ptr_ ## name () {                                \
-        return &TLS_ ## name;                                           \
-    }
 
 #else  // THREADED_COROUTINES
 
@@ -126,14 +103,15 @@
         TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
     DEFINE_TLS_ACCESSORS(type, name)
 
-#define TLS_ptr(type, name)                                             \
-    static std::vector<cache_line_padded_t<type> >                      \
-        TLS_ ## name(MAX_THREADS);                                      \
-                                                                        \
-    type *TLS_ptr_ ## name () {                                         \
-        return &TLS_ ## name[get_thread_id().threadnum].value;          \
-    }
-
 #endif  // THREADED_COROUTINES
+
+#define GLIBCXX_4_8 20130322
+
+#if defined(_LIBCPP_TYPE_TRAITS) || defined(_MSC_VER) || __GLIBCXX__ >= GLIBCXX_4_8
+// libc++ with type traights support, visual studio and libstdc++ >= 4.8
+using std::is_trivially_destructible;
+#else
+#define is_trivially_destructible std::has_trivial_destructor
+#endif
 
 #endif /* THREAD_LOCAL_HPP_ */

@@ -3441,7 +3441,8 @@ void map_add_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
         auto pair = std::make_pair(key, decltype(it->second)(get_num_threads()));
         it = map->insert(std::move(pair)).first;
     }
-    (it->second)[sub->home_thread().threadnum].insert(sub);
+    auto pair = (it->second)[sub->home_thread().threadnum].insert(sub);
+    guarantee(pair.second);
 }
 
 void feed_t::del_sub_with_lock(
@@ -3508,7 +3509,8 @@ void feed_t::del_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTH
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_range_sub(range_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&range_subs_lock, [this, sub]() {
-            range_subs[sub->home_thread().threadnum].insert(sub);
+            auto pair = range_subs[sub->home_thread().threadnum].insert(sub);
+            guarantee(pair.second);
         });
 }
 
@@ -3522,7 +3524,8 @@ void feed_t::del_range_sub(range_sub_t *sub) THROWS_NOTHING {
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_empty_sub(empty_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&empty_subs_lock, [this, sub]() {
-        empty_subs[sub->home_thread().threadnum].insert(sub);
+        auto pair = empty_subs[sub->home_thread().threadnum].insert(sub);
+        guarantee(pair.second);
     });
 }
 
@@ -3565,24 +3568,13 @@ void feed_t::each_sub_in_vec(
         }
     }
     pmap(subscription_threads.size(),
-         std::bind(&feed_t::each_sub_in_vec_cb<Sub>,
-                   this,
-                   std::cref(f),
-                   std::cref(vec),
-                   std::cref(subscription_threads),
-                   ph::_1));
-}
-
-template<class Sub>
-void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
-                                const std::vector<std::set<Sub *> > &vec,
-                                const std::vector<int> &subscription_threads,
-                                int i) {
-    guarantee(vec[subscription_threads[i]].size() != 0);
-    on_thread_t th((threadnum_t(subscription_threads[i])));
-    for (Sub *sub : vec[subscription_threads[i]]) {
-        f(sub);
-    }
+         [&f, &vec, &subscription_threads](int i) {
+             guarantee(vec[subscription_threads[i]].size() != 0);
+             on_thread_t th((threadnum_t(subscription_threads[i])));
+             for (Sub *sub : vec[subscription_threads[i]]) {
+                 f(sub);
+             }
+         });
 }
 
 void feed_t::each_range_sub(
@@ -3720,7 +3712,7 @@ void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
         }
         limit_subs.clear();
     }
-    r_sanity_check(num_subs == 0);
+    guarantee(num_subs == 0);
 }
 
 feed_t::feed_t(namespace_id_t const &_table_id, table_meta_client_t *_table_meta_client)
@@ -3887,7 +3879,8 @@ counted_t<datum_stream_t> client_t::new_stream(
                     auto val = make_scoped<real_feed_t>(
                         lock, this, manager, access.get(), table_id, &interruptor,
                         table_meta_client);
-                    feed_it = feeds.insert(std::make_pair(table_id, std::move(val))).first;
+                    feed_it = feeds.insert(
+                        std::make_pair(table_id, std::move(val))).first;
                 }
 
                 guarantee(feed_it != feeds.end());

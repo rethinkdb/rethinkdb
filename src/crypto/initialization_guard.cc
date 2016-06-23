@@ -1,6 +1,10 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "crypto/initialization_guard.hpp"
 
+#ifdef _WIN32
+#include "windows.hpp"
+#endif
+
 #include <openssl/err.h>
 #include <openssl/opensslv.h>
 #include <openssl/ssl.h>

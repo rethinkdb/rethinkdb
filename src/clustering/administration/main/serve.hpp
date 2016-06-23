@@ -2,8 +2,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
-#include <openssl/ssl.h>
-
 #include <set>
 #include <string>
 #include <utility>
@@ -14,6 +12,7 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/main/version_check.hpp"
 #include "arch/address.hpp"
+#include "arch/io/openssl.hpp"
 
 class os_signal_cond_t;
 
@@ -99,7 +98,7 @@ struct service_address_ports_t {
     int port_offset;
 };
 
-typedef std::shared_ptr<SSL_CTX> shared_ssl_ctx_t;
+typedef std::shared_ptr<tls_ctx_t> shared_ssl_ctx_t;
 
 class tls_configs_t {
 public:
