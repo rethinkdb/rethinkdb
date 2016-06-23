@@ -82,6 +82,7 @@ pkg_fetch_archive () {
         if geturl "$src_url" "$archive"; then
             url="$src_url"
         elif [[ -n "${src_url_backup:-}" ]]; then
+            echo "Downloading from primary URL failed. Trying to download from alternative URL"
             geturl "$src_url_backup" "$archive"
             url="$src_url_backup"
         else
