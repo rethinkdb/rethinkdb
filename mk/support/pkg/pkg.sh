@@ -28,9 +28,6 @@ set -eu
 
 unset DESTDIR
 
-src_url_backup=""
-src_url_sha1=""
-
 # Print the version number of the package
 pkg_version () {
     echo $version
@@ -65,35 +62,43 @@ pkg_remove_tmp_fetch_dir () {
 pkg_fetch_archive () {
     pkg_make_tmp_fetch_dir
 
-    local archive="${src_url##*/}"
-    set +e # turn off auto-fail so we can fall back to $src_url_backup
-    error_text=$(geturl "$src_url" "$tmp_dir/$archive")
-    local download_failed=$?
-    if [[ $download_failed -ne "0" ]] && [[ $src_url_backup ]]; then
-        error_text=$(geturl "$src_url_backup" "$tmp_dir/$archive")
-        download_failed=$?
-    fi
-    set -e # reenable auto-fail
-    if [[ $download_failed -ne "0" ]]; then
-        if [[ ! -z $error_text ]]; then
-            error_text=": $error_text"
+    local archive_name="${src_url##*/}"
+    local archive="$cache_dir/$archive_name"
+    local actual_sha1
+
+    if [[ -e "$archive" && "$VERIFY_FETCH_HASH" = 1 ]]; then
+        actual_sha1=`getsha1 "$archive"`
+        if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
+            echo "warning: cached file has wrong hash, deleting. (Expected $src_url_sha1, actual $actual_sha1)."
+            rm "$archive"
         fi
-        error "failed to download $pkg from $src_url$error_text"
     fi
 
-    if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
-        error "sha1 for $pkg was incorrect: `getsha1  "$tmp_dir/$archive"` vs. expected: $src_url_sha1"
+    if [[ ! -e "$archive" ]]; then
+        local url
+
+        mkdir -p "$cache_dir"
+
+        if geturl "$src_url" "$archive"; then
+            url="$src_url"
+        elif [[ -n "${src_url_backup:-}" ]]; then
+            echo "Downloading from primary URL failed. Trying to download from alternative URL"
+            geturl "$src_url_backup" "$archive"
+            url="$src_url_backup"
+        else
+            exit 1
+        fi
+
+        if [[ "$VERIFY_FETCH_HASH" = 1 ]]; then
+            actual_sha1=`getsha1 "$archive"`
+            if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
+                error "downloaded file has wrong hash: expected '$src_url_sha1' but found '$actual_sha1' for $url ($archive)." \
+                      "Disable this check with VERIFY_FETCH_HASH=0 or add correct hash to '$pkg_dir/$pkg.sh'"
+            fi
+        fi
     fi
 
-    local ext
-    case "$archive" in
-        *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;
-        *.tar.gz)  ext=tar.gz;  in_dir "$tmp_dir" tar -xzf "$archive" ;;
-        *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
-        *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
-        *.zip)     ext=zip;     in_dir "$tmp_dir" unzip    "$archive" ;;
-        *) error "don't know how to extract $archive"
-    esac
+    pkg_extract "$tmp_dir" "$archive"
 
     set -- "$tmp_dir"/*/
 
@@ -101,9 +106,60 @@ pkg_fetch_archive () {
         error "invalid archive contents: $archive"
     fi
 
-    test -e "$src_dir" && rm -rf "$src_dir"
+    pkg_patch "$1"
 
+    test -e "$src_dir" && rm -rf "$src_dir"
     mv "$1" "$src_dir"
+
+    pkg_remove_tmp_fetch_dir
+}
+
+pkg_extract () {
+    local ext
+    case "$2" in
+        *.tgz)     in_dir "$1" tar -xzf "$2" ;;
+        *.tar.gz)  in_dir "$1" tar -xzf "$2" ;;
+        *.tar.bz2) in_dir "$1" tar -xjf "$2" ;;
+        *.tar.xz)  in_dir "$1" tar -xJf "$2" ;;
+        *.zip)     in_dir "$1" unzip    "$2" ;;
+        *) error "don't know how to extract $(basename "$archive_name")"
+    esac
+}
+
+pkg_patch () {
+    for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
+        case "$patch" in
+            *_\*.patch) ;;
+            *) in_dir "$1" patch -fp1 < "$patch" ;;
+        esac
+    done
+}
+
+pkg_list_patches () {
+    printf "%s\n" "$pkg_dir"/patch/"$pkg"_*
+}
+
+pkg_save_patch () {
+    pkg_make_tmp_fetch_dir
+
+    local patch_name="$@"
+    if [[ -z "$patch_name" ]]; then
+        error "no patch name specified"
+    fi
+
+    local archive_name="${src_url##*/}"
+    pkg_extract "$tmp_dir" "$cache_dir/$archive_name"
+    set -- "$tmp_dir"/*/
+    pkg_patch "$1"
+
+    if in_dir "$src_dir" diff -ruN --label original "$1" .  > "$tmp_dir"/out.patch; then
+        error "Empty diff"
+    elif [[ $? != 1 ]]; then
+        exit $?
+    fi
+    mv "$tmp_dir"/out.patch "$pkg_dir/patch/${pkg}_$patch_name.patch"
+
+    echo "Wrote $pkg_dir/patch/${pkg}_$patch_name.patch"
 
     pkg_remove_tmp_fetch_dir
 }
@@ -243,6 +299,7 @@ load_pkg () {
     src_dir=$(niceabspath "$external_dir/$pkg""_$version")
     install_dir=$(niceabspath "$root_build_dir/external/$pkg""_$version")
     build_dir=$(niceabspath "$install_dir/build")
+    cache_dir=$(niceabspath "$external_dir/.cache")
 }
 
 contains () {
@@ -294,7 +351,7 @@ getsha1 () {
     elif hash sha1 1>/dev/null 2>/dev/null; then
         sha1 -q "$@"
     else
-        error "Unable to get the sha1 checksum of $pkg, please install one of these tools: openssl, sha1sum, shasum, sha1"
+        error "Unable to get the sha1 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha1sum, shasum, sha1"
     fi
 }
 

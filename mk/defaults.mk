@@ -130,6 +130,9 @@ UGLIFY ?= 1
 # such as oprofile.
 NO_OMIT_FRAME_POINTER ?= 0
 
+# Check the hash of fetched archives
+VERIFY_FETCH_HASH=1
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0

@@ -21,7 +21,7 @@ WGET ?=
 CURL ?=
 JOBSERVER_FDS_FLAG = $(filter --jobserver-fds=%,$(MAKEFLAGS))
 PKG_MAKEFLAGS = $(if $(JOBSERVER_FDS_FLAG), -j) $(JOBSERVER_FDS_FLAG)
-PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX
+PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX VERIFY_FETCH_HASH
 PKG_SCRIPT = $(foreach v, $(PKG_SCRIPT_VARIABLES), $v='$($v)') MAKEFLAGS='$(PKG_MAKEFLAGS)' $/mk/support/pkg/pkg.sh
 PKG_SCRIPT_TRACE = TRACE=1 $(PKG_SCRIPT)
 PKG_RECURSIVE_MARKER := $(if $(findstring 0,$(JUST_SCAN_MAKEFILES)),$(if $(DRY_RUN),,+))
@@ -71,6 +71,13 @@ clean-$2: clean-$2_$3
 .PHONY: shrinkwrap-$2
 shrinkwrap-$2:
 	$(PKG_SCRIPT_TRACE) shrinkwrap $2_$3
+
+.PHONY: list-patches-$2
+list-patches-$2:
+	$(PKG_SCRIPT) list_patches $2_$3
+
+save-patch-$2-%:
+	$(PKG_SCRIPT) save_patch $2_$3 "$$*"
 
 # Depend on node for fetching node packages
 $(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)

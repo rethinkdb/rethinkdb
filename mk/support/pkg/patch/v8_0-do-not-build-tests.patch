@@ -1,0 +1,12 @@
+diff -ruN --label original original ./build/all.gyp
+--- original
++++ ./build/all.gyp	2016-05-15 11:51:59.635891208 -0700
+@@ -10,8 +10,6 @@
+       'dependencies': [
+         '../samples/samples.gyp:*',
+         '../src/d8.gyp:d8',
+-        '../test/cctest/cctest.gyp:*',
+-        '../test/unittests/unittests.gyp:*',
+       ],
+       'conditions': [
+         ['component!="shared_library"', {
