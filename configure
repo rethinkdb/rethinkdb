@@ -1328,7 +1328,7 @@ check_windows_platform () {
 check_precompiled_web () {
     optional "Precompiled web assets"
     if [[ -z "$enable_precompiled_web" ]]; then
-        if test -d precompiled/web_assets; then
+        if test -d precompiled/bundle_assets; then
             enable_precompiled_web=true
         else
             enable_precompiled_web=false
