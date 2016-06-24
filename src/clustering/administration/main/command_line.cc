@@ -1,5 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
+
+#include <functional>
 
 #include <signal.h>
 #include <stdio.h>
@@ -18,6 +20,12 @@
 #ifndef _WIN32
 #include <pwd.h>
 #include <grp.h>
+#endif
+
+#ifdef _WIN32
+#include "errors.hpp"
+#include <Windows.h>
+#include <Shellapi.h>
 #endif
 
 // Needed for determining rethinkdb binary path below
@@ -46,6 +54,7 @@
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/main/version_check.hpp"
+#include "clustering/administration/main/windows_service.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/path.hpp"
@@ -54,6 +63,7 @@
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "containers/scoped.hpp"
 #include "crypto/random.hpp"
 #include "logger.hpp"
 
@@ -2003,7 +2013,7 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 #endif
-	}
+    }
     return true;
 }
 
@@ -2221,7 +2231,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     return EXIT_FAILURE;
 }
 
-// TODO: Add split_db_table unit test.
 MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_out, std::string *table_name_out) {
     size_t first_pos = db_table.find_first_of('.');
     if (first_pos == std::string::npos || db_table.find_last_of('.') != first_pos) {
@@ -2443,6 +2452,10 @@ void help_rethinkdb_porcelain() {
     printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
     printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
     printf("    'rethinkdb index-rebuild': rebuild outdated secondary indexes\n");
+#ifdef _WIN32
+    printf("    'rethinkdb install-service': install RethinkDB as a Windows service\n");
+    printf("    'rethinkdb remove-service': remove a previously installed Windows service\n");
+#endif
     printf("\n");
     printf("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
@@ -2515,3 +2528,354 @@ void help_rethinkdb_index_rebuild() {
     char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, args);
 }
+
+#ifdef _WIN32
+
+int global_windows_service_argc;
+scoped_array_t<char *> global_windows_service_argv;
+int main_rethinkdb_run_service(int argc, char *argv[]) {
+    // Open stdin, stdout, stderr. We ignore errors here. If stderr or stdout fail to
+    // open, the log writer is going to raise an issue later.
+    freopen("NUL", "r", stdin);
+    freopen("NUL", "w", stdout);
+    freopen("NUL", "w", stderr);
+
+    // We need to get our actual arguments into the main function callback.
+    // StartServiceCtrlDispatcher requires a C function pointer, so we can't
+    // use a C++ lambda with a clojure. Instead we preserve those values in
+    // a pair of global variables.
+    // We skip the second argument, which is just `run-service`.
+    guarantee(argc >= 2);
+    guarantee(strcmp(argv[1], "run-service") == 0);
+    global_windows_service_argc = argc - 1;
+    global_windows_service_argv.init(argc - 1);
+    int out_i = 0;
+    for (int i = 0; i < argc; ++i) {
+        if (i == 1) {
+            continue;
+        }
+        global_windows_service_argv[out_i] = argv[i];
+        ++out_i;
+    }
+
+    SERVICE_TABLE_ENTRY dispatch_table[] = {
+        { "", [](DWORD, char **) {
+                  // Note that the arguments passed to this function are
+                  // not the arguments specified when installing the service.
+                  // Instead these are arguments that can be specified ad-hoc
+                  // when *starting* the service. We don't particularly care
+                  // about those, and ignore them here.
+                  return windows_service_main_function(
+                      main_rethinkdb_porcelain,
+                      global_windows_service_argc,
+                      global_windows_service_argv.data());
+              } },
+        { nullptr, nullptr }
+    };
+
+    if (!StartServiceCtrlDispatcher(dispatch_table)) {
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
+void get_rethinkdb_install_service_options(
+    std::vector<options::help_section_t> *help_out,
+    std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Service options");
+    options_out->push_back(options::option_t(options::names_t("--instance-name"),
+        options::OPTIONAL));
+    help.add("--instance-name name", "name under which the service will be installed. "
+        "Specify this if you want to run multiple instances "
+        "of RethinkDB on this server (default: \"default\")");
+    options_out->push_back(options::option_t(options::names_t("--runuser"),
+        options::OPTIONAL));
+    help.add("--runuser user", "run the service under the given user account, "
+        "specified in the format DomainName\\UserName. "
+        "If not specified, the LocalSystem account is used");
+    options_out->push_back(options::option_t(options::names_t("--runuser-password"),
+        options::OPTIONAL));
+    help.add("--runuser-password password", "password of the user specified in "
+        "the `--runuser` option");
+    help_out->push_back(help);
+    help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_help_options(options_out));
+}
+
+void help_rethinkdb_install_service() {
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_install_service_options(&help_sections, &options);
+    }
+
+    printf("'rethinkdb install-service' installs RethinkDB as a Windows service.\n");
+    printf("%s", format_help(help_sections).c_str());
+}
+
+void get_rethinkdb_remove_service_options(
+    std::vector<options::help_section_t> *help_out,
+    std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Service options");
+    options_out->push_back(options::option_t(options::names_t("--instance-name"),
+        options::OPTIONAL));
+    help.add("--instance-name name", "name of the instance that will be removed. "
+        "The name must match the one used when installing the service "
+        "(default: \"default\")");
+    help_out->push_back(help);
+    help_out->push_back(get_help_options(options_out));
+}
+
+void help_rethinkdb_remove_service() {
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_remove_service_options(&help_sections, &options);
+    }
+
+    printf("'rethinkdb remove-service' removes a previously installed Windows service.\n");
+    printf("%s", format_help(help_sections).c_str());
+}
+
+const char *ELEVATED_RUN_MARKER = "_rethinkdb_was_elevated";
+
+bool was_elevated(int argc, char *argv[]) {
+    return argc > 0 && strcmp(argv[argc - 1], ELEVATED_RUN_MARKER) == 0;
+}
+
+int restart_elevated(int argc, char *argv[]) {
+    SHELLEXECUTEINFO sei = { sizeof(sei) };
+    memset(&sei, sizeof(sei), 0);
+    sei.lpVerb = "runas";
+    sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+    sei.nShow = SW_NORMAL;
+    sei.lpFile = argv[0];
+    std::string args;
+    for (int i = 1; i < argc; ++i) {
+        if (i > 1) {
+            args += " ";
+        }
+        args += escape_windows_shell_arg(argv[i]);
+    }
+    // Mark as elevated
+    args += " ";
+    args += ELEVATED_RUN_MARKER;
+    sei.lpParameters = args.c_str();
+
+    if (!ShellExecuteEx(&sei)) {
+        DWORD err = GetLastError();
+        if (err == ERROR_CANCELLED) {
+            fprintf(stderr, "The request to elevate permissions was rejected.\n");
+        } else {
+            fprintf(stderr, "ShellExecuteEx failed: %s\n", winerr_string(err).c_str());
+        }
+        return EXIT_FAILURE;
+    } else {
+        if (sei.hProcess != nullptr) {
+            WaitForSingleObject(sei.hProcess, INFINITE);
+            DWORD exit_code;
+            if (GetExitCodeProcess(sei.hProcess, &exit_code)) {
+                CloseHandle(sei.hProcess);
+                return exit_code;
+            }
+            CloseHandle(sei.hProcess);
+        }
+        fprintf(stderr, "Could not get a handler on the child process.\n");
+        return EXIT_FAILURE;
+    }
+}
+
+int run_and_maybe_elevate(
+        bool already_elevated,
+        int argc,
+        char *argv[],
+        const std::function<bool()> &f) {
+    try {
+        bool success = f();
+        if (already_elevated) {
+            // Sleep a bit so that any output from the elevated shell window remains visible.
+            Sleep(5000);
+        }
+        return success ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const windows_privilege_exc_t &) {
+        if (!already_elevated) {
+            fprintf(stderr, "Permission denied. Trying again with elevated permissions...\n");
+            return restart_elevated(argc, argv);
+        } else {
+            fprintf(stderr, "Permission denied\n");
+            return EXIT_FAILURE;
+        }
+    }
+}
+
+int main_rethinkdb_install_service(int argc, char *argv[]) {
+    bool already_elevated = was_elevated(argc, argv);
+    if (already_elevated) {
+        --argc;
+    }
+
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_install_service_options(&help, &options);
+    try {
+        std::map<std::string, options::values_t> opts = parse_command_line(argc - 2, argv + 2, options);
+
+        if (handle_help_or_version_option(opts, &help_rethinkdb_install_service)) {
+            return EXIT_SUCCESS;
+        }
+
+        options::verify_option_counts(options, opts);
+
+        const boost::optional<std::string> config_file_name_arg =
+            get_optional_option(opts, "--config-file");
+        if (!config_file_name_arg) {
+            fprintf(stderr, "rethinkdb install-service requires the `--config-file` option.\n");
+            fprintf(stderr,
+                "You can find a template for the configuration file at "
+                "<https://github.com/rethinkdb/rethinkdb/blob/next/packaging/assets/config/default.conf.sample>.\n");
+            return EXIT_FAILURE;
+        }
+        // Make the config file name absolute
+        TCHAR full_path[MAX_PATH];
+        DWORD full_path_length = GetFullPathName(
+            config_file_name_arg->c_str(),
+            MAX_PATH,
+            full_path,
+            nullptr);
+        if (full_path_length >= MAX_PATH) {
+            fprintf(
+                stderr,
+                "The absolute path to the configuration file is too long. "
+                "It must be shorter than %zu.\n",
+                static_cast<size_t>(MAX_PATH));
+            return EXIT_FAILURE;
+        } else if (full_path_length == 0) {
+            fprintf(
+                stderr,
+                "Failed to convert the configuration file path to an absolute path: %s\n",
+                winerr_string(GetLastError()).c_str());
+            return EXIT_FAILURE;
+        }
+        std::string config_file_name(full_path, full_path_length);
+
+        // Validate the configuration file (we ignore the resulting options)
+        {
+            std::vector<options::help_section_t> help;
+            std::vector<options::option_t> valid_options;
+            get_rethinkdb_porcelain_options(&help, &valid_options);
+            parse_config_file_flat(config_file_name, valid_options);
+        }
+
+        const char *runuser_ptr = nullptr;
+        const boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
+        if (runuser) {
+            runuser_ptr = runuser->c_str();
+        }
+        const char *runuser_password_ptr = nullptr;
+        const boost::optional<std::string> runuser_password
+            = get_optional_option(opts, "--runuser-password");
+        if (runuser_password) {
+            runuser_password_ptr = runuser_password->c_str();
+        }
+
+        std::string instance_name = "default";
+        const boost::optional<std::string> instance_name_arg =
+            get_optional_option(opts, "--instance-name");
+        if (instance_name_arg) {
+            instance_name = *instance_name_arg;
+        }
+
+        // Get our filename
+        TCHAR my_path[MAX_PATH];
+        if (!GetModuleFileName(nullptr, my_path, MAX_PATH)) {
+            fprintf(stderr, "Unable to retrieve own path: %s\n",
+                winerr_string(GetLastError()).c_str());
+            return EXIT_FAILURE;
+        }
+
+        std::string service_name = "rethinkdb_" + instance_name;
+        std::string display_name = "RethinkDB (" + instance_name + ")";
+
+        std::vector<std::string> service_args;
+        service_args.push_back("run-service");
+        service_args.push_back("--config-file");
+        service_args.push_back(config_file_name);
+
+        return run_and_maybe_elevate(already_elevated, argc, argv, [&]() {
+            fprintf(stderr, "Installing service `%s`...\n", service_name.c_str());
+            bool success = install_windows_service(
+                service_name, display_name, std::string(my_path), service_args,
+                runuser_ptr, runuser_password_ptr);
+            if (success) {
+                fprintf(stderr, "Service `%s` installed.\n", service_name.c_str());
+            }
+            fprintf(stderr, "Starting service `%s`...\n", service_name.c_str());
+            if (start_windows_service(service_name)) {
+                fprintf(stderr, "Service `%s` started.\n", service_name.c_str());
+            }
+            return success;
+        });
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help install-service' for help on the command\n");
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help install-service' for help on the command\n");
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+    }
+    return EXIT_FAILURE;
+}
+
+int main_rethinkdb_remove_service(int argc, char *argv[]) {
+    bool already_elevated = was_elevated(argc, argv);
+    if (already_elevated) {
+        --argc;
+    }
+
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_remove_service_options(&help, &options);
+    try {
+        std::map<std::string, options::values_t> opts = parse_command_line(argc - 2, argv + 2, options);
+
+        if (handle_help_or_version_option(opts, &help_rethinkdb_remove_service)) {
+            return EXIT_SUCCESS;
+        }
+
+        options::verify_option_counts(options, opts);
+
+        std::string instance_name = "default";
+        const boost::optional<std::string> instance_name_arg =
+            get_optional_option(opts, "--instance-name");
+        if (instance_name_arg) {
+            instance_name = *instance_name_arg;
+        }
+
+        std::string service_name = "rethinkdb_" + instance_name;
+
+        return run_and_maybe_elevate(already_elevated, argc, argv, [&]() {
+            fprintf(stderr, "Stopping service `%s`...\n", service_name.c_str());
+            if (stop_windows_service(service_name)) {
+                fprintf(stderr, "Service `%s` stopped.\n", service_name.c_str());
+            }
+            fprintf(stderr, "Removing service `%s`...\n", service_name.c_str());
+            bool success = remove_windows_service(service_name);
+            if (success) {
+                fprintf(stderr, "Service `%s` removed.\n", service_name.c_str());
+            }
+            return success;
+        });
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help remove-service' for help on the command\n");
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help remove-service' for help on the command\n");
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+    }
+    return EXIT_FAILURE;
+}
+
+#endif /* _WIN32 */

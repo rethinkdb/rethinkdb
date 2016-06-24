@@ -6,8 +6,7 @@
 
 * CMake ("Windows Installer" from https://cmake.org/download/)
 
-* The `precompiled/` directory from a RethinkDB source tarball. It can
-  be built on Linux by running `make dist`.
+* node.js with NPM (https://nodejs.org/en/download/)
 
 * Cygwin (https://cygwin.com/install.html)
 
@@ -28,3 +27,11 @@ make -j
 
 Will first download and build the libraries that RethinkDB needs, then
 build RethinkDB itself and place it in `build\Release_x64\rethinkdb.exe`
+
+If `make` complains about missing files in `mk/gen`, run `mkdir mk/gen` manually.
+Then run `make -j` again.
+
+On some systems, you might get permission errors like the ones described in
+https://github.com/npm/npm/issues/10826 during the build from npm.
+Try running `npm install -g JSONStream` and then run `make -j` again to work
+around this issue.

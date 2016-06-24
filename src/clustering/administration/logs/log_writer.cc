@@ -472,20 +472,11 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         flockfile(write_stream);
 #endif
 
-#ifdef _WIN32
-        DWORD bytes_written = 0;
-        BOOL res = WriteFile(filefd, console_formatted.data(), console_formatted.length(), &bytes_written, nullptr);
-        if (!res || bytes_written != console_formatted.length()) {
-            error_out->assign("cannot write to stdout/stderr: " + winerr_string(GetLastError()));
-            return false;
-        }
-#else
-        ssize_t write_res = ::write(filefd, console_formatted.data(), console_formatted.length());
-        if (write_res != static_cast<ssize_t>(console_formatted.length())) {
+        size_t write_res = ::fwrite(console_formatted.data(), 1, console_formatted.length(), write_stream);
+        if (write_res != console_formatted.length()) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
-#endif
 
 #ifdef _WIN32
         // WINDOWS TODO
