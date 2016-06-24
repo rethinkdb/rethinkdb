@@ -113,25 +113,25 @@ to control the lifetime of the `namespace_interface_t`, but also allows the
 `real_table_t` to block it from being destroyed while in use. */
 class namespace_interface_access_t {
 public:
-	class ref_tracker_t {
-	public:
-		virtual void add_ref() = 0;
-		virtual void release() = 0;
-	protected:
-		virtual ~ref_tracker_t() { }
-	};
-	namespace_interface_access_t();
-	namespace_interface_access_t(namespace_interface_t *, ref_tracker_t *, threadnum_t);
-	namespace_interface_access_t(const namespace_interface_access_t &access);
-	namespace_interface_access_t &operator=(const namespace_interface_access_t &access);
-	~namespace_interface_access_t();
+    class ref_tracker_t {
+    public:
+        virtual void add_ref() = 0;
+        virtual void release() = 0;
+    protected:
+        virtual ~ref_tracker_t() { }
+    };
+    namespace_interface_access_t();
+    namespace_interface_access_t(namespace_interface_t *, ref_tracker_t *, threadnum_t);
+    namespace_interface_access_t(const namespace_interface_access_t &access);
+    namespace_interface_access_t &operator=(const namespace_interface_access_t &access);
+    ~namespace_interface_access_t();
 
-	namespace_interface_t *get();
+    namespace_interface_t *get();
 
 private:
-	namespace_interface_t *nif;
-	ref_tracker_t *ref_tracker;
-	threadnum_t thread;
+    namespace_interface_t *nif;
+    ref_tracker_t *ref_tracker;
+    threadnum_t thread;
 };
 
 // Specifies the desired behavior for insert operations, upon discovering a

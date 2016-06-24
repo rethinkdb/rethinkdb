@@ -28,8 +28,6 @@
 #include <ftw.h>
 #endif
 
-#include <google/protobuf/stubs/common.h>
-
 #include "errors.hpp"
 #include <boost/date_time.hpp>
 

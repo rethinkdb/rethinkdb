@@ -3,14 +3,15 @@
 #define CLUSTERING_ADMINISTRATION_MAIN_WINDOWS_SERVICE_HPP_
 #ifdef _WIN32
 
-#include "errors.hpp"
-
-#include <Windows.h>
-
 #include <exception>
 #include <functional>
 #include <string>
 #include <vector>
+
+#include "errors.hpp"
+
+#include <Windows.h>
+
 
 class windows_privilege_exc_t : public std::exception {
 };

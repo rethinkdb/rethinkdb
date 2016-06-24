@@ -28,7 +28,9 @@ void help_rethinkdb_import();
 void help_rethinkdb_dump();
 void help_rethinkdb_restore();
 void help_rethinkdb_index_rebuild();
+#ifdef _WIN32
 void help_rethinkdb_install_service();
 void help_rethinkdb_remove_service();
+#endif /* _WIN32 */
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_ */

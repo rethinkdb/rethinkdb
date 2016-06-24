@@ -1,8 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
-#include <functional>
-
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -2645,7 +2643,7 @@ bool was_elevated(int argc, char *argv[]) {
 
 int restart_elevated(int argc, char *argv[]) {
     SHELLEXECUTEINFO sei = { sizeof(sei) };
-    memset(&sei, sizeof(sei), 0);
+    memset(&sei, 0, sizeof(sei));
     sei.lpVerb = "runas";
     sei.fMask = SEE_MASK_NOCLOSEPROCESS;
     sei.nShow = SW_NORMAL;

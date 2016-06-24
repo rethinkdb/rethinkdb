@@ -33,7 +33,7 @@ void windows_service_main_function(
     SERVICE_STATUS_HANDLE status_handle =
         RegisterServiceCtrlHandlerEx("", windows_service_control_handler, nullptr);
     SERVICE_STATUS status;
-    memset(&status, sizeof(status), 0);
+    memset(&status, 0, sizeof(status));
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     status.dwCurrentState = SERVICE_RUNNING;
     status.dwControlsAccepted = SERVICE_ACCEPT_SHUTDOWN | SERVICE_ACCEPT_STOP;
