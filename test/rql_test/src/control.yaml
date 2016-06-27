@@ -295,3 +295,9 @@ tests:
 
     - cd: r.expr(1).do(r.db('test').table_create('table_create_success'))
       ot: partial({'tables_created':1})
+
+    # Make sure arrays can be passed as global optargs
+    - cd: r.expr([1, 2])
+      runopts:
+        read_mode: [ 'a', 'b' ]
+      ot: [1, 2]
