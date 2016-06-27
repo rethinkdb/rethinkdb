@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -12,8 +13,8 @@
 template <class element_t, size_t ELEMENTS_PER_SEGMENT = (1 << 14)>
 class segmented_vector_t {
 public:
-    explicit segmented_vector_t(size_t size = 0) : size_(0) {
-        set_size(size);
+    explicit segmented_vector_t(size_t _size = 0) : size_(0) {
+        set_size(_size);
     }
 
     segmented_vector_t(segmented_vector_t &&movee)
@@ -27,10 +28,6 @@ public:
         std::swap(segments_, tmp.segments_);
         std::swap(size_, tmp.size_);
         return *this;
-    }
-
-    ~segmented_vector_t() {
-        set_size(0);
     }
 
     size_t size() const {
@@ -98,10 +95,10 @@ private:
     element_t &get_element(size_t index) const {
         guarantee(index < size_, "index = %zu, size_ = %zu", index, size_);
         const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
-        segment_t *seg = segments_[segment_index];
-        if (seg == NULL) {
+        segment_t *seg = segments_[segment_index].get();
+        if (seg == nullptr) {
             seg = new segment_t();
-            segments_[segment_index] = seg;
+            segments_[segment_index].reset(seg);
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
@@ -110,19 +107,11 @@ private:
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
-        {
-            const size_t num_segs = size_ != 0 ? ((size_ - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
-            guarantee(num_segs == segments_.size());
-        }
         const size_t new_num_segs = new_size != 0 ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
 
-        while (segments_.size() > new_num_segs) {
-            delete segments_.back();
-            segments_.pop_back();
-        }
-        while (segments_.size() < new_num_segs) {
-            segments_.push_back(NULL);
-        }
+	// Leave an additional segment when resizing to avoid allocating and
+	// deallocating large blocks at a boundary, i.e. 0 elements.
+        segments_.resize(new_num_segs + 1);
 
         size_ = new_size;
     }
@@ -132,7 +121,7 @@ private:
         element_t elements[ELEMENTS_PER_SEGMENT];
     };
 
-    mutable std::vector<segment_t *> segments_;
+    mutable std::vector<std::unique_ptr<segment_t>> segments_;
     size_t size_;
 
     DISABLE_COPYING(segmented_vector_t);

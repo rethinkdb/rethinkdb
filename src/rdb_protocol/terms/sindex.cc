@@ -160,11 +160,11 @@ public:
         scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t name_datum = args->arg(env, 1)->as_datum();
-        std::string name = name_datum.as_str().to_std();
-        rcheck(name != table->get_pkey(),
+        std::string index_name = name_datum.as_str().to_std();
+        rcheck(index_name != table->get_pkey(),
                base_exc_t::LOGIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
-                         name.c_str()));
+                         index_name.c_str()));
 
         /* Parse the sindex configuration */
         sindex_config_t config;
@@ -219,11 +219,20 @@ public:
                 : sindex_geo_bool_t::REGULAR;
         }
 
-        admin_err_t error;
-        if (!env->env->reql_cluster_interface()->sindex_create(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                name, config, env->env->interruptor, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->sindex_create(
+                    env->env->get_user_context(),
+                    table->db,
+                    name_string_t::guarantee_valid(table->name.c_str()),
+                    index_name,
+                    config,
+                    env->env->interruptor,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
 
         ql::datum_object_builder_t res;
@@ -241,13 +250,21 @@ public:
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
-        std::string name = args->arg(env, 1)->as_datum().as_str().to_std();
+        std::string index_name = args->arg(env, 1)->as_datum().as_str().to_std();
 
-        admin_err_t error;
-        if (!env->env->reql_cluster_interface()->sindex_drop(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                name, env->env->interruptor, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->sindex_drop(
+                    env->env->get_user_context(),
+                    table->db,
+                    name_string_t::guarantee_valid(table->name.c_str()),
+                    index_name,
+                    env->env->interruptor,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
 
         ql::datum_object_builder_t res;
@@ -422,11 +439,21 @@ public:
         scoped_ptr_t<val_t> overwrite_val = args->optarg(env, "overwrite");
         bool overwrite = overwrite_val ? overwrite_val->as_bool() : false;
 
-        admin_err_t error;
-        if (!env->env->reql_cluster_interface()->sindex_rename(
-                table->db, name_string_t::guarantee_valid(table->name.c_str()),
-                old_name, new_name, overwrite, env->env->interruptor, &error)) {
-            REQL_RETHROW(error);
+        try {
+            admin_err_t error;
+            if (!env->env->reql_cluster_interface()->sindex_rename(
+                    env->env->get_user_context(),
+                    table->db,
+                    name_string_t::guarantee_valid(table->name.c_str()),
+                    old_name,
+                    new_name,
+                    overwrite,
+                    env->env->interruptor,
+                    &error)) {
+                REQL_RETHROW(error);
+            }
+        } catch (auth::permission_error_t const &permission_error) {
+            rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
         }
 
         datum_object_builder_t retval;

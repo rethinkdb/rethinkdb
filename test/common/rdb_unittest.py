@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
-import itertools, os, random, shutil, sys, unittest, warnings
+import itertools, os, random, re, shutil, sys, traceback, unittest, warnings
 
 import driver, utils
 
@@ -9,7 +9,76 @@ def main():
     runner = unittest.TextTestRunner(verbosity=2)
     unittest.main(argv=[sys.argv[0]], testRunner=runner)
 
-class RdbTestCase(unittest.TestCase):
+class TestCaseCompatible(unittest.TestCase):
+    '''Replace missing bits from various versions of Python'''
+    
+    def __init__(self, *args, **kwargs):
+        super(TestCaseCompatible, self).__init__(*args, **kwargs)
+        if not hasattr(self, 'assertIsNone'):
+            self.assertIsNone = self.replacement_assertIsNone
+        if not hasattr(self, 'assertIsNotNone'):
+            self.assertIsNotNone = self.replacement_assertIsNotNone
+        if not hasattr(self, 'assertGreater'):
+            self.assertGreater = self.replacement_assertGreater
+        if not hasattr(self, 'assertGreaterEqual'):
+            self.assertGreaterEqual = self.replacement_assertGreaterEqual
+        if not hasattr(self, 'assertLess'):
+            self.assertLess = self.replacement_assertLess
+        if not hasattr(self, 'assertLessEqual'):
+            self.assertLessEqual = self.replacement_assertLessEqual
+        if not hasattr(self, 'assertIn'):
+            self.assertIn = self.replacement_assertIn
+        if not hasattr(self, 'assertRaisesRegexp'):
+            self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
+        
+        if not hasattr(self, 'skipTest'):
+            self.skipTest = self.replacement_skipTest
+        
+    def replacement_assertIsNone(self, val):
+        if val is not None:
+            raise AssertionError('%s is not None' % val)
+    
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('%s is None' % val)
+    
+    def replacement_assertGreater(self, actual, expected):
+        if not actual > expected:
+            raise AssertionError('%s not greater than %s' % (actual, expected))
+    
+    def replacement_assertGreaterEqual(self, actual, expected):
+        if not actual >= expected:
+            raise AssertionError('%s not greater than or equal to %s' % (actual, expected))
+    
+    def replacement_assertLess(self, actual, expected):
+        if not actual < expected:
+            raise AssertionError('%s not less than %s' % (actual, expected))
+    
+    def replacement_assertLessEqual(self, actual, expected):
+        if not actual <= expected:
+            raise AssertionError('%s not less than or equal to %s' % (actual, expected))
+    
+    def replacement_assertIsNotNone(self, val):
+        if val is None:
+            raise AssertionError('Result is None')
+    
+    def replacement_assertIn(self, val, iterable):
+        if not val in iterable:
+            raise AssertionError('%s is not in %s' % (val, iterable))
+    
+    def replacement_assertRaisesRegexp(self, exception, regexp, callable_func, *args, **kwds):
+        try:
+            callable_func(*args, **kwds)
+        except Exception as e:
+            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s\n%s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e), traceback.format_exc()))
+            self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
+        else:
+            self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))
+    
+    def replacement_skipTest(self, message):
+        sys.stderr.write("%s " % message)
+
+class RdbTestCase(TestCaseCompatible):
     
     # -- settings
     
@@ -22,6 +91,7 @@ class RdbTestCase(unittest.TestCase):
     
     fieldName = 'id'
     recordsToGenerate = 0
+    generateRecords = None # a method on some subclasses
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
     
@@ -56,6 +126,8 @@ class RdbTestCase(unittest.TestCase):
                 self.__class__.dbName = defaultDb
             if self.tableName is None:
                 self.__class__.tableName = defaultTable
+            elif self.tableName is False:
+                self.__class__.tableName = None
         
         self.__class__.db = self.r.db(self.dbName)
         self.__class__.table = self.db.table(self.tableName)
@@ -134,7 +206,8 @@ class RdbTestCase(unittest.TestCase):
         
         assert self.cluster is not None, 'The cluster was None'
         self.cluster.check()
-        assert [] == list(self.r.db('rethinkdb').table('current_issues').run(self.conn))
+        res = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
+        assert res == [], 'There were unexpected issues: \n%s' % utils.RePrint.pformat(res)
     
     def setUp(self):
         
@@ -168,8 +241,8 @@ class RdbTestCase(unittest.TestCase):
         
         # - ensure we have the proper number of servers
         # note: we start up enough servers to make sure they each have only one role
-        
-        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers)
+        print(self.servers)
+        serverCount = max(self.shards * self.replicas, len(self.servers) if hasattr(self.servers, '__iter__') else self.servers or 0)
         for _ in range(serverCount - len(self.cluster)):
             firstServer = len(self.cluster) == 0
             driver.Process(cluster=self.cluster, console_output=True, command_prefix=self.server_command_prefix, extra_options=self.server_extra_options, wait_until_ready=firstServer)
@@ -195,7 +268,9 @@ class RdbTestCase(unittest.TestCase):
             
             # - add initial records
             
-            if self.recordsToGenerate:
+            if hasattr(self.generateRecords, '__call__'):
+                self.generateRecords()
+            elif self.recordsToGenerate:
                 utils.populateTable(conn=self.conn, table=self.table, records=self.recordsToGenerate, fieldName=self.fieldName)
             
             # - shard and replicate the table
@@ -209,6 +284,12 @@ class RdbTestCase(unittest.TestCase):
                 shardPlan.append({'primary_replica':primary.name, 'replicas':[primary.name] + chosenReplicas})
             assert (self.r.db(self.dbName).table(self.tableName).config().update({'shards':shardPlan}).run(self.conn))['errors'] == 0
             self.r.db(self.dbName).table(self.tableName).wait().run(self.conn)
+        
+        # -- run setUpClass if not run otherwise
+        
+        if not hasattr(unittest.TestCase, 'setUpClass') and hasattr(self.__class__, 'setUpClass') and not hasattr(self.__class__, self.__class__.__name__ + '_setup'):
+            self.setUpClass()
+            setattr(self.__class__, self.__class__.__name__ + '_setup', True)
     
     def tearDown(self):
         
@@ -297,3 +378,21 @@ class RdbTestCase(unittest.TestCase):
         
         changedRecordIds.sort()
         return changedRecordIds
+
+# ==== class fixups
+
+if not hasattr(RdbTestCase, 'assertRaisesRegex'):
+    # -- patch the Python2.6 version of unittest to have assertRaisesRegex
+    def assertRaisesRegex_replacement(self, exception, regexp, function, *args, **kwds):
+        result = None
+        try:
+            result = function(*args, **kwds)
+        except Exception as e:
+            if not isinstance(e, exception):
+                raise AssertionError('Got the wrong type of exception: %s vs. expected: %s' % (e.__class__.__name__, exception.__name__))
+            if not re.match(regexp, str(e)):
+                raise AssertionError('Error message: "%s" does not match "%s"' % (str(regexp), str(e)))
+            return
+        else:
+            raise AssertionError('%s not raised for: %s, rather got: %s' % (exception.__name__, repr(function), repr(result)))
+    RdbTestCase.assertRaisesRegex = assertRaisesRegex_replacement

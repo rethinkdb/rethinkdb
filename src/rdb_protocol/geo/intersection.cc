@@ -13,6 +13,7 @@
 using geo::S2Point;
 using geo::S2Polygon;
 using geo::S2Polyline;
+using geo::S2LatLngRect;
 using ql::datum_t;
 
 template<class first_t>
@@ -28,6 +29,9 @@ public:
     }
     bool on_polygon(const S2Polygon &polygon) {
         return geo_does_intersect(*first_, polygon);
+    }
+    bool on_latlngrect(const S2LatLngRect &rect) {
+        return geo_does_intersect(*first_, rect);
     }
 
 private:
@@ -51,6 +55,10 @@ public:
         inner_intersection_tester_t<S2Polygon> tester(&polygon);
         return visit_geojson(&tester, *other_);
     }
+    bool on_latlngrect(const S2LatLngRect &rect) {
+        inner_intersection_tester_t<S2LatLngRect> tester(&rect);
+        return visit_geojson(&tester, *other_);
+    }
 
 private:
     const ql::datum_t *other_;
@@ -67,16 +75,6 @@ bool geo_does_intersect(const S2Point &point,
     return point == other_point;
 }
 
-bool geo_does_intersect(const S2Polyline &line,
-                        const S2Point &other_point) {
-    return geo_does_intersect(other_point, line);
-}
-
-bool geo_does_intersect(const S2Polygon &polygon,
-                        const S2Point &other_point) {
-    return geo_does_intersect(other_point, polygon);
-}
-
 bool geo_does_intersect(const S2Point &point,
                         const S2Polyline &other_line) {
     // This is probably fragile due to numeric precision limits.
@@ -91,15 +89,12 @@ bool geo_does_intersect(const S2Polyline &line,
     return other_line.Intersects(&line);
 }
 
-bool geo_does_intersect(const S2Polygon &polygon,
-                        const S2Polyline &other_line) {
-    return geo_does_intersect(other_line, polygon);
-}
-
 bool geo_does_intersect(const S2Point &point,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     // This returns the point itself if it's inside the polygon.
     // In contrast to other_polygon.Contains(), it also works for points that
     // are exactly on the corner of the polygon.
@@ -111,8 +106,10 @@ bool geo_does_intersect(const S2Point &point,
 
 bool geo_does_intersect(const S2Polyline &line,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     std::vector<S2Polyline *> intersecting_pieces;
     other_polygon.IntersectWithPolyline(&line, &intersecting_pieces);
     // We're not interested in the actual line pieces that intersect
@@ -124,8 +121,42 @@ bool geo_does_intersect(const S2Polyline &line,
 
 bool geo_does_intersect(const S2Polygon &polygon,
                         const S2Polygon &other_polygon) {
-    // First, handle case where user is a derp and gives us a polygon with no edges.
-    if (polygon.num_vertices() == 0) return false;
-    if (other_polygon.num_vertices() == 0) return false;
+    // First, handle case where we have a polygon with no edges.
+    if (polygon.num_vertices() == 0) {
+        return false;
+    }
+    if (other_polygon.num_vertices() == 0) {
+        return false;
+    }
     return other_polygon.Intersects(&polygon);
+}
+
+bool geo_does_intersect(const geo::S2LatLngRect &rect,
+                        const geo::S2LatLngRect &other_rect) {
+    return rect.Intersects(other_rect);
+}
+
+bool geo_does_intersect(const geo::S2LatLngRect &rect,
+                        const geo::S2Point &other_point) {
+    return rect.Contains(other_point);
+}
+
+bool geo_does_intersect(const geo::S2LatLngRect &rect,
+                        const geo::S2Polyline &other_line) {
+    // This can generate false positives. That is ok since we only use LatLngRects as
+    // part of our changefeed code where we perform additional post-filtering.
+    // Right now ReQL doesn't expose LatLngRects. If that ever changes, we will have
+    // to split this into a separate `MayIntersect` term, explicitly disallow
+    // `intersects` on LatLngRects, or come up with an exact implementation for this.
+    return rect.Intersects(other_line.GetRectBound());
+}
+
+bool geo_does_intersect(const geo::S2LatLngRect &rect,
+                        const geo::S2Polygon &other_polygon) {
+    // This can generate false positives. That is ok since we only use LatLngRects as
+    // part of our changefeed code where we perform additional post-filtering.
+    // Right now ReQL doesn't expose LatLngRects. If that ever changes, we will have
+    // to split this into a separate `MayIntersect` term, explicitly disallow
+    // `intersects` on LatLngRects, or come up with an exact implementation for this.
+    return rect.Intersects(other_polygon.GetRectBound());
 }

@@ -8,7 +8,12 @@ npm_conf=$(niceabspath "$conf_dir/npm.conf")
 
 npm () {
     cache_dir=$(mktemp -d "$external_dir/npm_cache-XXXXXXXX")
-    "$NPM" --userconfig "$npm_conf" --cache "$cache_dir" "$@"
+    if [[ "$OS" = Windows ]]; then
+        # Simplify the call to npm, because we are using the Windows npm from inside cygwin
+        nocygpath "$NPM" "$@"
+    else
+        "$NPM" --userconfig "$npm_conf" --cache "$cache_dir" "$@"
+    fi
     rm -rf "$cache_dir"
 }
 
@@ -49,7 +54,11 @@ pkg_install () {
     mkdir -p "$install_dir/node_modules"
     local pkg
     pkg=$(niceabspath "$src_dir")
-    in_dir "$install_dir" npm --no-registry install "$pkg"
+    if [[ "$OS" = Windows ]]; then
+        in_dir "$install_dir" npm install "$(cpdir "$pkg")"
+    else
+        in_dir "$install_dir" npm install "$pkg"
+    fi
 
     local bin_dir="$install_dir/node_modules/$full_npm_package/node_modules/.bin/"
     mkdir -p "$install_dir/bin"
@@ -59,10 +68,14 @@ pkg_install () {
         local script="$install_dir/bin/$name"
         echo '#!/bin/sh' > "$script"
         echo "export PATH='$(dirname "$NPM")':"'$PATH' >> "$script"
-        echo "export NODE_PATH='$install_dir/node_modules/$full_npm_package/node_modules'" >> "$script"
+        echo "export NODE_PATH='$(cpdir "$install_dir/node_modules/$full_npm_package/node_modules")'" >> "$script"
         echo "exec $(niceabspath "$bin")"' "$@"' >> "$script"
         chmod +x "$script"
     done
+}
+
+pkg_install-windows () {
+    pkg_install "$@"
 }
 
 pkg_depends () {

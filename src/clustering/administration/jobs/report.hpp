@@ -138,7 +138,8 @@ public:
             double duration,
             server_id_t const &server_id,
             ip_and_port_t const &client_addr_port,
-            std::string const &query);
+            std::string const &query,
+            auth::user_context_t const &user_context);
 
     void merge_derived(query_job_report_t const &job_report);
 
@@ -151,6 +152,7 @@ public:
 
     ip_and_port_t client_addr_port;
     std::string query;
+    auth::user_context_t user_context;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(query_job_report_t);
 

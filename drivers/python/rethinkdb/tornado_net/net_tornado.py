@@ -6,9 +6,10 @@ import struct
 from tornado import gen, iostream
 from tornado.ioloop import IOLoop
 from tornado.concurrent import Future
+from tornado.tcpclient import TCPClient
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -81,57 +82,85 @@ class ConnectionInstance(object):
         self._cursor_cache = { }
         self._ready = Future()
         self._io_loop = io_loop
+        self._stream = None
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
-
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if len(self._parent.ssl) > 0:
-            ssl_options = {}
-            if self._parent.ssl["ca_certs"]:
-                ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
-                ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
-            self._stream = iostream.SSLIOStream(
-                self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
-        else:
-            self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
+
+    def client_port(self):
+        if self.is_open():
+            return self._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket.getsockname()[0]
 
     @gen.coroutine
     def connect(self, timeout):
         deadline = None if timeout is None else self._io_loop.time() + timeout
+
         try:
-            yield with_absolute_timeout(
+            if len(self._parent.ssl) > 0:
+                ssl_options = {}
+                if self._parent.ssl["ca_certs"]:
+                    ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
+                    ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
+                stream_future = TCPClient().connect(self._parent.host, self._parent.port,
+                                                    ssl_options=ssl_options)
+            else:
+                stream_future = TCPClient().connect(self._parent.host, self._parent.port)
+
+            self._stream = yield with_absolute_timeout(
                 deadline,
-                self._stream.connect((self._parent.host,
-                                      self._parent.port),
-                                      server_hostname=self._parent.host),
+                stream_future,
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
+        self._stream.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._stream.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
         try:
-            self._stream.write(self._parent.handshake)
-            response = yield with_absolute_timeout(
-                deadline,
-                self._stream.read_until(b'\0'),
-                io_loop=self._io_loop,
-                quiet_exceptions=(iostream.StreamClosedError))
+            self._parent.handshake.reset()
+            response = None
+            while True:
+                request = self._parent.handshake.next_message(response)
+                if request is None:
+                    break
+                # This may happen in the `V1_0` protocol where we send two requests as
+                # an optimization, then need to read each separately
+                if request is not "":
+                    self._stream.write(request)
+
+                response = yield with_absolute_timeout(
+                    deadline,
+                    self._stream.read_until(b'\0'),
+                    io_loop=self._io_loop,
+                    quiet_exceptions=(iostream.StreamClosedError))
+                response = response[:-1]
+        except ReqlAuthError:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
+            raise
+        except ReqlTimeoutError:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
+            raise ReqlTimeoutError(self._parent.host, self._parent.port)
         except Exception as err:
+            try:
+                self._stream.close()
+            except iostream.StreamClosedError:
+                pass
             raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
-
-        message = decodeUTF(response[:-1]).split('\n')[0]
-
-        if message != 'SUCCESS':
-            yield self.close(False, None)
-            if message == "ERROR: Incorrect authorization key":
-                raise ReqlAuthError(self._parent.host, self._parent.port)
-            else:
-                raise ReqlDriverError('Server dropped connection with message: "%s"' %
-                    (message, ))
 
         # Start a parallel function to perform reads
         self._io_loop.add_callback(self._reader)
@@ -141,7 +170,7 @@ class ConnectionInstance(object):
         return not self._stream.closed()
 
     @gen.coroutine
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -219,7 +248,7 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield self.close(False, None, ex)
+                yield self.close(exception=ex)
 
 
 # Wrap functions from the base connection class that may throw - these will

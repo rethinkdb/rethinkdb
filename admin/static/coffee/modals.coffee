@@ -293,7 +293,10 @@ class RemoveTableModal extends ui_modals.AbstractModal
         super
 
         # Build feedback message
-        message = "The tables "
+        if @tables_to_delete.length is 1
+            message = "The table "
+        else
+            message = "The tables "
         for table, index in @tables_to_delete
             message += "#{table.database}.#{table.table}"
             if index < @tables_to_delete.length-1
@@ -527,11 +530,15 @@ class ReconfigureModal extends ui_modals.AbstractModal
         num_servers = @model.get('num_servers')
         num_default_servers = @model.get('num_default_servers')
 
+        MAX_NUM_SHARDS = 64
+
         # check shard errors
         if num_shards == 0
             errors.push 'zero-shards'
         else if isNaN num_shards
             errors.push 'no-shards'
+        else if num_shards > MAX_NUM_SHARDS
+            errors.push 'too-many-shards-hard-limit'
         else if num_shards > num_default_servers
             if num_shards > num_servers
                 errors.push 'too-many-shards'

@@ -12,34 +12,39 @@
 
 namespace options {
 
-option_count_error_t::option_count_error_t(std::string source, std::string option_name,
+option_count_error_t::option_count_error_t(std::string _source, std::string _option_name,
                                            size_t min_appearances, size_t max_appearances,
                                            size_t actual_appearances)
-    : named_error_t(source, option_name,
-                    actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", option_name.c_str())
-                    : min_appearances == 1 ? strprintf("Option '%s' must be specified.", option_name.c_str())
-                    : strprintf("Option '%s' specified too few times.", option_name.c_str())) {
+    : named_error_t(_source, _option_name,
+                    actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", _option_name.c_str())
+                    : min_appearances == 1 ? strprintf("Option '%s' must be specified.", _option_name.c_str())
+                    : strprintf("Option '%s' specified too few times.", _option_name.c_str())) {
     rassert(min_appearances <= max_appearances);
     rassert(actual_appearances < min_appearances || actual_appearances > max_appearances);
 }
 
-missing_parameter_error_t::missing_parameter_error_t(std::string source, std::string option_name)
-    : named_error_t(source, option_name,
-                    strprintf("Option '%s' is missing its parameter.", option_name.c_str())) { }
+missing_parameter_error_t::missing_parameter_error_t(std::string _source,
+                                                     std::string _option_name)
+    : named_error_t(_source, _option_name,
+                    strprintf("Option '%s' is missing its parameter.", _option_name.c_str())) { }
 
-value_error_t::value_error_t(std::string source, std::string option_name, std::string msg)
-    : named_error_t(source, option_name, msg) { }
+value_error_t::value_error_t(std::string _source,
+                             std::string _option_name,
+                             std::string msg)
+    : named_error_t(_source, _option_name, msg) { }
 
-unrecognized_option_error_t::unrecognized_option_error_t(std::string source, std::string option_name)
-    : option_error_t(source, strprintf("Unrecognized option '%s'.", option_name.c_str())),
-      unrecognized_option_name_(option_name) { }
+unrecognized_option_error_t::unrecognized_option_error_t(std::string _source,
+                                                         std::string _option_name)
+    : option_error_t(_source, strprintf("Unrecognized option '%s'.", _option_name.c_str())),
+      unrecognized_option_name_(_option_name) { }
 
-positional_parameter_error_t::positional_parameter_error_t(std::string source, std::string parameter_value)
-    : option_error_t(source,
+positional_parameter_error_t::positional_parameter_error_t(std::string _source,
+                                                           std::string _parameter_value)
+    : option_error_t(_source,
                      strprintf("Unexpected positional parameter '%s' (did you forget the "
                                "option name, or forget to quote a parameter list?).",
-                               parameter_value.c_str())),
-      parameter_value_(parameter_value) { }
+                               _parameter_value.c_str())),
+      parameter_value_(_parameter_value) { }
 
 
 option_t::option_t(const names_t _names, const appearance_t appearance)
@@ -112,7 +117,7 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options) {
@@ -157,7 +162,7 @@ std::map<std::string, values_t> do_parse_command_line(
 
         const option_t *const option = find_option(option_name, options);
         if (!option) {
-            if (unrecognized_out != NULL) {
+            if (unrecognized_out != nullptr) {
                 unrecognized.push_back(option_name);
                 continue;
             } else if (looks_like_option_name(option_name)) {
@@ -192,7 +197,7 @@ std::map<std::string, values_t> do_parse_command_line(
         }
     }
 
-    if (unrecognized_out != NULL) {
+    if (unrecognized_out != nullptr) {
         unrecognized_out->swap(unrecognized);
     }
 
@@ -200,7 +205,7 @@ std::map<std::string, values_t> do_parse_command_line(
 }
 
 std::map<std::string, values_t> parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
-    return do_parse_command_line(argc, argv, options, NULL);
+    return do_parse_command_line(argc, argv, options, nullptr);
 }
 
 std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
@@ -208,7 +213,7 @@ std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
     std::vector<std::string> *unrecognized_out) {
     // We check that unrecognized_out is not NULL because do_parse_command_line
     // throws some exceptions depending on the nullness of that value.
-    guarantee(unrecognized_out != NULL);
+    guarantee(unrecognized_out != nullptr);
 
     return do_parse_command_line(argc, argv, options, unrecognized_out);
 }
@@ -307,9 +312,9 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
         const std::string option_name = "--" + name;
         const option_t *option = find_option(option_name.c_str(), options);
 
-        if (option == NULL) {
+        if (option == nullptr) {
             // Ignore 'known' options that are not valid now, but exist in the superset
-            if (find_option(option_name.c_str(), options_superset) == NULL) {
+            if (find_option(option_name.c_str(), options_superset) == nullptr) {
                 throw file_parse_error_t(source,
                                          strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
                                                    filepath.c_str(), it - lines.begin(), name.c_str()));

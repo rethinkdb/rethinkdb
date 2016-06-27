@@ -12,10 +12,14 @@
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
-        server_config_client_t *server_config_client_) :
+        server_config_client_t *server_config_client_,
+        const int join_delay_secs_,
+        const int give_up_ms_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
     server_config_client(server_config_client_),
+    join_delay_secs(join_delay_secs_),
+    give_up_ms(give_up_ms_),
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
@@ -31,9 +35,16 @@ void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
         server_config_client->get_peer_to_server_map()->get_key(peer_id);
     boost::optional<connectivity_cluster_t::connection_pair_t> conn =
         connectivity_cluster->get_connections()->get_key(peer_id);
-    if (static_cast<bool>(server_id) && static_cast<bool>(conn)) {
-        addresses[*server_id] = conn->first->get_peer_address();
-        server_ids[peer_id] = *server_id;
+    // The criterion for when we consider a peer connected must be consistent with
+    // what we define in `initial_joiner_t::on_connection_change`, or else we might
+    // never start the `try_reconnect` routine for an initial join peer.
+    if (static_cast<bool>(conn)) {
+        // We never reconnect *to* proxies. If we are a full server, the proxy is going
+        // to connect to us instead.
+        if (!conn->first->get_server_id().is_proxy()) {
+            addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
+            server_ids[peer_id] = conn->first->get_server_id();
+        }
     } else if (!static_cast<bool>(server_id) && !static_cast<bool>(conn)) {
         auto it = server_ids.find(peer_id);
         if (it != server_ids.end()) {
@@ -51,7 +62,6 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
-    static const int give_up_ms = 24 * 60 * 60 * 1000;
     signal_timer_t give_up_timer;
     give_up_timer.start(give_up_ms);
 
@@ -62,6 +72,12 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
         [&](const peer_id_t *pid) {
             if (pid != nullptr) {
                 reconnected.pulse_if_not_already_pulsed();
+                // Add the server back into `server_ids` so that `try_reconnect` is going
+                // to be started again in `on_connect_or_disconnect` when the connection
+                // gets dropped, even if we never get an entry in the
+                // `connectivity_cluster`'s connections map that
+                // `on_connect_or_disconnect` is listening on.
+                server_ids[*pid] = server;
             }
         },
         initial_call_t::YES);
@@ -71,7 +87,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
         while (!interruptor.is_pulsed()) {
-            connectivity_cluster_run->join(last_known_address);
+            connectivity_cluster_run->join(last_known_address, join_delay_secs);
             backoff.failure(&interruptor);
         }
     } catch (const interrupted_exc_t &) {

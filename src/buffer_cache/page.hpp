@@ -57,10 +57,10 @@ public:
     uint64_t access_time() const { return access_time_; }
 
     bool is_loading() const {
-        return loader_ != NULL && page_t::loader_is_loading(loader_);
+        return loader_ != nullptr && page_t::loader_is_loading(loader_);
     }
     bool is_deferred_loading() const {
-        return loader_ != NULL && !page_t::loader_is_loading(loader_);
+        return loader_ != nullptr && !page_t::loader_is_loading(loader_);
     }
     bool has_waiters() const { return !waiters_.empty(); }
     bool is_loaded() const { return buf_.has(); }
@@ -166,7 +166,7 @@ inline backindex_bag_index_t *access_backindex(page_t *page) {
 class page_ptr_t {
 public:
     explicit page_ptr_t(page_t *page)
-        : page_(NULL) { init(page); }
+        : page_(nullptr) { init(page); }
     page_ptr_t();
 
     // The page_ptr_t MUST be reset before the destructor is called.
@@ -186,7 +186,7 @@ public:
                                cache_account_t *account);
 
     bool has() const {
-        return page_ != NULL;
+        return page_ != nullptr;
     }
 
 private:

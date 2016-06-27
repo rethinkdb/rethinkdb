@@ -123,6 +123,8 @@ counted_t<term_t> make_rebalance_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_sync_term(
     compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_grant_term(
+    compile_env_t *env, const raw_term_t &term);
 
 // error.cc
 counted_t<term_t> make_error_term(
@@ -248,6 +250,8 @@ counted_t<term_t> make_changes_term(
 counted_t<term_t> make_reduce_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_map_term(
+    compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_fold_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_filter_term(
     compile_env_t *env, const raw_term_t &term);

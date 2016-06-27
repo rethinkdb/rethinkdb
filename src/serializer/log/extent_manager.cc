@@ -88,7 +88,12 @@ public:
             extents.resize(id + 1);
         }
 
-        rassert(extents[id].state() == extent_info_t::state_unreserved);
+        rassert(extents[id].state() == extent_info_t::state_unreserved,
+                "current state: %d (%s)",
+                extents[id].state(),
+                extents[id].state() == extent_info_t::state_in_use ? "in_use"
+                  : extents[id].state() == extent_info_t::state_free ? "free"
+                  : "unknown");
         extents[id].set_state(extent_info_t::state_in_use);
         return make_extent_reference(extent);
     }
@@ -221,7 +226,7 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
     assert_thread();
     rassert(state == state_reserving_extents);
-    current_transaction = NULL;
+    current_transaction = nullptr;
     zone->reconstruct_free_list();
     state = state_running;
 
@@ -285,7 +290,7 @@ void extent_manager_t::release_extent_preliminaries() {
 void extent_manager_t::end_transaction(extent_transaction_t *t) {
     assert_thread();
     rassert(current_transaction == t);
-    current_transaction = NULL;
+    current_transaction = nullptr;
     t->mark_end();
 }
 

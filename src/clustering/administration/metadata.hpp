@@ -10,6 +10,8 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "clustering/administration/auth/user.hpp"
+#include "clustering/administration/auth/username.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"
@@ -18,7 +20,6 @@
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 #include "arch/address.hpp"
-#include "containers/auth_key.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/versioned.hpp"
@@ -37,9 +38,41 @@ RDB_DECLARE_EQUALITY_COMPARABLE(cluster_semilattice_metadata_t);
 
 class auth_semilattice_metadata_t {
 public:
+    // For deserialization only
     auth_semilattice_metadata_t() { }
 
-    versioned_t<auth_key_t> auth_key;
+    explicit auth_semilattice_metadata_t(const std::string &initial_password)
+        : m_users({create_initial_admin_pair(initial_password)}) { }
+
+    static std::pair<auth::username_t, versioned_t<boost::optional<auth::user_t>>>
+        create_initial_admin_pair(const std::string &initial_password) {
+        // Generate a timestamp that's minus our current time, so that the oldest
+        // initial password wins. Unless the initial password is empty, which
+        // should always lose.
+        time_t version_ts = std::numeric_limits<time_t>::min();
+        if (!initial_password.empty()) {
+            time_t current_time = time(nullptr);
+            if (current_time > 0) {
+                version_ts = -current_time;
+            } else {
+                logWRN("The system time seems to be incorrectly set. Metadata "
+                       "versioning will behave unexpectedly.");
+            }
+        }
+        // Use a single iteration for better efficiency when starting out with an empty
+        // password.
+        uint32_t iterations = initial_password.empty()
+                              ? 1
+                              : auth::password_t::default_iteration_count;
+        auth::password_t pw(initial_password, iterations);
+        return std::make_pair(
+            auth::username_t("admin"),
+            versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
+                version_ts,
+                boost::make_optional(auth::user_t(std::move(pw), auth::admin_t()))));
+    }
+
+    std::map<auth::username_t, versioned_t<boost::optional<auth::user_t>>> m_users;
 };
 
 RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);

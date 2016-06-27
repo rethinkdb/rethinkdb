@@ -131,7 +131,7 @@ private:
         NULL in the `registrations` map. */
         typename std::map<registration_id_t, cond_t *>::iterator it = registrations.find(rid);
         if (it != registrations.end()) {
-            guarantee(it->second == NULL);
+            guarantee(it->second == nullptr);
             registrations.erase(it);
             return;
         }
@@ -163,7 +163,7 @@ private:
             created and the deregistration message arrived before the
             registration message. Insert a NULL into the map so that
             `on_create()` realizes it. */
-            cond_t *const zero = 0;
+            cond_t *const zero = nullptr;
             std::pair<registration_id_t, cond_t *> value(rid, zero);
             registrations.insert(value);
         }

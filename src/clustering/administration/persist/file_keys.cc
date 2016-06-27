@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/file_keys.hpp"
 
+#include "rpc/connectivity/server_id.hpp"
+
 metadata_file_t::key_t<cluster_semilattice_metadata_t>
         mdkey_cluster_semilattices() {
     return metadata_file_t::key_t<cluster_semilattice_metadata_t>("cluster_semilattice");

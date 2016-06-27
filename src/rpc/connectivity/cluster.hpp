@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "arch/types.hpp"
+#include "arch/io/openssl.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -17,13 +18,16 @@
 #include "containers/map_sentries.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
+#include "random.hpp"
 #include "rpc/connectivity/peer_id.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
 
 namespace boost {
 template <class> class optional;
 }
 
+class auth_semilattice_metadata_t;
 class cluster_message_handler_t;
 class co_semaphore_t;
 class heartbeat_semilattice_metadata_t;
@@ -109,18 +113,23 @@ public:
     public:
         /* Returns the peer ID of the other server. Peer IDs change when a node
         restarts, but not when it loses and then regains contact. */
-        peer_id_t get_peer_id() {
+        peer_id_t get_peer_id() const {
             return peer_id;
         }
 
+        /* Returns the server id of the other server. */
+        server_id_t get_server_id() const {
+            return server_id;
+        }
+
         /* Returns the address of the other server. */
-        peer_address_t get_peer_address() {
+        peer_address_t get_peer_address() const {
             return peer_address;
         }
 
         /* Returns `true` if this is the loopback connection */
-        bool is_loopback() {
-            return conn == NULL;
+        bool is_loopback() const {
+            return conn == nullptr;
         }
 
         /* Drops the connection. */
@@ -134,6 +143,7 @@ public:
         connection_t(
             run_t *,
             const peer_id_t &peer_id,
+            const server_id_t &server_id,
             keepalive_tcp_conn_stream_t *,
             const peer_address_t &peer_address) THROWS_NOTHING;
         ~connection_t() THROWS_NOTHING;
@@ -161,6 +171,7 @@ public:
         run_t *parent;
 
         peer_id_t peer_id;
+        server_id_t server_id;
 
         one_per_thread_t<auto_drainer_t> drainers;
     };
@@ -176,10 +187,14 @@ public:
               const server_id_t &server_id,
               const std::set<ip_address_t> &local_addresses,
               const peer_address_t &canonical_addresses,
+              const int join_delay_secs,
               int port,
               int client_port,
               boost::shared_ptr<semilattice_read_view_t<
-                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view)
+                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
+              boost::shared_ptr<semilattice_read_view_t<
+                  auth_semilattice_metadata_t> > auth_sl_view,
+              tls_ctx_t *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
@@ -187,7 +202,7 @@ public:
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
-        void join(const peer_address_t &address) THROWS_NOTHING;
+        void join(const peer_address_t &address, const int join_delay_secs) THROWS_NOTHING;
 
         std::set<host_and_port_t> get_canonical_addresses();
         int get_port();
@@ -202,13 +217,13 @@ public:
         class variable_setter_t {
         public:
             variable_setter_t(run_t **var, run_t *val) : variable(var) , value(val) {
-                guarantee(*variable == NULL);
+                guarantee(*variable == nullptr);
                 *variable = value;
             }
 
             ~variable_setter_t() THROWS_NOTHING {
                 guarantee(*variable == value);
-                *variable = NULL;
+                *variable = nullptr;
             }
         private:
             run_t **variable;
@@ -217,6 +232,7 @@ public:
         };
 
         void on_new_connection(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+                const int join_delay_secs,
                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
         /* `connect_to_peer` is spawned for each known ip address of a peer which we want
@@ -225,13 +241,15 @@ public:
                              int index,
                              boost::optional<peer_id_t> expected_id,
                              auto_drainer_t::lock_t drainer_lock,
-                             bool *successful_join,
+                             bool *successful_join_inout,
+                             const int join_delay_secs,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
         /* `join_blocking()` is spawned in a new coroutine by `join()`. It's also run by
         `handle()` when we hear about a new peer from a peer we are connected to. */
         void join_blocking(const peer_address_t hosts,
                            boost::optional<peer_id_t>,
+                           const int join_delay_secs,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
 
         // Normal routing table isn't serializable, so we send just the hosts/ports
@@ -251,7 +269,8 @@ public:
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t,
-            bool *successful_join) THROWS_NOTHING;
+            bool *successful_join_inout,
+            const int join_delay_secs) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
 
@@ -259,6 +278,8 @@ public:
         a single connection per server. */
         server_id_t server_id;
         std::set<server_id_t> servers;
+
+        tls_ctx_t *tls_ctx;
 
         /* `attempt_table` is a table of all the host:port pairs we're currently
         trying to connect to or have connected to. If we are told to connect to
@@ -293,6 +314,9 @@ public:
 
         boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             heartbeat_sl_view;
+
+        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+            auth_sl_view;
 
         auto_drainer_t drainer;
 
@@ -347,10 +371,6 @@ private:
     one_per_thread_t<watchable_map_var_t<peer_id_t, connection_pair_t> > connections;
 
     cluster_message_handler_t *message_handlers[max_message_tag];
-
-#ifndef NDEBUG
-    rng_t debug_rng;
-#endif
 
 #ifdef ENABLE_MESSAGE_PROFILER
     /* The key is the string passed to `send_message()`. The value is a pair of (number

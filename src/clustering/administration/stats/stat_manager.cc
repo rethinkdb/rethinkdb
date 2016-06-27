@@ -32,7 +32,7 @@ void stat_manager_t::on_stats_request(
 
     // Add in our own server id so the other side does not need to perform lookups
     ql::datum_object_builder_t stats(perfmon_result);
-    stats.overwrite("server_id", convert_uuid_to_datum(own_server_id));
+    stats.overwrite("server_id", convert_uuid_to_datum(own_server_id.get_uuid()));
     send(mailbox_manager, reply_address, std::move(stats).to_datum());
 }
 

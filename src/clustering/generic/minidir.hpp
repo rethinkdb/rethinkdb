@@ -122,11 +122,9 @@ private:
 /* Instantiate a `minidir_write_manager_t` on the server that's supposed to be sending
 values. The `values` parameter to the constructor is the values to transmit, and the
 `readers` parameter is where to transmit them. */
-template<class key_t, class value_t>
+template<class reader_id_t, class key_t, class value_t>
 class minidir_write_manager_t {
 public:
-    typedef uuid_u reader_id_t;
-
     minidir_write_manager_t(
         mailbox_manager_t *mm,
         watchable_map_t<key_t, value_t> *_values,

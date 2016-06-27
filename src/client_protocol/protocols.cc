@@ -3,7 +3,9 @@
 
 #include <limits>
 
-const uint32_t wire_protocol_t::TOO_LARGE_QUERY_SIZE = 64 * MEGABYTE;
+const uint32_t wire_protocol_t::HARD_LIMIT_TOO_LARGE_QUERY_SIZE = GIGABYTE;
+const uint32_t wire_protocol_t::TOO_LONG_QUERY_TIME = 5*60*1000; // ms
+const uint32_t wire_protocol_t::TOO_LARGE_QUERY_SIZE = 128 * MEGABYTE;
 const uint32_t wire_protocol_t::TOO_LARGE_RESPONSE_SIZE =
     std::numeric_limits<uint32_t>::max();
 

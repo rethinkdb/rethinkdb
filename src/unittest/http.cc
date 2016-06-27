@@ -118,7 +118,7 @@ public:
         ip_address_t loopback("127.0.0.1");
         std::set<ip_address_t> ip_addresses;
         ip_addresses.insert(loopback);
-        server.create(ip_addresses, 0, app);
+        server.create(nullptr, ip_addresses, 0, app);
 
         // Start an http request
         coro_t::spawn_sometime(std::bind(&http_interrupt_test_t::http_get, this));
@@ -177,8 +177,8 @@ private:
 
 class routing_app_interrupt_test_t : public http_interrupt_test_t {
 public:
-    explicit routing_app_interrupt_test_t(const std::string& http_get_path) :
-        http_interrupt_test_t(http_get_path, "") { }
+    explicit routing_app_interrupt_test_t(const std::string& _http_get_path) :
+        http_interrupt_test_t(_http_get_path, "") { }
     virtual ~routing_app_interrupt_test_t() { }
 
 private:

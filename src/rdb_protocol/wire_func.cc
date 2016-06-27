@@ -221,9 +221,15 @@ archive_result_t deserialize<cluster_version_t::v2_1>(
 }
 
 template <>
-archive_result_t deserialize<cluster_version_t::v2_2_is_latest>(
+archive_result_t deserialize<cluster_version_t::v2_2>(
         read_stream_t *s, wire_func_t *wf) {
-    return deserialize_wire_func<cluster_version_t::v2_2_is_latest>(s, wf);
+    return deserialize_wire_func<cluster_version_t::v2_2>(s, wf);
+}
+
+template <>
+archive_result_t deserialize<cluster_version_t::v2_3_is_latest>(
+        read_stream_t *s, wire_func_t *wf) {
+    return deserialize_wire_func<cluster_version_t::v2_3_is_latest>(s, wf);
 }
 
 template <cluster_version_t W>
@@ -286,6 +292,10 @@ bool group_wire_func_t::is_multi() const {
 
 backtrace_id_t group_wire_func_t::get_bt() const {
     return bt;
+}
+
+bool wire_func_t::is_simple_selector() const {
+    return func->is_simple_selector();
 }
 
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);

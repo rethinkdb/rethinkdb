@@ -5,12 +5,16 @@
 
 #include "boost_utils.hpp"
 #include "btree/reql_specific.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/geo/exceptions.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
@@ -23,12 +27,15 @@ namespace ql {
 namespace changefeed {
 
 struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index, boost::optional<uint64_t> _tag_num)
-        : val(std::move(_val)), index(std::move(_index)), tag_num(std::move(_tag_num)) {
+    indexed_datum_t(
+            datum_t _val,
+            boost::optional<std::string> _btree_index_key)
+        : val(std::move(_val)),
+          btree_index_key(std::move(_btree_index_key)) {
         guarantee(val.has());
     }
-    datum_t val, index;
-    boost::optional<uint64_t> tag_num;
+    datum_t val;
+    boost::optional<std::string> btree_index_key;
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
@@ -73,7 +80,8 @@ struct change_val_t {
           DEBUG_ONLY(, sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
         if (old_val && new_val) {
-            guarantee(old_val->index.has() == new_val->index.has());
+            guarantee(static_cast<bool>(old_val->btree_index_key)
+                == static_cast<bool>(new_val->btree_index_key));
             rassert(old_val->val != new_val->val);
         }
     }
@@ -98,7 +106,9 @@ std::string print(const datum_t &d) {
 std::string print(const indexed_datum_t &d) {
     return strprintf("indexed_datum_t(val: %s, index: %s)",
                      print(d.val).c_str(),
-                     print(d.index).c_str());
+                     d.btree_index_key
+                     ? key_to_debug_str(store_key_t(*d.btree_index_key)).c_str()
+                     : "boost::none");
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -156,38 +166,6 @@ std::string print(const change_val_t &cv) {
 template<class T>
 void debug_print(printf_buffer_t *buf, const T &t) {
     buf->appendf("%s", debug::print(t).c_str());
-}
-
-datum_t vals_to_change(
-    datum_t old_val,
-    datum_t new_val,
-    bool discard_old_val = false,
-    bool discard_new_val = false) {
-    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
-        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
-        return datum_t();
-    } else {
-        std::map<datum_string_t, datum_t> ret;
-        if (!discard_old_val) {
-            ret[datum_string_t("old_val")] = std::move(old_val);
-        }
-        if (!discard_new_val) {
-            ret[datum_string_t("new_val")] = std::move(new_val);
-        }
-        guarantee(ret.size() != 0);
-        return datum_t(std::move(ret));
-    }
-}
-
-datum_t change_val_to_change(
-    const change_val_t &change,
-    bool discard_old_val = false,
-    bool discard_new_val = false) {
-    return vals_to_change(
-        change.old_val ? change.old_val->val : datum_t::null(),
-        change.new_val ? change.new_val->val : datum_t::null(),
-        discard_old_val,
-        discard_new_val);
 }
 
 enum class pop_type_t { RANGE, POINT };
@@ -453,6 +431,7 @@ void server_t::add_limit_client(
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -474,6 +453,7 @@ void server_t::add_limit_client(
             table,
             ctx,
             std::move(optargs),
+            std::move(user_context),
             client_uuid,
             this,
             it->first,
@@ -865,6 +845,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     rdb_context_t *ctx,
     global_optargs_t optargs,
+    auth::user_context_t user_context,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -884,8 +865,12 @@ limit_manager_t::limit_manager_t(
 
     // The final `NULL` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
-        ctx, return_empty_normal_batches_t::NO,
-        drainer.get_drain_signal(), std::move(optargs), nullptr);
+        ctx,
+        return_empty_normal_batches_t::NO,
+        drainer.get_drain_signal(),
+        std::move(optargs),
+        std::move(user_context),
+        nullptr);
 
     guarantee(ops.size() == 0);
     for (const auto &transform : spec.range.transforms) {
@@ -911,10 +896,11 @@ void limit_manager_t::add(
     if ((is_primary == is_primary_t::YES && region.inner.contains_key(sk))
         || (is_primary == is_primary_t::NO && spec.range.datumspec.copies(key) != 0)) {
         if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
-            added.push_back(
+            auto pair = added.insert(
                 std::make_pair(
                     key_to_mangled_primary(sk, is_primary),
                     std::make_pair(std::move(key), *d)));
+            guarantee(pair.second);
         }
     }
 }
@@ -924,7 +910,16 @@ void limit_manager_t::del(
     store_key_t sk,
     is_primary_t is_primary) THROWS_NOTHING {
     guarantee(spot->write_signal()->is_pulsed());
-    deleted.push_back(key_to_mangled_primary(sk, is_primary));
+    std::string key = key_to_mangled_primary(sk, is_primary);
+    size_t erased = added.erase(key);
+    // Note that we don't actually have to check whether or not the thing we're
+    // deleting matches any predicates that might be in the operations, because
+    // we already have to handle the case where we're deleting something that
+    // isn't in the top `n`, so trying to delete too much doesn't hurt anything.
+    if (erased == 0) {
+        auto pair = deleted.insert(std::move(key));
+        guarantee(pair.second);
+    }
 }
 
 class ref_visitor_t : public boost::static_visitor<std::vector<item_t>> {
@@ -934,15 +929,15 @@ public:
                   const key_range_t *_pk_range,
                   const keyspec_t::limit_t *_spec,
                   sorting_t _sorting,
-                  boost::optional<item_queue_t::iterator> _start,
-                  size_t _n)
+                  boost::optional<item_t> _start,
+                  const item_queue_t *_item_queue)
         : env(_env),
           ops(_ops),
           pk_range(_pk_range),
           spec(_spec),
           sorting(_sorting),
           start(std::move(_start)),
-          n(_n) { }
+          item_queue(_item_queue) { }
 
     std::vector<item_t> operator()(const primary_ref_t &ref) {
         rget_read_response_t resp;
@@ -950,14 +945,14 @@ public:
         switch (sorting) {
         case sorting_t::ASCENDING: {
             if (start) {
-                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                store_key_t start_key = mangled_primary_to_pkey(start->first);
                 start_key.increment(); // open bound
                 range.left = std::move(start_key);
             }
         } break;
         case sorting_t::DESCENDING: {
             if (start) {
-                store_key_t start_key = mangled_primary_to_pkey((**start)->first);
+                store_key_t start_key = mangled_primary_to_pkey(start->first);
                 // right bound is open by default
                 range.right = key_range_t::right_bound_t(std::move(start_key));
             }
@@ -965,6 +960,7 @@ public:
         case sorting_t::UNORDERED: // fallthru
         default: unreachable();
         }
+        size_t n = spec->limit - item_queue->size();
         rdb_rget_slice(
             ref.btree,
             region_t(),
@@ -1019,17 +1015,26 @@ public:
                 [](const datum_range_t &) { return true; },
                 [](const std::map<datum_t, uint64_t> &) { return false; }));
         datum_range_t srange = spec->range.datumspec.covering_range();
+        size_t n = spec->limit - item_queue->size();
         if (start) {
-            datum_t dstart = (**start)->second.first;
+            datum_t dstart = start->second.first;
             switch (sorting) {
             case sorting_t::ASCENDING:
-                srange = srange.with_left_bound(dstart, key_range_t::bound_t::open);
+                srange = srange.with_left_bound(dstart, key_range_t::bound_t::closed);
                 break;
             case sorting_t::DESCENDING:
-                srange = srange.with_right_bound(dstart, key_range_t::bound_t::open);
+                srange = srange.with_right_bound(dstart, key_range_t::bound_t::closed);
                 break;
             case sorting_t::UNORDERED: // fallthru
             default: unreachable();
+            }
+
+            // Because we're using closed bounds, we have to make sure to read enough.
+            for (const auto &pair : *item_queue) {
+                if (pair->second.first != dstart) {
+                    break;
+                }
+                n += 1;
             }
         }
         reql_version_t reql_version =
@@ -1057,6 +1062,7 @@ public:
                     ops}),
             *pk_range,
             sorting,
+            require_sindexes_t::NO,
             *ref.sindex_info,
             &resp,
             release_superblock_t::KEEP);
@@ -1085,16 +1091,16 @@ private:
     const key_range_t *pk_range;
     const keyspec_t::limit_t *spec;
     sorting_t sorting;
-    boost::optional<item_queue_t::iterator> start;
-    size_t n;
+    boost::optional<item_t> start;
+    const item_queue_t *item_queue;
 };
 
 std::vector<item_t> limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-    sorting_t sorting,
-    const boost::optional<item_queue_t::iterator> &start,
-    size_t n) {
-    ref_visitor_t visitor(env.get(), &ops, &region.inner, &spec, sorting, start, n);
+    const boost::optional<item_t> &start) {
+    guarantee(item_queue.size() < spec.limit);
+    ref_visitor_t visitor(
+        env.get(), &ops, &region.inner, &spec, spec.range.sorting, start, &item_queue);
     return boost::apply_visitor(visitor, ref);
 }
 
@@ -1105,30 +1111,43 @@ void limit_manager_t::commit(
     if (added.size() == 0 && deleted.size() == 0) {
         return;
     }
+
+    // Before we delete anything, we get the boundary between the active set and
+    // the data that didn't make it into the set.  Anything <= that according to
+    // our ordering could never be kicked out of the set because of a read from
+    // disk.
+    boost::optional<item_t> active_boundary;
+    auto item_queue_it = item_queue.begin();
+    if (item_queue_it != item_queue.end()) {
+        active_boundary = **item_queue_it;
+    }
+
     item_queue_t real_added(gt);
     std::set<std::string> real_deleted;
-    for (auto &&id : deleted) {
+    for (const auto &id : deleted) {
         bool data_deleted = item_queue.del_id(id);
         if (data_deleted) {
-            bool inserted = real_deleted.insert(std::move(id)).second;
+            bool inserted = real_deleted.insert(id).second;
             guarantee(inserted);
         }
     }
     deleted.clear();
-    for (auto &&pair : added) {
-        auto it = item_queue.find_id(pair.first);
-        if (it != item_queue.end()) {
-            // We can enter this branch if we're doing a batched update and the
-            // same row is changed multiple times.  We use the later row.
-            auto sub_it = real_added.find_id(pair.first);
-            guarantee(sub_it != real_added.end());
-            item_queue.erase(it);
-            real_added.erase(sub_it);
+    bool added_on_disk = false;
+    for (const auto &pair : added) {
+        // We only add to the set if we know we beat anything that might be read
+        // off of disk below.  This is fine because if the resulting set is
+        // still too small, and the things we didn't add happen to beat the
+        // other things in the table, we'll read them first.
+        if (!(active_boundary && gt(item_t(pair), *active_boundary))) {
+            bool inserted = item_queue.insert(pair).second;
+            // We can never get two additions for the same key without a deletion
+            // in-between.
+            guarantee(inserted);
+            inserted = real_added.insert(pair).second;
+            guarantee(inserted);
+        } else {
+            added_on_disk = true;
         }
-        bool inserted = item_queue.insert(pair).second;
-        guarantee(inserted);
-        inserted = real_added.insert(std::move(pair)).second;
-        guarantee(inserted);
     }
     added.clear();
 
@@ -1142,20 +1161,13 @@ void limit_manager_t::commit(
             guarantee(inserted);
         }
     }
-    // TODO: we should try to avoid this read if we know we only added rows.
-    if (item_queue.size() < spec.limit) {
-        auto data_it = item_queue.begin();
-        boost::optional<item_queue_t::iterator> start;
-        if (data_it != item_queue.end()) {
-            start = data_it;
-        }
+
+    bool anything_on_disk = real_deleted.size() != 0 || added_on_disk;
+    if (item_queue.size() < spec.limit && anything_on_disk) {
         std::vector<item_t> s;
         boost::optional<exc_t> exc;
         try {
-            s = read_more(sindex_ref,
-                          spec.range.sorting,
-                          start,
-                          spec.limit - item_queue.size());
+            s = read_more(sindex_ref, active_boundary);
         } catch (const exc_t &e) {
             exc = e;
         }
@@ -1165,14 +1177,24 @@ void limit_manager_t::commit(
             abort(*exc);
             return;
         }
-        guarantee(s.size() <= spec.limit - item_queue.size());
         for (auto &&pair : s) {
-            bool ins = item_queue.insert(pair).second;
-            guarantee(ins);
-            size_t erased = real_deleted.erase(pair.first);
-            if (erased == 0) {
-                ins = real_added.insert(pair).second;
-                guarantee(ins);
+            bool inserted = item_queue.insert(pair).second;
+            // Reading duplicates from disk is fine.
+            if (inserted) {
+                bool added_insert = real_added.insert(pair).second;
+                guarantee(added_insert);
+            }
+        }
+        // We need to truncate again because `read_more` may read too much in
+        // the secondary index case.
+        std::vector<std::string> read_trunc = item_queue.truncate_top(spec.limit);
+        for (auto &&id : read_trunc) {
+            auto it = real_added.find_id(id);
+            if (it != real_added.end()) {
+                real_added.erase(it);
+            } else {
+                bool inserted = real_deleted.insert(std::move(id)).second;
+                guarantee(inserted);
             }
         }
     }
@@ -1292,6 +1314,15 @@ protected:
     }
 };
 
+enum class change_type_t {
+    ADD = 0,
+    REMOVE = 1,
+    CHANGE = 2,
+    INITIAL = 3,
+    UNINITIAL = 4,
+    STATE = 5
+};
+
 // Uses the home thread of the subscriber, not the client.
 class feed_t;
 class subscription_t : public home_thread_mixin_t {
@@ -1329,14 +1360,18 @@ public:
         }
     }
 protected:
-    subscription_t(feed_t *feed,
+    subscription_t(rdb_context_t *rdb_context,
+                   const auth::user_context_t &user_context,
+                   feed_t *feed,
                    configured_limits_t limits,
                    const datum_t &squash,
-                   bool include_states);
+                   bool include_states,
+                   bool include_types);
     void maybe_signal_cond() THROWS_NOTHING;
     void maybe_signal_queue_nearly_full_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
 
+    datum_t maybe_add_type(datum_t &&datum, change_type_t type);
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
     std::exception_ptr exc;
     // If we exceed the array size limit, elements are evicted from `els` and
@@ -1348,6 +1383,7 @@ protected:
     const configured_limits_t limits;
     const bool squash; // Whether or not to squash changes.
     const bool include_states; // Whether or not to include notes about the state.
+    const bool include_types; // Whether or not to include a type field in items.
     // Whether we're in the middle of one logical batch (only matters for squashing).
     bool mid_batch;
 private:
@@ -1358,11 +1394,135 @@ private:
     virtual datum_t pop_el() = 0;
     virtual void apply_queued_changes() = 0;
 
+    rdb_context_t *rdb_context;
+    auth::user_context_t user_context;
+
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     cond_t *queue_nearly_full_cond;
     DISABLE_COPYING(subscription_t);
 };
+
+datum_string_t type_to_string(change_type_t type) {
+    datum_string_t type_string;
+    switch (type) {
+    case change_type_t::ADD:
+        type_string = datum_string_t("add");
+        break;
+    case change_type_t::REMOVE:
+        type_string = datum_string_t("remove");
+        break;
+    case change_type_t::CHANGE:
+        type_string = datum_string_t("change");
+        break;
+    case change_type_t::INITIAL:
+        type_string = datum_string_t("initial");
+        break;
+    case change_type_t::UNINITIAL:
+        type_string = datum_string_t("uninitial");
+        break;
+    case change_type_t::STATE:
+        type_string = datum_string_t("state");
+        break;
+    default:
+        unreachable();
+    }
+
+    return type_string;
+}
+datum_t add_type(datum_t &&datum, change_type_t type) {
+    datum_string_t type_string = type_to_string(type);
+    return datum.merge(
+        datum_t{
+            std::map<datum_string_t, datum_t>{
+                std::pair<datum_string_t, datum_t>{
+                    datum_string_t("type"),
+                        datum_t(type_string)}}});
+}
+
+datum_t subscription_t::maybe_add_type(datum_t &&datum, change_type_t type) {
+    if (!include_types) {
+        return std::move(datum);
+    }
+    return add_type(std::move(datum), type);
+}
+
+
+datum_t vals_to_change(
+    datum_t old_val,
+    datum_t new_val,
+    bool discard_old_val = false,
+    bool discard_new_val = false,
+    bool include_type = false,
+    bool include_offsets = false,
+    boost::optional<size_t> old_offset = boost::none,
+    boost::optional<size_t> new_offset = boost::none) {
+    change_type_t change_type;
+
+    if (discard_old_val && !discard_new_val) {
+        change_type = change_type_t::INITIAL;
+        old_val = datum_t::null();
+    } else if (!discard_old_val && discard_new_val) {
+        change_type = change_type_t::UNINITIAL;
+        new_val = datum_t::null();
+    } else if (!discard_old_val
+               && old_val.get_type() == datum_t::R_NULL) {
+        change_type = change_type_t::ADD;
+    } else if (!discard_new_val
+               && new_val.get_type() == datum_t::R_NULL) {
+        change_type = change_type_t::REMOVE;
+    } else {
+        // Either it's a change, or we're about to return.
+        change_type = change_type_t::CHANGE;
+    }
+    // Status type is handled where statuses are generated.
+
+    if ((discard_old_val || old_val.get_type() == datum_t::R_NULL)
+        && (discard_new_val || new_val.get_type() == datum_t::R_NULL)) {
+        return datum_t();
+    } else {
+        std::map<datum_string_t, datum_t> ret;
+        if (!discard_old_val) {
+            ret[datum_string_t("old_val")] = std::move(old_val);
+            if (include_offsets) {
+                ret[datum_string_t("old_offset")] = old_offset
+                    ? datum_t(static_cast<double>(*old_offset))
+                    : datum_t::null();
+            }
+        }
+        if (!discard_new_val) {
+            ret[datum_string_t("new_val")] = std::move(new_val);
+            if (include_offsets) {
+                ret[datum_string_t("new_offset")] = new_offset
+                    ? datum_t(static_cast<double>(*new_offset))
+                    : datum_t::null();
+            }
+        }
+        guarantee(ret.size() != 0);
+
+        if (include_type) {
+            ret[datum_string_t("type")] =
+                datum_t(
+                    type_to_string(change_type));
+        }
+        datum_t ret_datum = datum_t(std::move(ret));
+        return ret_datum;
+    }
+}
+
+datum_t change_val_to_change(
+    const change_val_t &change,
+    bool discard_old_val = false,
+    bool discard_new_val = false,
+    bool include_type = false) {
+    datum_t res = vals_to_change(
+        change.old_val ? change.old_val->val : datum_t::null(),
+        change.new_val ? change.new_val->val : datum_t::null(),
+        discard_old_val,
+        discard_new_val,
+        include_type);
+    return res;
+}
 
 enum class init_squashing_queue_t { NO, YES };
 class flat_sub_t : public subscription_t {
@@ -1433,7 +1593,7 @@ class limit_sub_t;
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
-    feed_t();
+    feed_t(namespace_id_t const &, table_meta_client_t *);
     virtual ~feed_t();
 
     void add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
@@ -1469,6 +1629,14 @@ public:
 
     const std::string pkey;
     virtual auto_drainer_t::lock_t get_drainer_lock() = 0;
+
+    namespace_id_t const &get_table_id() const {
+        return table_id;
+    }
+
+    table_meta_client_t *get_table_meta_client() const {
+        return table_meta_client;
+    }
 protected:
     bool detached;
     int64_t num_subs;
@@ -1520,6 +1688,9 @@ private:
     // expensive case), it's easier to fill this in multiple times than to have
     // every sub do a thread switch to read the value.
     one_per_thread_t<stamps_t> stamps;
+
+    namespace_id_t table_id;
+    table_meta_client_t *table_meta_client;
 };
 
 void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
@@ -1546,16 +1717,16 @@ public:
                 client_t *client,
                 mailbox_manager_t *manager,
                 namespace_interface_t *ns_if,
-                uuid_u uuid,
-                signal_t *interruptor);
+                namespace_id_t const &table_id,
+                signal_t *interruptor,
+                table_meta_client_t *table_meta_client);
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
     void abort_feed() final { aborted.pulse_if_not_already_pulsed(); }
-    uuid_u get_uuid() const { return uuid; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
 private:
-    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
+    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, table_id); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
@@ -1563,7 +1734,7 @@ private:
 
     auto_drainer_t::lock_t client_lock;
     client_t *client;
-    uuid_u uuid;
+    namespace_id_t table_id;
     mailbox_manager_t *manager;
     mailbox_t<void(stamped_msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
@@ -1596,18 +1767,25 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                          client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
-                         uuid_u _uuid,
-                         signal_t *interruptor)
-    : client_lock(std::move(_client_lock)),
+                         namespace_id_t const &_table_id,
+                         signal_t *interruptor,
+                         table_meta_client_t *_table_meta_client)
+    : feed_t(_table_id, _table_meta_client),
+      client_lock(std::move(_client_lock)),
       client(_client),
-      uuid(_uuid),
+      table_id(_table_id),
       manager(_manager),
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
-        ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
+        ns_if->read(
+            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            read,
+            &read_resp,
+            order_token_t::ignore,
+            interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
         guarantee(resp != NULL);
@@ -1680,7 +1858,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, this);
         guarantee(detached);
         if (self.has()) {
             guarantee(lock.has());
@@ -1698,17 +1876,26 @@ void real_feed_t::constructor_cb() {
 
 class empty_sub_t : public flat_sub_t {
 public:
-    empty_sub_t(feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states)
+    empty_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types)
     // There will never be any changes, safe to start squashing right away.
     : flat_sub_t(init_squashing_queue_t::YES,
-                 feed, std::move(limits), squash, include_states),
+                 _rdb_context,
+                 _user_context,
+                 _feed,
+                 std::move(_limits),
+                 _squash,
+                 _include_states,
+                 _include_types),
       state(state_t::INITIALIZING),
       sent_state(state_t::NONE),
       include_initial(false) {
-        feed->add_empty_sub(this);
+        _feed->add_empty_sub(this);
     }
     virtual ~empty_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_empty_sub, feed, this));
@@ -1721,7 +1908,9 @@ public:
         if (state != sent_state && include_states) {
             sent_state = state;
             state = state_t::READY;
-            return state_datum(sent_state);
+            return maybe_add_type(
+                state_datum(sent_state),
+                change_type_t::STATE);
         }
         r_sanity_fail();
     }
@@ -1770,21 +1959,30 @@ private:
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
+    point_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types,
                 datum_t _pkey)
         // For point changefeeds we start squashing right away.
         : flat_sub_t(init_squashing_queue_t::YES,
-                     feed, std::move(limits), squash, include_states),
+                     _rdb_context,
+                     _user_context,
+                     _feed,
+                     std::move(_limits),
+                     _squash,
+                     _include_states,
+                     _include_types),
           pkey(std::move(_pkey)),
           stamp(0),
           started(false),
           state(state_t::INITIALIZING),
           sent_state(state_t::NONE),
           include_initial(false) {
-        feed->add_point_sub(this, store_key_t(pkey.print_primary()));
+        _feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this,
@@ -1803,7 +2001,8 @@ public:
     datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
-            return state_datum(state);
+            return maybe_add_type(state_datum(state),
+                                  change_type_t::STATE);
         }
         datum_t ret;
         if (state != state_t::READY && include_initial) {
@@ -1814,10 +2013,15 @@ public:
                 // like `{new_val: null}`.
                 ret = datum_t(
                     std::map<datum_string_t, datum_t>{{
-                        datum_string_t("new_val"), datum_t::null()}});
+                            datum_string_t("new_val"),
+                            datum_t::null()}});
             }
+            ret = maybe_add_type(std::move(ret), change_type_t::INITIAL);
         } else {
-            ret = change_val_to_change(pop_change_val());
+            ret = change_val_to_change(pop_change_val(),
+                                       false,
+                                       false,
+                                       include_types);
         }
         initial_val = boost::none;
         state = state_t::READY;
@@ -1846,6 +2050,7 @@ public:
 
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
@@ -1861,7 +2066,7 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                boost::none,
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none)
+               indexed_datum_t(resp->initial_val, boost::none)
                DEBUG_ONLY(, boost::none));
         if (start_stamp > stamp) {
             stamp = start_stamp;
@@ -1912,7 +2117,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none)
+            indexed_datum_t(initial, boost::none)
             DEBUG_ONLY(, boost::none));
         started = true;
 
@@ -1942,16 +2147,25 @@ counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
+    range_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_states,
+                bool _include_types,
                 env_t *outer_env,
                 keyspec_t::range_t _spec)
         // We don't turn on squashing until later for range subs.  (We need to
         // wait until we've purged and all the initial values are reconciled.)
         : flat_sub_t(init_squashing_queue_t::NO,
-                     feed, std::move(limits), squash, include_states),
+                     _rdb_context,
+                     _user_context,
+                     _feed,
+                     std::move(_limits),
+                     _squash,
+                     _include_states,
+                     _include_types),
           spec(std::move(_spec)),
           state(state_t::READY),
           sent_state(state_t::NONE),
@@ -1964,7 +2178,7 @@ public:
         if (!store_keys) {
             store_key_range = spec.datumspec.covering_range().to_primary_keyrange();
         }
-        feed->add_range_sub(this);
+        _feed->add_range_sub(this);
     }
     feed_type_t cfeed_type() const final { return feed_type_t::stream; }
     virtual ~range_sub_t() {
@@ -1973,6 +2187,17 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
+        if (spec.intersect_geometry) {
+            try {
+                if (!geo_does_intersect(*spec.intersect_geometry, sindex_key)) {
+                    return 0;
+                }
+            } catch (const geo_exception_t &) {
+                return 0;
+            } catch (const base_exc_t &) {
+                return 0;
+            }
+        }
         return spec.datumspec.copies(sindex_key);
     }
     size_t copies(const store_key_t &pkey) const {
@@ -2024,7 +2249,8 @@ public:
             if (artificial_include_initial && artificial_initial_vals.size() == 0) {
                 state = state_t::READY;
             }
-            return state_datum(sent_state);
+            return maybe_add_type(state_datum(sent_state),
+                                  change_type_t::STATE);
         }
         if (artificial_initial_vals.size() != 0) {
             datum_t d = artificial_initial_vals.back();
@@ -2032,9 +2258,14 @@ public:
             if (artificial_initial_vals.size() == 0) {
                 state = state_t::READY;
             }
-            return vals_to_change(datum_t(), d, true);
+            return maybe_add_type(
+                vals_to_change(datum_t(), d, true),
+                change_type_t::INITIAL);
         }
-        return change_val_to_change(pop_change_val());
+        return change_val_to_change(pop_change_val(),
+                                    false,
+                                    false,
+                                    include_types);
     }
     bool has_el() final {
         return (include_states && state != sent_state)
@@ -2066,6 +2297,7 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
+            outer_env->get_user_context(),
             read_t(changefeed_stamp_t(addr),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
@@ -2142,7 +2374,7 @@ private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
         // actually have a context.
-        return outer_env->get_rdb_ctx() == NULL
+        return outer_env->get_rdb_ctx() == nullptr
             ? make_scoped<env_t>(outer_env->interruptor,
                                  outer_env->return_empty_normal_batches,
                                  outer_env->reql_version())
@@ -2151,6 +2383,7 @@ private:
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
                 outer_env->get_all_optargs(),
+                outer_env->get_user_context(),
                 nullptr/*don't profile*/);
     }
 
@@ -2173,14 +2406,28 @@ private:
 };
 
 class limit_sub_t : public subscription_t {
+    struct limit_change_t {
+        datum_t old_d, new_d;
+        boost::optional<size_t> old_offset, new_offset;
+    };
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed,
-                configured_limits_t limits,
-                const datum_t &squash,
-                bool include_states,
+    limit_sub_t(rdb_context_t *_rdb_context,
+                const auth::user_context_t &_user_context,
+                feed_t *_feed,
+                configured_limits_t _limits,
+                const datum_t &_squash,
+                bool _include_offsets,
+                bool _include_states,
+                bool _include_types,
                 keyspec_t::limit_t _spec)
-        : subscription_t(feed, limits, squash, include_states),
+        : subscription_t(_rdb_context,
+                         _user_context,
+                         _feed,
+                         _limits,
+                         _squash,
+                         _include_states,
+                         _include_types),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -2188,8 +2435,9 @@ public:
           gt(limit_order_t(spec.range.sorting)),
           item_queue(gt),
           active_data(gt),
-          include_initial(false) {
-        feed->add_limit_sub(this, uuid);
+          include_initial(false),
+          include_offsets(_include_offsets) {
+        _feed->add_limit_sub(this, uuid);
     }
 
     virtual ~limit_sub_t() {
@@ -2204,14 +2452,22 @@ public:
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
             if (include_initial) {
-                if (include_states) els.push_back(initializing_datum());
+                if (include_states) els.push_back(maybe_add_type(initializing_datum(),
+                                                                 change_type_t::STATE));
+                size_t i = 0;
                 for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
-                    els.push_back(
-                        datum_t(std::map<datum_string_t, datum_t>{
-                                {datum_string_t("new_val"), (**it)->second.second}}));
+                    std::map<datum_string_t, datum_t> m;
+                    m[datum_string_t("new_val")] = (**it)->second.second;
+                    if (include_offsets) {
+                        m[datum_string_t("new_offset")] =
+                            datum_t(static_cast<double>(i++));
+                    }
+                    els.push_back(maybe_add_type(datum_t(std::move(m)),
+                                                 change_type_t::INITIAL));
                 }
             }
-            if (include_states) els.push_back(ready_datum());
+            if (include_states) els.push_back(maybe_add_type(ready_datum(),
+                                                             change_type_t::STATE));
 
             if (!squash) {
                 decltype(queued_changes) changes;
@@ -2233,10 +2489,10 @@ public:
             decltype(queued_changes) changes;
             changes.swap(queued_changes);
 
-            std::vector<std::pair<datum_t, datum_t> > pairs;
-            pairs.reserve(changes.size()); // Important to keep iterators valid.
+            std::vector<limit_change_t> limit_changes;
+            limit_changes.reserve(changes.size()); // Important to keep iterators valid.
             // This has to be a multimap because of multi-indexes.
-            std::multimap<datum_t, decltype(pairs.begin()),
+            std::multimap<datum_t, decltype(limit_changes.begin()),
                           std::function<bool(const datum_t &, const datum_t &)> >
                 new_val_index(
                     [](const datum_t &a, const datum_t &b) {
@@ -2250,28 +2506,29 @@ public:
             // We do things this way rather than simply diffing the active sets
             // because it's easier to avoid irrational intermediate states.
             for (const auto &change_pair : changes) {
-                std::pair<datum_t, datum_t> pair
+                limit_change_t lc
                     = note_change_impl(change_pair.first, change_pair.second);
-                if (pair.first.has() || pair.second.has()) {
-                    auto it = new_val_index.find(pair.first);
-                    decltype(pairs.begin()) pairs_it;
+                if (lc.old_d.has() || lc.new_d.has()) {
+                    auto it = new_val_index.find(lc.old_d);
+                    decltype(limit_changes.begin()) limit_changes_it;
                     if (it == new_val_index.end()) {
-                        pairs.push_back(pair);
-                        pairs_it = pairs.end()-1;
+                        limit_changes.push_back(lc);
+                        limit_changes_it = limit_changes.end()-1;
                     } else {
-                        pairs_it = it->second;
-                        pairs_it->second = pair.second;
+                        limit_changes_it = it->second;
+                        limit_changes_it->new_d = lc.new_d;
                         new_val_index.erase(it);
                     }
-                    new_val_index.insert(std::make_pair(pair.second, pairs_it));
+                    new_val_index.insert(std::make_pair(lc.new_d, limit_changes_it));
                 }
             }
 
-            for (auto &&pair : pairs) {
-                if (!((pair.first.has() && pair.second.has()
-                       && pair.first == pair.second)
-                      || (!pair.first.has() && !pair.second.has()))) {
-                    push_el(std::move(pair.first), std::move(pair.second));
+            for (auto &&lc : limit_changes) {
+                if (!((lc.old_d.has() && lc.new_d.has()
+                       && lc.old_d == lc.new_d
+                       && lc.old_offset == lc.new_offset)
+                      || (!lc.old_d.has() && !lc.new_d.has()))) {
+                    push_el(std::move(lc));
                 }
             }
 
@@ -2303,15 +2560,22 @@ public:
         maybe_start();
     }
 
-    void push_el(datum_t old_val, datum_t new_val) {
+    void push_el(limit_change_t lc) {
         // Empty changes should have been caught above us.
-        guarantee(old_val.has() || new_val.has());
-        if (old_val.has() && new_val.has()) {
-            rassert(old_val != new_val);
+        guarantee(lc.old_d.has() || lc.new_d.has());
+        if (lc.old_d.has() && lc.new_d.has()) {
+            rassert(lc.old_d != lc.new_d || lc.old_offset != lc.new_offset);
         }
+
         datum_t el = vals_to_change(
-            old_val.has() ? old_val : datum_t::null(),
-            new_val.has() ? new_val : datum_t::null());
+            lc.old_d.has() ? std::move(lc.old_d) : datum_t::null(),
+            lc.new_d.has() ? std::move(lc.new_d) : datum_t::null(),
+            false,
+            false,
+            include_types,
+            include_offsets,
+            std::move(lc.old_offset),
+            std::move(lc.new_offset));
         els.push_back(std::move(el));
     }
 
@@ -2328,9 +2592,9 @@ public:
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
         } else {
-            std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
-            if (pair.first.has() || pair.second.has()) {
-                push_el(std::move(pair.first), std::move(pair.second));
+            limit_change_t lc = note_change_impl(old_key, new_val);
+            if (lc.old_d.has() || lc.new_d.has()) {
+                push_el(std::move(lc));
             }
         }
         if (need_init == got_init) {
@@ -2338,19 +2602,43 @@ public:
         }
     }
 
-    std::pair<datum_t, datum_t> note_change_impl(
+    template<class T>
+    boost::optional<size_t> slow_active_offset(const T &it) {
+        size_t i = 0;
+        for (auto ft = active_data.begin();
+             ft != active_data.end();
+             ++ft, ++i) {
+            if (*ft == it) {
+                return active_data.size() - (i + 1);
+            }
+        }
+        return boost::none;
+    }
+
+    limit_change_t note_change_impl(
         const boost::optional<std::string> &old_key,
         const boost::optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
         boost::optional<item_t> old_send, new_send;
+        boost::optional<size_t> old_offset, new_offset;
         if (old_key) {
             auto it = item_queue.find_id(*old_key);
             guarantee(it != item_queue.end());
+            if (include_offsets) {
+                old_offset = slow_active_offset(it);
+            }
             size_t erased = active_data.erase(it);
             if (erased != 0) {
                 // The old value was in the set.
+                if (include_offsets) {
+                    guarantee(old_offset);
+                }
                 old_send = **it;
+            } else {
+                if (include_offsets) {
+                    guarantee(!old_offset);
+                }
             }
             item_queue.erase(it);
         }
@@ -2366,8 +2654,12 @@ public:
                 insert = !gt(it, *active_data.begin());
             }
             if (insert) {
-                active_data.insert(it);
                 // The new value is in the old set bounds (and thus in the set).
+                active_data.insert(it);
+                if (include_offsets) {
+                    new_offset = slow_active_offset(it);
+                    guarantee(new_offset);
+                }
                 new_send = **it;
             }
         }
@@ -2375,7 +2667,11 @@ public:
             // The old value wasn't in the set, but the new value is, and a
             // value has to leave the set to make room.
             auto last = *active_data.begin();
-            guarantee(new_send && !old_send);
+            guarantee(new_send && !old_send && !old_offset);
+            if (include_offsets) {
+                // We subtract two here because `new_val` was already inserted.
+                old_offset = active_data.size() - 2;
+            }
             old_send = **last;
             active_data.erase(last);
         } else if (active_data.size() < spec.limit) {
@@ -2393,6 +2689,9 @@ public:
                 guarantee(it != item_queue.begin());
                 --it;
                 active_data.insert(it);
+                if (include_offsets) {
+                    new_offset = active_data.size() - 1;
+                }
                 new_send = **it;
             }
         }
@@ -2401,10 +2700,11 @@ public:
 
         datum_t old_d = old_send ? (*old_send).second.second : datum_t();
         datum_t new_d = new_send ? (*new_send).second.second : datum_t();
-        if (old_d.has() && new_d.has() && old_d == new_d) {
+        if (old_d.has() && new_d.has() && old_d == new_d && old_offset == new_offset) {
             old_d = new_d = datum_t();
+            old_offset = new_offset = boost::none;
         }
-        return std::make_pair(old_d, new_d);
+        return limit_change_t{old_d, new_d, old_offset, new_offset};
     }
 
     virtual bool has_el() { return els.size() != 0; }
@@ -2433,16 +2733,18 @@ public:
         include_initial = maybe_src.has();
         read_response_t read_resp;
         nif->read(
+            env->get_user_context(),
             read_t(changefeed_limit_subscribe_t(
                        addr,
                        uuid,
                        spec,
                        std::move(table),
                        env->get_all_optargs(),
+                       env->get_user_context(),
                        spec.range.sindex
-                       ? region_t::universe()
-                       : region_t(
-                           spec.range.datumspec.covering_range().to_primary_keyrange())),
+                           ? region_t::universe()
+                           : region_t(
+                               spec.range.datumspec.covering_range().to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
@@ -2485,6 +2787,7 @@ public:
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
     bool include_initial;
+    bool include_offsets;
 
     auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
@@ -2529,6 +2832,7 @@ public:
         feed->each_range_sub(*lock, [&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
             if (!sub->active()) return;
+            bool trivial = false;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
@@ -2545,9 +2849,7 @@ public:
                 // Duplicate values are caught before being written to disk and
                 // don't generate a `mod_report`, but if we have transforms the
                 // values might have changed.
-                if (new_val == old_val) {
-                    return;
-                }
+                trivial = (new_val == old_val);
             } else {
                 guarantee(change.old_val.has() || change.new_val.has());
                 if (change.new_val.has()) {
@@ -2560,13 +2862,12 @@ public:
             ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
-                    old_idxs, new_idxs;
+                std::vector<indexed_datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            old_idxs.push_back(idx);
+                            old_idxs.push_back(indexed_datum_t(old_val, idx.second));
                         }
                     }
                 }
@@ -2574,64 +2875,65 @@ public:
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            new_idxs.push_back(idx);
+                            new_idxs.push_back(indexed_datum_t(new_val, idx.second));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val,
-                                                std::move(old_idxs.back().first),
-                                                std::move(old_idxs.back().second)),
-                                indexed_datum_t(new_val,
-                                                std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)));
+                    if (!trivial) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    std::move(old_idxs.back()),
+                                    std::move(new_idxs.back()));
+                    }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
                 }
                 while (old_idxs.size() > 0) {
                     guarantee(new_idxs.size() == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val,
-                                                std::move(old_idxs.back().first),
-                                                std::move(old_idxs.back().second)),
-                                boost::none);
+                    if (old_val != null) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    std::move(old_idxs.back()),
+                                    boost::none);
+                    }
                     old_idxs.pop_back();
                 }
                 while (new_idxs.size() > 0) {
                     guarantee(old_idxs.size() == 0);
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                boost::none,
-                                indexed_datum_t(new_val,
-                                                std::move(new_idxs.back().first),
-                                                std::move(new_idxs.back().second)));
+                    if (new_val != null) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    boost::none,
+                                    std::move(new_idxs.back()));
+                    }
                     new_idxs.pop_back();
                 }
             } else {
-                for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
-                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val, datum_t(), boost::none),
-                                indexed_datum_t(new_val, datum_t(), boost::none));
+                if (!trivial) {
+                    for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
+                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                    indexed_datum_t(old_val, boost::none),
+                                    indexed_datum_t(new_val, boost::none));
+                    }
                 }
             }
         });
         feed->on_point_sub(
             change.pkey,
             *lock,
-            std::bind(&point_sub_t::add_el,
-                      ph::_1,
-                      std::cref(server_uuid),
-                      stamp,
-                      change.pkey,
-                      boost::none,
-                      change.old_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.old_val, datum_t(), boost::none))
-                          : boost::none,
-                      change.new_val.has()
-                          ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.new_val, datum_t(), boost::none))
-                          : boost::none));
+            std::bind(
+                &point_sub_t::add_el,
+                ph::_1,
+                std::cref(server_uuid),
+                stamp,
+                change.pkey,
+                boost::none,
+                change.old_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.old_val, boost::none))
+                    : boost::none,
+                change.new_val.has()
+                    ? boost::optional<indexed_datum_t>(
+                        indexed_datum_t(change.new_val, boost::none))
+                    : boost::none));
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
@@ -2738,10 +3040,11 @@ private:
                         cv,
                         cv.old_val && discard(
                             cv.pkey,
-                            cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                            cv.source_stamp, *cv.old_val),
                         cv.new_val && discard(
                             cv.pkey,
-                            cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
+                            cv.source_stamp, *cv.new_val),
+                        sub->include_types);
                     if (el.has()) {
                         batcher.note_el(el);
                         ret.push_back(std::move(el));
@@ -2751,7 +3054,9 @@ private:
                 remove_outdated_ranges();
             } else {
                 if (sub->include_states) {
-                    ret.push_back(state_datum(state_t::INITIALIZING));
+                    ret.push_back(sub->maybe_add_type(
+                                      state_datum(state_t::INITIALIZING),
+                                      change_type_t::STATE));
                 }
             }
             if (!src->is_exhausted() && !batcher.should_send_batch()) {
@@ -2761,14 +3066,16 @@ private:
                 update_ranges();
                 r_sanity_check(active_state);
                 read_once = true;
-
                 if (batch.size() == 0) {
                     r_sanity_check(src->is_exhausted());
                 } else {
                     ret.reserve(ret.size() + batch.size());
                     for (auto &&datum : batch) {
-                        ret.push_back(
-                            vals_to_change(datum_t(), std::move(datum), true));
+                        datum_t cv = vals_to_change(datum_t(), std::move(datum), true);
+                        if (cv.has()) {
+                            ret.push_back(
+                                sub->maybe_add_type(std::move(cv), change_type_t::INITIAL));
+                        }
                     }
                 }
             } else {
@@ -2790,12 +3097,11 @@ private:
     }
 
     bool discard(const store_key_t &pkey,
-                 const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
         store_key_t key;
-        if (val.index.has()) {
-            key = store_key_t(val.index.print_secondary(reql_version(), pkey, tag_num));
+        if (val.btree_index_key) {
+            key = store_key_t(*val.btree_index_key);
         } else {
             key = pkey;
         }
@@ -2909,17 +3215,23 @@ private:
 };
 
 subscription_t::subscription_t(
+    rdb_context_t *_rdb_context,
+    const auth::user_context_t &_user_context,
     feed_t *_feed,
     configured_limits_t _limits,
     const datum_t &_squash,
-    bool _include_states)
+    bool _include_states,
+    bool _include_types)
     : skipped(0),
       feed(_feed),
       limits(std::move(_limits)),
       squash(_squash.as_bool()),
       include_states(_include_states),
+      include_types(_include_types),
       mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
+      rdb_context(_rdb_context),
+      user_context(_user_context),
       cond(NULL),
       queue_nearly_full_cond(NULL) {
     guarantee(feed != NULL);
@@ -3024,6 +3336,32 @@ subscription_t::get_els(batcher_t *batcher,
     } else {
         r_sanity_check(false);
     }
+
+    // FIXME changefeeds on artificial tables
+    if (feed != nullptr &&
+            !feed->get_table_id().is_nil() &&
+            feed->get_table_meta_client() != nullptr &&
+            rdb_context != nullptr) {
+        try {
+            table_basic_config_t table_basic_config;
+            feed->get_table_meta_client()->get_name(
+                feed->get_table_id(), &table_basic_config);
+
+            user_context.require_read_permission(
+                rdb_context, table_basic_config.database, feed->get_table_id());
+        } catch (no_such_table_exc_t const &no_such_table_exc) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::OP_FAILED, no_such_table_exc.what())),
+                detach_t::NO);
+        } catch (auth::permission_error_t const permission_error) {
+            stop(
+                std::make_exception_ptr(
+                    datum_exc_t(base_exc_t::PERMISSION_ERROR, permission_error.what())),
+                detach_t::NO);
+        }
+    }
+
     r_sanity_check(ret.size() != 0);
     return ret;
 }
@@ -3103,7 +3441,8 @@ void map_add_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
         auto pair = std::make_pair(key, decltype(it->second)(get_num_threads()));
         it = map->insert(std::move(pair)).first;
     }
-    (it->second)[sub->home_thread().threadnum].insert(sub);
+    auto pair = (it->second)[sub->home_thread().threadnum].insert(sub);
+    guarantee(pair.second);
 }
 
 void feed_t::del_sub_with_lock(
@@ -3136,6 +3475,9 @@ void feed_t::del_sub_with_lock(
 template<class Map, class Key, class Sub>
 size_t map_del_sub(Map *map, const Key &key, Sub *sub) THROWS_NOTHING {
     auto subvec_it = map->find(key);
+    if (subvec_it == map->end()) {
+        return 0;
+    }
     size_t erased = (subvec_it->second)[sub->home_thread().threadnum].erase(sub);
     // If there are no more subscribers, remove the key from the map.
     auto it = subvec_it->second.begin();
@@ -3167,7 +3509,8 @@ void feed_t::del_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTH
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_range_sub(range_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&range_subs_lock, [this, sub]() {
-            range_subs[sub->home_thread().threadnum].insert(sub);
+            auto pair = range_subs[sub->home_thread().threadnum].insert(sub);
+            guarantee(pair.second);
         });
 }
 
@@ -3181,7 +3524,8 @@ void feed_t::del_range_sub(range_sub_t *sub) THROWS_NOTHING {
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_empty_sub(empty_sub_t *sub) THROWS_NOTHING {
     add_sub_with_lock(&empty_subs_lock, [this, sub]() {
-        empty_subs[sub->home_thread().threadnum].insert(sub);
+        auto pair = empty_subs[sub->home_thread().threadnum].insert(sub);
+        guarantee(pair.second);
     });
 }
 
@@ -3224,24 +3568,13 @@ void feed_t::each_sub_in_vec(
         }
     }
     pmap(subscription_threads.size(),
-         std::bind(&feed_t::each_sub_in_vec_cb<Sub>,
-                   this,
-                   std::cref(f),
-                   std::cref(vec),
-                   std::cref(subscription_threads),
-                   ph::_1));
-}
-
-template<class Sub>
-void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
-                                const std::vector<std::set<Sub *> > &vec,
-                                const std::vector<int> &subscription_threads,
-                                int i) {
-    guarantee(vec[subscription_threads[i]].size() != 0);
-    on_thread_t th((threadnum_t(subscription_threads[i])));
-    for (Sub *sub : vec[subscription_threads[i]]) {
-        f(sub);
-    }
+         [&f, &vec, &subscription_threads](int i) {
+             guarantee(vec[subscription_threads[i]].size() != 0);
+             on_thread_t th((threadnum_t(subscription_threads[i])));
+             for (Sub *sub : vec[subscription_threads[i]]) {
+                 f(sub);
+             }
+         });
 }
 
 void feed_t::each_range_sub(
@@ -3379,14 +3712,16 @@ void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
         }
         limit_subs.clear();
     }
-    r_sanity_check(num_subs == 0);
+    guarantee(num_subs == 0);
 }
 
-feed_t::feed_t()
+feed_t::feed_t(namespace_id_t const &_table_id, table_meta_client_t *_table_meta_client)
   : detached(false),
     num_subs(0),
     empty_subs(get_num_threads()),
-    range_subs(get_num_threads()) { }
+    range_subs(get_num_threads()),
+    table_id(_table_id),
+    table_meta_client(_table_meta_client) { }
 
 feed_t::~feed_t() {
     guarantee(num_subs == 0);
@@ -3408,59 +3743,94 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed,
-    configured_limits_t limits,
-    const datum_t &squash,
-    bool include_states,
     env_t *env,
-    const keyspec_t::spec_t &spec) {
-
+    feed_t *feed,
+    const streamspec_t &ss) {
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
-        explicit spec_visitor_t(
-            feed_t *_feed,
-            configured_limits_t _limits,
-            const datum_t *_squash,
-            bool _include_states,
-            env_t *_env)
-            : feed(_feed),
-              limits(std::move(_limits)),
-              squash(_squash),
-              include_states(_include_states),
-              env(_env) { }
+        explicit spec_visitor_t(env_t *_env, feed_t *_feed, const streamspec_t *_ss)
+            : env(_env), feed(_feed), ss(_ss) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, limits, *squash, include_states, env, range);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for range subs.");
+            return new range_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types,
+                env,
+                range);
         }
         subscription_t *operator()(const keyspec_t::empty_t &) const {
-            return new empty_sub_t(feed, limits, *squash, include_states);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for empty subs.");
+            return new empty_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, limits, *squash, include_states, limit);
+            return new limit_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_offsets,
+                ss->include_states,
+                ss->include_types,
+                limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, limits, *squash, include_states, point.key);
+            rcheck_datum(!ss->include_offsets, base_exc_t::LOGIC,
+                         "Cannot include offsets for point subs.");
+            return new point_sub_t(
+                env->get_rdb_ctx(),
+                env->get_user_context(),
+                feed,
+                ss->limits,
+                ss->squash,
+                ss->include_states,
+                ss->include_types,
+                point.key);
         }
-        feed_t *feed;
-        configured_limits_t limits;
-        const datum_t *squash;
-        bool include_states;
         env_t *env;
+        feed_t *feed;
+        const streamspec_t *ss;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(
-            spec_visitor_t(feed, std::move(limits), &squash, include_states, env),
-            spec));
+        boost::apply_visitor(spec_visitor_t(env, feed, &ss), ss.spec));
 }
+
+streamspec_t::streamspec_t(counted_t<datum_stream_t> _maybe_src,
+                           std::string _table_name,
+                           bool _include_offsets,
+                           bool _include_states,
+                           bool _include_types,
+                           configured_limits_t _limits,
+                           datum_t _squash,
+                           keyspec_t::spec_t _spec) :
+    maybe_src(std::move(_maybe_src)),
+    table_name(std::move(_table_name)),
+    include_offsets(std::move(_include_offsets)),
+    include_states(std::move(_include_states)),
+    include_types(std::move(_include_types)),
+    limits(std::move(_limits)),
+    squash(std::move(_squash)),
+    spec(std::move(_spec)) { }
 
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
-    counted_t<datum_stream_t> maybe_src,
-    configured_limits_t limits,
-    const datum_t &squash,
-    bool include_states,
-    const namespace_id_t &uuid,
+    const streamspec_t &ss,
+    const namespace_id_t &table_id,
     backtrace_id_t bt,
-    const std::string &table_name,
-    const keyspec_t::spec_t &spec) {
+    table_meta_client_t *table_meta_client) {
     bool is_second_try = false;
     uuid_u last_feed_uuid;
     for (;;) {
@@ -3478,12 +3848,12 @@ counted_t<datum_stream_t> client_t::new_stream(
                 auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
                 rwlock_in_line_t spot(&feeds_lock, access_t::write);
                 spot.read_signal()->wait_lazily_unordered();
-                auto feed_it = feeds.find(uuid);
+                auto feed_it = feeds.find(table_id);
 
                 if (is_second_try) {
                     guarantee(!last_feed_uuid.is_unset());
                     if (feed_it != feeds.end()
-                        && feed_it->second->get_uuid() == last_feed_uuid) {
+                        && feed_it->second->get_table_id() == last_feed_uuid) {
                         // We enter this branch if we got a `RESUMABLE_OP_FAILED`
                         // exception, tried again, and found the same feed (which is
                         // presumably in a broken state and needs to be replaced).
@@ -3501,19 +3871,21 @@ counted_t<datum_stream_t> client_t::new_stream(
                 if (feed_it == feeds.end()) {
                     spot.write_signal()->wait_lazily_unordered();
                     namespace_interface_access_t access =
-                        namespace_source(uuid, &interruptor);
+                        namespace_source(table_id, &interruptor);
                     // Even though we have the user's feed here, multiple
                     // users may share a feed_t, and this code path will
                     // only be run for the first one.  Rather than mess
                     // about, just use the defaults.
                     auto val = make_scoped<real_feed_t>(
-                        lock, this, manager, access.get(), uuid, &interruptor);
-                    feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
+                        lock, this, manager, access.get(), table_id, &interruptor,
+                        table_meta_client);
+                    feed_it = feeds.insert(
+                        std::make_pair(table_id, std::move(val))).first;
                 }
 
                 guarantee(feed_it != feeds.end());
                 real_feed_t *feed = feed_it->second.get();
-                last_feed_uuid = feed->get_uuid();
+                last_feed_uuid = feed->get_table_id();
                 addr = feed->get_addr();
 
                 // We need to do this while holding `feeds_lock` to make sure
@@ -3521,16 +3893,16 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // want to change this behavior to make it more efficient, make
                 // sure `feed_t::stop_subs` remains correct.
                 on_thread_t th2(old_thread);
-                sub = new_sub(feed, std::move(limits), squash, include_states, env, spec);
+                sub = new_sub(env, feed, ss);
             }
             namespace_interface_access_t access =
-                namespace_source(uuid, env->interruptor);
-            return sub->to_stream(env, table_name, access.get(),
-                                  addr, std::move(maybe_src), std::move(sub), bt);
+                namespace_source(table_id, env->interruptor);
+            return sub->to_stream(env, ss.table_name, access.get(),
+                                  addr, ss.maybe_src, std::move(sub), bt);
         } catch (const cannot_perform_query_exc_t &e) {
             rfail_datum(base_exc_t::OP_FAILED,
                         "cannot subscribe to table `%s`: %s",
-                        table_name.c_str(), e.what());
+                        ss.table_name.c_str(), e.what());
         } catch (const base_exc_t &e) {
             if (e.get_type() == base_exc_t::RESUMABLE_OP_FAILED) {
                 if (is_second_try) {
@@ -3568,7 +3940,7 @@ void client_t::maybe_remove_feed(
 }
 
 scoped_ptr_t<real_feed_t> client_t::detach_feed(
-    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
+        const auto_drainer_t::lock_t &lock, real_feed_t *expected_feed) {
     assert_thread();
     lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> ret;
@@ -3576,8 +3948,10 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
     spot.write_signal()->wait_lazily_unordered();
     // The feed might have been removed in `maybe_remove_feed`, in which case
     // there's nothing to detach.
-    auto feed_it = feeds.find(uuid);
-    if (feed_it != feeds.end()) {
+    // It's also possible that the feed had been removed and a new feed has since been
+    // added for this table uuid, so we need to compare the pointer to `expected_feed`.
+    auto feed_it = feeds.find(expected_feed->get_table_id());
+    if (feed_it != feeds.end() && feed_it->second.get_or_null() == expected_feed) {
         ret.swap(feed_it->second);
         ret->mark_detached();
         feeds.erase(feed_it);
@@ -3587,7 +3961,9 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
 
 class artificial_feed_t : public feed_t {
 public:
-    explicit artificial_feed_t(artificial_t *_parent) : parent(_parent) { }
+    explicit artificial_feed_t(artificial_t *_parent)
+        : feed_t(nil_uuid(), nullptr),
+          parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
     virtual void maybe_remove_feed() { parent->maybe_remove(); }
@@ -3611,10 +3987,7 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
-    bool include_initial,
-    bool include_states,
-    configured_limits_t limits,
-    const keyspec_t::spec_t &spec,
+    const streamspec_t &ss,
     const std::string &primary_key_name,
     const std::vector<datum_t> &initial_values,
     backtrace_id_t bt) {
@@ -3624,20 +3997,25 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
-    scoped_ptr_t<subscription_t> sub = new_sub(
-        feed.get(),
-        std::move(limits),
-        datum_t::boolean(false),
-        include_states,
-        env,
-        spec);
+    const streamspec_t *unsquashed_ss = &ss;
+    scoped_ptr_t<streamspec_t> dup;
+    if (ss.squash != datum_t::boolean(false)) {
+        dup = make_scoped<streamspec_t>(ss);
+        dup->squash = datum_t::boolean(false);
+        unsquashed_ss = &*dup;
+    }
+    scoped_ptr_t<subscription_t> sub = new_sub(env, feed.get(), *unsquashed_ss);
     return sub->to_artificial_stream(
         uuid, primary_key_name, initial_values,
-        include_initial, std::move(sub), bt);
+        unsquashed_ss->maybe_src.has(), std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
     assert_thread();
+    // We acquire `stamp_mutex` to ensure that multiple calls to `msg_visit` don't
+    // interleave, or `feed->update_stamps` that's called from `msg_visit` might update
+    // stamps in the wrong order.
+    new_mutex_acq_t stamp_acq(&stamp_mutex);
     if (auto *change = boost::get<msg_t::change_t>(&msg.op)) {
         guarantee(change->old_val.has() || change->new_val.has());
         if (change->old_val.has() && change->new_val.has()) {

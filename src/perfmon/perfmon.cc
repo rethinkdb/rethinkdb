@@ -156,8 +156,8 @@ stddev_t::stddev_t()
 #endif
     : N(0), M(NAN), Q(NAN) { }
 
-stddev_t::stddev_t(size_t n, double mean, double variance)
-    : N(n), M(mean), Q(variance * n) {
+stddev_t::stddev_t(size_t n, double _mean, double variance)
+    : N(n), M(_mean), Q(variance * n) {
     if (N == 0)
         rassert(isnan(M) && isnan(Q));
 }

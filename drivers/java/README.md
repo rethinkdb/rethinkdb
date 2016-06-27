@@ -9,7 +9,7 @@ documentation at [java-api-docs][]
 ## Basics
 
 The Java driver is built using gradle (2.7+). To build the driver from
-source, you need gradle, Java, and python3 installed:
+source, you need gradle, Java, and python3.4 installed:
 
 ```bash
 $ make

@@ -58,7 +58,7 @@ js-dependencies: $(JS_PKG_DIR)/node_modules
 
 BLUEBIRD_MODULE_DIR := $(SUPPORT_BUILD_DIR)/bluebird_$(bluebird_VERSION)/node_modules/packed-bluebird/node_modules/bluebird
 
-$(BLUEBIRD_MODULE_DIR): $(SUPPORT_BUILD_DIR)/bluebird_$(bluebird_VERSION)/install.witness
+$(BLUEBIRD_MODULE_DIR): $(SUPPORT_BUILD_DIR)/bluebird_$(bluebird_VERSION)/$(INSTALL_WITNESS)
 	touch $@
 
 $(JS_PKG_DIR)/node_modules: $(BLUEBIRD_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP)
@@ -69,8 +69,13 @@ $(JS_PKG_DIR)/node_modules: $(BLUEBIRD_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP
 
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY_BIN_DEP)
 	$P BROWSERIFY
+ifeq (Windows, $(OS))
+	cd $(JS_PKG_DIR) && \
+	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --ignore tls --outfile "$(shell cygpath -w "$(abspath $@)")"
+else
 	cd $(JS_PKG_DIR) && \
 	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --ignore tls --outfile $(abspath $@)
+endif
 
 .PHONY: js-driver
 js-driver: $(JS_BUILD_DIR)/rethinkdb.js

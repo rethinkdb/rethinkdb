@@ -12,7 +12,8 @@ public enum Version {
     V0_1(1063369270),
     V0_2(1915781601),
     V0_3(1601562686),
-    V0_4(1074539808);
+    V0_4(1074539808),
+    V1_0(885177795);
 
     public final int value;
 
@@ -26,6 +27,7 @@ public enum Version {
             case 1915781601: return Version.V0_2;
             case 1601562686: return Version.V0_3;
             case 1074539808: return Version.V0_4;
+            case 885177795: return Version.V1_0;
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for Version", value));

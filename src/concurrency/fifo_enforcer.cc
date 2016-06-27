@@ -34,17 +34,17 @@ fifo_enforcer_write_token_t fifo_enforcer_source_t::enter_write() THROWS_NOTHING
 }
 
 fifo_enforcer_sink_t::exit_read_t::exit_read_t() THROWS_NOTHING :
-    parent(NULL), ended(false) { }
+    parent(nullptr), ended(false) { }
 
 fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING :
-    parent(NULL), ended(false)
+    parent(nullptr), ended(false)
 {
     begin(p, t);
 }
 
 void fifo_enforcer_sink_t::exit_read_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING {
-    rassert(parent == NULL);
-    rassert(p != NULL);
+    rassert(parent == nullptr);
+    rassert(p != nullptr);
     parent = p;
     token = t;
 
@@ -94,10 +94,10 @@ fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
 }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t() THROWS_NOTHING :
-    parent(NULL), ended(false) { }
+    parent(nullptr), ended(false) { }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
-    parent(NULL), ended(false)
+    parent(nullptr), ended(false)
 {
     begin(p, t);
 }
@@ -105,8 +105,8 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
 void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING {
     ASSERT_FINITE_CORO_WAITING;
 
-    rassert(parent == NULL);
-    rassert(p != NULL);
+    rassert(parent == nullptr);
+    rassert(p != nullptr);
     parent = p;
     token = t;
 

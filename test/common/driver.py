@@ -150,11 +150,17 @@ class Metacluster(object):
 class Cluster(object):
     """A group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
     
-    metacluster = None
-    processes = None
+    tlsKeyPath    = None
+    tlsCertPath   = None # used as the CA and cert
+    
+    metacluster   = None
+    processes     = None
     output_folder = None
     
-    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
+    _startLock = thread.allocate_lock()
+    _hasStartLock = None # the Process that has it
+    
+    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=False):
         
         # -- input validation
         
@@ -191,16 +197,25 @@ class Cluster(object):
         else:
             raise ValueError('the initial_servers input must be a number or a list of names/paths, got: %r' % initial_servers)
         
+        # - tls
+        
+        if tls is True:
+            try:
+                self.tlsKeyPath, self.tlsCertPath = self.generateTlsCerts(self.output_folder)
+            except Exception as e:
+                traceback.print_exc()
+                raise Exception('Unable to create tls key/certificate: %s' % str(e))
+        elif tls is False or None:
+            tls = None
+        elif not hasattr(tls, 'has_key') or not 'key' in tls or not 'cert' in tls:
+            raise ValueError('Incorrect value for tls: %s' % tls)
+        
         # -- start servers
         
         self.processes = []
         if initial_servers:
-            # start the first server, waiting until it is ready
-            p = Process(cluster=self, name=initial_servers[0], console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options, wait_until_ready=True)
-            assert p in self.processes
-            
-            # start others in parallel
-            for name in initial_servers[1:]:
+            # start all of the servers, and let the _startLock do its work
+            for name in initial_servers:
                 # The constructor will insert itself into `self.processes`
                 p = Process(cluster=self, name=name, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options, wait_until_ready=False)
                 assert p in self.processes
@@ -244,6 +259,58 @@ class Cluster(object):
         finally:
             for server in self.processes:
                 server.stop()
+    
+    @staticmethod
+    def generateTlsCerts(folder):
+        import OpenSSL
+        
+        assert os.path.isdir(folder)
+        keyPath = os.path.join(folder, 'key.pem')
+        certPath = os.path.join(folder, 'cert.pem')
+        
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        
+        assert not os.path.exists(keyPath)
+        assert not os.path.exists(certPath)
+        
+        # key
+        key = None
+        if not os.path.exists(keyPath):
+            key = OpenSSL.crypto.PKey()
+            key.generate_key(OpenSSL.crypto.TYPE_RSA, 1024)
+            keyPath = os.path.join(folder, 'key.pem')
+            with open(keyPath, 'wb') as keyFile:
+                keyFile.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
+        
+        # ToDo: switch this to create a CA rather than a self-signed cert
+        
+        # certificiate
+        if not os.path.exists(certPath):
+            if key is None:
+                with open(keyPath, 'rb') as keyFile:
+                    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, keyFile.read())
+            
+            cert = OpenSSL.crypto.X509()
+            cert.get_subject().C  = "US"
+            cert.get_subject().ST = "California"
+            cert.get_subject().L  = "Mountain View"
+            cert.get_subject().O  = "RethinkDB"
+            cert.get_subject().OU = "Department of Testing"
+            cert.get_subject().CN = 'localhost'
+            cert.set_serial_number(1)
+            cert.gmtime_adj_notBefore(0)
+            cert.gmtime_adj_notAfter(60*60*24*4) # 4 days
+            cert.set_issuer(cert.get_subject())
+            cert.set_pubkey(key)
+            cert.sign(key, 'sha1')
+            certPath = os.path.join(folder, 'cert.pem')
+            with open(certPath, 'wb') as certFile:
+                certFile.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+        
+        return (keyPath, certPath)
     
     def update_routing(self, target=None):
         '''Update the routing tables that block servers from one cluster from seeing those from another'''
@@ -294,7 +361,7 @@ class Cluster(object):
                     Resunder.unblock_path(otherServer.cluster_port,       server.cluster_port)
                     Resunder.unblock_path(otherServer.local_cluster_port, server.cluster_port)
                     Resunder.unblock_path(otherServer.local_cluster_port, server.local_cluster_port)
-        
+    
     def __getitem__(self, pos):
         if isinstance(pos, slice):
             return [self.processes[x] for x in xrange(*pos.indices(len(self.processes)))]
@@ -358,7 +425,7 @@ class Process(object):
     
     logfilePortRegex = re.compile('Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
     logfileServerIDRegex = re.compile('Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
-    logfileReadyRegex = re.compile('(Server|Proxy) ready(, "(?P<name>\w+)" (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
+    logfileReadyRegex = re.compile('(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
     
     @staticmethod
     def genPath(name, path, extraLetters=3):
@@ -558,22 +625,42 @@ class Process(object):
         self.returncode = None
         self.killed = False
         
-        # -- copy the options
+        # -- setup options
+        
+        # - copy the options
         
         options = copy.copy(self.args)
         
-        # -- set the local_cluster_port
+        # - set the local_cluster_port
         
         if not '--client-port' in options and not any([x.startswith('--client-port=') for x in options]):
             # allows resunder to know what port to block
             options += ['--client-port', str(self.local_cluster_port)]
         
-        # -- set to join the cluster
+        # - set to join the cluster
         
-        for peer in self.cluster.processes:
-            if peer != self and peer.ready:
-                options += ["--join", peer.host + ":" + str(peer.cluster_port)]
-                break
+        joinOptions = []
+        try:
+            self.cluster._startLock.acquire()
+            self.cluster._hasStartLock = self
+            for peer in self.cluster.processes:
+                if peer != self and peer.ready:
+                    joinOptions += ["--join", peer.host + ":" + str(peer.cluster_port)]
+                    break
+        finally:
+            if joinOptions and self.cluster._hasStartLock is self:
+                self.cluster._hasStartLock = None
+                self.cluster._startLock.release()
+        
+        # - tls options
+        
+        if self.cluster.tlsKeyPath and self.cluster.tlsCertPath:
+            options += [
+                '--http-tls-key', self.cluster.tlsKeyPath, '--http-tls-cert', self.cluster.tlsCertPath, 
+                '--driver-tls-key', self.cluster.tlsKeyPath, '--driver-tls-cert', self.cluster.tlsCertPath,
+                '--cluster-tls-key', self.cluster.tlsKeyPath, '--cluster-tls-cert', self.cluster.tlsCertPath,
+                '--cluster-tls-ca', self.cluster.tlsCertPath
+            ]
         
         # -- get the length of an exiting log file
         
@@ -585,7 +672,7 @@ class Process(object):
         try:
             self._console_file.write("Launching at %s:\n\t%s\n" % (datetime.datetime.now().isoformat(), " ".join(options)))
             self._console_file.flush()
-            self.process = subprocess.Popen(options, stdout=self._console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(options + joinOptions, stdout=self._console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             if not self in runningServers:
                 runningServers.append(self)
@@ -689,7 +776,7 @@ class Process(object):
             else:
                 time.sleep(0.05)
         else:
-            raise RuntimeError("Timed out after waiting %d seconds for startup." % timeout)
+            raise RuntimeError("Timed out after waiting %d seconds for startup of %s." % (timeout, self._desired_name))
     
     def read_ports_from_log(self, timeout=30):
         deadline = time.time() + timeout
@@ -707,52 +794,44 @@ class Process(object):
         
         # -- monitor the logfile for the given lines
         
-        logLines = utils.nonblocking_readline(self.logfile_path, self._existing_log_len)
-        
-        # - look for the data lines
-        
-        while time.time() < deadline:
-            
-            # - bail out if we have everything
-            
-            self.check()
-            if self.ready:
-                return
-            
-            # - get a new line or sleep
-            
-            logLine = next(logLines)
-            if logLine is None:
-                time.sleep(0.05)
-                self.check()
-                continue
-            
-            # - see if it matches one we are looking for
-            
-            try:
-                parsedLine = self.logfilePortRegex.search(logLine)
-            except Exception as e:
-                warnings.warn('Got unexpected logLine: %s' % repr(logLine))
-            if parsedLine:
-                if parsedLine.group('type') == 'intracluster':
-                    self._cluster_port = int(parsedLine.group('port'))
-                elif parsedLine.group('type') == 'client driver':
-                    self._driver_port = int(parsedLine.group('port'))
-                else:
-                    self._http_port = int(parsedLine.group('port'))
-                continue
-            
-            parsedLine = self.logfileServerIDRegex.search(logLine)
-            if parsedLine:
-                self._uuid = parsedLine.group('uuid')
-            
-            parsedLine = self.logfileReadyRegex.search(logLine)
-            if parsedLine:
-                self._ready_line = True
-                self._name = parsedLine.group('name')
-                self._uuid = parsedLine.group('uuid')
-        else:
-            raise RuntimeError("Timeout while trying to read ports from log file")
+        try:
+            for logLine in utils.nonblocking_readline(self.logfile_path, self._existing_log_len):
+                if time.time() > deadline:
+                    raise RuntimeError("Timeout while trying to read ports from log file")
+                if logLine is None:
+                    # - bail out if we are done, or the process is dead
+                    if self.process is None or self.process.poll() is not None or self.ready:
+                        return
+                    time.sleep(0.05)
+                    continue
+                
+                # - see if it matches one we are looking for
+                try:
+                    parsedLine = self.logfilePortRegex.search(logLine)
+                except Exception as e:
+                    warnings.warn('Got unexpected logLine: %s' % repr(logLine))
+                if parsedLine:
+                    if parsedLine.group('type') == 'intracluster':
+                        self._cluster_port = int(parsedLine.group('port'))
+                    elif parsedLine.group('type') == 'client driver':
+                        self._driver_port = int(parsedLine.group('port'))
+                    else:
+                        self._http_port = int(parsedLine.group('port'))
+                    continue
+                
+                parsedLine = self.logfileServerIDRegex.search(logLine)
+                if parsedLine:
+                    self._uuid = parsedLine.group('uuid')
+                
+                parsedLine = self.logfileReadyRegex.search(logLine)
+                if parsedLine:
+                    self._ready_line = True
+                    self._name = parsedLine.group('name')
+                    self._uuid = parsedLine.group('uuid')
+        finally:
+            if self.cluster._hasStartLock is self:
+                self.cluster._hasStartLock = None
+                self.cluster._startLock.release()
         
         # -- piggyback on this to setup Resunder blocking
         
@@ -875,6 +954,36 @@ class ProxyProcess(Process):
 # == main
 
 if __name__ == "__main__":
-    with Process() as p:
+    r = utils.import_python_driver()
+    
+    sys.stdout.write('Single Server... ')
+    sys.stdout.flush()
+    with Process(console_output=False) as server:
         time.sleep(3)
-        p.check_and_stop()
+        server.check_and_stop()
+    print('Ok')
+    
+    sys.stdout.write('Cluster of 4 servers... ')
+    sys.stdout.flush()
+    with Cluster(initial_servers=4) as cluster:
+        serverNames = set([x.name for x in cluster])
+        
+        # assert all servers see each other
+        for server in cluster:
+            conn =  r.connect(host=server.host, port=server.driver_port)
+            serverList = set([x['name'] for x in r.db('rethinkdb').table('server_status').run(conn)])
+            assert(serverNames == serverList)
+        
+        # shut them all down and restart them
+        for server in cluster:
+            server.stop()
+        for server in cluster:
+            server.start(wait_until_ready=False)
+        cluster.wait_until_ready()
+        
+        # reassert all servers see each other
+        for server in cluster:
+            conn =  r.connect(host=server.host, port=server.driver_port)
+            serverList = set([x['name'] for x in r.db('rethinkdb').table('server_status').run(conn)])
+            assert(serverNames == serverList)
+    print('Ok')

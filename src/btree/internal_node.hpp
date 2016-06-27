@@ -67,7 +67,7 @@ class internal_key_comp {
 public:
     enum { faux_offset = 0 };
 
-    explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(NULL)  { }
+    explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(nullptr)  { }
     internal_key_comp(const internal_node_t *_node, const btree_key_t *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
         const btree_key_t *key1 = offset1 == faux_offset ? key : &internal_node::get_pair(node, offset1)->key;

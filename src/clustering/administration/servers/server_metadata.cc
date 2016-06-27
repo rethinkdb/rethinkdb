@@ -26,7 +26,7 @@ name_string_t server_name_map_t::get(const server_id_t &sid) const {
             if (!found.empty()) {
                 found += ", ";
             }
-            found += uuid_to_str(pair.first) + "=" +
+            found += uuid_to_str(pair.first.get_uuid()) + "=" +
                 std::string(pair.second.second.c_str());
         }
         if (found.empty()) {
@@ -34,10 +34,10 @@ name_string_t server_name_map_t::get(const server_id_t &sid) const {
         }
 #ifndef NDEBUG
         crash("server_name_map doesn't contain the expected server. expected: %s found: "
-            "%s", uuid_to_str(sid).c_str(), found.c_str());
+            "%s", sid.print().c_str(), found.c_str());
 #else
         logERR("Internal error: Couldn't find server name for server ID. Expected: %s "
-            "Found: %s Please file a bug report.", uuid_to_str(sid).c_str(),
+            "Found: %s Please file a bug report.", sid.print().c_str(),
             found.c_str());
         return name_string_t::guarantee_valid("__unknown_server__");
 #endif /* NDEBUG */

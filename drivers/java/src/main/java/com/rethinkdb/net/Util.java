@@ -1,11 +1,15 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -15,7 +19,7 @@ import java.util.stream.Stream;
 
 public class Util {
 
-    public static long deadline(long timeout){
+    public static long deadline(long timeout) {
         return System.currentTimeMillis() + timeout;
     }
 
@@ -33,10 +37,28 @@ public class Util {
         return new String(buf.array(), StandardCharsets.UTF_8);
     }
 
+    public static JSONObject toJSON(String str) {
+        return (JSONObject) JSONValue.parse(str);
+    }
+
+    public static JSONObject toJSON(ByteBuffer buf) {
+        InputStreamReader codepointReader =
+                new InputStreamReader(new ByteArrayInputStream(buf.array()));
+        return (JSONObject) JSONValue.parse(codepointReader);
+    }
+
     public static <T, P> T convertToPojo(Object value, Optional<Class<P>> pojoClass) {
         return !pojoClass.isPresent() || !(value instanceof Map)
                 ? (T) value
                 : (T) toPojo(pojoClass.get(), (Map<String, Object>) value);
+    }
+
+    public static byte[] toUTF8(String s) {
+        return s.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public static String fromUTF8(byte[] ba) {
+        return new String(ba, StandardCharsets.UTF_8);
     }
 
     /**

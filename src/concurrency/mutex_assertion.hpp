@@ -43,9 +43,12 @@ struct mutex_assertion_t : public home_thread_mixin_t {
     };
 
     explicit mutex_assertion_t(threadnum_t explicit_home_thread) :
-        home_thread_mixin_t(explicit_home_thread), locked(false) { }
+        home_thread_mixin_t(explicit_home_thread), locked(false) {
+    }
 
-    mutex_assertion_t() : locked(false) { }
+    mutex_assertion_t() : locked(false) {
+    }
+
     mutex_assertion_t(mutex_assertion_t &&movee) : locked(movee.locked) {
         rassert(!locked);
     }
@@ -180,7 +183,7 @@ struct mutex_assertion_t {
         /* This is necessary to avoid compiler complaints about unused variables in
         release mode. */
         ~acq_t() { (void)this; }
-        void reset(mutex_assertion_t * = NULL) { }
+        void reset(mutex_assertion_t * = nullptr) { }
         void assert_is_holding(mutex_assertion_t *) { }
     private:
         DISABLE_COPYING(acq_t);
@@ -202,7 +205,7 @@ struct rwi_lock_assertion_t {
         read_acq_t() { }
         explicit read_acq_t(rwi_lock_assertion_t *) { }
         ~read_acq_t() { (void)this; }
-        void reset(rwi_lock_assertion_t * = NULL) { }
+        void reset(rwi_lock_assertion_t * = nullptr) { }
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
         DISABLE_COPYING(read_acq_t);
@@ -211,7 +214,7 @@ struct rwi_lock_assertion_t {
         write_acq_t() { }
         explicit write_acq_t(rwi_lock_assertion_t *) { }
         ~write_acq_t() { (void)this; }
-        void reset(rwi_lock_assertion_t * = NULL) { }
+        void reset(rwi_lock_assertion_t * = nullptr) { }
         void assert_is_holding(rwi_lock_assertion_t *) { }
     private:
         DISABLE_COPYING(write_acq_t);

@@ -21,7 +21,9 @@ public:
     auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
-        server_config_client_t *server_config_client);
+        server_config_client_t *server_config_client,
+        const int join_delay_secs,
+        const int give_up_ms);
 
 private:
     void on_connect_or_disconnect(const peer_id_t &peer_id);
@@ -45,6 +47,9 @@ private:
     /* `stop_conds` contains an entry for each running instance of `try_reconnect()`.
     It's used to interrupt the coroutines if the server reconnects. */
     std::multimap<server_id_t, cond_t *> stop_conds;
+
+    int join_delay_secs;
+    int give_up_ms;
 
     auto_drainer_t drainer;
 

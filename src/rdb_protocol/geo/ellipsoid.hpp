@@ -7,8 +7,8 @@
 class ellipsoid_spec_t {
 public:
     ellipsoid_spec_t() { } // For deserialization
-    ellipsoid_spec_t(double equator_radius, double flattening)
-        : equator_radius_(equator_radius), flattening_(flattening) { }
+    ellipsoid_spec_t(double _equator_radius, double _flattening)
+        : equator_radius_(_equator_radius), flattening_(_flattening) { }
 
     // In meters
     inline double equator_radius() const {

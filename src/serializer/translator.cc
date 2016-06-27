@@ -87,7 +87,7 @@ void prep_serializer(
 void serializer_multiplexer_t::create(const std::vector<serializer_t *>& underlying, int n_proxies) {
     /* Choose a more-or-less unique ID so that we can hopefully catch the case where files are
     mixed and mismatched. */
-    creation_timestamp_t creation_timestamp = time(NULL);
+    creation_timestamp_t creation_timestamp = time(nullptr);
 
     /* Write a configuration block for each one */
     pmap(underlying.size(), boost::bind(&prep_serializer,
@@ -226,7 +226,7 @@ block_id_t translator_serializer_t::translate_block_id(block_id_t id) const {
 }
 
 translator_serializer_t::translator_serializer_t(serializer_t *_inner, int _mod_count, int _mod_id, config_block_id_t _cfgid)
-    : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), cfgid(_cfgid), read_ahead_callback(NULL) {
+    : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), cfgid(_cfgid), read_ahead_callback(nullptr) {
     rassert(mod_count > 0);
     rassert(mod_id >= 0);
     rassert(mod_id < mod_count);
@@ -350,10 +350,10 @@ void translator_serializer_t::offer_read_ahead_buf(
     }
 
     // Okay, we take ownership of the buf, it's ours (even if read_ahead_callback is
-    // NULL).
+    // nullptr).
     buf_ptr_t local_buf = std::move(*buf);
 
-    if (read_ahead_callback != NULL) {
+    if (read_ahead_callback != nullptr) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
         read_ahead_callback->offer_read_ahead_buf(inner_block_id, &local_buf,
                                                   token);
@@ -370,7 +370,7 @@ void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callb
 void translator_serializer_t::unregister_read_ahead_cb(DEBUG_VAR serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
-    rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
+    rassert(read_ahead_callback == nullptr || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);
-    read_ahead_callback = NULL;
+    read_ahead_callback = nullptr;
 }

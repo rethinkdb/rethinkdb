@@ -17,7 +17,7 @@ common_server_artificial_table_backend_t::common_server_artificial_table_backend
             } else {
                 /* This is one of the rare cases where we can tell exactly which row
                 needs to be recomputed */
-                notify_row(convert_uuid_to_datum(md->server_id));
+                notify_row(convert_server_id_to_datum(md->server_id));
             }
         }, initial_call_t::NO)
 {
@@ -77,7 +77,7 @@ bool common_server_artificial_table_backend_t::lookup(
         cluster_directory_metadata_t *metadata_out) {
     assert_thread();
     admin_err_t dummy_error;
-    if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
+    if (!convert_server_id_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
     }
     boost::optional<peer_id_t> peer_id =

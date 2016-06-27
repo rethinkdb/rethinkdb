@@ -68,18 +68,18 @@ void raw_term_t::init_json(const rapidjson::Value *src) {
 
     const rapidjson::Value *raw_type = &(*src)[0];
     r_sanity_check(raw_type->IsInt());
-    Term::TermType type = static_cast<Term::TermType>(raw_type->GetInt64());
+    Term::TermType _type = static_cast<Term::TermType>(raw_type->GetInt64());
 
     const rapidjson::Value *raw_bt = &(*src)[size - 1];
     r_sanity_check(raw_bt->IsInt());
-    backtrace_id_t bt(raw_bt->GetUint());
+    backtrace_id_t _bt(raw_bt->GetUint());
 
     data->args = nullptr;
     data->optargs = nullptr;
     data->datum = nullptr;
 
-    if (type == Term::DATUM) {
-        rcheck_src(bt, size == 3, base_exc_t::LOGIC,
+    if (_type == Term::DATUM) {
+        rcheck_src(_bt, size == 3, base_exc_t::LOGIC,
                    strprintf("Expected 3 items in array, but found %zu.", size));
         data->datum = &(*src)[1];
     } else {
@@ -302,11 +302,11 @@ bool json_term_storage_t::static_optarg_as_bool(const std::string &key,
         return default_value;
     }
 
-    const rapidjson::Value *global_optargs = &query_json[2];
-    r_sanity_check(global_optargs->IsObject());
+    const rapidjson::Value *_global_optargs = &query_json[2];
+    r_sanity_check(_global_optargs->IsObject());
 
-    const auto it = global_optargs->FindMember(key.c_str());
-    if (it == global_optargs->MemberEnd()) {
+    const auto it = _global_optargs->FindMember(key.c_str());
+    if (it == _global_optargs->MemberEnd()) {
         return default_value;
     } else if (it->value.IsBool()) {
         return it->value.GetBool();
@@ -520,9 +520,8 @@ template MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_1
         read_stream_t *, scoped_ptr_t<term_storage_t> *);
 
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2_is_latest>(
-        read_stream_t *s,
-        scoped_ptr_t<term_storage_t> *term_storage_out) {
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     CT_ASSERT(sizeof(int) == sizeof(int32_t));
     int32_t size;
     archive_result_t res = deserialize_universal(s, &size);
@@ -538,6 +537,11 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2_is_lates
 
     term_storage_out->init(new wire_term_storage_t(std::move(data), std::move(doc)));
     return archive_result_t::SUCCESS;
+}
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3_is_latest>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }
 
 void write_term(rapidjson::Writer<rapidjson::StringBuffer> *writer,

@@ -38,6 +38,7 @@ setuptools.setup(
         'rethinkdb.tornado_net',
         'rethinkdb.twisted_net',
         'rethinkdb.gevent_net',
+        'rethinkdb.backports',
         'rethinkdb.backports.ssl_match_hostname'
     ] + conditionalPackages,
     package_dir={'rethinkdb':'rethinkdb'},

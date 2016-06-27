@@ -1,4 +1,4 @@
-err = require('./errors')
+error = require('./errors')
 util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
@@ -38,8 +38,6 @@ class IterableResult
         @_closeCbPromise = null
 
         @next = @_next
-        @each = @_each
-        @eachAsync = @_eachAsync
 
     _addResponse: (response) ->
         if response.t is @_type or response.t is protoResponseType.SUCCESS_SEQUENCE
@@ -58,9 +56,9 @@ class IterableResult
             if @_closeCb?
                 switch response.t
                     when protoResponseType.COMPILE_ERROR
-                        @_closeCb mkErr(err.ReqlServerCompileError, response, @_root)
+                        @_closeCb mkErr(error.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
-                        @_closeCb mkErr(err.ReqlClientError, response, @_root)
+                        @_closeCb mkErr(error.ReqlClientError, response, @_root)
                     when protoResponseType.RUNTIME_ERROR
                         @_closeCb mkErr(util.errorClass(response.e), response, @_root)
                     else
@@ -101,13 +99,16 @@ class IterableResult
         @_responses.length is 0 or @_responses[0].r.length <= @_responseIndex
 
     _promptNext: ->
+        if @_closeCbPromise?
+            cb = @_getCallback()
+            cb new error.ReqlDriverError "Cursor is closed."
         # If there are no more waiting callbacks, just wait until the next event
         while @_cbQueue[0]?
             if @bufferEmpty() is true
                 # We prefetch things here, set `is 0` to avoid prefectch
                 if @_endFlag is true
                     cb = @_getCallback()
-                    cb new err.ReqlDriverError "No more rows in the cursor."
+                    cb new error.ReqlDriverError "No more rows in the cursor."
                 else if @_responses.length <= 1
                     @_promptCont()
 
@@ -133,11 +134,11 @@ class IterableResult
                     when protoResponseType.COMPILE_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.ReqlServerCompileError, response, @_root)
+                        cb mkErr(error.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.ReqlClientError, response, @_root)
+                        cb mkErr(error.ReqlClientError, response, @_root)
                     when protoResponseType.RUNTIME_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
@@ -146,7 +147,7 @@ class IterableResult
                     else
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb new err.ReqlDriverError "Unknown response type for cursor"
+                        cb new error.ReqlDriverError "Unknown response type for cursor"
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
@@ -158,11 +159,11 @@ class IterableResult
 
     ## Implement IterableResult
     hasNext: ->
-        throw new err.ReqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
+        throw new error.ReqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
 
     _next: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt "function"
-            throw new err.ReqlDriverError "First argument to `next` must be a function or undefined."
+            throw new error.ReqlDriverError "First argument to `next` must be a function or undefined."
 
         fn = (cb) =>
             @_cbQueue.push cb
@@ -188,11 +189,19 @@ class IterableResult
                 # called. Just return a promise that resolves
                 # immediately.
                 @_closeCbPromise = Promise.resolve().nodeify(cb)
+                # Also clear any buffered results, so future calls to
+                # `next` fail.
+                @_responses = []
+                @_responseIndex = 0
             else
                 # We aren't ended, and we need to. Create a promise
                 # that's resolved when the END query is acknowledged.
                 @_closeCbPromise = new Promise((resolve, reject) =>
                     @_closeCb = (err) =>
+                        # Clear any buffered results, so future calls to
+                        # `next` fail.
+                        @_responses = []
+                        @_responseIndex = 0
                         # Clear all callbacks for outstanding requests
                         while @_cbQueue.length > 0
                             @_cbQueue.shift()
@@ -211,11 +220,11 @@ class IterableResult
                 ).nodeify(cb)
         return @_closeCbPromise
 
-    _each: varar(1, 2, (cb, onFinished) ->
+    each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverError "First argument to each must be a function."
+            throw new error.ReqlDriverError "First argument to each must be a function."
         if onFinished? and typeof onFinished isnt 'function'
-            throw new err.ReqlDriverError "Optional second argument to each must be a function."
+            throw new error.ReqlDriverError "Optional second argument to each must be a function."
 
         self = @
         nextCb = (err, data) =>
@@ -231,30 +240,95 @@ class IterableResult
         @_next nextCb
     )
 
-    _eachAsync: (cb) ->
+    eachAsync: varar(1, 3, (cb, errCb, options = { concurrency: 1 }) ->
         unless typeof cb is 'function'
-            throw new err.ReqlDriverCompileError "First argument to eachAsync must be a function."
+            throw new error.ReqlDriverError 'First argument to eachAsync must be a function.'
 
+        if errCb?
+            if typeof errCb is 'object'
+                options = errCb
+                errCb = undefined
+            else if typeof errCb isnt 'function'
+                throw new error.ReqlDriverError "Optional second argument to eachAsync must be a function or `options` object"
+
+        unless options and typeof options.concurrency is 'number' and options.concurrency > 0
+            throw new error.ReqlDriverError "Optional `options.concurrency` argument to eachAsync must be a positive number"
+
+        pending = []
+
+        userCb = (data) ->
+            if cb.length <= 1
+                ret = Promise.resolve(cb(data)) # either synchronous or awaits promise
+            else
+                handlerCalled = false
+                doneChecking = false
+                handlerArg = undefined
+                ret = Promise.fromNode (handler) ->
+                    asyncRet = cb(data, (err) ->
+                        handlerCalled = true
+                        if doneChecking
+                            handler(err)
+                        else
+                            handlerArg = err
+                        ) # callback-style async
+                    unless asyncRet is undefined
+                        handler(new error.ReqlDriverError "A two-argument row handler for eachAsync may only return undefined.")
+                    else if handlerCalled
+                        handler(handlerArg)
+                    doneChecking = true
+            return ret
+            .then (data) ->
+                return data if data is undefined or typeof data is Promise
+                throw new error.ReqlDriverError "Row handler for eachAsync may only return a Promise or undefined."
         nextCb = =>
-            @_next().then(cb).then(nextCb).catch (err) ->
-                return if err?.message is 'No more rows in the cursor.'
-                throw err
+            if @_closeCbPromise?
+                return Promise.resolve().then (data) ->
+                    throw new error.ReqlDriverError "Cursor is closed."
+            else
+                return @_next().then (data) ->
+                    return data if pending.length < options.concurrency
+                    return Promise.any(pending)
+                    .catch Promise.AggregateError, (errs) -> throw errs[0]
+                    .return(data)
+                .then (data) ->
+                    p = userCb(data).then ->
+                        pending.splice pending.indexOf(p), 1
+                    pending.push p
+                .then nextCb
+                .catch (err) ->
+                    throw err if err?.message isnt 'No more rows in the cursor.'
+                    return Promise.all(pending) # await any queued promises before returning
 
-        return nextCb()
+        resPromise = nextCb().then () ->
+            errCb(null) if errCb?
+        .catch (err) ->
+            return errCb(err) if errCb?
+            throw err
+        return resPromise unless errCb?
+        return null
+    )
+
+    _each: @::each
+    _eachAsync: @::eachAsync
 
     toArray: varar 0, 1, (cb) ->
         if cb? and typeof cb isnt 'function'
-            throw new err.ReqlDriverCompileError "First argument to `toArray` must be a function or undefined."
+            throw new error.ReqlDriverCompileError "First argument to `toArray` must be a function or undefined."
 
         results = []
-        return @eachAsync(results.push.bind(results)).return(results).nodeify(cb)
+        wrapper = (res) =>
+            results.push(res)
+            return undefined
+        return @eachAsync(wrapper).then(() =>
+            return results
+        ).nodeify(cb)
 
     _makeEmitter: ->
         @emitter = new EventEmitter
         @each = ->
-            throw new err.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
+            throw new error.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
         @next = ->
-            throw new err.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
+            throw new error.ReqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
     addListener: (event, listener) ->
@@ -324,9 +398,9 @@ class Feed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object Feed]"
 
@@ -336,9 +410,9 @@ class UnionedFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object UnionedFeed]"
 
@@ -348,9 +422,9 @@ class AtomFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object AtomFeed]"
 
@@ -360,9 +434,9 @@ class OrderByLimitFeed extends IterableResult
         super
 
     hasNext: ->
-        throw new err.ReqlDriverError "`hasNext` is not available for feeds."
+        throw new error.ReqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.ReqlDriverError "`toArray` is not available for feeds."
+        throw new error.ReqlDriverError "`toArray` is not available for feeds."
 
     toString: ar () -> "[object OrderByLimitFeed]"
 
@@ -378,6 +452,8 @@ class ArrayResult extends IterableResult
 
     _next: varar 0, 1, (cb) ->
         fn = (cb) =>
+            if @_closeCbPromise?
+                cb new error.ReqlDriverError "Cursor is closed."
             if @_hasNext() is true
                 self = @
                 if self.__index%@stackSize is @stackSize-1
@@ -387,47 +463,37 @@ class ArrayResult extends IterableResult
                 else
                     cb(null, self[self.__index++])
             else
-                cb new err.ReqlDriverError "No more rows in the cursor."
+                cb new error.ReqlDriverError "No more rows in the cursor."
 
-        new Promise( (resolve, reject) ->
-            nextCb = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            fn(nextCb)
-        ).nodeify cb
-
+        return Promise.fromNode(fn).nodeify(cb)
 
     toArray: varar 0, 1, (cb) ->
         fn = (cb) =>
+            if @_closeCbPromise?
+                cb(new error.ReqlDriverError("Cursor is closed."))
+
             # IterableResult.toArray would create a copy
             if @__index?
                 cb(null, @.slice(@__index, @.length))
             else
                 cb(null, @)
 
-        new Promise( (resolve, reject) ->
-            toArrayCb = (err, result) ->
-                if (err)
-                    reject(err)
-                else
-                    resolve(result)
-            fn(toArrayCb)
-        ).nodeify cb
+        return Promise.fromNode(fn).nodeify(cb)
 
-
-    close: ->
-        return @
+    close: varar 0, 1, (cb) ->
+        # Clear the array
+        @.length = 0
+        @__index = 0
+        # We set @_closeCbPromise so that functions such as `eachAsync`
+        # know that we have been closed and can error accordingly.
+        @_closeCbPromise = Promise.resolve().nodeify(cb)
+        return @_closeCbPromise
 
     makeIterable: (response) ->
         response.__proto__ = {}
         for name, method of ArrayResult.prototype
             if name isnt 'constructor'
-                if name is '_each'
-                    response.__proto__['each'] = method
-                    response.__proto__['_each'] = method
-                else if name is '_next'
+                if name is '_next'
                     response.__proto__['next'] = method
                     response.__proto__['_next'] = method
                 else

@@ -397,6 +397,20 @@
         ],
         "id": 37
     },
+    "FOLD": {
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_EXPR"
+        ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR", "T_FUNC2"]
+        ],
+        "optargs": {
+            "emit": "T_FUNC3",
+            "final_emit": "T_FUNC1"
+        },
+        "id": 187
+    },
     "MAP": {
         "include_in": [
             "T_TOP_LEVEL",
@@ -465,6 +479,9 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
+        "optargs": {
+            "interleave": "T_EXPR"
+        },
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 44
     },
@@ -745,6 +762,20 @@
         "signatures": [["T_TABLE"]],
         "id": 138
     },
+    "GRANT": {
+        "side_effect": true,
+        "include_in": [
+            "T_TOP_LEVEL",
+            "T_DB",
+            "T_TABLE"
+        ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR"],
+            ["T_DB", "T_EXPR", "T_EXPR"],
+            ["T_TABLE", "T_EXPR", "T_EXPR"]
+        ],
+        "id": 188
+    },
     "INDEX_CREATE": {
         "side_effect": true,
         "include_in": [
@@ -827,7 +858,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 66
     },
     "AND": {
@@ -835,7 +866,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "*"]],
         "id": 67
     },
     "FOR_EACH": {

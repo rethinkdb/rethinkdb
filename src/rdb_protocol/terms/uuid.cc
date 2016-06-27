@@ -24,8 +24,8 @@ private:
         uuid_u id;
 
         if (args->num_args() == 1) {
-            std::string name = args->arg(env, 0)->as_str().to_std();
-            id = uuid_u::from_hash(base_key_id, name);
+            std::string root = args->arg(env, 0)->as_str().to_std();
+            id = uuid_u::from_hash(base_key_id, root);
         } else {
             id = generate_uuid();
         }

@@ -31,7 +31,7 @@ public:
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
-        explicit subscription_t(subscriber_t sub) : subscriber(sub), publisher(NULL) { }
+        explicit subscription_t(subscriber_t sub) : subscriber(sub), publisher(nullptr) { }
 
         /* Construct a `subscription_t` and subscribe to the given publisher. */
         subscription_t(subscriber_t sub, publisher_t *pub) : subscriber(sub), publisher(NULL) {
@@ -42,12 +42,12 @@ public:
             : intrusive_list_node_t<subscription_t>(std::move(movee)),
               subscriber(std::move(movee.subscriber)),
               publisher(movee.publisher) {
-            movee.publisher = NULL;
+            movee.publisher = nullptr;
         }
 
         /* Cause us to be subscribed to the given publisher (if any) and not to
         any other publisher. */
-        void reset(publisher_t *pub = NULL) {
+        void reset(publisher_t *pub = nullptr) {
             if (publisher) {
                 DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher->mutex);
                 publisher->subscriptions.remove(this);
@@ -95,7 +95,7 @@ private:
     publisher_t(publisher_t &&movee)
         : subscriptions(std::move(movee.subscriptions)),
           mutex(std::move(movee.mutex)) {
-        for (subscription_t *p = subscriptions.head(); p != NULL;
+        for (subscription_t *p = subscriptions.head(); p != nullptr;
              p = subscriptions.next(p)) {
             rassert(p->publisher == &movee);
             p->publisher = this;
@@ -132,7 +132,7 @@ public:
     void publish(const callable_t &callable) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher.mutex);
         for (auto sub = publisher.subscriptions.head();
-             sub != NULL;
+             sub != nullptr;
              sub = publisher.subscriptions.next(sub)) {
             /* `callable()` should not block */
             ASSERT_FINITE_CORO_WAITING;

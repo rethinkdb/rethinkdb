@@ -34,7 +34,7 @@ protected:
 
 class availability_t {
 public:
-    availability_t() : available(false), callback(NULL) { }
+    availability_t() : available(false), callback(nullptr) { }
     bool get() { return available; }
     void set_callback(availability_callback_t *cb) {
         rassert(!callback);
@@ -43,7 +43,7 @@ public:
     }
     void unset_callback() {
         rassert(callback);
-        callback = NULL;
+        callback = nullptr;
     }
 private:
     friend class availability_control_t;

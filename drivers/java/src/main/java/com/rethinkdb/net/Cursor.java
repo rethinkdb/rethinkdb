@@ -1,15 +1,24 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.ast.Query;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
 
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.io.Closeable;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 
-public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
+public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
 
     // public immutable members
     public final long token;
@@ -24,6 +33,8 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     protected int outstandingRequests = 0;
     protected int threshold = 1;
     protected Optional<RuntimeException> error = Optional.empty();
+
+    protected Future<Response> awaitingContinue = null;
 
     public Cursor(Connection connection, Query query, Response firstResponse) {
         this.connection = connection;
@@ -57,11 +68,10 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         return this._isFeed;
     }
 
-    void extend(ByteBuffer responseBuffer) {
+    void extend(Response response) {
         outstandingRequests -= 1;
         maybeSendContinue();
-        Response res = Response.parseFrom(query.token, responseBuffer);
-        extendInternal(res);
+        extendInternal(response);
     }
 
     private void extendInternal(Response response) {
@@ -84,10 +94,26 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     protected void maybeSendContinue() {
         if(!error.isPresent()
                 && items.size() < threshold
-                && outstandingRequests == 0) {
+                && outstandingRequests == 0 ) {
             outstandingRequests += 1;
-            connection.continue_(this);
+            this.awaitingContinue = connection.continue_(this);
         }
+    }
+
+    protected void waitOnCursorItems(Optional<Long> timeout) throws TimeoutException {
+        Response res = null;
+        try {
+            if(timeout.isPresent()){
+                res = this.awaitingContinue.get(timeout.get(), TimeUnit.MILLISECONDS);
+            } else {
+                res = this.awaitingContinue.get();
+            }
+        }catch(TimeoutException exc){
+            throw exc;
+        }catch(Exception e){
+            throw new ReqlDriverError(e);
+        }
+        this.extend(res);
     }
 
     void setError(String errMsg) {
@@ -148,28 +174,40 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         /* This isn't great, but the Java iterator protocol relies on hasNext,
          so it must be implemented in a reasonable way */
         public boolean hasNext(){
-            if(items.size() > 0){
-                return true;
+            try {
+                if(items.size() > 0){
+                    return true;
+                }
+                if(error.isPresent()){
+                    return false;
+                }
+                if(_isFeed){
+                    return true;
+                }
+
+                maybeSendContinue();
+                waitOnCursorItems(Optional.empty());
+
+                return items.size() > 0;
+            }catch(TimeoutException toe) {
+                throw new RuntimeException("Timeout can't happen here");
             }
-            if(error.isPresent()){
-                return false;
-            }
-            if(_isFeed){
-                return true;
-            }
-            maybeSendContinue();
-            connection.readResponse(query);
-            return items.size() > 0;
         }
 
         @SuppressWarnings("unchecked")
         T getNext(Optional<Long> timeout) throws TimeoutException {
-            while(items.size() == 0) {
+
+            while( items.size() == 0){
                 maybeSendContinue();
+                waitOnCursorItems(timeout);
+
+                if( items.size() != 0){
+                    break;
+                }
+
                 error.ifPresent(exc -> {
                     throw exc;
                 });
-                connection.readResponse(query, timeout.map(Util::deadline));
             }
 
             Object value = Converter.convertPseudotypes(items.pop(), fmt);

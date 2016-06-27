@@ -110,9 +110,9 @@ static int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
 ExactFloat::ExactFloat(double v) {
   BN_init(&bn_);
   sign_ = signbit(v) ? -1 : 1;
-  if (isnan(v)) {
+  if (std::isnan(v)) {
     set_nan();
-  } else if (isinf(v)) {
+  } else if (std::isinf(v)) {
     set_inf(sign_);
   } else {
     // The following code is much simpler than messing about with bit masks,
@@ -766,14 +766,18 @@ ExactFloat logb(const ExactFloat& a) {
   return ExactFloat(a.exp() - 1);
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 // Some versions of CLANG suggest noreturn...
 #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
+#endif
 ExactFloat ExactFloat::Unimplemented() {
   LOG(FATAL) << "Unimplemented ExactFloat method called";
   return NaN();
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 }  // namespace geo

@@ -3,6 +3,7 @@
 #define CONTAINERS_BUFFER_GROUP_HPP_
 
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <vector>
 

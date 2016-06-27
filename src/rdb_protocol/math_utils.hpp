@@ -4,10 +4,12 @@
 
 #include <limits>
 
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#ifdef __GNUC__
+#if 100 * __GNUC__ + __GNUC_MINOR__ >= 406
 #pragma GCC diagnostic push
 #endif
 #pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
 
 template <class T>
 double safe_to_double(T val) {

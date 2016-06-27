@@ -25,7 +25,7 @@ private:
 
 class one_waiter_cond_t {
 public:
-    one_waiter_cond_t() : pulsed_(false), waiter_(NULL) { }
+    one_waiter_cond_t() : pulsed_(false), waiter_(nullptr) { }
     ~one_waiter_cond_t() {
         rassert(pulsed_);
         rassert(!waiter_);

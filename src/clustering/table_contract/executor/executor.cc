@@ -235,19 +235,19 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
     if (static_cast<bool>(pair.second.primary) &&
             pair.second.primary->server == server_id) {
         key.role = execution_key_t::role_t::primary;
-        key.primary = nil_uuid();
+        key.primary = server_id_t::from_server_uuid(nil_uuid());
         key.branch = nil_uuid();
     } else if (pair.second.replicas.count(server_id) == 1) {
         key.role = execution_key_t::role_t::secondary;
         if (static_cast<bool>(pair.second.primary)) {
             key.primary = pair.second.primary->server;
         } else {
-            key.primary = nil_uuid();
+            key.primary = server_id_t::from_server_uuid(nil_uuid());
         }
         key.branch = branch;
     } else {
         key.role = execution_key_t::role_t::erase;
-        key.primary = nil_uuid();
+        key.primary = server_id_t::from_server_uuid(nil_uuid());
         key.branch = nil_uuid();
     }
     return key;

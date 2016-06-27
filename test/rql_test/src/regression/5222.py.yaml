@@ -1,0 +1,23 @@
+desc: Can't store r.minval or r.maxval in a secondary index, even when they're in an array.
+table_variable_name: tbl
+tests:
+    - py: tbl.index_create("min", lambda x: r.minval)
+      ot: {"created": 1}
+    - py: tbl.index_create("max", lambda x: r.maxval)
+      ot: {"created": 1}
+    - py: tbl.index_create("min_arr", lambda x: [r.minval])
+      ot: {"created": 1}
+    - py: tbl.index_create("max_arr", lambda x: [r.maxval])
+      ot: {"created": 1}
+    - py: tbl.index_wait("min", "max", "min_arr", "max_arr")
+    - py: tbl.insert({"id": 1})
+      ot: partial({"inserted": 1})
+    - py: tbl.order_by(index="min").count()
+      ot: 0
+    - py: tbl.order_by(index="max").count()
+      ot: 0
+    - py: tbl.order_by(index="min_arr").count()
+      ot: 0
+    - py: tbl.order_by(index="max_arr").count()
+      ot: 0
+

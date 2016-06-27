@@ -806,11 +806,11 @@ public class MutationInsert {
 
         {
             // mutation/insert.yaml line #159
-            /* err('ReqlQueryLogicError','Cannot convert `r.minval` to JSON.') */
-            Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.minval` to JSON.");
-            /* r.minval */
-            logger.info("About to run line #159: r.minval()");
-            Object obtained = runOrCatch(r.minval(),
+            /* partial({'changes':[{'old_val': None, 'new_val': {'id': 100+i, 'ordered-num': i}} for i in range(1,100)] }) */
+            Partial expected_ = partial(r.hashMap("changes", LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("old_val", null).with("new_val", r.hashMap("id", 100L + i).with("ordered-num", i))).collect(Collectors.toList())));
+            /* tbl.insert([{'id':100+i, 'ordered-num':i} for i in range(1,100)], return_changes="always") */
+            logger.info("About to run line #159: tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap('id', r.add(100L, i)).with('ordered-num', i)).collect(Collectors.toList())).optArg('return_changes', 'always')");
+            Object obtained = runOrCatch(tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("id", r.add(100L, i)).with("ordered-num", i)).collect(Collectors.toList())).optArg("return_changes", "always"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -826,19 +826,19 @@ public class MutationInsert {
         }
 
         {
-            // mutation/insert.yaml line #162
-            /* err('ReqlQueryLogicError','Cannot convert `r.maxval` to JSON.') */
-            Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.maxval` to JSON.");
-            /* r.maxval */
-            logger.info("About to run line #162: r.maxval()");
-            Object obtained = runOrCatch(r.maxval(),
+            // mutation/insert.yaml line #163
+            /* partial({'changes':[{'old_val': None, 'new_val': {'id': [1,"blah", 200+i], 'ordered-num': i}} for i in range(1,100)] }) */
+            Partial expected_ = partial(r.hashMap("changes", LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("old_val", null).with("new_val", r.hashMap("id", r.array(1L, "blah", 200L + i)).with("ordered-num", i))).collect(Collectors.toList())));
+            /* tbl.insert([{'id':[1, "blah", 200+i], 'ordered-num':i} for i in range(1,100)], return_changes="always") */
+            logger.info("About to run line #163: tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap('id', r.array(1L, 'blah', r.add(200L, i))).with('ordered-num', i)).collect(Collectors.toList())).optArg('return_changes', 'always')");
+            Object obtained = runOrCatch(tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("id", r.array(1L, "blah", r.add(200L, i))).with("ordered-num", i)).collect(Collectors.toList())).optArg("return_changes", "always"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #162");
+            logger.info("Finished running line #163");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #162:" + ae.toString());
+                logger.error("Whoops, got exception on line #163:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -847,19 +847,292 @@ public class MutationInsert {
         }
 
         {
-            // mutation/insert.yaml line #166
+            // mutation/insert.yaml line #167
+            /* partial({'changes':[{'old_val': None, 'new_val': {'id': [1,"blah", 300+i], 'ordered-num': i}} for i in range(1,100)] }) */
+            Partial expected_ = partial(r.hashMap("changes", LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("old_val", null).with("new_val", r.hashMap("id", r.array(1L, "blah", 300L + i)).with("ordered-num", i))).collect(Collectors.toList())));
+            /* tbl.insert([{'id':[1, "blah", 300+i], 'ordered-num':i} for i in range(1,100)], return_changes=true) */
+            logger.info("About to run line #167: tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap('id', r.array(1L, 'blah', r.add(300L, i))).with('ordered-num', i)).collect(Collectors.toList())).optArg('return_changes', true)");
+            Object obtained = runOrCatch(tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("id", r.array(1L, "blah", r.add(300L, i))).with("ordered-num", i)).collect(Collectors.toList())).optArg("return_changes", true),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #167");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #167:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #175
+            /* partial({'changes':[]}) */
+            Partial expected_ = partial(r.hashMap("changes", r.array()));
+            /* tbl.insert([{'id':100 + i, 'ordered-num':i} for i in range(1,100)], return_changes=true) */
+            logger.info("About to run line #175: tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap('id', r.add(100L, i)).with('ordered-num', i)).collect(Collectors.toList())).optArg('return_changes', true)");
+            Object obtained = runOrCatch(tbl.insert(LongStream.range(1L, 100L).boxed().map(i -> r.hashMap("id", r.add(100L, i)).with("ordered-num", i)).collect(Collectors.toList())).optArg("return_changes", true),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #175");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #175:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #178
+            /* partial({'changes': [{'old_val': None, 'new_val': None, 'error': '`r.minval` and `r.maxval` cannot be written to disk.'}]}) */
+            Partial expected_ = partial(r.hashMap("changes", r.array(r.hashMap("old_val", null).with("new_val", null).with("error", "`r.minval` and `r.maxval` cannot be written to disk."))));
+            /* tbl.insert({'a':r.minval}, return_changes="always") */
+            logger.info("About to run line #178: tbl.insert(r.hashMap('a', r.minval())).optArg('return_changes', 'always')");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("a", r.minval())).optArg("return_changes", "always"),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #178");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #178:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #184
+            /* partial({'inserted':1}) */
+            Partial expected_ = partial(r.hashMap("inserted", 1L));
+            /* tbl.insert({'id':42, 'foo':1, 'bar':1}) */
+            logger.info("About to run line #184: tbl.insert(r.hashMap('id', 42L).with('foo', 1L).with('bar', 1L))");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L).with("foo", 1L).with("bar", 1L)),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #184");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #184:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #186
+            /* partial({'replaced':1}) */
+            Partial expected_ = partial(r.hashMap("replaced", 1L));
+            /* tbl.insert({'id':42, 'foo':5, 'bar':5}, conflict=lambda id, old_row, new_row: old_row.merge(new_row.pluck("bar"))) */
+            logger.info("About to run line #186: tbl.insert(r.hashMap('id', 42L).with('foo', 5L).with('bar', 5L)).optArg('conflict', (id, old_row, new_row) -> old_row.merge(new_row.pluck('bar')))");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L).with("foo", 5L).with("bar", 5L)).optArg("conflict", (id, old_row, new_row) -> old_row.merge(new_row.pluck("bar"))),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #186");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #186:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #188
+            /* {'id':42, 'foo':1, 'bar':5} */
+            Map expected_ = r.hashMap("id", 42L).with("foo", 1L).with("bar", 5L);
+            /* tbl.get(42) */
+            logger.info("About to run line #188: tbl.get(42L)");
+            Object obtained = runOrCatch(tbl.get(42L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #188");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #188:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #200
+            /* partial({'first_error': 'Inserted value must be an OBJECT (got NUMBER):\n2'}) */
+            Partial expected_ = partial(r.hashMap("first_error", "Inserted value must be an OBJECT (got NUMBER):\n2"));
+            /* tbl.insert({'id':42, 'foo':1, 'bar':1}, conflict=lambda a,b,c: 2) */
+            logger.info("About to run line #200: tbl.insert(r.hashMap('id', 42L).with('foo', 1L).with('bar', 1L)).optArg('conflict', (a, b, c) -> 2L)");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L).with("foo", 1L).with("bar", 1L)).optArg("conflict", (a, b, c) -> 2L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #200");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #200:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #204
+            /* err("ReqlQueryLogicError", "The conflict function passed to `insert` should expect 3 arguments.") */
+            Err expected_ = err("ReqlQueryLogicError", "The conflict function passed to `insert` should expect 3 arguments.");
+            /* tbl.insert({'id':42}, conflict=lambda a,b: a) */
+            logger.info("About to run line #204: tbl.insert(r.hashMap('id', 42L)).optArg('conflict', (a, b) -> a)");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L)).optArg("conflict", (a, b) -> a),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #204");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #204:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #208
+            /* err("ReqlQueryLogicError", "The conflict function passed to `insert` must be deterministic.") */
+            Err expected_ = err("ReqlQueryLogicError", "The conflict function passed to `insert` must be deterministic.");
+            /* tbl.insert({'id':42}, conflict=lambda a,b,c: tbl.get(42)) */
+            logger.info("About to run line #208: tbl.insert(r.hashMap('id', 42L)).optArg('conflict', (a, b, c) -> tbl.get(42L))");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L)).optArg("conflict", (a, b, c) -> tbl.get(42L)),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #208");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #208:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #211
+            /* partial({'replaced': 1}) */
+            Partial expected_ = partial(r.hashMap("replaced", 1L));
+            /* tbl.insert({'id':42}, conflict=lambda a,b,c: {'id':42, 'num':'424'}) */
+            logger.info("About to run line #211: tbl.insert(r.hashMap('id', 42L)).optArg('conflict', (a, b, c) -> r.hashMap('id', 42L).with('num', '424'))");
+            Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 42L)).optArg("conflict", (a, b, c) -> r.hashMap("id", 42L).with("num", "424")),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #211");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #211:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #213
+            /* {'id':42, 'num':'424'} */
+            Map expected_ = r.hashMap("id", 42L).with("num", "424");
+            /* tbl.get(42) */
+            logger.info("About to run line #213: tbl.get(42L)");
+            Object obtained = runOrCatch(tbl.get(42L),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #213");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #213:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #217
+            /* err('ReqlQueryLogicError','Cannot convert `r.minval` to JSON.') */
+            Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.minval` to JSON.");
+            /* r.minval */
+            logger.info("About to run line #217: r.minval()");
+            Object obtained = runOrCatch(r.minval(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #217");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #217:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #220
+            /* err('ReqlQueryLogicError','Cannot convert `r.maxval` to JSON.') */
+            Err expected_ = err("ReqlQueryLogicError", "Cannot convert `r.maxval` to JSON.");
+            /* r.maxval */
+            logger.info("About to run line #220: r.maxval()");
+            Object obtained = runOrCatch(r.maxval(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #220");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #220:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // mutation/insert.yaml line #224
             /* partial({'tables_dropped':1}) */
             Partial expected_ = partial(r.hashMap("tables_dropped", 1L));
             /* r.db('test').table_drop('test2') */
-            logger.info("About to run line #166: r.db('test').tableDrop('test2')");
+            logger.info("About to run line #224: r.db('test').tableDrop('test2')");
             Object obtained = runOrCatch(r.db("test").tableDrop("test2"),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #166");
+            logger.info("Finished running line #224");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #166:" + ae.toString());
+                logger.error("Whoops, got exception on line #224:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }

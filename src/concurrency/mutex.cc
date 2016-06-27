@@ -3,7 +3,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 
-mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(NULL), eager_(false) {
+mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(nullptr), eager_(false) {
     reset(l, eager);
 }
 
@@ -15,7 +15,7 @@ void mutex_t::acq_t::reset() {
     if (lock_) {
         unlock_mutex(lock_, eager_);
     }
-    lock_ = NULL;
+    lock_ = nullptr;
 }
 
 void mutex_t::acq_t::reset(mutex_t *l, bool eager) {

@@ -26,7 +26,7 @@ timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
 timer_kqueue_provider_t::~timer_kqueue_provider_t() {
     queue_->forget_resource(kq_fd_, this);
 
-    guarantee(callback_ == NULL);
+    guarantee(callback_ == nullptr);
     const int res = close(kq_fd_);
     guarantee_err(res == 0, "Could not close the kqueue timer.");
 }
@@ -42,7 +42,7 @@ void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos,
     struct timespec timeout;
     timeout.tv_sec = 0;
     timeout.tv_nsec = 0;
-    const int res = kevent64(kq_fd_, &event, 1, NULL, 0, 0, &timeout);
+    const int res = kevent64(kq_fd_, &event, 1, nullptr, 0, 0, &timeout);
     guarantee_err(res != -1, "kevent64 failed when making timer");
 
     callback_ = cb;
@@ -55,10 +55,10 @@ void timer_kqueue_provider_t::unschedule_oneshot() {
     struct timespec timeout;
     timeout.tv_sec = 0;
     timeout.tv_nsec = 0;
-    const int res = kevent64(kq_fd_, &event, 1, NULL, 0, 0, &timeout);
+    const int res = kevent64(kq_fd_, &event, 1, nullptr, 0, 0, &timeout);
     guarantee_err(res != -1, "kevent64 failed when deleting timer");
 
-    callback_ = NULL;
+    callback_ = nullptr;
 }
 
 void debug_print(printf_buffer_t *buf, const struct kevent64_s& event) {
@@ -94,7 +94,7 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
     while (!got_short_res) {
         int res;
         do {
-            res = kevent64(kq_fd_, NULL, 0, events, num_events, 0, &timeout);
+            res = kevent64(kq_fd_, nullptr, 0, events, num_events, 0, &timeout);
         } while (res == -1 && get_errno() == EINTR);
 
         guarantee_err(res != -1, "kevent64 failed when reading timer");
@@ -112,10 +112,10 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
         }
     }
 
-    if (expiration_count > 0 && callback_ != NULL) {
+    if (expiration_count > 0 && callback_ != nullptr) {
         // Make the callback be NULL before we call it, so that a new callback can be set.
         timer_provider_callback_t *local_cb = callback_;
-        callback_ = NULL;
+        callback_ = nullptr;
         local_cb->on_oneshot();
     }
 }

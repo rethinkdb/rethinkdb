@@ -49,7 +49,7 @@ public:
             view = v;
         }
         void reset() {
-            subs.reset(NULL);
+            subs.reset(nullptr);
             view.reset();
         }
     private:

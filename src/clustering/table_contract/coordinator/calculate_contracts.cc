@@ -379,7 +379,7 @@ contract_t calculate_contract(
             /* The user's designated primary is ineligible. We have to decide if we'll
             wait for the user's designated primary to become eligible, or use one of the
             other eligible candidates. */
-            if (!config.primary_replica.is_nil() &&
+            if (!config.primary_replica.get_uuid().is_nil() &&
                     visible_voters.count(config.primary_replica) == 1 &&
                     acks.count(config.primary_replica) == 0) {
                 /* The user's designated primary is visible to a majority of its peers,
@@ -406,14 +406,14 @@ contract_t calculate_contract(
         has three voters, A, B, and C. Suppose that voter B is lagging behind the others,
         and voter C is removed by emergency repair. Then the normal algorithm could pick
         voter B as the primary, even though it's missing some data. */
-        server_id_t best_primary = nil_uuid();
+        server_id_t best_primary = server_id_t::from_server_uuid(nil_uuid());
         state_timestamp_t best_timestamp = state_timestamp_t::zero();
         bool all_present = true;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::state_t::secondary_need_primary) {
                 state_timestamp_t timestamp = acks.at(server).version->timestamp;
-                if (best_primary.is_nil() || timestamp > best_timestamp) {
+                if (best_primary.get_uuid().is_nil() || timestamp > best_timestamp) {
                     best_primary = server;
                     best_timestamp = timestamp;
                 }

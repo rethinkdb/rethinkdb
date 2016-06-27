@@ -13,7 +13,7 @@ SPAWNER_TEST(JSProc, EvalTimeout) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string loop_source = "for (var x = 0; x < 4e10; x++) {}";
 
@@ -31,7 +31,7 @@ SPAWNER_TEST(JSProc, CallTimeout) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string loop_source = "(function () { for (var x = 0; x < 4e10; x++) {}})";
 
@@ -41,7 +41,7 @@ SPAWNER_TEST(JSProc, CallTimeout) {
     js_result_t result = js_runner.eval(loop_source, config);
 
     js_id_t *any_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(any_id != NULL);
+    ASSERT_TRUE(any_id != nullptr);
 
     config.timeout_ms = 10;
 
@@ -56,7 +56,7 @@ void run_datum_test(const std::string &source_code, ql::datum_t *res_out) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     js_runner_t::req_config_t config;
     config.timeout_ms = 10000;
@@ -65,7 +65,7 @@ void run_datum_test(const std::string &source_code, ql::datum_t *res_out) {
 
     ql::datum_t *res_datum =
         boost::get<ql::datum_t>(&result);
-    ASSERT_TRUE(res_datum != NULL);
+    ASSERT_TRUE(res_datum != nullptr);
     *res_out = *res_datum;
 }
 
@@ -90,7 +90,7 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string source_code = "(function () { return 10337; })";
 
@@ -101,7 +101,7 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
 
     // Get the id of the function out
     js_id_t *js_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(js_id != NULL);
+    ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
     result = js_runner.call(source_code,
@@ -111,7 +111,7 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
 
     // Check results
     ql::datum_t *res_datum = boost::get<ql::datum_t>(&result);
-    ASSERT_TRUE(res_datum != NULL);
+    ASSERT_TRUE(res_datum != nullptr);
     ASSERT_TRUE(res_datum->has());
     ASSERT_TRUE(res_datum->get_type() == ql::datum_t::R_NUM);
     ASSERT_EQ(res_datum->as_int(), 10337);
@@ -122,7 +122,7 @@ SPAWNER_TEST(JSProc, BrokenFunction) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string source_code = "(function () { return 4 / 0; })";
 
@@ -133,7 +133,7 @@ SPAWNER_TEST(JSProc, BrokenFunction) {
 
     // Get the id of the function out
     js_id_t *js_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(js_id != NULL);
+    ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
     result = js_runner.call(source_code,
@@ -143,7 +143,7 @@ SPAWNER_TEST(JSProc, BrokenFunction) {
 
     // Get the error message
     std::string *error = boost::get<std::string>(&result);
-    ASSERT_TRUE(error != NULL);
+    ASSERT_TRUE(error != nullptr);
 }
 
 SPAWNER_TEST(JSProc, InvalidFunction) {
@@ -151,7 +151,7 @@ SPAWNER_TEST(JSProc, InvalidFunction) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string source_code = "(function() {)";
 
@@ -162,7 +162,7 @@ SPAWNER_TEST(JSProc, InvalidFunction) {
 
     // Get the error message
     std::string *error = boost::get<std::string>(&result);
-    ASSERT_TRUE(error != NULL);
+    ASSERT_TRUE(error != nullptr);
 }
 
 SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
@@ -170,7 +170,7 @@ SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string source_code = "(function f(x) { x = x + f(x); return x; })";
 
@@ -181,7 +181,7 @@ SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
 
     // Get the id of the function out
     js_id_t *js_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(js_id != NULL);
+    ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
     std::vector<ql::datum_t> args;
@@ -198,7 +198,7 @@ void run_overalloc_function_test() {
     js_runner_t js_runner;
     ql::configured_limits_t limits;
 
-    js_runner.begin(&extproc_pool, NULL, limits);
+    js_runner.begin(&extproc_pool, nullptr, limits);
 
     const std::string source_code = "(function f() {"
                                      "  var res = \"\";"
@@ -215,7 +215,7 @@ void run_overalloc_function_test() {
 
     // Get the id of the function out
     js_id_t *js_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(js_id != NULL);
+    ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
     ASSERT_THROW(js_runner.call(source_code,
@@ -237,7 +237,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const ql::datum_t &arg) {
 
     ql::configured_limits_t limits;
     js_runner_t js_runner;
-    js_runner.begin(pool, NULL, limits);
+    js_runner.begin(pool, nullptr, limits);
 
     const std::string source_code = "(function f(arg) { return arg; })";
 
@@ -248,7 +248,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const ql::datum_t &arg) {
 
     // Get the id of the function out
     js_id_t *js_id = boost::get<js_id_t>(&result);
-    ASSERT_TRUE(js_id != NULL);
+    ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
     js_result_t res = js_runner.call(source_code,
@@ -256,7 +256,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const ql::datum_t &arg) {
                                      config);
 
     ql::datum_t *res_datum = boost::get<ql::datum_t>(&res);
-    ASSERT_TRUE(res_datum != NULL);
+    ASSERT_TRUE(res_datum != nullptr);
     ASSERT_TRUE(res_datum->has());
     ASSERT_EQ(*res_datum, arg);
 }

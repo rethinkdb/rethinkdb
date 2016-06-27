@@ -705,7 +705,9 @@ counted_t<const document_t> render_as_javascript(const ql::raw_term_t &t) {
 //
 // Finally if a new datum type is added, `to_js_datum` would need to
 // be updated.
+#ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 static void pprint_update_reminder() {
     Term::TermType type = Term::UPDATE;
     switch (type) {
@@ -721,6 +723,7 @@ static void pprint_update_reminder() {
     case Term::RECONFIGURE:
     case Term::REBALANCE:
     case Term::SYNC:
+    case Term::GRANT:
     case Term::INDEX_CREATE:
     case Term::INDEX_DROP:
     case Term::INDEX_WAIT:
@@ -770,6 +773,7 @@ static void pprint_update_reminder() {
     case Term::CHANGES:
     case Term::REDUCE:
     case Term::MAP:
+    case Term::FOLD:
     case Term::FILTER:
     case Term::CONCAT_MAP:
     case Term::GROUP:

@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_meta_client.hpp"
 
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/emergency_repair.hpp"
@@ -161,7 +162,8 @@ void table_meta_client_t::get_sindex_status(
             std::make_pair(pair.first, std::make_pair(pair.second,
                                                       sindex_status_t()))).first;
         it->second.second.outdated =
-            (pair.second.func_version != reql_version_t::LATEST);
+            (pair.second.func_version != reql_version_t::LATEST)
+            && !outdated_index_issue_tracker_t::is_acceptable_outdated(pair.second);
     }
     table_status_request_t request;
     request.want_sindexes = true;

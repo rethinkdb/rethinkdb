@@ -31,7 +31,12 @@ std::string filepath_file_opener_t::file_name() const {
 }
 
 std::string filepath_file_opener_t::temporary_file_name() const {
+#ifdef _WIN32
+    // TODO WINDOWS: use temporary files
+    return filepath_.permanent_path();
+#else
     return filepath_.temporary_path();
+#endif
 }
 
 std::string filepath_file_opener_t::current_file_name() const {
@@ -71,7 +76,8 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     guarantee(opened_temporary_);
 
 #ifdef _WIN32
-    // TODO WINDOWS
+    // TODO WINDOWS: temporary files are not used because, by default,
+    // files cannot be renamed while still open
 #else
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
@@ -207,7 +213,7 @@ struct ls_start_existing_fsm_t :
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
-        to_signal_when_done = NULL;
+        to_signal_when_done = nullptr;
         if (next_starting_up_step()) {
             return true;
         } else {
@@ -397,15 +403,15 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
       expecting_no_more_tokens(false),
 #endif
       dynamic_config(_dynamic_config),
-      shutdown_callback(NULL),
+      shutdown_callback(nullptr),
       shutdown_state(shutdown_not_started),
       state(state_unstarted),
       static_header_needs_migration(false),
-      dbfile(NULL),
-      extent_manager(NULL),
-      metablock_manager(NULL),
-      lba_index(NULL),
-      data_block_manager(NULL),
+      dbfile(nullptr),
+      extent_manager(nullptr),
+      metablock_manager(nullptr),
+      lba_index(nullptr),
+      data_block_manager(nullptr),
       active_write_count(0) {
     // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
@@ -756,7 +762,7 @@ max_block_size_t log_serializer_t::max_block_size() const {
 
 bool log_serializer_t::coop_lock_and_check() {
     assert_thread();
-    rassert(dbfile != NULL);
+    rassert(dbfile != nullptr);
     return dbfile->coop_lock_and_check();
 }
 
@@ -878,16 +884,16 @@ void log_serializer_t::next_shutdown_step() {
         extent_manager->shutdown();
 
         delete lba_index;
-        lba_index = NULL;
+        lba_index = nullptr;
 
         delete data_block_manager;
-        data_block_manager = NULL;
+        data_block_manager = nullptr;
 
         delete metablock_manager;
-        metablock_manager = NULL;
+        metablock_manager = nullptr;
 
         delete extent_manager;
-        extent_manager = NULL;
+        extent_manager = nullptr;
 
         shutdown_state = shutdown_waiting_on_dbfile_destruction;
         coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
@@ -895,7 +901,7 @@ void log_serializer_t::next_shutdown_step() {
         return;
     }
 
-    rassert(dbfile == NULL);
+    rassert(dbfile == nullptr);
 
     if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
@@ -911,9 +917,9 @@ void log_serializer_t::next_shutdown_step() {
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {
     index_writes_io_account.reset();
-    rassert(dbfile != NULL);
+    rassert(dbfile != nullptr);
     delete dbfile;
-    dbfile = NULL;
+    dbfile = nullptr;
     next_shutdown_step();
 }
 

@@ -7,18 +7,19 @@
 #include <set>
 
 #include "clustering/administration/main/command_line.hpp"
+#include "crypto/initialization_guard.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
+#include "extproc/extproc_spawner.hpp"
 
 int main(int argc, char *argv[]) {
-#if !defined(NDEBUG) && !defined(_WIN32)
-    rlimit core_limit;
-    core_limit.rlim_cur = 100 * MEGABYTE;
-    core_limit.rlim_max = 200 * MEGABYTE;
-    setrlimit(RLIMIT_CORE, &core_limit);
-#endif
 
     startup_shutdown_t startup_shutdown;
+    crypto::initialization_guard_t crypto_initialization_guard;
+
+#ifdef _WIN32
+    extproc_maybe_run_worker(argc, argv);
+#endif
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
@@ -48,6 +49,14 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_restore(argc, argv);
         } else if (subcommand == "index-rebuild") {
             return main_rethinkdb_index_rebuild(argc, argv);
+#ifdef _WIN32
+        } else if (subcommand == "run-service") {
+            return main_rethinkdb_run_service(argc, argv);
+        } else if (subcommand == "install-service") {
+            return main_rethinkdb_install_service(argc, argv);
+        } else if (subcommand == "remove-service") {
+            return main_rethinkdb_remove_service(argc, argv);
+#endif /* _WIN32 */
         } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
                 printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());
@@ -80,6 +89,12 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_restore();
                 } else if (subcommand2 == "index-rebuild") {
                     help_rethinkdb_index_rebuild();
+#ifdef _WIN32
+                } else if (subcommand2 == "install-service") {
+                    help_rethinkdb_install_service();
+                } else if (subcommand2 == "remove-service") {
+                    help_rethinkdb_remove_service();
+#endif
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;

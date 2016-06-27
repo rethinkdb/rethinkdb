@@ -1,0 +1,12 @@
+desc: Regression test for issue 5535
+table_variable_name: tbl
+tests:
+    - rb: tbl.insert([{id: 0, a: nil}, {id: 1, a: 1}])['inserted']
+      ot: 2
+    - rb: ch = tbl['a'].changes(include_initial: true, include_states: true)
+    - rb: fetch(ch, 3)
+      ot: [{"state"=>"initializing"},{"new_val"=>1},{"state"=>"ready"}]
+    - rb: tbl.get(0).update({a: 2})['replaced']
+      ot: 1
+    - rb: fetch(ch, 1)
+      ot: [{"new_val"=>2, "old_val"=>nil}]

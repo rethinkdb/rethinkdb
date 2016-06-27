@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, copy, inspect, itertools, os, re, sys, time, warnings
+import atexit, copy, inspect, itertools, os, pprint, re, sys, time, warnings
 from datetime import datetime, tzinfo, timedelta # used by time tests
 
 stashedPath = copy.copy(sys.path)
@@ -66,10 +66,10 @@ TEST FAILURE: %(name)s%(message)s
     EXPECTED: %(expected)s
     RESULT:   %(result)s''' % {
         'name':     name,
-        'source':   src,
+        'source':   utils.RePrint.pformat(src, hangindent=14),
         'message':  '\n    FAILURE:  %s' % message if message is not None else '',
-        'expected': expected,
-        'result':   result
+        'expected': utils.RePrint.pformat(expected, hangindent=14),
+        'result':   utils.RePrint.pformat(result, hangindent=14)
     })
 
 def check_pp(src, query):
@@ -82,7 +82,7 @@ def check_pp(src, query):
     #    print("Source code: %s", src)
     #    print("Printed query: %s", composed)
 
-class OptionsBox():
+class OptionsBox(object):
     value = None
     options = None
     
@@ -112,7 +112,7 @@ class FalseStr(str):
     def __nonzero__(self):
         return False
 
-class Anything():
+class Anything(object):
     __instance = None
     
     def __new__(cls):
@@ -126,7 +126,7 @@ class Anything():
     def __repr__(self):
         return self.__str__()
 
-class Err():
+class Err(object):
     exceptionRegex = re.compile('^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
     
     err_type = None
@@ -160,7 +160,7 @@ class Err():
     def __repr__(self):
         return self.__str__()
 
-class Regex:
+class Regex(object):
     value = None
 
     def __init__ (self, value, **kwargs):
@@ -271,7 +271,7 @@ def compare(expected, result, options=None):
     # -- dict
     if isinstance(expected, dict):
         if not isinstance(result, dict):
-            return FalseStr('expected dict, got %s (%s)' % (result, type(result).__name__))
+            return FalseStr('expected dict, got %r (%s)' % (result, type(result).__name__))
         
         # - keys
         expectedKeys = set(expected.keys())
@@ -386,7 +386,7 @@ def compare(expected, result, options=None):
 
 # -- Curried output test functions --
 
-class PyTestDriver:
+class PyTestDriver(object):
     
     cpp_conn = None
     
@@ -562,7 +562,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
             r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
         res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
         assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, str(res))
-        r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
+        r.db(db_name).table(table_name).wait(wait_for="all_replicas_ready").run(driver.cpp_conn)
         
         print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     
@@ -579,6 +579,9 @@ def check_no_table_specified():
 
 def define(expr, variable=None):
     driver.define(expr, variable=variable)
+
+def anything():
+    return Anything()
 
 def bag(expected, ordered=False, partial=None):
     options = {'ordered':ordered}

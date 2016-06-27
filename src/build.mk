@@ -5,10 +5,10 @@
 # We assemble path directives.
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS)
+RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS) $(MALLOC_LIBS)
 RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE) $(CRYPTO_INCLUDE)
-ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(V8_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP)
+ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(V8_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP) $(SSL_INCLUDE_DEP)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -85,13 +85,14 @@ endif
 
 RT_LDFLAGS += $(LIB_SEARCH_PATHS)
 
-RT_CXXFLAGS?=
 RT_CXXFLAGS += -I$(SOURCE_DIR)
 RT_CXXFLAGS += -pthread
 RT_CXXFLAGS += "-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 RT_CXXFLAGS += "-D__STDC_LIMIT_MACROS"
 RT_CXXFLAGS += "-D__STDC_FORMAT_MACROS"
 RT_CXXFLAGS += -Wall -Wextra
+
+RT_CXXFLAGS += -DENABLE_TLS
 
 # Enable RapidJSON std::string functions
 RT_CXXFLAGS += "-DRAPIDJSON_HAS_STDSTRING"
@@ -123,7 +124,7 @@ else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default
   else
-    RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+    RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds -Wno-maybe-uninitialized
   endif
 endif
 
@@ -184,7 +185,7 @@ endif
 
 ifeq ($(SYMBOLS),1)
   # -rdynamic is necessary so that backtrace_symbols() works properly
-  ifneq ($(OS),Darwin)
+  ifeq ($(OS),Linux)
     RT_LDFLAGS += -rdynamic
   endif
   RT_CXXFLAGS += -g
@@ -301,17 +302,19 @@ $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP
 
 	$(PROTOC) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $<
 
-rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
-rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py
-rpc/mailbox/typed.hpp: $(TOP)/scripts/generate_rpc_templates.py
-rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
+$(TOP)/src/rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
+$(TOP)/src/rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py
+$(TOP)/src/rpc/mailbox/typed.hpp: $(TOP)/scripts/generate_rpc_templates.py
+$(TOP)/src/rpc/semilattice/joins/macros.hpp $(TOP)/src/rpc/serialize_macros.hpp $(TOP)/src/rpc/mailbox/typed.hpp:
 	$P GEN $@
 	$< > $@
+
+generate-headers: $(TOP)/src/rpc/semilattice/joins/macros.hpp $(TOP)/src/rpc/serialize_macros.hpp $(TOP)/src/rpc/mailbox/typed.hpp
 
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP) $(SSL_LIBS_DEP)
 
 MAYBE_CHECK_STATIC_MALLOC =
 ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
@@ -363,21 +366,7 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
-
-$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(PRECOMPILED_DIR)/web_assets/web_assets.cc | $(BUILD_ROOT_DIR)/web_assets/.
-	$P CP
-	cp -f $< $@
-
-else # Don't use precompiled assets
-
-$(BUILD_ROOT_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
-	$P GENERATE
-	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
-
-endif
-
-$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_ROOT_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
+$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
 	mkdir -p $(dir $@)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<

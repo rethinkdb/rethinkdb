@@ -21,10 +21,26 @@ WGET ?=
 CURL ?=
 JOBSERVER_FDS_FLAG = $(filter --jobserver-fds=%,$(MAKEFLAGS))
 PKG_MAKEFLAGS = $(if $(JOBSERVER_FDS_FLAG), -j) $(JOBSERVER_FDS_FLAG)
-PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX
+
+PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX VERIFY_FETCH_HASH
+
+ifeq (Windows,$(OS))
+  PKG_SCRIPT_VARIABLES += DEBUG PLATFORM MSBUILD VCVARSALL CMAKE
+endif
+
 PKG_SCRIPT = $(foreach v, $(PKG_SCRIPT_VARIABLES), $v='$($v)') MAKEFLAGS='$(PKG_MAKEFLAGS)' $/mk/support/pkg/pkg.sh
 PKG_SCRIPT_TRACE = TRACE=1 $(PKG_SCRIPT)
 PKG_RECURSIVE_MARKER := $(if $(findstring 0,$(JUST_SCAN_MAKEFILES)),$(if $(DRY_RUN),,+))
+
+ifneq (Windows,$(OS))
+  INSTALL_WITNESS := install.witness
+else
+  ifeq (1,$(DEBUG))
+    INSTALL_WITNESS := install.witness.$(PLATFORM)-Debug
+  else
+    INSTALL_WITNESS := install.witness.$(PLATFORM)-Release
+  endif
+endif
 
 # How to log the output of fetching and building packages
 ifneq (1,$(VERBOSE))
@@ -58,6 +74,7 @@ SUPPORT_INCLUDE_DIRS := $(foreach var, $(filter %_INCLUDE_DEP,        $(.VARIABL
 
 .PRECIOUS: $(SUPPORT_INCLUDE_DIRS)
 
+
 # This function generates the suppport-* and fetch-* rules for each package
 # $1 = target files, $2 = pkg name, $3 = pkg version
 define support_rules
@@ -72,13 +89,20 @@ clean-$2: clean-$2_$3
 shrinkwrap-$2:
 	$(PKG_SCRIPT_TRACE) shrinkwrap $2_$3
 
+.PHONY: list-patches-$2
+list-patches-$2:
+	$(PKG_SCRIPT) list_patches $2_$3
+
+save-patch-$2-%:
+	$(PKG_SCRIPT) save_patch $2_$3 "$$*"
+
 # Depend on node for fetching node packages
-$(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
+$(SUPPORT_SRC_DIR)/$2_$3: | $(foreach dep, $(filter node,$($2_DEPENDS)), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/$(INSTALL_WITNESS))
 
 # Build a single package
 .PHONY: support-$2 support-$2_$3
 support-$2: support-$2_$3
-support-$2_$3: $1
+support-$2_$3: $(SUPPORT_BUILD_DIR)/$2_$3/$(INSTALL_WITNESS)
 
 # Clean a single package
 .PHONY: clean-$2_$3
@@ -94,18 +118,18 @@ clean-$2_$3:
 #  * The include directories for this package, because some packages cannot run the install
 #    and install-include rules in parallel
 #  * The `install.witness' file for each of the dependencies of the package
-build-$2_% $(foreach target,$1,$(subst _$3/,_%/,$(target))) $(SUPPORT_BUILD_DIR)/$2_%/install.witness: \
+build-$2_% $(foreach target,$1,$(subst _$3/,_%/,$(target))) $(SUPPORT_BUILD_DIR)/$2_%/$(INSTALL_WITNESS): \
   | $(SUPPORT_SRC_DIR)/$2_$3 $(filter $(SUPPORT_BUILD_DIR)/$2_$3/include, $(SUPPORT_INCLUDE_DIRS)) \
-  $(foreach dep, $($2_DEPENDS), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/install.witness)
+  $(foreach dep, $($2_DEPENDS), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/$(INSTALL_WITNESS))
 ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
 	$$P BUILD $2_$3
 	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT_TRACE) install $2_$3 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
-	touch $(SUPPORT_BUILD_DIR)/$2_$3/install.witness
+	touch $(SUPPORT_BUILD_DIR)/$2_$3/$(INSTALL_WITNESS)
 endif
 
-.PRECIOUS: $1 $(SUPPORT_BUILD_DIR)/$2_$3/install.witness
+.PRECIOUS: $1 $(SUPPORT_BUILD_DIR)/$2_$3/$(INSTALL_WITNESS)
 
 # Fetched packages need to be linked with flags that can only be
 # guessed after the package has been installed.

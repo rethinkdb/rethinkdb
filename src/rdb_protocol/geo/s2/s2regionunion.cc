@@ -42,8 +42,8 @@ void S2RegionUnion::Release(vector<S2Region*>* regions) {
   regions_.clear();
 }
 
-void S2RegionUnion::Add(S2Region* region) {
-  regions_.push_back(region);
+void S2RegionUnion::Add(S2Region* _region) {
+  regions_.push_back(_region);
 }
 
 S2RegionUnion* S2RegionUnion::Clone() const {

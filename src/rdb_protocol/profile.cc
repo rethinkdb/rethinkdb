@@ -47,13 +47,14 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_);
 ql::datum_t construct_start(
         ticks_t duration, std::string description,
         ql::datum_t sub_tasks) {
-    std::map<datum_string_t, ql::datum_t> res;
+        std::map<datum_string_t, ql::datum_t> res;
     res[datum_string_t("duration(ms)")] =
         ql::datum_t(safe_to_double(duration) / MILLION);
     res[datum_string_t("description")] =
         ql::datum_t(datum_string_t(description));
     res[datum_string_t("sub_tasks")] = sub_tasks;
     return ql::datum_t(std::move(res));
+    return ql::datum_t();
 }
 
 ql::datum_t construct_split(
@@ -61,6 +62,7 @@ ql::datum_t construct_split(
     std::map<datum_string_t, ql::datum_t> res;
     res[datum_string_t("parallel_tasks")] = par_tasks;
     return ql::datum_t(std::move(res));
+    return ql::datum_t();
 }
 
 ql::datum_t construct_sample(
@@ -72,7 +74,8 @@ ql::datum_t construct_sample(
     res[datum_string_t("n_samples")] = ql::datum_t(n_samples);
     res[datum_string_t("description")] =
         ql::datum_t(datum_string_t(sample->description_));
-    return ql::datum_t(std::move(res));
+        return ql::datum_t(std::move(res));
+    return ql::datum_t();
 }
 
 ql::datum_t construct_datum(
@@ -101,7 +104,7 @@ public:
         guarantee(stop);
         res_->push_back(construct_start(
             stop->when_ - start.when_, start.description_, sub_tasks));
-        (*begin_)++;
+            (*begin_)++;
     }
     void operator()(const split_t &split) const {
         (*begin_)++;
@@ -112,7 +115,7 @@ public:
             (*begin_)++;
         }
         res_->push_back(construct_split(
-            ql::datum_t(std::move(parallel_tasks), *limits_)));
+        ql::datum_t(std::move(parallel_tasks), *limits_)));
     }
     void operator()(const sample_t &sample) const {
         (*begin_)++;

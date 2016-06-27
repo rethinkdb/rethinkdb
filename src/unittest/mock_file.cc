@@ -12,7 +12,7 @@ namespace unittest {
 
 mock_file_t::mock_file_t(mode_t mode, std::vector<char> *data) : mode_(mode), data_(data) {
     guarantee(mode != 0);
-    guarantee(data_ != NULL);
+    guarantee(data_ != nullptr);
 }
 mock_file_t::~mock_file_t() { }
 

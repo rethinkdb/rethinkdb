@@ -23,8 +23,8 @@ void timer_signal_provider_signal_handler(UNUSED int signum, siginfo_t *siginfo,
     timer_signal_provider_t *provider = static_cast<timer_signal_provider_t *>(siginfo->si_value.sival_ptr);
 
     timer_provider_callback_t *local_cb = provider->callback;
-    if (local_cb != NULL) {
-        provider->callback = NULL;
+    if (local_cb != nullptr) {
+        provider->callback = nullptr;
         local_cb->on_oneshot();
     }
 }
@@ -35,7 +35,7 @@ timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *que
     struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &timer_signal_provider_signal_handler);
 
     // Register the signal.
-    int res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
+    int res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, nullptr);
     guarantee_err(res == 0, "timer signal provider could not register the signal handler");
 
     // Initialize the event structure
@@ -52,7 +52,7 @@ timer_signal_provider_t::timer_signal_provider_t(UNUSED linux_event_queue_t *que
 }
 
 timer_signal_provider_t::~timer_signal_provider_t() {
-    guarantee(callback == NULL);
+    guarantee(callback == nullptr);
 
     int res = timer_delete(timerid);
     guarantee_err(res == 0, "timer_delete failed");
@@ -61,7 +61,7 @@ timer_signal_provider_t::~timer_signal_provider_t() {
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = SIG_DFL;
 
-    res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, NULL);
+    res = sigaction(TIMER_NOTIFY_SIGNAL, &sa, nullptr);
     guarantee_err(res == 0, "timer signal provider could not unregister the signal handler");
 }
 
@@ -80,14 +80,14 @@ void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer
     spec.it_interval.tv_sec = 0;
     spec.it_interval.tv_nsec = 0;
 
-    const int res = timer_settime(timerid, 0, &spec, NULL);
+    const int res = timer_settime(timerid, 0, &spec, nullptr);
     guarantee_err(res == 0, "Could not arm the timer");
 
     callback = cb;
 }
 
 void timer_signal_provider_t::unschedule_oneshot() {
-    callback = NULL;
+    callback = nullptr;
 
     struct itimerspec spec;
     spec.it_interval.tv_sec = 0;
@@ -95,7 +95,7 @@ void timer_signal_provider_t::unschedule_oneshot() {
     spec.it_value.tv_sec = 0;
     spec.it_value.tv_nsec = 0;
 
-    const int res = timer_settime(timerid, 0, &spec, NULL);
+    const int res = timer_settime(timerid, 0, &spec, nullptr);
     guarantee_err(res == 0, "Could not disarm the timer.");
 }
 

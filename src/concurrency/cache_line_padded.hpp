@@ -11,7 +11,8 @@
 template <class value_t>
 struct cache_line_padded_t {
     cache_line_padded_t() { }
-    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
+    template <class... Args>
+    explicit cache_line_padded_t(Args &&... args) : value(std::forward<Args>(args)...) { }
     value_t value;
     char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
 };

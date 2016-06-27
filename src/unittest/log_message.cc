@@ -1,9 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifdef _WIN32
-
-// TODO WINDOWS
-
-#else
 
 #include "clustering/administration/logs/log_writer.hpp"
 #include "unittest/gtest.hpp"
@@ -26,18 +21,35 @@ TEST(LogMessageTest, ParseFormat) {
 }
 
 void test_chunks(const std::vector<size_t> &sizes) {
+#ifdef _WIN32
+    std::string filename = strprintf("c:\\windows\\temp\\rethinkdb-unittest-file-reverse-reader-%09d", randint(1000000000));
+    HANDLE handle = CreateFile(filename.c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE, NULL);
+    guarantee_winerr(handle != INVALID_HANDLE_VALUE, "CreateFile failed");
+    scoped_fd_t fd(handle);
+#else
     char filename[] = "/tmp/rethinkdb-unittest-file-reverse-reader-XXXXXX";
     scoped_fd_t fd(mkstemp(filename));
+#endif
     guarantee(fd.get() != INVALID_FD);
+#ifndef _WIN32
     int unlink_res = unlink(filename);
-    guarantee(unlink_res == 0);
+    guarantee_err(unlink_res == 0, "unlink failed");
+#endif
     for (size_t i = 0; i < sizes.size(); ++i) {
         std::string line(sizes[i], 'A' + i);
         line += '\n';
+#ifdef _WIN32
+        DWORD res;
+        BOOL ret = WriteFile(fd.get(), line.data(), line.size(), &res, nullptr);
+        guarantee_winerr(ret, "WriteFile failed");
+#else
         int res = write(fd.get(), line.data(), line.size());
+#endif
         ASSERT_EQ(line.size(), res);
     }
+#ifndef _WIN32
     fsync(fd.get());
+#endif
     file_reverse_reader_t rr(std::move(fd));
     for (ssize_t i = sizes.size() - 1; i >= 0; --i) {
         std::string expected(sizes[i], 'A' + i);
@@ -62,5 +74,3 @@ TPTEST(LogMessageTest, FileReverseReader) {
 }
 
 }  // namespace unittest
-
-#endif

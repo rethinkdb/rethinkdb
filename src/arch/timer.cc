@@ -9,7 +9,7 @@ class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {
     friend class timer_handler_t;
 
 private:
-    timer_token_t() : interval_nanos(-1), next_time_in_nanos(-1), callback(NULL) { }
+    timer_token_t() : interval_nanos(-1), next_time_in_nanos(-1), callback(nullptr) { }
 
     friend bool left_is_higher_priority(const timer_token_t *left, const timer_token_t *right);
 
@@ -84,7 +84,7 @@ timer_token_t *timer_handler_t::add_timer_internal(const int64_t ms, timer_callb
     const timer_token_t *top_entry = token_queue.peek();
     token_queue.push(token);
 
-    if (top_entry == NULL || next_time_in_nanos < top_entry->next_time_in_nanos) {
+    if (top_entry == nullptr || next_time_in_nanos < top_entry->next_time_in_nanos) {
         timer_provider.schedule_oneshot(next_time_in_nanos, this);
     }
 

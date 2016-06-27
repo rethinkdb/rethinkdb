@@ -12,8 +12,8 @@
 
 namespace ql {
 
-func_t::func_t(backtrace_id_t bt)
-  : bt_rcheckable_t(bt) { }
+func_t::func_t(backtrace_id_t _bt)
+  : bt_rcheckable_t(_bt) { }
 func_t::~func_t() { }
 
 scoped_ptr_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
@@ -95,10 +95,14 @@ deterministic_t reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
+bool reql_func_t::is_simple_selector() const {
+    return body->is_simple_selector();
+}
+
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
-                     backtrace_id_t backtrace)
-    : func_t(backtrace),
+                     backtrace_id_t _backtrace)
+    : func_t(_backtrace),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) { }
 

@@ -7,6 +7,16 @@
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/geo/geojson.hpp"
+#include "rdb_protocol/geo/geo_visitor.hpp"
+#include "rdb_protocol/geo/intersection.hpp"
+#include "rdb_protocol/geo/s2/s1angle.h"
+#include "rdb_protocol/geo/s2/s2edgeutil.h"
+#include "rdb_protocol/geo/s2/s2.h"
+#include "rdb_protocol/geo/s2/s2latlng.h"
+#include "rdb_protocol/geo/s2/s2latlngrect.h"
+#include "rdb_protocol/geo/s2/s2polygon.h"
+#include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 #include "utils.hpp"
@@ -122,6 +132,25 @@ key_range_t active_ranges_to_range(const active_ranges_t &ranges) {
     // We shouldn't get here unless there's at least one active range.
     r_sanity_check(seen_active);
     return key_range_t(key_range_t::closed, start, key_range_t::open, end);
+}
+
+static void validate_and_record_stamps(
+        const boost::optional<changefeed_stamp_t> &stamp,
+        const boost::optional<changefeed_stamp_response_t> &stamp_response,
+        std::map<uuid_u, shard_stamp_info_t> *out) {
+
+    if (stamp) {
+        r_sanity_check(stamp_response);
+        rcheck_datum(stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
+                     "Unable to retrieve start stamps.  (Did you just reshard?)");
+        rcheck_datum(stamp_response->stamp_infos->size() != 0,
+                     base_exc_t::RESUMABLE_OP_FAILED,
+                     "Empty start stamps.  Did you just reshard?");
+        for (const auto &pair : *stamp_response->stamp_infos) {
+            // It's OK to blow away old values.
+            (*out)[pair.first] = pair.second;
+        }
+    }
 }
 
 boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
@@ -415,7 +444,12 @@ raw_stream_t rget_response_reader_t::unshard(
 
     // Do the unsharding.
     if (sorting != sorting_t::UNORDERED) {
+        size_t num_iters = 0;
         for (;;) {
+            const size_t YIELD_INTERVAL = 2000;
+            if (++num_iters % YIELD_INTERVAL == 0) {
+                coro_t::yield();
+            }
             pseudoshard_t *best_shard = &pseudoshards[0];
             const store_key_t *best_key = best_shard->best_unpopped_key();
             for (size_t i = 1; i < pseudoshards.size(); ++i) {
@@ -530,6 +564,18 @@ void rget_response_reader_t::accumulate(env_t *env,
     result_t res = do_read(env, std::move(read)).result;
     mark_shards_exhausted();
     acc->add_res(env, &res, readgen->sorting(batchspec));
+}
+
+std::vector<rget_item_t> rget_response_reader_t::raw_next_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    r_sanity_check(batchspec.get_batch_type() != batch_type_t::SINDEX_CONSTANT);
+    started = true;
+    bool loaded = load_items(env, batchspec);
+    r_sanity_check(items_index == 0 && (items.size() != 0) == loaded);
+    std::vector<rget_item_t> res;
+    res.swap(items);
+    return res;
 }
 
 std::vector<datum_t> rget_response_reader_t::next_batch(
@@ -659,18 +705,7 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
 
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
-    if (stamp) {
-        r_sanity_check(res.stamp_response);
-        rcheck_datum(res.stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
-                     "Unable to retrieve start stamps.  (Did you just reshard?)");
-        rcheck_datum(res.stamp_response->stamp_infos->size() != 0,
-                     base_exc_t::RESUMABLE_OP_FAILED,
-                     "Empty start stamps.  Did you just reshard?");
-        for (const auto &pair : *res.stamp_response->stamp_infos) {
-            // It's OK to blow away old values.
-            shard_stamp_infos[pair.first] = pair.second;
-        }
-    }
+    validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
 
     return unshard(rr->sorting, std::move(res));
 }
@@ -717,13 +752,79 @@ void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     acc->add_res(env, &resp.result, sorting_t::UNORDERED);
 }
 
+class bounding_box_visitor_t : public s2_geo_visitor_t<geo::S2LatLngRect> {
+    geo::S2LatLngRect on_point(const geo::S2Point &pt) {
+        geo::S2EdgeUtil::RectBounder bounds;
+        bounds.AddPoint(&pt);
+        return expand(bounds.GetBound());
+    }
+
+    geo::S2LatLngRect on_line(const geo::S2Polyline &line) {
+        return from_region(line);
+    }
+
+    geo::S2LatLngRect on_polygon(const geo::S2Polygon &poly) {
+        return from_region(poly);
+    }
+
+    geo::S2LatLngRect on_latlngrect(const geo::S2LatLngRect &rect) {
+        return expand(rect);
+    }
+
+    geo::S2LatLngRect from_region(const geo::S2Region &region) {
+        return expand(region.GetRectBound());
+    }
+
+    // We expand bounds by a small amount (1% plus a small constant) to account
+    // for floating point differences across different builds/machines.
+    geo::S2LatLngRect expand(const geo::S2LatLngRect &rect) {
+        geo::S2LatLng size = rect.GetSize();
+        geo::S1Angle lat_expansion = size.lat();
+        geo::S1Angle lng_expansion = size.lng();
+        lat_expansion *= 0.01;
+        lng_expansion *= 0.01;
+        lat_expansion += geo::S1Angle::Degrees(0.00001); // ~1 meter at equator
+        lng_expansion += geo::S1Angle::Degrees(0.00001);
+        geo::S2LatLng expansion(lat_expansion, lng_expansion);
+        geo::S2LatLngRect out = rect.Expanded(expansion);
+        return out;
+    }
+};
+
 bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     while (items_index >= items.size() && !shards_exhausted()) { // read some more
+        read_t read = readgen->next_read(
+                active_ranges, reql_version, stamp, transforms, batchspec);
+
+        intersecting_geo_read_t *gr = boost::get<intersecting_geo_read_t>(&read.read);
+        r_sanity_check(gr != nullptr);
+
+        boost::optional<datum_t> old_query_geometry;
+        if (gr->stamp) {
+            // If this read is done for the initial values on a changefeed, we
+            // need to expand the query geometry sent to the shards to account for
+            // numerical differences, then check against the original geometry
+            // locally.
+
+            old_query_geometry = gr->query_geometry;
+
+            try {
+                bounding_box_visitor_t visitor;
+                geo::S2LatLngRect bounding_box = visit_geojson(
+                        &visitor, gr->query_geometry);
+
+                gr->query_geometry = construct_geo_latlngrect(
+                        bounding_box, configured_limits_t());
+            } catch (const geo_exception_t &e) {
+                rfail_toplevel(ql::base_exc_t::INTERNAL,
+                               "Setting up the `get_intersecting` changefeed failed: %s",
+                               e.what());
+            }
+        }
+
         std::vector<rget_item_t> unfiltered_items = do_intersecting_read(
-            env,
-            readgen->next_read(
-                active_ranges, reql_version, stamp, transforms, batchspec));
+            env, std::move(read));
         if (unfiltered_items.empty()) {
             r_sanity_check(shards_exhausted());
         } else {
@@ -732,13 +833,25 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
             items.reserve(unfiltered_items.size());
             for (size_t i = 0; i < unfiltered_items.size(); ++i) {
                 r_sanity_check(unfiltered_items[i].key.size() > 0);
-                store_key_t pkey(ql::datum_t::extract_primary(unfiltered_items[i].key));
-                if (processed_pkeys.count(pkey) == 0) {
+
+                if (old_query_geometry) {
+                    if (!geo_does_intersect(unfiltered_items[i].sindex_key,
+                                            *old_query_geometry)) {
+                        continue;
+                    }
+                }
+
+                const std::string key_str =
+                    key_to_unescaped_str(unfiltered_items[i].key);
+                boost::optional<uint64_t> tag(ql::datum_t::extract_tag(key_str));
+                std::pair<std::string, boost::optional<uint64_t> > pkey_tag(
+                    ql::datum_t::extract_primary(key_str), tag);
+                if (processed_pkey_tags.count(pkey_tag) == 0) {
                     rcheck_toplevel(
-                        processed_pkeys.size() < env->limits().array_size_limit(),
+                        processed_pkey_tags.size() < env->limits().array_size_limit(),
                         ql::base_exc_t::RESOURCE,
                         "Array size limit exceeded during geospatial index traversal.");
-                    processed_pkeys.insert(pkey);
+                    processed_pkey_tags.insert(pkey_tag);
                     items.push_back(std::move(unfiltered_items[i]));
                 }
             }
@@ -755,16 +868,21 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
     r_sanity_check(gr);
     r_sanity_check(gr->sindex.region);
 
+    r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(gr->stamp));
+    validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
+
     return unshard(sorting_t::UNORDERED, std::move(res));
 }
 
 readgen_t::readgen_t(
     global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
     std::string _table_name,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
     : global_optargs(std::move(_global_optargs)),
+      m_user_context(std::move(user_context)),
       table_name(std::move(_table_name)),
       profile(_profile),
       read_mode(_read_mode),
@@ -772,15 +890,22 @@ readgen_t::readgen_t(
 
 rget_readgen_t::rget_readgen_t(
     global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
     std::string _table_name,
     const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
-    sorting_t _sorting)
-    : readgen_t(std::move(_global_optargs),
-                std::move(_table_name),
-                _profile, _read_mode, _sorting),
-      datumspec(_datumspec) { }
+    sorting_t _sorting,
+    require_sindexes_t _require_sindex_val)
+    : readgen_t(
+        std::move(_global_optargs),
+        std::move(user_context),
+        std::move(_table_name),
+        _profile,
+        _read_mode,
+        _sorting),
+      datumspec(_datumspec),
+      require_sindex_val(_require_sindex_val) { }
 
 read_t rget_readgen_t::next_read(
     const boost::optional<active_ranges_t> &active_ranges,
@@ -819,20 +944,23 @@ read_t rget_readgen_t::terminal_read(
 }
 
 primary_readgen_t::primary_readgen_t(
-    global_optargs_t global_optargs,
-    std::string table_name,
-    const datumspec_t &datumspec,
+    global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
+    std::string _table_name,
+    const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
-    sorting_t sorting)
+    sorting_t _sorting)
     : rget_readgen_t(
-        std::move(global_optargs),
-        std::move(table_name),
-        datumspec,
+        std::move(_global_optargs),
+        std::move(user_context),
+        std::move(_table_name),
+        _datumspec,
         _profile,
         _read_mode,
-        sorting) {
-    store_keys = datumspec.primary_key_map();
+        _sorting,
+        require_sindexes_t::NO) {
+    store_keys = _datumspec.primary_key_map();
 }
 
 // If we're doing a primary key `get_all`, then we want to restrict the active
@@ -841,7 +969,7 @@ primary_readgen_t::primary_readgen_t(
 // preserves the invariant that we always issue a read to a shard if it's in the
 // active ranges, which is how we detect resharding right now.)
 void primary_readgen_t::restrict_active_ranges(
-    sorting_t sorting,
+    sorting_t _sorting,
     active_ranges_t *ranges_inout) const {
     if (store_keys && ranges_inout->ranges.size() != 0) {
         std::map<key_range_t,
@@ -881,7 +1009,7 @@ void primary_readgen_t::restrict_active_ranges(
                 new_end = std::min(new_end, hash_pair.second.key_range.right_or_max());
 
                 if (new_start > new_end) {
-                    if (!reversed(sorting)) {
+                    if (!reversed(_sorting)) {
                         hash_pair.second.key_range.left
                             = hash_pair.second.key_range.right_or_max();
                     } else {
@@ -912,6 +1040,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->get_all_optargs(),
+            env->get_user_context(),
             std::move(table_name),
             datumspec,
             env->profile(),
@@ -935,6 +1064,7 @@ rget_read_t primary_readgen_t::next_read_impl(
         active_ranges_to_hints(sorting(batchspec), active_ranges),
         store_keys,
         global_optargs,
+        m_user_context,
         table_name,
         batchspec,
         std::move(transforms),
@@ -962,24 +1092,29 @@ changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
         std::move(transforms),
         sindex_name(),
         sorting_,
-        datumspec};
+        datumspec,
+        boost::none};
 }
 
 sindex_readgen_t::sindex_readgen_t(
-    global_optargs_t global_optargs,
-    std::string table_name,
+    global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
+    std::string _table_name,
     const std::string &_sindex,
-    const datumspec_t &datumspec,
+    const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
-    sorting_t sorting)
+    sorting_t _sorting,
+    require_sindexes_t _require_sindex_val)
     : rget_readgen_t(
-        std::move(global_optargs),
-        std::move(table_name),
-        datumspec,
+        std::move(_global_optargs),
+        std::move(user_context),
+        std::move(_table_name),
+        _datumspec,
         _profile,
         _read_mode,
-        sorting),
+        _sorting,
+        _require_sindex_val),
       sindex(_sindex),
       sent_first_read(false) { }
 
@@ -989,16 +1124,19 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     read_mode_t read_mode,
     const std::string &sindex,
     const datumspec_t &datumspec,
-    sorting_t sorting) {
+    sorting_t sorting,
+    require_sindexes_t require_sindex_val) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->get_all_optargs(),
+            env->get_user_context(),
             std::move(table_name),
             sindex,
             datumspec,
             env->profile(),
             read_mode,
-            sorting));
+            sorting,
+            require_sindex_val));
 }
 
 void sindex_readgen_t::sindex_sort(
@@ -1044,11 +1182,15 @@ rget_read_t sindex_readgen_t::next_read_impl(
         active_ranges_to_hints(sorting(batchspec), active_ranges),
         boost::none,
         global_optargs,
+        m_user_context,
         table_name,
         batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, std::move(region), std::move(ds)),
+        sindex_rangespec_t(sindex,
+                           std::move(region),
+                           std::move(ds),
+                           require_sindex_val),
         sorting(batchspec));
 }
 
@@ -1063,32 +1205,38 @@ boost::optional<std::string> sindex_readgen_t::sindex_name() const {
 changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
         std::vector<transform_variant_t> transforms) const {
     return changefeed::keyspec_t::range_t{
-        std::move(transforms), sindex_name(), sorting_, datumspec};
+        std::move(transforms), sindex_name(), sorting_, datumspec, boost::none};
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
-    global_optargs_t global_optargs,
-    std::string table_name,
+    global_optargs_t _global_optargs,
+    auth::user_context_t user_context,
+    std::string _table_name,
     const std::string &_sindex,
     const datum_t &_query_geometry,
     profile_bool_t _profile,
     read_mode_t _read_mode)
-    : readgen_t(std::move(global_optargs),
-                std::move(table_name),
-                _profile, _read_mode, sorting_t::UNORDERED),
+    : readgen_t(
+        std::move(_global_optargs),
+        std::move(user_context),
+        std::move(_table_name),
+        _profile,
+        _read_mode,
+        sorting_t::UNORDERED),
       sindex(_sindex),
       query_geometry(_query_geometry) { }
 
 scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
     env_t *env,
-    std::string table_name,
+    std::string _table_name,
     read_mode_t read_mode,
     const std::string &sindex,
     const datum_t &query_geometry) {
     return scoped_ptr_t<readgen_t>(
         new intersecting_readgen_t(
             env->get_all_optargs(),
-            std::move(table_name),
+            env->get_user_context(),
+            std::move(_table_name),
             sindex,
             query_geometry,
             env->profile(),
@@ -1136,12 +1284,19 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
     region_t region = active_ranges
         ? region_t(active_ranges_to_range(*active_ranges))
         : region_t(safe_universe());
+    // For stamped reads, we disable batching. This is a temporary work-around for the
+    // problem that the keys associated with geospatial change events don't match
+    // up with the traversal ranges of an initial intersecting read (which in turn
+    // confuses the splice_stream_t).
+    // By reading everything in a single batch, we avoid this issue.
+    batchspec_t actual_batchspec = stamp ? batchspec.all() : batchspec;
     return intersecting_geo_read_t(
         std::move(stamp),
         region_t::universe(),
         global_optargs,
+        m_user_context,
         table_name,
-        batchspec,
+        actual_batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
         sindex_rangespec_t(
@@ -1166,6 +1321,16 @@ key_range_t intersecting_readgen_t::original_keyrange(reql_version_t rv) const {
 
 boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
     return sindex;
+}
+
+changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
+        std::vector<transform_variant_t> transforms) const {
+    return changefeed::keyspec_t::range_t{
+        std::move(transforms),
+        sindex_name(),
+        sorting_t::UNORDERED,
+        datumspec_t(datum_range_t::universe()),
+        query_geometry};
 }
 
 bool datum_stream_t::add_stamp(changefeed_stamp_t) {
@@ -1201,16 +1366,16 @@ counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
     return make_counted<ordered_distinct_datum_stream_t>(counted_from_this());
 }
 
-datum_stream_t::datum_stream_t(backtrace_id_t bt)
-    : bt_rcheckable_t(bt), batch_cache_index(0), grouped(false) {
+datum_stream_t::datum_stream_t(backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt), batch_cache_index(0), grouped(false) {
 }
 
 void datum_stream_t::add_grouping(transform_variant_t &&tv,
-                                  backtrace_id_t bt) {
+                                  backtrace_id_t _bt) {
     check_not_grouped("Cannot call `group` on the output of `group` "
                       "(did you mean to `ungroup`?).");
     grouped = true;
-    add_transformation(std::move(tv), bt);
+    add_transformation(std::move(tv), _bt);
 }
 void datum_stream_t::check_not_grouped(const char *msg) {
     rcheck(!is_grouped(), base_exc_t::LOGIC, msg);
@@ -1235,7 +1400,10 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 datum_t datum_stream_t::next(env_t *env, const batchspec_t &batchspec) {
-    profile::starter_t("Reading element from datum stream.", env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        env->profile() == profile_bool_t::PROFILE,
+        "Reading element from datum stream.",
+        env->trace);
     if (batch_cache_index >= batch_cache.size()) {
         r_sanity_check(batch_cache_index == 0);
         batch_cache = next_batch(env, batchspec);
@@ -1260,10 +1428,10 @@ bool datum_stream_t::batch_cache_exhausted() const {
 }
 
 void eager_datum_stream_t::add_transformation(
-    transform_variant_t &&tv, backtrace_id_t bt) {
+    transform_variant_t &&tv, backtrace_id_t _bt) {
     ops.push_back(make_op(tv));
     transforms.push_back(std::move(tv));
-    update_bt(bt);
+    update_bt(_bt);
 }
 
 eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
@@ -1330,16 +1498,17 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
 }
 
 // LAZY_DATUM_STREAM_T
+
 lazy_datum_stream_t::lazy_datum_stream_t(scoped_ptr_t<reader_t> &&_reader,
-                                         backtrace_id_t bt)
-    : datum_stream_t(bt),
+                                         backtrace_id_t _bt)
+    : datum_stream_t(_bt),
       current_batch_offset(0),
       reader(std::move(_reader)) { }
 
 void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                             backtrace_id_t bt) {
+                                             backtrace_id_t _bt) {
     reader->add_transformation(std::move(tv));
-    update_bt(bt);
+    update_bt(_bt);
 }
 
 void lazy_datum_stream_t::accumulate(
@@ -1369,8 +1538,8 @@ bool lazy_datum_stream_t::is_infinite() const {
 }
 
 array_datum_stream_t::array_datum_stream_t(datum_t _arr,
-                                           backtrace_id_t bt)
-    : eager_datum_stream_t(bt), index(0), arr(_arr) { }
+                                           backtrace_id_t _bt)
+    : eager_datum_stream_t(_bt), index(0), arr(_arr) { }
 
 datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
@@ -1505,6 +1674,16 @@ slice_datum_stream_t::slice_datum_stream_t(
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
 std::vector<changespec_t> slice_datum_stream_t::get_changespecs() {
+    for (auto transform : transforms) {
+        filter_wire_func_t *filter = boost::get<filter_wire_func_t>(&transform);
+        if (filter == nullptr) {
+            rfail(base_exc_t::LOGIC,
+                  "Changefeeds are not supported on queries that have a transformation"
+                  " following a `limit` term.  Transformations include terms such as "
+                  "`filter`, `map`, `pluck`, etc.  Consider moving the transformation "
+                  "before the `limit` term.");
+        }
+    }
     if (left == 0) {
         auto subspecs = source->get_changespecs();
         rcheck(subspecs.size() == 1, base_exc_t::LOGIC,
@@ -1684,6 +1863,110 @@ private:
     union_datum_stream_t *parent;
 };
 
+ordered_union_datum_stream_t::ordered_union_datum_stream_t(
+    std::vector<counted_t<datum_stream_t> > &&_streams,
+    std::vector<std::pair<order_direction_t, counted_t<const func_t> > > &&_comparisons,
+    env_t  *env,
+    backtrace_id_t _bt)
+    : eager_datum_stream_t(_bt),
+      union_type(feed_type_t::not_feed),
+      is_array_ordered_union(true),
+      is_infinite_ordered_union(false),
+      is_ordered_by_field(_comparisons.size() != 0),
+      do_prelim_cache(true),
+      lt(_comparisons),
+      merge_cache(merge_less_t{env, nullptr, &lt}) {
+
+    for (const auto &stream : _streams) {
+        union_type = union_of(union_type, stream->cfeed_type());
+        is_infinite_ordered_union |= stream->is_infinite();
+        is_array_ordered_union &= stream->is_array();
+    }
+    for (auto &&stream : _streams) {
+        streams.push_back(std::move(stream));
+    }
+}
+
+std::vector<datum_t> ordered_union_datum_stream_t::next_raw_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    rcheck(!is_infinite_ordered_union
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an ordered `union`.");
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    if (is_ordered_by_field) {
+        if (do_prelim_cache) {
+            for (auto &&stream : streams) {
+                r_sanity_check(stream.has());
+                datum_t cache_item = stream->next(env, batchspec);
+
+                if (cache_item.has()) {
+                    merge_cache.push(
+                        merge_cache_item_t{std::move(cache_item),
+                                stream});
+                }
+            }
+            do_prelim_cache = false;
+        }
+
+        while (merge_cache.size() > 0 && !batcher.should_send_batch()) {
+            merge_cache_item_t el = std::move(merge_cache.top());
+            merge_cache.pop();
+
+            datum_t datum_on_deck = std::move(el.value);
+
+            datum_t next_datum = el.source->next(env, batchspec);
+
+            if (next_datum.has()) {
+                // Enforce ordering in merge step
+                // Ordering of this check is backwards because lt does strict <
+                rcheck(!lt(env, nullptr, next_datum, datum_on_deck),
+                       base_exc_t::LOGIC,
+                       "The streams given as arguments"
+                       " are not ordered by given ordering.");
+
+                merge_cache.push(
+                    merge_cache_item_t{std::move(next_datum),
+                            el.source});
+            }
+
+            batcher.note_el(datum_on_deck);
+            batch.push_back(std::move(datum_on_deck));
+        }
+    } else {
+        while (!streams.empty()
+               && !batcher.should_send_batch()) {
+            datum_t row = streams.front()->next(env, batchspec);
+
+            if (row.has()) {
+                batcher.note_el(row);
+                batch.push_back(std::move(row));
+            } else {
+                streams.pop_front();
+            }
+        }
+    }
+    return batch;
+}
+
+bool ordered_union_datum_stream_t::is_exhausted() const {
+    if (is_ordered_by_field) {
+        if (merge_cache.size() == 0 && !do_prelim_cache) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    } else {
+        if (streams.empty()) {
+            return batch_cache_exhausted();
+        }
+        return false;
+    }
+}
+
 // The maximum number of reads that a union_datum_stream spawns on its substreams
 // at a time. This limit does not apply to changefeed streams.
 const size_t MAX_CONCURRENT_UNION_READS = 32;
@@ -1691,9 +1974,9 @@ const size_t MAX_CONCURRENT_UNION_READS = 32;
 union_datum_stream_t::union_datum_stream_t(
     env_t *env,
     std::vector<counted_t<datum_stream_t> > &&streams,
-    backtrace_id_t bt,
+    backtrace_id_t _bt,
     size_t expected_states)
-    : datum_stream_t(bt),
+    : datum_stream_t(_bt),
       union_type(feed_type_t::not_feed),
       is_infinite_union(false),
       sent_init(false),
@@ -1716,6 +1999,7 @@ union_datum_stream_t::union_datum_stream_t(
         env->return_empty_normal_batches,
         drainer.get_drain_signal(),
         env->get_all_optargs(),
+        env->get_user_context(),
         trace.has() ? trace.get() : nullptr);
 
     coro_streams.reserve(streams.size());
@@ -1803,11 +2087,11 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
 }
 
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                              backtrace_id_t bt) {
+                                              backtrace_id_t _bt) {
     for (auto &&coro_stream : coro_streams) {
-        coro_stream->stream->add_transformation(transform_variant_t(tv), bt);
+        coro_stream->stream->add_transformation(transform_variant_t(tv), _bt);
     }
-    update_bt(bt);
+    update_bt(_bt);
 }
 
 void union_datum_stream_t::accumulate(
@@ -1872,8 +2156,8 @@ std::vector<changespec_t> union_datum_stream_t::get_changespecs() {
 range_datum_stream_t::range_datum_stream_t(bool _is_infinite_range,
                                            int64_t _start,
                                            int64_t _stop,
-                                           backtrace_id_t bt)
-    : eager_datum_stream_t(bt),
+                                           backtrace_id_t _bt)
+    : eager_datum_stream_t(_bt),
       is_infinite_range(_is_infinite_range),
       start(_start),
       stop(_stop) { }
@@ -1895,15 +2179,15 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
                             batchspec.with_at_most(500).to_batcher();
 
     while (!is_exhausted()) {
-        double next = safe_to_double(start++);
+        double _next = safe_to_double(start++);
         // `safe_to_double` returns NaN on error, which signals that `start` is larger
         // than 2^53 indicating we've reached the end of our infinite stream. This must
         // be checked before creating a `datum_t` as that does a similar check on
         // construction.
-        rcheck(risfinite(next), base_exc_t::LOGIC,
+        rcheck(risfinite(_next), base_exc_t::LOGIC,
                "`range` out of safe double bounds.");
 
-        batch.emplace_back(next);
+        batch.emplace_back(_next);
         batcher.note_el(batch.back());
         if (batcher.should_send_batch()) {
             break;
@@ -1921,8 +2205,8 @@ bool range_datum_stream_t::is_exhausted() const {
 map_datum_stream_t::map_datum_stream_t(
         std::vector<counted_t<datum_stream_t> > &&_streams,
         counted_t<const func_t> &&_func,
-        backtrace_id_t bt)
-    : eager_datum_stream_t(bt), streams(std::move(_streams)), func(std::move(_func)),
+        backtrace_id_t _bt)
+    : eager_datum_stream_t(_bt), streams(std::move(_streams)), func(std::move(_func)),
       union_type(feed_type_t::not_feed), is_array_map(true), is_infinite_map(true) {
     args.reserve(streams.size());
     for (const auto &stream : streams) {
@@ -1950,14 +2234,15 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     while (!is_exhausted()) {
         while (args.size() < streams.size()) {
             datum_t d = streams[args.size()]->next(env, batchspec_inner);
-            if (union_type == feed_type_t::not_feed) {
-                r_sanity_check(d.has());
-            } else {
-                if (!d.has()) {
-                    // Return with `args` partway full and continue next time
-                    // the client asks for a batch.
-                    return batch;
+            if (!d.has()) {
+                if (union_type == feed_type_t::not_feed) {
+                    // One of the streams was probably empty from the beginning. So
+                    // after the call to `next` above, we should now be exhausted.
+                    r_sanity_check(is_exhausted());
                 }
+                // If we have a feed, return with `args` partway full and continue
+                // next time the client asks for a batch.
+                return batch;
             }
             args.push_back(std::move(d));
         }
@@ -1983,11 +2268,218 @@ bool map_datum_stream_t::is_exhausted() const {
     return false;
 }
 
+eq_join_datum_stream_t::eq_join_datum_stream_t(counted_t<datum_stream_t> _stream,
+                                               counted_t<table_t> _table,
+                                               datum_string_t _join_index,
+                                               counted_t<const func_t> _predicate,
+                                               bool _ordered,
+                                               backtrace_id_t _bt) :
+    eager_datum_stream_t(_bt),
+    stream(std::move(_stream)),
+    table(std::move(_table)),
+    join_index(std::move(_join_index)),
+    predicate(std::move(_predicate)),
+    ordered(_ordered),
+    is_array_eq_join(stream->is_array()),
+    is_infinite_eq_join(stream->is_infinite()),
+    eq_join_type(stream->cfeed_type()) { }
+
+std::vector<datum_t> eq_join_datum_stream_t::next_raw_batch(
+    env_t *env,
+    const batchspec_t &batchspec) {
+    batcher_t batcher = batchspec.to_batcher();
+
+    batchspec_t inner_batchspec = ordered ?
+        batchspec_t::all().with_at_most(1) :
+        batchspec;
+
+    std::vector<datum_t> res;
+    while (!is_exhausted() && !batcher.should_send_batch()) {
+        if (!get_all_reader.has() ||
+            (get_all_reader->is_finished() &&
+             get_all_items.empty())) {
+            // Get a new batch of keys
+            std::vector<datum_t> stream_batch = stream->next_batch(env,
+                                                                   inner_batchspec);
+            if (stream_batch.empty()) {
+                // We got an empty batch from the input stream. It's either exhausted
+                // or a changefeed. In either case we abort and emit our current results.
+                break;
+            }
+            // Basically do a get all on the new keys
+            // but we get the reader directly so we can read the sindex from the lookup.
+            sindex_to_datum.clear();
+            std::map<datum_t, uint64_t> keys;
+            for (size_t i = 0; i < stream_batch.size(); ++i) {
+                datum_t key_val;
+                try {
+                    key_val = predicate->call(
+                        env,
+                        std::vector<datum_t>{stream_batch[i]})->as_datum();
+                } catch (const exc_t &e) {
+                    if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+                        continue;
+                    } else {
+                        throw;
+                    }
+                }
+                // Build a multimap from sindex value to datums from left side stream.
+                if (key_val.get_type() != datum_t::type_t::R_NULL) {
+                    sindex_to_datum.insert(std::pair<datum_t, datum_t>{
+                            key_val, stream_batch[i]});
+                    keys[key_val] = 1;
+                }
+            }
+            get_all_reader = table->get_all_with_sindexes(
+                env,
+                datumspec_t(std::move(keys)),
+                join_index.to_std(),
+                backtrace());
+        }
+        if (get_all_items.empty()) {
+            get_all_items = get_all_reader->raw_next_batch(env, batchspec);
+        }
+        rget_item_t item;
+        if (!get_all_items.empty()) {
+            item = get_all_items.back();
+            get_all_items.pop_back();
+        } else {
+            continue;
+        }
+        // Get each item in get_all results, and match it with all datums that match
+        // in the multimap from the left side stream.
+        std::pair<std::multimap<datum_t, datum_t>::iterator,
+                  std::multimap<datum_t, datum_t>::iterator> range;
+        if (item.sindex_key.has()) {
+            range = sindex_to_datum.equal_range(item.sindex_key);
+        } else {
+            range = sindex_to_datum.equal_range(item.data.get_field(join_index));
+        }
+        datum_string_t right("right");
+        datum_string_t left("left");
+        for (auto pair = range.first; pair != range.second; ++pair) {
+            ql::datum_object_builder_t res_item;
+            bool conflict = true;
+            conflict &= res_item.add(right, item.data);
+            conflict &= res_item.add(left, pair->second);
+            guarantee(!conflict);
+            datum_t res_datum = std::move(res_item).to_datum();
+            batcher.note_el(res_datum);
+            res.push_back(std::move(res_datum));
+        }
+    }
+    return res;
+}
+
+bool eq_join_datum_stream_t::is_exhausted() const {
+    if (stream->is_exhausted() &&
+        get_all_items.empty() &&
+        (!get_all_reader.has() || get_all_reader->is_finished())) {
+        return batch_cache_exhausted();
+    }
+    return false;
+}
+
+fold_datum_stream_t::fold_datum_stream_t(
+    counted_t<datum_stream_t> &&_stream,
+    datum_t _base,
+    counted_t<const func_t> &&_acc_func,
+    counted_t<const func_t> &&_emit_func,
+    counted_t<const func_t> &&_final_emit_func,
+    backtrace_id_t _bt)
+    : eager_datum_stream_t(_bt),
+      stream(std::move(_stream)),
+      acc_func(std::move(_acc_func)),
+      emit_func(std::move(_emit_func)),
+      final_emit_func(std::move(_final_emit_func)),
+      acc(_base) {
+
+    if (final_emit_func.has()) {
+        do_final_emit = true;
+    } else {
+        do_final_emit = false;
+    }
+
+    is_array_fold = stream->is_array();
+    union_type = stream->cfeed_type();
+    is_infinite_fold = stream->is_infinite();
+}
+
+std::vector<datum_t>
+fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
+    rcheck(!is_infinite_fold
+           || batchspec.get_batch_type() == batch_type_t::NORMAL
+           || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an aggregation function "
+           "(`reduce`, `count`, etc.) or coerce it to an array.");
+
+    std::vector<datum_t> batch;
+    batcher_t batcher = batchspec.to_batcher();
+
+    // TODO: Create an inner batchspec as in `map_datum_stream_t`
+    // when we add folding over multiple streams.
+
+    while (!is_exhausted() && !batcher.should_send_batch()) {
+        datum_t row = stream->next(env, batchspec);
+        if (!row.has()) {
+            // This can happen if `stream` is a changefeed.
+            break;
+        }
+        datum_t new_acc = acc_func->call(
+            env,
+            std::vector<datum_t>{acc, row})->as_datum();
+
+        r_sanity_check(new_acc.has());
+
+        datum_t emit_elem = emit_func->call(
+            env,
+            std::vector<datum_t>{acc, row, new_acc})->as_datum();
+
+        r_sanity_check(emit_elem.has());
+
+        for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
+            datum_t emit_item = emit_elem.get(i);
+            batcher.note_el(emit_item);
+            batch.push_back(std::move(emit_item));
+        }
+
+        acc = std::move(new_acc);
+    }
+
+    if (is_exhausted() && do_final_emit) {
+        std::vector<datum_t> final_emit_args;
+        final_emit_args.push_back(acc);
+        datum_t final_emit_elem = final_emit_func->call(
+            env,
+            final_emit_args)->as_datum();
+
+        for (size_t i = 0; i< final_emit_elem.arr_size(); ++i) {
+            datum_t final_emit_item = final_emit_elem.get(i);
+            batcher.note_el(final_emit_item);
+            batch.push_back(std::move(final_emit_item));
+        }
+
+        // So that calling `next_batch` on an exhausted stream returns nothing,
+        // as expected.
+        do_final_emit = false;
+    }
+
+    return batch;
+}
+
+bool fold_datum_stream_t::is_exhausted() const {
+    if (stream->is_exhausted()) {
+        return batch_cache_exhausted();
+    }
+    return false;
+}
+
 vector_datum_stream_t::vector_datum_stream_t(
-        backtrace_id_t bt,
+        backtrace_id_t _bt,
         std::vector<datum_t> &&_rows,
         boost::optional<ql::changefeed::keyspec_t> &&_changespec) :
-    eager_datum_stream_t(bt),
+    eager_datum_stream_t(_bt),
     rows(std::move(_rows)),
     index(0),
     changespec(std::move(_changespec)) { }
@@ -2024,13 +2516,13 @@ std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
 }
 
 void vector_datum_stream_t::add_transformation(
-    transform_variant_t &&tv, backtrace_id_t bt) {
+    transform_variant_t &&tv, backtrace_id_t _bt) {
     if (changespec) {
         if (auto *rng = boost::get<changefeed::keyspec_t::range_t>(&changespec->spec)) {
             rng->transforms.push_back(tv);
         }
     }
-    eager_datum_stream_t::add_transformation(std::move(tv), bt);
+    eager_datum_stream_t::add_transformation(std::move(tv), _bt);
 }
 
 bool vector_datum_stream_t::is_exhausted() const {

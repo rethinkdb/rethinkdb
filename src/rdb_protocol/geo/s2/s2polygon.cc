@@ -61,17 +61,17 @@ S2Polygon::S2Polygon(S2Cell const& cell)
     owns_loops_(true),
     has_holes_(false),
     num_vertices_(4) {
-  S2Loop* loop = new S2Loop(cell);
-  bound_ = loop->GetRectBound();
-  loops_.push_back(loop);
+  S2Loop* _loop = new S2Loop(cell);
+  bound_ = _loop->GetRectBound();
+  loops_.push_back(_loop);
 }
 
-S2Polygon::S2Polygon(S2Loop* loop)
-  : bound_(loop->GetRectBound()),
+S2Polygon::S2Polygon(S2Loop* _loop)
+  : bound_(_loop->GetRectBound()),
     owns_loops_(false),
     has_holes_(false),
-    num_vertices_(loop->num_vertices()) {
-  loops_.push_back(loop);
+    num_vertices_(_loop->num_vertices()) {
+  loops_.push_back(_loop);
 }
 
 void S2Polygon::Copy(S2Polygon const* src) {
@@ -211,12 +211,12 @@ void S2Polygon::InsertLoop(S2Loop* new_loop, S2Loop* parent,
   children->push_back(new_loop);
 }
 
-void S2Polygon::InitLoop(S2Loop* loop, int depth, LoopMap* loop_map) {
-  if (loop) {
-    loop->set_depth(depth);
-    loops_.push_back(loop);
+void S2Polygon::InitLoop(S2Loop* _loop, int depth, LoopMap* loop_map) {
+  if (_loop) {
+    _loop->set_depth(depth);
+    loops_.push_back(_loop);
   }
-  vector<S2Loop*> const& children = (*loop_map)[loop];
+  vector<S2Loop*> const& children = (*loop_map)[_loop];
   for (size_t i = 0; i < children.size(); ++i) {
     InitLoop(children[i], depth + 1, loop_map);
   }
@@ -527,11 +527,11 @@ bool S2Polygon::DecodeInternal(Decoder* const decoder, bool within_scope) {
 
   owns_loops_ = decoder->get8();
   has_holes_ = decoder->get8();
-  int num_loops = decoder->get32();
+  int _num_loops = decoder->get32();
   loops_.clear();
-  loops_.reserve(num_loops);
+  loops_.reserve(_num_loops);
   num_vertices_ = 0;
-  for (int i = 0; i < num_loops; ++i) {
+  for (int i = 0; i < _num_loops; ++i) {
     loops_.push_back(new S2Loop);
     if (within_scope) {
       if (!loops_.back()->DecodeWithinScope(decoder)) return false;

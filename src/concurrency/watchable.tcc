@@ -136,7 +136,7 @@ public:
     }
 
     bool operator()(const outer_type &input, result_type *current_out) {
-        guarantee(current_out != NULL);
+        guarantee(current_out != nullptr);
         result_type old_value = *current_out;
         *current_out = inner(input);
         /* We can't use `!=` here because sometimes lazy programmers will implement `==`

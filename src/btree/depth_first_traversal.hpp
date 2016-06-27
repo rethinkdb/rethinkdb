@@ -126,7 +126,7 @@ public:
     resulting key ranges would be contiguous and non-overlapping, and they would together
     cover the full range of the traversal. */
 
-    virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
+    virtual profile::trace_t *get_trace() THROWS_NOTHING { return nullptr; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }
 };

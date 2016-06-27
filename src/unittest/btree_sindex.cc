@@ -143,7 +143,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
-            NULL,
+            nullptr,
             &io_backender,
             base_path_t("."),
             generate_uuid(),
@@ -265,7 +265,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             point_read_response_t response;
 
             rdb_get(key, store.get_sindex_slice(sindex_uuid),
-                    sindex_super_block.get(), &response, NULL);
+                    sindex_super_block.get(), &response, nullptr);
 
             ASSERT_EQ(ql::datum_t(1.0), response.data);
         }

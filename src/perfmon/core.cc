@@ -31,6 +31,9 @@ public:
 };
 
 perfmon_collection_t::perfmon_collection_t() : constituents_access(true) { }
+perfmon_collection_t::perfmon_collection_t(threadnum_t tid)
+    : home_thread_mixin_t(tid),
+      constituents_access(true) { }
 perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
@@ -38,7 +41,7 @@ void *perfmon_collection_t::begin_stats() {
         new stats_collection_context_t(&constituents_access, constituents);
 
     size_t i = 0;
-    for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
+    for (perfmon_membership_t *p = constituents.head(); p != nullptr; p = constituents.next(p), ++i) {
         ctx->contexts[i] = p->get()->begin_stats();
     }
     return ctx;
@@ -47,7 +50,7 @@ void *perfmon_collection_t::begin_stats() {
 void perfmon_collection_t::visit_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
-    for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
+    for (perfmon_membership_t *p = constituents.head(); p != nullptr; p = constituents.next(p), ++i) {
         p->get()->visit_stats(ctx->contexts[i]);
     }
 }
@@ -58,7 +61,7 @@ ql::datum_t perfmon_collection_t::end_stats(void *_context) {
     ql::datum_object_builder_t builder;
 
     size_t i = 0;
-    for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
+    for (perfmon_membership_t *p = constituents.head(); p != nullptr; p = constituents.next(p), ++i) {
         ql::datum_t stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             for (size_t j = 0; j < stat.obj_size(); ++j) {
@@ -76,7 +79,7 @@ ql::datum_t perfmon_collection_t::end_stats(void *_context) {
 
 void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
     scoped_ptr_t<on_thread_t> thread_switcher;
-    if (coroutines_have_been_initialized() && coro_t::self() != NULL) {
+    if (coroutines_have_been_initialized() && coro_t::self() != nullptr) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
@@ -86,7 +89,7 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
 
 void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
     scoped_ptr_t<on_thread_t> thread_switcher;
-    if (coroutines_have_been_initialized() && coro_t::self() != NULL) {
+    if (coroutines_have_been_initialized() && coro_t::self() != nullptr) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
@@ -95,7 +98,7 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
 }
 
 perfmon_membership_t::perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const char *_name, bool _own_the_perfmon)
-    : name(_name != NULL ? _name : ""), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
+    : name(_name != nullptr ? _name : ""), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
 {
     parent->add(this);
 }
@@ -149,7 +152,7 @@ perfmon_collection_t &get_global_perfmon_collection() {
 
     // FIXME: probably use "new" to create the perfmon_collection_t. For more info
     // check out C++ FAQ Lite answer 10.16.
-    static perfmon_collection_t collection;
+    static perfmon_collection_t collection(threadnum_t(0));
     return collection;
 }
 

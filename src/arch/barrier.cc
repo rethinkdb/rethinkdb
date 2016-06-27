@@ -4,9 +4,9 @@ thread_barrier_t::thread_barrier_t(int num_workers)
     : num_workers_(num_workers), num_waiters_(0) {
     guarantee(num_workers > 0);
 
-    int res = pthread_mutex_init(&mutex_, NULL);
+    int res = pthread_mutex_init(&mutex_, nullptr);
     guarantee_xerr(res == 0, res, "could not initialize barrier mutex");
-    res = pthread_cond_init(&cond_, NULL);
+    res = pthread_cond_init(&cond_, nullptr);
     guarantee_xerr(res == 0, res, "could not initialize barrier condition variable");
 }
 

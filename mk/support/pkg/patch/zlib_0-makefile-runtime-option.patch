@@ -1,0 +1,13 @@
+diff -ruN ../zlib_1.2.8/win32/Makefile.msc ./win32/Makefile.msc
+--- ../zlib_1.2.8/win32/Makefile.msc	2013-04-13 17:54:57.000000000 -0700
++++ ./win32/Makefile.msc	2016-01-27 17:10:03.386157600 -0800
+@@ -26,7 +26,8 @@
+ LD = link
+ AR = lib
+ RC = rc
+-CFLAGS  = -nologo -MD -W3 -O2 -Oy- -Zi -Fd"zlib" $(LOC)
++RUNTIME = -MT
++CFLAGS  = -nologo -W3 -O2 -Oy- -Zi -Fd"zlib" $(LOC) $(RUNTIME)
+ WFLAGS  = -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE
+ ASFLAGS = -coff -Zi $(LOC)
+ LDFLAGS = -nologo -debug -incremental:no -opt:ref

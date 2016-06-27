@@ -30,28 +30,6 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states) {
-        counted_t<datum_stream_t> maybe_src;
-        if (include_initial) {
-            // We want to provide an empty stream in this case because we get
-            // the initial values from the stamp read instead.
-            maybe_src = make_counted<vector_datum_stream_t>(
-                bt, std::vector<datum_t>(), boost::none);
-        }
-        return tbl->tbl->read_changes(
-            env,
-            maybe_src,
-            std::move(limits),
-            squash,
-            include_states,
-            changefeed::keyspec_t::point_t{key},
-            bt,
-            tbl->display_name());
-    }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
@@ -62,7 +40,11 @@ public:
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
-    virtual const counted_t<table_t> &get_tbl() { return tbl; }
+    backtrace_id_t get_bt() const final { return bt; }
+    changefeed::keyspec_t::spec_t get_spec() const final {
+        return changefeed::keyspec_t::point_t{key};
+    }
+    const counted_t<table_t> &get_tbl() final { return tbl; }
 private:
     env_t *env;
     backtrace_id_t bt;
@@ -90,31 +72,6 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(
-        bool include_initial,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states) {
-        changefeed::keyspec_t::spec_t spec =
-            ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
-        counted_t<datum_stream_t> maybe_src;
-        if (include_initial) {
-            // We want to provide an empty stream in this case because we get
-            // the initial values from the stamp read instead.
-            maybe_src = make_counted<vector_datum_stream_t>(
-                bt, std::vector<datum_t>(), boost::none);
-        }
-        auto s = slice->get_tbl()->tbl->read_changes(
-            env,
-            maybe_src,
-            std::move(limits),
-            squash,
-            include_states,
-            std::move(spec),
-            bt,
-            slice->get_tbl()->display_name());
-        return s;
-    }
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
         durability_requirement_t dur_req, return_changes_t return_changes) {
@@ -127,7 +84,11 @@ public:
         return slice->get_tbl()->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes);
     }
-    virtual const counted_t<table_t> &get_tbl() { return slice->get_tbl(); }
+    backtrace_id_t get_bt() const final { return bt; }
+    changefeed::keyspec_t::spec_t get_spec() const final {
+        return ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
+    }
+    const counted_t<table_t> &get_tbl() final { return slice->get_tbl(); }
 private:
     env_t *env;
     backtrace_id_t bt;
@@ -167,9 +128,9 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl,
 
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
-    env_t *env, backtrace_id_t bt) {
+    env_t *env, backtrace_id_t _bt) {
     // Empty bounds will be handled by as_seq with empty_reader_t
-    return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);
+    return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), _bt, bounds, sorting);
 }
 
 counted_t<table_slice_t>
@@ -202,19 +163,20 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        datumspec_t(bounds)};
+        datumspec_t(bounds),
+        boost::none};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
     env_t *env,
     const std::string &idx,
-    backtrace_id_t bt,
+    backtrace_id_t _bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
     return tbl->read_all(
         env,
         idx,
-        bt,
+        _bt,
         display_name(),
         datumspec_t(bounds),
         sorting,
@@ -223,8 +185,8 @@ counted_t<datum_stream_t> table_t::as_seq(
 
 table_t::table_t(counted_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
-                 read_mode_t _read_mode, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+                 read_mode_t _read_mode, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       db(_db),
       name(_name),
       tbl(std::move(_tbl)),
@@ -235,6 +197,43 @@ datum_t table_t::make_error_datum(const base_exc_t &exception) {
     datum_object_builder_t d;
     d.add_error(exception.what());
     return std::move(d).to_datum();
+}
+
+ql::datum_t clean_errors(ql::datum_t reply) {
+    ql::datum_t array = reply.get_field("changes");
+    ql::datum_array_builder_t clean_array(ql::configured_limits_t::unlimited);
+    for (size_t i = 0; i < array.arr_size(); ++i) {
+        ql::datum_t updated = array.get(i);
+        if (updated.get_field("error", NOTHROW).has()) {
+            clean_array.add(ql::datum_t{
+                    std::map<datum_string_t, datum_t>{
+                        std::pair<datum_string_t, datum_t> {
+                            datum_string_t("old_val"),
+                                updated.get_field("old_val")},
+                            std::pair<datum_string_t, datum_t> {
+                                datum_string_t("new_val"),
+                                    updated.get_field("new_val")},
+                                std::pair<datum_string_t, datum_t> {
+                                    datum_string_t("error"),
+                                        updated.get_field("error")}}});
+        } else {
+            clean_array.add(ql::datum_t{
+                    std::map<datum_string_t, datum_t>{
+                        std::pair<datum_string_t, datum_t> {
+                            datum_string_t("old_val"),
+                                updated.get_field("old_val")},
+                            std::pair<datum_string_t, datum_t> {
+                                datum_string_t("new_val"),
+                                    updated.get_field("new_val")}}});
+        }
+    }
+
+    reply = reply.merge(
+        datum_t{std::map<datum_string_t, datum_t>{
+                std::pair<datum_string_t, datum_t>{
+                    datum_string_t{"changes"},
+                        std::move(clean_array).to_datum()}}});
+    return reply;
 }
 
 datum_t table_t::batched_replace(
@@ -271,20 +270,52 @@ datum_t table_t::batched_replace(
         }
         std::vector<bool> pkey_was_autogenerated(vals.size(), false);
         datum_t insert_stats = batched_insert(
-            env, std::move(replacement_values), std::move(pkey_was_autogenerated),
-            conflict_behavior_t::REPLACE, durability_requirement, return_changes);
+            env,
+            std::move(replacement_values),
+            std::move(pkey_was_autogenerated),
+            conflict_behavior_t::REPLACE,
+            boost::none,
+            durability_requirement,
+            return_changes);
         std::set<std::string> conditions;
         datum_t merged
             = std::move(stats).to_datum().merge(insert_stats, stats_merge,
                                                  env->limits(), &conditions);
         datum_object_builder_t result(merged);
         result.add_warnings(conditions, env->limits());
-        return std::move(result).to_datum();
+        if (return_changes == return_changes_t::ALWAYS) {
+            return clean_errors(std::move(result).to_datum());
+        } else {
+            return std::move(result).to_datum();
+        }
     } else {
-        return tbl->write_batched_replace(
-            env, keys, replacement_generator, return_changes,
-            durability_requirement);
+        if (return_changes == return_changes_t::ALWAYS) {
+            return clean_errors(tbl->write_batched_replace(
+                env, keys, replacement_generator, return_changes,
+                durability_requirement));
+        } else {
+            return tbl->write_batched_replace(
+                env, keys, replacement_generator, return_changes,
+                durability_requirement);
+        }
     }
+}
+
+datum_t trivial_error_datum(std::string msg) {
+    return datum_t{std::map<datum_string_t, datum_t>{
+            std::pair<datum_string_t, datum_t> {
+                datum_string_t("old_val"),
+                datum_t::null()
+            },
+            std::pair<datum_string_t, datum_t> {
+                datum_string_t("new_val"),
+                datum_t::null()
+            },
+            std::pair<datum_string_t, datum_t> {
+                datum_string_t("error"),
+                datum_t(datum_string_t(msg))
+            }
+        }};
 }
 
 datum_t table_t::batched_insert(
@@ -292,12 +323,18 @@ datum_t table_t::batched_insert(
     std::vector<datum_t> &&insert_datums,
     std::vector<bool> &&pkey_was_autogenerated,
     conflict_behavior_t conflict_behavior,
+    boost::optional<counted_t<const ql::func_t> > conflict_func,
     durability_requirement_t durability_requirement,
     return_changes_t return_changes) {
 
     datum_object_builder_t stats;
     std::vector<datum_t> valid_inserts;
+    std::vector<bool> valid_pkey_was_autogenerated;
+    std::vector<datum_t> insert_keys;
+    std::deque<std::string> trivial_errors;
+
     valid_inserts.reserve(insert_datums.size());
+    insert_keys.reserve(insert_datums.size());
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
             datum_string_t pkey_w(get_pkey());
@@ -307,26 +344,109 @@ datum_t table_t::batched_insert(
             const ql::datum_t &keyval = (*it).get_field(pkey_w);
             keyval.print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
+            valid_pkey_was_autogenerated.push_back(
+                std::move(pkey_was_autogenerated[it-insert_datums.begin()]));
+            insert_keys.push_back(keyval);
         } catch (const base_exc_t &e) {
+            // Each of these trivial errors should give a
+            // {old_val: null, new_val: null} change if we're returning changes.
+            // These have to get put in in order, so we handle them below.
+            insert_keys.push_back(datum_t());
+            trivial_errors.push_back(e.what());
             stats.add_error(e.what());
         }
     }
 
-    if (valid_inserts.empty()) {
-        return std::move(stats).to_datum();
+    ql::datum_array_builder_t new_changes(env->limits());
+    std::multimap<datum_t, datum_t> pkey_to_change;
+    datum_t insert_stats;
+
+    if (!valid_inserts.empty()) {
+        // Do actual insert.
+        insert_stats =
+            tbl->write_batched_insert(
+                env,
+                std::move(valid_inserts),
+                std::move(valid_pkey_was_autogenerated),
+                conflict_behavior,
+                conflict_func,
+                return_changes,
+                durability_requirement);
+
+        if (return_changes != return_changes_t::NO) {
+            // Generate map to order changes
+            ql::datum_t changes = insert_stats.get_field("changes");
+            for (size_t i = 0; i < changes.arr_size(); ++i) {
+                ql::datum_t pkey;
+                if (changes.get(i).get_field("error", NOTHROW).has()) {
+                    // There was an error that prevented the insert
+                    pkey = changes.get(i)
+                        .get_field("fake_new_val")
+                        .get_field(get_pkey().c_str(), NOTHROW);
+                } else if (changes.get(i)
+                    .get_field("new_val")
+                    .get_type() == datum_t::R_NULL) {
+                    // We're deleting using a conflict resolution function in insert
+                    pkey = changes.get(i)
+                        .get_field("old_val")
+                        .get_field(get_pkey().c_str(), NOTHROW);
+                } else {
+                    pkey = changes.get(i)
+                        .get_field("new_val")
+                        .get_field(get_pkey().c_str(), NOTHROW);
+                }
+                pkey_to_change.insert(std::pair<datum_t, datum_t>{pkey, changes.get(i)});
+            }
+
+            for (const auto &inserted_key : insert_keys) {
+                if (inserted_key.has()) {
+                    auto updated_iterator = pkey_to_change.equal_range(inserted_key);
+                    auto updated = updated_iterator.first;
+                    if (updated != pkey_to_change.end()) {
+                        new_changes.add(std::move(updated->second));
+                        pkey_to_change.erase(updated);
+                    }
+                } else {
+                    r_sanity_check(trivial_errors.size() > 0);
+                    new_changes.add(
+                        trivial_error_datum(
+                            trivial_errors.front()));
+                    trivial_errors.pop_front();
+                }
+            }
+        }
+    } else if (!insert_datums.empty()) {
+        // Handle the trivial errors from above.
+        r_sanity_check(trivial_errors.size() > 0);
+        new_changes.add(
+            trivial_error_datum(
+                trivial_errors.front()));
+        trivial_errors.pop_front();
     }
 
-    datum_t insert_stats =
-        tbl->write_batched_insert(
-            env, std::move(valid_inserts), std::move(pkey_was_autogenerated),
-            conflict_behavior, return_changes, durability_requirement);
+    if (return_changes != return_changes_t::NO) {
+        insert_stats = insert_stats.merge(
+            datum_t{std::map<datum_string_t, datum_t>{
+                    std::pair<datum_string_t, datum_t>{
+                        datum_string_t{"changes"},
+                            std::move(new_changes).to_datum()}}});
+    }
+
     std::set<std::string> conditions;
-    datum_t merged
-        = std::move(stats).to_datum().merge(insert_stats, stats_merge,
-                                             env->limits(), &conditions);
+    datum_t merged = std::move(stats).to_datum();
+
+    if (insert_stats.has()) {
+        merged = merged.merge(insert_stats, stats_merge,
+                          env->limits(), &conditions);
+    }
+
     datum_object_builder_t result(merged);
     result.add_warnings(conditions, env->limits());
-    return std::move(result).to_datum();
+    if (return_changes == return_changes_t::ALWAYS) {
+        return clean_errors(std::move(result).to_datum());
+    } else {
+        return std::move(result).to_datum();
+    }
 }
 
 MUST_USE bool table_t::sync(env_t *env) {
@@ -341,7 +461,7 @@ MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
         env, durability_requirement);
 }
 
-ql::datum_t table_t::get_id() const {
+namespace_id_t table_t::get_id() const {
     return tbl->get_id();
 }
 
@@ -353,15 +473,30 @@ datum_t table_t::get_row(env_t *env, datum_t pval) {
     return tbl->read_row(env, pval, read_mode);
 }
 
+scoped_ptr_t<reader_t> table_t::get_all_with_sindexes(
+        env_t *env,
+        const datumspec_t &datumspec,
+        const std::string &get_all_sindex_id,
+        backtrace_id_t _bt) {
+    return tbl->read_all_with_sindexes(
+        env,
+        get_all_sindex_id,
+        _bt,
+        display_name(),
+        datumspec,
+        sorting_t::UNORDERED,
+        read_mode);
+}
+
 counted_t<datum_stream_t> table_t::get_all(
         env_t *env,
         const datumspec_t &datumspec,
         const std::string &get_all_sindex_id,
-        backtrace_id_t bt) {
+        backtrace_id_t _bt) {
     return tbl->read_all(
         env,
         get_all_sindex_id,
-        bt,
+        _bt,
         display_name(),
         datumspec,
         sorting_t::UNORDERED,
@@ -453,31 +588,31 @@ const char *val_t::type_t::name() const {
     }
 }
 
-val_t::val_t(datum_t _datum, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+val_t::val_t(datum_t _datum, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
 }
 
 val_t::val_t(const counted_t<grouped_data_t> &groups,
-             backtrace_id_t bt)
-    : bt_rcheckable_t(bt),
+             backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::GROUPED_DATA),
       u(groups) {
     guarantee(groups.has());
 }
 
-val_t::val_t(counted_t<single_selection_t> _selection, backtrace_id_t bt)
-    : bt_rcheckable_t(bt),
+val_t::val_t(counted_t<single_selection_t> _selection, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::SINGLE_SELECTION),
       u(_selection) {
     guarantee(single_selection().has());
 }
 
 val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
-             backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+             backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
@@ -489,33 +624,33 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
     }
 }
 
-val_t::val_t(counted_t<selection_t> _selection, backtrace_id_t bt)
-    : bt_rcheckable_t(bt),
+val_t::val_t(counted_t<selection_t> _selection, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::SELECTION),
       u(_selection) {
     guarantee(selection().has());
 }
 
-val_t::val_t(counted_t<table_t> _table, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+val_t::val_t(counted_t<table_t> _table, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::TABLE),
       u(_table) {
     guarantee(table().has());
 }
-val_t::val_t(counted_t<table_slice_t> _slice, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+val_t::val_t(counted_t<table_slice_t> _slice, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::TABLE_SLICE),
       u(_slice) {
     guarantee(table_slice().has());
 }
-val_t::val_t(counted_t<const db_t> _db, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+val_t::val_t(counted_t<const db_t> _db, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::DB),
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<const func_t> _func, backtrace_id_t backtrace)
-    : bt_rcheckable_t(backtrace),
+val_t::val_t(counted_t<const func_t> _func, backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt),
       type(type_t::FUNC),
       u(_func) {
     guarantee(func().has());

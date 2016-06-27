@@ -18,8 +18,8 @@ class mutex_t {
 public:
     class acq_t {
     public:
-        acq_t() : lock_(NULL), eager_(false) { }
-        explicit acq_t(acq_t &&other) : lock_(NULL), eager_(false) {
+        acq_t() : lock_(nullptr), eager_(false) { }
+        explicit acq_t(acq_t &&other) : lock_(nullptr), eager_(false) {
             swap(*this, other);
         }
         explicit acq_t(mutex_t *l, bool eager = false);

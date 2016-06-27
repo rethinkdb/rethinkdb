@@ -6,10 +6,10 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "containers/scoped.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
-#include "containers/scoped.hpp"
 
 // The CURRENT_SERIALIZER_VERSION_STRING might remain unchanged for a while --
 // individual metablocks have a disk_format_version field that can be incremented

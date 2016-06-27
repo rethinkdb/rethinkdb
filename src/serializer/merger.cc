@@ -39,7 +39,7 @@ counted_t<standard_block_token_t> merger_serializer_t::index_read(block_id_t blo
 void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                       const std::function<void()> &on_writes_reflected,
                                       const std::vector<index_write_op_t> &write_ops) {
-    rassert(coro_t::self() != NULL);
+    rassert(coro_t::self() != nullptr);
     assert_thread();
 
     // Apply our set of write ops atomically

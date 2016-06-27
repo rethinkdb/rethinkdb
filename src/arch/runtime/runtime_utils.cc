@@ -19,31 +19,31 @@ int get_cpu_count() {
 
 callable_action_wrapper_t::callable_action_wrapper_t() :
     action_on_heap(false),
-    action_(NULL)
+    action_(nullptr)
 { }
 
 callable_action_wrapper_t::~callable_action_wrapper_t()
 {
-    if (action_ != NULL) {
+    if (action_ != nullptr) {
         reset();
     }
 }
 
 void callable_action_wrapper_t::reset() {
-    rassert(action_ != NULL);
+    rassert(action_ != nullptr);
 
     if (action_on_heap) {
         delete action_;
-        action_ = NULL;
+        action_ = nullptr;
         action_on_heap = false;
     } else {
         action_->~callable_action_t();
-        action_ = NULL;
+        action_ = nullptr;
     }
 }
 
 void callable_action_wrapper_t::run() {
-    rassert(action_ != NULL);
+    rassert(action_ != nullptr);
     action_->run_action();
 }
 

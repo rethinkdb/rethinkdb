@@ -33,7 +33,7 @@ secondary_execution_t::secondary_execution_t(
         primary = c.primary->server;
     } else {
         connect_to_primary = false;
-        primary = nil_uuid();
+        primary = server_id_t::from_server_uuid(nil_uuid());
     }
 
     branch = _branch;
@@ -51,7 +51,7 @@ void secondary_execution_t::update_contract_or_raft_state(
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(raft_state.contracts.at(cid).first == region);
     guarantee(c.replicas.count(context->server_id) == 1);
-    guarantee(primary.is_nil() || primary == c.primary->server);
+    guarantee(primary.get_uuid().is_nil() || primary == c.primary->server);
     if (contract_id != cid && static_cast<bool>(last_ack)) {
         params->send_ack(cid, *last_ack);
     }

@@ -2,8 +2,6 @@
 
 #include "containers/archive/versioned.hpp"
 
-namespace std {
-
 // You're not allowed to change the wire format of serialize_universal
 // implementations.
 size_t serialize_universal_size(const std::string &s) {
@@ -42,5 +40,3 @@ archive_result_t deserialize_universal(read_stream_t *s, std::string *out) {
 
     return archive_result_t::SUCCESS;
 }
-
-}  // namespace std

@@ -35,7 +35,7 @@ void run_with_primary(
     in_memory_branch_history_manager_t branch_history_manager;
     local_replicator_t local_replicator(
         cluster.get_mailbox_manager(),
-        generate_uuid(),
+        server_id_t::generate_server_id(),
         &primary_dispatcher,
         &initial_store,
         &branch_history_manager,
@@ -160,12 +160,12 @@ void run_backfill_test(
         backfill_config_t(),
         &backfill_progress_tracker,
         cluster->get_mailbox_manager(),
-        generate_uuid(),
+        server_id_t::generate_server_id(),
         backfill_throttler_t::priority_t::critical_t::NO,
         dispatcher->get_branch_id(),
         remote_replicator_server.get_bcard(),
         local_replicator->get_replica_bcard(),
-        generate_uuid(),
+        server_id_t::generate_server_id(),
         &store2,
         &bhm2,
         &interruptor);

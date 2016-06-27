@@ -57,7 +57,7 @@ class TermBase
             self.__proto__ = @.__proto__
             return self
         else
-            @
+            return @
 
     run: (connection, options, callback) ->
         # Valid syntaxes are
@@ -182,11 +182,31 @@ class RDBVal extends TermBase
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: (args...) -> new Reduce {}, @, args.map(funcWrap)...
     map: varar 1, null, (args..., funcArg) -> new Map {}, @, args..., funcWrap(funcArg)
+    fold: aropt (baseArg, accFuncArg, opts) -> new Fold opts, @, baseArg, funcWrap(accFuncArg)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: (args...) -> new ConcatMap {}, @, args.map(funcWrap)...
     distinct: aropt (opts) -> new Distinct opts, @
     count: (args...) -> new Count {}, @, args.map(funcWrap)...
-    union: (args...) -> new Union {}, @, args...
+    union: (attrsAndOpts...) ->
+        opts = {}
+        attrs = attrsAndOpts
+
+        perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
+        if perhapsOptDict and
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
+            opts = perhapsOptDict
+            attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
+
+        attrs = (for attr in attrs
+            if attr instanceof Asc or attr instanceof Desc
+                attr
+            else
+                funcWrap(attr)
+        )
+
+        new Union opts, @, attrs...
+
     nth: (args...) -> new Nth {}, @, args...
     bracket: (args...) -> new Bracket {}, @, args...
     toJSON: (args...) -> new ToJsonString {}, @, args...
@@ -350,6 +370,8 @@ class RDBVal extends TermBase
     rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
+
+    grant: (args...) -> new Grant {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
     toEpochTime: (args...) -> new ToEpochTime {}, @, args...
@@ -765,6 +787,10 @@ class Map extends RDBOp
     tt: protoTermType.MAP
     mt: 'map'
 
+class Fold extends RDBOp
+    tt: protoTermType.FOLD
+    mt: 'fold'
+
 class Filter extends RDBOp
     tt: protoTermType.FILTER
     mt: 'filter'
@@ -964,6 +990,10 @@ class Rebalance extends RDBOp
 class Sync extends RDBOp
     tt: protoTermType.SYNC
     mt: 'sync'
+
+class Grant extends RDBOp
+    tt: protoTermType.GRANT
+    mt: 'grant'
 
 class FunCall extends RDBOp
     tt: protoTermType.FUNCALL
@@ -1243,6 +1273,8 @@ rethinkdb.dbList = (args...) -> new DbList {}, args...
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
+
+rethinkdb.grant = (args...) -> new Grant {}, args...
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

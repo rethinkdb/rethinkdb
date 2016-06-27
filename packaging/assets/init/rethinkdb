@@ -215,7 +215,7 @@ do
             fi
             if ! get "$conf" log-file rtdblogfile; then
                 rtdblogfile=$rtdb_directory/log_file
-            fi    
+            fi
             echo "rethinkdb: $instance_name: Starting instance. (logging to \`$rtdblogfile')"
             "$rtdbbin" --daemon "$@"
         fi

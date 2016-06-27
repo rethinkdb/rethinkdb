@@ -1,5 +1,5 @@
 desc: Tests that manipulation data in tables
-table_variable_name: tbl, tbl2, senders, receivers, messages
+table_variable_name: tbl, tbl2, senders, receivers, messages, otbl, otbl2
 tests:
 
     # Setup some more tables
@@ -25,6 +25,9 @@ tests:
       js: tbl3.insert(r.range(0, 100).map(function (row) { return {'foo':row, 'b':row.mod(4)}; }))
       ot: partial({'errors':0, 'inserted':100})
 
+    - py: otbl.insert(r.range(1,100).map({'id': r.row, 'a': r.row}))
+    - py: otbl2.insert(r.range(1,100).map({'id': r.row, 'b': 2 * r.row}))
+    
     # Inner-Join
     
     - def:
@@ -49,7 +52,15 @@ tests:
       js: oj.filter(function(row) { return row('a').ne(row('b')); }).count()
       rb: oj.filter{ |row| row[:a].ne row[:b] }.count
       ot: 0
-    
+
+    # Ordered eq_join
+    - py: blah = otbl.order_by("id").eq_join(r.row['id'], otbl2, ordered=True).zip()
+      ot: [{'id': i, 'a': i, 'b': i * 2} for i in range(1, 100)]
+    - py: blah = otbl.order_by(r.desc("id")).eq_join(r.row['id'], otbl2, ordered=True).zip()
+      ot: [{'id': i, 'a': i, 'b': i * 2} for i in range(99, 0, -1)]
+    - py: blah = otbl.order_by("id").eq_join(r.row['a'], otbl2, ordered=True).zip()
+      ot: [{'id': i, 'a': i, 'b': i * 2} for i in range(1, 100)]
+
     # Eq-Join
     - cd: tbl.eq_join('a', tbl2).zip().count()
       ot: 100

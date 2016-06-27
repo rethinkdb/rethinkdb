@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <iterator>
 #include <set>
@@ -247,9 +248,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
 
+        ql::datum_t new_val;
         try {
             /* Compute the replacement value for the row */
-            ql::datum_t new_val = replacer->replace(old_val);
+            new_val = replacer->replace(old_val);
 
             /* Validate the replacement value and generate a stats object to return to
             the user, but don't return it yet if we need to make changes. The reason for
@@ -301,7 +303,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             return resp;
 
         } catch (const ql::base_exc_t &e) {
-            return make_row_replacement_error_stats(old_val, return_changes, e.what());
+            return make_row_replacement_error_stats(old_val,
+                                                    new_val,
+                                                    return_changes,
+                                                    e.what());
         }
     } catch (const interrupted_exc_t &e) {
         ql::datum_object_builder_t object_builder;
@@ -392,7 +397,10 @@ batched_replace_response_t rdb_batched_replace(
         // the sequence of events in the profiler trace.
         // Instead we add a single event for the whole batched replace.
         sampler->new_sample();
-        profile::starter_t profile_starter("Perform parallel replaces.", trace);
+        PROFILE_STARTER_IF_ENABLED(
+            trace != nullptr,
+            "Perform parallel replaces.",
+            trace);
         profile::disabler_t trace_disabler(trace);
         unlimited_fifo_queue_t<std::function<void()> > coro_queue;
         struct callback_t : public coro_pool_callback_t<std::function<void()> > {
@@ -579,7 +587,8 @@ public:
                const boost::optional<terminal_variant_t> &_terminal,
                region_t region,
                store_key_t last_key,
-               sorting_t _sorting)
+               sorting_t _sorting,
+               require_sindexes_t require_sindex_val)
         : env(_env),
           batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
           sorting(_sorting),
@@ -588,7 +597,8 @@ public:
                       : ql::make_append(std::move(region),
                                         std::move(last_key),
                                         sorting,
-                                        batcher.get())) {
+                                        batcher.get(),
+                                        require_sindex_val)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
             transformers.push_back(ql::make_op(_transforms[i]));
         }
@@ -746,8 +756,7 @@ continue_bool_t rget_cb_t::handle_pair(
     // are out of order because of truncation.
     bool remember_key_for_sindex_batching = sindex
         ? (ql::datum_t::extract_secondary(key_to_unescaped_str(key)).size()
-           >= ql::datum_t::max_trunc_size(
-               ql::skey_version_from_reql_version(sindex->func_reql_version)))
+           >= ql::datum_t::max_trunc_size())
         : false;
     if (last_truncated_secondary_for_abort) {
         std::string cur_truncated_secondary =
@@ -845,9 +854,7 @@ continue_bool_t rget_cb_t::handle_pair(
                 of copies to 0. We do the slightly less optimal but simpler thing and
                 just check the number of copies in this case, so that we can share the
                 code path with case 1. */
-            const size_t max_trunc_size =
-                ql::datum_t::max_trunc_size(
-                    ql::skey_version_from_reql_version(sindex->func_reql_version));
+            const size_t max_trunc_size = ql::datum_t::max_trunc_size();
             sindex->datumspec.visit<void>(
             [&](const ql::datum_range_t &r) {
                 bool must_check_copies = false;
@@ -961,7 +968,10 @@ void rdb_rget_slice(
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
-    profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do range scan on primary index.",
+        ql_env->trace);
 
     rget_cb_t callback(
         rget_io_data_t(response, slice),
@@ -973,7 +983,8 @@ void rdb_rget_slice(
                    !reversed(sorting)
                        ? range.left
                        : range.right.key_or_max(),
-                   sorting),
+                   sorting,
+                   require_sindexes_t::NO),
         boost::none);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
@@ -1027,12 +1038,16 @@ void rdb_rget_secondary_slice(
         const boost::optional<terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         sorting_t sorting,
+        require_sindexes_t require_sindex_val,
         const sindex_disk_info_t &sindex_info,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
-    profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do range scan on secondary index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -1048,7 +1063,8 @@ void rdb_rget_secondary_slice(
                    !reversed(sorting)
                        ? sindex_region_range.left
                        : sindex_region_range.right.key_or_max(),
-                   sorting),
+                   sorting,
+                   require_sindex_val),
         rget_sindex_data_t(
             pk_range,
             datumspec,
@@ -1091,12 +1107,15 @@ void rdb_get_intersecting_slice(
         const boost::optional<ql::terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
+        is_stamp_read_t is_stamp_read,
         rget_read_response_t *response) {
     guarantee(query_geometry.has());
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do intersection scan on geospatial index.",
-                               ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do intersection scan on geospatial index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -1104,11 +1123,12 @@ void rdb_get_intersecting_slice(
         slice,
         geo_job_data_t(ql_env,
                        shard,
-                       // The sorting is always `UNORDERED`, so this is always right.
+                       // The sorting is never `DESCENDING`, so this is always right.
                        sindex_range.left,
                        batchspec,
                        transforms,
-                       terminal),
+                       terminal,
+                       is_stamp_read),
         geo_sindex_data_t(pk_range, sindex_info.mapping,
                           sindex_func_reql_version, sindex_info.multi),
         query_geometry,
@@ -1133,8 +1153,10 @@ void rdb_get_nearest_slice(
     nearest_geo_read_response_t *response) {
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do nearest traversal on geospatial index.",
-                               ql_env->trace);
+    PROFILE_STARTER_IF_ENABLED(
+        ql_env->profile() == profile_bool_t::PROFILE,
+        "Do nearest traversal on geospatial index.",
+        ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -1321,7 +1343,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond, keys_available_cond;
-        index_vals_t old_keys, new_keys;
+        index_vals_t old_cfeed_keys, new_cfeed_keys;
         sindex_spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
@@ -1330,8 +1352,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                       sindex_spot,
                       &keys_available_cond,
                       &sindexes_updated_cond,
-                      &old_keys,
-                      &new_keys));
+                      &old_cfeed_keys,
+                      &new_cfeed_keys));
         auto cserver = store_->changefeed_server(report.primary_key);
         if (update_pkey_cfeeds && cserver.first != nullptr) {
             cserver.first->foreach_limit(
@@ -1362,11 +1384,11 @@ void rdb_modification_report_cb_t::on_mod_report(
             cserver.first->send_all(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t{
-                        old_keys,
-                            new_keys,
-                            report.primary_key,
-                            report.info.deleted.first,
-                            report.info.added.first}),
+                        old_cfeed_keys,
+                        new_cfeed_keys,
+                        report.primary_key,
+                        report.info.deleted.first,
+                        report.info.added.first}),
                 report.primary_key,
                 cfeed_stamp_spot,
                 cserver.second);
@@ -1380,8 +1402,8 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     new_mutex_in_line_t *spot,
     cond_t *keys_available_cond,
     cond_t *done_cond,
-    index_vals_t *old_keys_out,
-    index_vals_t *new_keys_out) {
+    index_vals_t *cfeed_old_keys_out,
+    index_vals_t *cfeed_new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
@@ -1390,8 +1412,8 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
                         sindex_block_->txn(),
                         &deletion_context,
                         keys_available_cond,
-                        old_keys_out,
-                        new_keys_out);
+                        cfeed_old_keys_out,
+                        cfeed_new_keys_out);
     guarantee(keys_available_cond->is_pulsed());
     done_cond->pulse();
 }
@@ -1419,7 +1441,6 @@ std::vector<std::string> expand_geo_key(
             //   support: We must be able to truncate geo keys and handle such
             //   truncated keys.
             rassert(grid_keys[i].length() <= ql::datum_t::trunc_size(
-                        ql::skey_version_from_reql_version(reql_version),
                         key_to_unescaped_str(primary_key).length()));
 
             result.push_back(
@@ -1442,7 +1463,9 @@ std::vector<std::string> expand_geo_key(
 void compute_keys(const store_key_t &primary_key,
                   ql::datum_t doc,
                   const sindex_disk_info_t &index_info,
-                  std::vector<std::pair<store_key_t, ql::datum_t> > *keys_out) {
+                  std::vector<std::pair<store_key_t, ql::datum_t> > *keys_out,
+                  std::vector<index_pair_t> *cfeed_keys_out) {
+
     guarantee(keys_out->empty());
 
     const reql_version_t reql_version =
@@ -1470,13 +1493,26 @@ void compute_keys(const store_key_t &primary_key,
                 for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
+                if (cfeed_keys_out != nullptr) {
+                    // For geospatial indexes, we generate multiple keys for the same
+                    // index entry. We only pass the smallest one on in order to not get
+                    // redundant results on the changefeed.
+                    auto min_it = std::min_element(geo_keys.begin(), geo_keys.end());
+                    if (min_it != geo_keys.end()) {
+                        cfeed_keys_out->push_back(
+                            std::make_pair(skey, std::move(*min_it)));
+                    }
+                }
             } else {
                 try {
+                    std::string store_key =
+                        skey.print_secondary(reql_version, primary_key, i);
                     keys_out->push_back(
-                        std::make_pair(
-                            store_key_t(
-                                skey.print_secondary(reql_version, primary_key, i)),
-                            skey));
+                        std::make_pair(store_key_t(store_key), skey));
+                    if (cfeed_keys_out != nullptr) {
+                        cfeed_keys_out->push_back(
+                            std::make_pair(skey, std::move(store_key)));
+                    }
                 } catch (const ql::base_exc_t &e) {
                     if (reql_version < reql_version_t::v2_1) {
                         throw;
@@ -1495,12 +1531,25 @@ void compute_keys(const store_key_t &primary_key,
             for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                 keys_out->push_back(std::make_pair(store_key_t(*it), index));
             }
+            if (cfeed_keys_out != nullptr) {
+                // For geospatial indexes, we generate multiple keys for the same
+                // index entry. We only pass the smallest one on in order to not get
+                // redundant results on the changefeed.
+                auto min_it = std::min_element(geo_keys.begin(), geo_keys.end());
+                if (min_it != geo_keys.end()) {
+                    cfeed_keys_out->push_back(
+                        std::make_pair(index, std::move(*min_it)));
+                }
+            }
         } else {
+            std::string store_key =
+                index.print_secondary(reql_version, primary_key, boost::none);
             keys_out->push_back(
-                std::make_pair(
-                    store_key_t(
-                        index.print_secondary(reql_version, primary_key, boost::none)),
-                    index));
+                std::make_pair(store_key_t(store_key), index));
+            if (cfeed_keys_out != nullptr) {
+                cfeed_keys_out->push_back(
+                    std::make_pair(index, std::move(store_key)));
+            }
         }
     }
 }
@@ -1534,10 +1583,19 @@ void deserialize_sindex_info(
                   "Instead of passing a constant obsolete_reql_version_t::v1_13 into "
                   "`obsolete_cb` below, there should be a separate `obsolete_cb` to "
                   "handle the different obsolete cluster versions.");
-    archive_result_t success = deserialize_cluster_version(
-        &read_stream,
-        &cluster_version,
-        std::bind(obsolete_cb, obsolete_reql_version_t::v1_13));
+    archive_result_t success;
+
+    try {
+        success = deserialize_cluster_version(
+            &read_stream,
+            &cluster_version,
+            std::bind(obsolete_cb, obsolete_reql_version_t::v1_13));
+
+    } catch (const archive_exc_t &e) {
+        rfail_toplevel(ql::base_exc_t::INTERNAL,
+                       "Unrecognized secondary index version,"
+                       " secondary index not created.");
+    }
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
@@ -1546,7 +1604,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v1_16:
     case cluster_version_t::v2_0:
     case cluster_version_t::v2_1:
-    case cluster_version_t::v2_2_is_latest:
+    case cluster_version_t::v2_2:
+    case cluster_version_t::v2_3_is_latest:
         success = deserialize_reql_version(
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version,
@@ -1581,7 +1640,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v1_16: // fallthru
     case cluster_version_t::v2_0: // fallthru
     case cluster_version_t::v2_1: // fallthru
-    case cluster_version_t::v2_2_is_latest:
+    case cluster_version_t::v2_2: // fallthru
+    case cluster_version_t::v2_3_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;
@@ -1624,8 +1684,8 @@ void rdb_update_single_sindex(
         size_t *updates_left,
         auto_drainer_t::lock_t,
         cond_t *keys_available_cond,
-        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *old_keys_out,
-        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *new_keys_out)
+        std::vector<index_pair_t> *cfeed_old_keys_out,
+        std::vector<index_pair_t> *cfeed_new_keys_out)
     THROWS_NOTHING {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
@@ -1633,8 +1693,8 @@ void rdb_update_single_sindex(
     // function.
     guarantee(modification->primary_key.size() != 0);
 
-    guarantee(old_keys_out == nullptr || old_keys_out->size() == 0);
-    guarantee(new_keys_out == nullptr || new_keys_out->size() == 0);
+    guarantee(cfeed_old_keys_out == nullptr || cfeed_old_keys_out->size() == 0);
+    guarantee(cfeed_new_keys_out == nullptr || cfeed_new_keys_out->size() == 0);
 
     sindex_disk_info_t sindex_info;
     try {
@@ -1656,15 +1716,9 @@ void rdb_update_single_sindex(
             ql::datum_t deleted = modification->info.deleted.first;
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
-            compute_keys(modification->primary_key, deleted, sindex_info, &keys);
-            if (old_keys_out != nullptr) {
-                for (const auto &pair : keys) {
-                    old_keys_out->push_back(
-                        std::make_pair(
-                            pair.second, ql::datum_t::extract_all(
-                                key_to_unescaped_str(pair.first)).tag_num));
-                }
-            }
+            compute_keys(
+                modification->primary_key, deleted, sindex_info,
+                &keys, cfeed_old_keys_out);
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
                     sindex->name.name,
@@ -1714,7 +1768,7 @@ void rdb_update_single_sindex(
             // Do nothing (it wasn't actually in the index).
 
             // See comment in `catch` below.
-            guarantee(old_keys_out == nullptr || old_keys_out->size() == 0);
+            guarantee(cfeed_old_keys_out == nullptr || cfeed_old_keys_out->size() == 0);
         }
     }
 
@@ -1730,15 +1784,10 @@ void rdb_update_single_sindex(
 
             std::vector<std::pair<store_key_t, ql::datum_t> > keys;
 
-            compute_keys(modification->primary_key, added, sindex_info, &keys);
-            if (new_keys_out != nullptr) {
-                guarantee(keys_available_cond != nullptr);
-                for (const auto &pair : keys) {
-                    new_keys_out->push_back(
-                        std::make_pair(
-                            pair.second, ql::datum_t::extract_all(
-                                key_to_unescaped_str(pair.first)).tag_num));
-                }
+            compute_keys(
+                modification->primary_key, added, sindex_info,
+                &keys, cfeed_new_keys_out);
+            if (keys_available_cond != nullptr) {
                 guarantee(*updates_left > 0);
                 decremented_updates_left = true;
                 if (--*updates_left == 0) {
@@ -1800,7 +1849,7 @@ void rdb_update_single_sindex(
             // inside of it), so this guarantee should never trip.
             if (keys_available_cond != nullptr) {
                 guarantee(!decremented_updates_left);
-                guarantee(new_keys_out->size() == 0);
+                guarantee(cfeed_new_keys_out->size() == 0);
                 guarantee(*updates_left > 0);
                 if (--*updates_left == 0) {
                     keys_available_cond->pulse();
@@ -1839,8 +1888,8 @@ void rdb_update_sindexes(
     txn_t *txn,
     const deletion_context_t *deletion_context,
     cond_t *keys_available_cond,
-    index_vals_t *old_keys_out,
-    index_vals_t *new_keys_out) {
+    index_vals_t *cfeed_old_keys_out,
+    index_vals_t *cfeed_new_keys_out) {
 
     rdb_noop_deletion_context_t noop_deletion_context;
     {
@@ -1878,12 +1927,12 @@ void rdb_update_sindexes(
                         &counter,
                         auto_drainer_t::lock_t(&drainer),
                         keys_available_cond,
-                        old_keys_out == NULL
+                        cfeed_old_keys_out == NULL
                             ? NULL
-                            : &(*old_keys_out)[sindex->name.name],
-                        new_keys_out == NULL
+                            : &(*cfeed_old_keys_out)[sindex->name.name],
+                        cfeed_new_keys_out == NULL
                             ? NULL
-                            : &(*new_keys_out)[sindex->name.name]));
+                            : &(*cfeed_new_keys_out)[sindex->name.name]));
             }
         }
         if (counter == 0 && keys_available_cond != NULL) {
@@ -1973,7 +2022,9 @@ public:
 
         // Update the traversed range boundary (everything below here will happen in
         // key order).
-        waiter.wait_interruptible();
+        // This can't be interrupted, because we have already called rdb_update_sindexes,
+        // so now we /must/ update traversed_right_bound.
+        waiter.wait();
         traversed_right_bound_ = primary_key;
 
         // Release the write transaction and secondary index locks once we've reached the

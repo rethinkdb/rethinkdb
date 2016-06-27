@@ -46,7 +46,8 @@ const char *cJSON_GetErrorPtr() {return ep;}
 
 static int cJSON_strcasecmp(const char *s1,const char *s2)
 {
-        if (!s1) return (s1==s2)?0:1;if (!s2) return 1;
+        if (!s1) return (s1==s2)?0:1;
+        if (!s2) return 1;
         for (; tolower(*s1) == tolower(*s2); ++s1, ++s2)        if (*s1 == 0)        return 0;
         return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
@@ -607,7 +608,8 @@ static char *print_object(cJSON *item,int depth,int fmt)
                 *ptr++=':';if (fmt) *ptr++='\t';
                 strcpy(ptr,entries[i]);ptr+=strlen(entries[i]);
                 if (i!=numentries-1) *ptr++=',';
-                if (fmt) *ptr++='\n';*ptr=0;
+                if (fmt) *ptr++='\n';
+                *ptr=0;
                 cJSON_free(names[i]);cJSON_free(entries[i]);
         }
 

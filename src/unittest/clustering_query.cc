@@ -146,7 +146,7 @@ TPTEST(ClusteringQuery, Failure) {
             /* This is expected. */
         }
         EXPECT_EQ(1, query_counter.num_writes);
-    }   
+    }
 
     /* Send a read to the namespace */
     {

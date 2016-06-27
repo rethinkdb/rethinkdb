@@ -40,8 +40,10 @@ public:
     template <cluster_version_t W>
     friend archive_result_t deserialize_wire_func(read_stream_t *s, wire_func_t *wf);
 
+    bool is_simple_selector() const;
 private:
     friend class maybe_wire_func_t;  // for has().
+
     bool has() const { return func.has(); }
 
     counted_t<const func_t> func;

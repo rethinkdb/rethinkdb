@@ -135,7 +135,7 @@ template<class obj_t>
 class set_insertion_sentry_t {
 public:
     set_insertion_sentry_t() : set(NULL) { }
-    set_insertion_sentry_t(std::set<obj_t> *s, const obj_t &obj) : set(NULL) {
+    set_insertion_sentry_t(std::set<obj_t> *s, const obj_t &obj) : set(nullptr) {
         reset(s, obj);
     }
     ~set_insertion_sentry_t() {
@@ -146,7 +146,7 @@ public:
     void reset() {
         if (set) {
             set->erase(it);
-            set = NULL;
+            set = nullptr;
         }
     }
     void reset(std::set<obj_t> *s, const obj_t &obj) {

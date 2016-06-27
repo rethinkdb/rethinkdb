@@ -8,6 +8,7 @@
 #include "rdb_protocol/geo/karney/geodesic.h"
 #include "rdb_protocol/geo/s2/s2.h"
 #include "rdb_protocol/geo/s2/s2latlng.h"
+#include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 
@@ -66,6 +67,9 @@ double geodesic_distance(const geo::S2Point &p,
                                     geo::S2LatLng::Latitude(prj).degrees());
                 return geodesic_distance(ref_, llprj, e_);
             }
+        }
+        double on_latlngrect(const geo::S2LatLngRect &) {
+            throw geo_exception_t("Distance calculation not implemented on LatLngRect.");
         }
         lon_lat_point_t ref_;
         const geo::S2Point &ref_s2_;

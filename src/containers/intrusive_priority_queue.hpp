@@ -81,7 +81,7 @@ public:
 
     node_t *peek() {
         if (nodes.empty()) {
-            return NULL;
+            return nullptr;
         } else {
             return nodes.front();
         }
@@ -89,7 +89,7 @@ public:
 
     node_t *pop() {
         if (nodes.empty()) {
-            return NULL;
+            return nullptr;
         } else {
             node_t *x = nodes.front();
             rassert(node_queue(x) == this);

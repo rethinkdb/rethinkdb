@@ -27,10 +27,7 @@ dummy_raft_cluster_t::dummy_raft_cluster_t(
         const dummy_raft_state_t &initial_state,
         std::vector<raft_member_id_t> *member_ids_out) :
     mailbox_manager(&connectivity_cluster, 'M'),
-    heartbeat_manager(heartbeat_semilattice_metadata),
-    connectivity_cluster_run(&connectivity_cluster, generate_uuid(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view()),
+    connectivity_cluster_run(&connectivity_cluster),
     check_invariants_timer(100, [this]() {
         coro_t::spawn_sometime(std::bind(
             &dummy_raft_cluster_t::check_invariants,
@@ -414,6 +411,7 @@ void do_writes_raft(dummy_raft_cluster_t *cluster, int expect, int ms) {
     RAFT_DEBUG("begin do_writes(%d, %d)\n", expect, ms);
     microtime_t start = current_microtime();
 #endif /* ENABLE_RAFT_DEBUG */
+
     std::set<uuid_u> committed_changes;
     signal_timer_t timer;
     timer.start(ms);

@@ -22,11 +22,11 @@ module RethinkDB
       case x
       when Hash
         if parse_time && x['$reql_type$'] == 'TIME'
-          t = Time.at(x['epoch_time'])
+          t = Time.at(x['epoch_time']).round(3)
           tz = x['timezone']
           return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
         elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
-          return Hash[x['data']]
+          return Hash[recursive_munge(x['data'], parse_time, parse_group, parse_binary)]
         elsif parse_binary && x['$reql_type$'] == 'BINARY'
           return Binary.new(Base64.decode64(x['data'])).force_encoding('BINARY')
         else
@@ -72,6 +72,7 @@ module RethinkDB
             when re::OP_FAILED        then raise ReqlOpFailedError,         r['r'][0]
             when re::OP_INDETERMINATE then raise ReqlOpIndeterminateError,  r['r'][0]
             when re::USER             then raise ReqlUserError,             r['r'][0]
+            when re::PERMISSION_ERROR then raise ReqlPermissionError,       r['r'][0]
             else                           raise ReqlRuntimeError,          r['r'][0]
           end
         when rt::COMPILE_ERROR        then raise ReqlServerCompileError,    r['r'][0]

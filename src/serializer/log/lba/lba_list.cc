@@ -17,7 +17,7 @@ lba_list_t::lba_list_t(extent_manager_t *em,
 {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         gc_active[i] = false;
-        disk_structures[i] = NULL;
+        disk_structures[i] = nullptr;
     }
 }
 
@@ -60,7 +60,7 @@ public:
     lba_list_t::ready_callback_t *callback;
 
     lba_start_fsm_t(lba_list_t *l, lba_list_t::metablock_mixin_t *last_metablock)
-        : owner(l), callback(NULL)
+        : owner(l), callback(nullptr)
     {
         rassert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
@@ -170,7 +170,7 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
 
 segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t first,
                                                                       block_id_t step) {
-    guarantee(coro_t::self() != NULL);
+    guarantee(coro_t::self() != nullptr);
     rassert(state == state_ready);
     segmented_vector_t<repli_timestamp_t> ret;
     // Note that we deliberately don't report recencies for aux blocks.
@@ -270,7 +270,7 @@ public:
     lba_list_t::sync_callback_t *callback;
 
     lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
-        : owner(_owner), done(false), should_delete_self(false), callback(NULL)
+        : owner(_owner), done(false), should_delete_self(false), callback(nullptr)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -442,7 +442,7 @@ bool lba_list_t::we_want_to_gc(int i) {
 
     // Don't count the extent we're currently writing to. If there is no superblock, then that
     // extent is the only one, so we don't want to GC obviously.
-    if (disk_structures[i]->superblock_extent == NULL) {
+    if (disk_structures[i]->superblock_extent == nullptr) {
         return false;
     }
 
@@ -468,7 +468,7 @@ bool lba_list_t::we_want_to_gc(int i) {
 
 void lba_list_t::shutdown_gc() {
     guarantee(state == state_ready);
-    guarantee(coro_t::self() != NULL);
+    guarantee(coro_t::self() != nullptr);
 
     state = state_gc_shutting_down;
 
@@ -482,7 +482,7 @@ void lba_list_t::shutdown() {
 
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->shutdown();   // Also deletes it
-        disk_structures[i] = NULL;
+        disk_structures[i] = nullptr;
     }
 
     gc_io_account.reset();
@@ -492,5 +492,5 @@ void lba_list_t::shutdown() {
 
 lba_list_t::~lba_list_t() {
     rassert(state == state_unstarted || state == state_shut_down);
-    for (int i = 0; i < LBA_SHARD_FACTOR; i++) rassert(disk_structures[i] == NULL);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) rassert(disk_structures[i] == nullptr);
 }

@@ -55,7 +55,7 @@ public:
 
     value_t get(size_t key) const {
         size_t chunk_id = chunk_for_key(key);
-        if (chunk_id < chunks.size() && chunks[chunk_id] != NULL) {
+        if (chunk_id < chunks.size() && chunks[chunk_id] != nullptr) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
             return value_t();
@@ -64,12 +64,12 @@ public:
 
     void set(size_t key, value_t value) {
         const size_t chunk_id = chunk_for_key(key);
-        if (chunk_id >= chunks.size() || chunks[chunk_id] == NULL) {
+        if (chunk_id >= chunks.size() || chunks[chunk_id] == nullptr) {
             if (value == value_t()) {
                 return;
             } else {
                 if (chunk_id >= chunks.size()) {
-                    chunks.resize(chunk_id + 1, NULL);
+                    chunks.resize(chunk_id + 1, nullptr);
                 }
                 chunks[chunk_id] = new chunk_t;
             }
@@ -86,10 +86,10 @@ public:
         }
 
         if (chunk->count == 0) {
-            chunks[chunk_id] = NULL;
+            chunks[chunk_id] = nullptr;
             delete chunk;
 
-            while (!chunks.empty() && chunks.back() == NULL) {
+            while (!chunks.empty() && chunks.back() == nullptr) {
                 chunks.pop_back();
             }
         }

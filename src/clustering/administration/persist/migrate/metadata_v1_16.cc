@@ -82,6 +82,6 @@ RDB_IMPL_SERIALIZABLE_3(cluster_semilattice_metadata_t, rdb_namespaces, servers,
 INSTANTIATE_DESERIALIZE_SINCE_v1_16(cluster_semilattice_metadata_t);
 
 RDB_IMPL_SERIALIZABLE_1(auth_semilattice_metadata_t, auth_key);
-INSTANTIATE_DESERIALIZE_SINCE_v1_16(auth_semilattice_metadata_t);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_16(auth_semilattice_metadata_t);
 
 } // namespace metadata_v1_16

@@ -40,16 +40,17 @@ void debug_print(printf_buffer_t *buf, const std::pair<T, U> &p);
 template <class T, class... Args>
 std::vector<T> make_vector(const T &arg, Args... args) {
     std::vector<T> ret;
-    ret.push_back(arg);
-    UNUSED int dummy[] = { 0, (ret.push_back(args), 1)... };
+    ret.reserve(sizeof...(args) + 1);
+    ret.emplace_back(std::move(arg));
+    UNUSED int dummy[] = { 0, (ret.emplace_back(std::move(args)), 1)... };
     return ret;
 }
 
 template <class K, class V, class... Args>
 std::map<K, V> make_map(const std::pair<K, V> &arg, Args... args) {
     std::map<K, V> ret;
-    ret.insert(arg);
-    UNUSED int dummy[] = { (ret.insert(args), 1)... };
+    ret.emplace(std::move(arg));
+    UNUSED int dummy[] = { (ret.emplace(std::move(args)), 1)... };
     return ret;
 }
 

@@ -40,7 +40,7 @@ bool debug_stats_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(
         metadata.server_config.config.name));
-    builder.overwrite("id", convert_uuid_to_datum(server_id));
+    builder.overwrite("id", convert_uuid_to_datum(server_id.get_uuid()));
 
     ql::datum_t stats;
     admin_err_t stats_error;

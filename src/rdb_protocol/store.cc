@@ -18,20 +18,29 @@
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/table_common.hpp"
 
-void store_t::note_reshard() {
-    // We acquire `changefeed_servers_lock` and move all pointers out of
-    // `changefeed_servers`. We then destruct the servers in a separate step,
+void store_t::note_reshard(const region_t &shard_region) {
+    // We acquire `changefeed_servers_lock` and move the matching pointer out of
+    // `changefeed_servers`. We then destruct the server in a separate step,
     // after releasing the lock.
     // The reason we do this is to avoid deadlocks that could happen if someone
     // was holding a lock on the drainer in one of the changefeed servers,
     // and was at the same time trying to acquire the `changefeed_servers_lock`.
-    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > to_destruct;
+    scoped_ptr_t<ql::changefeed::server_t> to_destruct;
     {
         rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
         ASSERT_NO_CORO_WAITING;
-        std::swap(changefeed_servers, to_destruct);
+        // Shards use unbounded right boundaries, while changefeed queries use MAX_KEY.
+        // We must convert the boundary here so it matches.
+        region_t modified_region = shard_region;
+        modified_region.inner.right =
+            key_range_t::right_bound_t(modified_region.inner.right_or_max());
+        auto it = changefeed_servers.find(modified_region);
+        if (it != changefeed_servers.end()) {
+            to_destruct = std::move(it->second);
+            changefeed_servers.erase(it);
+        }
     }
-    // The changefeed servers are actually getting destructed here. This might
+    // The changefeed server is actually getting destructed here. This might
     // block.
 }
 
@@ -251,6 +260,7 @@ void do_read(ql::env_t *env,
                 rget.terminal,
                 rget.region.inner,
                 rget.sorting,
+                rget.sindex->require_sindex_val,
                 sindex_info,
                 res,
                 release_superblock_t::RELEASE);
@@ -269,9 +279,9 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        auto cserver = store->get_or_make_changefeed_server(s.shard_region);
         guarantee(cserver.first != nullptr);
-        cserver.first->add_client(s.addr, s.region, cserver.second);
+        cserver.first->add_client(s.addr, s.shard_region, cserver.second);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
@@ -280,8 +290,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
-        ql::env_t env(ctx, ql::return_empty_normal_batches_t::NO,
-                      interruptor, s.optargs, trace);
+        ql::env_t env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            s.optargs,
+            s.m_user_context,
+            trace);
         ql::raw_stream_t stream;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
@@ -345,7 +360,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        auto cserver = store->get_or_make_changefeed_server(s.region);
+        guarantee(s.current_shard);
+        auto cserver = store->get_or_make_changefeed_server(*s.current_shard);
         guarantee(cserver.first != nullptr);
         cserver.first->add_limit_client(
             s.addr,
@@ -353,6 +369,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.table,
             ctx,
             s.optargs,
+            s.m_user_context,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -425,12 +442,39 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const intersecting_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            geo_read.optargs,
+            geo_read.m_user_context,
+            trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
+
+        if (geo_read.stamp) {
+            res->stamp_response = changefeed_stamp_response_t();
+
+            store_key_t read_left = geo_read.sindex.region
+                ? geo_read.sindex.region->inner.left
+                : store_key_t::min();
+
+            changefeed_stamp_response_t r = do_stamp(
+                *geo_read.stamp,
+                geo_read.region,
+                read_left);
+            if (r.stamp_infos) {
+                res->stamp_response = r;
+            } else {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::OP_FAILED,
+                    "Feed aborted before initial values were read.",
+                    ql::backtrace_id_t::empty());
+                return;
+            }
+        }
 
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
@@ -474,12 +518,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             geo_read.terminal,
             geo_read.region.inner,
             sindex_info,
+            geo_read.stamp ? is_stamp_read_t::YES : is_stamp_read_t::NO,
             res);
     }
 
     void operator()(const nearest_geo_read_t &geo_read) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, geo_read.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            geo_read.optargs,
+            geo_read.m_user_context,
+            trace);
 
         response->response = nearest_geo_read_response_t();
         nearest_geo_read_response_t *res =
@@ -571,8 +621,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.has_optarg("db"));
         }
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, rget.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            rget.optargs,
+            rget.m_user_context,
+            trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
                 release_superblock_t::RELEASE);
     }
@@ -632,18 +687,19 @@ private:
     DISABLE_COPYING(rdb_read_visitor_t);
 };
 
-void store_t::protocol_read(const read_t &read,
+void store_t::protocol_read(const read_t &_read,
                             read_response_t *response,
                             real_superblock_t *superblock,
                             signal_t *interruptor) {
-    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(read.profile);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(_read.profile);
 
     {
-        profile::starter_t start_read("Perform read on shard.", trace);
+        PROFILE_STARTER_IF_ENABLED(
+            _read.profile == profile_bool_t::PROFILE, "Perform read on shard.", trace);
         rdb_read_visitor_t v(btree.get(), this,
                              superblock,
                              ctx, response, trace.get_or_null(), interruptor);
-        boost::apply_visitor(v, read.read);
+        boost::apply_visitor(v, _read.read);
     }
 
     response->n_shards = 1;
@@ -675,26 +731,47 @@ private:
 
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
-    explicit datum_replacer_t(const batched_insert_t &bi)
-        : datums(&bi.inserts), conflict_behavior(bi.conflict_behavior),
-          pkey(bi.pkey), return_changes(bi.return_changes) { }
-    ql::datum_t replace(const ql::datum_t &d, size_t index) const {
+    explicit datum_replacer_t(ql::env_t *_env,
+                              const batched_insert_t &bi)
+        : env(_env),
+          datums(&bi.inserts),
+          conflict_behavior(bi.conflict_behavior),
+          pkey(bi.pkey),
+          return_changes(bi.return_changes) {
+        if (bi.conflict_func) {
+            conflict_func = bi.conflict_func->compile_wire_func();
+        }
+    }
+    ql::datum_t replace(const ql::datum_t &d,
+                        size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        return resolve_insert_conflict(pkey, d, newd, conflict_behavior);
+        return resolve_insert_conflict(env,
+                                       pkey,
+                                       d,
+                                       newd,
+                                       conflict_behavior,
+                                       conflict_func);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
+    ql::env_t *env;
     const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
+boost::optional<counted_t<const ql::func_t> > conflict_func;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
-                         interruptor, br.optargs, trace);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            br.optargs,
+            br.m_user_context,
+            trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
@@ -716,7 +793,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(bi);
+        ql::env_t ql_env(
+            ctx,
+            ql::return_empty_normal_batches_t::NO,
+            interruptor,
+            ql::global_optargs_t(),
+            bi.m_user_context,
+            trace);
+        datum_replacer_t replacer(&ql_env,
+                                  bi);
         std::vector<store_key_t> keys;
         keys.reserve(bi.inserts.size());
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
@@ -832,12 +917,12 @@ private:
     DISABLE_COPYING(rdb_write_visitor_t);
 };
 
-void store_t::protocol_write(const write_t &write,
+void store_t::protocol_write(const write_t &_write,
                              write_response_t *response,
                              state_timestamp_t timestamp,
                              scoped_ptr_t<real_superblock_t> *superblock,
                              signal_t *interruptor) {
-    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(write.profile);
+    scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(_write.profile);
 
     {
         profile::sampler_t start_write("Perform write on shard.", trace);
@@ -851,7 +936,7 @@ void store_t::protocol_write(const write_t &write,
                               trace.get_or_null(),
                               response,
                               interruptor);
-        boost::apply_visitor(v, write.write);
+        boost::apply_visitor(v, _write.write);
     }
 
     response->n_shards = 1;
@@ -910,11 +995,11 @@ store_t::sindex_context_map_t *store_t::get_sindex_context_map() {
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
-        const region_t &region,
+        const region_t &_region,
         const rwlock_acq_t *acq) {
     acq->guarantee_is_holding(&changefeed_servers_lock);
     for (auto &&pair : changefeed_servers) {
-        if (pair.first.inner.is_superset(region.inner)) {
+        if (pair.first.inner.is_superset(_region.inner)) {
             return std::make_pair(pair.second.get(), pair.second->get_keepalive());
         }
     }
@@ -930,9 +1015,9 @@ std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
-        const region_t &region) {
+        const region_t &_region) {
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::read);
-    return changefeed_server(region, &acq);
+    return changefeed_server(_region, &acq);
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefeed_server(
@@ -948,20 +1033,23 @@ std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> store_t::changefee
 }
 
 std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
-        store_t::get_or_make_changefeed_server(const region_t &region) {
+        store_t::get_or_make_changefeed_server(const region_t &_region) {
     rwlock_acq_t acq(&changefeed_servers_lock, access_t::write);
+    // We assume that changefeeds use MAX_KEY instead of `unbounded` right bounds.
+    // If this ever changes, `note_reshard` will need to be updated.
+    guarantee(!_region.inner.right.unbounded);
     guarantee(ctx != nullptr);
     guarantee(ctx->manager != nullptr);
-    auto existing = changefeed_server(region, &acq);
+    auto existing = changefeed_server(_region, &acq);
     if (existing.first != nullptr) {
         return existing;
     }
     for (auto &&pair : changefeed_servers) {
-        guarantee(!pair.first.inner.overlaps(region.inner));
+        guarantee(!pair.first.inner.overlaps(_region.inner));
     }
     auto it = changefeed_servers.insert(
         std::make_pair(
-            region_t(region),
+            region_t(_region),
             make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
     return std::make_pair(it->second.get(), it->second->get_keepalive());
 }

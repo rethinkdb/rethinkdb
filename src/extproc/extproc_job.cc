@@ -11,7 +11,7 @@ extproc_job_t::extproc_job_t(extproc_pool_t *_pool,
     user_interruptor(_user_interruptor),
     combined_interruptor(pool->get_shutdown_signal())
 {
-    if (user_interruptor != NULL) {
+    if (user_interruptor != nullptr) {
         combined_interruptor.add(user_interruptor);
     }
 

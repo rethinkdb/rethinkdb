@@ -2,18 +2,19 @@
 #include "backtrace.hpp"
 
 #ifdef _WIN32
-
-// TODO WINDOWS
-
+#define OPTIONAL // This macro is undefined in "windows.hpp" but necessary for <DbgHelp.h>
+#include <DbgHelp.h>
+#include <atomic>
 #else
-
 #include <cxxabi.h>
 #include <execinfo.h>
+#include <sys/wait.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/wait.h>
 
 #include <string>
 
@@ -23,6 +24,7 @@
 #include "rethinkdb_backtrace.hpp"
 #include "utils.hpp"
 
+#ifndef _WIN32
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*
     backtrace() gives us lines in one of the following two forms:
@@ -46,8 +48,8 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
         if (*line != ' ') return false;
         line += 1;
     } else {
-        *function = NULL;
-        *offset = NULL;
+        *function = nullptr;
+        *offset = nullptr;
         char *bracket = strchr(line, '[');
         if (!bracket) return false;
         line = bracket - 1;
@@ -94,7 +96,7 @@ been involved in this. */
 
 std::string demangle_cpp_name(const char *mangled_name) {
     int res;
-    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
+    char *name_as_c_str = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &res);
     if (res == 0) {
         std::string name_as_std_string(name_as_c_str);
         free(name_as_c_str);
@@ -112,7 +114,7 @@ int set_o_cloexec(int fd) {
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
-address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
+address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(nullptr), output(nullptr), bad(false), pid(-1) {
     if (pipe(child_in) || set_o_cloexec(child_in[0]) || set_o_cloexec(child_in[1]) || pipe(child_out) || set_o_cloexec(child_out[0]) || set_o_cloexec(child_out[1])) {
         bad = true;
         return;
@@ -127,7 +129,7 @@ address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL
         dup2(child_in[0], 0);   // stdin
         dup2(child_out[1], 1);  // stdout
 
-        const char *args[] = {"addr2line", "-s", "-e", executable, NULL};
+        const char *args[] = {"addr2line", "-s", "-e", executable, nullptr};
 
         execvp("addr2line", const_cast<char *const *>(args));
         // A normal `exit` can get stuck here it seems. Maybe some `atexit` handler?
@@ -143,7 +145,7 @@ address_to_line_t::addr2line_t::~addr2line_t() {
         fclose(output);
     }
     if (pid != -1) {
-        waitpid(pid, NULL, 0);
+        waitpid(pid, nullptr, 0);
     }
 }
 
@@ -172,7 +174,7 @@ bool address_to_line_t::run_addr2line(const std::string &executable, const void 
 
     char *result = fgets(line, line_size, proc->output);
 
-    if (result == NULL) {
+    if (result == nullptr) {
         proc->bad = true;
         return false;
     }
@@ -199,6 +201,7 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
         return std::string(line);
     }
 }
+#endif
 
 std::string format_backtrace(bool use_addr2line) {
     lazy_backtrace_formatter_t bt;
@@ -210,7 +213,7 @@ backtrace_t::backtrace_t() {
     int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
 
 #ifdef CROSS_CORO_BACKTRACES
-    if (coro_t::self() != NULL) {
+    if (coro_t::self() != nullptr) {
         int space_remaining = max_frames - size;
         rassert(space_remaining >= 0);
         size += coro_t::self()->copy_spawn_backtrace(stack_frames.data() + size,
@@ -231,27 +234,29 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 }
 
 void backtrace_frame_t::initialize_symbols() {
+#ifndef _WIN32
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
-    if (symbols != NULL) {
+    if (symbols != nullptr) {
         symbols_line = std::string(symbols[0]);
         char *c_filename;
         char *c_function;
         char *c_offset;
         char *c_address;
         if (parse_backtrace_line(symbols[0], &c_filename, &c_function, &c_offset, &c_address)) {
-            if (c_filename != NULL) {
+            if (c_filename != nullptr) {
                 filename = std::string(c_filename);
             }
-            if (c_function != NULL) {
+            if (c_function != nullptr) {
                 function = std::string(c_function);
             }
-            if (c_offset != NULL) {
+            if (c_offset != nullptr) {
                 offset = std::string(c_offset);
             }
         }
         free(symbols);
     }
+#endif
     symbols_initialized = true;
 }
 
@@ -267,7 +272,11 @@ std::string backtrace_frame_t::get_symbols_line() const {
 
 std::string backtrace_frame_t::get_demangled_name() const {
     rassert(symbols_initialized);
+#ifdef _WIN32
+    return function;
+#else
     return demangle_cpp_name(function.c_str());
+#endif
 }
 
 std::string backtrace_frame_t::get_filename() const {
@@ -286,7 +295,7 @@ const void *backtrace_frame_t::get_addr() const {
 
 lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
     backtrace_t(),
-    timestamp(time(0)),
+    timestamp(time(nullptr)),
     timestr(time2str(timestamp)) {
 }
 
@@ -304,7 +313,57 @@ std::string lazy_backtrace_formatter_t::lines() {
     return cached_lines;
 }
 
-std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+#ifdef _WIN32
+void initialize_dbghelp() {
+    static std::atomic<bool> initialised = false;
+    if (!initialised.exchange(true)) {
+        DWORD options = SymGetOptions();
+        options |= SYMOPT_LOAD_LINES; // Load line information
+        options |= SYMOPT_DEFERRED_LOADS; // Lazy symbol loading
+        SymSetOptions(options);
+
+        // Initialize and load the symbol tables
+        BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+        if (!ret) {
+            logWRN("Unable to load symbols: %s", winerr_string(GetLastError()).c_str());
+        }
+    }
+}
+#endif
+
+std::string backtrace_t::print_frames(bool use_addr2line) const {
+#ifdef _WIN32
+    initialize_dbghelp();
+
+    std::string output;
+    for (size_t i = 0; i < get_num_frames(); i++) {
+        output.append(strprintf("%d: ", static_cast<int>(i+1)));
+        DWORD64 offset;
+        const int MAX_SYMBOL_LENGTH = 2048; // An arbitrary number
+        auto symbol_info = scoped_malloc_t<SYMBOL_INFO>(sizeof(SYMBOL_INFO) - 1 + MAX_SYMBOL_LENGTH);
+        symbol_info->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol_info->MaxNameLen = MAX_SYMBOL_LENGTH;
+        BOOL ret = SymFromAddr(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &offset, symbol_info.get());
+        if (!ret) {
+            output.append(strprintf("0x%p [%s]", get_frame(i).get_addr(), winerr_string(GetLastError()).c_str()));
+        } else {
+            output.append(strprintf("%s", symbol_info->Name));
+            if (offset != 0) {
+                output.append(strprintf("+%llu", offset));
+            }
+        }
+        DWORD line_offset;
+        IMAGEHLP_LINE64 line_info;
+        ret = SymGetLineFromAddr64(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &line_offset, &line_info);
+        if (!ret) {
+            // output.append(" (no line info)");
+        } else {
+            output.append(strprintf(" at %s:%u", line_info.FileName, line_info.LineNumber));
+        }
+        output.append("\n");
+    }
+    return output;
+#else
     address_to_line_t address_to_line;
     std::string output;
     for (size_t i = 0; i < get_num_frames(); i++) {
@@ -343,6 +402,5 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
     }
 
     return output;
-}
-
 #endif
+}

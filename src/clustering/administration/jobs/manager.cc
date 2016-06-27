@@ -95,7 +95,8 @@ void jobs_manager_t::on_get_job_reports(
                         time - std::min(pair.second->start_time, time),
                         server_id,
                         query_cache->get_client_addr_port(),
-                        pretty_print(printed_query_columns, render));
+                        pretty_print(printed_query_columns, render),
+                        query_cache->get_user_context());
                 }
             }
         }
@@ -109,7 +110,7 @@ void jobs_manager_t::on_get_job_reports(
             table_persistence_interface->is_gc_active()) {
         // Note that "disk_compaction" jobs do not have a duration.
         disk_compaction_job_reports.emplace_back(
-            uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id)),
+            uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id.get_uuid())),
             -1,
             server_id);
     }
@@ -144,11 +145,11 @@ void jobs_manager_t::on_get_job_reports(
 
             std::map<region_t, backfill_progress_tracker_t::progress_tracker_t> backfills =
                 table_manager->get_backfill_progress_tracker().get_progress_trackers();
-            std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
+            std::string base_str = uuid_to_str(server_id.get_uuid()) + uuid_to_str(table_id);
             for (const auto &backfill : backfills) {
                 uuid_u id = uuid_u::from_hash(
                     base_backfill_id,
-                    base_str + uuid_to_str(backfill.second.source_server_id));
+                    base_str + uuid_to_str(backfill.second.source_server_id.get_uuid()));
 
                 /* As above we only calculate the duration if the backfill is still in
                    progress. */

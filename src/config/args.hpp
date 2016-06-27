@@ -161,14 +161,6 @@
 
 #define COROUTINE_STACK_SIZE                      131072
 
-// How many unused coroutine stacks to keep around (maximally), before they are
-// freed. This value is per thread.
-#define COROUTINE_FREE_LIST_SIZE                  64
-
-// In debug mode, we print a warning if more than this many coroutines have been
-// allocated on one thread.
-#define COROS_PER_THREAD_WARN_LEVEL               10000
-
 
 /**
  * Message scheduler configuration

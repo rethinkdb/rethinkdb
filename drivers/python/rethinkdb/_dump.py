@@ -1,164 +1,155 @@
 #!/usr/bin/env python
+
+'''`rethinkdb dump` creates an archive of data from a RethinkDB cluster'''
+
 from __future__ import print_function
 
-import sys, os, datetime, time, shutil, tempfile, subprocess, os.path
-from optparse import OptionParser
-from ._backup import *
+import datetime, os, shutil, sys, tarfile, tempfile, time, traceback
 
-info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
-usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
+from . import utils_common, net, _export
+r = utils_common.r
 
-def print_dump_help():
-    print(info)
-    print(usage)
-    print("")
-    print("  -h [ --help ]                    print this help")
-    print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
-    print("                                   to (defaults to localhost:28015)")
-    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
-    print("  -f [ --file ] FILE               file to write archive to (defaults to")
-    print("                                   rethinkdb_dump_DATE_TIME.tar.gz)")
-    print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
-    print("                                   be specified multiple times)")
-    print("  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults")
-    print("                                   to 3)")
-    print("  --temp-dir DIRECTORY             the directory to use for intermediary results")
-    print("")
-    print("EXAMPLES:")
-    print("rethinkdb dump -c mnemosyne:39500")
-    print("  Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500.")
-    print("")
-    print("rethinkdb dump -e test -f rdb_dump.tar.gz")
-    print("  Archive only the 'test' database from a local cluster into a named file.")
-    print("")
-    print("rethinkdb dump -c hades -e test.subscribers -a hunter2")
-    print("  Archive a specific table from a cluster running on host 'hades' which requires authorization.")
+usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
+help_epilog = '''
+EXAMPLES:
+rethinkdb dump -c mnemosyne:39500
+  Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500.
 
-def parse_options():
-    parser = OptionParser(add_help_option=False, usage=usage)
-    parser.add_option("-c", "--connect", dest="host", metavar="host:port", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
-    parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
-    parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
+rethinkdb dump -e test -f rdb_dump.tar.gz
+  Archive only the 'test' database from a local cluster into a named file.
 
-    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None, type="string")
-    parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
-    parser.add_option("--debug", dest="debug", default=False, action="store_true")
-    parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
-    (options, args) = parser.parse_args()
+rethinkdb dump -c hades -e test.subscribers -p
+  Archive a specific table from a cluster running on host 'hades' which requires a password.'''
 
+def parse_options(argv, prog=None):
+    parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
+    
+    parser.add_option("-f", "--file",     dest="out_file",  metavar="FILE",        default=None,  help='file to write archive to (defaults to rethinkdb_dump_DATE_TIME.tar.gz);\nif FILE is -, use standard output (note that intermediate files will still be written to the --temp-dir directory)')
+    parser.add_option("-e", "--export",   dest="db_tables", metavar="DB|DB.TABLE", default=[],    help='limit dump to the given database or table (may be specified multiple times)', action="append")
+
+    parser.add_option("--temp-dir",       dest="temp_dir", metavar="directory",   default=None,  help='the directory to use for intermediary results')
+    parser.add_option("--overwrite-file", dest="overwrite_file",                  default=False, help="overwrite -f/--file if it exists", action="store_true")
+    parser.add_option("--clients",        dest="clients",  metavar="NUM",         default=3,     help='number of tables to export simultaneously (default: 3)', type="pos_int")
+    
+    options, args = parser.parse_args(argv)
+    
     # Check validity of arguments
+    
     if len(args) != 0:
-        raise RuntimeError("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
-
-    if options.help:
-        print_dump_help()
-        exit(0)
-
-    res = {}
-
-    # Verify valid host:port --connect option
-    (res["host"], res["port"]) = parse_connect_option(options.host)
-
-    # Verify valid output file
-    res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
-    if options.out_file is None:
-        res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
+        raise parser.error("No positional arguments supported. Unrecognized option(s): %s" % args)
+    
+    # Add dump name
+    if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+        options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S") # no colons in name
     else:
-        res["out_file"] = os.path.abspath(options.out_file)
-
-    if os.path.exists(res["out_file"]):
-        raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
+        options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+        
+    # Verify valid output file
+    if options.out_file == "-":
+        options.out_file = sys.stdout
+        options.quiet = True 
+    elif options.out_file is None:
+        options.out_file = os.path.realpath("%s.tar.gz" % options.dump_name)
+    else:
+        options.out_file = os.path.realpath(options.out_file)
+    
+    if not options.out_file is not sys.stdout:
+        if os.path.exists(options.out_file) and not options.overwrite_file:
+            parser.error("Output file already exists: %s" % options.out_file)
+        if os.path.exists(options.out_file) and not os.path.isfile(options.out_file):
+            parser.error("There is a non-file at the -f/--file location: %s" % options.out_file)
 
     # Verify valid client count
     if options.clients < 1:
         raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
-    res["clients"] = options.clients
 
     # Make sure the temporary directory exists and is accessible
-    res["temp_dir"] = options.temp_dir
-
-    if res["temp_dir"] is not None:
-        if not os.path.isdir(res["temp_dir"]):
-            raise RuntimeError("Error: Temporary directory doesn't exist or is not a directory: %s" % res["temp_dir"])
-        if not os.access(res["temp_dir"], os.W_OK):
-            raise RuntimeError("Error: Temporary directory inaccessible: %s" % res["temp_dir"])
-
-    res["tables"] = options.tables
-    res["auth_key"] = options.auth_key
-    res["debug"] = options.debug
-    return res
-
-def do_export(temp_dir, options):
-    print("Exporting to directory...")
-    export_args = ["rethinkdb-export"]
-    export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
-    export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
-    export_args.extend(["--auth", options["auth_key"]])
-    export_args.extend(["--clients", str(options["clients"])])
-
-    for table in options["tables"]:
-        export_args.extend(["--export", table])
-
-    if options["debug"]:
-        export_args.extend(["--debug"])
-
-    res = subprocess.call(export_args)
-    if res != 0:
-        raise RuntimeError("Error: rethinkdb-export failed")
-
-    # 'Done' message will be printed by the export script
-
-def do_zip(temp_dir, options):
-    print("Zipping export directory...")
-    start_time = time.time()
-    tar_args = ["tar", "czf", options["out_file"]]
-
-    if sys.platform.startswith("linux"):
-        # Tar on OSX does not support this flag, which may be useful with low free space
-        tar_args.append("--remove-files")
-
-    tar_args.extend(["-C", temp_dir])
-    tar_args.append(options["temp_filename"])
-    res = subprocess.call(tar_args)
-    if res != 0:
-        raise RuntimeError("Error: tar of export directory failed")
-    print("  Done (%d seconds)" % (time.time() - start_time))
+    if options.temp_dir is not None:
+        if not exists(options.temp_dir):
+            try:
+                os.makedirs(options.temp_dir)
+            except OSError:
+                parser.error("Could not create temporary directory: %s" % options.temp_dir)
+        if not os.path.isdir(options.temp_dir):
+            parser.error("Temporary directory doesn't exist or is not a directory: %s" % options.temp_dir)
+        if not os.access(options.temp_dir, os.W_OK):
+            parser.error("Temporary directory inaccessible: %s" % options.temp_dir)
+    
+    return options
 
 def run_rethinkdb_export(options):
-    # Create a temporary directory to store the intermediary results
-    temp_dir = tempfile.mkdtemp(dir=options["temp_dir"])
-    res = -1
-
-    # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-    print("NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save")
-    print(" cluster metadata.  You will need to recreate your cluster setup yourself after ")
-    print(" you run 'rethinkdb-restore'.")
-
+    if not options.quiet:
+        # Print a warning about the capabilities of dump, so no one is confused (hopefully)
+        print("""\
+NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save
+ cluster metadata.  You will need to recreate your cluster setup yourself after
+ you run 'rethinkdb-restore'.""")
+    
     try:
-        do_export(temp_dir, options)
-        do_zip(temp_dir, options)
+        start_time = time.time()
+        
+        # -- _export options - need to be kep in-sync with _export
+        
+        options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
+        options.fields    = None
+        options.delimiter = None
+        options.format    = 'json'
+        
+        # -- export to a directory
+        
+        if not options.quiet:
+            print("  Exporting to temporary directory...")
+        
+        try:
+            _export.run(options)
+        except Exception:
+            if options.debug:
+                sys.stderr.write('\n%s\n' % traceback.format_exc())
+            raise Exception("Error: export failed")
+        
+        # -- zip directory
+        
+        if not options.quiet:
+            print("  Zipping export directory...")
+        
+        try:
+            archive = None
+            if hasattr(options.out_file, 'read'):
+                archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
+            else:
+                archive = tarfile.open(name=options.out_file, mode="w:gz")
+            
+            for curr, _, files in os.walk(os.path.realpath(options.directory)):
+                for data_file in files:
+                    fullPath = os.path.join(options.directory, curr, data_file)
+                    archivePath = os.path.join(options.dump_name, os.path.relpath(fullPath, options.directory))
+                    archive.add(fullPath, arcname=archivePath)
+                    os.unlink(fullPath)
+        finally:
+            archive.close()
+        
+        # --
+        
+        if not options.quiet:
+            print("Done (%.2f seconds): %s" % (time.time() - start_time, options.out_file.name if hasattr(options.out_file, 'name') else options.out_file))
     except KeyboardInterrupt:
         time.sleep(0.2)
         raise RuntimeError("Interrupted")
     finally:
-        shutil.rmtree(temp_dir)
+        if os.path.exists(options.directory):
+            shutil.rmtree(options.directory)
 
-def main():
-    try:
-        options = parse_options()
-    except RuntimeError as ex:
-        print("Usage: %s" % usage, file=sys.stderr)
-        print(ex, file=sys.stderr)
-        return 1
+def main(argv=None, prog=None):
+    options = parse_options(argv or sys.argv[2:], prog=prog)
 
     try:
-        start_time = time.time()
         run_rethinkdb_export(options)
-    except RuntimeError as ex:
+    except Exception as ex:
+        if options.debug:
+            traceback.print_exc()
         print(ex, file=sys.stderr)
         return 1
     return 0
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

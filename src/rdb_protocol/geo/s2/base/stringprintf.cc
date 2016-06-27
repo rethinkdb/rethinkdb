@@ -11,8 +11,10 @@
 namespace geo {
 using std::vector;
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 void StringAppendV(std::string* dst, const char* format, va_list ap) {
   // First try with a small fixed size buffer
   char space[1024];
@@ -57,7 +59,9 @@ void StringAppendV(std::string* dst, const char* format, va_list ap) {
     delete[] buf;
   }
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 std::string StringPrintf(const char* format, ...) {
   va_list ap;

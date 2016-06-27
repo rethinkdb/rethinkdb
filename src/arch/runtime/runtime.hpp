@@ -12,6 +12,7 @@ threadnum_t get_thread_id();
 int get_num_threads();
 
 #ifndef NDEBUG
+bool in_thread_pool();
 void assert_good_thread_id(threadnum_t thread);
 #else
 inline void assert_good_thread_id(UNUSED threadnum_t thread) { }

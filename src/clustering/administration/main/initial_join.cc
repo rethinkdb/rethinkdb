@@ -61,9 +61,11 @@ initial_joiner_t::initial_joiner_t(
         connectivity_cluster_t *cluster_,
         connectivity_cluster_t::run_t *cluster_run,
         const peer_address_set_t &peers,
+        const int join_delay_secs_,
         int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
+    join_delay_secs(join_delay_secs_),
     subs(cluster->get_connections(),
         std::bind(&initial_joiner_t::on_connection_change, this, ph::_1, ph::_2),
         initial_call_t::YES),
@@ -73,7 +75,7 @@ initial_joiner_t::initial_joiner_t(
     auto_drainer_t::lock_t connection_keepalive;
     connectivity_cluster_t::connection_t *loopback =
         cluster->get_connection(cluster->get_me(), &connection_keepalive);
-    guarantee(loopback != NULL);
+    guarantee(loopback != nullptr);
     peer_address_t self_addr = loopback->get_peer_address();
     for (peer_address_set_t::iterator join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr);
          join_self_it != peers_not_heard_from.end();
@@ -102,7 +104,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run,
                peers_not_heard_from.size(), peers_not_heard_from.size() == 1 ? "" : "s");
         do {
             for (peer_address_set_t::iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
-                cluster_run->join(*it);
+                cluster_run->join(*it, join_delay_secs);
             }
             signal_timer_t retry_timer;
             retry_timer.start(retry_interval_ms);

@@ -1,13 +1,6 @@
 #include "rethinkdb_backtrace.hpp"
 
-#ifdef _WIN32
-
-int rethinkdb_backtrace(void **buffer, int size) {
-    // TODO WINDOWS
-    return 0;
-}
-
-#elif defined(__MACH__)
+#ifdef __MACH__
 
 #include <execinfo.h>
 #include <pthread.h>
@@ -75,7 +68,7 @@ void substitute_pthread_t_stack_fields(pthread_t th, pthread_t_field_locations_t
 
 int rethinkdb_backtrace(void **buffer, int size) {
     coro_t *const coro = coro_t::self();
-    if (coro == NULL) {
+    if (coro == nullptr) {
         return backtrace(buffer, size);
     } else {
         pthread_t_field_locations_t field_locations;
@@ -100,12 +93,34 @@ int rethinkdb_backtrace(void **buffer, int size) {
     }
 }
 
+#elif defined(_WIN32)
+
+#include <algorithm>
+#include <vector>
+
+#include "windows.hpp"
+#define OPTIONAL
+#include <DbgHelp.h> // NOLINT
+
+int rethinkdb_backtrace(void **buffer, int size) {
+    std::vector<void *> addresses(size, nullptr);
+    USHORT frames = CaptureStackBackTrace(0, size, addresses.data(), nullptr);
+    if (frames > NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE) {
+        std::move(addresses.begin() + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE, addresses.begin() + frames, buffer);
+        return frames - NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;
+    } else {
+        return 0;
+    }
+}
+
 #else
 
 #include <execinfo.h>
+
+#include "errors.hpp"
 
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);
 }
 
-#endif  // __MACH__
+#endif

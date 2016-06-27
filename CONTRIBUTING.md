@@ -26,7 +26,9 @@ Some useful resources to get started:
 * [Building RethinkDB][6] from source
 * Overview of [what to find where][7] in the server source directory
 * Introduction to the [RethinkDB driver protocol][8]
+* [C++ coding style][9] for the RethinkDB server
 
 [6]: http://rethinkdb.com/docs/build/
 [7]: src/README.md
 [8]: http://rethinkdb.com/docs/driver-spec/
+[9]: STYLE.md

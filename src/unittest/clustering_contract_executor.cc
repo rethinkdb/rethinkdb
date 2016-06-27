@@ -422,7 +422,8 @@ private:
 };
 
 TPTEST(ClusteringContractExecutor, SimpleTests) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id(),
+                billy = server_id_t::generate_server_id();
 
     /* Bring up the primary, `alice`, with no secondaries */
 
@@ -561,8 +562,9 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 }
 
 TPTEST(ClusteringContractExecutor, HandOverSafety) {
-    server_id_t alice = generate_uuid(), billy = generate_uuid(),
-        carol = generate_uuid();
+    server_id_t alice = server_id_t::generate_server_id(),
+                billy = server_id_t::generate_server_id(),
+                carol = server_id_t::generate_server_id();
 
     /* Bring up the primary, `alice`, with `billy` and `carol` as secondaries */
 

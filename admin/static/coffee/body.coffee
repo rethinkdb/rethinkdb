@@ -62,7 +62,7 @@ class MainContainer extends Backbone.View
                         console.log(error)
                         @fetch_data(null)
                     else
-                        @fetch_data(me.name)
+                        @fetch_data(me)
 
     fetch_data: (me) =>
         query = r.expr
@@ -75,7 +75,7 @@ class MainContainer extends Backbone.View
             num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
                 status("all_replicas_ready")
             ).count()
-            me: me
+            me: if me.proxy then "<proxy node>" else me.name
 
 
         @timer = driver.run query, 5000, (error, result) =>

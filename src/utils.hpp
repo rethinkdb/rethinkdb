@@ -41,7 +41,7 @@ public:
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *_beg, const char *_end) : beg(_beg), end(_end) { }
-    const_charslice() : beg(NULL), end(NULL) { }
+    const_charslice() : beg(nullptr), end(nullptr) { }
 };
 
 void *raw_malloc_aligned(size_t size, size_t alignment);
@@ -61,35 +61,8 @@ bool risfinite(double);
 
 enum class query_state_t { FAILED, INDETERMINATE };
 
-class rng_t {
-public:
-// Returns a random number in [0, n).  Is not perfectly uniform; the
-// bias tends to get worse when RAND_MAX is far from a multiple of n.
-    int randint(int n);
-    uint64_t randuint64(uint64_t n);
-    double randdouble();
-
-#ifdef _WIN32
-    typedef std::ranlux48 state_t;
-#else
-    typedef std::array<uint16_t, 3> state_t;
-#endif
-
-    explicit rng_t(int seed = -1);
-    rng_t(rng_t&&) = default;
-    explicit rng_t(const state_t& s) : state(s) { }
-private:
-    state_t state;
-    DISABLE_COPYING(rng_t);
-};
-
 // Reads from /dev/urandom.  Use this sparingly, please.
 void system_random_bytes(void *out, int64_t nbytes);
-
-int randint(int n); // In range [0, n)
-uint64_t randuint64(uint64_t n);
-size_t randsize(size_t n);
-double randdouble();
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins

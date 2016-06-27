@@ -3,7 +3,6 @@
 #define CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_
 
 #include <map>
-#include <set>
 #include <string>
 
 #include "clustering/administration/servers/server_metadata.hpp"
@@ -35,7 +34,7 @@ private:
     /* Whenever the directory changes, we compare the directory to
     `connected_servers` and `connected_proxies` to see what servers have
     connected or disconnected. */
-    std::set<peer_id_t> connected_proxies;
+    std::map<peer_id_t, server_id_t> connected_proxies;
     std::map<peer_id_t, std::pair<server_id_t, name_string_t> > connected_servers;
 
     watchable_map_var_t<server_id_t, empty_value_t> local_connections;

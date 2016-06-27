@@ -63,13 +63,13 @@ void kqueue_event_queue_t::run() {
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kqueue!
-        nevents = call_kevent(kqueue_fd, NULL, 0,
-                              events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, NULL);
+        nevents = call_kevent(kqueue_fd, nullptr, 0,
+                              events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, nullptr);
 
         block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get());
 
         for (int i = 0; i < nevents; i++) {
-            if (events[i].udata == NULL) {
+            if (events[i].udata == nullptr) {
                 // The event was queued for a resource that's
                 // been destroyed, so forget_resource is kindly
                 // notifying us to skip it by setting `udata` to NULL.
@@ -92,29 +92,29 @@ kqueue_event_queue_t::~kqueue_event_queue_t() {
 
 void kqueue_event_queue_t::add_filters(fd_t resource, const std::set<int16_t> &filters,
                                        linux_event_callback_t *cb) {
-    rassert(cb != NULL);
+    rassert(cb != nullptr);
 
     for (auto filter : filters) {
         struct kevent ev;
         EV_SET(&ev, static_cast<uintptr_t>(resource), filter, EV_ADD, 0, 0, cb);
-        call_kevent(kqueue_fd, &ev, 1, NULL, 0, NULL);
+        call_kevent(kqueue_fd, &ev, 1, nullptr, 0, nullptr);
     }
 }
 
 void kqueue_event_queue_t::del_filters(fd_t resource, const std::set<int16_t> &filters,
                                        linux_event_callback_t *cb) {
-    rassert(cb != NULL);
+    rassert(cb != nullptr);
 
     for (auto filter : filters) {
         struct kevent ev;
         EV_SET(&ev, static_cast<uintptr_t>(resource), filter, EV_DELETE, 0, 0, cb);
-        call_kevent(kqueue_fd, &ev, 1, NULL, 0, NULL);
+        call_kevent(kqueue_fd, &ev, 1, nullptr, 0, nullptr);
     }
 }
 
 void kqueue_event_queue_t::watch_resource(fd_t resource, int event_mask,
                                           linux_event_callback_t *cb) {
-    rassert(cb != NULL);
+    rassert(cb != nullptr);
 
     // Start watching the events on `resource`
     std::set<int16_t> filters = user_to_kevent_filters(event_mask);
@@ -160,8 +160,8 @@ void kqueue_event_queue_t::adjust_resource(fd_t resource, int event_mask,
         if (events[i].ident == static_cast<uintptr_t>(resource)) {
             if (filters_to_del.count(events[i].filter) > 0) {
                 // No longer watching this event
-                events[i].udata = NULL;
-            } else if (events[i].udata != NULL) {
+                events[i].udata = nullptr;
+            } else if (events[i].udata != nullptr) {
                 // Just update the cb, unless we had previously deleted this one.
                 events[i].udata = cb;
             }
@@ -186,8 +186,8 @@ void kqueue_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t
     // being asked to forget.
     for (int i = 0; i < nevents; i++) {
         if (events[i].ident == static_cast<uintptr_t>(resource)) {
-            rassert(events[i].udata == cb || events[i].udata == NULL);
-            events[i].udata = NULL;
+            rassert(events[i].udata == cb || events[i].udata == nullptr);
+            events[i].udata = nullptr;
         }
     }
 }

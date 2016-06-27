@@ -7,6 +7,7 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/uuid.hpp"
 #include "region/region.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "time.hpp"
 
 class backfill_progress_tracker_t {

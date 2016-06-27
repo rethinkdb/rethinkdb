@@ -37,16 +37,16 @@ using std::multiset;
 using std::vector;
 
 
-void S2PolygonBuilderOptions::set_undirected_edges(bool undirected_edges) {
-  undirected_edges_ = undirected_edges;
+void S2PolygonBuilderOptions::set_undirected_edges(bool _undirected_edges) {
+  undirected_edges_ = _undirected_edges;
 }
 
-void S2PolygonBuilderOptions::set_xor_edges(bool xor_edges) {
-  xor_edges_ = xor_edges;
+void S2PolygonBuilderOptions::set_xor_edges(bool _xor_edges) {
+  xor_edges_ = _xor_edges;
 }
 
-void S2PolygonBuilderOptions::set_validate(bool validate) {
-  validate_ = validate;
+void S2PolygonBuilderOptions::set_validate(bool _validate) {
+  validate_ = _validate;
 }
 
 void S2PolygonBuilderOptions::set_vertex_merge_radius(S1Angle const& angle) {
@@ -58,8 +58,8 @@ void S2PolygonBuilderOptions::set_edge_splice_fraction(double fraction) {
   edge_splice_fraction_ = fraction;
 }
 
-S2PolygonBuilder::S2PolygonBuilder(S2PolygonBuilderOptions const& options)
-  : options_(options), edges_(new EdgeSet) {
+S2PolygonBuilder::S2PolygonBuilder(S2PolygonBuilderOptions const& _options)
+  : options_(_options), edges_(new EdgeSet) {
 }
 
 S2PolygonBuilder::~S2PolygonBuilder() {

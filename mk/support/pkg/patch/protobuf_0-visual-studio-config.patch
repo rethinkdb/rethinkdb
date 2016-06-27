@@ -1,0 +1,3242 @@
+diff -ruN ./gtest/msvc/gtest.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest.vcxproj
+--- ./gtest/msvc/gtest.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest.vcxproj	2016-01-24 09:18:42.722332900 -0800
+@@ -0,0 +1,140 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
++    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
++    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <Optimization>Disabled</Optimization>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)gtestd.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <Optimization>Disabled</Optimization>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)gtestd.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)gtest.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)gtest.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\gtest-all.cc">
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++    </ClCompile>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./gtest/msvc/gtest.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest.vcxproj.filters
+--- ./gtest/msvc/gtest.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest.vcxproj.filters	2016-01-24 09:14:47.156752000 -0800
+@@ -0,0 +1,18 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\gtest-all.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./gtest/msvc/gtest_main.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest_main.vcxproj
+--- ./gtest/msvc/gtest_main.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest_main.vcxproj	2016-01-24 09:18:42.706709800 -0800
+@@ -0,0 +1,145 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{3AF54C8A-10BF-4332-9147-F68ED9862032}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++    <CharacterSet>MultiByte</CharacterSet>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
++    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>$(SolutionName)/$(Configuration)\</OutDir>
++    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <Optimization>Disabled</Optimization>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)$(ProjectName)d.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <Optimization>Disabled</Optimization>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)$(ProjectName)d.lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)$(ProjectName).lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <PreprocessorDefinitions>_VARIADIC_MAX=10;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Lib>
++      <OutputFile>$(OutDir)$(ProjectName).lib</OutputFile>
++    </Lib>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\gtest_main.cc">
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++    </ClCompile>
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="gtest.vcxproj">
++      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./gtest/msvc/gtest_main.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest_main.vcxproj.filters
+--- ./gtest/msvc/gtest_main.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/gtest/msvc/gtest_main.vcxproj.filters	2016-01-24 09:14:48.469358400 -0800
+@@ -0,0 +1,18 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\gtest_main.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+Binary files ./vsprojects/.vs/protobuf/v14/.suo and ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/.vs/protobuf/v14/.suo differ
+diff -ruN ./vsprojects/Backup/protobuf.sln ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/Backup/protobuf.sln
+--- ./vsprojects/Backup/protobuf.sln	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/Backup/protobuf.sln	2013-02-26 10:12:03.000000000 -0800
+@@ -0,0 +1,92 @@
++﻿
++Microsoft Visual Studio Solution File, Format Version 9.00
++# Visual Studio 2005
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf", "libprotobuf.vcproj", "{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotoc", "libprotoc.vcproj", "{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}"
++	ProjectSection(ProjectDependencies) = postProject
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
++	EndProjectSection
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoc", "protoc.vcproj", "{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}"
++	ProjectSection(ProjectDependencies) = postProject
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
++	EndProjectSection
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests.vcproj", "{4DF72760-C055-40A5-A77E-30A17E2AC2DB}"
++	ProjectSection(ProjectDependencies) = postProject
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
++		{3AF54C8A-10BF-4332-9147-F68ED9862032} = {3AF54C8A-10BF-4332-9147-F68ED9862032}
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32} = {CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E} = {1738D5F6-ED1E-47E0-B2F0-456864B93C1E}
++	EndProjectSection
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "..\gtest\msvc\gtest.vcproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_main", "..\gtest\msvc\gtest_main.vcproj", "{3AF54C8A-10BF-4332-9147-F68ED9862032}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf-lite", "libprotobuf-lite.vcproj", "{49EA010D-706F-4BE2-A397-77854B72A040}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lite-test", "lite-test.vcproj", "{12015ACE-42BE-4952-A5A0-44A9A46908E2}"
++	ProjectSection(ProjectDependencies) = postProject
++		{49EA010D-706F-4BE2-A397-77854B72A040} = {49EA010D-706F-4BE2-A397-77854B72A040}
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E} = {1738D5F6-ED1E-47E0-B2F0-456864B93C1E}
++	EndProjectSection
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_plugin", "test_plugin.vcproj", "{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}"
++	ProjectSection(ProjectDependencies) = postProject
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
++	EndProjectSection
++EndProject
++Global
++	GlobalSection(SolutionConfigurationPlatforms) = preSolution
++		Debug|Win32 = Debug|Win32
++		Release|Win32 = Release|Win32
++	EndGlobalSection
++	GlobalSection(ProjectConfigurationPlatforms) = postSolution
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.ActiveCfg = Debug|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.Build.0 = Debug|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.ActiveCfg = Release|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.Build.0 = Release|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.ActiveCfg = Debug|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.Build.0 = Debug|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.ActiveCfg = Release|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.Build.0 = Release|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.ActiveCfg = Debug|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.Build.0 = Debug|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.ActiveCfg = Release|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.Build.0 = Release|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.ActiveCfg = Debug|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.Build.0 = Debug|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.ActiveCfg = Release|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.Build.0 = Release|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.ActiveCfg = Debug|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.Build.0 = Debug|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.ActiveCfg = Release|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.Build.0 = Release|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.ActiveCfg = Debug|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.Build.0 = Debug|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.ActiveCfg = Release|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.Build.0 = Release|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.ActiveCfg = Debug|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.Build.0 = Debug|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.ActiveCfg = Release|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.Build.0 = Release|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.ActiveCfg = Debug|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.Build.0 = Debug|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.ActiveCfg = Release|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.Build.0 = Release|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.ActiveCfg = Debug|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.Build.0 = Debug|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.ActiveCfg = Release|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.Build.0 = Release|Win32
++	EndGlobalSection
++	GlobalSection(SolutionProperties) = preSolution
++		HideSolutionNode = FALSE
++	EndGlobalSection
++EndGlobal
+diff -ruN ./vsprojects/libprotobuf.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf.vcxproj
+--- ./vsprojects/libprotobuf.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf.vcxproj	2016-01-24 09:18:42.800476500 -0800
+@@ -0,0 +1,202 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\importer.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\parser.h" />
++    <ClInclude Include="..\src\google\protobuf\descriptor.h" />
++    <ClInclude Include="..\src\google\protobuf\descriptor.pb.h" />
++    <ClInclude Include="..\src\google\protobuf\descriptor_database.h" />
++    <ClInclude Include="..\src\google\protobuf\dynamic_message.h" />
++    <ClInclude Include="..\src\google\protobuf\extension_set.h" />
++    <ClInclude Include="..\src\google\protobuf\generated_message_reflection.h" />
++    <ClInclude Include="..\src\google\protobuf\generated_message_util.h" />
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream.h" />
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream_inl.h" />
++    <ClInclude Include="..\src\google\protobuf\io\gzip_stream.h" />
++    <ClInclude Include="..\src\google\protobuf\io\printer.h" />
++    <ClInclude Include="..\src\google\protobuf\io\tokenizer.h" />
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream.h" />
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl.h" />
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\message.h" />
++    <ClInclude Include="..\src\google\protobuf\message_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\reflection_ops.h" />
++    <ClInclude Include="..\src\google\protobuf\repeated_field.h" />
++    <ClInclude Include="..\src\google\protobuf\service.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\common.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\hash.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\map-util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\once.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\platform_macros.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\stl_util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\stringprintf.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\strutil.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\substitute.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\template_util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\type_traits.h" />
++    <ClInclude Include="..\src\google\protobuf\text_format.h" />
++    <ClInclude Include="..\src\google\protobuf\unknown_field_set.h" />
++    <ClInclude Include="..\src\google\protobuf\wire_format.h" />
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite_inl.h" />
++    <ClInclude Include="config.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\importer.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\parser.cc" />
++    <ClCompile Include="..\src\google\protobuf\descriptor.cc" />
++    <ClCompile Include="..\src\google\protobuf\descriptor.pb.cc" />
++    <ClCompile Include="..\src\google\protobuf\descriptor_database.cc" />
++    <ClCompile Include="..\src\google\protobuf\dynamic_message.cc" />
++    <ClCompile Include="..\src\google\protobuf\extension_set.cc" />
++    <ClCompile Include="..\src\google\protobuf\extension_set_heavy.cc" />
++    <ClCompile Include="..\src\google\protobuf\generated_message_reflection.cc" />
++    <ClCompile Include="..\src\google\protobuf\generated_message_util.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\gzip_stream.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\printer.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\tokenizer.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.cc" />
++    <ClCompile Include="..\src\google\protobuf\message.cc" />
++    <ClCompile Include="..\src\google\protobuf\message_lite.cc" />
++    <ClCompile Include="..\src\google\protobuf\reflection_ops.cc" />
++    <ClCompile Include="..\src\google\protobuf\repeated_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\service.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\common.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\once.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\structurally_valid.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\strutil.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\substitute.cc" />
++    <ClCompile Include="..\src\google\protobuf\text_format.cc" />
++    <ClCompile Include="..\src\google\protobuf\unknown_field_set.cc" />
++    <ClCompile Include="..\src\google\protobuf\wire_format.cc" />
++    <ClCompile Include="..\src\google\protobuf\wire_format_lite.cc" />
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/libprotobuf.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf.vcxproj.filters
+--- ./vsprojects/libprotobuf.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf.vcxproj.filters	2016-01-24 09:14:41.562566300 -0800
+@@ -0,0 +1,243 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream_inl.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\common.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="config.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\descriptor.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\descriptor.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\descriptor_database.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\dynamic_message.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\extension_set.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\generated_message_reflection.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\generated_message_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\gzip_stream.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\hash.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\importer.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\map-util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\message.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\message_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\platform_macros.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\once.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\parser.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\printer.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\reflection_ops.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\repeated_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\service.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\stl_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\stringprintf.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\template_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\type_traits.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\strutil.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\substitute.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\text_format.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\tokenizer.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\unknown_field_set.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\wire_format.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite_inl.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\common.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\descriptor.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\descriptor.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\descriptor_database.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\dynamic_message.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\extension_set.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\extension_set_heavy.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\generated_message_reflection.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\generated_message_util.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\gzip_stream.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\importer.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\message.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\message_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\once.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\parser.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\printer.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\reflection_ops.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\repeated_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\service.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\structurally_valid.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\strutil.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\substitute.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\text_format.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\tokenizer.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\unknown_field_set.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\wire_format.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\wire_format_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/libprotobuf-lite.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf-lite.vcxproj
+--- ./vsprojects/libprotobuf-lite.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf-lite.vcxproj	2016-01-24 09:18:42.691082200 -0800
+@@ -0,0 +1,162 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{49EA010D-706F-4BE2-A397-77854B72A040}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOBUF_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\extension_set.h" />
++    <ClInclude Include="..\src\google\protobuf\generated_message_util.h" />
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream.h" />
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream_inl.h" />
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream.h" />
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\message_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\repeated_field.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\common.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\hash.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\map-util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\once.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\platform_macros.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\stl_util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\stringprintf.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\template_util.h" />
++    <ClInclude Include="..\src\google\protobuf\stubs\type_traits.h" />
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite.h" />
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite_inl.h" />
++    <ClInclude Include="config.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\extension_set.cc" />
++    <ClCompile Include="..\src\google\protobuf\generated_message_util.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.cc" />
++    <ClCompile Include="..\src\google\protobuf\message_lite.cc" />
++    <ClCompile Include="..\src\google\protobuf\repeated_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\common.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\once.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf.cc" />
++    <ClCompile Include="..\src\google\protobuf\wire_format_lite.cc" />
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/libprotobuf-lite.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf-lite.vcxproj.filters
+--- ./vsprojects/libprotobuf-lite.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotobuf-lite.vcxproj.filters	2016-01-24 09:14:49.594445200 -0800
+@@ -0,0 +1,123 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\coded_stream_inl.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\common.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="config.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\extension_set.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\generated_message_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\hash.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\map-util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\message_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\once.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\platform_macros.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\repeated_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\stl_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\wire_format_lite_inl.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\stringprintf.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\template_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\stubs\type_traits.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\common.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\extension_set.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\generated_message_util.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\message_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\once.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\atomicops_internals_x86_msvc.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\repeated_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\wire_format_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_impl_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/libprotoc.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotoc.vcxproj
+--- ./vsprojects/libprotoc.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotoc.vcxproj	2016-01-24 09:18:42.784837800 -0800
+@@ -0,0 +1,199 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>StaticLibrary</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBPROTOC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBPROTOC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\code_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\command_line_interface.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_enum.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_enum_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_extension.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_file.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_helpers.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_message.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_message_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_options.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_primitive_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_service.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_string_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_doc_comment.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_enum.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_enum_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_extension.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_file.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_helpers.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_message.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_message_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_primitive_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_service.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_string_field.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\plugin.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\plugin.pb.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\python\python_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\subprocess.h" />
++    <ClInclude Include="..\src\google\protobuf\compiler\zip_writer.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\code_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\command_line_interface.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_enum.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_enum_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_extension.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_file.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_helpers.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_message.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_message_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_primitive_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_service.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_string_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_doc_comment.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_enum.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_enum_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_extension.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_file.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_helpers.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_message.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_message_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_primitive_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_service.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_string_field.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\plugin.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\plugin.pb.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\python\python_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\subprocess.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\zip_writer.cc" />
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="libprotobuf.vcxproj">
++      <Project>{3e283f37-a4ed-41b7-a3e6-a2d89d131a30}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/libprotoc.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotoc.vcxproj.filters
+--- ./vsprojects/libprotoc.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/libprotoc.vcxproj.filters	2016-01-24 09:14:42.750159800 -0800
+@@ -0,0 +1,216 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\code_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\command_line_interface.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\subprocess.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\zip_writer.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\plugin.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\plugin.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_enum.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_enum_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_extension.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_file.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_helpers.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_message.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_message_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_options.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_primitive_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_service.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\cpp\cpp_string_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_enum.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_enum_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_extension.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_file.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_helpers.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_message.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_message_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_primitive_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_service.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_string_field.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\java\java_doc_comment.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\python\python_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_doc_comment.cc">
++      <Filter>Header Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\code_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\command_line_interface.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\subprocess.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\zip_writer.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\plugin.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\plugin.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_enum.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_enum_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_extension.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_file.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_helpers.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_message.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_message_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_primitive_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_service.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_string_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_enum.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_enum_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_extension.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_file.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_helpers.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_message.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_message_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_primitive_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_service.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_string_field.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\python\python_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/lite-test.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/lite-test.vcxproj
+--- ./vsprojects/lite-test.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/lite-test.vcxproj	2016-01-24 09:18:42.675455500 -0800
+@@ -0,0 +1,253 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{12015ACE-42BE-4952-A5A0-44A9A46908E2}</ProjectGuid>
++    <RootNamespace>tests</RootNamespace>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\test_util_lite.h" />
++    <ClInclude Include="google\protobuf\unittest_import_lite.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_import_public_lite.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_lite.pb.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\lite_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\test_util_lite.cc" />
++    <ClCompile Include="google\protobuf\unittest_import_lite.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_import_public_lite.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_lite.pb.cc" />
++  </ItemGroup>
++  <ItemGroup>
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_lite.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_import_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_import_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_import_lite.pb.h;google\protobuf\unittest_import_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_import_lite.pb.h;google\protobuf\unittest_import_lite.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_import_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_import_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_import_lite.pb.h;google\protobuf\unittest_import_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_import_lite.pb.h;google\protobuf\unittest_import_lite.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_public_lite.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_import_public_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_import_public_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_import_public_lite.pb.h;google\protobuf\unittest_import_public_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_import_public_lite.pb.h;google\protobuf\unittest_import_public_lite.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_import_public_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_import_public_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_import_public_lite.pb.h;google\protobuf\unittest_import_public_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_import_public_lite.pb.h;google\protobuf\unittest_import_public_lite.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_lite.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_lite.pb.h;google\protobuf\unittest_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_lite.pb.h;google\protobuf\unittest_lite.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_lite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_lite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_lite.pb.h;google\protobuf\unittest_lite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_lite.pb.h;google\protobuf\unittest_lite.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="libprotobuf-lite.vcxproj">
++      <Project>{49ea010d-706f-4be2-a397-77854b72a040}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="protoc.vcxproj">
++      <Project>{1738d5f6-ed1e-47e0-b2f0-456864b93c1e}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/lite-test.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/lite-test.vcxproj.filters
+--- ./vsprojects/lite-test.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/lite-test.vcxproj.filters	2016-01-24 09:14:51.297700500 -0800
+@@ -0,0 +1,53 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\test_util_lite.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_lite.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_import_lite.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_import_public_lite.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\lite_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\test_util_lite.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_lite.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_import_lite.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_import_public_lite.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++  <ItemGroup>
++    <CustomBuild Include="..\src\google\protobuf\unittest_lite.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_lite.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_public_lite.proto" />
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+Binary files ./vsprojects/protobuf.sdf and ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protobuf.sdf differ
+diff -ruN ./vsprojects/protobuf.sln ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protobuf.sln
+--- ./vsprojects/protobuf.sln	2013-02-26 10:12:03.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protobuf.sln	2016-01-24 09:18:42.816075500 -0800
+@@ -1,92 +1,108 @@
+-﻿
+-Microsoft Visual Studio Solution File, Format Version 9.00
+-# Visual Studio 2005
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf", "libprotobuf.vcproj", "{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}"
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotoc", "libprotoc.vcproj", "{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}"
+-	ProjectSection(ProjectDependencies) = postProject
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
+-	EndProjectSection
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoc", "protoc.vcproj", "{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}"
+-	ProjectSection(ProjectDependencies) = postProject
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
+-	EndProjectSection
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests.vcproj", "{4DF72760-C055-40A5-A77E-30A17E2AC2DB}"
+-	ProjectSection(ProjectDependencies) = postProject
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
+-		{3AF54C8A-10BF-4332-9147-F68ED9862032} = {3AF54C8A-10BF-4332-9147-F68ED9862032}
+-		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32} = {CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E} = {1738D5F6-ED1E-47E0-B2F0-456864B93C1E}
+-	EndProjectSection
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "..\gtest\msvc\gtest.vcproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_main", "..\gtest\msvc\gtest_main.vcproj", "{3AF54C8A-10BF-4332-9147-F68ED9862032}"
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf-lite", "libprotobuf-lite.vcproj", "{49EA010D-706F-4BE2-A397-77854B72A040}"
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lite-test", "lite-test.vcproj", "{12015ACE-42BE-4952-A5A0-44A9A46908E2}"
+-	ProjectSection(ProjectDependencies) = postProject
+-		{49EA010D-706F-4BE2-A397-77854B72A040} = {49EA010D-706F-4BE2-A397-77854B72A040}
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E} = {1738D5F6-ED1E-47E0-B2F0-456864B93C1E}
+-	EndProjectSection
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_plugin", "test_plugin.vcproj", "{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}"
+-	ProjectSection(ProjectDependencies) = postProject
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE} = {B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30} = {3E283F37-A4ED-41B7-A3E6-A2D89D131A30}
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}
+-	EndProjectSection
+-EndProject
+-Global
+-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+-		Debug|Win32 = Debug|Win32
+-		Release|Win32 = Release|Win32
+-	EndGlobalSection
+-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.Build.0 = Debug|Win32
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.ActiveCfg = Release|Win32
+-		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.Build.0 = Release|Win32
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.Build.0 = Debug|Win32
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.ActiveCfg = Release|Win32
+-		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.Build.0 = Release|Win32
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.Build.0 = Debug|Win32
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.ActiveCfg = Release|Win32
+-		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.Build.0 = Release|Win32
+-		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.Build.0 = Debug|Win32
+-		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.ActiveCfg = Release|Win32
+-		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.Build.0 = Release|Win32
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.Build.0 = Debug|Win32
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.ActiveCfg = Release|Win32
+-		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.Build.0 = Release|Win32
+-		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.Build.0 = Debug|Win32
+-		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.ActiveCfg = Release|Win32
+-		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.Build.0 = Release|Win32
+-		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.Build.0 = Debug|Win32
+-		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.ActiveCfg = Release|Win32
+-		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.Build.0 = Release|Win32
+-		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.Build.0 = Debug|Win32
+-		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.ActiveCfg = Release|Win32
+-		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.Build.0 = Release|Win32
+-		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.Build.0 = Debug|Win32
+-		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.ActiveCfg = Release|Win32
+-		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.Build.0 = Release|Win32
+-	EndGlobalSection
+-	GlobalSection(SolutionProperties) = preSolution
+-		HideSolutionNode = FALSE
+-	EndGlobalSection
+-EndGlobal
++﻿
++Microsoft Visual Studio Solution File, Format Version 12.00
++# Visual Studio 14
++VisualStudioVersion = 14.0.24720.0
++MinimumVisualStudioVersion = 10.0.40219.1
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf", "libprotobuf.vcxproj", "{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotoc", "libprotoc.vcxproj", "{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoc", "protoc.vcxproj", "{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests.vcxproj", "{4DF72760-C055-40A5-A77E-30A17E2AC2DB}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "..\gtest\msvc\gtest.vcxproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_main", "..\gtest\msvc\gtest_main.vcxproj", "{3AF54C8A-10BF-4332-9147-F68ED9862032}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libprotobuf-lite", "libprotobuf-lite.vcxproj", "{49EA010D-706F-4BE2-A397-77854B72A040}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lite-test", "lite-test.vcxproj", "{12015ACE-42BE-4952-A5A0-44A9A46908E2}"
++EndProject
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_plugin", "test_plugin.vcxproj", "{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}"
++EndProject
++Global
++	GlobalSection(SolutionConfigurationPlatforms) = preSolution
++		Debug|Win32 = Debug|Win32
++		Debug|x64 = Debug|x64
++		Release|Win32 = Release|Win32
++		Release|x64 = Release|x64
++	EndGlobalSection
++	GlobalSection(ProjectConfigurationPlatforms) = postSolution
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.ActiveCfg = Debug|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|Win32.Build.0 = Debug|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|x64.ActiveCfg = Debug|x64
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Debug|x64.Build.0 = Debug|x64
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.ActiveCfg = Release|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|Win32.Build.0 = Release|Win32
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|x64.ActiveCfg = Release|x64
++		{3E283F37-A4ED-41B7-A3E6-A2D89D131A30}.Release|x64.Build.0 = Release|x64
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.ActiveCfg = Debug|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|Win32.Build.0 = Debug|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|x64.ActiveCfg = Debug|x64
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Debug|x64.Build.0 = Debug|x64
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.ActiveCfg = Release|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|Win32.Build.0 = Release|Win32
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|x64.ActiveCfg = Release|x64
++		{B84FF31A-5F9A-46F8-AB22-DBFC9BECE3BE}.Release|x64.Build.0 = Release|x64
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.ActiveCfg = Debug|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|Win32.Build.0 = Debug|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|x64.ActiveCfg = Debug|x64
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Debug|x64.Build.0 = Debug|x64
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.ActiveCfg = Release|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|Win32.Build.0 = Release|Win32
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|x64.ActiveCfg = Release|x64
++		{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}.Release|x64.Build.0 = Release|x64
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.ActiveCfg = Debug|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|Win32.Build.0 = Debug|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|x64.ActiveCfg = Debug|x64
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Debug|x64.Build.0 = Debug|x64
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.ActiveCfg = Release|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|Win32.Build.0 = Release|Win32
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|x64.ActiveCfg = Release|x64
++		{4DF72760-C055-40A5-A77E-30A17E2AC2DB}.Release|x64.Build.0 = Release|x64
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.ActiveCfg = Debug|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.Build.0 = Debug|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|x64.ActiveCfg = Debug|x64
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|x64.Build.0 = Debug|x64
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.ActiveCfg = Release|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.Build.0 = Release|Win32
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|x64.ActiveCfg = Release|x64
++		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|x64.Build.0 = Release|x64
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.ActiveCfg = Debug|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|Win32.Build.0 = Debug|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|x64.ActiveCfg = Debug|x64
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Debug|x64.Build.0 = Debug|x64
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.ActiveCfg = Release|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|Win32.Build.0 = Release|Win32
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|x64.ActiveCfg = Release|x64
++		{3AF54C8A-10BF-4332-9147-F68ED9862032}.Release|x64.Build.0 = Release|x64
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.ActiveCfg = Debug|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|Win32.Build.0 = Debug|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|x64.ActiveCfg = Debug|x64
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Debug|x64.Build.0 = Debug|x64
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.ActiveCfg = Release|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|Win32.Build.0 = Release|Win32
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|x64.ActiveCfg = Release|x64
++		{49EA010D-706F-4BE2-A397-77854B72A040}.Release|x64.Build.0 = Release|x64
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.ActiveCfg = Debug|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|Win32.Build.0 = Debug|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|x64.ActiveCfg = Debug|x64
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Debug|x64.Build.0 = Debug|x64
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.ActiveCfg = Release|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|Win32.Build.0 = Release|Win32
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|x64.ActiveCfg = Release|x64
++		{12015ACE-42BE-4952-A5A0-44A9A46908E2}.Release|x64.Build.0 = Release|x64
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.ActiveCfg = Debug|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|Win32.Build.0 = Debug|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|x64.ActiveCfg = Debug|x64
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Debug|x64.Build.0 = Debug|x64
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.ActiveCfg = Release|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|Win32.Build.0 = Release|Win32
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|x64.ActiveCfg = Release|x64
++		{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}.Release|x64.Build.0 = Release|x64
++	EndGlobalSection
++	GlobalSection(SolutionProperties) = preSolution
++		HideSolutionNode = FALSE
++	EndGlobalSection
++EndGlobal
+Binary files ./vsprojects/protobuf.VC.opendb and ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protobuf.VC.opendb differ
+diff -ruN ./vsprojects/protoc.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protoc.vcxproj
+--- ./vsprojects/protoc.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protoc.vcxproj	2016-01-24 09:18:42.753565700 -0800
+@@ -0,0 +1,166 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{1738D5F6-ED1E-47E0-B2F0-456864B93C1E}</ProjectGuid>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\main.cc" />
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="libprotobuf.vcxproj">
++      <Project>{3e283f37-a4ed-41b7-a3e6-a2d89d131a30}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="libprotoc.vcxproj">
++      <Project>{b84ff31a-5f9a-46f8-ab22-dbfc9bece3be}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/protoc.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protoc.vcxproj.filters
+--- ./vsprojects/protoc.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/protoc.vcxproj.filters	2016-01-24 09:14:44.078388900 -0800
+@@ -0,0 +1,22 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\main.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/test_plugin.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/test_plugin.vcxproj
+--- ./vsprojects/test_plugin.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/test_plugin.vcxproj	2016-01-24 09:18:42.675455500 -0800
+@@ -0,0 +1,197 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{CBBD34E5-02B0-40D5-B6D8-BFEA83E18B32}</ProjectGuid>
++    <RootNamespace>test_plugin</RootNamespace>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\mock_code_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\testing\file.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\mock_code_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\test_plugin.cc" />
++    <ClCompile Include="..\src\google\protobuf\testing\file.cc" />
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="..\gtest\msvc\gtest.vcxproj">
++      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="libprotobuf.vcxproj">
++      <Project>{3e283f37-a4ed-41b7-a3e6-a2d89d131a30}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="libprotoc.vcxproj">
++      <Project>{b84ff31a-5f9a-46f8-ab22-dbfc9bece3be}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/test_plugin.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/test_plugin.vcxproj.filters
+--- ./vsprojects/test_plugin.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/test_plugin.vcxproj.filters	2016-01-24 09:14:52.735320800 -0800
+@@ -0,0 +1,32 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{79995dba-16e3-4a78-9263-18fc201cf4cd}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{3a2c2175-0210-43a5-aca2-14f73bddf091}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\mock_code_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\testing\file.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\test_plugin.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\mock_code_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\testing\file.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/tests.vcxproj ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/tests.vcxproj
+--- ./vsprojects/tests.vcxproj	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/tests.vcxproj	2016-01-24 09:18:42.722332900 -0800
+@@ -0,0 +1,446 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Debug|x64">
++      <Configuration>Debug</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|x64">
++      <Configuration>Release</Configuration>
++      <Platform>x64</Platform>
++    </ProjectConfiguration>
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <ProjectGuid>{4DF72760-C055-40A5-A77E-30A17E2AC2DB}</ProjectGuid>
++    <RootNamespace>tests</RootNamespace>
++    <Keyword>Win32Proj</Keyword>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup>
++    <_ProjectFileVersion>14.0.24720.0</_ProjectFileVersion>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <OutDir>Debug\</OutDir>
++    <IntDir>Debug\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <OutDir>Release\</OutDir>
++    <IntDir>Release\</IntDir>
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <LinkIncremental>true</LinkIncremental>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <MinimalRebuild>true</MinimalRebuild>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <Optimization>Disabled</Optimization>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
++      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <CustomBuildStep>
++      <Message />
++      <Command />
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader />
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++      <TargetMachine>MachineX86</TargetMachine>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <CustomBuildStep>
++      <Message>
++      </Message>
++      <Command>
++      </Command>
++    </CustomBuildStep>
++    <ClCompile>
++      <AdditionalOptions>/wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305 %(AdditionalOptions)</AdditionalOptions>
++      <AdditionalIncludeDirectories>../src;.;../gtest/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
++      <PrecompiledHeader>
++      </PrecompiledHeader>
++      <WarningLevel>Level3</WarningLevel>
++      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
++    </ClCompile>
++    <Link>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++      <SubSystem>Console</SubSystem>
++      <OptimizeReferences>true</OptimizeReferences>
++      <EnableCOMDATFolding>true</EnableCOMDATFolding>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemGroup>
++    <ClInclude Include="..\src\google\protobuf\compiler\mock_code_generator.h" />
++    <ClInclude Include="..\src\google\protobuf\testing\file.h" />
++    <ClInclude Include="..\src\google\protobuf\testing\googletest.h" />
++    <ClInclude Include="..\src\google\protobuf\test_util.h" />
++    <ClInclude Include="google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h" />
++    <ClInclude Include="google\protobuf\unittest.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_custom_options.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_embed_optimize_for.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_import.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_import_public.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_lite_imports_nonline.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_mset.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_no_generic_services.pb.h" />
++    <ClInclude Include="google\protobuf\unittest_optimize_for.pb.h" />
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\compiler\command_line_interface_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_bootstrap_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_plugin_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\importer_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_doc_comment_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_plugin_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\mock_code_generator.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\parser_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\compiler\python\python_plugin_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\descriptor_database_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\descriptor_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\dynamic_message_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\extension_set_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\generated_message_reflection_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\printer_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\tokenizer_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\message_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\reflection_ops_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\repeated_field_reflection_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\repeated_field_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\common_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\once_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\structurally_valid_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\strutil_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\template_util_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\stubs\type_traits_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\testing\file.cc" />
++    <ClCompile Include="..\src\google\protobuf\testing\googletest.cc" />
++    <ClCompile Include="..\src\google\protobuf\test_util.cc" />
++    <ClCompile Include="..\src\google\protobuf\text_format_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\unknown_field_set_unittest.cc" />
++    <ClCompile Include="..\src\google\protobuf\wire_format_unittest.cc" />
++    <ClCompile Include="google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_custom_options.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_embed_optimize_for.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_import.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_import_public.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_lite_imports_nonlite.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_mset.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_no_generic_services.pb.cc" />
++    <ClCompile Include="google\protobuf\unittest_optimize_for.pb.cc" />
++  </ItemGroup>
++  <ItemGroup>
++    <CustomBuild Include="..\src\google\protobuf\compiler\cpp\cpp_test_bad_identifiers.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating cpp_test_bad_identifiers.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating cpp_test_bad_identifiers.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/compiler/cpp/cpp_test_bad_identifiers.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/compiler/cpp/cpp_test_bad_identifiers.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h;google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h;google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating cpp_test_bad_identifiers.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating cpp_test_bad_identifiers.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/compiler/cpp/cpp_test_bad_identifiers.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/compiler/cpp/cpp_test_bad_identifiers.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h;google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h;google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest.pb.h;google\protobuf\unittest.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest.pb.h;google\protobuf\unittest.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest.pb.h;google\protobuf\unittest.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest.pb.h;google\protobuf\unittest.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_custom_options.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_custom_options.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_custom_options.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_custom_options.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_custom_options.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_custom_options.pb.h;google\protobuf\unittest_custom_options.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_custom_options.pb.h;google\protobuf\unittest_custom_options.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_custom_options.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_custom_options.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_custom_options.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_custom_options.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_custom_options.pb.h;google\protobuf\unittest_custom_options.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_custom_options.pb.h;google\protobuf\unittest_custom_options.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_embed_optimize_for.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_embed_optimize_for.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_embed_optimize_for.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_embed_optimize_for.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_embed_optimize_for.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_embed_optimize_for.pb.h;google\protobuf\unittest_embed_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_embed_optimize_for.pb.h;google\protobuf\unittest_embed_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_embed_optimize_for.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_embed_optimize_for.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_embed_optimize_for.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_embed_optimize_for.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_embed_optimize_for.pb.h;google\protobuf\unittest_embed_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_embed_optimize_for.pb.h;google\protobuf\unittest_embed_optimize_for.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_import.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_import.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_import.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_import.pb.h;google\protobuf\unittest_import.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_import.pb.h;google\protobuf\unittest_import.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_import.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_import.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_import.pb.h;google\protobuf\unittest_import.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_import.pb.h;google\protobuf\unittest_import.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_public.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_import_public.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_import_public.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_import_public.pb.h;google\protobuf\unittest_import_public.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_import_public.pb.h;google\protobuf\unittest_import_public.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_import_public.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_import_public.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_import_public.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_import_public.pb.h;google\protobuf\unittest_import_public.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_import_public.pb.h;google\protobuf\unittest_import_public.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_lite_imports_nonlite.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_lite_imports_nonlite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_lite_imports_nonlite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite_imports_nonlite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite_imports_nonlite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_lite_imports_nonlite.pb.h;google\protobuf\unittest_lite_imports_nonlite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_lite_imports_nonlite.pb.h;google\protobuf\unittest_lite_imports_nonlite.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_lite_imports_nonlite.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_lite_imports_nonlite.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite_imports_nonlite.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_lite_imports_nonlite.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_lite_imports_nonlite.pb.h;google\protobuf\unittest_lite_imports_nonlite.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_lite_imports_nonlite.pb.h;google\protobuf\unittest_lite_imports_nonlite.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_mset.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_mset.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_mset.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_mset.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_mset.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_mset.pb.h;google\protobuf\unittest_mset.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_mset.pb.h;google\protobuf\unittest_mset.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_mset.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_mset.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_mset.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_mset.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_mset.pb.h;google\protobuf\unittest_mset.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_mset.pb.h;google\protobuf\unittest_mset.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_no_generic_services.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_no_generic_services.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_no_generic_services.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_no_generic_services.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_no_generic_services.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_no_generic_services.pb.h;google\protobuf\unittest_no_generic_services.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_no_generic_services.pb.h;google\protobuf\unittest_no_generic_services.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_no_generic_services.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_no_generic_services.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_no_generic_services.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_no_generic_services.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_no_generic_services.pb.h;google\protobuf\unittest_no_generic_services.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_no_generic_services.pb.h;google\protobuf\unittest_no_generic_services.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++    <CustomBuild Include="..\src\google\protobuf\unittest_optimize_for.proto">
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating unittest_optimize_for.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating unittest_optimize_for.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_optimize_for.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_optimize_for.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">google\protobuf\unittest_optimize_for.pb.h;google\protobuf\unittest_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">google\protobuf\unittest_optimize_for.pb.h;google\protobuf\unittest_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating unittest_optimize_for.pb.{h,cc}...</Message>
++      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating unittest_optimize_for.pb.{h,cc}...</Message>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_optimize_for.proto
++</Command>
++      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\protoc -I../src --cpp_out=. ../src/google/protobuf/unittest_optimize_for.proto
++</Command>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">google\protobuf\unittest_optimize_for.pb.h;google\protobuf\unittest_optimize_for.pb.cc;%(Outputs)</Outputs>
++      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">google\protobuf\unittest_optimize_for.pb.h;google\protobuf\unittest_optimize_for.pb.cc;%(Outputs)</Outputs>
++    </CustomBuild>
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="..\gtest\msvc\gtest.vcxproj">
++      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be7}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="..\gtest\msvc\gtest_main.vcxproj">
++      <Project>{3af54c8a-10bf-4332-9147-f68ed9862032}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="libprotobuf.vcxproj">
++      <Project>{3e283f37-a4ed-41b7-a3e6-a2d89d131a30}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="libprotoc.vcxproj">
++      <Project>{b84ff31a-5f9a-46f8-ab22-dbfc9bece3be}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="protoc.vcxproj">
++      <Project>{1738d5f6-ed1e-47e0-b2f0-456864b93c1e}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++    <ProjectReference Include="test_plugin.vcxproj">
++      <Project>{cbbd34e5-02b0-40d5-b6d8-bfea83e18b32}</Project>
++      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
++  <ImportGroup Label="ExtensionTargets">
++  </ImportGroup>
++</Project>
+\ No newline at end of file
+diff -ruN ./vsprojects/tests.vcxproj.filters ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/tests.vcxproj.filters
+--- ./vsprojects/tests.vcxproj.filters	1969-12-31 16:00:00.000000000 -0800
++++ ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/tests.vcxproj.filters	2016-01-24 09:14:45.984788300 -0800
+@@ -0,0 +1,213 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <ItemGroup>
++    <Filter Include="Header Files">
++      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
++      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
++    </Filter>
++    <Filter Include="Resource Files">
++      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
++      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
++    </Filter>
++    <Filter Include="Source Files">
++      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
++      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
++    </Filter>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\testing\file.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\testing\googletest.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\test_util.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="..\src\google\protobuf\compiler\mock_code_generator.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_custom_options.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_embed_optimize_for.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_import.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_import_public.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_lite_imports_nonline.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_mset.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_optimize_for.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++    <ClInclude Include="google\protobuf\unittest_no_generic_services.pb.h">
++      <Filter>Header Files</Filter>
++    </ClInclude>
++  </ItemGroup>
++  <ItemGroup>
++    <ClCompile Include="..\src\google\protobuf\io\coded_stream_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\command_line_interface_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\mock_code_generator.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\common_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_bootstrap_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\compiler\cpp\cpp_test_bad_identifiers.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\cpp\cpp_plugin_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_plugin_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\java\java_doc_comment_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\python\python_plugin_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\descriptor_database_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\descriptor_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\dynamic_message_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\extension_set_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\testing\file.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\generated_message_reflection_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\testing\googletest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\importer_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\message_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\once_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\compiler\parser_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\printer_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\reflection_ops_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\repeated_field_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\repeated_field_reflection_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\structurally_valid_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\stringprintf_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\template_util_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\type_traits_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\stubs\strutil_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\test_util.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\text_format_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\tokenizer_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_custom_options.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_embed_optimize_for.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_import.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_import_public.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_lite_imports_nonlite.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_mset.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_optimize_for.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="google\protobuf\unittest_no_generic_services.pb.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\unknown_field_set_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\wire_format_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++    <ClCompile Include="..\src\google\protobuf\io\zero_copy_stream_unittest.cc">
++      <Filter>Source Files</Filter>
++    </ClCompile>
++  </ItemGroup>
++  <ItemGroup>
++    <CustomBuild Include="..\src\google\protobuf\compiler\cpp\cpp_test_bad_identifiers.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_custom_options.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_embed_optimize_for.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_import.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_import_public.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_lite_imports_nonlite.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_mset.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_optimize_for.proto" />
++    <CustomBuild Include="..\src\google\protobuf\unittest_no_generic_services.proto" />
++  </ItemGroup>
++</Project>
+\ No newline at end of file
+Binary files ./vsprojects/UpgradeLog.htm and ../../build/external/x64/Debug/protobuf_2.5.0/build/vsprojects/UpgradeLog.htm differ

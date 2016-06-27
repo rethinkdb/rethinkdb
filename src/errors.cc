@@ -19,6 +19,7 @@
 #include "thread_local.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "arch/timing.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
 TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
 
@@ -74,7 +75,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    logERR("Error in %s at line %d:", file, line);
+    logERR("Error in thread %d in %s at line %d:", get_thread_id().threadnum, file, line);
     vlogERR(msg, args);
     va_end(args);
 
@@ -89,7 +90,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
-#ifdef _GNU_SOURCE
+#ifdef __GLIBC__
     return strerror_r(errsv, buf, buflen);
 #elif defined(_WIN32)
     UNUSED errno_t res = strerror_s(buf, buflen, errsv);
@@ -106,7 +107,7 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 MUST_USE const std::string winerr_string(DWORD winerr) {
     char *errmsg;
     DWORD res = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, NULL);
+                   nullptr, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, nullptr);
     if (res != 0) {
         size_t end = strlen(errmsg);
         while (end > 0 && isspace(errmsg[end-1])) {
@@ -247,7 +248,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     }
 
     logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());
-    logERR("backtrace:\n%s", format_backtrace(exception->ContextRecord).c_str());
+    logERR("backtrace:\n%s", format_backtrace().c_str());
 
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;
@@ -257,15 +258,20 @@ int windows_runtime_debug_failure_handler(int type, char *message, int *retval) 
     logERR("run-time debug failure:\n%s", message);
     logERR("backtrace:\n%s", format_backtrace().c_str());
 
-    return FALSE;
+    return false;
 }
 
+BOOL WINAPI windows_ctrl_handler(DWORD type) {
+    thread_pool_t::interrupt_handler(type);
+    return true;
+}
 #endif
 
 void install_generic_crash_handler() {
 #ifdef _WIN32
     // TODO WINDOWS: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
+    SetConsoleCtrlHandler(windows_ctrl_handler, true);
 #ifdef _MSC_VER
     _CrtSetReportHook(windows_runtime_debug_failure_handler);
 #endif
@@ -274,15 +280,15 @@ void install_generic_crash_handler() {
     {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);
 
-        int res = sigaction(SIGSEGV, &sa, NULL);
+        int res = sigaction(SIGSEGV, &sa, nullptr);
         guarantee_err(res == 0, "Could not install SEGV signal handler");
-        res = sigaction(SIGBUS, &sa, NULL);
+        res = sigaction(SIGBUS, &sa, nullptr);
         guarantee_err(res == 0, "Could not install BUS signal handler");
     }
 #endif
 
     struct sigaction sa = make_sa_handler(0, SIG_IGN);
-    int res = sigaction(SIGPIPE, &sa, NULL);
+    int res = sigaction(SIGPIPE, &sa, nullptr);
     guarantee_err(res == 0, "Could not install PIPE handler");
 #endif
 

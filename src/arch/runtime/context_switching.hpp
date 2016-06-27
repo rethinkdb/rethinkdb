@@ -4,19 +4,30 @@
 
 #ifdef _WIN32
 
-// TODO WINDOWS: implement this
-
 struct fiber_context_ref_t {
-    bool is_nil();
+	void* fiber = nullptr;
+	bool is_nil() { return fiber == nullptr; }
+	~fiber_context_ref_t();
 };
+
+void coro_initialize_for_thread();
 
 class fiber_stack_t {
 public:
     fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
+    ~fiber_stack_t();
+    fiber_context_ref_t context;
+    bool has_stack_info;
+    char *stack_base;
+    char *stack_limit;
     bool address_in_stack(const void *addr) const;
     bool address_is_stack_overflow(const void *addr) const;
     size_t free_space_below(const void *addr) const;
-    fiber_context_ref_t context;
+
+    /* These two are currently not implemented for fiber stacks.
+    I think fibers always have some overflow protection though? */
+    void enable_overflow_protection() {}
+    void disable_overflow_protection() {}
 };
 
 void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);
@@ -92,9 +103,15 @@ public:
     /* Returns how many more bytes below the given address can be used */
     size_t free_space_below(const void *addr) const;
 
+    /* Enables stack-smashing protection for this stack, if not already enabled */
+    void enable_overflow_protection();
+    /* Disables stack-smashing protection for this stack, if currently enabled */
+    void disable_overflow_protection();
+
 private:
     scoped_page_aligned_ptr_t<char> stack;
     size_t stack_size;
+    bool overflow_protection_enabled;
 #ifdef VALGRIND
     int valgrind_stack_id;
 #endif
@@ -206,6 +223,10 @@ public:
 
     /* Returns how many more bytes below the given address can be used */
     size_t free_space_below(const void *addr) const;
+
+    /* These two are currently not implemented for threaded stacks. */
+    void enable_overflow_protection() {}
+    void disable_overflow_protection() {}
 
 private:
     static void *internal_run(void *p);

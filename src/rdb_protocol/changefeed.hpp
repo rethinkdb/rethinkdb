@@ -14,6 +14,8 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
@@ -34,13 +36,14 @@ class auto_drainer_t;
 class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
-class namespace_interface_access_t;
 class real_superblock_t;
 class sindex_superblock_t;
+class table_meta_client_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
-typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+// The string is the btree index key
+typedef std::pair<ql::datum_t, std::string> index_pair_t;
 typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
 
 namespace ql {
@@ -131,6 +134,7 @@ struct keyspec_t {
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datumspec_t datumspec;
+        boost::optional<datum_t> intersect_geometry;
     };
     struct empty_t { };
     struct limit_t {
@@ -168,6 +172,25 @@ struct keyspec_t {
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
+struct streamspec_t {
+    counted_t<datum_stream_t> maybe_src; // Non-null iff `include_initial`.
+    std::string table_name;
+    bool include_offsets;
+    bool include_states;
+    bool include_types;
+    configured_limits_t limits;
+    datum_t squash;
+    keyspec_t::spec_t spec;
+    streamspec_t(counted_t<datum_stream_t> _maybe_src,
+                 std::string _table_name,
+                 bool _include_offsets,
+                 bool _include_states,
+                 bool _include_types,
+                 configured_limits_t _limits,
+                 datum_t _squash,
+                 keyspec_t::spec_t _spec);
+};
+
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::range_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::empty_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(keyspec_t::limit_t);
@@ -196,18 +219,15 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
-        counted_t<datum_stream_t> maybe_src,
-        configured_limits_t limits,
-        const datum_t &squash,
-        bool include_states,
-        const namespace_id_t &table,
+        const streamspec_t &ss,
+        const namespace_id_t &table_id,
         backtrace_id_t bt,
-        const std::string &table_name,
-        const keyspec_t::spec_t &spec);
+        table_meta_client_t *table_meta_client);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
-        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
+        const auto_drainer_t::lock_t &lock,
+        real_feed_t *expected_feed);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
@@ -256,6 +276,10 @@ public:
     typedef typename
     std::set<diterator, std::function<bool(const diterator &,
                                            const diterator &)> >::iterator iterator;
+    typedef typename
+    std::set<diterator, std::function<bool(const diterator &,
+                                           const diterator &)> >::const_iterator
+    const_iterator;
 
     explicit index_queue_t(Gt gt) : index(gt) { }
 
@@ -274,7 +298,6 @@ public:
             guarantee(pair.second);
             it = pair.first;
         } else {
-            guarantee(k == p.first->second.first);
             it = index.find(p.first);
             guarantee(it != index.end());
         }
@@ -282,13 +305,15 @@ public:
         return std::make_pair(it, p.second);
     }
 
-    size_t size() {
+    size_t size() const {
         guarantee(data.size() == index.size());
         return data.size();
     }
 
     iterator begin() { return index.begin(); }
     iterator end() { return index.end(); }
+    const_iterator begin() const { return index.begin(); }
+    const_iterator end() const { return index.end(); }
     // This is sometimes called after `**raw_it` has been invalidated, so we
     // can't just dispatch to the `erase(diterator)` implementation above.
     void erase(const iterator &raw_it) {
@@ -374,6 +399,7 @@ public:
         std::string _table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -403,9 +429,7 @@ private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
     std::vector<item_t> read_more(
         const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-        sorting_t sorting,
-        const boost::optional<item_queue_t::iterator> &start,
-        size_t n);
+        const boost::optional<item_t> &start);
     void send(msg_t &&msg);
 
     scoped_ptr_t<env_t> env;
@@ -419,8 +443,8 @@ private:
     limit_order_t gt;
     item_queue_t item_queue;
 
-    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
-    std::vector<std::string> deleted;
+    std::map<std::string, std::pair<datum_t, datum_t> > added;
+    std::set<std::string> deleted;
 
     bool aborted;
 public:
@@ -448,6 +472,7 @@ public:
         const std::string &table,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -562,10 +587,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
-        bool include_initial,
-        bool include_states,
-        configured_limits_t limits,
-        const keyspec_t::spec_t &spec,
+        const streamspec_t &ss,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
         backtrace_id_t bt);
@@ -580,6 +602,7 @@ public:
     virtual void maybe_remove() = 0;
 
 private:
+    new_mutex_t stamp_mutex;
     uint64_t stamp;
     const uuid_u uuid;
     const scoped_ptr_t<artificial_feed_t> feed;

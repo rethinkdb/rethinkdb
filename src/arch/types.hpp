@@ -8,6 +8,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;
@@ -95,6 +96,9 @@ typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;
+
+class linux_secure_tcp_conn_t;
+typedef linux_secure_tcp_conn_t secure_tcp_conn_t;
 
 enum class file_direct_io_mode_t {
     direct_desired,

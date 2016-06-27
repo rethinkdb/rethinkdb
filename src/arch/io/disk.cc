@@ -293,7 +293,7 @@ void linux_file_t::write_async(int64_t offset, size_t length, const void *buf,
 void linux_file_t::writev_async(int64_t offset, size_t length,
                                 scoped_array_t<iovec> &&bufs,
                                 file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr != NULL,
+    rassert(diskmgr != nullptr,
             "No diskmgr has been constructed (are we running without an event queue?)");
     verify_aligned_file_access(file_size, offset, length, bufs);
 
@@ -430,14 +430,31 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         crash("Bad file access mode.");
     }
 
-    // TODO WINDOWS: is all this sharing necessary? According to issue #5165, it doesn't even work
+    // TODO WINDOWS: is all this sharing necessary?
     DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
-    fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
+    DWORD attributes = FILE_ATTRIBUTE_NORMAL;
+
+    // Supporting fully unbuffered file i/o on Windows would require
+    // aligning all reads and writes to the sector size of the volume
+    // (See docs for FILE_FLAG_NO_BUFFERING).
+    //
+    // Instead we only use FILE_FLAG_WRITE_THROUGH
+    DWORD flags =
+        backender->get_direct_io_mode() == file_direct_io_mode_t::direct_desired
+        ? FILE_FLAG_WRITE_THROUGH
+        : 0;
+
+    fd.reset(CreateFile(path, access_mode, share_mode, nullptr, create_mode, flags | attributes, nullptr));
     if (fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
         return file_open_result_t(file_open_result_t::ERROR, EIO);
     }
+
+    file_open_result_t open_res = file_open_result_t(flags & FILE_FLAG_WRITE_THROUGH
+                                                     ? file_open_result_t::DIRECT
+                                                     : file_open_result_t::BUFFERED,
+                                                     0);
 
 #else
     // Construct file flags
@@ -495,7 +512,6 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     if (fd.get() == INVALID_FD) {
         return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
-#endif
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
@@ -556,6 +572,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     default:
         unreachable();
     }
+#endif
 
     const int64_t file_size = get_file_size(fd.get());
 
@@ -594,8 +611,11 @@ int perform_datasync(fd_t fd) {
 
 #elif defined(_WIN32)
 
-    // TODO WINDOWS
-    (void) fd;
+    BOOL res = FlushFileBuffers(fd);
+    if (!res) {
+        logWRN("FlushFileBuffers failed: %s", winerr_string(GetLastError()).c_str());
+        return EIO;
+    }
     return 0;
 
 #elif defined(__linux__)
@@ -617,7 +637,7 @@ MUST_USE int fsync_parent_directory(const char *path) {
 #else
     char absolute_path[PATH_MAX];
     char *abs_res = realpath(path, absolute_path);
-    guarantee_err(abs_res != NULL, "Failed to determine absolute path for '%s'", path);
+    guarantee_err(abs_res != nullptr, "Failed to determine absolute path for '%s'", path);
     char *parent_path = dirname(absolute_path); // Note: modifies absolute_path
 
     // Get a file descriptor on the parent directory

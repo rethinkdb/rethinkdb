@@ -118,7 +118,7 @@ THREADED_COROUTINES ?= 0
 
 # Require MacOS package to be signed with a developer certificate
 REQUIRE_SIGNED ?= 0
-OSX_SIGNATURE_NAME ?= Developer ID Installer: Hexagram 49, Inc. (99WDWQ7WDJ)
+OSX_SIGNATURE_NAME ?= Hexagram 49, Inc. (99WDWQ7WDJ)
 
 # Adds default configure flags to the package being built
 DIST_CONFIGURE_DEFAULT ?=
@@ -129,6 +129,9 @@ UGLIFY ?= 1
 # Sets the `-fno-omit-frame-pointer` compiler flag. Important for some profiling tools
 # such as oprofile.
 NO_OMIT_FRAME_POINTER ?= 0
+
+# Check the hash of fetched archives
+VERIFY_FETCH_HASH=1
 
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0

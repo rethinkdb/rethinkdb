@@ -16,15 +16,14 @@
 elsewhere but aren't complicated enough to deserve their own table. It has a fixed set of
 rows, each of which has a unique format and corresponds to a different setting.
 
-Right now the only row is `auth`, with the format `{"id": "auth", "auth_key": ...}`. */
+Right now the only row is `heartbeat`, with the format
+`{"id": "heartbeat", "heartbeat_timeout_secs": ...}`. */
 
 class cluster_config_artificial_table_backend_t :
     public caching_cfeed_artificial_table_backend_t
 {
 public:
     cluster_config_artificial_table_backend_t(
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                auth_semilattice_metadata_t> > _auth_sl_view,
             boost::shared_ptr<semilattice_readwrite_view_t<
                 heartbeat_semilattice_metadata_t> > _heartbeat_sl_view);
     ~cluster_config_artificial_table_backend_t();
@@ -74,26 +73,6 @@ private:
         virtual ~doc_t() { }   // make compiler happy
     };
 
-    class auth_doc_t : public doc_t {
-    public:
-        auth_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
-            auth_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { }
-        bool read(
-                signal_t *interruptor,
-                ql::datum_t *row_out,
-                admin_err_t *error_out);
-        bool write(
-                signal_t *interruptor,
-                ql::datum_t *value_inout,
-                admin_err_t *error_out);
-        void set_notification_callback(const std::function<void()> &fun);
-    private:
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            sl_view;
-        scoped_ptr_t<
-            semilattice_read_view_t<auth_semilattice_metadata_t>::subscription_t> subs;
-    };
-
     class heartbeat_doc_t : public doc_t {
     public:
         explicit heartbeat_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
@@ -115,7 +94,6 @@ private:
             > subs;
     };
 
-    auth_doc_t auth_doc;
     heartbeat_doc_t heartbeat_doc;
 
     std::map<std::string, doc_t *> docs;

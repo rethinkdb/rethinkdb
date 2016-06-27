@@ -97,8 +97,7 @@ public:
     bool exists(const database_id_t &database, const name_string_t &name);
 
     /* `get_name()` determines the name, database, and primary key of the table with the
-    given ID; it's the reverse of `find()`. It returns `false` if there is no existing
-    table with that ID. `get_name()` will not block. */
+    given ID; it's the reverse of `find()`. It will not block. */
     void get_name(
         const namespace_id_t &table_id,
         table_basic_config_t *basic_config_out)

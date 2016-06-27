@@ -12,40 +12,28 @@ import time
 
 from . import ql2_pb2 as p
 
-__all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor']
+__all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
+
+DEFAULT_PORT = 28015
 
 pErrorType = p.Response.ErrorType
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from .errors import *
 from .ast import DB, Repl, ReQLDecoder, ReQLEncoder
+from .errors import *
+from .handshake import *
 
 try:
     from ssl import match_hostname, CertificateError
 except ImportError:
-    from backports.ssl_match_hostname import match_hostname, CertificateError
-
-try:
-    xrange
-except NameError:
-    xrange = range
+    from .backports.ssl_match_hostname import match_hostname, CertificateError
 
 try:
     {}.iteritems
     dict_items = lambda d: d.iteritems()
 except AttributeError:
     dict_items = lambda d: d.items()
-
-def decodeUTF(inputPipe):
-    # attempt to decode input as utf-8 with fallbacks to get something useful
-    try:
-        return inputPipe.decode('utf-8', errors='ignore')
-    except TypeError:
-        try:
-            return inputPipe.decode('utf-8')
-        except UnicodeError:
-            return repr(inputPipe)
 
 def maybe_profile(value, res):
     if res.profile is not None:
@@ -101,7 +89,8 @@ class Response(object):
                 pErrorType.NON_EXISTENCE: ReqlNonExistenceError,
                 pErrorType.OP_FAILED: ReqlOpFailedError,
                 pErrorType.OP_INDETERMINATE: ReqlOpIndeterminateError,
-                pErrorType.USER: ReqlUserError
+                pErrorType.USER: ReqlUserError,
+                pErrorType.PERMISSION_ERROR: ReqlPermissionError
             }.get(self.error_type, ReqlRuntimeError)(
                 self.data[0], query.term, self.backtrace)
         return ReqlDriverError(("Unknown Response type %d encountered" +
@@ -152,6 +141,12 @@ class Cursor(object):
         self._maybe_fetch_batch()
         self._extend_internal(first_response)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def close(self):
         if self.error is None:
             self.error = self._empty_error()
@@ -192,10 +187,13 @@ class Cursor(object):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
-    def __str__(self):
-        val_str = ', '.join(map(repr, self.items[:10]))
+    def __summary_string(self, token, end_token):
+        if len(self.items) > 10:
+            val_str = token.join(map(repr, [self.items[i] for i in range(0,10)]))
+        else:
+            val_str = token.join(map(repr, self.items))
         if len(self.items) > 10 or self.error is None:
-            val_str += ', ...'
+            val_str += end_token
 
         if self.error is None:
             err_str = 'streaming'
@@ -204,7 +202,21 @@ class Cursor(object):
         else:
             err_str = 'error: %s' % repr(self.error)
 
-        return "%s (%s):\n[%s]" % (object.__str__(self), err_str, val_str)
+        return val_str, err_str
+
+    def __str__(self):
+        val_str, err_str = self.__summary_string(",\n", ", ...\n")
+        return "%s (%s):\n[\n%s]" % (object.__repr__(self), err_str, val_str)
+
+    def __repr__(self):
+        val_str, err_str = self.__summary_string(", ", ", ...")
+        return "<%s.%s object at %s (%s):\n [%s]>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            hex(id(self)),
+            err_str,
+            val_str
+        )
 
     def _error(self, message):
         # Set an error and extend with a dummy response to trigger any waiters
@@ -257,37 +269,54 @@ class SocketWrapper(object):
         deadline = time.time() + timeout
 
         try:
-            self._socket = \
-                socket.create_connection((self.host, self.port), timeout)
+            self._socket = socket.create_connection((self.host, self.port), timeout)
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
             if len(self.ssl) > 0:
-                ssl_context = self._get_ssl_context(self.ssl["ca_certs"])
                 try:
-                    self._socket = ssl_context.wrap_socket(self._socket,
-                                                           server_hostname=self.host)
+                    if hasattr(ssl, 'SSLContext'): # Python2.7 and 3.2+, or backports.ssl
+                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                        if hasattr(ssl_context, "options"):
+                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
+                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
+                        ssl_context.verify_mode = ssl.CERT_REQUIRED
+                        ssl_context.check_hostname = True # redundant with match_hostname
+                        ssl_context.load_verify_locations(self.ssl["ca_certs"])
+                        self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
+                    else: # this does not disable SSLv2 or SSLv3
+                        self._socket = ssl.wrap_socket(
+                            self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
+                            ca_certs=self.ssl["ca_certs"])
                 except IOError as exc:
                     self._socket.close()
-                    raise ReqlDriverError("SSL handshake failed: %s" % (str(exc),))
+                    raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
                 try:
                     match_hostname(self._socket.getpeercert(), hostname=self.host)
                 except CertificateError:
                     self._socket.close()
                     raise
 
-            self.sendall(parent._parent.handshake)
-
-            # The response from the server is a null-terminated string
-            response = b''
+            parent._parent.handshake.reset()
+            response = None
             while True:
-                char = self.recvall(1, deadline)
-                if char == b'\0':
+                request = parent._parent.handshake.next_message(response)
+                if request is None:
                     break
-                response += char
-        except ReqlAuthError:
-            raise
-        except ReqlTimeoutError:
+                # This may happen in the `V1_0` protocol where we send two requests as
+                # an optimization, then need to read each separately
+                if request is not "":
+                    self.sendall(request)
+                
+                # The response from the server is a null-terminated string
+                response = b''
+                while True:
+                    char = self.recvall(1, deadline)
+                    if char == b'\0':
+                        break
+                    response += char
+        except (ReqlAuthError, ReqlTimeoutError):
+            self.close()
             raise
         except ReqlDriverError as ex:
             self.close()
@@ -301,22 +330,13 @@ class SocketWrapper(object):
         except Exception as ex:
             self.close()
             raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
-                                  (self.host, self.port, ex))
-
-        if response != b"SUCCESS":
-            self.close()
-            message = decodeUTF(response).strip()
-            if message == "ERROR: Incorrect authorization key.":
-                raise ReqlAuthError(self.host, self.port)
-            else:
-                raise ReqlDriverError("Server dropped connection with message: \"%s\"" %
-                                      (message, ))
+                                  (self.host, self.port, str(ex)))
 
     def is_open(self):
         return self._socket is not None
 
     def close(self):
-        if self._socket is not None:
+        if self.is_open():
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
@@ -386,18 +406,6 @@ class SocketWrapper(object):
                 self.close()
                 raise
 
-    def _get_ssl_context(self, ca_certs):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        if hasattr(ctx, "options"):
-            ctx.options |= getattr(ssl, "OP_NO_SSLv2", 0)
-            ctx.options |= getattr(ssl, "OP_NO_SSLv3", 0)
-
-        ctx.verify_mode = ssl.CERT_REQUIRED
-        ctx.check_hostname = True
-        ctx.load_verify_locations(ca_certs)
-        return ctx
-
-
 class ConnectionInstance(object):
     def __init__(self, parent):
         self._parent = parent
@@ -406,6 +414,14 @@ class ConnectionInstance(object):
         self._socket = None
         self._closing = False
 
+    def client_port(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[0]
+
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
         return self._parent
@@ -413,7 +429,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._socket.is_open()
 
-    def close(self, noreply_wait, token):
+    def close(self, noreply_wait=False, token=None):
         self._closing = True
 
         # Cursors may remove themselves when errored, so copy a list of them
@@ -486,7 +502,7 @@ class ConnectionInstance(object):
                     self._parent._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
-                self.close(False, None)
+                self.close()
                 raise ReqlDriverError("Unexpected response received.")
 
 
@@ -495,16 +511,15 @@ class Connection(object):
     _json_decoder = ReQLDecoder
     _json_encoder = ReQLEncoder
 
-    def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
+    def __init__(self, conn_type, host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs):
         self.db = db
-        self.auth_key = auth_key.encode('ascii')
-        self.handshake = \
-            struct.pack("<2L", p.VersionDummy.Version.V0_4, len(self.auth_key)) + \
-            self.auth_key + \
-            struct.pack("<L", p.VersionDummy.Protocol.JSON)
 
         self.host = host
-        self.port = port
+        try:
+            self.port = int(port)
+        except ValueError:
+            raise ReqlDriverError("Could not convert port %r to an integer." % port)
+
         self.connect_timeout = timeout
 
         self.ssl = ssl
@@ -519,18 +534,35 @@ class Connection(object):
         if 'json_decoder' in kwargs:
             self._json_decoder = kwargs.pop('json_decoder')
 
+        if auth_key is None and password is None:
+            auth_key = password = ''
+        elif auth_key is None and password is not None:
+            auth_key = password
+        elif auth_key is not None and password is None:
+            password = auth_key
+        else:
+            # auth_key is not None and password is not None
+            raise ReqlDriverError("`auth_key` and `password` are both set.")
+
+        if _handshake_version == 4:
+            self.handshake = HandshakeV0_4(self.host, self.port, auth_key)
+        else:
+            self.handshake = HandshakeV1_0(
+                self._json_decoder(), self._json_encoder(), self.host, self.port, user, password)
+
+    def client_port(self):
+        if self.is_open():
+            return self._instance.client_port()
+
+    def client_address(self):
+        if self.is_open():
+            return self._instance.client_address()
+
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
             timeout = self.connect_timeout
 
         self.close(noreply_wait)
-
-        # Do this here rather than in the constructor so that we don't throw
-        # in the constructor (which doesn't play well with Tornado)
-        try:
-            self.port = int(self.port)
-        except ValueError:
-            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
         self._instance = self._conn_type(self, **self._child_kwargs)
         return self._instance.connect(timeout)
@@ -610,13 +642,26 @@ class DefaultConnection(Connection):
 
 connection_type = DefaultConnection
 
-def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
-    conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
+def connect(host=None, port=None, db=None, auth_key=None, user=None, password=None, timeout=20, ssl=None, _handshake_version=10, **kwargs):
+    if host is None:
+        host = 'localhost'
+    if port is None:
+        port = DEFAULT_PORT
+    if user is None:
+        user = 'admin'
+    if timeout is None:
+        timeout = 20
+    if ssl is None:
+        ssl = dict()
+    if _handshake_version is None:
+        _handshake_version = 10
+    
+    conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):
     global connection_type
-    
+
     # find module file
     moduleName = 'net_%s' % library
     modulePath = None
@@ -625,10 +670,10 @@ def set_loop_type(library):
         modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
     else:
         raise ValueError('Unknown loop type: %r' % library)
-    
+
     # load the module
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-    
+
     # set the connection type
     connection_type = module.Connection

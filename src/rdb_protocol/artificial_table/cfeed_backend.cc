@@ -51,11 +51,8 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
-    bool include_initial,
-    bool include_states,
-    ql::configured_limits_t limits,
+    const ql::changefeed::streamspec_t &ss,
     ql::backtrace_id_t bt,
-    ql::changefeed::keyspec_t::spec_t &&spec,
     signal_t *interruptor,
     counted_t<ql::datum_stream_t> *cfeed_out,
     admin_err_t *error_out) {
@@ -76,7 +73,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
             return true;
         }
     };
-    if (!boost::apply_visitor(visitor_t(), spec)) {
+    if (!boost::apply_visitor(visitor_t(), ss.spec)) {
         *error_out = admin_err_t{
             "System tables don't support changefeeds on `.limit()`.",
             query_state_t::FAILED};
@@ -105,10 +102,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
     try {
         *cfeed_out = machinery->subscribe(
             env,
-            include_initial,
-            include_states,
-            std::move(limits),
-            std::move(spec),
+            ss,
             get_primary_key_name(),
             initial_values,
             bt);

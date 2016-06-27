@@ -3,6 +3,7 @@
 #include <inttypes.h>
 
 #include "buffer_cache/page.hpp"
+#include "random.hpp"
 #include "utils.hpp"
 
 namespace alt {

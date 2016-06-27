@@ -33,12 +33,12 @@ void verify(block_size_t block_size, const internal_node_t *buf) {
     }
     ASSERT_EQ(block_size.value(), expected);
 
-    const btree_key_t *last_key = NULL;
+    const btree_key_t *last_key = nullptr;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs - 1; p < e; ++p) {
         const btree_internal_pair *pair = internal_node::get_pair(buf, *p);
         const btree_key_t *next_key = &pair->key;
 
-        if (last_key != NULL) {
+        if (last_key != nullptr) {
             EXPECT_LT(internal_key_comp::compare(last_key, next_key), 0);
         }
 

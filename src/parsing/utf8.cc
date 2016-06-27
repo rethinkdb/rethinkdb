@@ -174,7 +174,7 @@ const char *is_valid_continuation_byte(Iterator position, Iterator end) {
     } else if (!is_continuation(*position)) {
         return "Expected continuation byte, saw something else";
     } else {
-        return 0;
+        return nullptr;
     }
 }
 
@@ -200,7 +200,7 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 110xxxxx - two character multibyte
         *codepoint = extract_and_shift(current, HIGH_THREE_BITS, 6);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
@@ -215,12 +215,12 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 1110xxxx - three character multibyte
         *codepoint = extract_and_shift(current, HIGH_FOUR_BITS, 12);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);
@@ -235,17 +235,17 @@ Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
         // 11110xxx - four character multibyte
         *codepoint = extract_and_shift(current, HIGH_FIVE_BITS, 18);
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 12;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++) << 6;
         explanation = is_valid_continuation_byte(position, end);
-        if (explanation != 0) {
+        if (explanation != nullptr) {
             return fail(explanation, start, position, codepoint, reason);
         }
         *codepoint |= continuation_data(*position++);

@@ -21,7 +21,7 @@ struct limited_fifo_queue_t :
     public passive_producer_t<value_t> {
 
     limited_fifo_queue_t(
-        int capacity, double trickle_fraction = 0.0, perfmon_counter_t *_counter = NULL)
+        int capacity, double trickle_fraction = 0.0, perfmon_counter_t *_counter = nullptr)
         : passive_producer_t<value_t>(&available_control),
           semaphore(capacity, trickle_fraction),
           counter(_counter) { }

@@ -1,0 +1,16 @@
+desc: Regression test for issue 5438
+table_variable_name: tbl
+tests:
+    - rb: tbl.index_create('a')['created']
+      ot: 1
+    - rb: tbl.index_wait('a')['ready']
+      ot: [true]
+    - rb: ch = tbl.get_all(1, index: 'a').filter({b: 1}).changes
+    - rb: tbl.insert({id: 0, a: 0, b: 0})['inserted']
+      ot: 1
+    - rb: tbl.get(0).update({a: 1})['replaced']
+      ot: 1
+    - rb: tbl.get(0).update({b: 1})['replaced']
+      ot: 1
+    - rb: fetch(ch, 1)
+      ot: [{"new_val"=>{"a"=>1, "b"=>1, "id"=>0}, "old_val"=>nil}]

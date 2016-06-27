@@ -176,13 +176,13 @@ class S2R2Rect : public S2Region {
   R1Interval y_;
 };
 
-inline S2R2Rect::S2R2Rect(R2Point const& lo, R2Point const& hi)
-  : x_(lo.x(), hi.x()), y_(lo.y(), hi.y()) {
+inline S2R2Rect::S2R2Rect(R2Point const& _lo, R2Point const& _hi)
+  : x_(_lo.x(), _hi.x()), y_(_lo.y(), _hi.y()) {
   DCHECK(is_valid());
 }
 
-inline S2R2Rect::S2R2Rect(R1Interval const& x, R1Interval const& y)
-  : x_(x), y_(y) {
+inline S2R2Rect::S2R2Rect(R1Interval const& _x, R1Interval const& _y)
+  : x_(_x), y_(_y) {
   DCHECK(is_valid());
 }
 

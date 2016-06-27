@@ -10,12 +10,14 @@
 #include "rdb_protocol/geo/geo_visitor.hpp"
 #include "rdb_protocol/geo/intersection.hpp"
 #include "rdb_protocol/geo/s2/s2.h"
+#include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
 #include "rdb_protocol/datum.hpp"
 
 using ql::datum_t;
 
+using geo::S2LatLngRect;
 using geo::S2Point;
 using geo::S2Polygon;
 using geo::S2Polyline;
@@ -32,6 +34,9 @@ public:
     }
     bool on_polygon(const S2Polygon &g) {
         return geo_does_include(*polygon_, g);
+    }
+    bool on_latlngrect(const S2LatLngRect &) {
+        throw geo_exception_t("Inclusion test not implemented on LatLngRect.");
     }
 private:
     const S2Polygon *polygon_;

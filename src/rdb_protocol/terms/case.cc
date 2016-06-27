@@ -9,8 +9,8 @@ namespace ql {
 class case_term_t : public op_term_t {
 public:
     case_term_t(compile_env_t *env, const raw_term_t &term,
-                const char *name, int (*_f)(int))
-        : op_term_t(env, term, argspec_t(1)), name_(name), f(_f) { }
+                const char *_name, int (*_f)(int))
+        : op_term_t(env, term, argspec_t(1)), name_(_name), f(_f) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string s = args->arg(env, 0)->as_str().to_std();

@@ -1,0 +1,7 @@
+desc: Skip after orderby causes use-after-free (#522)
+table_variable_name: tbl
+tests:
+  - cd: tbl.insert([{'id':0}, {'id':1}, {'id':2}])
+
+  - py: tbl.order_by('id').skip(1)
+    ot: [{'id':1}, {'id':2}]

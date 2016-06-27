@@ -285,7 +285,7 @@ tests:
   - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
-    ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+    ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.', [0])
   - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })

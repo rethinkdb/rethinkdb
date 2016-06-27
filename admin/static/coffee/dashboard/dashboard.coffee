@@ -45,6 +45,7 @@ class View extends vdom.VirtualDomView
 
     render_vdom: =>
         if @query_error?
+            console.log @query_error.msg
             h "div.section", [
                 h "h2.title", "Error"
                 h "p", [
@@ -52,7 +53,7 @@ class View extends vdom.VirtualDomView
                     h "a", href: "#", "refresh"
                 ]
                 h "p", "Error:"
-                h("pre.main_query_error", @query_error.error) if @query_error.error?
+                h("pre.main_query_error", @query_error.msg) if @query_error.msg?
             ]
         else
             h "div.dashboard-container", [

@@ -8,11 +8,11 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.defer import DeferredQueue, CancelledError
 from twisted.internet.protocol import ClientFactory, Protocol
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -43,7 +43,9 @@ class DatabaseProtocol(Protocol):
 
     def connectionMade(self):
         # Send immediately the handshake.
-        self.transport.write(self.factory.handshake_payload)
+        self.factory.handshake.reset()
+        self.transport.write(self.factory.handshake.next_message(None))
+
         # Defer a timer which will callback when timed out and errback the
         # wait_for_handshake. Otherwise, it will be cancelled in
         # handleHandshake.
@@ -66,21 +68,19 @@ class DatabaseProtocol(Protocol):
             self.buf += data
             end_index = self.buf.find(b'\0')
             if end_index != -1:
-                message = self.buf[:end_index]
+                response = self.buf[:end_index]
                 self.buf = self.buf[end_index + 1:]
-                if message != b'SUCCESS':
-                    # If there is some problem with the handshake, we errback
-                    # our deferred.
-                    self.wait_for_handshake.errback(ReqlDriverError('Server'
-                        'dropped connection with message'
-                        '"{msg}"'.format(msg=decodeUTF(message))))
-                else:
+                request = self.factory.handshake.next_message(response)
+
+                if request is None:
+                    # We're now ready to work with real data.
+                    self.state = DatabaseProtocol.READY
                     # We cancel the scheduled timeout.
                     self._timeout_defer.cancel()
                     # We callback our wait_for_handshake.
                     self.wait_for_handshake.callback(None)
-                    # We're now ready to work with real data.
-                    self.state = DatabaseProtocol.READY
+                elif request != "":
+                    self.transport.write(request)
         except Exception as e:
             self.wait_for_handshake.errback(e)
 
@@ -123,9 +123,9 @@ class DatabaseProtoFactory(ClientFactory):
 
     protocol = DatabaseProtocol
 
-    def __init__(self, timeout, response_handler, handshake_payload):
+    def __init__(self, timeout, response_handler, handshake):
         self.timeout = timeout
-        self.handshake_payload = handshake_payload
+        self.handshake = handshake
         self.response_handler = response_handler
 
     def startedConnecting(self, connector):
@@ -160,6 +160,12 @@ class CursorItems(DeferredQueue):
 
     def __len__(self):
         return len(self.pending)
+
+    def __getitem__(self, index):
+        return self.pending[index]
+
+    def __iter__(self):
+        return iter(self.pending)
 
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
@@ -238,6 +244,14 @@ class ConnectionInstance(object):
         if start_reactor:
             reactor.run()
 
+    def client_port(self):
+        if self.is_open():
+            return self._connection.transport.getHost().port
+
+    def client_address(self):
+        if self.is_open():
+            return self._connection.transport.getHost().host
+
     def _handleResponse(self, token, data):
         try:
             cursor = self._cursor_cache.get(token)
@@ -264,13 +278,19 @@ class ConnectionInstance(object):
                 raise ReqlDriverError("Unexpected response received.")
         except Exception as e:
             if not self._closing:
-                self.close(False, None, e)
+                self.close(exception=e)
 
     @inlineCallbacks
     def _connectTimeout(self, factory, timeout):
         try:
-            endpoint = TCP4ClientEndpoint(reactor, self._parent.host, self._parent.port,
-                        timeout=timeout)
+            # TODO: use ssl options
+            # TODO: this doesn't work for literal IPv6 addresses like '::1'
+            args = "tcp:%s:%d" % (self._parent.host, self._parent.port)
+
+            if timeout is not None:
+                args = args + (":timeout=%d" % timeout)
+
+            endpoint = clientFromString(reactor, args)
             p = yield endpoint.connect(factory)
             returnValue(p)
         except TimeoutError:
@@ -292,6 +312,10 @@ class ConnectionInstance(object):
         # Now, we need to wait for the handshake.
         try:
             yield pConnection.wait_for_handshake
+        except ReqlAuthError as e:
+            raise
+        except ReqlTimeoutError as e:
+            raise ReqlTimeoutError(self._parent.host, self._parent.port)
         except Exception as e:
             raise ReqlDriverError('Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}'
                                   .format(p=self._parent, exc=str(e)))
@@ -303,7 +327,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._connection._open
 
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         d = defer.succeed(None)
         self._closing = True
         error_message = "Connection is closed"

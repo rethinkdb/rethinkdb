@@ -38,7 +38,7 @@ SONAME=0
 # REBUILD_TABLES=1
 
 ifeq ($(shell uname),Darwin)
-MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) -exported_symbols_list libre2.symbols.darwin
+MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) 
 else
 MAKE_SHARED_LIBRARY=$(CXX) -shared -Wl,-soname,libre2.so.$(SONAME),--version-script=libre2.symbols $(LDFLAGS)
 endif

@@ -126,7 +126,7 @@ public:
 
         store_key_t replacement;
         bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(),
-                                     replacement.btree_key(), NULL);
+                                     replacement.btree_key(), nullptr);
 
         if (can_level) {
             ASSERT_TRUE(!sibling->kv_.empty());
@@ -178,10 +178,7 @@ public:
         --p;
         while (p->first > median && p != kv_.begin()) {
             right->kv_[p->first] = p->second;
-            std::map<store_key_t, std::string>::iterator prev = p;
-            --p;
-            kv_.erase(prev);
-            EXPECT_TRUE(right->ShouldHave((*prev).first));
+            kv_.erase(p--);
         }
 
         Verify();

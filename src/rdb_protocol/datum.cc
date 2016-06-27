@@ -155,9 +155,14 @@ datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_b
 }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    call_with_enough_stack(
-        [&] { destruct(); },
-        MIN_DATUM_RECURSION_STACK_SPACE);
+    // An optimization similar to what we do in `call_with_enough_stack_datum`,
+    // except that we can also ignore recursion for BUF_R_ARRAY and BUF_R_OBJECT.
+    if (internal_type == internal_type_t::R_ARRAY ||
+        internal_type == internal_type_t::R_OBJECT) {
+        call_with_enough_stack([&] { destruct(); }, MIN_DATUM_RECURSION_STACK_SPACE);
+    } else {
+        destruct();
+    }
 }
 
 datum_t::type_t datum_t::data_wrapper_t::get_type() const {
@@ -218,6 +223,7 @@ void datum_t::data_wrapper_t::destruct() {
     } break;
     default: unreachable();
     }
+    internal_type = internal_type_t::UNINITIALIZED;
 }
 
 void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee) {
@@ -283,6 +289,10 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
     } break;
     default: unreachable();
     }
+#ifndef NDEBUG
+    // De-initialize `movee` to make it easier to catch use-after-move bugs
+    movee.destruct();
+#endif
 }
 
 datum_t::datum_t() : data() { }
@@ -307,7 +317,10 @@ datum_t::datum_t(double _num) : data(_num) {
 }
 
 datum_t::datum_t(datum_string_t _str) : data(std::move(_str)) {
-    check_str_validity(data.r_str);
+}
+
+datum_t::datum_t(const std::string &string)
+    : data(datum_string_t(string)) {
 }
 
 datum_t::datum_t(const char *cstr) : data(cstr) { }
@@ -437,6 +450,11 @@ inline void fail_if_invalid(
     }
 }
 
+datum_t datum_t::utf8(datum_string_t _data) {
+    ql::fail_if_invalid(_data.data(), _data.size());
+    return datum_t(std::move(_data));
+}
+
 datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
                  reql_version_t reql_version) {
     switch(json.GetType()) {
@@ -450,31 +468,35 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         return datum_t::boolean(true);
     } break;
     case rapidjson::kObjectType: {
-        datum_object_builder_t builder;
-        for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
-             it != json.MemberEnd();
-             ++it) {
-            fail_if_invalid(it->name.GetString(),
-                            it->name.GetStringLength());
-            datum_string_t key(it->name.GetStringLength(),
-                               it->name.GetString());
-            bool dup = builder.add(key, to_datum(it->value, limits, reql_version));
-            rcheck_datum(!dup, base_exc_t::LOGIC,
-                         strprintf("Duplicate key %s in JSON.",
-                                   datum_t(key).print().c_str()));
-        }
-        const std::set<std::string> pts = { pseudo::literal_string };
-        return std::move(builder).to_datum(pts);
+        return call_with_enough_stack<datum_t>([&]() {
+            datum_object_builder_t builder;
+            for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
+                 it != json.MemberEnd();
+                 ++it) {
+                fail_if_invalid(it->name.GetString(),
+                                it->name.GetStringLength());
+                datum_string_t key(it->name.GetStringLength(),
+                                   it->name.GetString());
+                bool dup = builder.add(key, to_datum(it->value, limits, reql_version));
+                rcheck_datum(!dup, base_exc_t::LOGIC,
+                             strprintf("Duplicate key %s in JSON.",
+                                       datum_t(key).print().c_str()));
+            }
+            const std::set<std::string> pts = { pseudo::literal_string };
+            return std::move(builder).to_datum(pts);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
     } break;
     case rapidjson::kArrayType: {
-        datum_array_builder_t builder(limits);
-        builder.reserve(json.Size());
-        for (rapidjson::Value::ConstValueIterator it = json.Begin();
-             it != json.End();
-             ++it) {
-            builder.add(to_datum(*it, limits, reql_version));
-        }
-        return std::move(builder).to_datum();
+        return call_with_enough_stack<datum_t>([&]() {
+            datum_array_builder_t builder(limits);
+            builder.reserve(json.Size());
+            for (rapidjson::Value::ConstValueIterator it = json.Begin();
+                 it != json.End();
+                 ++it) {
+                builder.add(to_datum(*it, limits, reql_version));
+            }
+            return std::move(builder).to_datum();
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
     } break;
     case rapidjson::kStringType: {
         fail_if_invalid(json.GetString(), json.GetStringLength());
@@ -485,14 +507,6 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
     } break;
     default: unreachable();
     }
-}
-
-void check_str_validity(const char *, size_t) {
-    // previous versions would throw on NULL bytes.
-}
-
-void datum_t::check_str_validity(const datum_string_t &str) {
-    ::ql::check_str_validity(str.data(), str.size());
 }
 
 const shared_buf_ref_t<char> *datum_t::get_buf_ref() const {
@@ -658,7 +672,7 @@ void datum_t::binary_to_str_key(std::string *str_out) const {
     }
 }
 
-void datum_t::str_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const {
+void datum_t::str_to_str_key(escape_nulls_t escape_nulls, std::string *str_out) const {
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
 
@@ -714,27 +728,60 @@ void datum_t::bool_to_str_key(std::string *str_out) const {
     }
 }
 
-void datum_t::extrema_to_str_key(std::string *str_out) const {
+void datum_t::extrema_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        std::string *str_out) const {
+    rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::LOGIC,
+                 "Cannot use `r.minval` or `r.maxval` in an index key.");
+
     if (get_type() == MINVAL) {
-        // This isn't exactly the minimum key, but tag_skey_version requires
-        // a non-zero length key
-        str_out->append(1, '\x00');
+        switch (extrema_encoding) {
+        case extrema_encoding_t::PRE_v2_3:
+            str_out->append(1, '\x00');
+            break;
+        case extrema_encoding_t::LATEST:
+            // We use a type prefix that's smaller than any "real" type prefix can be.
+            // The real prefixes will be letters.
+            // We also maintain the property that all of our prefixes start with 010 in
+            // their binary representations, which allows us to use these bits for
+            // flagging key formats in the future.
+            str_out->append(1, 'A' - 1);
+            break;
+        default: unreachable();
+        }
     } else {
         r_sanity_check(get_type() == MAXVAL);
-        // This is a hack to preserve the invariant that no keys have their top bit set
-        // which is used by another hack to solve some sindex version compatibilities.
-        // TODO: remove this hack post-2.0
-        std::string max_str = key_to_unescaped_str(store_key_t::max());
-        guarantee(max_str.size() > 0);
-        max_str[0] &= 0x7F;
-        str_out->append(max_str);
+        switch (extrema_encoding) {
+        case extrema_encoding_t::PRE_v2_3: {
+            // This is a hack to preserve the invariant that no keys have their top bit set
+            // which is used by another hack to solve some sindex version compatibilities.
+            // TODO: remove this hack post-2.0
+            std::string max_str = key_to_unescaped_str(store_key_t::max());
+            guarantee(max_str.size() > 0);
+            max_str[0] &= 0x7F;
+            str_out->append(max_str);
+        } break;
+        case extrema_encoding_t::LATEST:
+            // We use a type prefix that's larger than any "real" type prefix can be.
+            // The real prefixes will be letters.
+            // Also see the comment above for the MINVAL case regarding reserved bits in
+            // our prefixes.
+            str_out->append(1, 'Z' + 1);
+            break;
+        default: unreachable();
+        }
     }
 }
 
 // The key for an array is stored as a string of all its elements, each separated by a
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
-void datum_t::array_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const {
+void datum_t::array_to_str_key(
+        extrema_encoding_t extrema_encoding,
+        extrema_ok_t extrema_ok,
+        escape_nulls_t escape_nulls,
+        std::string *str_out) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
@@ -745,12 +792,23 @@ void datum_t::array_to_str_key(std::string *str_out, escape_nulls_t escape_nulls
 
         switch (item.get_type()) {
         case MINVAL: // fallthru
-        case MAXVAL: item.extrema_to_str_key(str_out); break;
+        case MAXVAL:
+            // Before version 2.3, `minval` and `maxval` were always allowed inside of
+            // an array.
+            item.extrema_to_str_key(
+                extrema_encoding,
+                extrema_encoding == extrema_encoding_t::PRE_v2_3
+                ? extrema_ok_t::OK
+                : extrema_ok,
+                str_out);
+            break;
         case R_NUM: item.num_to_str_key(str_out); break;
-        case R_STR: item.str_to_str_key(str_out, escape_nulls); break;
+        case R_STR: item.str_to_str_key(escape_nulls, str_out); break;
         case R_BINARY: item.binary_to_str_key(str_out); break;
         case R_BOOL: item.bool_to_str_key(str_out); break;
-        case R_ARRAY: item.array_to_str_key(str_out, escape_nulls); break;
+        case R_ARRAY:
+            item.array_to_str_key(extrema_encoding, extrema_ok, escape_nulls, str_out);
+            break;
         case R_OBJECT:
             if (item.is_ptype()) {
                 item.pt_to_str_key(str_out);
@@ -938,10 +996,10 @@ datum_t datum_t::drop_literals_unchecked_stack(bool *encountered_literal_out) co
 }
 
 datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->drop_literals_unchecked_stack(
                 encountered_literal_out);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 void datum_t::rcheck_valid_replace(datum_t old_val,
@@ -972,12 +1030,25 @@ std::string datum_t::print_primary_internal() const {
     std::string s;
     switch (get_type()) {
     case MINVAL: // fallthru
-    case MAXVAL: extrema_to_str_key(&s); break;
+    case MAXVAL:
+        // Extrema are always ok in a primary key, since primary keys that get stored
+        // into the tree can only be generated from a field stored in a document.
+        // And that's already disallowed elsewhere.
+        // The case where we will still get here is if we're generating a primary key
+        // for a traversal boundary, e.g. from `.between(r.minval, r.maxval)`, and
+        // that's fine. We can also always use the latest reql_version for the same
+        // reason.
+        extrema_to_str_key(extrema_encoding_t::LATEST, extrema_ok_t::OK, &s);
+        break;
     case R_NUM: num_to_str_key(&s); break;
-    case R_STR: str_to_str_key(&s, escape_nulls_t::NO); break;
+    case R_STR: str_to_str_key(escape_nulls_t::NO, &s); break;
     case R_BINARY: binary_to_str_key(&s); break;
     case R_BOOL: bool_to_str_key(&s); break;
-    case R_ARRAY: array_to_str_key(&s, escape_nulls_t::NO); break;
+    case R_ARRAY:
+        // Extrema are always ok here for the same reason as described above.
+        array_to_str_key(
+            extrema_encoding_t::LATEST, extrema_ok_t::OK, escape_nulls_t::NO, &s);
+        break;
     case R_OBJECT:
         if (is_ptype()) {
             pt_to_str_key(&s);
@@ -1071,7 +1142,7 @@ std::string datum_t::compose_secondary(
     }
 
     const std::string truncated_secondary_key =
-        secondary_key.substr(0, trunc_size(skey_version, primary_key_string.length()));
+        secondary_key.substr(0, trunc_size(primary_key_string.length()));
 
     return mangle_secondary(
         skey_version, truncated_secondary_key, primary_key_string, tag_string);
@@ -1087,17 +1158,27 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
 
     escape_nulls_t escape_nulls = escape_nulls_from_reql_version_for_sindex(reql_version);
     skey_version_t skey_version = skey_version_from_reql_version(reql_version);
+    extrema_encoding_t extrema_encoding =
+        extrema_encoding_from_reql_version_for_sindex(reql_version);
 
     if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
     } else if (get_type() == R_STR) {
-        str_to_str_key(&secondary_key_string, escape_nulls);
+        str_to_str_key(escape_nulls, &secondary_key_string);
     } else if (get_type() == R_BINARY) {
         binary_to_str_key(&secondary_key_string);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&secondary_key_string);
     } else if (get_type() == R_ARRAY) {
-        array_to_str_key(&secondary_key_string, escape_nulls);
+        // Before version 2.3, `minval` and `maxval` were always allowed inside of
+        // an array. Now they are no longer allowed in this context.
+        array_to_str_key(
+            extrema_encoding,
+            extrema_encoding == extrema_encoding_t::PRE_v2_3
+            ? extrema_ok_t::OK
+            : extrema_ok_t::NOT_OK,
+            escape_nulls,
+            &secondary_key_string);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&secondary_key_string);
     } else {
@@ -1124,14 +1205,18 @@ skey_version_t skey_version_from_reql_version(reql_version_t) {
 }
 
 escape_nulls_t escape_nulls_from_reql_version_for_sindex(reql_version_t rv) {
-    switch (rv) {
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1:
+    if (rv < reql_version_t::v2_2) {
         return escape_nulls_t::NO;
-    case reql_version_t::v2_2_is_latest:
+    } else {
         return escape_nulls_t::YES;
-    default: unreachable();
+    }
+}
+
+extrema_encoding_t extrema_encoding_from_reql_version_for_sindex(reql_version_t rv) {
+    if (rv < reql_version_t::v2_3) {
+        return extrema_encoding_t::PRE_v2_3;
+    } else {
+        return extrema_encoding_t::LATEST;
     }
 }
 
@@ -1193,7 +1278,7 @@ std::string datum_t::extract_truncated_secondary(
     const std::string &secondary_and_primary) {
     components_t components = parse_secondary(secondary_and_primary);
     std::string skey = std::move(components.secondary);
-    size_t mts = max_trunc_size(components.skey_version);
+    size_t mts = max_trunc_size();
     if (skey.length() >= mts) {
         skey.erase(mts);
     }
@@ -1220,24 +1305,24 @@ store_key_t datum_t::truncated_secondary(
 
     escape_nulls_t escape_nulls =
         escape_nulls_from_reql_version_for_sindex(reql_version);
+    extrema_encoding_t extrema_encoding =
+        extrema_encoding_from_reql_version_for_sindex(reql_version);
 
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
     } else if (get_type() == R_STR) {
-        str_to_str_key(&s, escape_nulls);
+        str_to_str_key(escape_nulls, &s);
     } else if (get_type() == R_BINARY) {
         binary_to_str_key(&s);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&s);
     } else if (get_type() == R_ARRAY) {
-        array_to_str_key(&s, escape_nulls);
+        array_to_str_key(extrema_encoding, extrema_ok, escape_nulls, &s);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else if (get_type() == MINVAL || get_type() == MAXVAL) {
-        rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::LOGIC,
-                     "Cannot use `r.minval` or `r.maxval` in a secondary index key.");
-        extrema_to_str_key(&s);
+        extrema_to_str_key(extrema_encoding, extrema_ok, &s);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, "
@@ -1252,7 +1337,7 @@ store_key_t datum_t::truncated_secondary(
     s.push_back('\0');
 
     // Truncate the key if necessary
-    size_t mts = max_trunc_size(skey_version);
+    size_t mts = max_trunc_size();
     if (s.length() >= mts) {
         s.erase(mts);
     }
@@ -1403,11 +1488,11 @@ datum_t datum_t::get_field(const datum_string_t &key, throw_bool_t throw_bool) c
     while (range_beg < range_end) {
         const size_t center = range_beg + ((range_end - range_beg) / 2);
         auto center_pair = unchecked_get_pair(center);
-        const int cmp = key.compare(center_pair.first);
-        if (cmp == 0) {
+        const int cmp_res = key.compare(center_pair.first);
+        if (cmp_res == 0) {
             // Found it
             return center_pair.second;
-        } else if (cmp < 0) {
+        } else if (cmp_res < 0) {
             range_end = center;
         } else {
             range_beg = center + 1;
@@ -1473,9 +1558,9 @@ void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
 
 template <class json_writer_t>
 void datum_t::write_json(json_writer_t *writer) const {
-    call_with_enough_stack([&] {
+    call_with_enough_stack_datum([&] {
             return this->write_json_unchecked_stack<json_writer_t>(writer);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 // Explicit instantiation
@@ -1496,21 +1581,22 @@ rapidjson::Value datum_t::as_json(rapidjson::Value::AllocatorType *allocator) co
     case R_ARRAY: {
         rapidjson::Value res(rapidjson::kArrayType);
         for (size_t i = 0; i < arr_size(); ++i) {
-            call_with_enough_stack([&]() {
-                    res.PushBack(unchecked_get(i).as_json(allocator), *allocator);
-                }, MIN_DATUM_RECURSION_STACK_SPACE);
+            const datum_t el = unchecked_get(i);
+            el.call_with_enough_stack_datum([&]() {
+                    res.PushBack(el.as_json(allocator), *allocator);
+                });
         }
         return res;
     } break;
     case R_OBJECT: {
         rapidjson::Value res(rapidjson::kObjectType);
         for (size_t i = 0; i < obj_size(); ++i) {
-            call_with_enough_stack([&]() {
-                    auto pair = get_pair(i);
+            auto pair = get_pair(i);
+            pair.second.call_with_enough_stack_datum([&]() {
                     res.AddMember(rapidjson::Value(pair.first.data(),
                                                    pair.first.size(), *allocator),
                                   pair.second.as_json(allocator), *allocator);
-                }, MIN_DATUM_RECURSION_STACK_SPACE);
+                });
         }
         return res;
     } break;
@@ -1637,9 +1723,9 @@ datum_t datum_t::default_merge_unchecked_stack(const datum_t &rhs) const {
 }
 
 datum_t datum_t::merge(const datum_t &rhs) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->default_merge_unchecked_stack(rhs);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 datum_t datum_t::custom_merge_unchecked_stack(const datum_t &rhs,
@@ -1665,10 +1751,10 @@ datum_t datum_t::merge(const datum_t &rhs,
                        merge_resoluter_t f,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
-    return call_with_enough_stack<datum_t>([&] {
+    return call_with_enough_stack_datum<datum_t>([&] {
             return this->custom_merge_unchecked_stack(
                 rhs, std::move(f), limits, conditions_out);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 template<class T>
@@ -1742,9 +1828,9 @@ int datum_t::cmp_unchecked_stack(const datum_t &rhs) const {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
-    return call_with_enough_stack<int>([&] {
+    return call_with_enough_stack_datum<int>([&] {
             return this->cmp_unchecked_stack(rhs);
-        }, MIN_DATUM_RECURSION_STACK_SPACE);
+        });
 }
 
 bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
@@ -1801,7 +1887,6 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
         for (int i = 0; i < count; ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             datum_string_t key(ap->key());
-            datum_t::check_str_validity(key);
             fail_if_invalid(ap->key());
             auto res = map.insert(std::make_pair(key,
                                                  to_datum(&ap->val(), limits,
@@ -1860,18 +1945,17 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits,
     }
 }
 
-size_t datum_t::max_trunc_size(skey_version_t skey_version) {
-    return trunc_size(skey_version, rdb_protocol::MAX_PRIMARY_KEY_SIZE);
+size_t datum_t::max_trunc_size() {
+    return trunc_size(rdb_protocol::MAX_PRIMARY_KEY_SIZE);
 }
 
-size_t datum_t::trunc_size(skey_version_t skey_version, size_t primary_key_size) {
+size_t datum_t::trunc_size(size_t primary_key_size) {
     // We subtract three bytes because of the NULL byte we pad on the end of the
     // primary key and the two 1-byte offsets at the end of the key (which are
     // used to extract the primary key and tag num).
     size_t terminated_primary_key_size = primary_key_size;
 
     // Since 1.16, we're adding a null byte to the end of the secondary index key.
-    guarantee(skey_version == skey_version_t::post_1_16);
     terminated_primary_key_size += 1;
 
     return MAX_KEY_SIZE - terminated_primary_key_size - tag_size - 2;
@@ -1884,6 +1968,25 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;
     }
+}
+
+template<class result_t, class callable_t>
+result_t datum_t::call_with_enough_stack_datum(callable_t &&fun) const {
+    // Only use `call_with_enough_stack` if we might recurse further for efficiency
+    // reasons.
+    const type_t t = get_type();
+    if (t == type_t::R_ARRAY || t == type_t::R_OBJECT) {
+        return call_with_enough_stack<result_t>(fun, MIN_DATUM_RECURSION_STACK_SPACE);
+    } else {
+        return fun();
+    }
+}
+template<class callable_t>
+inline void datum_t::call_with_enough_stack_datum(callable_t &&fun) const {
+    call_with_enough_stack_datum<int>([&]() -> int {
+        fun();
+        return 0;
+    });
 }
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a
@@ -1941,7 +2044,6 @@ datum_object_builder_t::datum_object_builder_t(const datum_t &copy_from) {
 }
 
 bool datum_object_builder_t::add(const datum_string_t &key, datum_t val) {
-    datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     auto res = map.insert(std::make_pair(key, std::move(val)));
     // Return _false_ if the insertion actually happened.  Because we are being
@@ -1955,7 +2057,6 @@ bool datum_object_builder_t::add(const char *key, datum_t val) {
 
 void datum_object_builder_t::overwrite(const datum_string_t &key,
                                        datum_t val) {
-    datum_t::check_str_validity(key);
     r_sanity_check(val.has());
     map[key] = std::move(val);
 }
