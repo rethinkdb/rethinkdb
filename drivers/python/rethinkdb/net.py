@@ -20,7 +20,7 @@ pErrorType = p.Response.ErrorType
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from .ast import DB, Repl, ReQLDecoder, ReQLEncoder
+from .ast import DB, Repl, ReQLDecoder, ReQLEncoder, expr
 from .errors import *
 from .handshake import *
 
@@ -56,7 +56,7 @@ class Query(object):
         if self.term is not None:
             message.append(self.term)
         if self.global_optargs is not None:
-            message.append(self.global_optargs)
+            message.append(expr(self.global_optargs))
         query_str = reql_encoder.encode(message).encode('utf-8')
         query_header = struct.pack('<QL', self.token, len(query_str))
         return query_header + query_str
