@@ -14,11 +14,11 @@ clean:
 install:
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install
+	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 -j`nproc` install
 
 build:
 	./configure
-	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1 SYMBOLS=1
+	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1 SYMBOLS=1 -j`nproc`
 	touch build
 
 binary-indep: install
