@@ -4,7 +4,7 @@ This readme is for anyone who wants to dive in and hack on the Java
 driver. If you want to learn to use the Java driver, checkout out the
 documentation at [java-api-docs][]
 
-[java-api-docs]: rethinkdb.com/api/java
+[java-api-docs]: http://rethinkdb.com/api/java/
 
 ## Basics
 
