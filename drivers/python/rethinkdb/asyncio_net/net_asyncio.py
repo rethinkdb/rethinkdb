@@ -77,11 +77,9 @@ class AsyncioCursor(Cursor):
 
     @asyncio.coroutine
     def __anext__(self):
-        data = yield from self._get_next(None)
-        if data:
-            return data
-        else:
-            print("data false")
+        try:
+            return (yield from self._get_next(None))
+        except ReqlCursorEmpty:
             raise StopAsyncIteration
 
     @asyncio.coroutine

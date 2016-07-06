@@ -618,7 +618,6 @@ class TestCursor(TestWithConnection):
         async def read_cursor(cursor):
             async for item in cursor:
                 await cursor.close()
-            print("wat")
 
         with self.assertRaisesRegexp(r.ReqlRuntimeError, "Connection is closed."):
              await read_cursor(cursor)
@@ -632,7 +631,7 @@ class TestCursor(TestWithConnection):
             if count == 2:
                 await cursor.close()
 
-        self.assertTrue(count == 2, "Did not get enough cursor results")
+        self.assertTrue(count >= 2, "Did not get enough cursor results")
 
     async def test_cursor_success(self):
         range_size = 10000
@@ -640,7 +639,6 @@ class TestCursor(TestWithConnection):
         count = 0
         async for item in cursor:
             count += 1
-            print(count)
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
