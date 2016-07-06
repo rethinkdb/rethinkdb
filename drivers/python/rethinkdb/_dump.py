@@ -126,7 +126,8 @@ NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save
                     archive.add(fullPath, arcname=archivePath)
                     os.unlink(fullPath)
         finally:
-            archive.close()
+            if archive:
+                archive.close()
         
         # --
         
