@@ -77,11 +77,12 @@ class AsyncioCursor(Cursor):
 
     @asyncio.coroutine
     def __anext__(self):
-        data = self._get_next(None)
+        data = yield from self._get_next(None)
         if data:
             return data
         else:
-            raise asyncio.StopAsyncIteration
+            print("data false")
+            raise StopAsyncIteration
 
     @asyncio.coroutine
     def close(self):
@@ -104,6 +105,8 @@ class AsyncioCursor(Cursor):
         waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
+            if self.error is not None:
+                raise self.error
             with translate_timeout_errors():
                 yield from waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
@@ -304,8 +307,8 @@ class Connection(ConnectionBase):
         return self
 
     @asyncio.coroutine
-    def __aexit__(self):
-        self.close(reply_wait=False)
+    def __aexit__(self, exc_type, exc_val, exc_tb):
+        yield from self.close(reply_wait=False)
 
     @asyncio.coroutine
     def _stop(self, cursor):
