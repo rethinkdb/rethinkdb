@@ -1106,7 +1106,7 @@ void linux_secure_tcp_conn_t::perform_write(const void *buffer, size_t size) {
         if (closed.is_pulsed()) {
             /* We were closed for whatever reason. Whatever signalled
             us has already called shutdown_socket(). */
-            throw tcp_conn_read_closed_exc_t();
+            return;
         }
 
         /* Go around the loop and try to read again */
