@@ -26,11 +26,15 @@ http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const htt
 }
 
 http_req_t::resource_t::resource_t(const std::string &_val) {
-    if (!assign(_val)) throw std::invalid_argument(_val);
+    if (!assign(_val)) {
+        throw std::invalid_argument(_val);
+    }
 }
 
 http_req_t::resource_t::resource_t(const char * _val, size_t size) {
-    if (!assign(_val, size)) throw std::invalid_argument(_val);
+    if (!assign(_val, size)) {
+        throw std::invalid_argument(_val);
+    }
 }
 
 // Returns false if the assignment fails.
@@ -40,7 +44,9 @@ MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
 
 // Returns false if the assignment fails.
 MUST_USE bool http_req_t::resource_t::assign(const char * _val, size_t size) {
-    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) return false;
+    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) {
+        return false;
+    }
     val.reset(new char[size]);
     memcpy(val.get(), _val, size);
     val_size = size;
