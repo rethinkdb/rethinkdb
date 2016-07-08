@@ -305,8 +305,8 @@ class Connection(ConnectionBase):
         return self
 
     @asyncio.coroutine
-    def __aexit__(self, exc_type, exc_val, exc_tb):
-        yield from self.close(reply_wait=False)
+    def __aexit__(self, exception_type, exception_val, traceback):
+        yield from self.close(False)
 
     @asyncio.coroutine
     def _stop(self, cursor):

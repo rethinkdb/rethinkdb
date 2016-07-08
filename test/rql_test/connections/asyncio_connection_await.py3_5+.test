@@ -255,6 +255,13 @@ class TestConnection(TestWithConnection):
         await r.expr(1).run(c)
         await c.close()
 
+    async def test_connect_with_3_5_syntax(self):
+        async with await r.connect(host=sharedServerHost, port=sharedServerDriverPort) as conn:
+            await r.db_create("async_with").run(conn)
+            self.assertTrue("async_with" in await r.db_list().run(conn))
+            await r.db_drop("async_with").run(conn)
+
+
     async def test_connect_close_expr(self):
         c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
