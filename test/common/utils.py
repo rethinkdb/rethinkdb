@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import atexit, collections, fcntl, os, pprint, random, re, shutil, signal
+import atexit, collections, fcntl, os, pprint, platform, random, re, shutil, signal
 import socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
@@ -908,3 +908,15 @@ class RePrint(pprint.PrettyPrinter, object):
             return super(RePrint, self).format(item, context, maxlevels, level)
 pprint  = RePrint.pprint
 pformat = RePrint.pformat
+
+def translatePath(path):
+    '''Translate a path for cygwin purposes'''
+    
+    if 'cygwin' in platform.system().lower():
+        process = subprocess.Popen(['cygpath', '-w', str(path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _ = process.communicate()
+        if process.returncode is not 0:
+            raise Exception('Could not translate cygpath: %s' % stdout)
+        return stdout.strip()
+    else:
+        return str(path)
