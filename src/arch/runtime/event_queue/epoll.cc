@@ -46,7 +46,7 @@ int epoll_to_user(int mode) {
 }
 
 epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *_parent)
-    : parent(_parent) {
+    : parent(_parent), nevents(0) {
     // Create a poll fd
 
     epoll_fd = epoll_create1(0);
