@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 

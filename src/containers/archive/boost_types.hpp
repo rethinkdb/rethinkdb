@@ -4,7 +4,6 @@
 
 #include "errors.hpp"
 #include <boost/logic/tribool.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 

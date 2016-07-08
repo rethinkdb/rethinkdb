@@ -512,11 +512,11 @@ bool artificial_reql_cluster_interface_t::sindex_list(
 
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             auth_semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        std::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        std::shared_ptr<semilattice_readwrite_view_t<
             heartbeat_semilattice_metadata_t> > _heartbeat_view,
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,

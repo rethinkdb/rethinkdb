@@ -228,7 +228,7 @@ bool table_name_collision_issue_t::build_info_and_description(
 
 name_collision_issue_tracker_t::name_collision_issue_tracker_t(
             server_config_client_t *_server_config_client,
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+            std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
                 _cluster_sl_view,
             table_meta_client_t *_table_meta_client) :
     server_config_client(_server_config_client),

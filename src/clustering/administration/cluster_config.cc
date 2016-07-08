@@ -5,7 +5,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 
 cluster_config_artificial_table_backend_t::cluster_config_artificial_table_backend_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        std::shared_ptr<semilattice_readwrite_view_t<
             heartbeat_semilattice_metadata_t> > _heartbeat_sl_view) :
     heartbeat_doc(_heartbeat_sl_view) {
     docs["heartbeat"] = &heartbeat_doc;

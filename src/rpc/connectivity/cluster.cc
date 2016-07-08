@@ -220,9 +220,9 @@ connectivity_cluster_t::run_t::run_t(
         const int join_delay_secs,
         int port,
         int client_port,
-        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             _heartbeat_sl_view,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
             _auth_sl_view,
         tls_ctx_t *_tls_ctx)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :

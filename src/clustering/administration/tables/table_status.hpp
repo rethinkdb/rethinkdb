@@ -2,10 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 
+#include <memory>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/tables/calculate_status.hpp"
 #include "clustering/administration/tables/table_common.hpp"
@@ -22,7 +20,7 @@ class table_status_artificial_table_backend_t :
 {
 public:
     table_status_artificial_table_backend_t(
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             server_config_client_t *server_config_client,
             table_meta_client_t *_table_meta_client,

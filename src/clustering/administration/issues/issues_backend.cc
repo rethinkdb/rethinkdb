@@ -8,7 +8,7 @@
 
 issues_artificial_table_backend_t::issues_artificial_table_backend_t(
         mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *_server_config_client,

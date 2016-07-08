@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -21,7 +19,7 @@ class common_table_artificial_table_backend_t :
 {
 public:
     common_table_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            std::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             table_meta_client_t *_table_meta_client,
             admin_identifier_format_t _identifier_format);
@@ -62,7 +60,7 @@ protected:
             const name_string_t &table_name,
             ql::datum_t *row_out);
 
-    boost::shared_ptr< semilattice_readwrite_view_t<
+    std::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;
     table_meta_client_t *table_meta_client;
     admin_identifier_format_t identifier_format;

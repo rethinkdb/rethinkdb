@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/table_common.hpp"
@@ -30,7 +28,7 @@ class table_config_artificial_table_backend_t :
 {
 public:
     table_config_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            std::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             real_reql_cluster_interface_t *_reql_cluster_interface,
             admin_identifier_format_t _identifier_format,

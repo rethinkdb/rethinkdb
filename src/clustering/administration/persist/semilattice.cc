@@ -8,7 +8,7 @@ template <class metadata_t>
 semilattice_persister_t<metadata_t>::semilattice_persister_t(
         metadata_file_t *f,
         const metadata_file_t::key_t<metadata_t> &k,
-        boost::shared_ptr<semilattice_read_view_t<metadata_t> > v) :
+        std::shared_ptr<semilattice_read_view_t<metadata_t> > v) :
     file(f), key(k), view(v),
     persist_pumper(std::bind(&semilattice_persister_t::persist, this, ph::_1)),
     subs(std::bind(&pump_coro_t::notify, &persist_pumper), v)

@@ -4,14 +4,11 @@
 
 #include <set>
 #include <map>
+#include <memory>
 #include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "arch/address.hpp"
 #include "arch/io/openssl.hpp"

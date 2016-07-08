@@ -7,7 +7,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/variant.hpp>
 
 #include "containers/scoped.hpp"
