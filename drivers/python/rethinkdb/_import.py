@@ -324,7 +324,7 @@ def parse_options(argv, prog=None):
             
             if options.delimiter is not None:
                 parser.error("--delimiter option is not valid for json files")
-            if options.no_header is not False:
+            if options.no_header:
                 parser.error("--no-header option is not valid for json files")
             if options.custom_header is not None:
                 parser.error("--custom-header option is not valid for json files")
@@ -376,7 +376,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
             
             # write the batch to the database
             try:
-                res = utils_common.retryQuery(
+                res = options.retryQuery(
                     "write batch to %s.%s" % (db, table),
                     tbl.insert(r.expr(batch, nesting_depth=max_nesting_depth), durability=options.durability, conflict=conflict_action)
                 )
@@ -397,17 +397,17 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                         raise RuntimeError("Connection error while importing.  Current row does not have the specified primary key (%s), so cannot guarantee absence of duplicates" % table_info.primary_key)
                     res = None
                     if conflict_action == "replace":
-                        res = utils_common.retryQuery(
+                        res = options.retryQuery(
                             "write row to %s.%s" % (db, table),
                             tbl.insert(r.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
                         )
                     else:
-                        existingRow = utils_common.retryQuery(
+                        existingRow = options.retryQuery(
                             "read row from %s.%s" % (db, table),
                             tbl.get(row[table_info.primary_key])
                         )
                         if not existingRow:
-                            res = utils_common.retryQuery(
+                            res = options.retryQuery(
                                 "write row to %s.%s" % (db, table),
                                 tbl.insert(r.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
                             )
@@ -626,17 +626,17 @@ def table_reader(table, options, work_queue, error_queue, warning_queue, exit_ev
     table.start_time = time.time()
     try:
         # - ensure the db exists
-        utils_common.retryQuery("ensure db: %s" % table.db, r.expr([table.db]).set_difference(r.db_list()).for_each(r.db_create(r.row)))
+        options.retryQuery("ensure db: %s" % table.db, r.expr([table.db]).set_difference(r.db_list()).for_each(r.db_create(r.row)))
         
         # - ensure the table exists and is ready
-        utils_common.retryQuery(
+        options.retryQuery(
             "create table: %s.%s" % (table.db, table.table),
             r.expr([table.table]).set_difference(r.db(table.db).table_list()).for_each(r.db(table.db).table_create(r.row, **options.create_args))
         )
-        utils_common.retryQuery("wait for %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).wait(timeout=30))
+        options.retryQuery("wait for %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).wait(timeout=30))
         
         # - ensure that the primary key on the table is correct
-        primaryKey = utils_common.retryQuery(
+        primaryKey = options.retryQuery(
             "primary key %s.%s" % (table.db, table.table),
             r.db(table.db).table(table.table).info()["primary_key"],
         )
@@ -645,23 +645,23 @@ def table_reader(table, options, work_queue, error_queue, warning_queue, exit_ev
         
         # - recreate secondary indexes - droping existing on the assumption they are wrong
         if options.sindexes:
-            existing_indexes = utils_common.retryQuery("indexes from: %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).index_list())
+            existing_indexes = options.retryQuery("indexes from: %s.%s" % (table.db, table.table), r.db(table.db).table(table.table).index_list())
             try:
                 created_indexes = []
                 for index in table.indexes:
                     if index["index"] in existing_indexes: # drop existing versions
-                        utils_common.retryQuery(
+                        options.retryQuery(
                             "drop index: %s.%s:%s" % (table.db, table.table, index["index"]),
                             r.db(table.db).table(table.table).index_drop(index["index"])
                         )
-                    utils_common.retryQuery(
+                    options.retryQuery(
                         "create index: %s.%s:%s" % (table.db, table.table, index["index"]),
                         r.db(table.db).table(table.table).index_create(index["index"], index["function"])
                     )
                     created_indexes.append(index["index"])
                 
                 # wait for all of the created indexes to build
-                utils_common.retryQuery(
+                options.retryQuery(
                     "waiting for indexes on %s.%s" % (table.db, table.table),
                     r.db(table.db).table(table.table).index_wait(r.args(created_indexes))
                 )
@@ -736,7 +736,7 @@ def update_progress(tables, options, done_event, exit_event, sleep=0.2):
             readWrites.append((currentTime, read, write))
             if complete != lastComplete:
                 timeDelta = readWrites[-1][0] - readWrites[0][0]
-                if options.debug and len(readWrites) > 1:
+                if options.debug and len(readWrites) > 1 and timeDelta > 0:
                     readRate  = max((readWrites[-1][1] - readWrites[0][1]) / timeDelta, 0)
                     writeRate = max((readWrites[-1][2] - readWrites[0][2]) / timeDelta, 0)
                 utils_common.print_progress(complete, indent=2, read=readRate, write=writeRate)
@@ -899,7 +899,7 @@ def import_tables(options, files_info):
 def import_directory(options):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
-    utils_common.check_minimum_version("1.6")
+    utils_common.check_minimum_version(options, "1.6")
     
     # Scan for all files, make sure no duplicated tables with different formats
     dbs = False
@@ -973,12 +973,12 @@ def import_directory(options):
     needed_dbs = set([x[0] for x in files_info])
     if "rethinkdb" in needed_dbs:
         raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
-    utils_common.retryQuery("ensure dbs: %s" % ", ".join(needed_dbs), r.expr(needed_dbs).set_difference(r.db_list()).for_each(r.db_create(r.row)))
+    options.retryQuery("ensure dbs: %s" % ", ".join(needed_dbs), r.expr(needed_dbs).set_difference(r.db_list()).for_each(r.db_create(r.row)))
     
     # check for existing tables, or if --force is enabled ones with mis-matched primary keys
     existing_tables = dict([
         ((x["db"], x["name"]), x["primary_key"]) for x in
-        utils_common.retryQuery("list tables", r.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))
+        options.retryQuery("list tables", r.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))
     ])
     already_exist = []
     for db, table, primary_key in ((x.db, x.table, x.primary_key) for x in files_info.values()):
@@ -1004,7 +1004,7 @@ def import_directory(options):
             print("%s" % str(f), file=sys.stderr)
     
     # start the imports
-    import_tables(options, files_info.values())
+    import_tables(options, list(files_info.values()))
 
 def import_file(options):
     db, table = options.import_table
@@ -1013,13 +1013,13 @@ def import_file(options):
     
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
-    utils_common.check_minimum_version("1.6")
+    utils_common.check_minimum_version(options, "1.6")
     
     # Ensure that the database and table exist with the right primary key
-    utils_common.retryQuery("create db %s" % db, r.expr([db]).set_difference(r.db_list()).for_each(r.db_create(r.row)))
+    options.retryQuery("create db %s" % db, r.expr([db]).set_difference(r.db_list()).for_each(r.db_create(r.row)))
     tableInfo = None
     try:
-        tableInfo = utils_common.retryQuery('table info: %s.%s' % (db, table), r.db(db).table(table).info())
+        tableInfo = options.retryQuery('table info: %s.%s' % (db, table), r.db(db).table(table).info())
     except r.ReqlOpFailedError:
         pass # table does not exist
     if tableInfo:
@@ -1031,8 +1031,8 @@ def import_file(options):
     else:
         if "primary_key" not in options.create_args and not options.quiet:
             print("no primary key specified, using default primary key when creating table")
-        utils_common.retryQuery("create table: %s.%s" % (db, table), r.db(db).table_create(table, **options.create_args))
-        tableInfo = utils_common.retryQuery("table info: %s.%s" % (db, table), r.db(db).table(table).info())
+        options.retryQuery("create table: %s.%s" % (db, table), r.db(db).table_create(table, **options.create_args))
+        tableInfo = options.retryQuery("table info: %s.%s" % (db, table), r.db(db).table(table).info())
     
     # Make this up so we can use the same interface as with an import directory
     table = SourceFile(

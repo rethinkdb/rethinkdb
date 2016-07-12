@@ -6,7 +6,7 @@ import os, sys, traceback
 from . import utils_common, net
 
 def startInterpreter(argv, prog):
-    import code, readline, optparse
+    import code, optparse
     
     connectOptions = {}
     replVariables = {'r':utils_common.r, 'rethinkdb':utils_common.r}
@@ -21,7 +21,7 @@ def startInterpreter(argv, prog):
     # -- open connection
     
     try:
-        replVariables['conn'] = utils_common.getConnection()
+        replVariables['conn'] = options.retryQuery.conn()
         replVariables['conn'].repl()
         banner += '''
     A connection to %s:%d has been established as `conn`

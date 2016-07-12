@@ -7,37 +7,69 @@ import collections, copy, distutils.version, getpass, inspect, optparse, os, re,
 from . import net
 r = net.Connection._r
 
-_connection_info = None # set by CommonOptionsParser
-
-def retryQuery(name, query, times=5, runOptions=None):
-    '''Try a query multiple times to guard against bad connections'''
+class RetryQuery(object):
     
-    assert name is not None
-    name = str(name)
-    assert isinstance(query, r.RqlQuery), 'query must be a ReQL query, got: %s' % query
-    try:
-        assert int(times) >= 1
-    except (ValueError, AssertionError):
-        raise ValueError('times must be a positive integer, got: %s' % times)
-    if runOptions is None:
-        runOptions = {}
-    assert isinstance(runOptions, dict), 'runOptions must be a dict, got: %s' % runOptions
+    __connectOptions = None
+    __local          = None
     
-    lastError = None
-    testConnection = False
-    for _ in range(times):
+    def __init__(self, connectOptions):
+        assert 'host' in connectOptions
+        assert 'port' in connectOptions
+        connectOptions['port'] = int(connectOptions['port'])
+        assert connectOptions['port'] > 0
+        
+        self.__connectOptions = copy.deepcopy(connectOptions)
+        
+        self.__local = threading.local()      
+    
+    def conn(self, testConnection=True):
+    
+        if not hasattr(self.__local, 'connCache'):
+            self.__local.connCache = {}  
+        
+        # check if existing connection is still good
+        if os.getpid() in self.__local.connCache and testConnection:
+            try:
+                r.expr(0).run(self.__local.connCache[os.getpid()])
+            except r.ReqlError:
+                del self.__local.connCache[os.getpid()]
+        
+        # cache a new connetion
+        if not os.getpid() in self.__local.connCache:
+            self.__local.connCache[os.getpid()] = r.connect(**self.__connectOptions)
+        
+        # return the connection
+        return self.__local.connCache[os.getpid()]
+    
+    def __call__(self, name, query, times=5, runOptions=None, testConnection=True):
+        '''Try a query multiple times to guard against bad connections'''
+        
+        assert name is not None
+        name = str(name)
+        assert isinstance(query, r.RqlQuery), 'query must be a ReQL query, got: %s' % query
         try:
-            conn = getConnection(testConnection=testConnection) # we are already guarding for this
-        except r.ReqlError as e:
-            lastError = RuntimeError("Error connecting for during '%s': %s" % (name, str(e)))
-            testConnection = True
-        try:
-            return query.run(conn, **runOptions)
-        except (r.ReqlTimeoutError, r.ReqlDriverError) as e:
-            lastError = RuntimeError("Connnection error during '%s': %s" % (name, str(e)))
-        # other errors immedately bubble up
-    else:
-        raise lastError
+            assert int(times) >= 1
+        except (ValueError, AssertionError):
+            raise ValueError('times must be a positive integer, got: %s' % times)
+        if runOptions is None:
+            runOptions = {}
+        assert isinstance(runOptions, dict), 'runOptions must be a dict, got: %s' % runOptions
+        
+        lastError = None
+        testConnection = False
+        for _ in range(times):
+            try:
+                conn = self.conn(testConnection=testConnection) # we are already guarding for this
+            except r.ReqlError as e:
+                lastError = RuntimeError("Error connecting for during '%s': %s" % (name, str(e)))
+                testConnection = True
+            try:
+                return query.run(conn, **runOptions)
+            except (r.ReqlTimeoutError, r.ReqlDriverError) as e:
+                lastError = RuntimeError("Connnection error during '%s': %s" % (name, str(e)))
+            # other errors immedately bubble up
+        else:
+            raise lastError
 
 def print_progress(ratio, indent=0, read=None, write=None):
     total_width = 40
@@ -52,9 +84,9 @@ def print_progress(ratio, indent=0, read=None, write=None):
     })
     sys.stdout.flush()
 
-def check_minimum_version(minimum_version='1.6'):
+def check_minimum_version(options, minimum_version='1.6'):
     minimum_version = distutils.version.LooseVersion(minimum_version)
-    versionString = retryQuery('get server version', r.db('rethinkdb').table('server_status')[0]['process']['version'])
+    versionString = options.retryQuery('get server version', r.db('rethinkdb').table('server_status')[0]['process']['version'])
     
     matches = re.match(r'rethinkdb (?P<version>(\d+)\.(\d+)\.(\d+)).*', versionString)
     if not matches:
@@ -67,6 +99,7 @@ DbTable = collections.namedtuple('DbTable', ['db', 'table'])
 _tableNameRegex = re.compile(r'^(?P<db>\w+)(\.(?P<table>\w+))?$')
 class CommonOptionsParser(optparse.OptionParser, object):
     
+    __retryQuery   = None
     __connectRegex = re.compile(r'^\s*(?P<hostname>[\w\.-]+)(:(?P<port>\d+))?\s*$')
     
     def format_epilog(self, formatter):
@@ -191,12 +224,15 @@ class CommonOptionsParser(optparse.OptionParser, object):
         self.add_option_group(connectionGroup)
     
     def parse_args(self, *args, **kwargs):
-        global _connection_info
+        
+        # - validate options
         
         connect = True
         if 'connect' in kwargs:
             connect = kwargs['connect'] != False
             del kwargs['connect']
+        
+        # - validate ENV variables
         
         if 'RETHINKDB_DRIVER_PORT' in os.environ:
             try:
@@ -205,49 +241,29 @@ class CommonOptionsParser(optparse.OptionParser, object):
             except (ValueError, AssertionError):
                 self.error('ENV variable RETHINKDB_DRIVER_PORT is not a useable integer: %s' % os.environ['RETHINKDB_DRIVER_PORT'])
         
-        # - set global connection options
+        # - parse options
         
         options, args = super(CommonOptionsParser, self).parse_args(*args, **kwargs)
-        _connection_info = {
+        
+        # - setup a RetryQuery instance
+        
+        self.__retryQuery = RetryQuery(connectOptions = {
             'host':     options.hostname,
             'port':     options.driver_port,
             'user':     options.user,
             'password': options.password,
             'ssl':      options.ssl
-        }
+        })
+        options.retryQuery = self.__retryQuery
         
         # - test connection
         
         if connect:
             try:
-                getConnection()
+                options.retryQuery.conn()
             except r.ReqlError as e:
                 self.error('Unable to connect to server: %s' % str(e))
         
         # -
         
         return options, args
-
-__local = threading.local()
-def getConnection(testConnection=True):
-    assert _connection_info is not None, 'If you are using this non-interactively you need to set _connection_info yourself'
-    
-    if not hasattr(__local, 'conn'):
-        __local.conn = None
-        __local.pid = os.getpid()
-    
-    if __local.pid != os.getpid(): # make sure this is for our current pid (handle multiprocess forks)
-        __local.conn = None
-        __local.pid = os.getpid()
-    
-    # check if shard connection is still good
-    if __local.conn and testConnection:
-        try:
-            r.expr(0).run(__local.conn)
-        except r.ReqlError:
-            __local.conn = None
-    
-    if not __local.conn:
-        __local.conn = r.connect(**_connection_info)
-        
-    return __local.conn

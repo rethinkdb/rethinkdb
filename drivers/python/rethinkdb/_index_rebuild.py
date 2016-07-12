@@ -48,28 +48,28 @@ def rebuild_indexes(options):
     if not options.db_table:
         options.db_table = [
             utils_common.DbTable(x['db'], x['name']) for x in
-                utils_common.retryQuery('all tables', r.db('rethinkdb').table('table_config').pluck(['db', 'name']))
+                options.retryQuery('all tables', r.db('rethinkdb').table('table_config').pluck(['db', 'name']))
         ]
     else:
         for db_table in options.db_table[:]: # work from a copy
             if not db_table[1]:
-                options.db_table += [utils_common.DbTable(db_table[0], x) for x in utils_common.retryQuery('table list of %s' % db_table[0], r.db(db_table[0]).table_list())]
+                options.db_table += [utils_common.DbTable(db_table[0], x) for x in options.retryQuery('table list of %s' % db_table[0], r.db(db_table[0]).table_list())]
                 del options.db_table[db_table]
     
     # wipe out any indexes with the temp_index_prefix
     for db, table in options.db_table:
-        for index in utils_common.retryQuery('list indexes on %s.%s' % (db, table), r.db(db).table(table).index_list()):
+        for index in options.retryQuery('list indexes on %s.%s' % (db, table), r.db(db).table(table).index_list()):
             if index.startswith(temp_index_prefix):
-                utils_common.retryQuery('drop index: %s.%s:%s' % (db, table, index), r.db(index['db']).table(index['table']).index_drop(index['name']))
+                options.retryQuery('drop index: %s.%s:%s' % (db, table, index), r.db(index['db']).table(index['table']).index_drop(index['name']))
     
     # get the list of indexes to rebuild
     indexes_to_build = []
     for db, table in options.db_table:
         indexes = None
         if not options.force:
-            indexes = utils_common.retryQuery('get outdated indexes from %s.%s' % (db, table), r.db(db).table(table).index_status().filter({'outdated':True}).get_field('index'))
+            indexes = options.retryQuery('get outdated indexes from %s.%s' % (db, table), r.db(db).table(table).index_status().filter({'outdated':True}).get_field('index'))
         else:
-            indexes = utils_common.retryQuery('get all indexes from %s.%s' % (db, table), r.db(db).table(table).index_status().get_field('index'))
+            indexes = options.retryQuery('get all indexes from %s.%s' % (db, table), r.db(db).table(table).index_status().get_field('index'))
         for index in indexes:
             indexes_to_build.append({'db':db, 'table':table, 'name':index})
     
@@ -94,11 +94,11 @@ def rebuild_indexes(options):
 
             existingIndexes = dict(
                 (x['index'], x['function']) for x in
-                utils_common.retryQuery('existing indexes', r.db(index['db']).table(index['table']).index_status().pluck('index', 'function'))
+                options.retryQuery('existing indexes', r.db(index['db']).table(index['table']).index_status().pluck('index', 'function'))
             )
             assert index['name'] in existingIndexes
             if index['temp_name'] not in existingIndexes:
-                utils_common.retryQuery(
+                options.retryQuery(
                     'create temp index: %(db)s.%(table)s:%(name)s' % index,
                     r.db(index['db']).table(index['table']).index_create(index['temp_name'], existingIndexes[index['name']])
                 )
@@ -110,13 +110,13 @@ def rebuild_indexes(options):
         # Check the status of indexes in progress
         progress_ratio = 0.0
         for index in indexes_in_progress:
-            status = utils_common.retryQuery(
+            status = options.retryQuery(
                 "progress `%(db)s.%(table)s` index `%(name)s`" % index,
                 r.db(index['db']).table(index['table']).index_status(index['temp_name']).nth(0)
             )
             if status['ready']:
                 index['ready'] = True
-                utils_common.retryQuery(
+                options.retryQuery(
                     "rename `%(db)s.%(table)s` index `%(name)s`" % index,
                     r.db(index['db']).table(index['table']).index_rename(index['temp_name'], index['name'], overwrite=True)
                 )

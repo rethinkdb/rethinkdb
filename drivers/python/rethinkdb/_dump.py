@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import datetime, os, shutil, sys, tarfile, tempfile, time, traceback
+import datetime, os, platform, shutil, sys, tarfile, tempfile, time, traceback
 
 from . import utils_common, net, _export
 r = utils_common.r
@@ -39,7 +39,7 @@ def parse_options(argv, prog=None):
         raise parser.error("No positional arguments supported. Unrecognized option(s): %s" % args)
     
     # Add dump name
-    if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+    if platform.system() == "Windows" or platform.system().lower().startswith('cygwin'):
         options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S") # no colons in name
     else:
         options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
