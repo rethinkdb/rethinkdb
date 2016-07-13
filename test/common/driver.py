@@ -962,7 +962,7 @@ class ProxyProcess(Process):
         # prepend 'proxy'
         self.options.insert(0, 'proxy')
 
-    def subclass_options(options):
+    def subclass_options(self, options):
         pass
 
 # == main
