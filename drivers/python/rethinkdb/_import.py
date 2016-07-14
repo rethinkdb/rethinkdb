@@ -20,10 +20,6 @@ try:
 except ImportError:
     from multiprocessing.queues import Queue, SimpleQueue
 
-# Used because of API differences in the csv module, taken from
-# http://python3porting.com/problems.html
-PY3 = sys.version > "3"
-
 #json parameters
 json_read_chunk_size = 128 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
