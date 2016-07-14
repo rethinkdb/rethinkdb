@@ -327,54 +327,42 @@ void connectivity_cluster_t::run_t::on_new_connection(
     handle(&conn_stream, boost::none, boost::none, boost::none, lock, nullptr, join_delay_secs);
 }
 
-void connectivity_cluster_t::run_t::connect_to_peer(
+join_result_t connectivity_cluster_t::run_t::connect_to_peer(
         const peer_address_t *address,
+        ip_and_port_t selected_addr,
         int index,
         boost::optional<peer_id_t> expected_id,
         boost::optional<server_id_t> expected_server_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join_inout,
-        join_result_t *join_result_inout,
         const int join_delay_secs,
         co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
     timeout.start(index * 1000);
+
     try {
         wait_any_t interrupt(&timeout, drainer_lock.get_drain_signal());
         rate_control->co_lock_interruptible(&interrupt);
     } catch (const interrupted_exc_t &) {
         // Stop if interrupted externally, keep going if we timed out waiting
         if (drainer_lock.get_drain_signal()->is_pulsed()) {
-            return;
+            return join_result_t::TEMPORARY_ERROR;
         }
         rassert(timeout.is_pulsed());
     }
 
-    // Indexing through a std::set is rather awkward
-    const std::set<ip_and_port_t> &all_addrs = address->ips();
-    std::set<ip_and_port_t>::const_iterator selected_addr;
-    for (selected_addr = all_addrs.begin();
-         selected_addr != all_addrs.end() && index > 0;
-         ++selected_addr, --index) { }
-    guarantee(index == 0);
-
     // Don't bother if there's already a connection
+    join_result_t join_result = join_result_t::TEMPORARY_ERROR;
     if (!*successful_join_inout) {
         try {
             keepalive_tcp_conn_stream_t conn(
-                tls_ctx, selected_addr->ip(), selected_addr->port().value(),
+                tls_ctx, selected_addr.ip(), selected_addr.port().value(),
                 drainer_lock.get_drain_signal(), cluster_client_port);
-            if (!*successful_join_inout) {
-                join_result_t join_result = handle(
-                    &conn, expected_id, boost::optional<peer_address_t>(*address),
-                    expected_server_id, drainer_lock, successful_join_inout, join_delay_secs);
 
-                // NOTE: not an ideal way to handle this
-                if (*join_result_inout != join_result_t::PERMANENT_ERROR) {
-                    *join_result_inout = join_result;
-                }
-            }
+            join_result = handle(
+                &conn, expected_id, boost::optional<peer_address_t>(*address),
+                expected_server_id, drainer_lock, successful_join_inout, join_delay_secs);
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
         } catch (const crypto::openssl_error_t &) {
@@ -386,23 +374,22 @@ void connectivity_cluster_t::run_t::connect_to_peer(
 
     // Allow the next address attempt to run
     rate_control->unlock(1);
+    return join_result;
 }
 
-join_result_t connectivity_cluster_t::run_t::join_blocking(
-        const peer_address_t peer,
+join_results_t connectivity_cluster_t::run_t::join_blocking(
+        const peer_address_t &peer,
         boost::optional<peer_id_t> expected_id,
         boost::optional<server_id_t> expected_server_id,
         const int join_delay_secs,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
+    join_results_t join_results; // Used to determine the the join results across all individual connection attempts
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);
         if (attempt_table.find(peer) != attempt_table.end()) {
-            // NOTE: this is triggered all the time in the old code and ignored as what
-            //       we are now calling a temporary error. This should actually be a
-            //       permanent error, but more tracking/synchronization is in order.
-            return join_result_t::TEMPORARY_ERROR;
+            return join_results;
         }
         attempt_table.insert(peer);
     }
@@ -411,23 +398,35 @@ join_result_t connectivity_cluster_t::run_t::join_blocking(
     guarantee(peer.ips().size() > 0);
 
     // Attempt to connect to all known ip addresses of the peer
+
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    join_result_t join_result; // Used to determine the the joint join result across all individual connection attempts
     static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
-    pmap(peer.ips().size(),
-         std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
-                   this,
-                   &peer,
-                   ph::_1,
-                   expected_id,
-                   expected_server_id,
-                   drainer_lock,
-                   &successful_join,
-                   &join_result,
-                   join_delay_secs,
-                   &rate_control));
+    pmap(peer.ips().size(), [&](int index) {
+        // Indexing through a std::set is rather awkward
+        const std::set<ip_and_port_t> &all_addrs = peer.ips();
+        std::set<ip_and_port_t>::const_iterator selected_addr;
+        int find_index = index;
+        for (selected_addr = all_addrs.begin();
+            selected_addr != all_addrs.end() && find_index > 0;
+            ++selected_addr, --find_index) { }
+        guarantee(find_index == 0);
+
+        join_result_t result =
+            connectivity_cluster_t::run_t::connect_to_peer(
+                &peer,
+                *selected_addr,
+                index,
+                expected_id,
+                expected_server_id,
+                drainer_lock,
+                &successful_join,
+                join_delay_secs,
+                &rate_control);
+
+        join_results.insert(std::make_pair(*selected_addr, result));
+    });
 
     // All attempts have completed
     {
@@ -435,7 +434,7 @@ join_result_t connectivity_cluster_t::run_t::join_blocking(
         attempt_table.erase(peer);
     }
 
-    return join_result;
+    return join_results;
 }
 
 class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
@@ -733,7 +732,8 @@ enum class handshake_result_code_t {
     INCOMPATIBLE_ARCH = 2,
     INCOMPATIBLE_BUILD = 3,
     PASSWORD_MISMATCH = 4,
-    UNKNOWN_ERROR = 5
+    UNKNOWN_ERROR = 5,
+    UNEXPECTED_SERVER_ID = 6
 };
 
 class handshake_result_t {
@@ -772,6 +772,8 @@ private:
                 return "incompatible build mode";
             case handshake_result_code_t::PASSWORD_MISMATCH:
                 return "no admin password";
+            case handshake_result_code_t::UNEXPECTED_SERVER_ID:
+                return "unexpected server id";
             case handshake_result_code_t::UNKNOWN_ERROR:
                 unreachable();
             default:
@@ -989,9 +991,12 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 return join_result_t::TEMPORARY_ERROR;
             }
 
-            logNTC("Rejected a connection from server %s since it does not have the expected id %s.",
-                   remote_server_id.print().c_str(),
-                   expected_server_id->print().c_str());
+            auto reason = handshake_result_t::error(
+                handshake_result_code_t::UNEXPECTED_SERVER_ID,
+                strprintf("actual: %s, expected: %s",
+                          remote_server_id.print().c_str(),
+                          expected_server_id->print().c_str()));
+            fail_handshake(conn, peername, reason);
             return join_result_t::PERMANENT_ERROR;
         }
 

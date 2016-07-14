@@ -40,6 +40,8 @@ enum class join_result_t {
     PERMANENT_ERROR = 2
 };
 
+typedef std::map<ip_and_port_t, join_result_t> join_results_t;
+
 /* Uncomment this to enable message profiling. Message profiling will keep track of how
 many messages of each type are sent over the network; it will dump the results to a file
 named `msg_profiler_out_PID.txt` on shutdown. Each line of that file will be of the
@@ -245,13 +247,13 @@ public:
 
         /* `connect_to_peer` is spawned for each known ip address of a peer which we want
         to connect to, all but one should fail */
-        void connect_to_peer(const peer_address_t *addr,
+        join_result_t connect_to_peer(const peer_address_t *address,
+                             ip_and_port_t selected_addr,
                              int index,
                              boost::optional<peer_id_t> expected_id,
                              boost::optional<server_id_t> expected_server_id,
                              auto_drainer_t::lock_t drainer_lock,
                              bool *successful_join_inout,
-                             join_result_t *join_results_inout,
                              const int join_delay_secs,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
@@ -259,7 +261,7 @@ public:
         `handle()` when we hear about a new peer from a peer we are connected to, and
         directly by the auto_reconnector_t. For cases where it is used directly, it
         returns a join_result_t, indicating whether the join was successful or not. */
-        join_result_t join_blocking(const peer_address_t hosts,
+        join_results_t join_blocking(const peer_address_t &peer,
                            boost::optional<peer_id_t> expected_id,
                            boost::optional<server_id_t> expected_server_id,
                            const int join_delay_secs,
