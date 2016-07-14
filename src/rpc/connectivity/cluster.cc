@@ -412,7 +412,7 @@ join_result_t connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    join_result_t join_result; // Used to determine the joint result for an individual connection attempt
+    join_result_t join_result; // Used to determine the the joint join result across all individual connection attempts
     static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
@@ -971,7 +971,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 }
             }
             fail_handshake(conn, peername, reason, handshake_error_supported);
-            return join_result_t::TEMPORARY_ERROR;
+            return join_result_t::PERMANENT_ERROR;
         }
 
         // In the future we'll need to support multiple cluster versions.
@@ -989,7 +989,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 return join_result_t::TEMPORARY_ERROR;
             }
 
-            logINF("Rejected a connection from server %s since it does not have expected id %s.",
+            logNTC("Rejected a connection from server %s since it does not have the expected id %s.",
                    remote_server_id.print().c_str(),
                    expected_server_id->print().c_str());
             return join_result_t::PERMANENT_ERROR;
@@ -1058,7 +1058,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 "server with the `--initial-password auto` option to allow joining "
                 "the password-protected cluster.");
             fail_handshake(conn, peername, reason);
-            return join_result_t::PERMANENT_ERROR;
+            return join_result_t::TEMPORARY_ERROR;
         }
     }
 
@@ -1087,6 +1087,9 @@ join_result_t connectivity_cluster_t::run_t::handle(
             logWRN("Remote node refused to connect with us, peer: %s, reason: \"%s\"",
                    peername,
                    sanitize_for_logger(handshake_result.get_error_reason()).c_str());
+
+            if (handshake_result.get_code() == handshake_result_code_t::PASSWORD_MISMATCH)
+                return join_result_t::TEMPORARY_ERROR;
             return join_result_t::PERMANENT_ERROR;
         }
     }
@@ -1116,7 +1119,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
 
     if (other_id.is_nil()) {
         logERR("Received nil peer id from %s, closing connection.", peername);
-        return join_result_t::PERMANENT_ERROR;
+        return join_result_t::TEMPORARY_ERROR;
     }
 
     if (expected_id && other_id != *expected_id) {

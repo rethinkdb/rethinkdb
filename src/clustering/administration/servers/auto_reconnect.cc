@@ -97,7 +97,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
                 if (result == join_result_t::PERMANENT_ERROR &&
                     addresses.find(server) != addresses.end()) {
-                    logNTC("Unrecoverable connection error to remote peer: %s\n", server.print().c_str());
+                    logNTC("Unrecoverable connection error to remote server: %s", server.print().c_str());
                     join_failed.pulse_if_not_already_pulsed();
                     addresses.erase(it);
                 }
