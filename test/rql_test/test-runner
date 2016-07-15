@@ -1543,7 +1543,7 @@ class WorkerThread(threading.Thread):
         
         if not os.path.isdir(scratchDir):
             raise ValueError('scratchDir must be an existing directory, got: %s' % scratchDir)
-        self.scratchDir = scratchDir
+        self.scratchDir = os.path.realpath(scratchDir)
         
         if externalServer is not None:
             if not isinstance(externalServer, ExternalServer):
