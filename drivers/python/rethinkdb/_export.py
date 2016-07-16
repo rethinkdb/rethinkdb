@@ -44,7 +44,7 @@ rethinkdb export --fields id,value -e test.data
 '''
 
 def parse_options(argv, prog=None):
-    if platform.system() == "Windows" or platform.system().lower().startswith('cygwin')::
+    if platform.system() == "Windows" or platform.system().lower().startswith('cygwin'):
         defaultDir = "rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S") # no colons in name
     else:
         defaultDir = "rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S") # "
