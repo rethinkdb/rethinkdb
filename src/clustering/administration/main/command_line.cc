@@ -2456,6 +2456,7 @@ void help_rethinkdb_porcelain() {
     printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
     printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
     printf("    'rethinkdb index-rebuild': rebuild outdated secondary indexes\n");
+    printf("    'rethinkdb repl': start a Python REPL with the RethinkDB driver\n");
 #ifdef _WIN32
     printf("    'rethinkdb install-service': install RethinkDB as a Windows service\n");
     printf("    'rethinkdb remove-service': remove a previously installed Windows service\n");
