@@ -13,6 +13,7 @@ int main_rethinkdb_import(int argc, char *argv[]);
 int main_rethinkdb_dump(int argc, char *argv[]);
 int main_rethinkdb_restore(int argc, char *argv[]);
 int main_rethinkdb_index_rebuild(int argc, char *argv[]);
+int main_rethinkdb_repl(int argc, char *argv[]);
 #ifdef _WIN32
 int main_rethinkdb_run_service(int argc, char *argv[]);
 int main_rethinkdb_install_service(int argc, char *argv[]);
@@ -28,6 +29,7 @@ void help_rethinkdb_import();
 void help_rethinkdb_dump();
 void help_rethinkdb_restore();
 void help_rethinkdb_index_rebuild();
+void help_rethinkdb_repl();
 #ifdef _WIN32
 void help_rethinkdb_install_service();
 void help_rethinkdb_remove_service();

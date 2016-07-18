@@ -137,7 +137,7 @@ def rebuild_indexes(options):
     print("")
 
 def main(argv=None, prog=None):
-    options = parse_options(argv or sys.argv[2:], prog=prog)
+    options = parse_options(argv or sys.argv[1:], prog=prog)
     start_time = time.time()
     try:
         rebuild_indexes(options)

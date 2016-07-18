@@ -5,7 +5,7 @@
 import os, sys, traceback
 from . import utils_common, net
 
-def startInterpreter(argv, prog):
+def startInterpreter(argv=None, prog=None):
     import code, optparse
     
     connectOptions = {}
@@ -16,7 +16,10 @@ def startInterpreter(argv, prog):
     
     # - parse command line
     parser = utils_common.CommonOptionsParser(prog=prog, description='An interactive Python shell (repl) with the RethinkDB driver imported')
-    options, args = parser.parse_args(argv, connect=False)
+    options, args = parser.parse_args(argv or sys.argv[1:], connect=False)
+    
+    if args:
+        parser.error('No positional arguments supported. Unrecognized option(s): %s' % args)
     
     # -- open connection
     
@@ -34,7 +37,7 @@ def startInterpreter(argv, prog):
     # -- start interpreter
     
     code.interact(banner=banner + '\n==========', local=replVariables)
-    
+
 if __name__ == '__main__':
     if __package__ is None:
         __package__ = 'rethinkdb'

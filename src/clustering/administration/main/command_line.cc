@@ -70,6 +70,7 @@
 #define RETHINKDB_DUMP_SCRIPT "rethinkdb-dump"
 #define RETHINKDB_RESTORE_SCRIPT "rethinkdb-restore"
 #define RETHINKDB_INDEX_REBUILD_SCRIPT "rethinkdb-index-rebuild"
+#define RETHINKDB_REPL_SCRIPT "rethinkdb-repl"
 
 namespace cluster_defaults {
 const int reconnect_timeout = (24 * 60 * 60);    // 24 hours (in secs)
@@ -2287,6 +2288,11 @@ int main_rethinkdb_index_rebuild(int, char *argv[]) {
     return EXIT_FAILURE;
 }
 
+int main_rethinkdb_repl(int, char *argv[]) {
+    run_backup_script(RETHINKDB_REPL_SCRIPT, argv + 1);
+    return EXIT_FAILURE;
+}
+
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::vector<options::option_t> options;
     std::vector<options::help_section_t> help;
@@ -2525,6 +2531,13 @@ void help_rethinkdb_index_rebuild() {
     char dummy_arg[] = RETHINKDB_INDEX_REBUILD_SCRIPT;
     char* args[3] = { dummy_arg, help_arg, nullptr };
     run_backup_script(RETHINKDB_INDEX_REBUILD_SCRIPT, args);
+}
+
+void help_rethinkdb_repl() {
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_REPL_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, nullptr };
+    run_backup_script(RETHINKDB_REPL_SCRIPT, args);
 }
 
 #ifdef _WIN32
