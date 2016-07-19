@@ -170,6 +170,11 @@ void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *
 
 #include <errno.h>
 #include <pthread.h>
+
+#if defined (__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -734,21 +739,33 @@ size_t threaded_stack_t::free_space_below(const void *addr) const {
 
 void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
                                            size_t *stacksize_out) const {
-#ifdef __MACH__
+#ifdef __MACH__ 
     // Implementation for OS X
     *stacksize_out = pthread_get_stacksize_np(thread);
     *stackaddr_out = reinterpret_cast<void *>(
         reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
         - static_cast<uintptr_t>(*stacksize_out));
 #else
-    // Implementation for Linux
+    // Implementation for Linux and FreeBSD
     pthread_attr_t attr;
+#if defined(__FreeBSD__)
+    pthread_attr_init(&attr);
+    int res = pthread_attr_get_np(thread, &attr);
+    guarantee_xerr(res == 0, res, "Unable to get pthread attributes");
+    res = pthread_attr_getstackaddr(&attr, stackaddr_out);
+    guarantee_xerr(res == 0, res, "Unable to get pthread stack address");
+    res = pthread_attr_getstacksize(&attr, stacksize_out);
+    guarantee_xerr(res == 0, res, "Unable to get pthread stack size");
+    res = pthread_attr_destroy(&attr);
+    guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
+#else
     int res = pthread_getattr_np(thread, &attr);
     guarantee_xerr(res == 0, res, "Unable to get pthread attributes");
     res = pthread_attr_getstack(&attr, stackaddr_out, stacksize_out);
     guarantee_xerr(res == 0, res, "Unable to get pthread stack attribute");
     res = pthread_attr_destroy(&attr);
     guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
+#endif
 #endif
 }
 
