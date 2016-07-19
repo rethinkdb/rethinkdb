@@ -263,9 +263,9 @@ public:
 
 private:
     static bool worker_fn(read_stream_t *, write_stream_t *) {
-        int bad_data = *reinterpret_cast<volatile int*>(NULL);
+        // int bad_data = *reinterpret_cast<volatile int*>(NULL);
         // We should never get here
-        guarantee(bad_data == 0);
+        //guarantee(bad_data == 0);
         return true;
     }
 };
