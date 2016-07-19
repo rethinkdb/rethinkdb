@@ -223,8 +223,14 @@ pkg_configure () {
     in_dir "$build_dir" ./configure --prefix="$(niceabspath "$install_dir")" "$@"
 }
 
+if [[ "$OS" = "FreeBSD" ]]; then
+    MAKE=gmake
+else
+    MAKE=make
+fi
+
 pkg_make () {
-    in_dir "$build_dir" make "$@"
+    in_dir "$build_dir" $MAKE "$@"
 }
 
 pkg_install () {

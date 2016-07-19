@@ -120,7 +120,7 @@ ifeq (1,$(JUST_SCAN_MAKEFILES))
   EXTERN_MAKE := \#
 else
   # unset MAKEFLAGS to avoid some confusion
-  EXTERN_MAKE := MAKEFLAGS= make --no-print-directory
+  EXTERN_MAKE := MAKEFLAGS= $(MAKE) --no-print-directory
 endif
 
 ##### Test for certain make command line flags

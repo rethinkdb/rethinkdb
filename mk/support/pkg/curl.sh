@@ -18,10 +18,16 @@ pkg_configure () {
     in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls $ssl_command --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
 }
 
+if [[ "$OS" = FreeBSD ]]; then
+    MAKE=gmake
+else
+    MAKE=make
+fi
+
 pkg_install-include () {
     pkg_copy_src_to_build
     pkg_configure
-    make -C "$build_dir/include" install
+    $MAKE -C "$build_dir/include" install
 }
 
 pkg_install-include-windows () {
@@ -60,10 +66,10 @@ pkg_install () {
     pkg_configure
 
     # install the libraries
-    make -C "$build_dir/lib" install-libLTLIBRARIES
+    $MAKE -C "$build_dir/lib" install-libLTLIBRARIES
 
     # install the curl-config script
-    make -C "$build_dir" install-binSCRIPTS
+    $MAKE -C "$build_dir" install-binSCRIPTS
 }
 
 pkg_depends () {
@@ -96,7 +102,7 @@ pkg_link-flags () {
             -lidn)    out `pkg link-flags libidn idn` ;;
             -lssl)    out_openssl ssl ;;
             -lcrypto) out_openssl crypto ;;
-            -ldl)     dl_libs=-ldl;; # Linking may fail if -ldl isn't last
+            -ldl)     dl_libs=;; # Linking may fail if -ldl isn't last
             -lrt)     out "$flag" ;;
             -l*)      echo "Warning: '$pkg' links with '$flag'" >&2
                       out "$flag" ;;
