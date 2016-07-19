@@ -7,6 +7,9 @@
 #include <inaddr.h> // NOLINT
 #else
 #include <arpa/inet.h>   /* for `inet_ntop()` */
+#if defined(__FreeBSD__)
+#include <sys/socket.h> /* for net/if.h */
+#endif
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
