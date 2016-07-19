@@ -106,6 +106,42 @@ module RethinkDB
     end
   end
 
+  # Extend this class to define a new way of running rethinkdb queries
+  # asynchronously
+  class AsyncHandler
+    # The callback is set to be the user defined callback by the #async_run method
+    attr_accessor :callback
+    attr_accessor :connection
+    attr_accessor :options
+
+    # This method is called with a block that runs a rethinkdb connection
+    # synchronously
+    def run(&action)
+      raise "Must override AsyncHandler#run"
+    end
+
+    # This method should return a handler that will deal with incoming messages
+    def handler
+      raise "Must override AsyncHandler#handler"
+    end
+  end
+
+  # AsyncHandler that uses EventMachine to dispatch events
+  class EMHandler < AsyncHandler
+    def run
+      if !EM.reactor_running?
+        raise RuntimeError, "RethinkDB::RQL::em_run can only be called inside `EM.run`"
+      end
+
+      EM_Guard.register(connection)
+      yield
+    end
+
+    def handler
+      callback
+    end
+  end
+
   class CallbackHandler < Handler
     def initialize(callback)
       if callback.arity > 2 || callback.arity < -3
@@ -287,6 +323,7 @@ module RethinkDB
       conn = nil
       opts = nil
       block = nil
+      async_handler = nil
       args = args.map{|x| x.is_a?(Class) ? x.new : x}
       args.each {|arg|
         case arg
@@ -302,6 +339,9 @@ module RethinkDB
         when Handler
           raise ArgumentError, "Unexpected second callback #{arg.inspect}." if block
           block = arg
+        when AsyncHandler
+          raise ArgumentError, "Unexpected second AsyncHandler #{arg.inspect}." if async_handler
+          async_handler = arg
         else
           raise ArgumentError, "Unexpected argument #{arg.inspect} " +
             "(got #{args.inspect})."
@@ -332,8 +372,9 @@ module RethinkDB
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."
       end
-      {conn: conn, opts: opts, block: block}
+      {conn: conn, opts: opts, block: block, async_handler: async_handler}
     end
+
     def run(*args, &b)
       unbound_if(@body == RQL)
       args = parse(*args, &b)
@@ -342,10 +383,12 @@ module RethinkDB
       end
       args[:conn].run(@body, args[:opts], args[:block])
     end
+
     def em_run(*args, &b)
-      if !EM.reactor_running?
-        raise RuntimeError, "RethinkDB::RQL::em_run can only be called inside `EM.run`"
-      end
+      async_run(*args, EMHandler, &b)
+    end
+
+    def async_run(*args, &b)
       unbound_if(@body == RQL)
       args = parse(*args, &b)
       if args[:block].is_a?(Proc)
@@ -355,13 +398,23 @@ module RethinkDB
         raise ArgumentError, "No handler specified."
       end
 
+      async_handler = args[:async_handler]
+      if !async_handler.is_a?(AsyncHandler)
+        raise ArgumentError, "No async handler specified."
+      end
+
       # If the user has defined the `on_state` method, we assume they want states.
       if args[:block].respond_to?(:on_state)
         args[:opts] = args[:opts].merge(include_states: true)
       end
 
-      EM_Guard.register(args[:conn])
-      args[:conn].run(@body, args[:opts], args[:block])
+      async_handler.callback = args[:block]
+      async_handler.connection = args[:conn]
+      async_handler.options = args[:opts]
+
+      async_handler.run do
+        async_handler.connection.run(@body, async_handler.options, async_handler.handler)
+      end
     end
   end
 
