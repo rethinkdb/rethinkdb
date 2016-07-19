@@ -28,7 +28,10 @@ ifeq ($(COMPILER),CLANG)
     # RT_LDFLAGS += -Wl,--no-as-needed
   endif
 
-  ifeq ($(STATICFORCE),1)
+  ifeq ($(OS), FreeBSD)
+     RT_LDFLAGS += -lc++ -licuuc -lexecinfo
+  endif
+ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
       RT_LDFLAGS += -static
@@ -56,6 +59,10 @@ else ifeq ($(COMPILER),GCC)
     RT_LDFLAGS += -Wl,--no-as-needed
   endif
 
+  ifeq ($(OS),FreeBSD)
+    RT_LDFLAGS += -lstdc++
+  endif
+
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
@@ -68,6 +75,12 @@ else ifeq ($(COMPILER),GCC)
 endif
 
 RT_LDFLAGS += $(RT_LIBS)
+
+ifeq ($(OS),FreeBSD)
+  RT_CXXFLAGS += -I/usr/local/include
+  RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
+  RT_LDFLAGS += -L/usr/local/lib
+endif
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)
@@ -112,6 +125,7 @@ ifneq (1,$(ALLOW_WARNINGS))
 endif
 
 RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
+RT_CXXSTDFLAGS ?=
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
@@ -120,6 +134,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
+  ifeq ($(OS), FreeBSD)
+    RT_CXXSTDFLAGS = -std=c++0x -stdlib=libc++
+  endif
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default
@@ -127,6 +144,8 @@ else ifeq ($(COMPILER), GCC)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds -Wno-maybe-uninitialized
   endif
 endif
+
+RT_CXXFLAGS += $(RT_CXXSTDFLAGS)
 
 ifeq ($(COVERAGE), 1)
   ifeq ($(COMPILER), GCC)
@@ -322,7 +341,9 @@ ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
     MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
     MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in TCMalloc." >&2 && false)
   else ifeq (jemalloc,$(ALLOCATOR))
-    RT_LDFLAGS += -ldl
+    ifeq (Linux,$(OS))
+    	RT_LDFLAGS += -ldl
+    endif
     MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | grep -w -q 'mallctlnametomib' ||
     MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in jemalloc." >&2 && false)
   endif
