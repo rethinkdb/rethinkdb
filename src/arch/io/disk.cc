@@ -482,7 +482,11 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 #ifdef __linux__
     flags |= O_LARGEFILE;
 #endif
-
+#if defined(__FreeBSD__)
+    // FreeBSD does not have O_DSYNC / F_FULLSYNC. Instead, it relies on file
+    // system features like "soft updates" to reduce metadata syncing time.
+    flags |= O_SYNC;
+#endif
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
         flags |= O_RDWR;
     } else if (mode & linux_file_t::mode_write) {
@@ -519,7 +523,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     switch (backender->get_direct_io_mode()) {
     case file_direct_io_mode_t::direct_desired: {
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
         // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
         // should be generally fine, with either the x86 or amd64 calling convention, on another
@@ -545,7 +549,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         // Our access patterns are usually pretty random, and on startup we already
         // do read-ahead internally in our cache.
         int disable_readahead_res = -1;
-#ifdef __linux__
+#if  defined(__linux__) || defined(__FreeBSD__)
         // From the man-page:
         //  Under Linux, POSIX_FADV_NORMAL sets the readahead window to the
         //  default size for the backing device; POSIX_FADV_SEQUENTIAL doubles
@@ -621,6 +625,11 @@ int perform_datasync(fd_t fd) {
 #elif defined(__linux__)
 
     int res = fdatasync(fd);
+    return res == -1 ? get_errno() : 0;
+
+#elif defined(__FreeBSD__)
+
+    int res = fsync(fd);
     return res == -1 ? get_errno() : 0;
 
 #else

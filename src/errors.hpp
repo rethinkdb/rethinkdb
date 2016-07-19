@@ -20,7 +20,9 @@
 #else   /* not x86/amd64 */
 #define BREAKPOINT (raise(SIGTRAP))
 #endif  /* x86/amd64 */
-#elif defined(__MACH__)
+#endif
+
+#if defined(__MACH__) || defined(__FreeBSD__)
 #define BREAKPOINT (raise(SIGTRAP))
 #elif defined(_WIN32)
 #define BREAKPOINT DebugBreak()
