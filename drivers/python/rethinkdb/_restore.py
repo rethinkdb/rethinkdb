@@ -86,130 +86,119 @@ def parse_options(argv, prog=None):
     return options
 
 def do_unzip(temp_dir, options):
-    if not options.quiet:
-        print("Unzipping archive file...")
-    start_time = time.time()
-    original_dir = os.getcwd()
-    sub_path = None
-
+    '''extract the tarfile to the filesystem'''
+    
     tables_to_export = set(options.db_tables)
-    members = []
-
-    def parse_path(member):
-        path = os.path.normpath(member.name)
-        if member.isdir():
-            return ('', '', '')
-        if not member.isfile():
-            raise RuntimeError("Error: Archive file contains an unexpected entry type")
-        if not os.path.realpath(os.path.abspath(path)).startswith(os.getcwd()):
-            raise RuntimeError("Error: Archive file contains unexpected absolute or relative path")
-        path, table_file = os.path.split(path)
-        path, db = os.path.split(path)
-        path, base = os.path.split(path)
-        return (base, db, os.path.splitext(table_file)[0])
-
-    # If the in_file is a fileobj (e.g. stdin), stream it to a seekable file
-    # first so that the code below can seek in it.
-    tar_temp_file_path = None
-    if options.in_file is sys.stdin:
-        fileobj = options.in_file
-        fd, tar_temp_file_path = tempfile.mkstemp(suffix=".tar.gz", dir=options.temp_dir)
-        # Constant memory streaming, buf == "" on EOF
-        with os.fdopen(fd, "w", 65536) as f:
-            buf = None
-            while buf != "":
-                buf = fileobj.read(65536)
-                f.write(buf)
-        name = tar_temp_file_path
-    else:
-        name = options.in_file
-
-    try:
-        with tarfile.open(name, "r:*") as f:
-            os.chdir(temp_dir)
+    top_level        = None
+    files_ignored    = []
+    files_found      = False
+    tarfileOptions   = {
+        "mode": "r|*",
+        "fileobj" if hasattr(options.in_file, "read") else "name": options.in_file 
+    }
+    with tarfile.open(**tarfileOptions) as archive:
+        for tarinfo in archive:
+            # skip without comment anything but files
+            if not tarinfo.isfile():
+                continue # skip everything but files
+            
+            # normalize the path
+            relpath = os.path.relpath(os.path.realpath(tarinfo.name.strip().lstrip(os.sep)))
+            
+            # skip things that try to jump out of the folder
+            if relpath.startswith(os.path.pardir):
+                files_ignored.append(tarinfo.name)
+                continue
+            
+            # skip files types other than what we use
+            if not os.path.splitext(relpath)[1] in (".json", ".csv", ".info"):
+                files_ignored.append(tarinfo.name)
+                continue
+            
+            # ensure this looks like our structure
             try:
-                for member in f:
-                    base, db, table = parse_path(member)
-                    if len(base) > 0:
-                        if sub_path is None:
-                            sub_path = base
-                        elif sub_path != base:
-                            raise RuntimeError("Error: Archive file has an unexpected directory structure (%s vs %s)" % (sub_path, base))
-
-                        if len(tables_to_export) == 0 or \
-                           (db, table) in tables_to_export or \
-                           (db, None) in tables_to_export:
-                            members.append(member)
-
-                if sub_path is None:
-                    raise RuntimeError("Error: Archive file had no files")
-
-                f.extractall(members=members)
-
-            finally:
-                os.chdir(original_dir)
-    finally:
-        if tar_temp_file_path is not None:
-            os.remove(tar_temp_file_path)
-
-    if not options.quiet:
-        print("  Done (%d seconds)" % (time.time() - start_time))
-    return os.path.join(temp_dir, sub_path)
-
-def do_import(temp_dir, options):
-    # - default _import options
+                top, db, file_name = relpath.split(os.sep)
+            except ValueError:
+                raise RuntimeError("Error: Archive file has an unexpected directory structure: %s" % tarinfo.name)
+            
+            if not top_level:
+                top_level = top
+            elif top != top_level:
+                raise RuntimeError("Error: Archive file has an unexpected directory structure (%s vs %s)" % (top, top_level))
+            
+            # filter out tables we are not looking for
+            table = os.path.splitext(file_name)
+            if tables_to_export and not ((db, table) in tables_to_export or (db, None) in tables_to_export):
+                continue # skip without comment
+            
+            # write the file out
+            files_found = True
+            dest_path = os.path.join(temp_dir, db, file_name)
+            if not os.path.exists(os.path.dirname(dest_path)):
+                os.makedirs(os.path.dirname(dest_path))
+            with open(dest_path, 'wb') as dest:
+                source = archive.extractfile(tarinfo)
+                chunk = True
+                while chunk:
+                    chunk = source.read(1024 * 128)
+                    dest.write(chunk)
+                source.close()
+            assert os.path.isfile(os.path.join(temp_dir, db, file_name))
     
-    options.fields = None
+    if not files_found:
+        raise RuntimeError("Error: Archive file had no files")
     
-    # -
-    
-    options = copy.copy(options)
-    options.directory = temp_dir
-    
-    if not options.quiet:
-        print("Importing from directory...")
-    
-    try:
-        _import.import_directory(options)
-    except RuntimeError as ex:
-        if options.debug:
-            traceback.print_exc()
-        if str(ex) == "Warnings occurred during import":
-            raise RuntimeError("Warning: import did not create some secondary indexes.")
-        else:
-            errorString = str(ex)
-            if errorString.startswith('Error: '):
-                errorString = errorString[len('Error: '):]
-            raise RuntimeError("Error: import failed: %s" % errorString)
-    # 'Done' message will be printed by the import script
+    # - send the location and ignored list back to our caller
+    return files_ignored
 
-def run_rethinkdb_import(options):
+def do_restore(options):
     # Create a temporary directory to store the extracted data
     temp_dir = tempfile.mkdtemp(dir=options.temp_dir)
-    res = -1
 
     try:
-        sub_dir = do_unzip(temp_dir, options)
-        do_import(sub_dir, options)
-    except KeyboardInterrupt:
-        time.sleep(0.2)
-        raise RuntimeError("Interrupted")
+        # - extract the archive
+        if not options.quiet:
+            print("Extracting archive file...")
+            start_time = time.time()
+        
+        files_ignored = do_unzip(temp_dir, options)
+        
+        if not options.quiet:
+            print("  Done (%d seconds)" % (time.time() - start_time))
+        
+        # - default _import options
+    
+        options = copy.copy(options)
+        options.fields = None
+        options.directory = temp_dir
+        
+        # run the import
+        if not options.quiet:
+            print("Importing from directory...")
+        
+        try:
+            _import.import_directory(options, files_ignored)
+        except RuntimeError as ex:
+            if options.debug:
+                traceback.print_exc()
+            if str(ex) == "Warnings occurred during import":
+                raise RuntimeError("Warning: import did not create some secondary indexes.")
+            else:
+                errorString = str(ex)
+                if errorString.startswith('Error: '):
+                    errorString = errorString[len('Error: '):]
+                raise RuntimeError("Error: import failed: %s" % errorString)
+        # 'Done' message will be printed by the import script
     finally:
         shutil.rmtree(temp_dir)
 
 def main(argv=None, prog=None):
     if argv is None:
         argv = sys.argv[1:]
+    options = parse_options(argv, prog=prog)
+    
     try:
-        options = parse_options(argv, prog=prog)
-    except RuntimeError as ex:
-        print("Usage: %s" % usage, file=sys.stderr)
-        print(ex, file=sys.stderr)
-        return 1
-
-    try:
-        start_time = time.time()
-        run_rethinkdb_import(options)
+        do_restore(options)
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
         return 1

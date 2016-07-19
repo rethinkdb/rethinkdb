@@ -317,6 +317,8 @@ class SourceFile(object):
                         break
                     except Full:
                         pass
+                else:
+                    break
                 timing_queue.put(('reader_wait', time.time() - timePoint))
                 timePoint = time.time()
         
@@ -810,7 +812,7 @@ def abort_import(pools, exit_event, interrupt_event):
                 worker.terminate()
                 worker.join(.1)
     else:
-        print("\nTerminate signal seen, aborting")
+        print("\nTerminate signal seen, aborting gracefully")
         interrupt_event.set()
         exit_event.set()
 
@@ -873,6 +875,9 @@ def import_tables(options, sources):
     interrupt_event = multiprocessing.Event()
     
     timing_queue    = SimpleQueue()
+    
+    errors          = []
+    warnings        = []
     timingSums      = {}
     
     pools = []
@@ -882,6 +887,24 @@ def import_tables(options, sources):
     # - setup KeyboardInterupt handler
     signal.signal(signal.SIGINT, lambda a, b: abort_import(pools, exit_event, interrupt_event))
     
+    # - queue draining
+    def drainQueues():
+        # error_queue
+        while not error_queue.empty():
+            errors.append(error_queue.get())
+        
+        # warning_queue
+        while not warning_queue.empty():
+            warnings.append(warning_queue.get())
+        
+        # timing_queue 
+        while not timing_queue.empty():
+            key, value = timing_queue.get()
+            if not key in timingSums:
+                timingSums[key] = value
+            else:
+                timingSums[key] += value
+        
     # - setup dbs and tables
     
     # create missing dbs
@@ -942,7 +965,6 @@ def import_tables(options, sources):
         # - read the tables options.clients at a time
         readers = []
         pools.append(readers)
-        filesLeft = len(sources)
         fileIter = iter(sources)
         try:
             while not exit_event.is_set():
@@ -959,40 +981,36 @@ def import_tables(options, sources):
                     )
                     readers.append(reader)
                     reader.start()
-                    filesLeft -= 1
                 
-                # drain the timing queue
-                while not timing_queue.empty():
-                    key, value = timing_queue.get()
-                    if not key in timingSums:
-                        timingSums[key] = value
-                    else:
-                        timingSums[key] += value
+                # drain the queues
+                drainQueues()
                 
                 # reap completed tasks
                 for reader in readers[:]:
                     if not reader.is_alive():
                         readers.remove(reader)
-                    if filesLeft and len(readers) == options.clients:
+                    if len(readers) == options.clients:
                         time.sleep(.05)
         except StopIteration:
             pass # ran out of new tables
         
         # - wait for the last batch of readers to complete
         while readers:
-            # drain the timing queue
-            while not timing_queue.empty():
-                key, value = timing_queue.get()
-                if not key in timingSums:
-                    timingSums[key] = value
-                else:
-                    timingSums[key] += value
+            # drain the queues
+            drainQueues()
+            
+            # drain the work queue to prevent readers from stalling on exit
+            if exit_event.is_set():
+                try:
+                    while True:
+                        work_queue.get(timeout=0.1)
+                except Empty: pass
             
             # watch the readers
             for reader in readers[:]:
-                if exit_event.is_set():
-                    reader.terminate() # kill it abruptly
-                reader.join(.1)
+                try:
+                    reader.join(.1)
+                except Exception: pass
                 if not reader.is_alive():
                     readers.remove(reader)
         
@@ -1018,7 +1036,7 @@ def import_tables(options, sources):
                 try:
                     writer.terminate()
                 except Exception: pass
-                
+        
         # - stop the progress bar
         if progressBar:
             done_event.set()
@@ -1028,10 +1046,8 @@ def import_tables(options, sources):
             if progressBar.is_alive():
                 progressBar.terminate()
         
-        # - drain the error_queue
-        errors = []
-        while not error_queue.empty():
-            errors.append(error_queue.get())
+        # - drain queues
+        drainQueues()
         
         # - final reporting
         if not options.quiet:
@@ -1054,33 +1070,35 @@ def import_tables(options, sources):
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     
+    drainQueues()
+    
+    for error in errors:
+        print("%s" % error.message, file=sys.stderr)
+        if options.debug and error.traceback:
+            print("  Traceback:\n%s" % error.traceback, file=sys.stderr)
+        if len(error.file) == 4:
+            print("  In file: %s" % error.file, file=sys.stderr)
+    
+    for warning in warnings:
+        print("%s" % warning[1], file=sys.stderr)
+        if options.debug:
+            print("%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr)
+        if len(warning) == 4:
+            print("In file: %s" % warning[3], file=sys.stderr)
+    
     if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
-    
-    if len(errors) != 0:
-        for error in errors:
-            print("%s" % error.message, file=sys.stderr)
-            if options.debug and error.traceback:
-                print("  Traceback:\n%s" % error.traceback, file=sys.stderr)
-            if len(error.file) == 4:
-                print("  In file: %s" % error.file, file=sys.stderr)
+    if errors:
         raise RuntimeError("Errors occurred during import")
-    
-    if not warning_queue.empty():
-        while not warning_queue.empty():
-            warning = warning_queue.get()
-            print("%s" % warning[1], file=sys.stderr)
-            if options.debug:
-                print("%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr)
-            if len(warning) == 4:
-                print("In file: %s" % warning[3], file=sys.stderr)
+    if warnings:
         raise RuntimeError("Warnings occurred during import")
 
-def import_directory(options):
+def import_directory(options, files_ignored=None):
     # Scan for all files, make sure no duplicated tables with different formats
     dbs = False
     sources = {} # (db, table) => {file:, format:, db:, table:, info:}
-    files_ignored = []
+    if files_ignored is None:
+        files_ignored = []
     for root, dirs, files in os.walk(options.directory):
         if not dbs:
             files_ignored.extend([os.path.join(root, f) for f in files])
@@ -1104,7 +1122,7 @@ def import_directory(options):
                 table, ext = os.path.splitext(filename)
                 table = os.path.basename(table)
                 
-                if ext not in [".json", ".csv", ".info"]:
+                if ext not in (".json", ".csv", ".info"):
                     files_ignored.append(os.path.join(root, filename))
                 elif ext == ".info":
                     pass # Info files are included based on the data files
@@ -1137,7 +1155,13 @@ def import_directory(options):
                     except OSError:
                         files_ignored.append(os.path.join(root, f))
                     
-                    tableType = JsonSourceFile if ext == ".json" else CsvSourceFile
+                    tableType = None
+                    if ext == ".json":
+                        tableType = JsonSourceFile
+                    elif ext == ".csv":
+                        tableType = CsvSourceFile
+                    else:
+                        raise Exception("The table type is not recognised: %s" % ext)
                     sources[(db, table)] = tableType(
                         source=path,
                         db=db, table=table,
