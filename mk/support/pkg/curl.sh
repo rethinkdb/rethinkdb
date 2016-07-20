@@ -102,12 +102,17 @@ pkg_link-flags () {
             -lidn)    out `pkg link-flags libidn idn` ;;
             -lssl)    out_openssl ssl ;;
             -lcrypto) out_openssl crypto ;;
-            -ldl)     dl_libs=;; # Linking may fail if -ldl isn't last
+            -ldl)     dl_libs=-ldl;; # Linking may fail if -ldl isn't last
             -lrt)     out "$flag" ;;
             -l*)      echo "Warning: '$pkg' links with '$flag'" >&2
                       out "$flag" ;;
             *)        out "$flag" ;;
         esac
     done
+
+    if [[ $OS = FreeBSD ]]; then
+      dl_libs = ''
+    fi
+    
     echo "$ret" $dl_libs
 }
