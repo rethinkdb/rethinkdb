@@ -115,7 +115,9 @@ TEST(ContextSwitchingTest, UncaughtException) {
 #ifdef _WIN32
     coro_initialize_for_thread();
 #endif
-    //EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
+    #ifndef __FreeBSD__ //Disabled to be able to compile on FreeBSD clang
+    EXPECT_DEATH(throw_exception_from_coroutine(), "This is a test exception");
+    #endif
 }
 
 }   /* namespace unittest */
