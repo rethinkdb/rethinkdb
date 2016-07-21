@@ -47,6 +47,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     public void close() {
+        connection.removeFromCache(this.token);
         if (!error.isPresent()) {
             error = Optional.of(new NoSuchElementException());
             if (connection.isOpen()) {
