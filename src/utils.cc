@@ -47,6 +47,13 @@ void run_generic_global_startup_behavior() {
     // Make sure stderr is non-buffered
     setvbuf(stderr, nullptr, _IONBF, 0);
 
+#ifdef _WIN32
+    // When running in Cygwin on Windows, line-buffering
+    // doesn't appear to work properly. So we disable buffering
+    // on `stdout` on Windows as well.
+    setvbuf(stdout, nullptr, _IONBF, 0);
+#endif
+
     install_generic_crash_handler();
     install_new_oom_handler();
 
