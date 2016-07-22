@@ -27,9 +27,10 @@ def parse_options(argv, prog=None):
     parser.add_option("-f", "--file",     dest="out_file",  metavar="FILE",        default=None,  help='file to write archive to (defaults to rethinkdb_dump_DATE_TIME.tar.gz);\nif FILE is -, use standard output (note that intermediate files will still be written to the --temp-dir directory)')
     parser.add_option("-e", "--export",   dest="db_tables", metavar="DB|DB.TABLE", default=[],    help='limit dump to the given database or table (may be specified multiple times)', action="append")
 
-    parser.add_option("--temp-dir",       dest="temp_dir", metavar="directory",   default=None,  help='the directory to use for intermediary results')
-    parser.add_option("--overwrite-file", dest="overwrite_file",                  default=False, help="overwrite -f/--file if it exists", action="store_true")
-    parser.add_option("--clients",        dest="clients",  metavar="NUM",         default=3,     help='number of tables to export simultaneously (default: 3)', type="pos_int")
+    parser.add_option("--temp-dir",       dest="temp_dir",  metavar="directory",   default=None,   help='the directory to use for intermediary results')
+    parser.add_option("--overwrite-file", dest="overwrite",                        default=False,  help="overwrite -f/--file if it exists", action="store_true")
+    parser.add_option("--clients",        dest="clients",   metavar="NUM",         default=3,      help='number of tables to export simultaneously (default: 3)', type="pos_int")
+    parser.add_option("--read-outdated",  dest="outdated",                         default=False,  help='use outdated read mode', action="store_true")
     
     options, args = parser.parse_args(argv)
     
@@ -54,7 +55,7 @@ def parse_options(argv, prog=None):
         options.out_file = os.path.realpath(options.out_file)
     
     if not options.out_file is not sys.stdout:
-        if os.path.exists(options.out_file) and not options.overwrite_file:
+        if os.path.exists(options.out_file) and not options.overwrite:
             parser.error("Output file already exists: %s" % options.out_file)
         if os.path.exists(options.out_file) and not os.path.isfile(options.out_file):
             parser.error("There is a non-file at the -f/--file location: %s" % options.out_file)

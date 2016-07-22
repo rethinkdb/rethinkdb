@@ -56,6 +56,7 @@ def parse_options(argv, prog=None):
     parser.add_option("--fields",          dest="fields",    metavar="<FIELD>,...",     default=None,       help='export only specified fields (required for CSV format)')
     parser.add_option("--format",          dest="format",    metavar="json|csv|ndjson", default="json",     help='format to write (defaults to json. ndjson is newline delimited json.)', type="choice", choices=['json', 'csv', 'ndjson'])
     parser.add_option("--clients",         dest="clients",   metavar="NUM",             default=3,          help='number of tables to export simultaneously (default: 3)', type="pos_int")
+    parser.add_option("--read-outdated",   dest="outdated",                             default=False,      help='use outdated read mode',  action="store_true")
     
     csvGroup = optparse.OptionGroup(parser, 'CSV options')
     csvGroup.add_option("--delimiter", dest="delimiter",     metavar="CHARACTER",       default=None,       help="character to be used as field delimiter, or '\\t' for tab (default: ',')")
@@ -205,11 +206,17 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
         # - 
         
         lastPrimaryKey = None
-        read_rows = 0
+        read_rows      = 0
+        runOptions     = {
+            "time_format":"raw",
+            "binary_format":"raw"
+        }
+        if options.outdated:
+            runOptions["read_mode"] = "outdated"
         cursor = options.retryQuery(
             'inital cursor for %s.%s' % (db, table),
             r.db(db).table(table).order_by(index=table_info["primary_key"]),
-            runOptions={"time_format":"raw", "binary_format":"raw"}
+            runOptions=runOptions
         )
         while not exit_event.is_set():
             try:
@@ -241,7 +248,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' % (db, table),
                     r.db(db).table(table).between(lastPrimaryKey, None, left_bound="open").order_by(index=table_info["primary_key"]),
-                    runOptions={"time_format":"raw", "binary_format":"raw"}
+                    runOptions=runOptions
                 )
     
     except (r.ReqlError, r.ReqlDriverError) as ex:
