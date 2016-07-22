@@ -113,7 +113,7 @@ configure_unixlike () {
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
-            Darwin) var_append LDFLAGS -lc++
+            Darwin) var_append LDFLAGS -stdlib=libc++ -lc++
                     var_append CXXFLAGS -stdlib=libc++ ;;
             *) var_append LDFLAGS -lstdc++ ;;
         esac
