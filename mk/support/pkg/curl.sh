@@ -98,7 +98,10 @@ pkg_link-flags () {
             -lcrypto) out_openssl crypto ;;
             -ldl)     dl_libs=-ldl;; # Linking may fail if -ldl isn't last
             -lrt)     out "$flag" ;;
-            -l*)      echo "Warning: '$pkg' links with '$flag'" >&2
+            -l*)      if ! [[ $LDFLAGS =~ (^| )"$flag"($| ) ]]; then
+                          echo "$LDFLAGS ||||| $flag" >&2
+                          echo "Warning: '$pkg' links with '$flag'" >&2
+                      fi
                       out "$flag" ;;
             *)        out "$flag" ;;
         esac
