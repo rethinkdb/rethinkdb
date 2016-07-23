@@ -134,6 +134,7 @@ module RethinkDB
       end
 
       EM_Guard.register(connection)
+      options[:query_handle_class] = EMQueryHandle
       yield
     end
 
@@ -215,14 +216,16 @@ module RethinkDB
       end
       handle_close
     end
-    def safe_next_tick(&b)
-      EM.next_tick {
-        b.call if !@closed
-      }
+
+    # Override this method with an async dispatch, making sure that
+    # when the block is run @closed == false
+    def guarded_async_run(&b)
+      raise "Must override QueryHandle#guarded_async_run"
     end
+
     def callback(res)
       begin
-        if @handler.stopped? || !EM.reactor_running?
+        if @handler.stopped?
           @closed = true
           @conn.stop(@token)
           return
@@ -231,15 +234,17 @@ module RethinkDB
                                   Response::ResponseNote::ATOM_FEED,
                                   Response::ResponseNote::ORDER_BY_LIMIT_FEED,
                                   Response::ResponseNote::UNIONED_FEED]) != []
-          if (res['t'] == Response::ResponseType::SUCCESS_PARTIAL) ||
-              (res['t'] == Response::ResponseType::SUCCESS_SEQUENCE)
-            safe_next_tick {
+
+          case res['t']
+          when Response::ResponseType::SUCCESS_PARTIAL,
+               Response::ResponseType::SUCCESS_SEQUENCE
+            guarded_async_run do
               handle_open
               if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
                 @conn.register_query(@token, @all_opts, self) if !@conn.closed?
                 @conn.dispatch([Query::QueryType::CONTINUE], @token) if !@conn.closed?
               end
-              Shim.response_to_native(res, @msg, @all_opts).each {|row|
+              Shim.response_to_native(res, @msg, @all_opts).each do |row|
                 if is_cfeed
                   if (row.has_key?('new_val') && row.has_key?('old_val') &&
                       @handler.respond_to?(:on_change))
@@ -260,14 +265,14 @@ module RethinkDB
                 else
                   handle(:on_stream_val, row)
                 end
-              }
-              if (res['t'] == Response::ResponseType::SUCCESS_SEQUENCE ||
-                  @conn.closed?)
+              end
+              if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE ||
+                  @conn.closed?
                 handle_close
               end
-            }
-          elsif res['t'] == Response::ResponseType::SUCCESS_ATOM
-            safe_next_tick {
+            end
+          when Response::ResponseType::SUCCESS_ATOM
+            guarded_async_run do
               return if @closed
               handle_open
               val = Shim.response_to_native(res, @msg, @all_opts)
@@ -277,14 +282,14 @@ module RethinkDB
                 handle(:on_atom, val)
               end
               handle_close
-            }
-          elsif res['t'] == Response::ResponseType::WAIT_COMPLETE
-            safe_next_tick {
+            end
+          when Response::ResponseType::WAIT_COMPLETE
+            guarded_async_run do
               return if @closed
               handle_open
               handle(:on_wait_complete)
               handle_close
-            }
+            end
           else
             exc = nil
             begin
@@ -292,27 +297,44 @@ module RethinkDB
             rescue Exception => e
               exc = e
             end
-            safe_next_tick {
+            guarded_async_run do
               return if @closed
               handle_open
               handle(:on_error, e)
               handle_close
-            }
+            end
           end
         else
-          safe_next_tick {
+          guarded_async_run {
             return if @closed
             handle_close
           }
         end
       rescue Exception => e
-        safe_next_tick {
+        guarded_async_run do
           return if @closed
           handle_open
           handle(:on_error, e)
           handle_close
-        }
+        end
       end
+    end
+  end
+
+  class EMQueryHandle < QueryHandle
+    def guarded_async_run(&b)
+      EM.next_tick {
+        b.call if !@closed
+      }
+    end
+
+    def callback(res)
+      if !EM.reactor_running?
+          @closed = true
+          @conn.stop(@token)
+          return
+      end
+      super(res)
     end
   end
 
@@ -586,6 +608,7 @@ module RethinkDB
       }
     end
     def run(msg, opts, b)
+      query_handle_class = opts.delete(:query_handle_class) || QueryHandle
       reconnect(:noreply_wait => false) if @auto_reconnect && !is_open()
       raise ReqlRuntimeError, "Connection is closed." if !is_open()
 
@@ -603,7 +626,7 @@ module RethinkDB
                 }]]
 
       if b.is_a? Handler
-        callback = QueryHandle.new(b, msg, all_opts, token, self)
+        callback = query_handle_class.new(b, msg, all_opts, token, self)
         register_query(token, all_opts, callback)
         dispatch(q, token)
         return callback
