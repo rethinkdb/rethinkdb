@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2016 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_GEO_LON_LAT_TYPES_HPP_
 #define RDB_PROTOCOL_GEO_LON_LAT_TYPES_HPP_
 
@@ -23,8 +23,7 @@ struct lon_lat_point_t {
     }
 };
 
-RDB_IMPL_SERIALIZABLE_2(lon_lat_point_t, longitude, latitude);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(lon_lat_point_t);
+RDB_DECLARE_SERIALIZABLE(lon_lat_point_t);
 
 typedef std::vector<lon_lat_point_t> lon_lat_line_t;
 
