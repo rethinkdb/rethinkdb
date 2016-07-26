@@ -20,6 +20,8 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=12.0.1
     min_python_version=2.6.0
+    
+    osx_min_version=10.7
 
     min_msbuild_version=14.0
     min_nmake_version=14.0
@@ -113,8 +115,11 @@ configure_unixlike () {
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
-            Darwin) var_append LDFLAGS -lc++
-                    var_append CXXFLAGS -stdlib=libc++ ;;
+            Darwin) var_append LDFLAGS -stdlib=libc++ -lc++
+                    var_append LDFLAGS -mmacosx-version-min="$osx_min_version"
+                    var_append CFLAGS -mmacosx-version-min="$osx_min_version"
+                    var_append CXXFLAGS -stdlib=libc++
+                    var_append CXXFLAGS -mmacosx-version-min="$osx_min_version" ;;
             *) var_append LDFLAGS -lstdc++ ;;
         esac
 

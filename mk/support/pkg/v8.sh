@@ -85,10 +85,12 @@ pkg_install () {
     pkg_copy_src_to_build
 
     mkdir -p "$install_dir/lib"
-    if [[ "$OS" = Darwin ]]; then
-        export CXXFLAGS="-stdlib=libc++ ${CXXFLAGS:-}"
-        export LDFLAGS="-stdlib=libc++ -lc++ ${LDFLAGS:-}"
+    if [[ "$CXX" = CLANG ]] && [[ "$OS" = Darwin ]]; then
         export GYP_DEFINES='clang=1 mac_deployment_target=10.7'
+    elif [[ "$CXX" = CLANG ]]; then
+        export GYP_DEFINES='clang=1'
+    elif [[ "$OS" = Darwin ]]; then
+        export GYP_DEFINES='mac_deployment_target=10.7'
     fi
     arch_gypflags=
     raspberry_pi_gypflags='-Darm_version=6 -Darm_fpu=vfpv2'

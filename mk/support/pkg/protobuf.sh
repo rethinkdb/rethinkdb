@@ -29,13 +29,6 @@ pkg_install () (
         fi
     fi
 
-    if [[ "$OS" = "Darwin" ]]; then
-        # TODO: is this necessary?
-        export CXX=clang++
-        export CXXFLAGS='-std=c++11 -stdlib=libc++'
-        export LDFLAGS=-lc++
-    fi
-
     pkg_configure --prefix="$(niceabspath "$install_dir")" $configure_flags --enable-static --disable-shared
     pkg_make ${protobuf_install_target:-install}
 

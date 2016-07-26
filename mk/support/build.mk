@@ -1,4 +1,4 @@
-# Copyright 2010-2013 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 # Rules for downloading and building dependencies
 #
@@ -17,12 +17,15 @@
 #  * inside macros, variables and function calls are escaped using `$$'
 
 # How to call the pkg.sh script
-WGET ?=
-CURL ?=
+WGET     ?=
+CURL     ?=
+CFLAGS   ?=
+CXXFLAGS ?=
+LDFLAGS  ?=
 JOBSERVER_FDS_FLAG = $(filter --jobserver-fds=%,$(MAKEFLAGS))
 PKG_MAKEFLAGS = $(if $(JOBSERVER_FDS_FLAG), -j) $(JOBSERVER_FDS_FLAG)
 
-PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CXX VERIFY_FETCH_HASH
+PKG_SCRIPT_VARIABLES := WGET CURL NPM OS FETCH_LIST BUILD_ROOT_DIR PTHREAD_LIBS CROSS_COMPILING CFLAGS CXX CXXFLAGS LDFLAGS VERIFY_FETCH_HASH
 
 ifeq (Windows,$(OS))
   PKG_SCRIPT_VARIABLES += DEBUG PLATFORM MSBUILD VCVARSALL CMAKE
