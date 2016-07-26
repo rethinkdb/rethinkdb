@@ -404,5 +404,10 @@ public class RethinkDBTest{
         final Cursor<TestPojo> all = r.db(dbName).table(tableName).run(conn);
         assertEquals(total, all.toList().size());
     }
+
+    @Test
+    public void testNoreply() throws Exception {
+        r.expr(null).runNoReply(conn);
+    }
 }
 
