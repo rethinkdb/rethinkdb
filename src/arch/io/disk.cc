@@ -258,9 +258,10 @@ void linux_file_t::set_file_size(int64_t size) {
 
 // For growing in large chunks at a time.
 int64_t chunk_factor(int64_t size) {
-    // x is at most 6.25% of size.
-    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 16)) * DEFAULT_EXTENT_SIZE;
-    return clamp<int64_t>(x, DEVICE_BLOCK_SIZE * 128, DEFAULT_EXTENT_SIZE * 64);
+    // x is at most 12.5% of size. Overall we align to chunks no larger than
+    // 64 extents.
+    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 8)) * DEFAULT_EXTENT_SIZE;
+    return clamp<int64_t>(x, DEFAULT_EXTENT_SIZE, DEFAULT_EXTENT_SIZE * 64);
 }
 
 void linux_file_t::set_file_size_at_least(int64_t size) {
