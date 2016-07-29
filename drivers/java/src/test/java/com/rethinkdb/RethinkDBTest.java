@@ -412,7 +412,7 @@ public class RethinkDBTest{
     }
 
     @Test
-    public void test() throws Exception {
+    public void test_Changefeeds_Cursor_Close_cause_new_cursor_cause_memory_leak() throws Exception {
         Field f_cursorCache = Connection.class.getDeclaredField("cursorCache");
         f_cursorCache.setAccessible(true);
 
