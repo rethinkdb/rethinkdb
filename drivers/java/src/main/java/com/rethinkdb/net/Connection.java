@@ -345,7 +345,7 @@ public class Connection implements Closeable {
 
     void stop(Cursor cursor) {
         // The server does reply to a stop request, though the response doesn't have a value.
-        runQuery(Query.stop(cursor.token));
+        runQueryNoreply(Query.stop(cursor.token));
     }
 
     /**
