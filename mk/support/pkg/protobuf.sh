@@ -16,7 +16,7 @@ pkg_install-include () {
 pkg_install () (
     pkg_copy_src_to_build
 
-    configure_flags=
+    configure_flags="--libdir=${install_dir}/lib"
 
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         cross_build_dir=$build_dir/cross_build
