@@ -1,10 +1,11 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import collections
 import errno
 import imp
 import numbers
 import os
+import pprint
 import socket
 import ssl
 import struct
@@ -186,36 +187,42 @@ class Cursor(object):
 
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
-
-    def __summary_string(self, token, end_token):
-        if len(self.items) > 10:
-            val_str = token.join(map(repr, [self.items[i] for i in range(0,10)]))
-        else:
-            val_str = token.join(map(repr, self.items))
-        if len(self.items) > 10 or self.error is None:
-            val_str += end_token
-
-        if self.error is None:
-            err_str = 'streaming'
-        elif isinstance(self.error, ReqlCursorEmpty):
-            err_str = 'done streaming'
-        else:
-            err_str = 'error: %s' % repr(self.error)
-
-        return val_str, err_str
-
+    
     def __str__(self):
-        val_str, err_str = self.__summary_string(",\n", ", ...\n")
-        return "%s (%s):\n[\n%s]" % (object.__repr__(self), err_str, val_str)
-
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        if val_str.endswith("'...']"):
+            val_str = val_str[:-len("'...']")] + "...]"
+        spacer_str = '\n' if '\n' in val_str else ''
+        if self.error is None:
+            status_str = 'streaming'
+        elif isinstance(self.error, ReqlCursorEmpty):
+            status_str = 'done streaming'
+        else:
+            status_str = 'error: %s' % str(self.error)
+        
+        return "%s.%s (%s): %s%s" % (
+            self.__class__.__module__, self.__class__.__name__,
+            status_str,
+            spacer_str, val_str
+        )
+    
     def __repr__(self):
-        val_str, err_str = self.__summary_string(", ", ", ...")
-        return "<%s.%s object at %s (%s):\n [%s]>" % (
-            self.__class__.__module__,
-            self.__class__.__name__,
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        if val_str.endswith("'...']"):
+            val_str = val_str[:-len("'...']")] + "...]"
+        spacer_str = '\n' if '\n' in val_str else ''
+        if self.error is None:
+            status_str = 'streaming'
+        elif isinstance(self.error, ReqlCursorEmpty):
+            status_str = 'done streaming'
+        else:
+            status_str = 'error: %s' % repr(self.error)
+        
+        return "<%s.%s object at %s (%s): %s%s>" % (
+            self.__class__.__module__, self.__class__.__name__,
             hex(id(self)),
-            err_str,
-            val_str
+            status_str,
+            spacer_str, val_str
         )
 
     def _error(self, message):
