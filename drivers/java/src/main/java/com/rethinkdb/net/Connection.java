@@ -344,7 +344,9 @@ public class Connection implements Closeable {
 
 
     void stop(Cursor cursor) {
-        // The server does reply to a stop request, though the response doesn't have a value.
+        // While the server does reply to the stop request, we ignore that reply.
+        // This works because the response pump in `connect` ignores replies for which
+        // no waiter exists.
         runQueryNoreply(Query.stop(cursor.token));
     }
 
