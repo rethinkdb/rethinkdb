@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #if defined(__MACH__)
-#include <availability.h>
+#include <Availability.h>
 #include <errno.h>
 #include <mach/mach.h>
 #include <sys/sysctl.h>
