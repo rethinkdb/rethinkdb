@@ -1213,7 +1213,7 @@ struct ancillary_info_t {
 };
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
-                                    const std::map<block_id_t, block_change_t> &changes,
+                                    std::map<block_id_t, block_change_t> &&changes,
                                     const std::vector<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
@@ -1364,6 +1364,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         }
                     }
 
+                    // Clear `changes`, since we are going to evict the pages
+                    // that it has pointers to in the next step.
+                    changes.clear();
                     for (auto &txn : txns) {
                         for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size();
                              i < e;
@@ -1408,7 +1411,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // Okay, yield, thank you.
     coro_t::yield();
-    do_flush_changes(page_cache, changes, txns, index_write_token);
+    do_flush_changes(page_cache, std::move(changes), txns, index_write_token);
 
     // Flush complete.
 
