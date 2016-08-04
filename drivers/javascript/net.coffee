@@ -1063,6 +1063,7 @@ class TcpConnection extends Connection
                 pbkdf2_cache[cache_string] = u
                 return u
 
+            # a, b should be strings
             compare_digest = (a, b) ->
                 left = undefined
                 right = b
@@ -1070,13 +1071,13 @@ class TcpConnection extends Connection
                 if a.length is b.length
                     left = a
                     result = 0
-                else
+                if a.length != b.length
                     left = b
                     result = 1
 
-                len = Math.min(a.length, b.length)
+                len = Math.min(left.length, right.length)
                 for i in [0...len]
-                    result |= xor_bytes(a[i],b[i])
+                    result |= left[i] ^ right[i]
 
                 return result is 0
 
