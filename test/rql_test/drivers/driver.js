@@ -28,6 +28,7 @@ var tables_to_delete = [] // created by this script
 
 // all argument numbers are +1 because the script is #1
 var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT;
+var SERVER_HOST = process.env.RDB_SERVER_HOST || 'localhost';
 var required_external_tables = [];
 if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
     rawValues = (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME).split(',');
@@ -263,7 +264,7 @@ process.on('unexpectedException',
 )
 
 // Connect first to cpp server
-r.connect({port:DRIVER_PORT}, function(error, conn) {
+r.connect({host:SERVER_HOST, port:DRIVER_PORT}, function(error, conn) {
 
     if(error){
         console.error("Failed to connect to server:", error);

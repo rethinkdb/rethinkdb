@@ -335,13 +335,12 @@ def get_test_db_table(tableName=None, dbName='test', index=0):
         
         # - interpreter version
         
-        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
-    
-    else:
-        tableName = tableName.replace(".","_").replace("/","_")
+        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])        
     
     if index != 0:
         tableName += '_tbl%s' % str(index)
+    
+    tableName = tableName.replace(".","_").replace("/","_").replace("\\","_")
     
     # -
     

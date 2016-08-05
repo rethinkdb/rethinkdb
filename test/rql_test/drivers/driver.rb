@@ -13,7 +13,8 @@ def print_debug(message)
     end
 end
 
-DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || 28015).to_i
+SERVER_HOST = ENV['RDB_SERVER_HOST'] || 'localhost'
 print_debug("Using driver port #{DRIVER_PORT}")
 
 $required_external_tables = []
@@ -43,7 +44,7 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-$reql_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
+$reql_conn = RethinkDB::Connection.new(:host => SERVER_HOST, :port => DRIVER_PORT)
 begin
   r.db_create('test').run($reql_conn)
 rescue
