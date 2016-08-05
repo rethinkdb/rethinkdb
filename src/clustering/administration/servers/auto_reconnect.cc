@@ -91,9 +91,12 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
         // They will be reset to `nullptr` by the assignment_sentry_ts when this function
         // call ends.
         std::shared_ptr<cond_t *> join_failed_out(new cond_t *(nullptr));
-        std::shared_ptr<peer_address_t *> last_known_address_out(new peer_address_t *(nullptr));
-        assignment_sentry_t<cond_t *> join_failed_out_assignment(join_failed_out.get(), &join_failed);
-        assignment_sentry_t<peer_address_t *> last_known_address_out_assignment(last_known_address_out.get(), &last_known_address);
+        std::shared_ptr<peer_address_t *> last_known_address_out(
+            new peer_address_t *(nullptr));
+        assignment_sentry_t<cond_t *> join_failed_out_assignment(
+            join_failed_out.get(), &join_failed);
+        assignment_sentry_t<peer_address_t *> last_known_address_out_assignment(
+            last_known_address_out.get(), &last_known_address);
 
         while (!interruptor.is_pulsed()) {
             // This coroutine can keep running even after this function has returned
@@ -102,11 +105,11 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
             coro_t::spawn_now_dangerously(
                 [this, last_known_address, server, join_failed_out, last_known_address_out]() {
-                auto &connectivity_cluster_run_local = connectivity_cluster_run;
-                auto &join_delay_secs_local = join_delay_secs;
+                auto connectivity_cluster_run_local = connectivity_cluster_run;
+                auto join_delay_secs_local = join_delay_secs;
 
                 join_results_t results =
-                    connectivity_cluster_run->join_blocking(
+                    connectivity_cluster_run_local->join_blocking(
                         last_known_address, boost::none, server,
                         join_delay_secs_local,
                         auto_drainer_t::lock_t(&connectivity_cluster_run_local->drainer));
