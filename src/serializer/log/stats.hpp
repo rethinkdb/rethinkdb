@@ -24,7 +24,7 @@ struct log_serializer_stats_t {
 
     /* used in serializer/log/extent_manager.cc */
     perfmon_counter_t pm_extents_in_use;
-    perfmon_counter_t pm_bytes_in_use;
+    perfmon_counter_t pm_file_size_bytes;
 
     /* used in serializer/log/lba/extent.cc */
     perfmon_counter_t pm_serializer_lba_extents;
