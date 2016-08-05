@@ -1,4 +1,4 @@
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 import collections, os, subprocess, sys
 
@@ -19,7 +19,10 @@ class AllUnitTests(test_framework.Test):
         if not os.access(unit_executable, os.X_OK):
             sys.stderr.write('Warning: no useable rethinkdb-unittest executable at: %s\n' % unit_executable)
             return test_framework.TestTree()
-        output = subprocess.check_output([unit_executable, "--gtest_list_tests"])
+        gtestProcess = subprocess.Popen([unit_executable, "--gtest_list_tests"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = gtestProcess.communicate()
+        if gtestProcess.returncode != 0:
+            raise subprocess.CalledProcessError(gtestProcess.returncode, [unit_executable, "--gtest_list_tests"])
         key = None
         dict = collections.defaultdict(list)
         for line in output.split():

@@ -2,4 +2,4 @@
 
 import os, sys, subprocess
 
-sys.exit(subprocess.call([os.path.join(os.path.dirname(__file__), 'table_fuzzer.test'), "--changefeeds"]))
+sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'table_fuzzer.py_one.test'), "--changefeeds"]))

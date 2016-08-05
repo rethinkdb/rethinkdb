@@ -41,7 +41,11 @@ class Resunder(object):
         
         # - check that resunder is running
         # ToDo: fix this to use the pid file and flock
-        if "resunder" not in subprocess.check_output(["ps", "-A", "-www", "-o", "command"]):
+        psProcess = subprocess.Popen(["ps", "-A", "-www", "-o", "command"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = psProcess.communicate()
+        if psProcess.returncode != 0:
+            raise Exception('Unable to use `ps` command! Code: %s, Output: %s' % (psProcess.returncode, output))
+        elif "resunder" not in output:
             raise Exception('Resunder is not running, please start it as root: `sudo %s/resunder.py start`' % os.path.realpath(os.path.dirname(__file__)))
         
         # - send to resunder

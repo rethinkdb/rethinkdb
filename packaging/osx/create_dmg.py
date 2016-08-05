@@ -51,12 +51,17 @@ atexit.register(removeAtExit, scratchFolder)
 identityRegex = re.compile(r'^\s+\d+\) (?P<id>\w{40}) "Developer ID (?P<type>Application|Installer): (?P<name>[^"]+)"')
 def getSigningIdentity(signingName, signingType):
 	assert signingType in ("Application", "Installer")
-	for line in subprocess.check_output(['/usr/bin/security', 'find-identity', '-p', 'macappstore', '-v']).splitlines():
+	command = ['/usr/bin/security', 'find-identity', '-p', 'macappstore', '-v']
+	process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	output, _ = process.communicate()
+	if process.returncode != 0:
+	   raise subprocess.CalledProcessError(process.returncode, command)
+	for line in output.splitlines():
 		res = identityRegex.match(line)
 		if res and res.group('type') == signingType and res.group('name') == signingName:
 			return res.group('id')
 	else:
-		raise ValueError('Could not find the requested signingName: "%s" for type: "%s"' % (signingName, signingType))
+		raise ValueError('Could not find the requested signingName: "%s" for type: "%s"\n%s' % (signingName, signingType, output))
 
 def compileUninstallApp(signingName=None):
 	outputPath = os.path.join(scratchFolder, uninstallAppName)
@@ -205,10 +210,15 @@ def main():
 	
 	versionString = ''
 	try:
-		versionString = subprocess.check_output([rethinkdbPath, '--version']).strip().split()[1].decode('utf-8')
+        command = [rethinkdbPath, '--version']
+        process = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = process.communicate()
+        if process.returncode != 0:
+            raise Exception()
+		versionString = output.strip().split()[1].decode('utf-8')
 	except Exception as e:
 		print(e)
-		parser.error('the executable given is not a valid RethinkDB executable: %s' % rethinkdbPath)
+        parser.error('the executable given is not a valid RethinkDB executable: %s' % rethinkdbPath)
 	
 	strictVersion = re.match('^(\d+\.?)+(-\d+)?', versionString)
 	if strictVersion is None:
