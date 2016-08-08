@@ -311,10 +311,12 @@ private:
         profile::sampler_t *merge_sampler;
         lt_cmp_t *merge_lt_cmp;
         bool operator()(const merge_cache_item_t &a, const merge_cache_item_t &b) {
-            return !merge_lt_cmp->operator()(merge_env,
-                                             merge_sampler,
-                                             a.value,
-                                             b.value);
+            // We swap `a` and `b` intentionally here, so that the
+            // `priority_queue` has the *smallest* element on top.
+            return merge_lt_cmp->operator()(merge_env,
+                                            merge_sampler,
+                                            b.value,
+                                            a.value);
         }
     };
 
