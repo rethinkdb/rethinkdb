@@ -450,6 +450,7 @@ private:
     // changefeed stream and return a partial batch.  (We still time out and
     // return partial batches, or even empty batches, for the web UI in the case
     // of a changefeed stream.)
+    std::vector<std::deque<datum_t> > cache;
     std::vector<datum_t> args;
 };
 
