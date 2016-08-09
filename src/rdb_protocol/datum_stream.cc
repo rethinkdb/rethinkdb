@@ -2213,6 +2213,7 @@ map_datum_stream_t::map_datum_stream_t(
         is_array_map &= stream->is_array();
         union_type = union_of(union_type, stream->cfeed_type());
         is_infinite_map &= stream->is_infinite();
+        cache.push_back(std::deque<datum_t>());
     }
 }
 
@@ -2228,23 +2229,30 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     std::vector<datum_t> batch;
     batcher_t batcher = batchspec.to_batcher();
 
-    // We need a separate batchspec for the streams to prevent calling `stream->next`
-    // with a `batch_type_t::TERMINAL` on an infinite stream.
-    batchspec_t batchspec_inner = batchspec_t::default_for(batch_type_t::NORMAL);
+    batchspec_t batchspec_inner = batchspec;
+    if (batchspec_inner.get_batch_type() == batch_type_t::TERMINAL) {
+        batchspec_inner = batchspec_t::default_for(batch_type_t::NORMAL);
+    }
     while (!is_exhausted()) {
         while (args.size() < streams.size()) {
-            datum_t d = streams[args.size()]->next(env, batchspec_inner);
-            if (!d.has()) {
+            if (cache[args.size()].size() == 0) {
+                std::vector<datum_t> new_items = streams[args.size()]->next_batch(
+                    env,
+                    batchspec_inner);
+                for (auto it = new_items.begin(); it != new_items.end(); ++it) {
+                    cache[args.size()].push_back(std::move(*it));
+                }
+            }
+            if (cache[args.size()].size() == 0) {
                 if (union_type == feed_type_t::not_feed) {
-                    // One of the streams was probably empty from the beginning. So
-                    // after the call to `next` above, we should now be exhausted.
                     r_sanity_check(is_exhausted());
                 }
                 // If we have a feed, return with `args` partway full and continue
                 // next time the client asks for a batch.
                 return batch;
             }
-            args.push_back(std::move(d));
+            args.push_back(std::move(cache[args.size()].front()));
+            cache[args.size() - 1].pop_front();
         }
         datum_t datum = func->call(env, args)->as_datum();
         r_sanity_check(datum.has());
@@ -2260,8 +2268,9 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 bool map_datum_stream_t::is_exhausted() const {
-    for (const auto &stream : streams) {
-        if (stream->is_exhausted()) {
+    for (size_t i = 0; i < streams.size(); ++i) {
+        if (streams[i]->is_exhausted() &&
+            cache[i].size() == 0) {
             return batch_cache_exhausted();
         }
     }
@@ -2405,6 +2414,23 @@ fold_datum_stream_t::fold_datum_stream_t(
     is_infinite_fold = stream->is_infinite();
 }
 
+bool ok_to_return_empty_batch(env_t *env,
+                              bool is_cfeed,
+                              batch_type_t batch_type) {
+    if (is_cfeed) {
+        if (batch_type == batch_type_t::NORMAL_FIRST) {
+            return true;
+        } else if (env->return_empty_normal_batches ==
+                   return_empty_normal_batches_t::YES) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 std::vector<datum_t>
 fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     rcheck(!is_infinite_fold
@@ -2415,39 +2441,41 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
            "(`reduce`, `count`, etc.) or coerce it to an array.");
 
     std::vector<datum_t> batch;
-    batcher_t batcher = batchspec.to_batcher();
 
     // TODO: Create an inner batchspec as in `map_datum_stream_t`
     // when we add folding over multiple streams.
 
-    while (!is_exhausted() && !batcher.should_send_batch()) {
-        datum_t row = stream->next(env, batchspec);
-        if (!row.has()) {
-            // This can happen if `stream` is a changefeed.
+    while (!stream->is_exhausted()) {
+        std::vector<datum_t> input_batch = stream->next_batch(env, batchspec);
+        for (const datum_t &row : input_batch) {
+            datum_t new_acc = acc_func->call(
+                env,
+                std::vector<datum_t>{acc, row})->as_datum();
+
+            r_sanity_check(new_acc.has());
+
+            datum_t emit_elem = emit_func->call(
+                env,
+                std::vector<datum_t>{acc, row, new_acc})->as_datum();
+
+            r_sanity_check(emit_elem.has());
+
+            for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
+                datum_t emit_item = emit_elem.get(i);
+                batch.push_back(std::move(emit_item));
+            }
+
+            acc = std::move(new_acc);
+        }
+        if (!batch.empty() ||
+            ok_to_return_empty_batch(env,
+                                     union_type != feed_type_t::not_feed,
+                                     batchspec.get_batch_type())) {
             break;
         }
-        datum_t new_acc = acc_func->call(
-            env,
-            std::vector<datum_t>{acc, row})->as_datum();
-
-        r_sanity_check(new_acc.has());
-
-        datum_t emit_elem = emit_func->call(
-            env,
-            std::vector<datum_t>{acc, row, new_acc})->as_datum();
-
-        r_sanity_check(emit_elem.has());
-
-        for (size_t i = 0; i < emit_elem.arr_size(); ++i) {
-            datum_t emit_item = emit_elem.get(i);
-            batcher.note_el(emit_item);
-            batch.push_back(std::move(emit_item));
-        }
-
-        acc = std::move(new_acc);
     }
 
-    if (is_exhausted() && do_final_emit) {
+    if (stream->is_exhausted() && do_final_emit) {
         std::vector<datum_t> final_emit_args;
         final_emit_args.push_back(acc);
         datum_t final_emit_elem = final_emit_func->call(
@@ -2456,7 +2484,6 @@ fold_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 
         for (size_t i = 0; i< final_emit_elem.arr_size(); ++i) {
             datum_t final_emit_item = final_emit_elem.get(i);
-            batcher.note_el(final_emit_item);
             batch.push_back(std::move(final_emit_item));
         }
 
