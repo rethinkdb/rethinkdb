@@ -722,11 +722,11 @@ class TestGroup(object):
                         test_case = variableMatch.group('expression')
                 
                 try:
-                    out.write("test(%(code)s, %(expected)s, %(name)s, %(driveropts)s, %(testopts)s)\n" % {
+                    out.write("test(%(code)s, %(expected)s, %(name)s, %(runopts)s, %(testopts)s)\n" % {
                         'code': lang.translate_query(test_case, name=True),
                         'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
                         'name': repr("line %d" % test_case.linenumber) if hasattr(test_case, 'linenumber') else repr(testName),
-                        'driveropts': lang.translate_query(testCode.runopts, quote=False),
+                        'runopts': lang.translate_query(testCode.runopts, quote=False),
                         'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })
                     

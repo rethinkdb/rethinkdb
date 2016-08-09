@@ -44,16 +44,23 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-$reql_conn = RethinkDB::Connection.new(:host => SERVER_HOST, :port => DRIVER_PORT)
+$conn_cache = {}
+def reql_conn(user='admin')
+  if not $conn_cache.has_key?(user)
+    $conn_cache[user] = RethinkDB::Connection.new(:host => SERVER_HOST, :port => DRIVER_PORT, :user => user)
+  end
+  return $conn_cache[user]
+end
+
 begin
-  r.db_create('test').run($reql_conn)
+  r.db_create('test').run(reql_conn())
 rescue
 end
 
 # --
 
 $defines = binding
-$defines.eval('conn = $reql_conn') # allow access to connection
+$defines.eval('conn = reql_conn()') # allow access to default connection
 
 NoError = "<no error>"
 AnyUUID = "<any uuid>"
@@ -396,14 +403,14 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
   end
 end
 
-def test(src, expected, name, opthash=nil, testopts=nil)
+def test(src, expected, name, runopts=nil, testopts=nil)
   $test_count += 1
-
+  user = 'admin'
   begin
-    # -- process the opthash
+    # -- process the runopts
 
-    if opthash
-      opthash = Hash[opthash.map{ |key,value|
+    if runopts
+      runopts = Hash[runopts.map{ |key,value|
         if value.is_a?(String)
           begin
             value = $defines.eval(value)
@@ -418,13 +425,20 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         end
         [key, value]
       }]
-      if !opthash[:max_batch_rows] && !opthash['max_batch_rows']
-        opthash[:max_batch_rows] = 3
+      if !runopts[:max_batch_rows] && !runopts['max_batch_rows']
+        runopts[:max_batch_rows] = 3
+      end
+      if runopts.has_key?(:user)
+        user = runopts[:user]
+        runopts.delete(:user)
+      elsif runopts.has_key?('user')
+        user = runopts['user']
+        runopts.delete('user')
       end
     else
-      opthash = {:max_batch_rows => 3}
+      runopts = {:max_batch_rows => 3}
     end
-
+    
     # -- process the testopts
 
     if testopts
@@ -471,11 +485,11 @@ def test(src, expected, name, opthash=nil, testopts=nil)
 
       elsif result.kind_of?(RethinkDB::RQL)
 
-        if opthash and opthash.length > 0
-          optstring = opthash.to_s[1..-2].gsub(/(?<quoteChar>['"]?)\b(?<!:)(?<key>\w+)\b\k<quoteChar>\s*=>/, ':\k<key>=>')
-          queryString += '.run($reql_conn, ' + optstring + ')' # removing braces
+        if runopts and runopts.length > 0
+          optstring = runopts.to_s[1..-2].gsub(/(?<quoteChar>['"]?)\b(?<!:)(?<key>\w+)\b\k<quoteChar>\s*=>/, ':\k<key>=>')
+          queryString += ".run(reql_conn('#{user}'), " + optstring + ')' # removing braces
         else
-          queryString += '.run($reql_conn)'
+          queryString += ".run(reql_conn('#{user}'))"
         end
         print_debug("Running query: #{queryString} Options: #{testopts}")
         result = $defines.eval(queryString)
@@ -496,7 +510,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
     end
 
     if testopts && testopts.key?(:noreply_wait) && testopts[:noreply_wait]
-        $reql_conn.noreply_wait
+        reql_conn(user).noreply_wait
     end
 
     # -- process the result
@@ -514,7 +528,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
     # use one of the required tables
     db_name, table_name = $required_external_tables.pop
     begin
-        r.db(db_name).table(table_name).info().run($reql_conn)
+        r.db(db_name).table(table_name).info().run(reql_conn())
     rescue RethinkDB::ReqlRuntimeError
       "External table #{db_name}.#{table_name} did not exist"
     end
@@ -522,25 +536,25 @@ def setup_table(table_variable_name, table_name, db_name="test")
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
 
     at_exit do
-      res = r.db(db_name).table(table_name).delete().run($reql_conn)
+      res = r.db(db_name).table(table_name).delete().run(reql_conn())
       raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
-      r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run($reql_conn)
+      r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run(reql_conn())
     end
   else
     # create a new table
-    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
-      res = r.db(db_name).table_drop(table_name).run($reql_conn)
+    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(reql_conn())
+      res = r.db(db_name).table_drop(table_name).run(reql_conn())
       raise "Unable to delete table before use #{db_name}.#{table_name}: #{res}" unless res['errors'] == 0
     end
-    res = r.db(db_name).table_create(table_name).run($reql_conn)
+    res = r.db(db_name).table_create(table_name).run(reql_conn())
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
-    r.db(db_name).table(table_name).wait(:wait_for=>"all_replicas_ready").run($reql_conn)
+    r.db(db_name).table(table_name).wait(:wait_for=>"all_replicas_ready").run(reql_conn())
     
     print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush
 
     at_exit do
-      res = r.db(db_name).table_drop(table_name).run($reql_conn)
+      res = r.db(db_name).table_drop(table_name).run(reql_conn())
       raise "Failed to delete table #{db_name}.#{table_name}: #{res}" unless res["tables_dropped"] == 1
     end
   end
