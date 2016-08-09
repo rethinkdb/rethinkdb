@@ -668,19 +668,22 @@ def connect(host=None, port=None, db=None, auth_key=None, user=None, password=No
 
 def set_loop_type(library):
     global connection_type
-
+    import pkg_resources
+    
     # find module file
-    moduleName = 'net_%s' % library
-    modulePath = None
-    driverDir = os.path.realpath(os.path.dirname(__file__))
-    if os.path.isfile(os.path.join(driverDir, library + '_net', moduleName + '.py')):
-        modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
-    else:
+    manager = pkg_resources.ResourceManager()
+    libPath = '%(library)s_net/net_%(library)s.py' % {'library':library}
+    if not manager.resource_exists(__name__, libPath):
         raise ValueError('Unknown loop type: %r' % library)
-
+    
     # load the module
+    modulePath = manager.resource_filename(__name__, libPath)
+    moduleName = 'net_%s' % library
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-
+    
     # set the connection type
     connection_type = module.Connection
+    
+    # cleanup
+    manager.cleanup_resources()
