@@ -220,10 +220,19 @@ private:
     /* We aggregate GC index writes into few large index writes
     to improve GC efficiency on drives with slow random access. */
     struct gc_index_write_t {
-        std::vector<counted_t<ls_block_token_pointee_t> >
-            old_block_tokens;
-        std::vector<counted_t<ls_block_token_pointee_t> >
-            new_block_tokens;
+        gc_index_write_t(
+            std::vector<counted_t<ls_block_token_pointee_t> > &&old_block_tokens_,
+            std::vector<counted_t<ls_block_token_pointee_t> > &&new_block_tokens_,
+            std::vector<gc_write_t> &&writes_,
+            gc_state_t *gc_state_,
+            scoped_device_block_aligned_ptr_t<char> &&gc_blocks_)
+            : old_block_tokens(std::move(old_block_tokens_)),
+              new_block_tokens(std::move(new_block_tokens_)),
+              writes(std::move(writes_)),
+              gc_state(gc_state_),
+              gc_blocks(std::move(gc_blocks_)) { }
+        std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
+        std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
         std::vector<gc_write_t> writes;
         gc_state_t *gc_state;
         scoped_device_block_aligned_ptr_t<char> gc_blocks;

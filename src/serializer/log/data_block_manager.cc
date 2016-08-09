@@ -1262,11 +1262,11 @@ void data_block_manager_t::write_gcs(
     // Step 3: Collect index writes from multiple GC runs to reduce the total
     // number of index writes, and increase their efficiency.
     collected_gc_index_writes.push_back(
-        gc_index_write_t{std::move(old_block_tokens),
+        gc_index_write_t(std::move(old_block_tokens),
                          std::move(new_block_tokens),
                          std::move(writes),
                          gc_state,
-                         std::move(gc_blocks)});
+                         std::move(gc_blocks)));
 
     // We're ready for the index_write. Notify the gc_index_write_pumper
     // and release our spot in the gc_index_write_semaphore.
