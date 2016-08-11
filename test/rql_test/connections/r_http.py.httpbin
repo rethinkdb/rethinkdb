@@ -42,7 +42,6 @@ class TestHttpTerm(rdb_unittest.RdbTestCase):
         
         res = r.http(url).run(self.conn)
         self.assertEqual(res['args'], {})
-        self.assertEqual(res['headers']['Accept-Encoding'], 'deflate;q=1, gzip;q=0.5')
         self.assertEqual(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
     
     def test_params(self):
