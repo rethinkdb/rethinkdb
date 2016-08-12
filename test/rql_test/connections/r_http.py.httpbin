@@ -42,6 +42,7 @@ class TestHttpTerm(rdb_unittest.RdbTestCase):
         
         res = r.http(url).run(self.conn)
         self.assertEqual(res['args'], {})
+        self.assertTrue('Accept-Encoding' in res['headers'], 'There was no Accept-Encoding header: %s' % res)
         self.assertEqual(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
     
     def test_params(self):
