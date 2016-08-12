@@ -861,10 +861,10 @@ class Server(object):
     existingUsers       = None
     existingPermissions = None
     
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         
         # - setup subclass
-        self.subclass_init(**kwargs)
+        self.subclass_init(*args, **kwargs)
         
         # - collect list of existing tables
         self.existingDBsToTables = {}
