@@ -278,8 +278,8 @@ class IterableResult
                     doneChecking = true
             return ret
             .then (data) ->
-                return data if data is undefined or typeof data is Promise
-                throw new error.ReqlDriverError "Row handler for eachAsync may only return a Promise or undefined."
+                return data if data is undefined
+                throw new error.ReqlDriverError "Row handler for eachAsync may only return undefined, or a Promise that resolves to undefined."
         nextCb = =>
             if @_closeCbPromise?
                 return Promise.resolve().then (data) ->
