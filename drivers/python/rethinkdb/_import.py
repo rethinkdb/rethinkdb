@@ -7,6 +7,8 @@ from __future__ import print_function
 import codecs, collections, csv, ctypes, json, multiprocessing
 import optparse, os, re, signal, sys, time, traceback
 
+from . import ast, errors, query, utils_common
+
 try:
     unicode
 except NameError:
@@ -24,10 +26,6 @@ except ImportError:
 json_read_chunk_size = 128 * 1024
 json_max_buffer_size = 128 * 1024 * 1024
 max_nesting_depth = 100
-default_batch_size = 200
-
-from . import utils_common
-r = utils_common.r
 
 Error = collections.namedtuple("Error", ["message", "traceback", "file"])
 
@@ -108,7 +106,10 @@ class SourceFile(object):
             self.name = os.path.basename(self._source.name)
         else:
             self.name = '%s.%s' % (self.db, self.table)
-        
+    
+    def __hash__(self):
+        return hash((self.db, self.table))
+    
     def get_line(self):
         '''Returns a single line from the file'''
         raise NotImplementedError('This needs to be implemented on the %s subclass' % self.format)
@@ -193,14 +194,14 @@ class SourceFile(object):
         # - ensure the table exists and is ready
         self.query_runner(
             "create table: %s.%s" % (self.db, self.table),
-            r.expr([self.table]).set_difference(r.db(self.db).table_list()).for_each(r.db(self.db).table_create(r.row, **self.source_options.create_args if 'create_args' in self.source_options else {}))
+            ast.expr([self.table]).set_difference(query.db(self.db).table_list()).for_each(query.db(self.db).table_create(query.row, **self.source_options.create_args if 'create_args' in self.source_options else {}))
         )
-        self.query_runner("wait for %s.%s" % (self.db, self.table), r.db(self.db).table(self.table).wait(timeout=30))
+        self.query_runner("wait for %s.%s" % (self.db, self.table), query.db(self.db).table(self.table).wait(timeout=30))
         
         # - ensure that the primary key on the table is correct
         primaryKey = self.query_runner(
             "primary key %s.%s" % (self.db, self.table),
-            r.db(self.db).table(self.table).info()["primary_key"],
+            query.db(self.db).table(self.table).info()["primary_key"],
         )
         if self.primary_key is None:
             self.primary_key = primaryKey
@@ -208,26 +209,26 @@ class SourceFile(object):
             raise RuntimeError("Error: table %s.%s primary key was `%s` rather than the expected: %s" % (self.db, table.table, primaryKey, self.primary_key))
         
         # - recreate secondary indexes - dropping existing on the assumption they are wrong
-        if 'sindexes' in self.source_options and self.source_options.sindexes:
-            existing_indexes = self.query_runner("indexes from: %s.%s" % (self.db, self.table), r.db(self.db).table(self.table).index_list())
+        if self.indexes:
+            existing_indexes = self.query_runner("indexes from: %s.%s" % (self.db, self.table), query.db(self.db).table(self.table).index_list())
             try:
                 created_indexes = []
                 for index in self.indexes:
                     if index["index"] in existing_indexes: # drop existing versions
                         self.query_runner(
                             "drop index: %s.%s:%s" % (self.db, self.table, index["index"]),
-                            r.db(self.db).table(self.table).index_drop(index["index"])
+                            query.db(self.db).table(self.table).index_drop(index["index"])
                         )
                     self.query_runner(
                         "create index: %s.%s:%s" % (self.db, self.table, index["index"]),
-                        r.db(self.db).table(self.table).index_create(index["index"], index["function"])
+                        query.db(self.db).table(self.table).index_create(index["index"], index["function"])
                     )
                     created_indexes.append(index["index"])
                 
                 # wait for all of the created indexes to build
                 self.query_runner(
                     "waiting for indexes on %s.%s" % (self.db, self.table),
-                    r.db(self.db).table(self.table).index_wait(r.args(created_indexes))
+                    query.db(self.db).table(self.table).index_wait(query.args(created_indexes))
                 )
             except RuntimeError as e:
                 ex_type, ex_class, tb = sys.exc_info()
@@ -240,7 +241,7 @@ class SourceFile(object):
         
         # default batch_size
         if batch_size is None:
-            batch_size = default_batch_size
+            batch_size = utils_common.default_batch_size
         else:
             batch_size = int(batch_size)
         assert batch_size > 0
@@ -295,7 +296,7 @@ class SourceFile(object):
             signal.signal(signal.SIGINT, signal.SIG_IGN) # workers should ignore these
                 
         if batch_size is None:
-            batch_size = default_batch_size
+            batch_size = utils_common.default_batch_size
         
         self.start_time = time.time()
         try:
@@ -452,16 +453,12 @@ class CsvSourceFile(SourceFile):
     _columns      = None # name of the columns
     
     def __init__(self, *args, **kwargs):
-        if 'options' in kwargs and isinstance(kwargs['options'], dict):
-            if 'no_header_row' in kwargs['options']:
-                self.no_header_row = kwargs['options']['no_header_row'] == True
-                del kwargs['options']['no_header_row']
-            if 'custom_header' in kwargs['options']:
-                self.custom_header = kwargs['options']['custom_header']
-                del kwargs['options']['custom_header']
-            if not kwargs['options']:
-                del kwargs['options']
-            
+        if 'source_options' in kwargs and isinstance(kwargs['source_options'], dict):
+            if 'no_header_row' in kwargs['source_options']:
+                self.no_header_row = kwargs['source_options']['no_header_row'] == True
+            if 'custom_header' in kwargs['source_options']:
+                self.custom_header = kwargs['source_options']['custom_header']
+        
         super(CsvSourceFile, self).__init__(*args, **kwargs)
     
     def byte_counter(self):
@@ -547,7 +544,7 @@ def parse_options(argv, prog=None):
     parser.add_option("--hard-durability", dest="durability", action="store_const", default="soft", help="use hard durability writes (slower, uses less memory)", const="hard")
     parser.add_option("--force",           dest="force",      action="store_true",  default=False,  help="import even if a table already exists, overwriting duplicate primary keys")
     
-    parser.add_option("--batch-size",      dest="batch_size", metavar="BATCH",      default=default_batch_size,          help=optparse.SUPPRESS_HELP, type="pos_int")
+    parser.add_option("--batch-size",      dest="batch_size", default=utils_common.default_batch_size, help=optparse.SUPPRESS_HELP, type="pos_int")
     
     # Replication settings
     replicationOptionsGroup = optparse.OptionGroup(parser, "Replication Options")
@@ -559,7 +556,7 @@ def parse_options(argv, prog=None):
     dirImportGroup = optparse.OptionGroup(parser, "Directory Import Options")
     dirImportGroup.add_option("-d", "--directory",      dest="directory", metavar="DIRECTORY",   default=None, help="directory to import data from")
     dirImportGroup.add_option("-i", "--import",         dest="db_tables", metavar="DB|DB.TABLE", default=[],   help="restore only the given database or table (may be specified multiple times)", action="append", type="db_table")
-    dirImportGroup.add_option("--no-secondary-indexes", dest="sindexes",  action="store_false",  default=None, help="do not create secondary indexes")
+    dirImportGroup.add_option("--no-secondary-indexes", dest="indexes",   action="store_false",  default=None, help="do not create secondary indexes")
     parser.add_option_group(dirImportGroup)
 
     # File import options
@@ -624,9 +621,6 @@ def parse_options(argv, prog=None):
         if options.custom_header:
             parser.error("table create options are not valid when importing a directory: %s" % ", ".join([x.lower().replace("_", " ") for x in options.custom_header.keys()]))
         
-        if options.sindexes is None:
-            options.sindexes = True
-        
         # check valid options
         if not os.path.isdir(options.directory):
             parser.error("Directory to import does not exist: %s" % options.directory)
@@ -658,13 +652,14 @@ def parse_options(argv, prog=None):
         # fields
         options.fields = options.fields.split(",") if options.fields else None
         
+        # disallow invalid options
+        if options.db_tables:
+            parser.error("-i/--import can only be used when importing a directory")
+        if options.indexes:
+            parser.error("--no-secondary-indexes can only be used when importing a directory")
+        
         if options.format == "csv":
             # disallow invalid options
-            if options.db_tables:
-                parser.error("-i/--import can only be used when importing a directory")
-            if options.sindexes:
-                parser.error("--no-secondary-indexes can only be used when importing a directory")
-            
             if options.max_document_size:
                 parser.error("--max_document_size only affects importing JSON documents")
             
@@ -686,13 +681,8 @@ def parse_options(argv, prog=None):
             if options.custom_header:
                 options.custom_header = options.custom_header.split(",")
                 
-        elif options.format == "json": # json format
+        elif options.format == "json":
             # disallow invalid options
-            if options.db_tables:
-                parser.error("-i/--import can only be used when importing a directory")
-            if options.sindexes:
-                parser.error("--no-secondary-indexes can only be used when importing a directory")
-            
             if options.delimiter is not None:
                 parser.error("--delimiter option is not valid for json files")
             if options.no_header:
@@ -749,13 +739,13 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
             
             # find the table we are working on
             table_info = tables[(db, table)]
-            tbl = r.db(db).table(table)
+            tbl = query.db(db).table(table)
             
             # write the batch to the database
             try:
                 res = options.retryQuery(
                     "write batch to %s.%s" % (db, table),
-                    tbl.insert(r.expr(batch, nesting_depth=max_nesting_depth), durability=options.durability, conflict=conflict_action)
+                    tbl.insert(ast.expr(batch, nesting_depth=max_nesting_depth), durability=options.durability, conflict=conflict_action)
                 )
                 
                 if res["errors"] > 0:
@@ -766,7 +756,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                 
                 table_info.add_rows_written(modified)
             
-            except r.ReqlError:
+            except errors.ReqlError:
                 # the error might have been caused by a comm or temporary error causing a partial batch write
                 
                 for row in batch:
@@ -776,7 +766,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                     if conflict_action == "replace":
                         res = options.retryQuery(
                             "write row to %s.%s" % (db, table),
-                            tbl.insert(r.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
+                            tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
                         )
                     else:
                         existingRow = options.retryQuery(
@@ -786,7 +776,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                         if not existingRow:
                             res = options.retryQuery(
                                 "write row to %s.%s" % (db, table),
-                                tbl.insert(r.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
+                                tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
                             )
                         elif existingRow != row:
                             raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (table_info.primary_key, str(row), str(existingRow)))
@@ -803,23 +793,8 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
         error_queue.put(Error(str(e), traceback.format_exc(), "%s.%s" % (db , table)))
         exit_event.set()
 
-def abort_import(pools, exit_event, interrupt_event):
-    if interrupt_event.is_set():
-        # second time
-        print("\nSecond terminate signal seen, aborting ungracefully")
-        for pool in pools:
-            for worker in pool:
-                worker.terminate()
-                worker.join(.1)
-    else:
-        print("\nTerminate signal seen, aborting gracefully")
-        interrupt_event.set()
-        exit_event.set()
-
-def update_progress(tables, options, done_event, exit_event, sleep=0.2):
+def update_progress(tables, debug, exit_event, sleep=0.2):
     signal.signal(signal.SIGINT, signal.SIG_IGN) # workers should not get these
-    if options.quiet:
-        raise Exception('update_progress called when --quiet was set')
     
     # give weights to each of the tables based on file size
     totalSize = sum([x.bytes_size for x in tables])
@@ -834,19 +809,19 @@ def update_progress(tables, options, done_event, exit_event, sleep=0.2):
     writeRate    = None
     while True:
         try:
-            if done_event.is_set() or exit_event.is_set():
+            if exit_event.is_set():
                 break
             complete = read = write = 0
             currentTime = time.time()
             for table in tables:
                 complete += table.percentDone * table.weight
-                if options.debug:
+                if debug:
                     read     += table.rows_read
                     write    += table.rows_written
             readWrites.append((currentTime, read, write))
             if complete != lastComplete:
                 timeDelta = readWrites[-1][0] - readWrites[0][0]
-                if options.debug and len(readWrites) > 1 and timeDelta > 0:
+                if debug and len(readWrites) > 1 and timeDelta > 0:
                     readRate  = max((readWrites[-1][1] - readWrites[0][1]) / timeDelta, 0)
                     writeRate = max((readWrites[-1][2] - readWrites[0][2]) / timeDelta, 0)
                 utils_common.print_progress(complete, indent=2, read=readRate, write=writeRate)
@@ -854,11 +829,11 @@ def update_progress(tables, options, done_event, exit_event, sleep=0.2):
             time.sleep(sleep)
         except KeyboardInterrupt: break
         except Exception as e:
-            if options.debug:
+            if debug:
                 print(e)
                 traceback.print_exc()
 
-def import_tables(options, sources):
+def import_tables(options, sources, files_ignored=None):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
     utils_common.check_minimum_version(options, "1.6")
@@ -870,7 +845,6 @@ def import_tables(options, sources):
     work_queue      = Queue(options.clients * 3)
     error_queue     = SimpleQueue()
     warning_queue   = SimpleQueue()
-    done_event      = multiprocessing.Event()
     exit_event      = multiprocessing.Event()
     interrupt_event = multiprocessing.Event()
     
@@ -885,7 +859,7 @@ def import_tables(options, sources):
     progressBarSleep = 0.2
     
     # - setup KeyboardInterupt handler
-    signal.signal(signal.SIGINT, lambda a, b: abort_import(pools, exit_event, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: utils_common.abort(pools, exit_event))
     
     # - queue draining
     def drainQueues():
@@ -911,12 +885,12 @@ def import_tables(options, sources):
     needed_dbs = set([x.db for x in sources])
     if "rethinkdb" in needed_dbs:
         raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
-    options.retryQuery("ensure dbs: %s" % ", ".join(needed_dbs), r.expr(needed_dbs).set_difference(r.db_list()).for_each(r.db_create(r.row)))
+    options.retryQuery("ensure dbs: %s" % ", ".join(needed_dbs), ast.expr(needed_dbs).set_difference(query.db_list()).for_each(query.db_create(query.row)))
     
     # check for existing tables, or if --force is enabled ones with mis-matched primary keys
     existing_tables = dict([
         ((x["db"], x["name"]), x["primary_key"]) for x in
-        options.retryQuery("list tables", r.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))
+        options.retryQuery("list tables", query.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))
     ])
     already_exist = []
     for source in sources:
@@ -942,7 +916,7 @@ def import_tables(options, sources):
             progressBar = multiprocessing.Process(
                 target=update_progress,
                 name="progress bar",
-                args=(sources, options, done_event, exit_event, progressBarSleep)
+                args=(sources, options.debug, exit_event, progressBarSleep)
             )
             progressBar.start()
             pools.append([progressBar])
@@ -1026,20 +1000,12 @@ def import_tables(options, sources):
         
         # - wait for all of the writers
         for writer in writers[:]:
-            while not interrupt_event.is_set():
-                if not writer.is_alive():
-                    writers.remove(writer)
-                    break
-                writer.join()
-            # kill off the remainder
-            if writer in writers:
-                try:
-                    writer.terminate()
-                except Exception: pass
-        
+            while writer.is_alive():
+                writer.join(0.1)
+            writers.remove(writer)
+                
         # - stop the progress bar
         if progressBar:
-            done_event.set()
             progressBar.join(progressBarSleep * 2)
             if not interrupt_event.is_set():
                 utils_common.print_progress(1, indent=2)
@@ -1093,132 +1059,155 @@ def import_tables(options, sources):
     if warnings:
         raise RuntimeError("Warnings occurred during import")
 
-def import_directory(options, files_ignored=None):
-    # Scan for all files, make sure no duplicated tables with different formats
-    dbs = False
-    sources = {} # (db, table) => {file:, format:, db:, table:, info:}
+def parse_sources(options, files_ignored=None):
+    
+    def parseInfoFile(path):
+        primary_key = None
+        indexes = []
+        with open(path, 'r') as info_file:
+            metadata = json.load(info_file)
+            if "primary_key" in metadata:
+                primary_key = metadata["primary_key"]
+            if "indexes" in metadata and options.indexes is not False:
+                indexes = metadata["indexes"]
+        return primary_key, indexes
+    
+    sources = set()
     if files_ignored is None:
         files_ignored = []
-    for root, dirs, files in os.walk(options.directory):
-        if not dbs:
-            files_ignored.extend([os.path.join(root, f) for f in files])
-            # The first iteration through should be the top-level directory, which contains the db folders
-            dbs = True
-            
-            # don't recurse into folders not matching our filter
-            db_filter = set([db_table[0] for db_table in options.db_tables or []])
-            if db_filter:
-                for dirName in dirs[:]: # iterate on a copy
-                    if dirName not in db_filter:
-                        dirs.remove(dirName)
+    if options.directory and options.file:
+        raise RuntimeError("Error: Both --directory and --file cannot be specified together")
+    elif options.file:
+        db, table = options.import_table
+        path, ext = os.path.splitext(options.file)
+        tableTypeOptions = None
+        if ext == ".json":
+            tableType = JsonSourceFile
+        elif ext == ".csv":
+            tableType = CsvSourceFile
+            tableTypeOptions = {
+                'no_header_row': options.no_header,
+                'custom_header': options.custom_header
+            }
         else:
-            if dirs:
-                files_ignored.extend([os.path.join(root, d) for d in dirs])
-                del dirs[:]
-            
-            db = os.path.basename(root)
-            for filename in files:
-                path = os.path.join(root, filename)
-                table, ext = os.path.splitext(filename)
-                table = os.path.basename(table)
-                
-                if ext not in (".json", ".csv", ".info"):
-                    files_ignored.append(os.path.join(root, filename))
-                elif ext == ".info":
-                    pass # Info files are included based on the data files
-                elif not os.path.exists(os.path.join(root, table + ".info")):
-                    files_ignored.append(os.path.join(root, filename))
-                else:
-                    # ensure we don't have a duplicate
-                    if (db, table) in sources:
-                        raise RuntimeError("Error: Duplicate db.table found in directory tree: %s.%s" % (db, table))
-                    
-                    # apply db/table filters
-                    if options.db_tables:
-                        for filter_db, filter_table in options.db_tables:
-                            if db == filter_db and filter_table in (None, table):
-                                break # either all tables in this db, or specific pair
-                        else:
-                            files_ignored.append(os.path.join(root, filename))
-                            continue # not a chosen db/table
-                    
-                    # collect the info
-                    primary_key = None
-                    indexes = []
-                    try:
-                        with open(os.path.join(root, table + ".info"), "r") as info_file:
-                            metadata = json.load(info_file)
-                            if "primary_key" in metadata:
-                                primary_key = metadata["primary_key"]
-                            if "indexes" in metadata:
-                                indexes = metadata["indexes"]
-                    except OSError:
-                        files_ignored.append(os.path.join(root, f))
-                    
-                    tableType = None
-                    if ext == ".json":
-                        tableType = JsonSourceFile
-                    elif ext == ".csv":
-                        tableType = CsvSourceFile
-                    else:
-                        raise Exception("The table type is not recognised: %s" % ext)
-                    sources[(db, table)] = tableType(
-                        source=path,
-                        db=db, table=table,
-                        query_runner=options.retryQuery,
-                        primary_key=primary_key,
-                        indexes=indexes
-                    )
-
-    # Warn the user about the files that were ignored
-    if len(files_ignored) > 0:
-        print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
-        print(" a directory from `rethinkdb export`.  If you want to import individual tables", file=sys.stderr)
-        print(" import them as single files.  The following files were ignored:", file=sys.stderr)
-        for f in files_ignored:
-            print("%s" % str(f), file=sys.stderr)
-    
-    # start the imports
-    import_tables(options, list(sources.values()))
-
-def import_file(options):
-    assert options.import_table.db is not None
-    assert options.import_table.table is not None
-    sourceType    = JsonSourceFile
-    sourceOptions = {}
-    if options.format == "csv":
-        sourceType = CsvSourceFile
-        sourceOptions = {
-            'no_header_row': options.no_header,
-            'custom_header': options.custom_header
-        }
-    import_tables(options, [
-        sourceType(
-            source=options.file,
-            db=options.import_table.db, table=options.import_table.table,
-            query_runner=options.retryQuery,
-            primary_key=options.create_args.get('primary_key', None) if options.create_args else None,
-            source_options=sourceOptions
+            raise Exception("The table type is not recognised: %s" % ext)
+        
+        # - parse the info file if it exists
+        primary_key = options.create_args.get('primary_key', None) if options.create_args else None
+        indexes = []
+        infoPath = path + ".info"
+        if (primary_key is None or options.indexes is not False) and os.path.isfile(infoPath):
+            infoPrimaryKey, infoIndexes = parseInfoFile(infoPath)
+            if primary_key is None:
+                primary_key = infoPrimaryKey
+            if options.indexes is not False:
+                indexes = infoIndexes
+        
+        sources.add(
+            tableType(
+                source=options.file,
+                db=db, table=table,
+                query_runner=options.retryQuery,
+                primary_key=primary_key,
+                indexes=indexes,
+                source_options=tableTypeOptions
+            )
         )
-    ])
+    elif options.directory:
+        # Scan for all files, make sure no duplicated tables with different formats
+        dbs = False
+        files_ignored = []
+        for root, dirs, files in os.walk(options.directory):
+            if not dbs:
+                files_ignored.extend([os.path.join(root, f) for f in files])
+                # The first iteration through should be the top-level directory, which contains the db folders
+                dbs = True
+                
+                # don't recurse into folders not matching our filter
+                db_filter = set([db_table[0] for db_table in options.db_tables or []])
+                if db_filter:
+                    for dirName in dirs[:]: # iterate on a copy
+                        if dirName not in db_filter:
+                            dirs.remove(dirName)
+            else:
+                if dirs:
+                    files_ignored.extend([os.path.join(root, d) for d in dirs])
+                    del dirs[:]
+                
+                db = os.path.basename(root)
+                for filename in files:
+                    path = os.path.join(root, filename)
+                    table, ext = os.path.splitext(filename)
+                    table = os.path.basename(table)
+                    
+                    if ext not in [".json", ".csv", ".info"]:
+                        files_ignored.append(os.path.join(root, filename))
+                    elif ext == ".info":
+                        pass # Info files are included based on the data files
+                    elif not os.path.exists(os.path.join(root, table + ".info")):
+                        files_ignored.append(os.path.join(root, filename))
+                    else:
+                        # apply db/table filters
+                        if options.db_tables:
+                            for filter_db, filter_table in options.db_tables:
+                                if db == filter_db and filter_table in (None, table):
+                                    break # either all tables in this db, or specific pair
+                            else:
+                                files_ignored.append(os.path.join(root, filename))
+                                continue # not a chosen db/table
+                        
+                        # collect the info
+                        primary_key = None
+                        indexes = []
+                        infoPath = os.path.join(root, table + ".info")
+                        if not os.path.isfile(infoPath):
+                            files_ignored.append(os.path.join(root, f))
+                        else:
+                            primary_key, indexes = parseInfoFile(infoPath)
+                        
+                        tableType = None
+                        if ext == ".json":
+                            tableType = JsonSourceFile
+                        elif ext == ".csv":
+                            tableType = CsvSourceFile
+                        else:
+                            raise Exception("The table type is not recognised: %s" % ext)
+                        source = tableType(
+                            source=path,
+                            query_runner=options.retryQuery,
+                            db=db, table=table,
+                            primary_key=primary_key,
+                            indexes=indexes
+                        )
+                        
+                        # ensure we don't have a duplicate
+                        if table in sources:
+                            raise RuntimeError("Error: Duplicate db.table found in directory tree: %s.%s" % (source.db, source.table))
+                        
+                        sources.add(source)
+                
+        # Warn the user about the files that were ignored
+        if len(files_ignored) > 0:
+            print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
+            print(" a directory from `rethinkdb export`.  If you want to import individual tables", file=sys.stderr)
+            print(" import them as single files.  The following files were ignored:", file=sys.stderr)
+            for f in files_ignored:
+                print("%s" % str(f), file=sys.stderr)
+    else:
+        raise RuntimeError("Error: Neither --directory or --file specified")
+    
+    return sources
 
 def main(argv=None, prog=None):
+    start_time = time.time()
+    
     if argv is None:
         argv = sys.argv[1:]
-    try:
-        options = parse_options(argv, prog=prog)
-    except RuntimeError as ex:
-        print("Usage:\n%s\n%s" % (usage, ex), file=sys.stderr)
-        return 1
+    options = parse_options(argv, prog=prog)
     
     try:
-        start_time = time.time()
-        if options.directory:
-            import_directory(options)
-        elif options.file:
-            import_file(options)
-        else:
-            raise RuntimeError("Error: Neither --directory or --file specified")
+        sources = parse_sources(options)
+        import_tables(options, sources)
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
         if str(ex) == "Warnings occurred during import":

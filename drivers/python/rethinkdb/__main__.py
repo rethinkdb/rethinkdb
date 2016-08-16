@@ -3,13 +3,13 @@
 '''Dispatcher for interactive functions such as repl and backup'''
 
 import os, sys, traceback
-from . import utils_common, net
+from . import errors, net, utils_common
 
 def startInterpreter(argv=None, prog=None):
     import code, optparse
     
     connectOptions = {}
-    replVariables = {'r':utils_common.r, 'rethinkdb':utils_common.r}
+    replVariables = {'r':net.Connection._r, 'rethinkdb':net.Connection._r}
     banner = 'The RethinkDB driver has been imported as `r`.'
     
     # -- get host/port setup
@@ -29,7 +29,7 @@ def startInterpreter(argv=None, prog=None):
         banner += '''
     A connection to %s:%d has been established as `conn`
     and can be used by calling `run()` on a query without any arguments.''' % (options.hostname, options.driver_port)
-    except utils_common.r.ReqlDriverError as e:
+    except errors.ReqlDriverError as e:
         banner += '\nWarning: %s' % str(e)
         if options.debug:
             banner += '\n' + traceback.format_exc()
