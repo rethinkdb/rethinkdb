@@ -11,15 +11,14 @@ var promise = r._bluebird
 // Tests are stored in list until they can be sequentially evaluated
 var tests = [r.dbCreate('test')]
 
+var start_time = Date.now()
 var failure_count = 0;
 var tests_run = 0;
 
-var start_time = Date.now()
+var __conn_cache = {} // user -> connection
 
-// Provides a context for variables
-var defines = {}
+var defines = {} // Provides a context for variables
 
-var reqlConn = null; // set as testing begins
 
 var tables_to_cleanup = [] // pre-existing tables
 var tables_to_delete = [] // created by this script
@@ -28,6 +27,7 @@ var tables_to_delete = [] // created by this script
 
 // all argument numbers are +1 because the script is #1
 var DRIVER_PORT = process.argv[2] || process.env.RDB_DRIVER_PORT;
+var SERVER_HOST = process.env.RDB_SERVER_HOST || 'localhost';
 var required_external_tables = [];
 if (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME) {
     rawValues = (process.argv[3] || process.env.TEST_DB_AND_TABLE_NAME).split(',');
@@ -185,11 +185,12 @@ function TRACE(){
 
 function atexitCleanup(exitCode) {
     
-    if (!reqlConn) {
-        console.warn('Unable to clean up as there is no open ReQL connection')
+    if (!__conn_cache['admin']) {
+        console.warn('Unable to clean up as there is no open ReQL admin connection')
     } else {
         console.log('Cleaning up')
         
+        var reqlConn = __conn_cache['admin'];
         promisesToKeep = [];
         
         // - cleanup tables
@@ -262,25 +263,34 @@ process.on('unexpectedException',
     }
 )
 
-// Connect first to cpp server
-r.connect({port:DRIVER_PORT}, function(error, conn) {
-
-    if(error){
-        console.error("Failed to connect to server:", error);
-        process.exit(1);
-    }
-    reqlConn = conn;
-    defines['conn'] = conn // allow access to connection
-
-    // Start the chain of tests
-    runTest();
-});
-
 // Pull a test off the queue and run it
 function runTest() {
     try {
         var test = tests.shift();
         if (test) {
+            // ensure we have the right connection open
+            user = 'admin'
+            if (test.runopts && test.runopts['user']) {
+                user = test.runopts['user']
+            }
+            if (!__conn_cache[user]) {
+                tests.unshift(test) // put the test back in the front spot
+                TRACE("==== Connecting to " + SERVER_HOST + ":" + DRIVER_PORT + " as user: " + user + " ====");
+                
+                // establish the connection, or die trying
+                r.connect({host:SERVER_HOST, port:DRIVER_PORT, user:user}, function(error, conn) {
+                    if (error) {
+                        console.error("Failed to connect to server" + SERVER_HOST + ":" + DRIVER_PORT + " as user: " + user + " got error:" , error);
+                        process.exit(1);
+                    }
+                    
+                    __conn_cache[user] = conn;
+                    runTest(); // Restart the chain of tests
+                });
+                return;
+            }
+            defines['conn'] = __conn_cache[user] // allow access to connection
+            
             if (test instanceof Function) {
                 // -- function such as setup_table
                 TRACE("==== runTest ==== function: " + test.name);
@@ -307,6 +317,7 @@ function runTest() {
                         test.runopts.maxBatchRows = 3
                     }
                 }
+                
                 // the javascript driver has all of the runopts in cammel case vs. snake form
                 for (var opt in test.runopts) {
 	                if (typeof opt == 'string' || opt instanceof String) {
@@ -317,10 +328,8 @@ function runTest() {
 						}
 	                }
 	            }
-                TRACE("runopts: " + JSON.stringify(test.runopts))
                 
                 // - process/default testopts
-                
                 if (!test.testopts) {
                     test.testopts = {}
                 }
@@ -349,7 +358,13 @@ function runTest() {
                 
                 test.exp_fun = exp_fun;
                 
+                TRACE("runopts: " + JSON.stringify(test.runopts))
+                TRACE("testopts: " + JSON.stringify(test.testopts))
                 TRACE('expected value: <<' + stringValue(test.exp_fun) + '>> from <<' + stringValue(test.expectedSrc) + '>>')
+                
+                if (test.runopts && test.runopts['user']) {
+                    delete test.runopts['user'] // remove it as the run command does not understand it
+                }
                 
                 // - evaluate the test
                 
@@ -373,7 +388,7 @@ function runTest() {
                         if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
                             TRACE("processing reql query: " + result + ', runopts: ' + stringValue(test.runopts))
                             with (defines) {
-                                result.run(reqlConn, test.runopts, function(err, value) { processResult(err,  value, test) } );
+                                result.run(conn, test.runopts, function(err, value) { processResult(err,  value, test) } );
                                 return;
                             }
                         } else if (result && result.hasOwnProperty('_settledValue')) {
@@ -586,43 +601,50 @@ function test(testSrc, expectedSrc, name, runopts, testopts) {
 }
 
 function setup_table(table_variable_name, table_name, db_name) {
-    tests.push(function setup_table_inner(test) {
-        try {
-            if (required_external_tables.length > 0) {
-                // use an external table
-                
-                table = required_external_tables.pop();
-                defines[table_variable_name] = r.db(table[0]).table(table[1]);
-                tables_to_cleanup.push([table[0], table[1]])
-                
-                // check that the table exists
-                r.db(table[0]).table(table[1]).info().run(reqlConn, function(err, res) {
-                    if (err) {
-                        unexpectedException("External table " + table[0] + "." + table[1] + " did not exist")
-                    } else {
-                        runTest();
-                    }
-                });
-            } else {
-                // create the table as provided
-                
-                r.db(db_name).tableCreate(table_name).run(reqlConn, {}, function (err, res) {
-                    if (err) {
-                        unexpectedException("setup_table", err);
-                    }
-                    if (res.tables_created != 1) {
-                        unexpectedException("setup_table", "table not created", res);
-                    }
-                    defines[table_variable_name] = r.db("test").table(table_name);
-                    tables_to_delete.push([db_name, table_name])
-                    runTest();
-                });
+    tests.push(
+        function setup_table_inner(test) {
+            if (!__conn_cache['admin']) {
+                console.fail('Unable to seupt tables up as there is no open ReQL admin connection');
+                process.exit(1);
             }
-        } catch (err) {
-            console.log("stack: " + String(err.stack));
-            unexpectedException("setup_table");
+            var reqlConn = __conn_cache['admin'];
+            try {
+                if (required_external_tables.length > 0) {
+                    // use an external table
+                    
+                    table = required_external_tables.pop();
+                    defines[table_variable_name] = r.db(table[0]).table(table[1]);
+                    tables_to_cleanup.push([table[0], table[1]])
+                    
+                    // check that the table exists
+                    r.db(table[0]).table(table[1]).info().run(reqlConn, function(err, res) {
+                        if (err) {
+                            unexpectedException("External table " + table[0] + "." + table[1] + " did not exist")
+                        } else {
+                            runTest();
+                        }
+                    });
+                } else {
+                    // create the table as provided
+                    
+                    r.db(db_name).tableCreate(table_name).run(reqlConn, {}, function (err, res) {
+                        if (err) {
+                            unexpectedException("setup_table", err);
+                        }
+                        if (res.tables_created != 1) {
+                            unexpectedException("setup_table", "table not created", res);
+                        }
+                        defines[table_variable_name] = r.db("test").table(table_name);
+                        tables_to_delete.push([db_name, table_name])
+                        runTest();
+                    });
+                }
+            } catch (err) {
+                console.log("stack: " + String(err.stack));
+                unexpectedException("setup_table");
+            }
         }
-    });
+    );
 }
 
 // check that all of the requested tables have been setup
@@ -936,7 +958,10 @@ function shard() {
     // Don't do anything in JS
 }
 
-function the_end(){ }
+function the_end() {
+    // Start the tests runnning
+    runTest()
+}
 
 True = true;
 False = false;
