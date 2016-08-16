@@ -4,8 +4,9 @@ from __future__ import print_function
 
 import collections, copy, distutils.version, getpass, inspect, optparse, os, re, sys, threading
 
-from . import net, version
-r = net.Connection._r
+from . import ast, errors, net, version, query
+
+default_batch_size = 200
 
 class RetryQuery(object):
     
@@ -30,13 +31,13 @@ class RetryQuery(object):
         # check if existing connection is still good
         if os.getpid() in self.__local.connCache and testConnection:
             try:
-                r.expr(0).run(self.__local.connCache[os.getpid()])
-            except r.ReqlError:
+                ast.expr(0).run(self.__local.connCache[os.getpid()])
+            except errors.ReqlError:
                 del self.__local.connCache[os.getpid()]
         
         # cache a new connetion
         if not os.getpid() in self.__local.connCache:
-            self.__local.connCache[os.getpid()] = r.connect(**self.__connectOptions)
+            self.__local.connCache[os.getpid()] = net.connect(**self.__connectOptions)
         
         # return the connection
         return self.__local.connCache[os.getpid()]
@@ -46,7 +47,7 @@ class RetryQuery(object):
         
         assert name is not None
         name = str(name)
-        assert isinstance(query, r.RqlQuery), 'query must be a ReQL query, got: %s' % query
+        assert isinstance(query, ast.RqlQuery), 'query must be a ReQL query, got: %s' % query
         try:
             assert int(times) >= 1
         except (ValueError, AssertionError):
@@ -60,12 +61,12 @@ class RetryQuery(object):
         for _ in range(times):
             try:
                 conn = self.conn(testConnection=testConnection) # we are already guarding for this
-            except r.ReqlError as e:
+            except errors.ReqlError as e:
                 lastError = RuntimeError("Error connecting for during '%s': %s" % (name, str(e)))
                 testConnection = True
             try:
                 return query.run(conn, **runOptions)
-            except (r.ReqlTimeoutError, r.ReqlDriverError) as e:
+            except (r.ReqlTimeoutError, errors.ReqlDriverError) as e:
                 lastError = RuntimeError("Connnection error during '%s': %s" % (name, str(e)))
             # other errors immedately bubble up
         else:
@@ -86,7 +87,7 @@ def print_progress(ratio, indent=0, read=None, write=None):
 
 def check_minimum_version(options, minimum_version='1.6'):
     minimum_version = distutils.version.LooseVersion(minimum_version)
-    versionString = options.retryQuery('get server version', r.db('rethinkdb').table('server_status')[0]['process']['version'])
+    versionString = options.retryQuery('get server version', query.db('rethinkdb').table('server_status')[0]['process']['version'])
     
     matches = re.match(r'rethinkdb (?P<version>(\d+)\.(\d+)\.(\d+)).*', versionString)
     if not matches:
@@ -268,9 +269,25 @@ class CommonOptionsParser(optparse.OptionParser, object):
         if connect:
             try:
                 options.retryQuery.conn()
-            except r.ReqlError as e:
+            except errors.ReqlError as e:
                 self.error('Unable to connect to server: %s' % str(e))
         
         # -
         
         return options, args
+
+_interupt_seen = False
+def abort(pools, exit_event):
+    global _interupt_seen
+    
+    if _interupt_seen:
+        # second time
+        print("\nSecond terminate signal seen, aborting ungracefully")
+        for pool in pools:
+            for worker in pool:
+                worker.terminate()
+                worker.join(.1)
+    else:
+        print("\nTerminate signal seen, aborting")
+        _interupt_seen = True
+        exit_event.set()

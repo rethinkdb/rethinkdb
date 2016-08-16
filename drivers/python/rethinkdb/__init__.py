@@ -1,6 +1,6 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from . import version
+from . import version, _dump, _export, _import, _index_rebuild, _restore
 from .ast import *
 from .errors import *
 from .net import *
@@ -21,6 +21,11 @@ class r(builtins.object):
 for module in (net, query, ast, errors):
     for functionName in module.__all__:
         setattr(r, functionName, staticmethod(getattr(module, functionName)))
+r._dump          = _dump
+r._export        = _export
+r._import        = _import
+r._index_rebuild = _index_rebuild
+r._restore       = _restore
 rethinkdb = r
 
 # set the _r attribute to net.Connection

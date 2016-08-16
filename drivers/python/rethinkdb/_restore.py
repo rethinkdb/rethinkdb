@@ -36,16 +36,16 @@ rethinkdb restore rdb_dump.tar.gz --clients 4 --force
 def parse_options(argv, prog=None):
     parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
     
-    parser.add_option("-i", "--import",         dest="db_tables",  metavar="DB|DB.TABLE", default=[],     help="limit restore to the given database or table (may be specified multiple times)", action="append", type="db_table")
+    parser.add_option("-i", "--import",         dest="db_tables",  metavar="DB|DB.TABLE", default=[],       help="limit restore to the given database or table (may be specified multiple times)", action="append", type="db_table")
 
-    parser.add_option("--temp-dir",             dest="temp_dir",   metavar="DIR",         default=None,   help="directory to use for intermediary results")
-    parser.add_option("--clients",              dest="clients",    metavar="CLIENTS",     default=8,      help="client connections to use (default: 8)", type="pos_int")
-    parser.add_option("--hard-durability",      dest="durability", action="store_const",  default="soft", help="use hard durability writes (slower, uses less memory)", const="hard")
-    parser.add_option("--force",                dest="force",      action="store_true",   default=False,  help="import data even if a table already exists")
-    parser.add_option("--no-secondary-indexes", dest="sindexes",   action="store_false",  default=True,   help="do not create secondary indexes for the restored tables")
+    parser.add_option("--temp-dir",             dest="temp_dir",   metavar="DIR",         default=None,     help="directory to use for intermediary results")
+    parser.add_option("--clients",              dest="clients",    metavar="CLIENTS",     default=8,        help="client connections to use (default: 8)", type="pos_int")
+    parser.add_option("--hard-durability",      dest="durability", action="store_const",  default="soft",   help="use hard durability writes (slower, uses less memory)", const="hard")
+    parser.add_option("--force",                dest="force",      action="store_true",   default=False,    help="import data even if a table already exists")
+    parser.add_option("--no-secondary-indexes", dest="indexes",    action="store_false",  default=None,     help="do not create secondary indexes for the restored tables")
 
-    parser.add_option("--writers-per-table",    dest="writers",    metavar="WRITERS",     default=multiprocessing.cpu_count(), help=optparse.SUPPRESS_HELP, type="pos_int")
-    parser.add_option("--batch-size",           dest="batch_size", metavar="BATCH",       default=_import.default_batch_size,  help=optparse.SUPPRESS_HELP, type="pos_int")
+    parser.add_option("--writers-per-table",    dest="writers",    default=multiprocessing.cpu_count(),     help=optparse.SUPPRESS_HELP, type="pos_int")
+    parser.add_option("--batch-size",           dest="batch_size", default=utils_common.default_batch_size, help=optparse.SUPPRESS_HELP, type="pos_int")
     
     # Replication settings
     replicationOptionsGroup = optparse.OptionGroup(parser, 'Replication Options')
@@ -92,11 +92,13 @@ def do_unzip(temp_dir, options):
     top_level        = None
     files_ignored    = []
     files_found      = False
+    archive          = None
     tarfileOptions   = {
         "mode": "r|*",
         "fileobj" if hasattr(options.in_file, "read") else "name": options.in_file 
     }
-    with tarfile.open(**tarfileOptions) as archive:
+    try:
+        archive = tarfile.open(**tarfileOptions) 
         for tarinfo in archive:
             # skip without comment anything but files
             if not tarinfo.isfile():
@@ -144,6 +146,9 @@ def do_unzip(temp_dir, options):
                     dest.write(chunk)
                 source.close()
             assert os.path.isfile(os.path.join(temp_dir, db, file_name))
+    finally:
+        if archive:
+            archive.close()
     
     if not files_found:
         raise RuntimeError("Error: Archive file had no files")
@@ -171,13 +176,16 @@ def do_restore(options):
         options = copy.copy(options)
         options.fields = None
         options.directory = temp_dir
+        options.file = None
         
-        # run the import
+        sources = _import.parse_sources(options)
+        
+        # - run the import
         if not options.quiet:
             print("Importing from directory...")
         
         try:
-            _import.import_directory(options, files_ignored)
+            _import.import_tables(options, sources)
         except RuntimeError as ex:
             if options.debug:
                 traceback.print_exc()

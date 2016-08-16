@@ -4,10 +4,9 @@
 
 from __future__ import print_function
 
-import datetime, os, platform, shutil, sys, tarfile, tempfile, time, traceback
+import datetime, optparse, os, platform, shutil, sys, tarfile, tempfile, time, traceback
 
 from . import utils_common, net, _export
-r = utils_common.r
 
 usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
 help_epilog = '''
@@ -78,74 +77,70 @@ def parse_options(argv, prog=None):
     
     return options
 
-def run_rethinkdb_export(options):
-    if not options.quiet:
-        # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-        print("""\
+def main(argv=None, prog=None):
+    options = parse_options(argv or sys.argv[2:], prog=prog)
+
+    try:
+        if not options.quiet:
+            # Print a warning about the capabilities of dump, so no one is confused (hopefully)
+            print("""\
 NOTE: 'rethinkdb-dump' saves data and secondary indexes, but does *not* save
  cluster metadata.  You will need to recreate your cluster setup yourself after
  you run 'rethinkdb-restore'.""")
-    
-    try:
-        start_time = time.time()
-        
-        # -- _export options - need to be kep in-sync with _export
-        
-        options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
-        options.fields    = None
-        options.delimiter = None
-        options.format    = 'json'
-        
-        # -- export to a directory
-        
-        if not options.quiet:
-            print("  Exporting to temporary directory...")
         
         try:
-            _export.run(options)
-        except Exception:
-            if options.debug:
-                sys.stderr.write('\n%s\n' % traceback.format_exc())
-            raise Exception("Error: export failed")
-        
-        # -- zip directory
-        
-        if not options.quiet:
-            print("  Zipping export directory...")
-        
-        try:
-            archive = None
-            if hasattr(options.out_file, 'read'):
-                archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
-            else:
-                archive = tarfile.open(name=options.out_file, mode="w:gz")
+            start_time = time.time()
+            archive    = None
             
-            for curr, _, files in os.walk(os.path.realpath(options.directory)):
-                for data_file in files:
-                    fullPath = os.path.join(options.directory, curr, data_file)
-                    archivePath = os.path.join(options.dump_name, os.path.relpath(fullPath, options.directory))
-                    archive.add(fullPath, arcname=archivePath)
-                    os.unlink(fullPath)
-        finally:
-            if archive:
+            # -- _export options - need to be kep in-sync with _export
+            
+            options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
+            options.fields    = None
+            options.delimiter = None
+            options.format    = 'json'
+            
+            # -- export to a directory
+            
+            if not options.quiet:
+                print("  Exporting to temporary directory...")
+            
+            try:
+                _export.run(options)
+            except Exception as e:
+                if options.debug:
+                    sys.stderr.write('\n%s\n' % traceback.format_exc())
+                raise Exception("Error: export failed, %s" % e)
+            
+            # -- zip directory
+            
+            if not options.quiet:
+                print("  Zipping export directory...")
+            
+            try:
+                if hasattr(options.out_file, 'read'):
+                    archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
+                else:
+                    archive = tarfile.open(name=options.out_file, mode="w:gz")
+                for curr, _, files in os.walk(os.path.realpath(options.directory)):
+                    for data_file in files:
+                        fullPath = os.path.join(options.directory, curr, data_file)
+                        archivePath = os.path.join(options.dump_name, os.path.relpath(fullPath, options.directory))
+                        archive.add(fullPath, arcname=archivePath)
+                        os.unlink(fullPath)
+            finally:
                 archive.close()
-        
-        # --
-        
-        if not options.quiet:
-            print("Done (%.2f seconds): %s" % (time.time() - start_time, options.out_file.name if hasattr(options.out_file, 'name') else options.out_file))
-    except KeyboardInterrupt:
-        time.sleep(0.2)
-        raise RuntimeError("Interrupted")
-    finally:
-        if os.path.exists(options.directory):
-            shutil.rmtree(options.directory)
-
-def main(argv=None, prog=None):
-    options = parse_options(argv or sys.argv[1:], prog=prog)
-
-    try:
-        run_rethinkdb_export(options)
+            
+            # --
+            
+            if not options.quiet:
+                print("Done (%.2f seconds): %s" % (time.time() - start_time, options.out_file.name if hasattr(options.out_file, 'name') else options.out_file))
+        except KeyboardInterrupt:
+            time.sleep(0.2)
+            raise RuntimeError("Interrupted")
+        finally:
+            if os.path.exists(options.directory):
+                shutil.rmtree(options.directory)
+    
     except Exception as ex:
         if options.debug:
             traceback.print_exc()
