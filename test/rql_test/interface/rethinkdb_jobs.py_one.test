@@ -56,7 +56,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 latestError = e
                 time.sleep(.01)
         else:
-            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (self.timeout, host, port, latestError.message, utils.pformat(jobsSeen.values())))
+            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (self.timeout, host, port, str(latestError), utils.pformat(jobsSeen.values())))
 
     def test_job_deletion(self):
         (conn_a, conn_b) = [self.r.connect(host=s.host, port=s.driver_port) for s in self.cluster]

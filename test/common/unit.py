@@ -1,3 +1,4 @@
+#!/user/bin/env python
 # Copyright 2014-2016 RethinkDB, all rights reserved.
 
 import collections, os, subprocess, sys
