@@ -16,7 +16,7 @@ def startInterpreter(argv=None, prog=None):
     
     # - parse command line
     parser = utils_common.CommonOptionsParser(prog=prog, description='An interactive Python shell (repl) with the RethinkDB driver imported')
-    options, args = parser.parse_args(argv or sys.argv[1:], connect=False)
+    options, args = parser.parse_args(argv if argv is not None else sys.argv[1:], connect=False)
     
     if args:
         parser.error('No positional arguments supported. Unrecognized option(s): %s' % args)
