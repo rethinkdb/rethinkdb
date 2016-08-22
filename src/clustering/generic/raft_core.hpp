@@ -740,12 +740,17 @@ private:
     paper suggests that a typical election timeout should be somewhere between 10ms and
     500ms. We use somewhat larger numbers to reduce server traffic, at the cost of longer
     periods of unavailability when a master dies. */
-    static const int32_t election_timeout_min_ms = 1000,
-                         election_timeout_max_ms = 2000;
+    const int32_t election_timeout_min_ms = 1000,
+                  election_timeout_max_ms = 2000;
+
+    /* To cope with i/o bottlenecks when many tables are running elections at the same
+    time, we additionally increase the election timeout during repeated retries, up to
+    the maximum value set here: */
+    const int32_t election_retry_timeout_max_ms = 30000;
 
     /* When the number of committed entries in the log exceeds this number, we will take
     a snapshot to compress them. */
-    static const size_t snapshot_threshold = 20;
+    const size_t snapshot_threshold = 20;
 
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
