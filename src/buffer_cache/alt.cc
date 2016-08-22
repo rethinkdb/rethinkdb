@@ -191,7 +191,8 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     : cache_(cache_conn->cache()),
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::read),
-      durability_(write_durability_t::SOFT) {
+      durability_(write_durability_t::SOFT),
+      is_committed_(false) {
     // Right now, cache_conn is only used to control flushing of write txns.  When we
     // need to support other cache_conn_t related features (like read operations
     // magically passing write operations), we'll need to do something fancier with
@@ -205,7 +206,8 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     : cache_(cache_conn->cache()),
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::write),
-      durability_(durability) {
+      durability_(durability),
+      is_committed_(false) {
 
     help_construct(expected_change_count, cache_conn);
 }
@@ -236,19 +238,33 @@ void txn_t::pulse_and_inform_tracker(cache_t *cache,
 }
 
 txn_t::~txn_t() {
+    guarantee(access_ == access_t::read || is_committed_,
+        "A transaction was aborted. To avoid data corruption, we're "
+        "terminating the server. Please report this bug.");
+
+    if (access_ == access_t::read) {
+        cache_->page_cache_.end_read_txn(std::move(page_txn_));
+    }
+}
+
+void txn_t::commit() {
     cache_->assert_thread();
+
+    guarantee(!is_committed_);
+    guarantee(access_ == access_t::write);
+    is_committed_ = true;
 
     if (durability_ == write_durability_t::SOFT) {
         cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
-                                                  std::bind(&txn_t::inform_tracker,
-                                                            cache_,
-                                                            ph::_1));
+            std::bind(&txn_t::inform_tracker,
+                cache_,
+                ph::_1));
     } else {
         cond_t cond;
         cache_->page_cache_.flush_and_destroy_txn(
-                std::move(page_txn_),
-                std::bind(&txn_t::pulse_and_inform_tracker,
-                          cache_, ph::_1, &cond));
+            std::move(page_txn_),
+            std::bind(&txn_t::pulse_and_inform_tracker,
+                cache_, ph::_1, &cond));
         cond.wait();
     }
 }

@@ -1202,8 +1202,9 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                                                   &non_interruptor);
                     logNTC("Migrating auth metadata to v2.3");
                     migrate_auth_metadata_v2_1_to_v2_3(&txn, &non_interruptor);
-                    /* End the inner scope here so we flush the new metadata file before
+                    /* Commit the transaction here so we flush the new metadata file before
                     we delete the old auth file */
+                    txn.commit();
                 }
                 if (remove(auth_path.permanent_path().c_str()) != 0) {
                     fail_due_to_user_error(
@@ -1223,6 +1224,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     ++config.version;
                     txn.write(mdkey_server_config(), config, &non_interruptor);
                 }
+                txn.commit();
             }
             if (!initial_password.empty()) {
                 /* Apply the initial password if there isn't one already. */
@@ -1252,6 +1254,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                     logNTC("Ignoring --initial-password option because the admin "
                            "password is already configured.");
                 }
+                txn.commit();
             }
         }
 

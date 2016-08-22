@@ -333,6 +333,15 @@ void page_cache_t::flush_and_destroy_txn(
     sub->reset(&page_txn->flush_complete_cond_);
 }
 
+void page_cache_t::end_read_txn(scoped_ptr_t<page_txn_t> txn) {
+    guarantee(txn->touched_pages_.empty());
+    guarantee(txn->live_acqs_ == 0,
+        "A current_page_acq_t lifespan exceeds its page_txn_t's.");
+    guarantee(!txn->began_waiting_for_flush_);
+
+    txn->flush_complete_cond_.pulse();
+}
+
 
 current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     assert_thread();

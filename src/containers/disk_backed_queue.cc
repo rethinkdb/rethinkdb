@@ -32,11 +32,14 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     cache_conn.init(new cache_conn_t(cache.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     txn_t txn(cache_conn.get(), write_durability_t::HARD, 1);
-    buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
-    buf_write_t write(&block);
-    const block_size_t block_size = cache->max_block_size();
-    void *buf = write.get_data_write(block_size.value());
-    memset(buf, 0, block_size.value());
+    {
+        buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        buf_write_t write(&block);
+        const block_size_t block_size = cache->max_block_size();
+        void *buf = write.get_data_write(block_size.value());
+        memset(buf, 0, block_size.value());
+    }
+    txn.commit();
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() {
@@ -58,6 +61,8 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     txn_t txn(cache_conn.get(), write_durability_t::SOFT, 2);
 
     push_single(&txn, wm);
+
+    txn.commit();
 }
 
 void internal_disk_backed_queue_t::push(const scoped_array_t<write_message_t> &wms) {
@@ -69,6 +74,8 @@ void internal_disk_backed_queue_t::push(const scoped_array_t<write_message_t> &w
     for (size_t i = 0; i < wms.size(); ++i) {
         push_single(&txn, wms[i]);
     }
+
+    txn.commit();
 }
 
 void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t &wm) {
@@ -164,6 +171,8 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     if (live_data_offset == data_size) {
         remove_block_from_tail(&txn);
     }
+
+    txn.commit();
 }
 
 bool internal_disk_backed_queue_t::empty() {

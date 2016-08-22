@@ -35,43 +35,49 @@ void insert_rows(int start, int finish, store_t *store) {
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
         scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        write_token_t token;
-        store->new_write_token(&token);
-        store->acquire_superblock_for_write(
-            1, write_durability_t::SOFT,
-            &token, &txn, &superblock, &dummy_interruptor);
-        buf_lock_t sindex_block(superblock->expose_buf(),
-                                superblock->get_sindex_block_id(),
-                                access_t::write);
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+            write_token_t token;
+            store->new_write_token(&token);
+            store->acquire_superblock_for_write(
+                1, write_durability_t::SOFT,
+                &token, &txn, &superblock, &dummy_interruptor);
+            buf_lock_t sindex_block(
+                superblock->expose_buf(),
+                superblock->get_sindex_block_id(),
+                access_t::write);
 
-        std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
-        point_write_response_t response;
+            std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
+            point_write_response_t response;
 
-        store_key_t pk(ql::datum_t(static_cast<double>(i)).print_primary());
-        rdb_modification_report_t mod_report(pk);
-        rdb_live_deletion_context_t deletion_context;
-        rapidjson::Document doc;
-        doc.Parse(data.c_str());
-        rdb_set(pk,
+            store_key_t pk(ql::datum_t(static_cast<double>(i)).print_primary());
+            rdb_modification_report_t mod_report(pk);
+            rdb_live_deletion_context_t deletion_context;
+            rapidjson::Document doc;
+            doc.Parse(data.c_str());
+            rdb_set(
+                pk,
                 ql::to_datum(doc, limits, reql_version_t::LATEST),
                 false, store->btree.get(), repli_timestamp_t::distant_past,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
 
-        store_t::sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(&sindex_block, &sindexes);
-        rdb_update_sindexes(store,
-                            sindexes,
-                            &mod_report,
-                            txn.get(),
-                            &deletion_context,
-                            nullptr,
-                            nullptr,
-                            nullptr);
+            store_t::sindex_access_vector_t sindexes;
+            store->acquire_all_sindex_superblocks_for_write(&sindex_block, &sindexes);
+            rdb_update_sindexes(
+                store,
+                sindexes,
+                &mod_report,
+                txn.get(),
+                &deletion_context,
+                nullptr,
+                nullptr,
+                nullptr);
 
-        new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
-        store->sindex_queue_push(mod_report, &acq);
+            new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
+            store->sindex_queue_push(mod_report, &acq);
+        }
+        txn->commit();
     }
 }
 
@@ -326,34 +332,40 @@ TPTEST(RDBBtree, SindexEraseRange) {
         store.new_write_token(&token);
 
         scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-        store.acquire_superblock_for_write(1,
-                                           write_durability_t::SOFT,
-                                           &token,
-                                           &txn,
-                                           &super_block,
-                                           &dummy_interruptor);
+        {
+            scoped_ptr_t<real_superblock_t> super_block;
+            store.acquire_superblock_for_write(
+                1,
+                write_durability_t::SOFT,
+                &token,
+                &txn,
+                &super_block,
+                &dummy_interruptor);
 
-        const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
-        rdb_protocol::range_key_tester_t tester(&test_range);
-        buf_lock_t sindex_block(super_block->expose_buf(),
-                                super_block->get_sindex_block_id(),
-                                access_t::write);
+            const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
+            rdb_protocol::range_key_tester_t tester(&test_range);
+            buf_lock_t sindex_block(
+                super_block->expose_buf(),
+                super_block->get_sindex_block_id(),
+                access_t::write);
 
-        rdb_live_deletion_context_t deletion_context;
-        std::vector<rdb_modification_report_t> mod_reports;
-        key_range_t deleted_range;
-        rdb_erase_small_range(store.btree.get(),
-                              &tester,
-                              key_range_t::universe(),
-                              super_block.get(),
-                              &deletion_context,
-                              &dummy_interruptor,
-                              0,
-                              &mod_reports,
-                              &deleted_range);
+            rdb_live_deletion_context_t deletion_context;
+            std::vector<rdb_modification_report_t> mod_reports;
+            key_range_t deleted_range;
+            rdb_erase_small_range(
+                store.btree.get(),
+                &tester,
+                key_range_t::universe(),
+                super_block.get(),
+                &deletion_context,
+                &dummy_interruptor,
+                0,
+                &mod_reports,
+                &deleted_range);
 
-        store.update_sindexes(txn.get(), &sindex_block, mod_reports, true);
+            store.update_sindexes(txn.get(), &sindex_block, mod_reports, true);
+        }
+        txn->commit();
     }
 
     check_keys_are_NOT_present(&store, sindex_name);

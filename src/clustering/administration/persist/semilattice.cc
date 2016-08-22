@@ -18,8 +18,13 @@ semilattice_persister_t<metadata_t>::semilattice_persister_t(
 
 template <class metadata_t>
 void semilattice_persister_t<metadata_t>::persist(signal_t *interruptor) {
-    metadata_file_t::write_txn_t txn(file, interruptor);
-    txn.write(key, view->get(), interruptor);
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
+    txn.write(key, view->get(), &non_interruptor);
+    txn.commit();
 }
 
 template class semilattice_persister_t<cluster_semilattice_metadata_t>;

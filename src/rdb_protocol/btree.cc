@@ -1970,6 +1970,13 @@ public:
         start_write_transaction(&wtxn_acq);
     }
 
+    ~post_construct_traversal_helper_t() {
+        sindexes_.clear();
+        if (wtxn_.has()) {
+            wtxn_->commit();
+        }
+    }
+
     continue_bool_t handle_pair(
             scoped_key_value_t &&keyvalue,
             concurrent_traversal_fifo_enforcer_signal_t waiter)
@@ -2036,6 +2043,7 @@ public:
             if (current_chunk_size_ >= MAX_CHUNK_SIZE) {
                 current_chunk_size_ = 0;
                 sindexes_.clear();
+                wtxn_->commit();
                 wtxn_.reset();
                 start_write_transaction(&wtxn_acq);
             }

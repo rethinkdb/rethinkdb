@@ -306,20 +306,26 @@ metadata_file_t::metadata_file_t(
     cache_conn.init(new cache_conn_t(cache.get()));
 
     /* Migrate data if necessary */
-    write_txn_t write_txn(this, interruptor);
-    object_buffer_t<buf_lock_t> sb_lock;
-    sb_lock.create(buf_parent_t(&write_txn.txn), SUPERBLOCK_ID, access_t::write);
-    object_buffer_t<buf_write_t> sb_write;
-    sb_write.create(sb_lock.get());
-    void *sb_data = sb_write->get_data_write();
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    cond_t non_interruptor;
+    write_txn_t write_txn(this, &non_interruptor);
+    {
+        object_buffer_t<buf_lock_t> sb_lock;
+        sb_lock.create(
+            buf_parent_t(&write_txn.txn), SUPERBLOCK_ID, access_t::write);
+        object_buffer_t<buf_write_t> sb_write;
+        sb_write.create(sb_lock.get());
+        void *sb_data = sb_write->get_data_write();
 
-    cluster_version_t metadata_version =
-        magic_to_version(*static_cast<block_magic_t *>(sb_data));
-    switch (metadata_version) {
-    case cluster_version_t::v1_14: // fallthrough intentional
-    case cluster_version_t::v1_15: // fallthrough intentional
-    case cluster_version_t::v1_16: // fallthrough intentional
-    case cluster_version_t::v2_0: {
+        cluster_version_t metadata_version =
+            magic_to_version(*static_cast<block_magic_t *>(sb_data));
+        switch (metadata_version) {
+        case cluster_version_t::v1_14: // fallthrough intentional
+        case cluster_version_t::v1_15: // fallthrough intentional
+        case cluster_version_t::v1_16: // fallthrough intentional
+        case cluster_version_t::v2_0: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
@@ -330,13 +336,13 @@ metadata_file_t::metadata_file_t(
             migrate_cluster_metadata_to_v2_1(
                 io_backender, base_path,
                 buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
-                interruptor);
+                &non_interruptor);
 
             // The metadata is now serialized using the latest serialization version
             metadata_version = cluster_version_t::LATEST_DISK;
         }                         // fallthrough intentional
-    case cluster_version_t::v2_1: // fallthrough intentional
-    case cluster_version_t::v2_2: {
+        case cluster_version_t::v2_1: // fallthrough intentional
+        case cluster_version_t::v2_2: {
             if (sb_lock.has()) {
                 update_metadata_superblock_version(sb_data);
                 sb_write.reset();
@@ -344,12 +350,15 @@ metadata_file_t::metadata_file_t(
             }
 
             logNTC("Migrating cluster metadata to v2.3");
-            migrate_metadata_v2_1_to_v2_3(metadata_version, &write_txn, interruptor);
+            migrate_metadata_v2_1_to_v2_3(
+                metadata_version, &write_txn, &non_interruptor);
         } break;
-    case cluster_version_t::v2_3_is_latest_disk:
-        break; // Up-to-date, do nothing
-    default: unreachable();
+        case cluster_version_t::v2_3_is_latest_disk:
+            break; // Up-to-date, do nothing
+        default: unreachable();
+        }
     }
+    write_txn.commit();
 }
 
 metadata_file_t::metadata_file_t(
@@ -370,14 +379,19 @@ metadata_file_t::metadata_file_t(
     cache_conn.init(new cache_conn_t(cache.get()));
 
     {
-        write_txn_t write_txn(this, interruptor);
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+        cond_t non_interruptor;
+        write_txn_t write_txn(this, &non_interruptor);
         {
             buf_lock_t sb_lock(&write_txn.txn, SUPERBLOCK_ID, alt_create_t::create);
             buf_write_t sb_write(&sb_lock);
             void *sb_data = sb_write.get_data_write();
             init_metadata_superblock(sb_data, cache->max_block_size().value());
         }
-        initializer(&write_txn, interruptor);
+        initializer(&write_txn, &non_interruptor);
+        write_txn.commit();
     }
 
     file_opener.move_serializer_file_to_permanent_location();

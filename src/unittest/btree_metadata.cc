@@ -29,6 +29,7 @@ TPTEST(BtreeMetadata, MetadataTest) {
         txn.write(big_string_key, big_string, &non_interruptor);
         txn.write(int_prefix.suffix("foo"), 101, &non_interruptor);
         txn.write(int_prefix.suffix("bar"), 102, &non_interruptor);
+        txn.commit();
     }
 
     {
@@ -86,6 +87,7 @@ TPTEST(BtreeMetadata, ManyKeysBigValues) {
         for (const auto &pair : data) {
             txn.write(prefix.suffix(pair.first), pair.second, &non_interruptor);
         }
+        txn.commit();
     }
 
     {

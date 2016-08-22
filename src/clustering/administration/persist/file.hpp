@@ -84,6 +84,11 @@ public:
                 interruptor);
         }
 
+    protected:
+        txn_t *get_txn() {
+            return &txn;
+        }
+
     private:
         friend class metadata_file_t;
 
@@ -128,6 +133,14 @@ public:
         template<class T>
         void erase(const key_t<T> &key, signal_t *interruptor) {
             write_bin(key.key, nullptr, interruptor);
+        }
+
+        // Must be called before the `write_txn_t` is destructed.
+        // This acts as a safety check to make sure a transaction
+        // is not interrupted in the middle, which could leave the
+        // metadata in an inconsistent state.
+        void commit() {
+            get_txn()->commit();
         }
 
     private:

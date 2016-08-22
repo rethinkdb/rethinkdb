@@ -146,6 +146,9 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
             }
         }
     }
+
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(

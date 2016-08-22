@@ -335,6 +335,8 @@ public:
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
             std::function<void(throttler_acq_t *)> on_flush_complete);
+    // More efficient version of `flush_and_destroy_txn` for read transactions.
+    void end_read_txn(scoped_ptr_t<page_txn_t> txn);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(

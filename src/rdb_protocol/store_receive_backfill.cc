@@ -21,13 +21,16 @@ static const int MAX_UNSAVED_CHANGES = 1000;
 
 void flush_cache(cache_conn_t *cache, UNUSED signal_t *interruptor) {
     scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    get_btree_superblock_and_txn_for_writing(cache, nullptr,
-        write_access_t::write, 1, write_durability_t::HARD, &superblock, &txn);
-    buf_write_t write(superblock->get());
-    /* `txn`'s destructor will block until all of the transactions that acquired the
+    {
+        scoped_ptr_t<real_superblock_t> superblock;
+        get_btree_superblock_and_txn_for_writing(cache, nullptr,
+            write_access_t::write, 1, write_durability_t::HARD, &superblock, &txn);
+        buf_write_t write(superblock->get());
+    }
+    /* `commit` will block until all of the transactions that acquired the
     superblock before we did and modified the metainfo have been flushed to disk. It's a
     shame we can't wait on `interruptor` using this API. */
+    txn->commit();
 }
 
 class unsaved_data_limiter_t {
@@ -298,6 +301,13 @@ void apply_multi_key_item(
             tokens.info->limiter->prepare_for_changes(
                 MAX_CHANGES_PER_TXN, tokens.keepalive.get_drain_signal());
 
+            /* We must not throw within the transaction. So we check the
+            drain signal now. */
+            if (tokens.keepalive.get_drain_signal()->is_pulsed()) {
+                throw interrupted_exc_t();
+            }
+            cond_t non_interruptor;
+
             /* Acquire the superblock. */
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> superblock;
@@ -314,7 +324,7 @@ void apply_multi_key_item(
                 rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
                 btree_receive_backfill_item_update_deletion_timestamps(
                     superblock.get(), release_superblock_t::KEEP, &sizer, item,
-                    tokens.keepalive.get_drain_signal());
+                    &non_interruptor);
                 is_first = false;
             }
 
@@ -337,7 +347,7 @@ void apply_multi_key_item(
             rdb_live_deletion_context_t deletion_context;
             continue_bool_t res = rdb_erase_small_range(tokens.info->slice, &key_tester,
                 range_to_delete, superblock.get(), &deletion_context,
-                tokens.keepalive.get_drain_signal(), MAX_CHANGES_PER_TXN / 2,
+                &non_interruptor, MAX_CHANGES_PER_TXN / 2,
                 &mod_reports, &range_deleted);
             guarantee(range_deleted.right == range_to_delete.right
                 || res == continue_bool_t::CONTINUE);
@@ -460,6 +470,7 @@ continue_bool_t store_t::receive_backfill(
             }
 
             /* End the transaction and notify that we've made progress */
+            txn->commit();
             txn.reset();
             guarantee(progress >= commit_threshold);
             guarantee(progress <= metainfo_threshold);
