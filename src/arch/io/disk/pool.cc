@@ -134,6 +134,12 @@ int64_t pool_diskmgr_t::action_t::perform_read_write(iovec *vecs,
                    "%" PRIi64 " bytes. Assuming we ran out of disk space.",
                    total_bytes, partial_offset);
             return -ENOSPC;
+        } else if (res == 0 && type == ACTION_READ) {
+            // A 0 result from a read means that we've tried to read
+            // behind the file.
+            logERR("Failed I/O: we tried to read from behind the end of the file. "
+                   "Either the file got truncated, or there is a bug in RethinkDB.");
+            return -EINVAL;
         }
 
         // Advance the vector in DEVICE_BLOCK_SIZE chunks and update our offset
