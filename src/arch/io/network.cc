@@ -1346,9 +1346,20 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
 
         int sockoptval = 1;
 #ifdef _WIN32
-        int res = setsockopt(fd_to_socket(sock_fd), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&sockoptval), sizeof(sockoptval)); 
-        guarantee_winerr(res != -1, "Could not set REUSEADDR option");
+        // On Windows, we don't set `SO_REUSEADDR`. `SO_REUSEADDR` will cause
+        // `bind` to happily bind to a port that another process is already
+        // listening too (similar to `SO_REUSEPORT` on Linux).
+        // That is bad for security, as well as usability reasons.
+        // Instead we go even one step further, and set the
+        // `SO_EXCLUSIVEADDRUSE` option to make sure we catch cases where another
+        // process was binding with `SO_REUSEADDR` before.
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms740621(v=vs.85).aspx
+        // has a table of what this option means.
+        int res = setsockopt(fd_to_socket(sock_fd), SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<char*>(&sockoptval), sizeof(sockoptval));
+        guarantee_winerr(res != -1, "Could not set EXCLUSIVEADDRUSE option");
 #else
+        // On Unix-like systems, we set `SO_REUSEADDR` to allow the port
+        // to be re-bound quickly (e.g. if you restart the server).
         int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval)); 
         guarantee_err(res != -1, "Could not set REUSEADDR option");
 #endif
