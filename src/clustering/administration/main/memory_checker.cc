@@ -2,7 +2,6 @@
 #include "clustering/administration/main/memory_checker.hpp"
 
 #include <math.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 
 #include "clustering/administration/metadata.hpp"
