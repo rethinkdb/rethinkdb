@@ -150,6 +150,7 @@ bool parse_status_file(const std::string &contents, uint64_t *swap_usage_out) {
     return false;
 }
 
+
 bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
 #if defined(_WIN32)
     return false;
@@ -256,53 +257,6 @@ bool osx_runtime_version_check() {
 }
 
 #endif //__MACH___
-
-uint64_t get_used_swap() {
-#if defined(_WIN32)
-    /* TODO: is there a way to actually get useful information from this on windows?
-    PROCESS_MEMORY_COUNTERS pmc;
-    BOOL res = GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-    if (!res) {
-        return 0;
-    }
-    return pmc.QuotaPagedPoolUsage;
-    */
-    return 0;
-#elif defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-    /*
-    // On OSX we return global pageouts, because mach is stingey with info.
-    // This is slightly less helpful.
-    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
-    vm_statistics64_data_t vmstat;
-    // We memset this struct to zero because of zero-knowledge paranoia that some old
-    // system might use a shorter version of the struct, where it would not set the
-    // vmstat.pageouts field (which is relatively new) that we use below.
-    // (Probably, instead, the host_statistics64 call will fail, because count would
-    // be wrong.)
-    memset(&vmstat, 0, sizeof(vmstat));
-    if (KERN_SUCCESS != host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmstat, &count)) {
-        return 0;
-    }
-    // Since we memset to 0, this will be 0 if it isn't filled in.
-    return vmstat.pageouts;
-    */
-    // TODO: There may be a way to return something more helpful here.
-    // OSX is too agressive with swap for the above value to imply a problem.
-    return 0;
-#else
-#error "We don't support Mach kernels other than OS X, sorry."
-#endif // __MAC_OS_X_VERSION_MIN_REQUIRED
-#else
-    uint64_t swap_used;
-    if (get_proc_status_current_swap_usage(&swap_used)) {
-        return swap_used;
-    } else {
-        // TODO: There may be a way to provide useful output without the /proc file.
-        return 0;
-    }
-#endif
-}
 
 uint64_t get_avail_mem_size() {
 #if defined(_WIN32)
