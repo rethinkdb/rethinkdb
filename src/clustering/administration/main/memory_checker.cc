@@ -2,7 +2,9 @@
 #include "clustering/administration/main/memory_checker.hpp"
 
 #include <math.h>
+#ifndef _WIN32
 #include <sys/resource.h>
+#endif
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
