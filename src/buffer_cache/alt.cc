@@ -194,9 +194,8 @@ txn_t::txn_t(cache_conn_t *cache_conn,
       durability_(write_durability_t::SOFT),
       is_committed_(false) {
     // Right now, cache_conn is only used to control flushing of write txns.  When we
-    // need to support other cache_conn_t related features (like read operations
-    // magically passing write operations), we'll need to do something fancier with
-    // read txns on cache conns.
+    // need to support other cache_conn_t related features, we'll need to do something
+    // fancier with read txns on cache conns.
     help_construct(0, nullptr);
 }
 
@@ -216,8 +215,17 @@ void txn_t::help_construct(int64_t expected_change_count,
                            cache_conn_t *cache_conn) {
     cache_->assert_thread();
     guarantee(expected_change_count >= 0);
-    throttler_acq_t throttler_acq
-        = cache_->throttler_.begin_txn_or_throttle(expected_change_count);
+    // We skip the throttler for read transactions.
+    // Note that this allows read transactions to skip ahead of writes.
+    if (access_ == access_t::write) {
+        // To more easily detect code that assumes that transaction creation
+        // does not block, we always yield in debug mode.
+        DEBUG_ONLY_CODE(coro_t::yield_ordered());
+    }
+    throttler_acq_t throttler_acq(
+        access_ == access_t::write
+        ? cache_->throttler_.begin_txn_or_throttle(expected_change_count)
+        : throttler_acq_t());
 
     ASSERT_FINITE_CORO_WAITING;
 
