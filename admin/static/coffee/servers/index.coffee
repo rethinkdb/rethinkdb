@@ -52,12 +52,13 @@ class View extends Backbone.View
         @fetch()
 
     fetch: ->
-        server_config = r.db(system_db).table('server_config')
-        server_status = r.db(system_db).table('server_status')
-        table_status = r.db(system_db).table('table_status')
+        args =
+            server_config: r.db(system_db).table('server_config').coerceTo('array')
+            server_status: r.db(system_db).table('server_status').coerceTo('array')
+            table_status: r.db(system_db).table('table_status').coerceTo('array')
 
-        query = r.expr(
-            Model.query(server_config, server_status, table_status)
+        query = r.expr(args).do((a) ->
+            Model.query(a('server_config'), a('server_status'), a('table_status'))
         )
         @timer = driver.run query, 5000, (error, result) =>
             if error?
