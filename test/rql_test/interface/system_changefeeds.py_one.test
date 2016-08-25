@@ -42,7 +42,7 @@ with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, ex
                         changes.append(change)
             except r.ReqlTimeoutError:
                 pass
-            except r.Error as e:
+            except Exception as e:
                 utils.print_with_time('Exception on feed "%s"' % name)
                 traceback.print_exception()
                 sys.exit(1)
@@ -55,14 +55,14 @@ with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, ex
     utils.print_with_time("Creating database...")
     res = r.db_create("test").run(conn)
     assert res.get("dbs_created", 0) == 1, res
-    check(["db_config"], 1.0)
+    check(["db_config"], 5.0)
 
     utils.print_with_time("Creating tables...")
     res = r.table_create("test", replicas={"a_tag": 1}, primary_replica_tag="a_tag").run(conn)
     assert res["tables_created"] == 1, res
     res = r.table_create("test2", replicas={"b_tag": 1}, primary_replica_tag="b_tag").run(conn)
     assert res["tables_created"] == 1, res
-    check(["table_config", "table_status", "logs"], 1.5)
+    check(["table_config", "table_status", "logs"], 3)
     
     utils.print_with_time("Creating feeds...")
     feeds["test_config"]  = r.table('test').config().changes().run(conn)
@@ -74,18 +74,16 @@ with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, ex
     res = r.table("test").config().update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
     assert res["errors"] == 0, res
     r.table("test").wait(wait_for="all_replicas_ready").run(conn)
-    check(["table_config", "table_status", "test_config", "test_status", "logs"], 1.5)
+    check(["table_config", "table_status", "test_config", "test_status", "logs"], 3)
 
     utils.print_with_time("Renaming server...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "b"}).update({"name": "c"}).run(conn)
     assert res["replaced"] == 1 and res["errors"] == 0, res
-    check(["logs", "server_config", "server_status", "table_config", "table_status",
-        "test_config", "test_status", "test2_config", "test2_status"], 1.5)
+    check(["logs", "server_config", "server_status", "table_config", "table_status", "test_config",    "test_status", "test2_config", "test2_status"], 3)
 
     utils.print_with_time("Killing one server...")
     proc2.check_and_stop()
-    check(["logs", "server_config", "server_status", "table_config", "table_status", "current_issues",
-        "test_status", "test2_config", "test2_status"], 1.5)
+    check(["logs", "server_config", "server_status", "table_config", "table_status", "current_issues", "test_status", "test2_config", "test2_status"], 3)
 
     utils.print_with_time("Shutting everything down...")
 utils.print_with_time("Done.")
