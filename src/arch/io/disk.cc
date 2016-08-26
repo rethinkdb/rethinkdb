@@ -112,13 +112,13 @@ public:
                                a));
     }
 
-    void submit_resize(fd_t fd, int64_t new_size,
+    void submit_resize(fd_t fd, int64_t old_size, int64_t new_size,
                       void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
         threadnum_t calling_thread = get_thread_id();
 
         action_t *a = new action_t(calling_thread, cb);
-        a->make_resize(fd, new_size, wrap_in_datasyncs);
+        a->make_resize(fd, old_size, new_size, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
 
         do_on_thread(home_thread(),
@@ -230,9 +230,7 @@ int64_t linux_file_t::get_file_size() {
     return file_size;
 }
 
-/* If you want to use this for downsizing a file, please check the WARNING about
-`set_file_size()` in disk.hpp. */
-void linux_file_t::set_file_size(int64_t size) {
+void linux_file_t::set_file_size(int64_t new_size) {
     assert_thread();
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
@@ -250,17 +248,19 @@ void linux_file_t::set_file_size(int64_t size) {
     };
     rs_callback_t *rs_callback = new rs_callback_t();
     rs_callback->lock = file_size_ops_drainer.lock();
-    diskmgr->submit_resize(fd.get(), size, default_account->get_account(),
+    diskmgr->submit_resize(fd.get(), file_size, new_size,
+                           default_account->get_account(),
                            rs_callback, true);
 
-    file_size = size;
+    file_size = new_size;
 }
 
 // For growing in large chunks at a time.
 int64_t chunk_factor(int64_t size) {
-    // x is at most 6.25% of size.
-    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 16)) * DEFAULT_EXTENT_SIZE;
-    return clamp<int64_t>(x, DEVICE_BLOCK_SIZE * 128, DEFAULT_EXTENT_SIZE * 64);
+    // x is at most 12.5% of size. Overall we align to chunks no larger than
+    // 64 extents.
+    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 8)) * DEFAULT_EXTENT_SIZE;
+    return clamp<int64_t>(x, DEFAULT_EXTENT_SIZE, DEFAULT_EXTENT_SIZE * 64);
 }
 
 void linux_file_t::set_file_size_at_least(int64_t size) {

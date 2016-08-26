@@ -87,10 +87,10 @@ tests:
   - rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
 
-  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::ReqlQueryLogicError => e; nil; end}.select{|x| x != nil};
+  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run(reql_conn); rescue RethinkDB::ReqlQueryLogicError => e; nil; end}.select{|x| x != nil};
     ot: []
 
 # Check that we can't put a valid date into any invalid timezone.
   - rb: bad_dts_in_tz = r.expr(dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten)
-  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::ReqlQueryLogicError => e; nil; end }.select{|x| x != nil}
+  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(reql_conn)}); rescue RethinkDB::ReqlQueryLogicError => e; nil; end }.select{|x| x != nil}
     ot: []

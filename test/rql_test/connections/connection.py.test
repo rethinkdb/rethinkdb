@@ -4,10 +4,10 @@
 
 from __future__ import print_function
 
-import datetime, os, random, re, socket, sys, tempfile, threading, time, traceback, unittest
+import datetime, os, random, re, socket, sys, tempfile, time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import driver, utils
+import driver, rdb_unittest, utils
 
 try:
     xrange
@@ -64,58 +64,8 @@ def closeSharedServer():
 
 # == Test Base Classes
 
-class TestCaseCompatible(unittest.TestCase):
-    '''Compatibility shim for Python 2.6'''
-
-    def __init__(self, *args, **kwargs):
-        super(TestCaseCompatible, self).__init__(*args, **kwargs)
-
-        if not hasattr(self, 'assertIsNone'):
-            self.assertIsNone = self.replacement_assertIsNone
-        if not hasattr(self, 'assertIsNotNone'):
-            self.assertIsNotNone = self.replacement_assertIsNotNone
-        if not hasattr(self, 'assertRaisesRegexp'):
-            self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
-        if not hasattr(self, 'skipTest'):
-            self.skipTest = self.replacement_skipTest
-        if not hasattr(self, 'assertGreaterEqual'):
-            self.assertGreaterEqual = self.replacement_assertGreaterEqual
-        if not hasattr(self, 'assertLess'):
-            self.assertLess = self.replacement_assertLess
-
-    def replacement_assertIsNone(self, val):
-        if val is not None:
-            raise AssertionError('%s is not None' % val)
-
-    def replacement_assertIsNotNone(self, val):
-        if val is None:
-            raise AssertionError('%s is None' % val)
-
-    def replacement_assertGreaterEqual(self, greater, lesser):
-        if not greater >= lesser:
-            raise AssertionError('%s not greater than or equal to %s' % (greater, lesser))
-
-    def replacement_assertLess(self, lesser, greater):
-        if not greater > lesser:
-            raise AssertionError('%s not less than %s' % (lesser, greater))
-
-    def replacement_skipTest(self, message):
-        sys.stderr.write("%s " % message)
-
-    def replacement_assertRaisesRegexp(self, exception, regexp, callable_func, *args, **kwds):
-        try:
-            callable_func(*args, **kwds)
-        except Exception as e:
-            self.assertTrue(isinstance(e, exception), '%s expected to raise %s but instead raised %s: %s\n%s' % (repr(callable_func), repr(exception), e.__class__.__name__, str(e), traceback.format_exc()))
-            self.assertTrue(re.search(regexp, str(e)), '%s did not raise the expected message "%s", but rather: %s' % (repr(callable_func), str(regexp), str(e)))
-        else:
-            self.fail('%s failed to raise a %s' % (repr(callable_func), repr(exception)))
-
-class TestWithConnection(TestCaseCompatible):
-
-    port = None
-    server = None
-    serverOutput = None
+class TestWithConnection(rdb_unittest.TestCaseCompatible):
+    _conn = None
 
     def setUp(self):
         global sharedServer, sharedServerOutput, sharedServerHost, sharedServerDriverPort
@@ -146,10 +96,34 @@ class TestWithConnection(TestCaseCompatible):
             except Exception:
                 closeSharedServer()
                 raise # ToDo: figure out how to best give the server log
+    
+    @property
+    def port(self):
+        return sharedServerDriverPort
+    
+    @property
+    def server(self):
+        return sharedServerHost
+    
+    @property
+    def conn(self):
+        try:
+            if self._conn:
+                r.expr(1).run(self._conn)
+        except Exception:
+            try:
+                self._conn.close()
+            except Exception: pass
+            self._conn = None
+        
+        if not self._conn:
+            self._conn = r.connect(host=self.server, port=self.port)
+        
+        return self._conn
 
 # == Test Classes
 
-class TestNoConnection(TestCaseCompatible):
+class TestNoConnection(rdb_unittest.TestCaseCompatible):
 
     # No servers started yet so this should fail
     def test_connect(self):
@@ -199,7 +173,7 @@ class TestNoConnection(TestCaseCompatible):
             return # in case we fell back on replacement_skip
         self.assertRaisesRegexp(r.ReqlDriverError, 'Could not connect to 0.0.0.0:%d."' % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0", port=DEFAULT_DRIVER_PORT, auth_key="hunter2")
 
-class TestPrivateServer(TestCaseCompatible):
+class TestPrivateServer(rdb_unittest.TestCaseCompatible):
 
     server = None
     serverConsoleOutput = None
@@ -244,48 +218,49 @@ class TestPrivateServer(TestCaseCompatible):
                 cls.server = None
                 raise
 
-class TestConnectionDefaultPort(TestPrivateServer):
-
-    useDefaultPort = True
-
-    def setUp(self):
-        if not use_default_port:
-            self.skipTest("Not testing default port")
-            return # in case we fell back on replacement_skip
-        super(TestConnectionDefaultPort, self).setUp()
-
-    def test_connect(self):
-        if not use_default_port:
-            return
-        conn = r.connect()
-        conn.reconnect()
-
-    def test_connect_host(self):
-        if not use_default_port:
-            return
-        conn = r.connect(host='localhost')
-        conn.reconnect()
-
-    def test_connect_host_port(self):
-        if not use_default_port:
-            return
-        conn = r.connect(host='localhost', port=DEFAULT_DRIVER_PORT)
-        conn.reconnect()
-
-    def test_connect_port(self):
-        if not use_default_port:
-            return
-        conn = r.connect(port=DEFAULT_DRIVER_PORT)
-        conn.reconnect()
-
-    def test_connect_wrong_auth(self):
-        if not use_default_port:
-            return
-        self.assertRaisesRegexp(
-            r.ReqlAuthError,
-            "Could not connect to %s:%d: Wrong password" % (self.host, self.port),
-            r.connect,
-            auth_key="hunter2")
+if use_default_port:
+    class TestConnectionDefaultPort(TestPrivateServer):
+    
+        useDefaultPort = True
+    
+        def setUp(self):
+            if not use_default_port:
+                self.skipTest("Not testing default port")
+                return # in case we fell back on replacement_skip
+            super(TestConnectionDefaultPort, self).setUp()
+    
+        def test_connect(self):
+            if not use_default_port:
+                return
+            conn = r.connect()
+            conn.reconnect()
+    
+        def test_connect_host(self):
+            if not use_default_port:
+                return
+            conn = r.connect(host='localhost')
+            conn.reconnect()
+    
+        def test_connect_host_port(self):
+            if not use_default_port:
+                return
+            conn = r.connect(host='localhost', port=DEFAULT_DRIVER_PORT)
+            conn.reconnect()
+    
+        def test_connect_port(self):
+            if not use_default_port:
+                return
+            conn = r.connect(port=DEFAULT_DRIVER_PORT)
+            conn.reconnect()
+    
+        def test_connect_wrong_auth(self):
+            if not use_default_port:
+                return
+            self.assertRaisesRegexp(
+                r.ReqlAuthError,
+                "Could not connect to %s:%d: Wrong password" % (self.host, self.port),
+                r.connect,
+                auth_key="hunter2")
 
 class TestAuthConnection(TestPrivateServer):
 
@@ -436,20 +411,22 @@ class TestConnection(TestWithConnection):
         r.table('t1').run(c, read_mode='outdated')
 
     def test_repl(self):
-
-        # Calling .repl() should set this connection as global state
-        # to be used when `run` is not otherwise passed a connection.
-        c = r.connect(host=sharedServerHost, port=sharedServerDriverPort).repl()
-
-        r.expr(1).run()
-
-        c.repl() # is idempotent
-
-        r.expr(1).run()
-
-        c.close()
-
-        self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed", r.expr(1).run)
+        try:
+            # Calling .repl() should set this connection as global state
+            # to be used when `run` is not otherwise passed a connection.
+            c = r.connect(host=sharedServerHost, port=sharedServerDriverPort).repl()
+            
+            r.expr(1).run()
+            
+            c.repl() # is idempotent
+            
+            r.expr(1).run()
+            
+            c.close()
+            
+            self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed", r.expr(1).run)
+        finally:
+            r.Repl.clear()
 
     def test_port_conversion(self):
         c = r.connect(host=sharedServerHost, port=str(sharedServerDriverPort))
@@ -476,13 +453,36 @@ class TestShutdown(TestWithConnection):
 
 # This doesn't really have anything to do with connections but it'll go
 # in here for the time being.
-class TestPrinting(TestCaseCompatible):
+class TestPrinting(rdb_unittest.TestCaseCompatible):
 
     # Just test that RQL queries support __str__ using the pretty printer.
     # An exhaustive test of the pretty printer would be, well, exhausting.
     def runTest(self):
-        self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
-                            "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
+        output = str(r.db('db1').table('tbl1').map(lambda x: x))
+        if not re.match(r"r\.db\('db1'\)\.table\('tbl1'\)\.map\(lambda var_(\d+): var_\1\)", output):
+            self.fail('Printing query did not have the expected output, rather: %s' % output)
+
+
+class TestPickle(TestWithConnection):
+    '''Test the queries can be pickled'''
+    
+    def runTest(self):
+        import pickle
+        conn = self.conn
+        
+        # we need a db and table to run a query against to verify round-trip to the server
+        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
+        r.expr(['test']).set_difference(r.db('test').table_list()).for_each(r.db('test').table_create(r.row)).run(conn)
+        
+        query = r.db('test').table('test').between(r.maxval, r.maxval).limit(2).count()
+        expected = query.run(conn)
+        self.assertLessEqual(expected, 2) # sanity check
+        
+        pickled = pickle.dumps(query)
+        unpickled = pickle.loads(pickled)
+        self.assertEqual(str(unpickled), str(query))
+        self.assertEqual(unpickled.run(conn), expected)
+
 
 # Another non-connection connection test. It's to test that get_intersecting()
 # batching works properly.
@@ -621,30 +621,4 @@ class TestSuccessAtomFeed(TestWithConnection):
 
 
 if __name__ == '__main__':
-    print("Running py connection tests")
-    suite = unittest.TestSuite()
-    loader = unittest.TestLoader()
-    suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
-    if use_default_port:
-        suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
-    suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
-    suite.addTest(loader.loadTestsFromTestCase(TestConnection))
-    suite.addTest(TestPrinting())
-    suite.addTest(TestBatching())
-    suite.addTest(TestGetIntersectingBatching())
-    suite.addTest(TestGroupWithTimeKey())
-    suite.addTest(TestSuccessAtomFeed())
-    suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
-
-    res = unittest.TextTestRunner(verbosity=2).run(suite)
-
-    serverClosedCleanly = True
-    try:
-        if sharedServer is not None:
-            sharedServer.check_and_stop()
-    except Exception as e:
-        serverClosedCleanly = False
-        sys.stderr.write('The server did not close cleanly after testing: %s' % str(e))
-
-    if not res.wasSuccessful() or not serverClosedCleanly:
-        sys.exit(1)
+    rdb_unittest.main()

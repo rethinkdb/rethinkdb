@@ -195,10 +195,10 @@ class ResunderDaemon(Daemon):
         self.blocked_ports[tuple([source_port, dest_port])] = time.time()
         args_out = ["-AOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
         args_in = ["-AINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
-        subprocess.check_output(["iptables"] + args_out)
-        subprocess.check_output(["iptables"] + args_in)
-        subprocess.check_output(["ip6tables"] + args_out)
-        subprocess.check_output(["ip6tables"] + args_in)
+        subprocess.check_call(["iptables"] + args_out, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["iptables"] + args_in, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["ip6tables"] + args_out, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["ip6tables"] + args_in, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
         logger.info('blocked %s <-> %s' % (source_port, dest_port))
 
     def unblock_port(self, source_port, dest_port):
@@ -208,10 +208,10 @@ class ResunderDaemon(Daemon):
         
         args_out = ["-DOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
         args_in = ["-DINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
-        subprocess.check_output(["iptables"] + args_out)
-        subprocess.check_output(["iptables"] + args_in)
-        subprocess.check_output(["ip6tables"] + args_out)
-        subprocess.check_output(["ip6tables"] + args_in)
+        subprocess.check_call(["iptables"] + args_out, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["iptables"] + args_in, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["ip6tables"] + args_out, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
+        subprocess.check_call(["ip6tables"] + args_in, stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
         
         del self.blocked_ports[tuple([source_port, dest_port])]
         logger.info('unblocked %s <-> %s' % (source_port, dest_port))

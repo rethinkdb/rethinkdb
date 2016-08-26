@@ -143,20 +143,21 @@ void parsed_stats_t::store_serializer_values(const ql::datum_t &ser_perf,
     store_perfmon_value(ser_perf, "serializer_written_bytes_total",
                         &stats_out->written_bytes_total);
 
-    // TODO: these are not entirely accurate, but the underlying stats would need
-    // a good overhaul
     store_perfmon_value(ser_perf, "serializer_data_extents",
                         &stats_out->data_bytes);
     store_perfmon_value(ser_perf, "serializer_lba_extents",
                         &stats_out->metadata_bytes);
     store_perfmon_value(ser_perf, "serializer_old_garbage_block_bytes",
                         &stats_out->garbage_bytes);
-    store_perfmon_value(ser_perf, "serializer_bytes_in_use",
+    store_perfmon_value(ser_perf, "serializer_file_size_bytes",
                         &stats_out->preallocated_bytes);
     stats_out->data_bytes = stats_out->data_bytes * DEFAULT_EXTENT_SIZE - stats_out->garbage_bytes;
     stats_out->metadata_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->preallocated_bytes -= stats_out->data_bytes +
         stats_out->garbage_bytes + stats_out->metadata_bytes;
+    // The file size might temporarily lack behind if allocated extents haven't
+    // been written to disk yet.
+    stats_out->preallocated_bytes = std::max(0.0, stats_out->preallocated_bytes);
 }
 
 void parsed_stats_t::store_query_engine_stats(const ql::datum_t &qe_perf,

@@ -105,14 +105,6 @@
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5
 
-// How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_FLUSH_TIMER_MS                    1000
-
-// If non-null disk_ack_signals are present, concurrent flushing can be used to reduce the
-// latency of each single flush. max_concurrent_flushes controls how many flushes can be active
-// on a specific slice at any given time.
-#define DEFAULT_MAX_CONCURRENT_FLUSHES            1
-
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
 // page replacement algorithm will succeed on a given try, and if that probability is less than 1/2

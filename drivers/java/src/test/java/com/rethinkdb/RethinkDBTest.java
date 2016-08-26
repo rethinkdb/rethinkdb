@@ -10,6 +10,7 @@ import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
+import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -263,6 +264,16 @@ public class RethinkDBTest{
     }
 
     @Test
+    public void testCursorTryWithResources() {
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "123")).run(conn);
+        r.db(dbName).table(tableName).insert(new MapObject().with("field", "456")).run(conn);
+
+        try(Cursor<Map<String, String>> allEntries = r.db(dbName).table(tableName).run(conn)) {
+            assertEquals(2, allEntries.toList().size());
+        }
+    }
+
+    @Test
     public void testTableSelectOfPojo() {
         TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
         Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
@@ -393,6 +404,30 @@ public class RethinkDBTest{
 
         final Cursor<TestPojo> all = r.db(dbName).table(tableName).run(conn);
         assertEquals(total, all.toList().size());
+    }
+
+    @Test
+    public void testNoreply() throws Exception {
+        r.expr(null).runNoReply(conn);
+    }
+
+    @Test
+    public void test_Changefeeds_Cursor_Close_cause_new_cursor_cause_memory_leak() throws Exception {
+        Field f_cursorCache = Connection.class.getDeclaredField("cursorCache");
+        f_cursorCache.setAccessible(true);
+
+        Map<Long, Cursor> cursorCache = (Map<Long, Cursor>) f_cursorCache.get(conn);
+        assertEquals(0, cursorCache.size());
+
+        Cursor c = r.db(dbName).table(tableName).changes().run(conn);
+
+        try {
+            c.next(1000);
+        } catch (TimeoutException ex) {
+        }
+        c.close();
+
+        assertEquals(0, cursorCache.size());
     }
 }
 

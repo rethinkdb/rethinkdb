@@ -5,6 +5,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
 
+import java.io.Closeable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 
-public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
+public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
 
     // public immutable members
     public final long token;
@@ -46,6 +47,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
     }
 
     public void close() {
+        connection.removeFromCache(this.token);
         if (!error.isPresent()) {
             error = Optional.of(new NoSuchElementException());
             if (connection.isOpen()) {

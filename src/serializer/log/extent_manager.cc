@@ -66,6 +66,8 @@ class extent_zone_t {
 
     file_t *const dbfile;
 
+    log_serializer_stats_t *stats;
+
     // The number of free extents in the file.
     size_t held_extents_;
 
@@ -74,11 +76,12 @@ public:
         return held_extents_;
     }
 
-    extent_zone_t(file_t *_dbfile, uint64_t _extent_size)
-        : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
+    extent_zone_t(file_t *_dbfile, uint64_t _extent_size, log_serializer_stats_t *_stats)
+        : extent_size(_extent_size), dbfile(_dbfile), stats(_stats), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)
         extents.reserve(dbfile->get_file_size() / extent_size);
+        stats->pm_file_size_bytes += dbfile->get_file_size();
     }
 
     extent_reference_t reserve_extent(int64_t extent) {
@@ -134,7 +137,15 @@ public:
 
         extent_reference_t extent_ref = make_extent_reference(extent);
 
-        dbfile->set_file_size_at_least(extent + extent_size);
+        {
+            ASSERT_NO_CORO_WAITING;
+            // `perfmon_counter_t` only allows relative modifications due to
+            // the way it handles multi-threading.
+            // So we calculate the *change* in file size and update it accordingly.
+            const int64_t old_file_size = dbfile->get_file_size();
+            dbfile->set_file_size_at_least(extent + extent_size);
+            stats->pm_file_size_bytes += dbfile->get_file_size() - old_file_size;
+        }
 
         return extent_ref;
     }
@@ -158,7 +169,15 @@ public:
         }
 
         if (shrink_file) {
-            dbfile->set_file_size(extents.size() * extent_size);
+            {
+                ASSERT_NO_CORO_WAITING;
+                // `perfmon_counter_t` only allows relative modifications due to
+                // the way it handles multi-threading.
+                // So we calculate the *change* in file size and update it accordingly.
+                const int64_t old_file_size = dbfile->get_file_size();
+                dbfile->set_file_size(extents.size() * extent_size);
+                stats->pm_file_size_bytes += dbfile->get_file_size() - old_file_size;
+            }
 
             // Prevent the existence of a relatively large free queue after the file
             // size shrinks.
@@ -204,7 +223,7 @@ extent_manager_t::extent_manager_t(file_t *file,
       state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    zone.init(new extent_zone_t(file, extent_size));
+    zone.init(new extent_zone_t(file, extent_size, stats));
 }
 
 extent_manager_t::~extent_manager_t() {
@@ -215,7 +234,6 @@ extent_reference_t extent_manager_t::reserve_extent(int64_t extent) {
     assert_thread();
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
-    stats->pm_bytes_in_use += extent_size;
     return zone->reserve_extent(extent);
 }
 
@@ -256,7 +274,6 @@ extent_reference_t extent_manager_t::gen_extent() {
     assert_thread();
     rassert(state == state_running);
     ++stats->pm_extents_in_use;
-    stats->pm_bytes_in_use += extent_size;
 
     return zone->gen_extent();
 }
@@ -282,7 +299,6 @@ void extent_manager_t::release_extent_preliminaries() {
     assert_thread();
     rassert(state == state_running);
     --stats->pm_extents_in_use;
-    stats->pm_bytes_in_use -= extent_size;
 }
 
 

@@ -117,6 +117,7 @@ class AsyncioCursor(Cursor):
 class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
+    _reader_task  = None
 
     def __init__(self, parent, io_loop=None):
         self._parent = parent
@@ -130,10 +131,10 @@ class ConnectionInstance(object):
 
     def client_port(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('socketname')[1]
+            return self._streamwriter.get_extra_info('sockname')[1]
     def client_address(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('socketname')[0]
+            return self._streamwriter.get_extra_info('sockname')[0]
 
     @asyncio.coroutine
     def connect(self, timeout):
@@ -148,7 +149,6 @@ class ConnectionInstance(object):
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
-
 
         try:
             self._parent.handshake.reset()
@@ -169,13 +169,15 @@ class ConnectionInstance(object):
                     )
                     response = response[:-1]
         except ReqlAuthError:
-            yield self.close()
+            yield from self.close()
             raise
-        except ReqlTimeoutError:
-            yield self.close()
-            raise
+        except ReqlTimeoutError as err:
+            yield from self.close()
+            raise ReqlDriverError(
+                'Connection interrupted during handshake with %s:%s. Error: %s' %
+                    (self._parent.host, self._parent.port, str(err)))
         except Exception as err:
-            yield self.close()
+            yield from self.close()
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
 
@@ -188,7 +190,7 @@ class ConnectionInstance(object):
         return not (self._closing or self._streamreader.at_eof())
 
     @asyncio.coroutine
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -210,7 +212,10 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
-        yield from self._reader_task
+        # We must not wait for the _reader_task if we got an exception, because that
+        # means that we were called from it. Waiting would lead to a deadlock.
+        if self._reader_task and exception is None:
+            yield from self._reader_task
 
         return None
 
@@ -263,12 +268,12 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield from self.close(False, None, ex)
+                yield from self.close(exception=ex)
 
 
 class Connection(ConnectionBase):
     def __init__(self, *args, **kwargs):
-        ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
         try:
             self.port = int(self.port)
         except ValueError:

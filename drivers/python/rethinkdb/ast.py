@@ -1,6 +1,6 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-__all__ = ['expr', 'RqlQuery', 'ReQLEncoder', 'ReQLDecoder']
+__all__ = ['expr', 'RqlQuery', 'ReQLEncoder', 'ReQLDecoder', 'Repl']
 
 import datetime
 import collections
@@ -44,7 +44,12 @@ class Repl(object):
     def set(cls, conn):
         cls.threadData.repl = conn
         cls.replActive = True
-
+    
+    @classmethod
+    def clear(cls):
+        if 'repl' in cls.threadData.__dict__:
+            del cls.threadData.repl
+        cls.replActive = False
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types

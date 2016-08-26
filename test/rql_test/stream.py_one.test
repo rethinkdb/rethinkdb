@@ -19,16 +19,23 @@ class Stream(rdb_unittest.RdbTestCase):
     
     maxDiff = None
     
-    def generateRecords(self):
+    def populateTable(self, conn=None, table=None, records=None, fieldName=None):
+        if conn is None:
+            conn = self.conn
+        if table is None:
+            table = self.table
+        if records is None:
+            records = self.recordsToGenerate
+        
         digits = 3
         idPrefix = '%%0%dd' % digits
         idFormat = idPrefix + '%%s%%0%dd' % (10 - digits)
         
         # - create the indexes
-        self.table.index_create('a').run(self.conn)
-        self.table.index_create('m', multi=True).run(self.conn)
-        self.table.index_wait('a', 'm').run(self.conn)
-        self.table.wait(wait_for='all_replicas_ready').run(self.conn)
+        table.index_create('a').run(conn)
+        table.index_create('m', multi=True).run(conn)
+        table.index_wait('a', 'm').run(conn)
+        table.wait(wait_for='all_replicas_ready').run(conn)
         
         # - create expected lists
         
@@ -45,7 +52,7 @@ class Stream(rdb_unittest.RdbTestCase):
             'id': idFormat % (i, 'a'*random.randint(1, 90), random.randint(1, 10 ** (10 - digits))),
             'a':  prefix + str(random.random()),
             'm':  random.sample([prefix + str(random.random()), prefix + (idPrefix % i) + str(random.random()), idPrefix % i], 3)
-        } for i, prefix in ((y, random.choice(prefixes)) for y in range(self.recordsToGenerate))]
+        } for i, prefix in ((y, random.choice(prefixes)) for y in range(records))]
         
         self.expected['a'] = sorted(self.expected['id'], key=lambda x: x['a'])
         # the this_m array creates a line for each of the 3 items in the multi-index for each line, and records the choice for each
@@ -55,9 +62,9 @@ class Stream(rdb_unittest.RdbTestCase):
         self.expected['m'] = [z for z, _ in ((y, y.__delitem__('this_m')) for y in (copy.copy(x) for x in self.expected['this_m']))]
         
         # - insert data
-        for pos in range(0, self.recordsToGenerate, 100):
-            chunkSize = min(self.recordsToGenerate - pos, 100)
-            res = self.table.insert(self.expected['id'][pos:pos + chunkSize]).run(self.conn)
+        for pos in range(0, records, 100):
+            chunkSize = min(records - pos, 100)
+            res = table.insert(self.expected['id'][pos:pos + chunkSize]).run(conn)
             self.assertEqual(res['inserted'], chunkSize, (pos, chunkSize, res))
             
     def test_simple(self):

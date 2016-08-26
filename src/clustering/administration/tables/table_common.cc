@@ -34,11 +34,12 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     table_meta_client->list_configs(
         &interruptor_on_home, &configs, &disconnected_configs);
     rows_out->clear();
-    for (const auto &pair : configs) {
+    pmap(configs.cbegin(), configs.cend(),
+        [&](const std::pair<namespace_id_t, table_config_and_shards_t> &pair) {
         ql::datum_t db_name_or_uuid;
         if (!convert_database_id_to_datum(
-                pair.second.config.basic.database, identifier_format, metadata,
-                &db_name_or_uuid, nullptr)) {
+            pair.second.config.basic.database, identifier_format, metadata,
+            &db_name_or_uuid, nullptr)) {
             db_name_or_uuid = ql::datum_t("__deleted_database__");
         }
         try {
@@ -54,7 +55,12 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
             format_error_row(
                 pair.first, db_name_or_uuid, pair.second.config.basic.name, &row);
             rows_out->push_back(row);
+        } catch (const interrupted_exc_t &) {
+            /* We're handling this outside the `pmap` */
         }
+    });
+    if (interruptor_on_home.is_pulsed()) {
+        throw interrupted_exc_t();
     }
     for (const auto &pair : disconnected_configs) {
         ql::datum_t db_name_or_uuid;

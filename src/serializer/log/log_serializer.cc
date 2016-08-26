@@ -122,7 +122,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_written_bytes_per_sec(secs_to_ticks(1)),
       pm_serializer_written_bytes_total(),
       pm_extents_in_use(),
-      pm_bytes_in_use(),
+      pm_file_size_bytes(),
       pm_serializer_lba_extents(),
       pm_serializer_data_extents(),
       pm_serializer_data_extents_allocated(),
@@ -142,7 +142,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_written_bytes_per_sec, "serializer_written_bytes_per_sec",
           &pm_serializer_written_bytes_total, "serializer_written_bytes_total",
           &pm_extents_in_use, "serializer_extents_in_use",
-          &pm_bytes_in_use, "serializer_bytes_in_use",
+          &pm_file_size_bytes, "serializer_file_size_bytes",
           &pm_serializer_lba_extents, "serializer_lba_extents",
           &pm_serializer_data_extents, "serializer_data_extents",
           &pm_serializer_data_extents_allocated, "serializer_data_extents_allocated",
@@ -485,7 +485,7 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
     {
         // The in-memory index updates, at least due to the needs of
-        // data_block_manager_t garbage collection, needs to be
+        // data_block_manager_t garbage collection, need to be
         // atomic.
         ASSERT_NO_CORO_WAITING;
 

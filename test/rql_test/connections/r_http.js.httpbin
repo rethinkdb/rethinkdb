@@ -89,9 +89,15 @@ function object_eq(v1, v2) {
 
 function expect_eq(left, right) {
     assert(object_eq(left, right),
-           "Actual result not equal to expected result:" +
-           "\n  ACTUAL: " + JSON.stringify(left) +
-           "\n  EXPECTED: " + JSON.stringify(right));
+       "Actual result not equal to expected result:" +
+       "\n  ACTUAL: " + JSON.stringify(left) +
+       "\n  EXPECTED: " + JSON.stringify(right));
+}
+
+function expect_in(needle, haystack) {
+    assert(needle in haystack,
+       "Expected value " + JSON.stringify(needle) + " not in: " + JSON.stringify(haystack)
+    );
 }
 
 function err_string(method, url, msg) {
@@ -105,7 +111,7 @@ describe('Javascript HTTP test - ', function() {
             r.http(url).run(conn, function(err, res) {
                 expect_no_error(err);
                 expect_eq(res['args'], {});
-                expect_eq(res['headers']['Accept-Encoding'], 'deflate;q=1, gzip;q=0.5');
+                expect_in('Accept-Encoding', res['headers']);
                 expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB');
                 done();
             });

@@ -524,7 +524,10 @@ void set_default_opts(CURL *curl_handle,
 
     exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
-    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate;q=1, gzip;q=0.5", "PROTOCOLS");
+    // Setting this to an empty string makes libcurl enable all supported encodings.
+    // Normally this is gzip and deflate, though on Windows some of these might not
+    // be supported.
+    exc_setopt(curl_handle, CURLOPT_ACCEPT_ENCODING, "", "PROTOCOLS");
 
     exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 

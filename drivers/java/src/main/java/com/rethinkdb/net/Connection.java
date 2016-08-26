@@ -218,12 +218,31 @@ public class Connection implements Closeable {
         throw new ReqlDriverError("Can't write query because response pump is not running.");
     }
 
-    void runQueryNoreply(Query query) {
-        runQueryNoreply(query, Optional.empty());
+    /**
+     * Writes a query without waiting for a response
+     *
+     * @param query    the query to execute.
+     */
+    private void sendQueryNoreply(Query query) {
+        // check if response pump is running
+        if (!exec.isShutdown() && !exec.isTerminated()) {
+            try {
+                lock.lock();
+                socket.orElseThrow(() -> new ReqlDriverError("No socket available."))
+                        .write(query.serialize());
+                return;
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        // shouldn't be here
+        throw new ReqlDriverError("Can't write query because response pump is not running.");
     }
 
-    void runQueryNoreply(Query query, Optional<Long> timeout) {
-        runQuery(query, Optional.empty(), timeout);
+
+    void runQueryNoreply(Query query) {
+        sendQueryNoreply(query);
     }
 
     <T> T runQuery(Query query) {
@@ -325,6 +344,9 @@ public class Connection implements Closeable {
 
 
     void stop(Cursor cursor) {
+        // While the server does reply to the stop request, we ignore that reply.
+        // This works because the response pump in `connect` ignores replies for which
+        // no waiter exists.
         runQueryNoreply(Query.stop(cursor.token));
     }
 

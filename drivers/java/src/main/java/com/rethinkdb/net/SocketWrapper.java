@@ -46,6 +46,7 @@ public class SocketWrapper {
     void connect(Handshake handshake) {
         final Optional<Long> deadline = timeout.map(Util::deadline);
         try {
+            handshake.reset();
             // establish connection
             final InetSocketAddress addr = new InetSocketAddress(hostname, port);
             socket = socketFactory.createSocket();

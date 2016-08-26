@@ -38,7 +38,8 @@ def print_debug(message):
         sys.stdout.flush()
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT') or 28015)
-print_debug('Using driver port: %d' % DRIVER_PORT)
+SERVER_HOST = os.environ.get('RDB_SERVER_HOST', 'localhost')
+print_debug('Using driver port: %d on host: %s' % (DRIVER_PORT, SERVER_HOST))
 
 required_external_tables = []
 if len(sys.argv) > 2 or os.environ.get('TEST_DB_AND_TABLE_NAME'):
@@ -257,16 +258,16 @@ def compare(expected, result, options=None):
             return True
         else:
             if options['precision']:
-                return FalseStr('value %r was not within %r of %r' % (result, options['precision'], expected))
+                return FalseStr('value << %r >> was not within %r of %r' % (result, options['precision'], expected))
             else:
-                return FalseStr('value %r was not equal to %r' % (result, expected))
+                return FalseStr('value << %r >> was not equal to: %r' % (result, expected))
     
     # -- string/unicode
     if isinstance(expected, (str, unicode)):
         if result == expected:
             return True
         else:
-            return FalseStr('value %r was not the expected %s' % (result, expected))
+            return FalseStr('value << %r >> was not the expected: %s' % (result, expected))
     
     # -- dict
     if isinstance(expected, dict):
@@ -388,19 +389,32 @@ def compare(expected, result, options=None):
 
 class PyTestDriver(object):
     
-    cpp_conn = None
+    scope       = None
+    __con_cache = None
     
     def __init__(self):
-        print('Creating default connection to server on port %d\n' % DRIVER_PORT)
-        self.cpp_conn = self.connect()
         self.scope = globals()
-        self.scope['conn'] = self.cpp_conn # allow access to connection
     
-    def connect(self):
-        return r.connect(host='localhost', port=DRIVER_PORT)
-
+    def connection(self, new=False, user=None):
+        if user is None:
+            user = 'admin'
+        if self.__con_cache is None:
+            self.__con_cache = {}
+        
+        if new is True or user not in self.__con_cache:
+            if user in self.__con_cache:
+                try:
+                    self.__con_cache[user].close()
+                except Exception as e:
+                    print_debug('Failed while closing a connection for replacement: %s' % str(e))
+            self.__con_cache[user] = r.connect(host=SERVER_HOST, port=DRIVER_PORT, user=user)
+            print_debug('\tConnected to %s:%d as user %s' % (SERVER_HOST, DRIVER_PORT, user))
+        
+        return self.__con_cache[user]
+    
     def define(self, expr, variable):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
+        self.scope['conn'] = self.connection()
         try:
             exec(compile('%s = %s' % (variable, expr), '<string>', 'single'), self.scope) # handle things like: a['b'] = b
         except Exception as e:
@@ -420,11 +434,8 @@ class PyTestDriver(object):
         if 'precision' in testopts:
             compareOptions['precision'] = float(testopts['precision']) # errors will bubble up
         
-        conn = None
-        if 'new-connection' in testopts and testopts['new-connection'] is True:
-            conn = self.connect()
-        else:
-            conn = self.cpp_conn
+        conn = self.connection(new=testopts.get('new-connection', False), user=runopts.get('user'))
+        self.scope['conn'] = conn
         
         # -- build the expected result
         
@@ -457,7 +468,10 @@ class PyTestDriver(object):
                     check_pp(src, result)
                     
                     # run the query
-                    result = result.run(conn, **runopts)
+                    actualRunOpts = copy.copy(runopts)
+                    if 'user' in actualRunOpts:
+                        del actualRunOpts['user']
+                    result = result.run(conn, **actualRunOpts)
                     if result and "profile" in runopts and runopts["profile"] and "value" in result:
                         result = result["value"]
                     # ToDo: do something reasonable with the profile
@@ -524,7 +538,10 @@ def test(query, expected, name, runopts=None, testopts=None):
     else:
         for k, v in runopts.items():
             if isinstance(v, str):
-                runopts[k] = eval(v)
+                try:
+                    runopts[k] = eval(v)
+                except NameError:
+                    runopts[k] = v
     if testopts is None:
         testopts = {}
     
@@ -539,30 +556,30 @@ def setup_table(table_variable_name, table_name, db_name='test'):
     
     def _teardown_table(table_name, db_name):
         '''Used for tables that get created for this test'''
-        res = r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
+        res = r.db(db_name).table_drop(table_name).run(driver.connection())
         assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, str(res))
     
     def _clean_table(table_name, db_name):
         '''Used for pre-existing tables'''
-        res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
+        res = r.db(db_name).table(table_name).delete().run(driver.connection())
         assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, str(res))
-        r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
+        r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.connection())
     
     if len(required_external_tables) > 0:
         db_name, table_name = required_external_tables.pop()
         try:
-            r.db(db_name).table(table_name).info(driver.cpp_conn)
+            r.db(db_name).table(table_name).info(driver.connection())
         except r.ReqlRuntimeError:
             raise AssertionError('External table %s.%s did not exist' % (db_name, table_name))
         atexit.register(_clean_table, table_name=table_name, db_name=db_name)
         
         print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     else:
-        if table_name in r.db(db_name).table_list().run(driver.cpp_conn):
-            r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
-        res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
+        if table_name in r.db(db_name).table_list().run(driver.connection()):
+            r.db(db_name).table_drop(table_name).run(driver.connection())
+        res = r.db(db_name).table_create(table_name).run(driver.connection())
         assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, str(res))
-        r.db(db_name).table(table_name).wait(wait_for="all_replicas_ready").run(driver.cpp_conn)
+        r.db(db_name).table(table_name).wait(wait_for="all_replicas_ready").run(driver.connection())
         
         print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     

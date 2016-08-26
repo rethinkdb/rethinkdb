@@ -901,7 +901,7 @@ datum_t datum_t::drop_literals_unchecked_stack(bool *encountered_literal_out) co
     // existing datum; so checking (and thus threading the limits
     // parameter) is unnecessary here.
     const ql::configured_limits_t & limits = ql::configured_limits_t::unlimited;
-    rassert(encountered_literal_out != NULL);
+    rassert(encountered_literal_out != nullptr);
 
     const bool is_literal = is_ptype(pseudo::literal_string);
     if (is_literal) {
@@ -1687,7 +1687,8 @@ void datum_t::replace_field(const datum_string_t &key, datum_t val) {
 
 datum_t datum_t::default_merge_unchecked_stack(const datum_t &rhs) const {
     if (get_type() != R_OBJECT || rhs.get_type() != R_OBJECT) {
-        return rhs;
+        bool encountered_literal;
+        return rhs.drop_literals(&encountered_literal);
     }
 
     datum_object_builder_t d(*this);

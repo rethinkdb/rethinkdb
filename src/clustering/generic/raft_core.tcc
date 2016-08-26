@@ -1306,17 +1306,27 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     */
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
+    /* We increase the election timeout for subsequent elections to avoid overwhelming
+    i/o in case of a large number of concurrent elections in the cluster. */
+    int32_t retry_election_timeout = election_timeout_max_ms;
+
     /* This `try` block is to catch `interrupted_exc_t` */
     try {
         /* The first election won't necessarily succeed. So we loop until either we
         become leader or we are interrupted. */
         while (true) {
             signal_timer_t election_timeout;
+            /* Choose a random timeout between the current timeout and half
+            the current timeout. */
             election_timeout.start(
-                /* Choose a random timeout between `election_timeout_min_ms` and
-                `election_timeout_max_ms`. */
-                election_timeout_min_ms +
-                    randuint64(election_timeout_max_ms - election_timeout_min_ms));
+                retry_election_timeout / 2 +
+                    randuint64(retry_election_timeout / 2));
+
+            /* Increase the timeout exponentially (by 1.5) for the next run: */
+            retry_election_timeout += retry_election_timeout / 2;
+            retry_election_timeout =
+                std::min(retry_election_timeout, election_retry_timeout_max_ms);
+
             /* `candidate_run_election` might temporarily reset `mutex_acq`, but it
             should always re-acquire it before it returns. */
             bool elected = candidate_run_election(
@@ -1527,7 +1537,7 @@ bool raft_member_t<state_t>::candidate_run_election(
         coro_t::spawn_sometime([this, &votes_for_us, &we_won_the_election, peer,
                 &request, request_vote_keepalive /* important to capture */]() {
             try {
-                exponential_backoff_t backoff(100, 1000);
+                exponential_backoff_t backoff(100, 2000);
                 while (true) {
                     /* Don't bother trying to send an RPC until the peer is present in
                     `get_connected_members()`. */
