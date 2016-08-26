@@ -62,8 +62,8 @@ older version.
  * Fixed a memory leak in the `Connection` object that was caused by the driver not
    properly cleaning up closed cursors (#5980)
 * Python driver
- * The `asyncio` loop type is now available when installing through `easy_install`
-   or via `setup.py` (#6043)
+ * The `asyncio` loop type is now available when using the driver from a Python .egg
+   file (#6043)
 * Ruby driver
  * Fixed a rounding issue with time objects (#5825)
 
