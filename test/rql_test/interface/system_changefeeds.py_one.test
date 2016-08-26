@@ -49,7 +49,7 @@ with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, ex
             if name in expected:
                 assert len(changes) > 0, "Expected changes on %s, found none." % name
             else:
-                assert len(changes) == 0, "Expected no changes on %s, found:\n%s" % (name, utils.pformat)
+                assert len(changes) == 0, "Expected no changes on %s, found:\n%s" % (name, utils.pformat(changes))
     check([], 5.0)
 
     utils.print_with_time("Creating database...")
