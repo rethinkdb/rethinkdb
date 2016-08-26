@@ -1,7 +1,7 @@
 
 version=2.5.0
 
-src_url=http://protobuf.googlecode.com/files/protobuf-$version.tar.bz2
+src_url=https://github.com/google/protobuf/releases/download/v$version/protobuf-$version.tar.bz2
 
 pkg_install-include () {
     pkg_copy_src_to_build
