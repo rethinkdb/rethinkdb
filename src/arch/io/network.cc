@@ -83,13 +83,13 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     DWORD error = GetLastError();
     if (!res && error != ERROR_IO_PENDING) {
         op.set_cancel();
-        logERR("connect failed: %s", winerr_string(error).c_str());
+        winsock_debugf("connect failed: %s", winerr_string(error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO);
     }
     winsock_debugf("waiting for connection on %x\n", socket);
     op.wait_interruptible(interuptor);
     if (op.error != NO_ERROR) {
-        logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());
+        winsock_debugf("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO);
     }
     winsock_debugf("connected %x\n", socket);
