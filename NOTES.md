@@ -1,3 +1,87 @@
+# Release 2.3.5 (Fantasia)
+
+Released on 2016-08-26
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.5 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.5 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+ * Improved the efficiency of the on-disk garbage collector to reduce the risk of
+   excessive file growth (#5923)
+ * Improved the latency of read queries under heavy write loads (#6072)
+ * Fixed a bug that could cause the server to crash with a deserialization error
+   or to stop completing any table reads (#6033)
+ * Fixed a bug in the implementation of the `interleave` option of the `union` command,
+   which could potentially lead to results being generated in the wrong order (#6041)
+ * Fixed a bug in the batch handling of the `fold` and multi-stream `map` commands,
+   that would stop results from being generated correctly if these commands were
+   applied to a changefeed (#6007)
+ * Fixed an issue that could cause proxies to remain listed in the `connected_to`
+   field of the `server_status` table, even after they had disconnected (#5871)
+ * Fixed the detection of non-deterministic conflict functions in the `insert` command
+   (#5842)
+ * Improved the Raft election timeout logic to avoid infinite Raft election loops (#6038)
+ * Improved the response time when reading from the `table_status` system table (#4589)
+ * The server no longer logs the message
+   `Rejected a connection from server X since one is already open` when trying to connect
+   to itself (#5456)
+ * Fixed a bug that could cause an `Uncaught exception` server crash if a TLS-encrypted
+   connection was closed during a certain connection stage (#5904)
+ * Fixed a bug in `merge` that could cause `r.literal` objects to remain after the `merge`
+   and be stored in a table (#5977)
+ * On Windows: Fixed a bug in the `r.http` command that resulted in decoding issues (#5924)
+ * On Windows: RethinkDB now binds TCP ports exclusively (#6008)
+ * On Windows: No longer print an error to the log whenever a connection attempt fails
+   (no issue #)
+ * Fixed a build issue that caused system libraries to not be found during `make` on
+   OpenSUSE (#2363)
+* JavaScript driver
+ * Fixed the server nonce validation in the connection handshake (#5916)
+ * The `host` argument to `connect` is now optional (#5846)
+* Java driver
+ * Cursors now implement the `Closeable` interface (#5468)
+ * Fixed no-reply queries as run through `runNoReply` (#5938)
+ * Fixed a bug in the `reconnect` method (#5841)
+ * Fixed a memory leak in the `Connection` object that was caused by the driver not
+   properly cleaning up closed cursors (#5980)
+* Python driver
+ * The `asyncio` loop type is now available when using the driver from a Python .egg
+   file (#6043)
+* Ruby driver
+ * Fixed a rounding issue with time objects (#5825)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.5.
+
+* Arve Seljebu (@arve0)
+* Ben Sharpe (@bsharpe)
+* Brian Chavez (@bchavez)
+* Dan Wiechert (@DWiechert)
+* mbains (@mbains)
+* QianJin2013 (@QianJin2013)
+* Raman Gupta (@rocketraman)
+
+--
+
 # Release 2.3.4 (Fantasia)
 
 Released on 2016-06-03
