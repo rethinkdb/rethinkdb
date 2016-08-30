@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #if defined(__MACH__)
-#include <availability.h>
+#include <Availability.h>
 #include <errno.h>
 #include <mach/mach.h>
 #include <sys/sysctl.h>
@@ -282,7 +282,7 @@ uint64_t get_avail_mem_size() {
     }
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
     // We know the field we want showed up in 10.9.  It may have shown
-    // up in 10.8, but is definitely not in 10.7.  Per availability.h,
+    // up in 10.8, but is definitely not in 10.7.  Per Availability.h,
     // we use a raw number rather than the corresponding #define.
     uint64_t ret;
     if (!osx_runtime_version_check()) {
