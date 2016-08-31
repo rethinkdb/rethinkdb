@@ -258,7 +258,7 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = nullptr;
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
-    if (ptr == nullptr) {
+    if (UNLIKELY(ptr == nullptr)) {
         crash_oom();
     }
 #else
@@ -292,7 +292,7 @@ void raw_free_aligned(void *ptr) {
 
 void *rmalloc(size_t size) {
     void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == nullptr && size != 0) {
+    if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }
     return res;
@@ -300,7 +300,7 @@ void *rmalloc(size_t size) {
 
 void *rrealloc(void *ptr, size_t size) {
     void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == nullptr && size != 0) {
+    if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }
     return res;

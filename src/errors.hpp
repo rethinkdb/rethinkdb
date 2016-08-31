@@ -41,6 +41,13 @@
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
+// Static branch-prediction hint for guarantees
+#if defined __clang__ || defined __GNUC__
+#define UNLIKELY(x) __builtin_expect(x, 0)
+#else
+#define UNLIKELY(x) x
+#endif
+
 /* Accessors to errno.
  * Please access errno *only* through these access functions.
  * Accessing errno directly is unsafe in the context of
@@ -125,20 +132,20 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
-#define guarantee(cond, ...) do {       \
-        if (!(cond)) {                  \
+#define guarantee(cond, ...) do {                                                \
+        if (UNLIKELY(!(cond))) {                                                 \
             crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
-        }                               \
+        }                                                                        \
     } while (0)
 
 #define guarantee_xerr(cond, err, msg, ...) do {                                \
         int guarantee_xerr_errsv = (err);                                       \
-        if (!(cond)) {                                                          \
+        if (UNLIKELY(!(cond))) {                                                \
             if (guarantee_xerr_errsv == 0) {                                    \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg, ##__VA_ARGS__); \
             } else {                                                            \
-                char guarantee_xerr_buf[250];                                      \
-                const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf)); \
+                char guarantee_xerr_buf[250];                                   \
+                const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf));   \
                 crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##__VA_ARGS__); \
             }                                                                   \
         }                                                                       \
@@ -148,7 +155,7 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #ifdef _WIN32
 
 #define guarantee_xwinerr(cond, err, msg, ...) do {                     \
-        if (!(cond)) {                                                  \
+        if (UNLIKELY(!(cond))) {                                        \
             DWORD guarantee_winerr_err = (err);                         \
             crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%x - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
         }                                                               \
@@ -165,13 +172,13 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #define rassert_err(cond, ...) ((void)(0))
 #else
 #define rassert(cond, ...) do {                                           \
-        if (!(cond)) {                                                    \
+        if (UNLIKELY(!(cond))) {                                          \
             crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__); \
         }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, ...) do {                                    \
-        int rassert_err_errsv = get_errno();                                      \
-        if (!(cond)) {                                                      \
+        if (UNLIKELY(!(cond))) {                                            \
+            int rassert_err_errsv = get_errno();                            \
             if (rassert_err_errsv == 0) {                                   \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
             } else {                                                        \
