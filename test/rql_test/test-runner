@@ -26,7 +26,7 @@ except ImportError:
 # == constants
 
 TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
-CANCELED_EXIT_CODE = -278
+CANCELED_EXIT_CODE  = -278
 
 # -- repr subclass
 
@@ -935,11 +935,10 @@ class Server(object):
         
         expectedPermissions = self.existingPermissions
         if not final:
-            expectedPermissions = copy.deepcopy(self.existingPermissions)
+            expectedPermissions = dict((key, value) for key, value in expectedPermissions.items() if key[0] != 'admin')
             expectedPermissions.update({
                 ('test_user',): {'id':['test_user'], 'permissions':{'config':True, 'connect':True, 'read':True, 'write':True}}
             })
-            del expectedPermissions[('admin',)] # so we don't try and replace it
         
         # wipe non-expected users/permissions
         res = r.db('rethinkdb').table('users').filter(lambda row: r.expr(expectedUsers.keys()).contains(row["id"]).not_()).delete().run(self.conn)
