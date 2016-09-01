@@ -71,7 +71,8 @@ public:
         counted_t<const func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
-        return_changes_t return_changes);
+        return_changes_t return_changes,
+        ignore_write_hook_t ignore_write_hookr);
 
     datum_t batched_insert(
         env_t *env,
@@ -80,7 +81,8 @@ public:
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         durability_requirement_t durability_requirement,
-        return_changes_t return_changes);
+        return_changes_t return_changes,
+        ignore_write_hook_t ignore_write_hook);
 
     MUST_USE bool sync(env_t *env);
 
@@ -161,7 +163,8 @@ public:
     virtual datum_t get() = 0;
     virtual datum_t replace(
         counted_t<const func_t> f, bool nondet_ok,
-        durability_requirement_t dur_req, return_changes_t return_changes) = 0;
+        durability_requirement_t dur_req, return_changes_t return_changes,
+        ignore_write_hook_t ignore_write_hook) = 0;
     virtual backtrace_id_t get_bt() const = 0;
     virtual changefeed::keyspec_t::spec_t get_spec() const = 0;
     virtual const counted_t<table_t> &get_tbl() = 0;

@@ -27,8 +27,10 @@ configured_limits_t from_optargs(
                 ctx,
                 return_empty_normal_batches_t::NO,
                 interruptor,
-                global_optargs_t(),
-                auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                serializable_env_t{
+                    global_optargs_t(),
+                    auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                    datum_t()},
                 nullptr);
             if (has_changefeed_queue_size) {
                 int64_t sz = args->get_optarg(&env, "changefeed_queue_size")->as_int();

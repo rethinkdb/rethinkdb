@@ -297,8 +297,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            s.optargs,
-            s.m_user_context,
+            s.serializable_env,
             trace);
         ql::raw_stream_t stream;
         {
@@ -371,8 +370,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.region,
             s.table,
             ctx,
-            s.optargs,
-            s.m_user_context,
+            s.serializable_env.global_optargs,
+            s.serializable_env.user_context,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -449,8 +448,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            geo_read.optargs,
-            geo_read.m_user_context,
+            geo_read.serializable_env,
             trace);
 
         response->response = rget_read_response_t();
@@ -530,8 +528,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            geo_read.optargs,
-            geo_read.m_user_context,
+            geo_read.serializable_env,
             trace);
 
         response->response = nearest_geo_read_response_t();
@@ -622,14 +619,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.has_optarg("db"));
+            rassert(rget.serializable_env.global_optargs.has_optarg("db"));
         }
         ql::env_t ql_env(
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            rget.optargs,
-            rget.m_user_context,
+            rget.serializable_env,
             trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
                 release_superblock_t::RELEASE);
@@ -719,16 +715,28 @@ void store_t::protocol_read(const read_t &_read,
 
 class func_replacer_t : public btree_batched_replacer_t {
 public:
-    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
-        : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
+    func_replacer_t(ql::env_t *_env,
+                    std::string _pkey,
+                    const ql::wire_func_t &wf,
+                    counted_t<const ql::func_t> wh,
+                    return_changes_t _return_changes)
+        : env(_env),
+          pkey(std::move(_pkey)),
+          f(wf.compile_wire_func()),
+          write_hook(std::move(wh)),
+          return_changes(_return_changes) { }
     ql::datum_t replace(
         const ql::datum_t &d, size_t) const {
-        return f->call(env, d, ql::LITERAL_OK)->as_datum();
+        ql::datum_t res = f->call(env, d, ql::LITERAL_OK)->as_datum();
+
+        return apply_write_hook(env, pkey, d, res, write_hook);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
+    datum_string_t pkey;
     const counted_t<const ql::func_t> f;
+    const counted_t<const ql::func_t> write_hook;
     const return_changes_t return_changes;
 };
 
@@ -744,26 +752,34 @@ public:
         if (bi.conflict_func) {
             conflict_func = bi.conflict_func->compile_wire_func();
         }
+        if (bi.write_hook) {
+            write_hook = bi.write_hook->compile_wire_func();
+        }
     }
     ql::datum_t replace(const ql::datum_t &d,
                         size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        return resolve_insert_conflict(env,
-                                       pkey,
-                                       d,
-                                       newd,
-                                       conflict_behavior,
-                                       conflict_func);
+        ql::datum_t res = resolve_insert_conflict(env,
+                                             pkey,
+                                             d,
+                                             newd,
+                                             conflict_behavior,
+                                             conflict_func);
+        res = apply_write_hook(env, datum_string_t(pkey), d, res, write_hook);
+        return res;
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *env;
+
+    counted_t<const ql::func_t> write_hook;
+
     const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
-boost::optional<counted_t<const ql::func_t> > conflict_func;
+    boost::optional<counted_t<const ql::func_t> > conflict_func;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -772,13 +788,22 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            br.optargs,
-            br.m_user_context,
+            br.serializable_env,
             trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        func_replacer_t replacer(&ql_env, br.f, br.return_changes);
+
+        counted_t<const ql::func_t> write_hook;
+        if (br.write_hook) {
+            write_hook = br.write_hook->compile_wire_func();
+        }
+
+        func_replacer_t replacer(&ql_env,
+                                 br.pkey,
+                                 br.f,
+                                 write_hook,
+                                 br.return_changes);
 
         response->response =
             rdb_batched_replace(
@@ -800,8 +825,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            ql::global_optargs_t(),
-            bi.m_user_context,
+            bi.serializable_env,
             trace);
         datum_replacer_t replacer(&ql_env,
                                   bi);

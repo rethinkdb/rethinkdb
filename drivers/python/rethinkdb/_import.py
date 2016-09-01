@@ -38,6 +38,7 @@ class SourceFile(object):
     table          = None
     primary_key    = None
     indexes        = None
+    write_hook     = None
     source_options = None
     
     start_time     = None
@@ -56,7 +57,7 @@ class SourceFile(object):
     _rows_read     = None
     _rows_written  = None
     
-    def __init__(self, source, db, table, query_runner, primary_key=None, indexes=None, source_options=None):
+    def __init__(self, source, db, table, query_runner, primary_key=None, indexes=None, write_hook=None,  source_options=None):
         assert self.format is not None, 'Subclass %s must have a format' % self.__class__.__name__
         assert db is not 'rethinkdb', "Error: Cannot import tables into the system database: 'rethinkdb'"
         
@@ -97,6 +98,7 @@ class SourceFile(object):
         self.table          = table
         self.primary_key    = primary_key
         self.indexes        = indexes or []
+        self.write_hook     = write_hook or []
         
         # options
         self.source_options = source_options or {}
@@ -234,6 +236,22 @@ class SourceFile(object):
             except RuntimeError as e:
                 ex_type, ex_class, tb = sys.exc_info()
                 warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), self._source.name))
+
+        existing_hook = self.query_runner("Write hook from: %s.%s" % (self.db, self.table), r.db(self.db).table(self.table).get_write_hook())
+        try:
+            created_hook = []
+            if self.write_hook != []:
+                self.query_runner(
+                    "drop hook: %s.%s" % (self.db, self.table),
+                    r.db(self.db).table(self.table).set_write_hook(None)
+                )
+                self.query_runner(
+                    "create hook: %s.%s:%s" % (self.db, self.table, self.write_hook),
+                    r.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
+                )
+        except RuntimeError as re:
+            ex_type, ex_class, tb = sys.exec_info()
+            warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), self._source.name))
     
     def batches(self, batch_size=None, warning_queue=None):
         
@@ -750,7 +768,8 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
             try:
                 res = options.retryQuery(
                     "write batch to %s.%s" % (db, table),
-                    tbl.insert(ast.expr(batch, nesting_depth=max_nesting_depth), durability=options.durability, conflict=conflict_action)
+                    
+                    tbl.insert(ast.expr(batch, nesting_depth=max_nesting_depth), durability=options.durability, conflict=conflict_action, ignore_write_hook=True)
                 )
                 
                 if res["errors"] > 0:
@@ -771,7 +790,8 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                     if conflict_action == "replace":
                         res = options.retryQuery(
                             "write row to %s.%s" % (db, table),
-                            tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
+                            tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action, ignore_write_hook=True)
+
                         )
                     else:
                         existingRow = options.retryQuery(
@@ -781,7 +801,8 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                         if not existingRow:
                             res = options.retryQuery(
                                 "write row to %s.%s" % (db, table),
-                                tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action)
+
+                                tbl.insert(ast.expr(row, nesting_depth=max_nesting_depth), durability=durability, conflict=conflict_action, ignore_write_hook=True)
                             )
                         elif existingRow != row:
                             raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (table_info.primary_key, str(row), str(existingRow)))
@@ -1075,7 +1096,9 @@ def parse_sources(options, files_ignored=None):
                 primary_key = metadata["primary_key"]
             if "indexes" in metadata and options.indexes is not False:
                 indexes = metadata["indexes"]
-        return primary_key, indexes
+            if "write_hook" in metadata:
+                write_hook = metadata["write_hook"]
+        return primary_key, indexes, write_hook
     
     sources = set()
     if files_ignored is None:
@@ -1102,11 +1125,13 @@ def parse_sources(options, files_ignored=None):
         indexes = []
         infoPath = path + ".info"
         if (primary_key is None or options.indexes is not False) and os.path.isfile(infoPath):
-            infoPrimaryKey, infoIndexes = parseInfoFile(infoPath)
+            infoPrimaryKey, infoIndexes, infoWriteHook = parseInfoFile(infoPath)
             if primary_key is None:
                 primary_key = infoPrimaryKey
             if options.indexes is not False:
                 indexes = infoIndexes
+            if write_hook is None:
+                write_hook = infoWriteHook
         
         sources.add(
             tableType(
@@ -1164,6 +1189,7 @@ def parse_sources(options, files_ignored=None):
                         # collect the info
                         primary_key = None
                         indexes = []
+                        write_hook = None
                         infoPath = os.path.join(root, table + ".info")
                         if not os.path.isfile(infoPath):
                             files_ignored.append(os.path.join(root, f))
@@ -1183,6 +1209,7 @@ def parse_sources(options, files_ignored=None):
                             db=db, table=table,
                             primary_key=primary_key,
                             indexes=indexes
+                            write_hook=write_hook
                         )
                         
                         # ensure we don't have a duplicate

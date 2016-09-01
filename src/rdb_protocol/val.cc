@@ -31,14 +31,17 @@ public:
         return row;
     }
     virtual datum_t replace(
-        counted_t<const func_t> f, bool nondet_ok,
-        durability_requirement_t dur_req, return_changes_t return_changes) {
+        counted_t<const func_t> f,
+        bool nondet_ok,
+        durability_requirement_t dur_req,
+        return_changes_t return_changes,
+        ignore_write_hook_t ignore_write_hook) {
         std::vector<datum_t > keys{key};
         // We don't need to fetch the value for deterministic replacements.
         std::vector<datum_t > vals{
             f->is_deterministic() == deterministic_t::always ? datum_t() : get()};
         return tbl->batched_replace(
-            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+            env, vals, keys, f, nondet_ok, dur_req, return_changes, ignore_write_hook);
     }
     backtrace_id_t get_bt() const final { return bt; }
     changefeed::keyspec_t::spec_t get_spec() const final {
@@ -73,8 +76,11 @@ public:
         return row;
     }
     virtual datum_t replace(
-        counted_t<const func_t> f, bool nondet_ok,
-        durability_requirement_t dur_req, return_changes_t return_changes) {
+        counted_t<const func_t> f,
+        bool nondet_ok,
+        durability_requirement_t dur_req,
+        return_changes_t return_changes,
+        ignore_write_hook_t ignore_write_hook) {
         std::vector<datum_t > vals{get()};
         std::vector<datum_t > keys{
             vals[0].get_field(
@@ -82,7 +88,7 @@ public:
                 NOTHROW)};
         r_sanity_check(keys[0].has());
         return slice->get_tbl()->batched_replace(
-            env, vals, keys, f, nondet_ok, dur_req, return_changes);
+            env, vals, keys, f, nondet_ok, dur_req, return_changes, ignore_write_hook);
     }
     backtrace_id_t get_bt() const final { return bt; }
     changefeed::keyspec_t::spec_t get_spec() const final {
@@ -243,7 +249,8 @@ datum_t table_t::batched_replace(
     counted_t<const func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
-    return_changes_t return_changes) {
+    return_changes_t return_changes,
+    ignore_write_hook_t ignore_write_hook) {
     r_sanity_check(vals.size() == keys.size());
 
     if (vals.empty()) {
@@ -276,7 +283,8 @@ datum_t table_t::batched_replace(
             conflict_behavior_t::REPLACE,
             boost::none,
             durability_requirement,
-            return_changes);
+            return_changes,
+            ignore_write_hook);
         std::set<std::string> conditions;
         datum_t merged
             = std::move(stats).to_datum().merge(insert_stats, stats_merge,
@@ -292,11 +300,11 @@ datum_t table_t::batched_replace(
         if (return_changes == return_changes_t::ALWAYS) {
             return clean_errors(tbl->write_batched_replace(
                 env, keys, replacement_generator, return_changes,
-                durability_requirement));
+                durability_requirement, ignore_write_hook));
         } else {
             return tbl->write_batched_replace(
                 env, keys, replacement_generator, return_changes,
-                durability_requirement);
+                durability_requirement, ignore_write_hook);
         }
     }
 }
@@ -325,7 +333,8 @@ datum_t table_t::batched_insert(
     conflict_behavior_t conflict_behavior,
     boost::optional<counted_t<const ql::func_t> > conflict_func,
     durability_requirement_t durability_requirement,
-    return_changes_t return_changes) {
+    return_changes_t return_changes,
+    ignore_write_hook_t ignore_write_hook) {
 
     datum_object_builder_t stats;
     std::vector<datum_t> valid_inserts;
@@ -371,7 +380,8 @@ datum_t table_t::batched_insert(
                 conflict_behavior,
                 conflict_func,
                 return_changes,
-                durability_requirement);
+                durability_requirement,
+                ignore_write_hook);
 
         if (return_changes != return_changes_t::NO) {
             // Generate map to order changes

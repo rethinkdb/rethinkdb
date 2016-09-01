@@ -320,6 +320,54 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     }
 }
 
+ql::datum_t btree_batched_replacer_t::apply_write_hook(
+    ql::env_t *env,
+    const datum_string_t &pkey,
+    const ql::datum_t &d,
+    const ql::datum_t &res_,
+    const counted_t<const ql::func_t> &write_hook) const {
+    ql::datum_t res = res_;
+    if (write_hook.has()) {
+        ql::datum_t primary_key;
+        if (res.get_type() != ql::datum_t::type_t::R_NULL) {
+            primary_key = res.get_field(pkey, ql::throw_bool_t::NOTHROW);
+        } else if (d.get_type() != ql::datum_t::type_t::R_NULL) {
+            primary_key = d.get_field(pkey, ql::throw_bool_t::NOTHROW);
+        }
+        if (!primary_key.has()) {
+            primary_key = ql::datum_t::null();
+        }
+        ql::datum_t modified;
+        try {
+            modified = write_hook->call(env,
+                                        std::vector<ql::datum_t>{
+                                            primary_key,
+                                                d,
+                                                res})->as_datum();
+        } catch (ql::exc_t &e) {
+            throw ql::exc_t(e.get_type(),
+                            strprintf("Error in write hook: %s", e.what()),
+                            e.backtrace(),
+                            e.dummy_frames());
+        } catch (ql::datum_exc_t &e) {
+            throw ql::datum_exc_t(e.get_type(),
+                                  strprintf("Error in write hook: %s", e.what()));
+        }
+
+        rcheck_toplevel(!(res.get_type() == ql::datum_t::type_t::R_NULL &&
+                          modified.get_type() != ql::datum_t::type_t::R_NULL),
+                        ql::base_exc_t::OP_FAILED,
+                        "A write hook function must not turn a deletion into a "
+                        "replace/insert.");
+        rcheck_toplevel(!(res.get_type() != ql::datum_t::type_t::R_NULL &&
+                          modified.get_type() == ql::datum_t::type_t::R_NULL),
+                        ql::base_exc_t::OP_FAILED,
+                        "A write hook function must not turn a replace/insert "
+                        "into a deletion.");
+        res = modified;
+    }
+    return res;
+}
 
 class one_replace_t : public btree_point_replacer_t {
 public:
@@ -1605,7 +1653,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_0:
     case cluster_version_t::v2_1:
     case cluster_version_t::v2_2:
-    case cluster_version_t::v2_3_is_latest:
+    case cluster_version_t::v2_3:
+    case cluster_version_t::v2_4_is_latest:
         success = deserialize_reql_version(
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version,
@@ -1641,7 +1690,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_0: // fallthru
     case cluster_version_t::v2_1: // fallthru
     case cluster_version_t::v2_2: // fallthru
-    case cluster_version_t::v2_3_is_latest:
+    case cluster_version_t::v2_3: // fallthru
+    case cluster_version_t::v2_4_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;

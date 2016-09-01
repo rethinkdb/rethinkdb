@@ -2,6 +2,8 @@
 #include "rdb_protocol/real_table.hpp"
 
 #include "clustering/administration/auth/permission_error.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "math.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
@@ -140,8 +142,7 @@ ql::datum_t real_table_t::read_nearest(
         geo_system,
         table_name,
         sindex,
-        env->get_all_optargs(),
-        env->get_user_context());
+        env->get_serializable_env());
     read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
@@ -213,12 +214,32 @@ std::vector<std::vector<T> > split(std::vector<T> &&v) {
     return out;
 }
 
+boost::optional<counted_t<const ql::func_t> > real_table_t::get_write_hook(
+    ql::env_t *env,
+    ignore_write_hook_t ignore_write_hook) {
+    boost::optional<counted_t<const ql::func_t> > write_hook;
+    table_config_and_shards_t config;
+
+    m_table_meta_client->get_config(uuid, env->interruptor, &config);
+
+    if (config.config.write_hook &&
+        ignore_write_hook == ignore_write_hook_t::NO) {
+        write_hook = config.config.write_hook->func.compile_wire_func();
+    }
+    return write_hook;
+}
+
 ql::datum_t real_table_t::write_batched_replace(
     ql::env_t *env,
     const std::vector<ql::datum_t> &keys,
     const counted_t<const ql::func_t> &func,
     return_changes_t return_changes,
-    durability_requirement_t durability) {
+    durability_requirement_t durability,
+    ignore_write_hook_t ignore_write_hook) {
+
+    // Get write_hook function
+    boost::optional<counted_t<const ql::func_t> > write_hook =
+        get_write_hook(env, ignore_write_hook);
 
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
@@ -236,8 +257,8 @@ ql::datum_t real_table_t::write_batched_replace(
                 std::move(batch),
                 pkey,
                 func,
-                env->get_all_optargs(),
-                env->get_user_context(),
+                write_hook,
+                env->get_serializable_env(),
                 return_changes);
             write_t w(std::move(write), durability, env->profile(), env->limits());
             write_response_t response;
@@ -271,7 +292,12 @@ ql::datum_t real_table_t::write_batched_insert(
     conflict_behavior_t conflict_behavior,
     boost::optional<counted_t<const ql::func_t> > conflict_func,
     return_changes_t return_changes,
-    durability_requirement_t durability) {
+    durability_requirement_t durability,
+    ignore_write_hook_t ignore_write_hook) {
+
+    // Get write_hook function
+    boost::optional<counted_t<const ql::func_t> > write_hook =
+        get_write_hook(env, ignore_write_hook);
 
     ql::datum_t stats((std::map<datum_string_t, ql::datum_t>()));
     std::set<std::string> conditions;
@@ -280,10 +306,11 @@ ql::datum_t real_table_t::write_batched_insert(
         batched_insert_t write(
             std::move(batch),
             pkey,
+            write_hook,
             conflict_behavior,
             conflict_func,
             env->limits(),
-            env->get_user_context(),
+            env->get_serializable_env(),
             return_changes);
         write_t w(std::move(write), durability, env->profile(), env->limits());
         write_response_t response;

@@ -7,6 +7,8 @@
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "containers/archive/string_stream.hpp"
+#include "rdb_protocol/terms/write_hook.hpp"
 
 table_config_artificial_table_backend_t::~table_config_artificial_table_backend_t() {
     begin_changefeed_destruction();
@@ -317,6 +319,37 @@ ql::datum_t convert_sindexes_to_datum(
     return std::move(sindexes_builder).to_datum();
 }
 
+ql::datum_t convert_write_hook_to_datum(
+    const boost::optional<write_hook_config_t> &write_hook) {
+
+    ql::datum_t res = ql::datum_t::null();
+    if (write_hook) {
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST_DISK>(
+            &wm, write_hook->func);
+        string_stream_t stream;
+        int write_res = send_write_message(&stream, &wm);
+
+        rcheck_toplevel(write_res == 0,
+                        ql::base_exc_t::LOGIC,
+                        "Invalid write hook.");
+
+        ql::datum_t binary = ql::datum_t::binary(
+            datum_string_t(write_hook_blob_prefix + stream.str()));
+        res =
+            ql::datum_t{
+                std::map<datum_string_t, ql::datum_t>{
+                    std::pair<datum_string_t, ql::datum_t>(
+                        datum_string_t("function"), binary),
+                        std::pair<datum_string_t, ql::datum_t>(
+                            datum_string_t("query"),
+                            ql::datum_t(
+                                datum_string_t(
+                                    format_write_hook_query(write_hook.get()))))}};
+    }
+    return res;
+}
+
 bool convert_sindexes_from_datum(
         ql::datum_t datum,
         std::set<std::string> *indexes_out,
@@ -343,6 +376,7 @@ ql::datum_t convert_table_config_to_datum(
     builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite("indexes", convert_sindexes_to_datum(config.sindexes));
+    builder.overwrite("write_hook", convert_write_hook_to_datum(config.write_hook));
     builder.overwrite("primary_key", convert_string_to_datum(config.basic.primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
@@ -545,6 +579,29 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         config_out->durability = write_durability_t::HARD;
+    }
+
+    if (converter.has("write_hook")) {
+        ql::datum_t write_hook_datum;
+        if (!converter.get("write_hook", &write_hook_datum, error_out)) {
+            return false;
+        }
+        if (write_hook_datum.has()) {
+            if ((!old_config.config.write_hook &&
+                 write_hook_datum.get_type() != ql::datum_t::type_t::R_NULL ) ||
+                write_hook_datum
+                != convert_write_hook_to_datum(old_config.config.write_hook)) {
+                error_out->msg = "The `write_hook` field is read-only and can't" \
+                    " be used to create or drop a write hook function.";
+                return false;
+            }
+        }
+        config_out->write_hook = old_config.config.write_hook;
+    } else {
+        if (existed_before) {
+            error_out->msg = "Expected a field named `write_hook`.";
+            return false;
+        }
     }
 
     if (!converter.check_no_extra_keys(error_out)) {

@@ -80,7 +80,9 @@ public:
         ql::env_t *env,
         const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
-        return_changes_t _return_changes, durability_requirement_t durability);
+        return_changes_t _return_changes,
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook);
     ql::datum_t write_batched_insert(
         ql::env_t *env,
         std::vector<ql::datum_t> &&inserts,
@@ -88,7 +90,8 @@ public:
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
-        durability_requirement_t durability);
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook);
     bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability);
 
@@ -115,6 +118,10 @@ public:
     void write_with_profile(ql::env_t *env, write_t *, write_response_t *response);
 
 private:
+    boost::optional<counted_t<const ql::func_t> > get_write_hook(
+        ql::env_t *env,
+        ignore_write_hook_t ignore_write_hook);
+
     namespace_id_t uuid;
     namespace_interface_access_t namespace_access;
     std::string pkey;

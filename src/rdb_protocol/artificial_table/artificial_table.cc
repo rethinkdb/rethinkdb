@@ -145,7 +145,8 @@ ql::datum_t artificial_table_t::write_batched_replace(
         const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
         return_changes_t return_changes,
-        UNUSED durability_requirement_t durability) {
+        UNUSED durability_requirement_t durability,
+        UNUSED ignore_write_hook_t ignore_write_hook) {
     rcheck_datum(
         !m_check_permissions || env->get_user_context().is_admin(),
         ql::base_exc_t::PERMISSION_ERROR,
@@ -186,7 +187,8 @@ ql::datum_t artificial_table_t::write_batched_insert(
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
-        UNUSED durability_requirement_t durability) {
+        UNUSED durability_requirement_t durability,
+        UNUSED ignore_write_hook_t ignore_write_hook) {
     rcheck_datum(
         !m_check_permissions || env->get_user_context().is_admin(),
         ql::base_exc_t::PERMISSION_ERROR,

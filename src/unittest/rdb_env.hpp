@@ -311,7 +311,20 @@ public:
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
-
+        bool set_write_hook(
+                auth::user_context_t const &user_context,
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                boost::optional<write_hook_config_t> &config,
+                signal_t *local_interruptor,
+                admin_err_t *error_out);
+        bool get_write_hook(
+                auth::user_context_t const &user_context,
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                signal_t *local_interruptor,
+                ql::datum_t *write_hook_datum_out,
+                admin_err_t *error_out);
         bool sindex_create(
                 auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,

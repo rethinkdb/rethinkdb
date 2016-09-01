@@ -201,8 +201,10 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
             WGS84_ELLIPSOID,
             table_name,
             idx_name,
-            ql::global_optargs_t(),
-            auth::user_context_t(auth::permissions_t(true, false, false, false))),
+            serializable_env_t{
+                ql::global_optargs_t(),
+                auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                ql::datum_t()}),
         profile_bool_t::PROFILE,
         read_mode_t::SINGLE);
     read_response_t response;
@@ -329,8 +331,10 @@ std::vector<datum_t> perform_get_intersecting(
         intersecting_geo_read_t(
             boost::optional<changefeed_stamp_t>(),
             region_t::universe(),
-            ql::global_optargs_t(),
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            serializable_env_t{
+                ql::global_optargs_t(),
+                auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                datum_t()},
             table_name,
             ql::batchspec_t::all(),
             std::vector<ql::transform_variant_t>(),

@@ -539,8 +539,7 @@ void debug_print(printf_buffer_t *buf, const active_ranges_t &ar);
 class readgen_t {
 public:
     explicit readgen_t(
-        global_optargs_t global_optargs,
-        auth::user_context_t user_context,
+        serializable_env_t s_env,
         std::string table_name,
         profile_bool_t profile,
         read_mode_t read_mode,
@@ -576,8 +575,7 @@ public:
     // Returns `sorting_` unless the batchspec overrides it.
     sorting_t sorting(const batchspec_t &batchspec) const;
 protected:
-    const global_optargs_t global_optargs;
-    auth::user_context_t m_user_context;
+    const serializable_env_t serializable_env;
     const std::string table_name;
     const profile_bool_t profile;
     const read_mode_t read_mode;
@@ -587,8 +585,7 @@ protected:
 class rget_readgen_t : public readgen_t {
 public:
     explicit rget_readgen_t(
-        global_optargs_t global_optargs,
-        auth::user_context_t user_context,
+        serializable_env_t s_env,
         std::string table_name,
         const datumspec_t &datumspec,
         profile_bool_t profile,
@@ -631,8 +628,7 @@ public:
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
-    primary_readgen_t(global_optargs_t global_optargs,
-                      auth::user_context_t user_context,
+    primary_readgen_t(serializable_env_t s_env,
                       std::string table_name,
                       const datumspec_t &datumspec,
                       profile_bool_t profile,
@@ -675,8 +671,7 @@ public:
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 private:
     sindex_readgen_t(
-        global_optargs_t global_optargs,
-        auth::user_context_t user_context,
+        serializable_env_t s_env,
         std::string table_name,
         const std::string &sindex,
         const datumspec_t &datumspec,
@@ -731,8 +726,7 @@ public:
 
 private:
     intersecting_readgen_t(
-        global_optargs_t global_optargs,
-        auth::user_context_t user_context,
+        serializable_env_t s_env,
         std::string table_name,
         const std::string &sindex,
         const datum_t &query_geometry,

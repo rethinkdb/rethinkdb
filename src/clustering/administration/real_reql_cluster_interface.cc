@@ -11,9 +11,11 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/table_common.hpp"
+#include "rdb_protocol/terms/write_hook.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -1202,6 +1204,71 @@ bool real_reql_cluster_interface_t::grant_table(
         },
         result_out,
         error_out);
+}
+
+bool real_reql_cluster_interface_t::set_write_hook(
+    auth::user_context_t const &user_context,
+    counted_t<const ql::db_t> db,
+    const name_string_t &table,
+    boost::optional<write_hook_config_t> &config,
+    signal_t *interruptor_on_caller,
+    admin_err_t *) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+
+    namespace_id_t table_id;
+    m_table_meta_client->find(db->id, table, &table_id);
+
+    user_context.require_config_permission(m_rdb_context, db->id, table_id);
+
+    if (config) {
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::write_hook_create_t{config.get()});
+
+        m_table_meta_client->set_config(
+            table_id, table_config_and_shards_change, &interruptor_on_home);
+    } else {
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::write_hook_drop_t{});
+        m_table_meta_client->set_config(
+            table_id, table_config_and_shards_change, &interruptor_on_home);
+    }
+    return true;
+}
+
+bool real_reql_cluster_interface_t::get_write_hook(
+    auth::user_context_t const &user_context,
+    counted_t<const ql::db_t> db,
+    const name_string_t &table,
+    signal_t *interruptor_on_caller,
+    ql::datum_t *write_hook_datum_out,
+    admin_err_t *) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+
+    namespace_id_t table_id;
+    m_table_meta_client->find(db->id, table, &table_id);
+
+    user_context.require_config_permission(m_rdb_context, db->id, table_id);
+
+    table_config_and_shards_t existing_config;
+
+    m_table_meta_client->get_config(
+        table_id,
+        &interruptor_on_home,
+        &existing_config);
+
+    *write_hook_datum_out = ql::datum_t::null();
+    if (existing_config.config.write_hook) {
+        *write_hook_datum_out = convert_write_hook_to_datum(existing_config.config.write_hook);
+    }
+    return true;
 }
 
 bool real_reql_cluster_interface_t::sindex_create(

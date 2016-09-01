@@ -98,7 +98,7 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
     }
 }
 
-  // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
     meta_op_term_t(compile_env_t *env, const raw_term_t &term,

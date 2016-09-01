@@ -79,6 +79,22 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(sindex_config_t);
 
+class write_hook_config_t {
+public:
+    write_hook_config_t() { }
+    write_hook_config_t(const ql::wire_func_t &_func, reql_version_t _func_version) :
+        func(_func), func_version(_func_version) { }
+
+    bool operator==(const write_hook_config_t &o) const;
+    bool operator!=(const write_hook_config_t &o) const {
+        return !(*this == o);
+    }
+
+    ql::wire_func_t func;
+    reql_version_t func_version;
+};
+RDB_DECLARE_SERIALIZABLE(write_hook_config_t);
+
 class sindex_status_t {
 public:
     sindex_status_t() :
@@ -192,7 +208,9 @@ public:
         ql::env_t *env,
         const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
-        return_changes_t _return_changes, durability_requirement_t durability) = 0;
+        return_changes_t _return_changes,
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook) = 0;
     virtual ql::datum_t write_batched_insert(
         ql::env_t *env,
         std::vector<ql::datum_t> &&inserts,
@@ -200,7 +218,8 @@ public:
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
-        durability_requirement_t durability) = 0;
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook) = 0;
     virtual bool write_sync_depending_on_durability(
         ql::env_t *env,
         durability_requirement_t durability) = 0;
@@ -377,6 +396,22 @@ public:
             ql::datum_t permissions,
             signal_t *interruptor,
             ql::datum_t *result_out,
+            admin_err_t *error_out) = 0;
+
+    virtual bool set_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            boost::optional<write_hook_config_t> &config,
+            signal_t *interruptor,
+            admin_err_t *error_out) = 0;
+
+    virtual bool get_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            ql::datum_t *write_hook_datum_out,
             admin_err_t *error_out) = 0;
 
     virtual bool sindex_create(

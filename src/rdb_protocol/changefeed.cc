@@ -870,6 +870,7 @@ limit_manager_t::limit_manager_t(
         drainer.get_drain_signal(),
         std::move(optargs),
         std::move(user_context),
+        datum_t(),
         nullptr);
 
     guarantee(ops.size() == 0);
@@ -2382,8 +2383,10 @@ private:
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
-                outer_env->get_all_optargs(),
-                outer_env->get_user_context(),
+                serializable_env_t{
+                    outer_env->get_all_optargs(),
+                    outer_env->get_user_context(),
+                    outer_env->get_deterministic_time()},
                 nullptr/*don't profile*/);
     }
 
@@ -2739,8 +2742,7 @@ public:
                        uuid,
                        spec,
                        std::move(table),
-                       env->get_all_optargs(),
-                       env->get_user_context(),
+                       env->get_serializable_env(),
                        spec.range.sindex
                            ? region_t::universe()
                            : region_t(

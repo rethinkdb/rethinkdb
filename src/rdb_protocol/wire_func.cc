@@ -29,6 +29,10 @@ wire_func_t::wire_func_t(const raw_term_t &body,
 wire_func_t::wire_func_t(const wire_func_t &copyee)
     : func(copyee.func) { }
 
+
+std::string wire_func_t::print_source() const {
+    return func->print_source();
+}
 wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
     func = assignee.func;
     return *this;
@@ -227,9 +231,15 @@ archive_result_t deserialize<cluster_version_t::v2_2>(
 }
 
 template <>
-archive_result_t deserialize<cluster_version_t::v2_3_is_latest>(
+archive_result_t deserialize<cluster_version_t::v2_3>(
         read_stream_t *s, wire_func_t *wf) {
-    return deserialize_wire_func<cluster_version_t::v2_3_is_latest>(s, wf);
+    return deserialize_wire_func<cluster_version_t::v2_3>(s, wf);
+}
+
+template <>
+archive_result_t deserialize<cluster_version_t::v2_4_is_latest>(
+        read_stream_t *s, wire_func_t *wf) {
+    return deserialize_wire_func<cluster_version_t::v2_4_is_latest>(s, wf);
 }
 
 template <cluster_version_t W>

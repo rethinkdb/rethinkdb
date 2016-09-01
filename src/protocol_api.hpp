@@ -148,6 +148,19 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       conflict_behavior_t::ERROR,
                                       conflict_behavior_t::FUNCTION);
 
+// Specifies whether or not to ignore a write hook on a table while doing an
+// insert or a replace.
+//  - ignore_write_hook_t::YES: Ignores the write hook, requires config permissions.
+//  - ignore_write_hook_t::NO: Applies the write hook as normal.
+enum class ignore_write_hook_t {
+    NO = 0,
+    YES = 1
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(ignore_write_hook_t,
+                                      int8_t,
+                                      ignore_write_hook_t::NO,
+                                      ignore_write_hook_t::YES);
+
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.
 //  - DURABILITY_REQUIREMENT_HARD: Override the table's durability settings with

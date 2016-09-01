@@ -576,6 +576,12 @@ message Term {
         // Renames the given index to a new name
         INDEX_RENAME = 156; // Table, STRING, STRING, {overwrite:BOOL} -> OBJECT
 
+        // * Write hook Function OPs
+        // Creates a new write hook function with a particular definition
+        SET_WRITE_HOOK = 189; // Table, Function(2)
+        // Gets an existing write hook function on a table
+        GET_WRITE_HOOK = 190; // Table
+
         // * Control Operators
         // Calls a function on data
         FUNCALL  = 64; // Function(*), DATUM... -> DATUM
