@@ -53,7 +53,7 @@ class linux_tcp_conn_t :
 public:
     friend class linux_tcp_conn_descriptor_t;
 
-    void enable_keepalive();
+    void enable_keepalive() THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
     class connect_failed_exc_t : public std::exception {
     public:
