@@ -121,6 +121,10 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         // Disable Nagle algorithm just as in the listener case
         int sockoptval = 1;
         int res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+        if (res == -1 && get_errno() == EINVAL) {
+            // On OS X, EINVAL means the socket was closed.
+            throw connect_failed_exc_t(get_errno());
+        }
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
 
@@ -168,10 +172,14 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
-void linux_tcp_conn_t::enable_keepalive() {
+void linux_tcp_conn_t::enable_keepalive() THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     int optval = 1;
     int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
-    guarantee(res != -1, "Could not set SO_KEEPALIVE option.");
+    if (res == -1 && get_errno() == EINVAL) {
+        // On OS X, EINVAL means the socket was closed.
+        throw tcp_conn_write_closed_exc_t();
+    }
+    guarantee_err(res != -1, "Could not set SO_KEEPALIVE option.");
 }
 
 linux_tcp_conn_t::write_buffer_t * linux_tcp_conn_t::get_write_buffer() {
