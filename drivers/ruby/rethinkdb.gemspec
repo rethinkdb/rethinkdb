@@ -8,8 +8,7 @@ Gem::Specification.new do |s|
   s.homepage  = 'http://rethinkdb.com'
   s.license   = 'Apache-2'
   s.files     = Dir['lib/*.rb']
-
-  s.add_runtime_dependency "json"
+  
   s.required_ruby_version = '>= 1.9.0'
 end
 
