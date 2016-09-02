@@ -360,6 +360,7 @@ metadata_file_t::metadata_file_t(
         case cluster_version_t::v2_4_is_latest:
             break; // Up-to-date, do nothing
         default: unreachable();
+        }
     }
     write_txn.commit();
 }

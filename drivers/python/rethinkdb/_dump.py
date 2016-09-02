@@ -79,41 +79,42 @@ def parse_options(argv, prog=None):
 
 def main(argv=None, prog=None):
     options = parse_options(argv or sys.argv[2:], prog=prog)
-    if not options.quiet:
-        # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-        print("""\
-        NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
-        cluster metadata.  You will need to recreate your cluster setup yourself after
-    you run 'rethinkdb-restore'.""")
-        
+    try:
+        if not options.quiet:
+            # Print a warning about the capabilities of dump, so no one is confused (hopefully)
+            print("""\
+            NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
+            cluster metadata.  You will need to recreate your cluster setup yourself after
+            you run 'rethinkdb-restore'.""")
+
         try:
             start_time = time.time()
             archive    = None
-            
+
             # -- _export options - need to be kep in-sync with _export
-            
+
             options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
             options.fields    = None
             options.delimiter = None
             options.format    = 'json'
-            
+
             # -- export to a directory
-            
+
             if not options.quiet:
                 print("  Exporting to temporary directory...")
-            
+
             try:
                 _export.run(options)
             except Exception as e:
                 if options.debug:
                     sys.stderr.write('\n%s\n' % traceback.format_exc())
                 raise Exception("Error: export failed, %s" % e)
-            
+
             # -- zip directory
-            
+
             if not options.quiet:
                 print("  Zipping export directory...")
-            
+
             try:
                 if hasattr(options.out_file, 'read'):
                     archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
@@ -128,9 +129,9 @@ def main(argv=None, prog=None):
             finally:
                 if archive:
                     archive.close()
-            
+
             # --
-            
+
             if not options.quiet:
                 print("Done (%.2f seconds): %s" % (time.time() - start_time, options.out_file.name if hasattr(options.out_file, 'name') else options.out_file))
         except KeyboardInterrupt:
@@ -139,7 +140,7 @@ def main(argv=None, prog=None):
         finally:
             if os.path.exists(options.directory):
                 shutil.rmtree(options.directory)
-    
+
     except Exception as ex:
         if options.debug:
             traceback.print_exc()

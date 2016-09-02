@@ -237,17 +237,17 @@ class SourceFile(object):
                 ex_type, ex_class, tb = sys.exc_info()
                 warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), self._source.name))
 
-        existing_hook = self.query_runner("Write hook from: %s.%s" % (self.db, self.table), r.db(self.db).table(self.table).get_write_hook())
+        existing_hook = self.query_runner("Write hook from: %s.%s" % (self.db, self.table), query.db(self.db).table(self.table).get_write_hook())
         try:
             created_hook = []
             if self.write_hook != []:
                 self.query_runner(
                     "drop hook: %s.%s" % (self.db, self.table),
-                    r.db(self.db).table(self.table).set_write_hook(None)
+                    query.db(self.db).table(self.table).set_write_hook(None)
                 )
                 self.query_runner(
                     "create hook: %s.%s:%s" % (self.db, self.table, self.write_hook),
-                    r.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
+                    query.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
                 )
         except RuntimeError as re:
             ex_type, ex_class, tb = sys.exec_info()
@@ -1123,6 +1123,7 @@ def parse_sources(options, files_ignored=None):
         # - parse the info file if it exists
         primary_key = options.create_args.get('primary_key', None) if options.create_args else None
         indexes = []
+        write_hook = None
         infoPath = path + ".info"
         if (primary_key is None or options.indexes is not False) and os.path.isfile(infoPath):
             infoPrimaryKey, infoIndexes, infoWriteHook = parseInfoFile(infoPath)
@@ -1140,6 +1141,7 @@ def parse_sources(options, files_ignored=None):
                 query_runner=options.retryQuery,
                 primary_key=primary_key,
                 indexes=indexes,
+                write_hook=write_hook,
                 source_options=tableTypeOptions
             )
         )
@@ -1194,7 +1196,7 @@ def parse_sources(options, files_ignored=None):
                         if not os.path.isfile(infoPath):
                             files_ignored.append(os.path.join(root, f))
                         else:
-                            primary_key, indexes = parseInfoFile(infoPath)
+                            primary_key, indexes, write_hook = parseInfoFile(infoPath)
                         
                         tableType = None
                         if ext == ".json":
@@ -1208,7 +1210,7 @@ def parse_sources(options, files_ignored=None):
                             query_runner=options.retryQuery,
                             db=db, table=table,
                             primary_key=primary_key,
-                            indexes=indexes
+                            indexes=indexes,
                             write_hook=write_hook
                         )
                         

@@ -185,7 +185,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
 
         table_info['write_hook'] = options.retryQuery(
             'table write hook data %s.%s' % (db, table),
-            r.db(db).table(table).get_write_hook(),
+            query.db(db).table(table).get_write_hook(),
             runOptions={'binary_format':'raw'})
 
         if table_info['write_hook'] != None:
