@@ -7,7 +7,7 @@ wget -O- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
 aptitude -y update
 aptitude -y upgrade
 aptitude install -y rethinkdb nginx-light apache2-utils python-twisted \
-    python-pip npm nodejs ruby python-dev ruby-dev build-essential
+    python-pip npm nodejs ruby python-dev build-essential
 npm install -g rethinkdb
 pip install rethinkdb
 gem install rethinkdb
