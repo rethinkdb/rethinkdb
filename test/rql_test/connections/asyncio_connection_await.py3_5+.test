@@ -45,15 +45,14 @@ if 'RDB_DRIVER_PORT' in os.environ:
         sharedServerHost = 'localhost'
 
 
-@asyncio.coroutine
-def checkSharedServer():
+async def checkSharedServer():
     global sharedServerHost, sharedServerDriverPort
     if sharedServerDriverPort is not None:
-        conn = yield from r.connect(host=sharedServerHost,
+        conn = await r.connect(host=sharedServerHost,
                                port=sharedServerDriverPort)
-        if 'test' not in (yield from r.db_list().run(conn)):
-            yield from r.db_create('test').run(conn)
-        yield from conn.close(noreply_wait=False)
+        if 'test' not in (await r.db_list().run(conn)):
+            await r.db_create('test').run(conn)
+        await conn.close(noreply_wait=False)
 
 def closeSharedServer():
     global sharedServer, sharedServerOutput, sharedServerHost, \
@@ -82,16 +81,13 @@ class TestCaseCompatible(rdb_unittest.TestCaseCompatible):
     def run(self, result=None):
         return just_do(self.arun, result)
 
-    @asyncio.coroutine
-    def setUp(self):
+    async def setUp(self):
         return None
 
-    @asyncio.coroutine
-    def tearDown(self):
+    async def tearDown(self):
         return None
 
-    @asyncio.coroutine
-    def arun(self, result=None):
+    async def arun(self, result=None):
         if result is None:
             result = self.defaultTestResult()
         result.startTest(self)
@@ -99,7 +95,7 @@ class TestCaseCompatible(rdb_unittest.TestCaseCompatible):
 
         try:
             try:
-                yield from self.setUp()
+                await self.setUp()
             except KeyboardInterrupt:
                 raise
             except:
@@ -108,7 +104,7 @@ class TestCaseCompatible(rdb_unittest.TestCaseCompatible):
 
             ok = False
             try:
-                yield from testMethod()
+                await testMethod()
                 ok = True
             except self.failureException:
                 result.addFailure(self, sys.exc_info())
@@ -118,7 +114,7 @@ class TestCaseCompatible(rdb_unittest.TestCaseCompatible):
                 result.addError(self, sys.exc_info())
 
             try:
-                yield from self.tearDown()
+                await self.tearDown()
             except KeyboardInterrupt:
                 raise
             except:
@@ -136,14 +132,13 @@ class TestWithConnection(TestCaseCompatible):
     serverOutput = None
     ioloop = None
 
-    @asyncio.coroutine
-    def setUp(self):
+    async def setUp(self):
         global sharedServer, sharedServerOutput, sharedServerHost, \
             sharedServerDriverPort
 
         if sharedServer is not None:
             try:
-                yield from sharedServer.check()
+                await sharedServer.check()
             except Exception:
                 # ToDo: figure out how to blame the last test
                 closeSharedServer()
@@ -158,16 +153,15 @@ class TestWithConnection(TestCaseCompatible):
 
         # - insure we are ready
 
-        yield from checkSharedServer()
+        await checkSharedServer()
 
-    @asyncio.coroutine
-    def tearDown(self):
+    async def tearDown(self):
         global sharedServer, sharedServerOutput, sharedServerHost, \
             sharedServerDriverPort
 
         if sharedServerDriverPort is not None:
             try:
-                yield from checkSharedServer()
+                await checkSharedServer()
             except Exception:
                 closeSharedServer()
                 raise  # ToDo: figure out how to best give the server log
@@ -177,34 +171,30 @@ class TestWithConnection(TestCaseCompatible):
 
 class TestNoConnection(TestCaseCompatible):
     # No servers started yet so this should fail
-    @asyncio.coroutine
-    def test_connect(self):
+    async def test_connect(self):
         if not use_default_port:
             return None  # skipTest will not raise in this environment
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % DEFAULT_DRIVER_PORT):
-            yield from r.connect()
+            await r.connect()
 
-    @asyncio.coroutine
-    def test_connect_port(self):
+    async def test_connect_port(self):
         port = utils.get_avalible_port()
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to localhost:%d."
                                            % port):
-            yield from r.connect(port=port)
+            await r.connect(port=port)
 
-    @asyncio.coroutine
-    def test_connect_host(self):
+    async def test_connect_host(self):
         if not use_default_port:
             return None  # skipTest will not raise in this environment
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                            "Could not connect to 0.0.0.0:%d."
                                            % DEFAULT_DRIVER_PORT):
-            yield from r.connect(host="0.0.0.0")
+            await r.connect(host="0.0.0.0")
 
-    @asyncio.coroutine
-    def test_connect_timeout(self):
+    async def test_connect_timeout(self):
         # Test that we get a ReQL error if we connect to a
         # non-responsive port
         useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -219,262 +209,252 @@ class TestNoConnection(TestCaseCompatible):
                                                " handshake with %s:%d. "
                                                "Error: Operation timed out."
                                                % (host, port)):
-                yield from r.connect(host=host, port=port, timeout=2)
+                await r.connect(host=host, port=port, timeout=2)
         finally:
             useSocket.close()
 
-    @asyncio.coroutine
-    def test_empty_run(self):
+    async def test_empty_run(self):
         # Test the error message when we pass nothing to run and
         # didn't call `repl`
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                 "RqlQuery.run must be given"
                                 " a connection to run on."):
-             yield from r.expr(1).run()
+             await r.expr(1).run()
 
-    @asyncio.coroutine
-    def test_auth_key(self):
+    async def test_auth_key(self):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
             return None  # skipTest will not raise in this environment
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                            'Could not connect to 0.0.0.0:%d."'
                                            % DEFAULT_DRIVER_PORT):
-            yield from r.connect(host="0.0.0.0", port=DEFAULT_DRIVER_PORT,
+            await r.connect(host="0.0.0.0", port=DEFAULT_DRIVER_PORT,
                                  auth_key="hunter2")
 
 
 class TestConnection(TestWithConnection):
-    @asyncio.coroutine
-    def test_client_port_and_address(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_client_port_and_address(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
         self.assertIsNotNone(c.client_port())
         self.assertIsNotNone(c.client_address())
 
-        yield from c.close()
+        await c.close()
 
         self.assertIsNone(c.client_port())
         self.assertIsNone(c.client_address())
 
-    @asyncio.coroutine
-    def test_connect_close_reconnect(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_connect_close_reconnect(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
-        yield from r.expr(1).run(c)
-        yield from c.close()
-        yield from c.close()
-        yield from c.reconnect()
-        yield from r.expr(1).run(c)
-        yield from c.close()
+        await r.expr(1).run(c)
+        await c.close()
+        await c.close()
+        await c.reconnect()
+        await r.expr(1).run(c)
+        await c.close()
 
-    @asyncio.coroutine
-    def test_connect_close_expr(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_connect_with_3_5_syntax(self):
+        async with await r.connect(host=sharedServerHost, port=sharedServerDriverPort) as conn:
+            await r.db_create("async_with").run(conn)
+            self.assertTrue("async_with" in await r.db_list().run(conn))
+            await r.db_drop("async_with").run(conn)
+
+
+    async def test_connect_close_expr(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
-        yield from r.expr(1).run(c)
-        yield from c.close()
+        await r.expr(1).run(c)
+        await c.close()
         with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
-            yield from r.expr(1).run(c)
+            await r.expr(1).run(c)
 
-    @asyncio.coroutine
-    def test_noreply_wait_waits(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_noreply_wait_waits(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         t = time.time()
-        yield from r.js('while(true);', timeout=0.5).run(c, noreply=True)
-        yield from c.noreply_wait()
+        await r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        await c.noreply_wait()
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
-        yield from c.close()
+        await c.close()
 
-    @asyncio.coroutine
-    def test_close_waits_by_default(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_close_waits_by_default(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         t = time.time()
-        yield from r.js('while(true);', timeout=0.5).run(c, noreply=True)
-        yield from c.close()
+        await r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        await c.close()
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
-    @asyncio.coroutine
-    def test_reconnect_waits_by_default(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_reconnect_waits_by_default(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         t = time.time()
-        yield from r.js('while(true);', timeout=0.5).run(c, noreply=True)
-        yield from c.reconnect()
+        await r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        await c.reconnect()
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
-        yield from c.close()
+        await c.close()
 
-    @asyncio.coroutine
-    def test_close_does_not_wait_if_requested(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_close_does_not_wait_if_requested(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         t = time.time()
-        yield from r.js('while(true);', timeout=0.5).run(c, noreply=True)
-        yield from c.close(noreply_wait=False)
+        await r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        await c.close(noreply_wait=False)
         duration = time.time() - t
         self.assertLess(duration, 0.5)
 
-    @asyncio.coroutine
-    def test_reconnect_does_not_wait_if_requested(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_reconnect_does_not_wait_if_requested(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         t = time.time()
-        yield from r.js('while(true);', timeout=0.5).run(c, noreply=True)
-        yield from c.reconnect(noreply_wait=False)
+        await r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        await c.reconnect(noreply_wait=False)
         duration = time.time() - t
         self.assertLess(duration, 0.5)
-        yield from c.close()
+        await c.close()
 
-    @asyncio.coroutine
-    def test_db(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_db(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
-        if 't1' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('t1').run(c)
-        yield from r.db('test').table_create('t1').run(c)
+        if 't1' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('t1').run(c)
+        await r.db('test').table_create('t1').run(c)
 
-        if 'db2' in (yield from r.db_list().run(c)):
-            yield from r.db_drop('db2').run(c)
-        yield from r.db_create('db2').run(c)
+        if 'db2' in (await r.db_list().run(c)):
+            await r.db_drop('db2').run(c)
+        await r.db_create('db2').run(c)
 
-        if 't2' in (yield from r.db('db2').table_list().run(c)):
-            yield from r.db('db2').table_drop('t2').run(c)
-        yield from r.db('db2').table_create('t2').run(c)
+        if 't2' in (await r.db('db2').table_list().run(c)):
+            await r.db('db2').table_drop('t2').run(c)
+        await r.db('db2').table_create('t2').run(c)
 
         # Default db should be 'test' so this will work
-        yield from r.table('t1').run(c)
+        await r.table('t1').run(c)
 
         # Use a new database
         c.use('db2')
-        yield from r.table('t2').run(c)
+        await r.table('t2').run(c)
         with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist."):
-            yield from r.table('t1').run(c)
+            await r.table('t1').run(c)
 
         c.use('test')
-        yield from r.table('t1').run(c)
+        await r.table('t1').run(c)
         with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `test.t2` does not exist."):
-            yield from r.table('t2').run(c)
+            await r.table('t2').run(c)
 
-        yield from c.close()
+        await c.close()
 
         # Test setting the db in connect
-        c = yield from r.connect(db='db2', host=sharedServerHost,
+        c = await r.connect(db='db2', host=sharedServerHost,
                             port=sharedServerDriverPort)
-        yield from r.table('t2').run(c)
+        await r.table('t2').run(c)
 
         with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                            "Table `db2.t1` does not exist."):
-            yield from r.table('t1').run(c)
+            await r.table('t1').run(c)
 
-        yield from c.close()
+        await c.close()
 
         # Test setting the db as a `run` option
-        c = yield from r.connect(host=sharedServerHost,
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
-        yield from r.table('t2').run(c, db='db2')
+        await r.table('t2').run(c, db='db2')
 
-        yield from c.close()
+        await c.close()
 
-    @asyncio.coroutine
-    def test_outdated_read(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_outdated_read(self):
+        c = await r.connect(host=sharedServerHost,
                                  port=sharedServerDriverPort)
 
-        if 't1' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('t1').run(c)
-        yield from r.db('test').table_create('t1').run(c)
+        if 't1' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('t1').run(c)
+        await r.db('test').table_create('t1').run(c)
 
         # Use outdated is an option that can be passed to db.table or `run`
         # We're just testing here if the server actually accepts the option.
 
-        yield from r.table('t1', read_mode='outdated').run(c)
-        yield from r.table('t1').run(c, read_mode='outdated')
+        await r.table('t1', read_mode='outdated').run(c)
+        await r.table('t1').run(c, read_mode='outdated')
 
-        yield from c.close()
+        await c.close()
 
-    @asyncio.coroutine
-    def test_repl(self):
+    async def test_repl(self):
         try:
             # Calling .repl() should set this connection as global state
             # to be used when `run` is not otherwise passed a connection.
-            c = (yield from r.connect(host=sharedServerHost, port=sharedServerDriverPort)).repl()
+            c = (await r.connect(host=sharedServerHost, port=sharedServerDriverPort)).repl()
 
-            yield from r.expr(1).run()
+            await r.expr(1).run()
 
             c.repl() # is idempotent
 
-            yield from r.expr(1).run()
+            await r.expr(1).run()
 
-            yield from c.close()
+            await c.close()
 
             with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
-                yield from r.expr(1).run()
+                await r.expr(1).run()
         finally:
             r.Repl.clear()
 
-    @asyncio.coroutine
-    def test_port_conversion(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def test_port_conversion(self):
+        c = await r.connect(host=sharedServerHost,
                             port=str(sharedServerDriverPort))
-        yield from r.expr(1).run(c)
-        yield from c.close()
+        await r.expr(1).run(c)
+        await c.close()
 
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                "Could not convert port 'abc' to an integer."):
-            yield from r.connect(port='abc', host=sharedServerHost)
+            await r.connect(port='abc', host=sharedServerHost)
 
 
 class TestShutdown(TestWithConnection):
-    @asyncio.coroutine
-    def setUp(self):
+    async def setUp(self):
         global sharedServer
         if sharedServer is None:
             # we need to be able to kill the server, so can't use one
             # from outside
             closeSharedServer()
-        yield from super(TestShutdown, self).setUp()
+        await super(TestShutdown, self).setUp()
 
-    @asyncio.coroutine
-    def test_shutdown(self):
+    async def test_shutdown(self):
         global sharedServerHost, sharedServerDriverPort
-        c = yield from r.connect(host=sharedServerHost,
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
-        yield from r.expr(1).run(c)
+        await r.expr(1).run(c)
 
         closeSharedServer()
-        yield from asyncio.sleep(0.2)
+        await asyncio.sleep(0.2)
 
         with self.assertRaisesRegexp(r.ReqlDriverError,
                                "Connection is closed."):
-            yield from r.expr(1).run(c)
+            await r.expr(1).run(c)
 
-        yield from c.close(noreply_wait=False)
+        await c.close(noreply_wait=False)
 
 
 # Another non-connection connection test. It's to test that get_intersecting()
 # batching works properly.
 class TestGetIntersectingBatching(TestWithConnection):
-    @asyncio.coroutine
-    def runTest(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def runTest(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
-        if 't1' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('t1').run(c)
-        yield from r.db('test').table_create('t1').run(c)
+        if 't1' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('t1').run(c)
+        await r.db('test').table_create('t1').run(c)
         t1 = r.db('test').table('t1')
 
-        yield from t1.index_create('geo', geo=True).run(c)
-        yield from t1.index_wait('geo').run(c)
+        await t1.index_create('geo', geo=True).run(c)
+        await t1.index_wait('geo').run(c)
 
         batch_size = 3
         point_count = 500
@@ -501,8 +481,8 @@ class TestGetIntersectingBatching(TestWithConnection):
             polygons.append({'geo': r.circle([random.uniform(-180.0, 180.0),
                                               random.uniform(-90.0, 90.0)],
                                              1000000)})
-        yield from t1.insert(points).run(c)
-        yield from t1.insert(polygons).run(c)
+        await t1.insert(points).run(c)
+        await t1.insert(polygons).run(c)
 
         # Check that the results are actually lazy at least some of
         # the time While the test is randomized, chances are extremely
@@ -512,38 +492,37 @@ class TestGetIntersectingBatching(TestWithConnection):
         for i in xrange(0, get_tries):
             query_circle = r.circle([random.uniform(-180.0, 180.0),
                                      random.uniform(-90.0, 90.0)], 8000000)
-            reference = yield from t1.filter(r.row['geo'].intersects(query_circle))\
+            reference = await t1.filter(r.row['geo'].intersects(query_circle))\
                                 .coerce_to("ARRAY").run(c)
-            cursor = yield from t1.get_intersecting(query_circle, index='geo')\
+            cursor = await t1.get_intersecting(query_circle, index='geo')\
                              .run(c, max_batch_rows=batch_size)
             if cursor.error is None:
                 seen_lazy = True
 
             while len(reference) > 0:
-                row = yield from cursor.next()
+                row = await cursor.next()
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
             with self.assertRaises(r.ReqlCursorEmpty):
-                yield from cursor.next()
+                await cursor.next()
 
         self.assertTrue(seen_lazy)
 
-        yield from r.db('test').table_drop('t1').run(c)
+        await r.db('test').table_drop('t1').run(c)
 
-        yield from c.close()
+        await c.close()
 
 
 class TestBatching(TestWithConnection):
-    @asyncio.coroutine
-    def runTest(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def runTest(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
         # Test the cursor API when there is exactly mod batch size
         # elements in the result stream
-        if 't1' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('t1').run(c)
-        yield from r.db('test').table_create('t1').run(c)
+        if 't1' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('t1').run(c)
+        await r.db('test').table_create('t1').run(c)
         t1 = r.table('t1')
 
         batch_size = 3
@@ -551,31 +530,30 @@ class TestBatching(TestWithConnection):
 
         ids = set(xrange(0, count))
 
-        yield from t1.insert([{'id': i} for i in ids]).run(c)
-        cursor = yield from t1.run(c, max_batch_rows=batch_size)
+        await t1.insert([{'id': i} for i in ids]).run(c)
+        cursor = await t1.run(c, max_batch_rows=batch_size)
 
         for i in xrange(0, count - 1):
-            row = yield from cursor.next()
+            row = await cursor.next()
             self.assertTrue(row['id'] in ids)
             ids.remove(row['id'])
 
-        self.assertEqual((yield from cursor.next())['id'], ids.pop())
+        self.assertEqual((await cursor.next())['id'], ids.pop())
         with self.assertRaises(r.ReqlCursorEmpty):
-            yield from cursor.next()
-        yield from r.db('test').table_drop('t1').run(c)
+            await cursor.next()
+        await r.db('test').table_drop('t1').run(c)
 
-        yield from c.close()
+        await c.close()
 
 
 class TestGroupWithTimeKey(TestWithConnection):
-    @asyncio.coroutine
-    def runTest(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def runTest(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
-        if 'times' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('times').run(c)
-        yield from r.db('test').table_create('times').run(c)
+        if 'times' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('times').run(c)
+        await r.db('test').table_create('times').run(c)
 
         time1 = 1375115782.24
         rt1 = r.epoch_time(time1).in_timezone('+00:00')
@@ -584,128 +562,104 @@ class TestGroupWithTimeKey(TestWithConnection):
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
         dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
 
-        res = yield from r.table('times').insert({'id': 0, 'time': rt1}).run(c)
+        res = await r.table('times').insert({'id': 0, 'time': rt1}).run(c)
         self.assertEqual(res['inserted'], 1)
-        res = yield from r.table('times').insert({'id': 1, 'time': rt2}).run(c)
+        res = await r.table('times').insert({'id': 1, 'time': rt2}).run(c)
         self.assertEqual(res['inserted'], 1)
 
         expected_row1 = {'id': 0, 'time': dt1}
         expected_row2 = {'id': 1, 'time': dt2}
 
-        groups = yield from r.table('times').group('time').coerce_to('array').run(c)
+        groups = await r.table('times').group('time').coerce_to('array').run(c)
         self.assertEqual(groups, {dt1: [expected_row1],
                                   dt2: [expected_row2]})
 
-        yield from c.close()
+        await c.close()
 
 
 class TestSuccessAtomFeed(TestWithConnection):
-    @asyncio.coroutine
-    def runTest(self):
-        c = yield from r.connect(host=sharedServerHost,
+    async def runTest(self):
+        c = await r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
         from rethinkdb import ql2_pb2 as p
 
-        if 'success_atom_feed' in (yield from r.db('test').table_list().run(c)):
-            yield from r.db('test').table_drop('success_atom_feed').run(c)
-        yield from r.db('test').table_create('success_atom_feed').run(c)
+        if 'success_atom_feed' in (await r.db('test').table_list().run(c)):
+            await r.db('test').table_drop('success_atom_feed').run(c)
+        await r.db('test').table_create('success_atom_feed').run(c)
         t1 = r.db('test').table('success_atom_feed')
 
-        res = yield from t1.insert({'id': 0, 'a': 16}).run(c)
+        res = await t1.insert({'id': 0, 'a': 16}).run(c)
         self.assertEqual(res['inserted'], 1)
-        res = yield from t1.insert({'id': 1, 'a': 31}).run(c)
+        res = await t1.insert({'id': 1, 'a': 31}).run(c)
         self.assertEqual(res['inserted'], 1)
 
-        yield from t1.index_create('a', lambda x: x['a']).run(c)
-        yield from t1.index_wait('a').run(c)
+        await t1.index_create('a', lambda x: x['a']).run(c)
+        await t1.index_wait('a').run(c)
 
-        changes = yield from t1.get(0).changes(include_initial=True).run(c)
+        changes = await t1.get(0).changes(include_initial=True).run(c)
         self.assertTrue(changes.error is None)
         self.assertEqual(len(changes.items), 1)
 
-        yield from c.close()
+        await c.close()
 
 class TestCursor(TestWithConnection):
-    @asyncio.coroutine
-    def setUp(self):
-        yield from TestWithConnection.setUp(self)
-        self.conn = yield from r.connect(host=sharedServerHost,
+    async def setUp(self):
+        await TestWithConnection.setUp(self)
+        self.conn = await r.connect(host=sharedServerHost,
                                     port=sharedServerDriverPort)
 
-    @asyncio.coroutine
-    def tearDown(self):
-        yield from TestWithConnection.tearDown(self)
-        yield from self.conn.close()
+    async def tearDown(self):
+        await TestWithConnection.tearDown(self)
+        await self.conn.close()
         self.conn = None
 
-    @asyncio.coroutine
-    def test_type(self):
-        cursor = yield from r.range().run(self.conn)
+    async def test_type(self):
+        cursor = await r.range().run(self.conn)
         self.assertTrue(isinstance(cursor, r.Cursor))
 
-    @asyncio.coroutine
-    def test_cursor_after_connection_close(self):
-        cursor = yield from r.range().run(self.conn)
-        yield from self.conn.close()
+    async def test_cursor_after_connection_close(self):
+        cursor = await r.range().run(self.conn)
+        await self.conn.close()
 
-        @asyncio.coroutine
-        def read_cursor(cursor):
-            while (yield from cursor.fetch_next()):
-                yield from cursor.next()
-                cursor.close()
+        async def read_cursor(cursor):
+            async for item in cursor:
+                await cursor.close()
 
         with self.assertRaisesRegexp(r.ReqlRuntimeError, "Connection is closed."):
-             yield from read_cursor(cursor)
+             await read_cursor(cursor)
 
-    @asyncio.coroutine
-    def test_cursor_after_cursor_close(self):
-        cursor = yield from r.range().run(self.conn)
-        yield from cursor.close()
-        count = 0
-        while (yield from cursor.fetch_next()):
-            yield from cursor.next()
-            count += 1
-        self.assertNotEqual(count, 0, "Did not get any cursor results")
-
-    @asyncio.coroutine
-    def test_cursor_close_in_each(self):
-        cursor = yield from r.range().run(self.conn)
+    async def test_cursor_close_in_each(self):
+        cursor = await r.range().run(self.conn)
         count = 0
 
-        while (yield from cursor.fetch_next()):
-            yield from cursor.next()
+        async for item in cursor:
             count += 1
             if count == 2:
-                yield from cursor.close()
+                await cursor.close()
 
         self.assertTrue(count >= 2, "Did not get enough cursor results")
 
-    @asyncio.coroutine
-    def test_cursor_success(self):
+    async def test_cursor_success(self):
         range_size = 10000
-        cursor = yield from r.range().limit(range_size).run(self.conn)
+        cursor = await r.range().limit(range_size).run(self.conn)
         count = 0
-        while (yield from cursor.fetch_next()):
-            yield from cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
-    @asyncio.coroutine
-    def test_cursor_double_each(self):
+    async def test_cursor_double_each(self):
         range_size = 10000
-        cursor = yield from r.range().limit(range_size).run(self.conn)
+        cursor = await r.range().limit(range_size).run(self.conn)
         count = 0
 
-        while (yield from cursor.fetch_next()):
-            yield from cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
-        while (yield from cursor.fetch_next()):
-            yield from cursor.next()
+        async for item in cursor:
             count += 1
         self.assertEqual(count, range_size,
              "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
@@ -713,13 +667,12 @@ class TestCursor(TestWithConnection):
     # Used in wait tests
     num_cursors=3
 
-    @asyncio.coroutine
-    def do_wait_test(self, wait_time):
+    async def do_wait_test(self, wait_time):
         cursors = [ ]
         cursor_counts = [ ]
         cursor_timeouts = [ ]
         for i in xrange(self.num_cursors):
-            cur = yield from r.range().map(r.js("(function (row) {" +
+            cur = await r.range().map(r.js("(function (row) {" +
                                                 "end = new Date(new Date().getTime() + 2);" +
                                                 "while (new Date() < end) { }" +
                                                 "return row;" +
@@ -728,13 +681,12 @@ class TestCursor(TestWithConnection):
             cursor_counts.append(0)
             cursor_timeouts.append(0)
 
-        @asyncio.coroutine
-        def get_next(cursor_index):
+        async def get_next(cursor_index):
             try:
                 if wait_time is None: # Special case to use the default
-                    yield from cursors[cursor_index].next()
+                    await cursors[cursor_index].next()
                 else:
-                    yield from cursors[cursor_index].next(wait=wait_time)
+                    await cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
             except r.ReqlTimeoutError:
                 cursor_timeouts[cursor_index] += 1
@@ -743,93 +695,83 @@ class TestCursor(TestWithConnection):
         while sum(cursor_counts) < 4000:
             for cursor_index in xrange(self.num_cursors):
                 for read_count in xrange(random.randint(0, 10)):
-                    yield from get_next(cursor_index)
+                    await get_next(cursor_index)
 
         [cursor.close() for cursor in cursors]
 
         return (sum(cursor_counts), sum(cursor_timeouts))
 
-    @asyncio.coroutine
-    def test_false_wait(self):
-        reads, timeouts = yield from self.do_wait_test(False)
+    async def test_false_wait(self):
+        reads, timeouts = await self.do_wait_test(False)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using zero (false) wait.")
 
-    @asyncio.coroutine
-    def test_zero_wait(self):
-        reads, timeouts = yield from self.do_wait_test(0)
+    async def test_zero_wait(self):
+        reads, timeouts = await self.do_wait_test(0)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using zero wait.")
 
-    @asyncio.coroutine
-    def test_short_wait(self):
-        reads, timeouts = yield from self.do_wait_test(0.0001)
+    async def test_short_wait(self):
+        reads, timeouts = await self.do_wait_test(0.0001)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using short (100 microsecond) wait.")
 
-    @asyncio.coroutine
-    def test_long_wait(self):
-        reads, timeouts = yield from self.do_wait_test(10)
+    async def test_long_wait(self):
+        reads, timeouts = await self.do_wait_test(10)
         self.assertEqual(timeouts, 0,
             "Got timeouts using long (10 second) wait.")
 
-    @asyncio.coroutine
-    def test_infinite_wait(self):
-        reads, timeouts = yield from self.do_wait_test(True)
+    async def test_infinite_wait(self):
+        reads, timeouts = await self.do_wait_test(True)
         self.assertEqual(timeouts, 0,
             "Got timeouts using infinite wait.")
 
-    @asyncio.coroutine
-    def test_default_wait(self):
-        reads, timeouts = yield from self.do_wait_test(None)
+    async def test_default_wait(self):
+        reads, timeouts = await self.do_wait_test(None)
         self.assertEqual(timeouts, 0,
             "Got timeouts using default (infinite) wait.")
 
     # This test relies on the internals of the TornadoCursor implementation
-    @asyncio.coroutine
-    def test_rate_limit(self):
+    async def test_rate_limit(self):
         # Get the first batch
-        cursor = yield from r.range().run(self.conn)
+        cursor = await r.range().run(self.conn)
         cursor_initial_size = len(cursor.items)
 
         # Wait for the second (pre-fetched) batch to arrive
-        yield from cursor.new_response
+        await cursor.new_response
         cursor_new_size = len(cursor.items)
 
         self.assertLess(cursor_initial_size, cursor_new_size)
 
         # Wait and observe that no third batch arrives
         with self.assertRaises(asyncio.TimeoutError):
-            yield from asyncio.wait_for(asyncio.shield(cursor.new_response), 2)
+            await asyncio.wait_for(asyncio.shield(cursor.new_response), 2)
         self.assertEqual(cursor_new_size, len(cursor.items))
 
     # Test that an error on a cursor (such as from closing the connection)
     # properly wakes up waiters immediately
-    @asyncio.coroutine
-    def test_cursor_error(self):
-        cursor = yield from r.range() \
+    async def test_cursor_error(self):
+        cursor = await r.range() \
             .map(lambda row:
                 r.branch(row <= 5000, # High enough for multiple batches
                          row,
                          r.js('while(true){ }'))) \
             .run(self.conn)
 
-        @asyncio.coroutine
-        def read_cursor(cursor, hanging):
+        async def read_cursor(cursor, hanging):
             try:
                 while True:
-                    yield from cursor.next(wait=1)
+                    await cursor.next(wait=1)
             except r.ReqlTimeoutError:
                 pass
             hanging.set_result(True)
-            yield from cursor.next()
+            await cursor.next()
 
-        @asyncio.coroutine
-        def read_wrapper(cursor, done, hanging):
+        async def read_wrapper(cursor, done, hanging):
             try:
                 with self.assertRaisesRegexp(r.ReqlRuntimeError,
                                              'Connection is closed.'):
-                    yield from read_cursor(cursor, hanging)
+                    await read_cursor(cursor, hanging)
                 done.set_result(None)
             except Exception as ex:
                 if not cursor_hanging.done():
@@ -838,65 +780,59 @@ class TestCursor(TestWithConnection):
 
         cursor_hanging = asyncio.Future()
         done = asyncio.Future()
-        asyncio.async(read_wrapper(cursor, done, cursor_hanging))
+        asyncio.ensure_future(read_wrapper(cursor, done, cursor_hanging))
 
         # Wait for the cursor to hit the hang point before we close and cause an error
-        yield from cursor_hanging
-        yield from self.conn.close()
-        yield from done
+        await cursor_hanging
+        await self.conn.close()
+        await done
 
 class TestChangefeeds(TestWithConnection):
-    @asyncio.coroutine
-    def setUp(self):
-        yield from TestWithConnection.setUp(self)
-        self.conn = yield from r.connect(host=sharedServerHost,
+    async def setUp(self):
+        await TestWithConnection.setUp(self)
+        self.conn = await r.connect(host=sharedServerHost,
                                     port=sharedServerDriverPort)
-        if 'a' in (yield from r.db('test').table_list().run(self.conn)):
-            yield from r.db('test').table_drop('a').run(self.conn)
-        yield from r.db('test').table_create('a').run(self.conn)
-        if 'b' in (yield from r.db('test').table_list().run(self.conn)):
-            yield from r.db('test').table_drop('b').run(self.conn)
-        yield from r.db('test').table_create('b').run(self.conn)
+        if 'a' in (await r.db('test').table_list().run(self.conn)):
+            await r.db('test').table_drop('a').run(self.conn)
+        await r.db('test').table_create('a').run(self.conn)
+        if 'b' in (await r.db('test').table_list().run(self.conn)):
+            await r.db('test').table_drop('b').run(self.conn)
+        await r.db('test').table_create('b').run(self.conn)
 
-    @asyncio.coroutine
-    def tearDown(self):
-        yield from r.db('test').table_drop('b').run(self.conn)
-        yield from r.db('test').table_drop('a').run(self.conn)
-        yield from TestWithConnection.tearDown(self)
-        yield from self.conn.close()
+    async def tearDown(self):
+        await r.db('test').table_drop('b').run(self.conn)
+        await r.db('test').table_drop('a').run(self.conn)
+        await TestWithConnection.tearDown(self)
+        await self.conn.close()
         self.conn = None
 
-    @asyncio.coroutine
-    def table_a_even_writer(self):
+    async def table_a_even_writer(self):
         for i in range(10):
-            yield from r.db('test').table("a").insert({"id": i * 2}).run(self.conn)
+            await r.db('test').table("a").insert({"id": i * 2}).run(self.conn)
 
-    @asyncio.coroutine
-    def table_a_odd_writer(self):
+    async def table_a_odd_writer(self):
         for i in range(10):
-            yield from r.db('test').table("a").insert({"id": i * 2 + 1}).run(self.conn)
+            await r.db('test').table("a").insert({"id": i * 2 + 1}).run(self.conn)
 
-    @asyncio.coroutine
-    def table_b_writer(self):
+    async def table_b_writer(self):
         for i in range(10):
-            yield from r.db('test').table("b").insert({"id": i}).run(self.conn)
+            await r.db('test').table("b").insert({"id": i}).run(self.conn)
 
-    @asyncio.coroutine
-    def cfeed_noticer(self, table, ready, done, needed_values):
-        feed = yield from r.db('test').table(table).changes(squash=False).run(self.conn)
+    async def cfeed_noticer(self, table, ready, done, needed_values):
+        feed = await r.db('test').table(table).changes(squash=False).run(self.conn)
         try:
             ready.set_result(None)
-            while len(needed_values) != 0 and (yield from feed.fetch_next()):
-                item = yield from feed.next()
+            async for item in feed:
                 self.assertIsNone(item['old_val'])
                 self.assertIn(item['new_val']['id'], needed_values)
                 needed_values.remove(item['new_val']['id'])
+                if len(needed_values) == 0:
+                    break
             done.set_result(None)
         except Exception as ex:
             done.set_exception(ex)
 
-    @asyncio.coroutine
-    def test_multiple_changefeeds(self):
+    async def test_multiple_changefeeds(self):
         loop = asyncio.get_event_loop()
         feeds_ready = { }
         feeds_done = { }
@@ -904,14 +840,14 @@ class TestChangefeeds(TestWithConnection):
         for n in ('a', 'b'):
             feeds_ready[n] = asyncio.Future()
             feeds_done[n] = asyncio.Future()
-            asyncio.async(self.cfeed_noticer(n, feeds_ready[n], feeds_done[n],
+            asyncio.ensure_future(self.cfeed_noticer(n, feeds_ready[n], feeds_done[n],
                                              needed_values[n]))
 
-        yield from asyncio.wait(feeds_ready.values())
-        yield from asyncio.wait([self.table_a_even_writer(),
+        await asyncio.wait(feeds_ready.values())
+        await asyncio.wait([self.table_a_even_writer(),
                self.table_a_odd_writer(),
                self.table_b_writer()])
-        yield from asyncio.wait(feeds_done.values())
+        await asyncio.wait(feeds_done.values())
         self.assertTrue(all([len(x) == 0 for x in needed_values.values()]))
 
 if __name__ == '__main__':
