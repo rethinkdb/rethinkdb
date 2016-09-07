@@ -59,7 +59,7 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
         auth::username_t("admin"),
         versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
             auth_key_ts,
-            boost::make_optional(auth::user_t(std::move(admin_pw), auth::admin_t()))));
+            boost::make_optional(auth::user_t(std::move(admin_pw)))));
     new_metadata.m_users.insert(std::move(admin_pair));
     txn->write(mdkey_auth_semilattices(), new_metadata, interruptor);
 }

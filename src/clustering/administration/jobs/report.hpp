@@ -6,6 +6,7 @@
 
 #include "arch/address.hpp"
 #include "btree/secondary_operations.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -163,7 +164,7 @@ public:
                            std::vector<index_construction_job_report_t>,
                            std::vector<backfill_job_report_t>)> return_mailbox_t;
     typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_reports_mailbox_t;
-    typedef mailbox_t<void(uuid_u)> job_interrupt_mailbox_t;
+    typedef mailbox_t<void(uuid_u, auth::user_context_t)> job_interrupt_mailbox_t;
 
     get_job_reports_mailbox_t::address_t get_job_reports_mailbox_address;
     job_interrupt_mailbox_t::address_t job_interrupt_mailbox_address;

@@ -45,11 +45,14 @@ public:
 
     ql::datum_t to_datum() const;
 
+    bool operator<(permissions_t const &rhs) const;
     bool operator==(permissions_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(permissions_t);
 
 private:
+    std::tuple<int8_t, int8_t, int8_t, boost::optional<int8_t>> to_tuple() const;
+
     boost::tribool m_read;
     boost::tribool m_write;
     boost::tribool m_config;

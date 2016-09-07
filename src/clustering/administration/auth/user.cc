@@ -8,6 +8,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "arch/runtime/runtime_utils.hpp"
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
@@ -27,11 +28,6 @@ user_t::user_t()
         boost::indeterminate,
         boost::indeterminate,
         boost::indeterminate) {
-}
-
-user_t::user_t(password_t password, admin_t)
-    : m_password(std::move(password)),
-      m_global_permissions(true, true, true, true) {
 }
 
 user_t::user_t(password_t password, permissions_t global_permissions)
@@ -208,7 +204,12 @@ bool user_t::has_read_permission(
         }
     }
 
-    return m_global_permissions.get_read() || false;
+    if (database_id != artificial_reql_cluster_interface_t::database_id) {
+        return m_global_permissions.get_read() || false;
+    } else {
+        // The artificial table does not inherit permissions from the global scope.
+        return false;
+    }
 }
 
 bool user_t::has_write_permission(
@@ -230,7 +231,12 @@ bool user_t::has_write_permission(
         }
     }
 
-    return m_global_permissions.get_write() || false;
+    if (database_id != artificial_reql_cluster_interface_t::database_id) {
+        return m_global_permissions.get_write() || false;
+    } else {
+        // The artificial table does not inherit permissions from the global scope.
+        return false;
+    }
 }
 
 bool user_t::has_config_permission() const {
@@ -247,7 +253,12 @@ bool user_t::has_config_permission(
         }
     }
 
-    return has_config_permission();
+    if (database_id != artificial_reql_cluster_interface_t::database_id) {
+        return has_config_permission();
+    } else {
+        // The artificial table does not inherit permissions from the global scope.
+        return false;
+    }
 }
 
 bool user_t::has_config_permission(

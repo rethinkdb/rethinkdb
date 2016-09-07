@@ -150,24 +150,24 @@ void permissions_t::set_connect(boost::tribool connect) {
 ql::datum_t permissions_t::to_datum() const {
     ql::datum_object_builder_t datum_object_builder;
 
-    if (!indeterminate(get_read())) {
+    if (!indeterminate(m_read)) {
         datum_object_builder.overwrite(
-            "read", ql::datum_t::boolean(get_read()));
+            "read", ql::datum_t::boolean(m_read));
     }
 
-    if (!indeterminate(get_write())) {
+    if (!indeterminate(m_write)) {
         datum_object_builder.overwrite(
-            "write", ql::datum_t::boolean(get_write()));
+            "write", ql::datum_t::boolean(m_write));
     }
 
-    if (!indeterminate(get_config())) {
+    if (!indeterminate(m_config)) {
         datum_object_builder.overwrite(
-            "config", ql::datum_t::boolean(get_config()));
+            "config", ql::datum_t::boolean(m_config));
     }
 
-    if (static_cast<bool>(m_connect) && !(indeterminate(get_connect()))) {
+    if (static_cast<bool>(m_connect) && !(indeterminate(m_connect.get()))) {
         datum_object_builder.overwrite(
-            "connect", ql::datum_t::boolean(get_connect()));
+            "connect", ql::datum_t::boolean(m_connect.get()));
     }
 
     if (datum_object_builder.empty()) {
@@ -177,7 +177,32 @@ ql::datum_t permissions_t::to_datum() const {
     }
 }
 
-bool tribool_equals(boost::tribool const &lhs, boost::tribool const &rhs) {
+int8_t tribool_to_int8(boost::tribool const &tribool) {
+    if (!tribool) {
+        return 0;
+    } else if (tribool) {
+        return 1;
+    } else {
+        return 2;
+    }
+}
+
+std::tuple<int8_t, int8_t, int8_t, boost::optional<int8_t>>
+permissions_t::to_tuple() const {
+    return std::make_tuple(
+        tribool_to_int8(m_read),
+        tribool_to_int8(m_write),
+        tribool_to_int8(m_config),
+        static_cast<bool>(m_connect)
+            ? boost::make_optional(tribool_to_int8(m_connect.get()))
+            : boost::none);
+}
+
+bool permissions_t::operator<(permissions_t const &rhs) const {
+    return to_tuple() < rhs.to_tuple();
+}
+
+bool permissions_t::operator==(permissions_t const &rhs) const {
     // boost::tribool::operator== returns a boost::tribool and behaves as following.
     //
     //                 false           true            indeterminate
@@ -186,7 +211,7 @@ bool tribool_equals(boost::tribool const &lhs, boost::tribool const &rhs) {
     //          true | false           true            indeterminate
     // indeterminate | indeterminate   indeterminate   indeterminate
     //
-    // The implementation below on the other hand behaves as following.
+    // The conversion to an int8_t in `to_tuple` allows it to behave as following.
     //
     //                 false           true            indeterminate
     // --------------+----------------------------------------------
@@ -194,39 +219,7 @@ bool tribool_equals(boost::tribool const &lhs, boost::tribool const &rhs) {
     //          true | false           true            false
     // indeterminate | false           false           true
 
-    int8_t l;
-    if (!lhs) {
-        l = 0;
-    } else if (lhs) {
-        l = 1;
-    } else {
-        l = 2;
-    }
-
-    int8_t r;
-    if (!rhs) {
-        r = 0;
-    } else if (rhs) {
-        r = 1;
-    } else {
-        r = 2;
-    }
-
-    return l == r;
-}
-
-bool permissions_t::operator==(permissions_t const &rhs) const {
-    // We can't use boost::optional<boost::tribool>::operator== due to implicit
-    // conversion to bool operator not playing nice with boost::optional::operator==
-    bool m_connect_equal =
-        static_cast<bool>(m_connect) == static_cast<bool>(rhs.m_connect) && (
-            !static_cast<bool>(m_connect) || tribool_equals(*m_connect, *rhs.m_connect));
-
-    return
-        tribool_equals(m_read, rhs.m_read) &&
-        tribool_equals(m_write, rhs.m_write) &&
-        tribool_equals(m_config, rhs.m_config) &&
-        m_connect_equal;
+    return to_tuple() == rhs.to_tuple();
 }
 
 RDB_IMPL_SERIALIZABLE_4(permissions_t, m_read, m_write, m_config, m_connect);
