@@ -339,10 +339,9 @@ class TestConnection(TestWithConnection):
     
             server.stop()
             time.sleep(0.2)
-    
-            with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed."):
-                r.expr(1).run(c)
-    
+
+            with self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed.", r.expr(1).run, c)
+            
             c.close(noreply_wait=False)
 
 
