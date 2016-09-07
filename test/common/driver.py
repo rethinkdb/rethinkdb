@@ -5,7 +5,8 @@
 This is designed to simulate normal operations, so does not include support
 for things like `--join`ing to an invalid port."""
 
-import atexit, copy, datetime, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, time, traceback, warnings
+import atexit, copy, datetime, os, platform, random, re, shutil, signal
+import socket, string, subprocess, sys, tempfile, time, traceback, warnings
 
 import utils, resunder
 
@@ -13,10 +14,6 @@ try:
     import thread
 except ImportError:
     import _thread as thread
-try:
-    xrange
-except NameError:
-    xrange = range
 try:
     unicode
 except NameError:
@@ -369,7 +366,7 @@ class Cluster(object):
     
     def __getitem__(self, pos):
         if isinstance(pos, slice):
-            return [self.processes[x] for x in xrange(*pos.indices(len(self.processes)))]
+            return [self.processes[x] for x in range(*pos.indices(len(self.processes)))]
         elif isinstance(pos, int):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
@@ -474,14 +471,17 @@ class Process(object):
     def subclass_options(self, options):
         options += ['--directory', utils.translatePath(self.data_path)]
     
-    def __init__(self, cluster=None, name=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
+    def __init__(self, cluster=None, name=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=None):
         global runningServers
         
         # -- validate/default input
         
         # - cluster
+        assert tls in (None, False, True), 'tls must be True, False, or None (False)'
         if cluster is None:
-            cluster = Cluster()
+            cluster = Cluster(tls=tls is True)
+        else:
+            assert tls is None or tls is (cluster.tlsCertPath is None), 'A server added to a cluster must have the same tls setting (cluster: %s vs %s)' % (cluster.tlsCertPath is None, tls)
         assert isinstance(cluster, Cluster), 'cluster must be a Cluster or None, got: %r' % cluster
         self.cluster = cluster
         self.cluster.processes.append(self)
@@ -653,6 +653,9 @@ class Process(object):
                 '--cluster-tls-cert', utils.translatePath(self.cluster.tlsCertPath),
                 '--cluster-tls-ca',   utils.translatePath(self.cluster.tlsCertPath)
             ]
+            if platform.system() == 'Darwin':
+                # because the driver will probably be using the system version of OpenSSL (old), enable TLSv1
+                options += ['--tls-min-protocol', 'TLSv1', '--tls-ciphers', 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:AES256-SHA']
         
         # - log file
         
@@ -745,6 +748,14 @@ class Process(object):
         if self._local_cluster_port is None:
             self._local_cluster_port = utils.get_avalible_port()
         return self._local_cluster_port
+    
+    @property
+    def tlsKeyPath(self):
+        return self.cluster.tlsKeyPath
+    
+    @property
+    def tlsCertPath(self):
+        return self.cluster.tlsCertPath
     
     @property
     def name(self):

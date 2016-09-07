@@ -105,7 +105,7 @@ class HandshakeV1_0(object):
 
             # Using base64 encoding for printable characters
             self._r = base64.standard_b64encode(
-                bytes(bytearray(self._random.getrandbits(8) for i in xrange(18))))
+                bytes(bytearray(self._random.getrandbits(8) for i in range(18))))
 
             self._client_first_message_bare = b"n=" + self._username + b",r=" + self._r
 
