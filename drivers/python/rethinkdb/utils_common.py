@@ -115,7 +115,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             if os.path.isfile(value):
                 return {'ca_certs': os.path.realpath(value)}
             else:
-                raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt, value))
+                raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt_str, value))
         
         def checkDbTableOption(option, opt_str, value):
             res = _tableNameRegex.match(value)

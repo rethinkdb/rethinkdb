@@ -1,8 +1,9 @@
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 import asyncio
 import contextlib
 import socket
+import ssl
 import struct
 
 from . import ql2_pb2 as p
@@ -139,13 +140,19 @@ class ConnectionInstance(object):
     @asyncio.coroutine
     def connect(self, timeout):
         try:
-            self._streamreader, self._streamwriter = yield from \
-                asyncio.open_connection(self._parent.host, self._parent.port,
-                                        loop=self._io_loop)
-            self._streamwriter.get_extra_info('socket').setsockopt(
-                                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._streamwriter.get_extra_info('socket').setsockopt(
-                                socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            ssl_context = None
+            if len(self._parent.ssl) > 0:
+                ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                if hasattr(ssl_context, "options"):
+                    ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
+                    ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+                ssl_context.check_hostname = True # redundant with match_hostname
+                ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
+                
+            self._streamreader, self._streamwriter = yield from asyncio.open_connection(self._parent.host, self._parent.port, loop=self._io_loop, ssl=ssl_context)
+            self._streamwriter.get_extra_info('socket').setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            self._streamwriter.get_extra_info('socket').setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
