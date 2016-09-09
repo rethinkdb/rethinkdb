@@ -3,9 +3,7 @@
 #define RPC_DIRECTORY_WRITE_MANAGER_HPP_
 
 #include <map>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"

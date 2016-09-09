@@ -190,9 +190,9 @@ public:
               const int join_delay_secs,
               int port,
               int client_port,
-              boost::shared_ptr<semilattice_read_view_t<
+              std::shared_ptr<semilattice_read_view_t<
                   heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
-              boost::shared_ptr<semilattice_read_view_t<
+              std::shared_ptr<semilattice_read_view_t<
                   auth_semilattice_metadata_t> > auth_sl_view,
               tls_ctx_t *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
@@ -312,10 +312,10 @@ public:
         /* For picking random threads */
         rng_t rng;
 
-        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             heartbeat_sl_view;
 
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
             auth_sl_view;
 
         auto_drainer_t drainer;

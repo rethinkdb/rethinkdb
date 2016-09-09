@@ -12,7 +12,7 @@
 
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
         mailbox_manager_t *_mailbox_manager,
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        std::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,

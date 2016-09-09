@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"

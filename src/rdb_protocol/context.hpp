@@ -3,13 +3,13 @@
 #define RDB_PROTOCOL_CONTEXT_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
@@ -459,7 +459,7 @@ public:
     // Also used by unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   reql_cluster_interface_t *_cluster_interface,
-                  boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+                  std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
                       auth_semilattice_view);
 
     // The "real" constructor used outside of unit tests.
@@ -467,7 +467,7 @@ public:
         extproc_pool_t *_extproc_pool,
         mailbox_manager_t *_mailbox_manager,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         perfmon_collection_t *global_stats,
         const std::string &_reql_http_proxy);
@@ -505,7 +505,7 @@ public:
 
 private:
     void init_auth_watchables(
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view);
 
     std::vector<std::unique_ptr<cross_thread_watchable_variable_t<

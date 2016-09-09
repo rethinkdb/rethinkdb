@@ -55,7 +55,7 @@ bool convert_db_config_and_name_from_datum(
 }
 
 db_config_artificial_table_backend_t::db_config_artificial_table_backend_t(
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        std::shared_ptr< semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > _database_sl_view,
         real_reql_cluster_interface_t *_reql_cluster_interface) :
     database_sl_view(_database_sl_view),

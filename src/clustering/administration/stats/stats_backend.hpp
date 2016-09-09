@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_
 #define CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -21,7 +19,7 @@ public:
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
                 &_directory_view,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
@@ -59,7 +57,7 @@ private:
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
         cluster_directory_metadata_t> > > directory_view;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
     server_config_client_t *server_config_client;
     table_meta_client_t *table_meta_client;

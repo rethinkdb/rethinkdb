@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -25,7 +23,7 @@ class issues_artificial_table_backend_t :
 public:
     issues_artificial_table_backend_t(
         mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *server_config_client,
@@ -56,7 +54,7 @@ private:
 
     admin_identifier_format_t identifier_format;
 
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
 
     server_config_client_t *server_config_client;

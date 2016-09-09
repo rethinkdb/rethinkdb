@@ -1,6 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "clustering/administration/metadata.hpp"
 #include "containers/archive/archive.hpp"
@@ -173,7 +172,7 @@ TPTEST_MULTITHREAD(RPCSemilatticeTest, FieldView, 3) {
     dummy_semilattice_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
-    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
+    std::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
         metadata_field(&sl_pair_t::x, controller.get_view());
 
     EXPECT_EQ(8u, x_view->get().i);
@@ -198,7 +197,7 @@ TPTEST_MULTITHREAD(RPCSemilatticeTest, MemberView, 3) {
     dummy_semilattice_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
-    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
+    std::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
         metadata_member(std::string("foo"), controller.get_view());
 
     EXPECT_EQ(8u, foo_view->get().i);
