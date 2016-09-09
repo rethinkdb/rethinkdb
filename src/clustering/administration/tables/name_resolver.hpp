@@ -19,10 +19,10 @@ public:
 
     explicit resolved_id_optional_t(T const &value)
         : m_optional(value),
-          m_error(error_t::NO_ERROR) { }
+          m_error(error_t::OK) { }
     explicit resolved_id_optional_t(T &&value)
         : m_optional(std::forward<T>(value)),
-          m_error(error_t::NO_ERROR) { }
+          m_error(error_t::OK) { }
     explicit resolved_id_optional_t(no_such_name_t)
         : m_optional(boost::none),
           m_error(error_t::NO_SUCH_NAME) { }
@@ -31,7 +31,7 @@ public:
           m_error(error_t::AMBIGUOUS_NAME) { }
 
     explicit operator bool() const noexcept {
-        return m_error == error_t::NO_ERROR;
+        return m_error == error_t::OK;
     }
 
     T const &get() const {
@@ -48,11 +48,11 @@ public:
 
 private:
     boost::optional<T> m_optional;
-    enum class error_t { NO_ERROR = 0, NO_SUCH_NAME, AMBIGUOUS_NAME } m_error;
+    enum class error_t { OK = 0, NO_SUCH_NAME, AMBIGUOUS_NAME };
+    error_t m_error;
 };
 
-class name_resolver_t
-{
+class name_resolver_t {
 public:
     name_resolver_t(
             std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>,

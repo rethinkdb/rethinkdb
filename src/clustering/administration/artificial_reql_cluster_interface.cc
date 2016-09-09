@@ -610,10 +610,10 @@ artificial_table_backend_t *artificial_reql_cluster_interface_t::get_table_backe
         switch (admin_identifier_format) {
             case admin_identifier_format_t::name:
                 return table_backend->second.first;
-                break;
             case admin_identifier_format_t::uuid:
                 return table_backend->second.second;
-                break;
+            default:
+                unreachable();
         }
     } else {
         return nullptr;
