@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "containers/name_string.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/context.hpp"
 
 /* `artificial_table_t` is the subclass of `base_table_t` that represents a table in the
@@ -20,8 +22,10 @@ class artificial_table_backend_t;
 
 class artificial_table_t : public base_table_t {
 public:
-    explicit artificial_table_t(
-        artificial_table_backend_t *_backend, bool check_permissions = true);
+    artificial_table_t(
+        rdb_context_t *rdb_context,
+        database_id_t const &database_id,
+        artificial_table_backend_t *backend);
 
     namespace_id_t get_id() const;
     const std::string &get_pkey() const;
@@ -79,6 +83,8 @@ public:
         ql::env_t *env,
         durability_requirement_t durability);
 
+    static const uuid_u base_table_id;
+
 private:
     /* `do_single_update()` can throw `interrupted_exc_t`, but it shouldn't throw query
     language exceptions; if `function()` throws a query language exception, then it will
@@ -94,9 +100,10 @@ private:
         ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout);
 
-    artificial_table_backend_t *backend;
-    std::string primary_key;
-    bool m_check_permissions;
+    rdb_context_t *m_rdb_context;
+    database_id_t m_database_id;
+    artificial_table_backend_t *m_backend;
+    std::string m_primary_key_name;
 };
 
 #endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_ */

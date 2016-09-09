@@ -2,10 +2,30 @@
 
 #include <algorithm>
 
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 
+const uuid_u artificial_table_backend_t::base_table_id =
+    str_to_uuid("0eabef01-6deb-4069-9a2d-448db057ab1e");
+
+artificial_table_backend_t::artificial_table_backend_t(
+        name_string_t const &table_name,
+        rdb_context_t *rdb_context)
+    : m_table_name(table_name),
+      m_table_id(uuid_u::from_hash(base_table_id, table_name.str())),
+      m_rdb_context(rdb_context) {
+}
+
+artificial_table_backend_t::~artificial_table_backend_t() {
+}
+
+uuid_u const &artificial_table_backend_t::get_table_id() const {
+    return m_table_id;
+}
+
 bool artificial_table_backend_t::read_all_rows_as_stream(
+        auth::user_context_t const &user_context,
         ql::backtrace_id_t bt,
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
@@ -14,7 +34,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
         admin_err_t *error_out) {
     /* Fetch the rows from the backend */
     std::vector<ql::datum_t> rows;
-    if (!read_all_rows_as_vector(interruptor, &rows, error_out)) {
+    if (!read_all_rows_as_vector(user_context, interruptor, &rows, error_out)) {
         return false;
     }
 
@@ -58,9 +78,10 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     range_keyspec.datumspec = datumspec;
     boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
-        counted_t<base_table_t>(new artificial_table_t(this)),
-        "<system table>"   /* I don't think this is ever used */
-        ));
+        counted_t<base_table_t>(
+            new artificial_table_t(
+                m_rdb_context, artificial_reql_cluster_interface_t::database_id, this)),
+        m_table_name.str()));
     guarantee(keyspec->table.has());
 
     *rows_out = make_counted<ql::vector_datum_stream_t>(
@@ -69,6 +90,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
 }
 
 bool artificial_table_backend_t::read_all_rows_as_vector(
+        UNUSED auth::user_context_t const &user_context,
         UNUSED signal_t *interruptor,
         UNUSED std::vector<ql::datum_t> *rows_out,
         UNUSED admin_err_t *error_out) {

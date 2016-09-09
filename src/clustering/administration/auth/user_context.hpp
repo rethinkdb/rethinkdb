@@ -23,7 +23,9 @@ public:
     explicit user_context_t(permissions_t permissions);
     explicit user_context_t(username_t username, bool read_only = false);
 
-    bool is_admin() const;
+    bool is_admin_user() const;
+
+    void require_admin_user() const THROWS_ONLY(permission_error_t);
 
     void require_read_permission(
             rdb_context_t *rdb_context,
@@ -54,6 +56,10 @@ public:
             rdb_context_t *rdb_context) const THROWS_ONLY(permission_error_t);
 
     std::string to_string() const;
+
+    bool operator<(user_context_t const &rhs) const;
+    bool operator==(user_context_t const &rhs) const;
+    bool operator!=(user_context_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(user_context_t);
 

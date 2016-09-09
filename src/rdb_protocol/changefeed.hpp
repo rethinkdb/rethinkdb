@@ -19,6 +19,7 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
+#include "containers/lifetime.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -36,9 +37,10 @@ class auto_drainer_t;
 class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
+class namespace_interface_access_t;
+class name_resolver_t;
 class real_superblock_t;
 class sindex_superblock_t;
-class table_meta_client_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
@@ -213,16 +215,15 @@ public:
             namespace_interface_access_t(
                 const namespace_id_t &,
                 signal_t *)
-            > &_namespace_source
-        );
+            > &_namespace_source,
+        lifetime_t<name_resolver_t const &> _name_resolver);
     ~client_t();
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const streamspec_t &ss,
         const namespace_id_t &table_id,
-        backtrace_id_t bt,
-        table_meta_client_t *table_meta_client);
+        backtrace_id_t bt);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
@@ -236,6 +237,7 @@ private:
             const namespace_id_t &,
             signal_t *)
         > const namespace_source;
+    name_resolver_t const &name_resolver;
     std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_stream` is called, and needs to be written to whenever
@@ -577,7 +579,9 @@ private:
 class artificial_feed_t;
 class artificial_t : public home_thread_mixin_t {
 public:
-    artificial_t();
+    artificial_t(
+        namespace_id_t const &table_id,
+        lifetime_t<name_resolver_t const &> name_resolver);
     virtual ~artificial_t();
 
     /* Rules for synchronization between `subscribe()` and `send_all()`:

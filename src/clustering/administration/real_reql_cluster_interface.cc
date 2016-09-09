@@ -2,6 +2,7 @@
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
+#include "clustering/administration/auth/grant.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/config_client.hpp"
@@ -34,8 +35,8 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         multi_table_manager_t *multi_table_manager,
         watchable_map_t<
             std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
-            table_query_bcard_t> *table_query_directory
-        ) :
+            table_query_bcard_t> *table_query_directory,
+        lifetime_t<name_resolver_t const &> name_resolver) :
     m_mailbox_manager(mailbox_manager),
     m_auth_semilattice_view(auth_semilattice_view),
     m_cluster_semilattice_view(cluster_semilattice_view),
@@ -52,7 +53,8 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         m_mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
             return this->m_namespace_repo.get_namespace_interface(id, interruptor);
-        }),
+        },
+        name_resolver),
     m_server_config_client(server_config_client)
 {
     guarantee(m_auth_semilattice_view->home_thread() == home_thread());
@@ -265,7 +267,7 @@ bool real_reql_cluster_interface_t::db_config(
         user_context.require_config_permission(m_rdb_context, db->id);
 
         make_single_selection(
-            admin_tables->db_config_backend.get(),
+            user_context,
             name_string_t::guarantee_valid("db_config"),
             db->id,
             backtrace_id,
@@ -404,10 +406,17 @@ bool real_reql_cluster_interface_t::table_drop(
         `table_meta_client_t` because this will return an error document instead of
         crashing if the table is not reachable. */
         ql::datum_t old_config;
-        artificial_table_backend_t *config_backend = admin_tables->table_config_backend[
-            static_cast<int>(admin_identifier_format_t::name)].get();
-        if (!config_backend->read_row(convert_uuid_to_datum(table_id),
-                &interruptor_on_home, &old_config, error_out)) {
+        artificial_table_backend_t *config_backend =
+            artificial_reql_cluster_interface->get_table_backend(
+                name_string_t::guarantee_valid("table_config"),
+                admin_identifier_format_t::name);
+        guarantee(config_backend != nullptr);
+        if (!config_backend->read_row(
+                user_context,
+                convert_uuid_to_datum(table_id),
+                &interruptor_on_home,
+                &old_config,
+                error_out)) {
             return false;
         } else if (!old_config.has()) {
             throw no_such_table_exc_t();
@@ -544,10 +553,12 @@ bool real_reql_cluster_interface_t::table_config(
         user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
         make_single_selection(
-            admin_tables->table_config_backend[
-                static_cast<int>(admin_identifier_format_t::name)].get(),
-            name_string_t::guarantee_valid("table_config"), table_id, bt,
-            env, selection_out);
+            user_context,
+            name_string_t::guarantee_valid("table_config"),
+            table_id,
+            bt,
+            env,
+            selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
         *error_out = admin_op_exc.to_admin_err();
@@ -566,10 +577,12 @@ bool real_reql_cluster_interface_t::table_status(
         namespace_id_t table_id;
         m_table_meta_client->find(db->id, name, &table_id);
         make_single_selection(
-            admin_tables->table_status_backend[
-                static_cast<int>(admin_identifier_format_t::name)].get(),
-            name_string_t::guarantee_valid("table_status"), table_id, bt,
-            env, selection_out);
+            env->get_user_context(),
+            name_string_t::guarantee_valid("table_status"),
+            table_id,
+            bt,
+            env,
+            selection_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
         *error_out = admin_op_exc.to_admin_err();
@@ -633,6 +646,7 @@ bool real_reql_cluster_interface_t::db_wait(
 }
 
 void real_reql_cluster_interface_t::reconfigure_internal(
+        auth::user_context_t const &user_context,
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
         const table_generate_config_params_t &params,
@@ -652,13 +666,19 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         table_id, convert_name_to_datum(db->name), old_config.config,
         admin_identifier_format_t::name, old_config.server_names);
 
-    table_status_artificial_table_backend_t *status_backend =
-        admin_tables->table_status_backend[
-            static_cast<int>(admin_identifier_format_t::name)].get();
+    artificial_table_backend_t *status_backend =
+        artificial_reql_cluster_interface->get_table_backend(
+            name_string_t::guarantee_valid("table_status"),
+            admin_identifier_format_t::name);
+    guarantee(status_backend != nullptr);
     ql::datum_t old_status;
     admin_err_t error;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
-            &old_status, &error)) {
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
+            &old_status,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!old_status.has()) {
         throw no_such_table_exc_t();
@@ -696,8 +716,12 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         table_id, convert_name_to_datum(db->name), new_config.config,
         admin_identifier_format_t::name, new_config.server_names);
     ql::datum_t new_status;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
-            &new_status, &error)) {
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
+            &new_status,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!new_status.has()) {
         throw no_such_table_exc_t();
@@ -737,7 +761,13 @@ bool real_reql_cluster_interface_t::table_reconfigure(
 
         user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
-        reconfigure_internal(db, table_id, params, dry_run, &interruptor_on_home,
+        reconfigure_internal(
+            user_context,
+            db,
+            table_id,
+            params,
+            dry_run,
+            &interruptor_on_home,
             result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
@@ -778,7 +808,13 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         ql::datum_t stats;
         try {
             reconfigure_internal(
-                db, table_id, params, dry_run, &interruptor_on_home, &stats);
+                user_context,
+                db,
+                table_id,
+                params,
+                dry_run,
+                &interruptor_on_home,
+                &stats);
         } catch (const no_such_table_exc_t &) {
             /* The table got deleted during the reconfiguration. It would be weird if
             `r.db('foo').reconfigure()` produced an error complaining that some table
@@ -801,6 +837,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
 }
 
 void real_reql_cluster_interface_t::emergency_repair_internal(
+        auth::user_context_t const &user_context,
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
         emergency_repair_mode_t mode,
@@ -820,13 +857,19 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
         table_id, convert_name_to_datum(db->name), old_config.config,
         admin_identifier_format_t::name, old_config.server_names);
 
-    table_status_artificial_table_backend_t *status_backend =
-        admin_tables->table_status_backend[
-            static_cast<int>(admin_identifier_format_t::name)].get();
+    artificial_table_backend_t *status_backend =
+        artificial_reql_cluster_interface->get_table_backend(
+            name_string_t::guarantee_valid("table_status"),
+            admin_identifier_format_t::name);
+    guarantee(status_backend != nullptr);
     ql::datum_t old_status;
     admin_err_t error;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
-            &old_status, &error)) {
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
+            &old_status,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!old_status.has()) {
         throw no_such_table_exc_t();
@@ -867,8 +910,12 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
         table_id, convert_name_to_datum(db->name), new_config.config,
         admin_identifier_format_t::name, new_config.server_names);
     ql::datum_t new_status;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
-            &new_status, &error)) {
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
+            &new_status,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!new_status.has()) {
         throw no_such_table_exc_t();
@@ -909,8 +956,14 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
 
         user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
-        emergency_repair_internal(db, table_id, mode, dry_run,
-            &interruptor_on_home, result_out);
+        emergency_repair_internal(
+            user_context,
+            db,
+            table_id,
+            mode,
+            dry_run,
+            &interruptor_on_home,
+            result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
         *error_out = admin_op_exc.to_admin_err();
@@ -925,6 +978,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
 }
 
 void real_reql_cluster_interface_t::rebalance_internal(
+        auth::user_context_t const &user_context,
         const namespace_id_t &table_id,
         signal_t *interruptor_on_home,
         ql::datum_t *results_out)
@@ -936,13 +990,19 @@ void real_reql_cluster_interface_t::rebalance_internal(
     table_config_and_shards_t config;
     m_table_meta_client->get_config(table_id, interruptor_on_home, &config);
 
-    table_status_artificial_table_backend_t *status_backend =
-        admin_tables->table_status_backend[
-            static_cast<int>(admin_identifier_format_t::name)].get();
+    artificial_table_backend_t *status_backend =
+        artificial_reql_cluster_interface->get_table_backend(
+            name_string_t::guarantee_valid("table_status"),
+            admin_identifier_format_t::name);
+    guarantee(status_backend != nullptr);
     ql::datum_t old_status;
     admin_err_t error;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
-            &old_status, &error)) {
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
+            &old_status,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!old_status.has()) {
         throw no_such_table_exc_t();
@@ -963,7 +1023,10 @@ void real_reql_cluster_interface_t::rebalance_internal(
     }
 
     ql::datum_t new_status;
-    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
+    if (!status_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(table_id),
+            interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
     } else if (!new_status.has()) {
@@ -994,7 +1057,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
 
         user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
-        rebalance_internal(table_id, &interruptor_on_home, result_out);
+        rebalance_internal(user_context, table_id, &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &admin_op_exc) {
         *error_out = admin_op_exc.to_admin_err();
@@ -1031,7 +1094,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
     for (const auto &table_id : table_ids) {
         ql::datum_t stats;
         try {
-            rebalance_internal(table_id, &interruptor_on_home, &stats);
+            rebalance_internal(user_context, table_id, &interruptor_on_home, &stats);
         } catch (const no_such_table_exc_t &) {
             /* This table was deleted while we were iterating over the tables list. So
             just ignore it to avoid making a confusing error message. */
@@ -1051,83 +1114,6 @@ bool real_reql_cluster_interface_t::db_rebalance(
     return true;
 }
 
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
-
-template <typename T>
-bool grant_internal(
-        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
-            auth_semilattice_view,
-        rdb_context_t *rdb_context,
-        auth::user_context_t const &user_context,
-        auth::username_t username,
-        ql::datum_t permissions,
-        signal_t *interruptor,
-        T permission_selector_function,
-        ql::datum_t *result_out,
-        admin_err_t *error_out) {
-    if (!user_context.is_admin()) {
-        *error_out = admin_err_t{
-            "Only administrators can grant permissions.",
-            query_state_t::FAILED};
-        return false;
-    }
-
-    if (username.is_admin()) {
-        *error_out = admin_err_t{
-            "The permissions of the user `" + username.to_string() +
-                "` can't be modified.",
-            query_state_t::FAILED};
-        return false;
-    }
-
-    auth_semilattice_metadata_t auth_metadata = auth_semilattice_view->get();
-    auto grantee = auth_metadata.m_users.find(username);
-    if (grantee == auth_metadata.m_users.end() ||
-            !static_cast<bool>(grantee->second.get_ref())) {
-        *error_out = admin_err_t{
-            "User `" + username.to_string() + "` not found.", query_state_t::FAILED};
-        return false;
-    }
-
-    ql::datum_t old_permissions;
-    ql::datum_t new_permissions;
-    try {
-        grantee->second.apply_write([&](boost::optional<auth::user_t> *user) {
-            auto &permissions_ref = permission_selector_function(user->get());
-            old_permissions = permissions_ref.to_datum();
-            permissions_ref.merge(permissions);
-            new_permissions = permissions_ref.to_datum();
-        });
-    } catch (admin_op_exc_t const &admin_op_exc) {
-        *error_out = admin_op_exc.to_admin_err();
-        return false;
-    }
-
-    auth_semilattice_view->join(auth_metadata);
-
-    // Wait for the metadata to propegate
-    rdb_context->get_auth_watchable()->run_until_satisfied(
-        [&](auth_semilattice_metadata_t const &metadata) -> bool {
-            return is_joined(auth_metadata, metadata);
-        },
-        interruptor);
-
-    ql::datum_object_builder_t result_builder;
-    result_builder.overwrite("granted", ql::datum_t(1.0));
-    result_builder.overwrite(
-        "permissions_changes",
-        make_replacement_pair(old_permissions, new_permissions));
-    *result_out = std::move(result_builder).to_datum();
-    return true;
-}
-
 bool real_reql_cluster_interface_t::grant_global(
         auth::user_context_t const &user_context,
         auth::username_t username,
@@ -1135,15 +1121,16 @@ bool real_reql_cluster_interface_t::grant_global(
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
+    cross_thread_signal_t interruptor_on_home(interruptor, home_thread());
     on_thread_t on_thread(home_thread());
 
-    return grant_internal(
+    return auth::grant(
         m_auth_semilattice_view,
         m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
-        interruptor,
+        &interruptor_on_home,
         [](auth::user_t &user) -> auth::permissions_t & {
             return user.get_global_permissions();
         },
@@ -1159,18 +1146,16 @@ bool real_reql_cluster_interface_t::grant_database(
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    guarantee(
-        !database_id.is_nil(),
-        "`real_reql_cluster_interface_t` should never get queries for system tables");
+    cross_thread_signal_t interruptor_on_home(interruptor, home_thread());
     on_thread_t on_thread(home_thread());
 
-    return grant_internal(
+    return auth::grant(
         m_auth_semilattice_view,
         m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
-        interruptor,
+        &interruptor_on_home,
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_database_permissions(database_id);
         },
@@ -1180,25 +1165,23 @@ bool real_reql_cluster_interface_t::grant_database(
 
 bool real_reql_cluster_interface_t::grant_table(
         auth::user_context_t const &user_context,
-        database_id_t const &database_id,
+        UNUSED database_id_t const &database_id,
         namespace_id_t const &table_id,
         auth::username_t username,
         ql::datum_t permissions,
         signal_t *interruptor,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    guarantee(
-        !database_id.is_nil() && !table_id.is_nil(),
-        "`real_reql_cluster_interface_t` should never get queries for system tables");
+    cross_thread_signal_t interruptor_on_home(interruptor, home_thread());
     on_thread_t on_thread(home_thread());
 
-    return grant_internal(
+    return auth::grant(
         m_auth_semilattice_view,
         m_rdb_context,
         user_context,
         std::move(username),
         std::move(permissions),
-        interruptor,
+        &interruptor_on_home,
         [&](auth::user_t &user) -> auth::permissions_t & {
             return user.get_table_permissions(table_id);
         },
@@ -1418,6 +1401,15 @@ bool real_reql_cluster_interface_t::sindex_list(
         "Failed to retrieve all secondary indexes.")
 }
 
+/* Checks that divisor is indeed a divisor of multiple. */
+template <class T>
+bool is_joined(const T &multiple, const T &divisor) {
+    T cpy = multiple;
+
+    semilattice_join(&cpy, divisor);
+    return cpy == multiple;
+}
+
 void real_reql_cluster_interface_t::wait_for_cluster_metadata_to_propagate(
         const cluster_semilattice_metadata_t &metadata,
         signal_t *interruptor_on_caller) {
@@ -1446,28 +1438,52 @@ void real_reql_cluster_interface_t::get_databases_metadata(
 }
 
 void real_reql_cluster_interface_t::make_single_selection(
-        artificial_table_backend_t *table_backend,
+        auth::user_context_t const &user_context,
         const name_string_t &table_name,
         const uuid_u &primary_key,
         ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, admin_op_exc_t) {
-    ql::datum_t row;
+    artificial_table_backend_t *table_backend =
+        artificial_reql_cluster_interface->get_table_backend(
+            table_name,
+            admin_identifier_format_t::name);
+    guarantee(table_backend != nullptr);
+
     admin_err_t error;
-    if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
-            &row, &error)) {
+
+    ql::datum_t row;
+    if (!table_backend->read_row(
+            user_context,
+            convert_uuid_to_datum(primary_key),
+            env->interruptor,
+            &row,
+            &error)) {
         throw admin_op_exc_t(error);
     } else if (!row.has()) {
         /* This is unlikely, but it can happen if the object is deleted between when we
         look up its name and when we call `read_row()` */
         throw no_such_table_exc_t();
     }
+
+    counted_t<ql::db_t const> db;
+    if (!artificial_reql_cluster_interface->db_find(
+            name_string_t::guarantee_valid("rethinkdb"),
+            env->interruptor,
+            &db,
+            &error)) {
+        throw admin_op_exc_t(error);
+    }
+
     counted_t<ql::table_t> table = make_counted<ql::table_t>(
-        counted_t<base_table_t>(new artificial_table_t(table_backend, false)),
-        make_counted<const ql::db_t>(
-            nil_uuid(), name_string_t::guarantee_valid("rethinkdb")),
-        table_name.str(), read_mode_t::SINGLE, bt);
+        counted_t<base_table_t>(
+            new artificial_table_t(m_rdb_context, db->id, table_backend)),
+        db,
+        table_name.str(),
+        read_mode_t::SINGLE,
+        bt);
+
     *selection_out = make_scoped<ql::val_t>(
         ql::single_selection_t::from_row(env, bt, table, row),
         bt);

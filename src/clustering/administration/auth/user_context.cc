@@ -19,11 +19,17 @@ user_context_t::user_context_t(username_t username, bool read_only)
       m_read_only(read_only) {
 }
 
-bool user_context_t::is_admin() const {
+bool user_context_t::is_admin_user() const {
     if (auto const *username = boost::get<username_t>(&m_context)) {
         return username->is_admin();
     } else {
         return false;
+    }
+}
+
+void user_context_t::require_admin_user() const THROWS_ONLY(permission_error_t) {
+    if (!is_admin_user()) {
+        throw permission_error_t("admin");
     }
 }
 
@@ -51,15 +57,18 @@ void require_permission_internal(
         if (read_only) {
             throw auth::permission_error_t(*username, permission_name);
         }
-        rdb_context->get_auth_watchable()->apply_read(
-            [&](auth_semilattice_metadata_t const *auth_metadata) {
-                auto user = auth_metadata->m_users.find(*username);
-                if (user == auth_metadata->m_users.end() ||
-                        !static_cast<bool>(user->second.get_ref()) ||
-                        !username_selector_function(user->second.get_ref().get())) {
-                    throw auth::permission_error_t(*username, permission_name);
-                }
-           });
+        // The admin user always has the permission
+        if (!username->is_admin()) {
+            rdb_context->get_auth_watchable()->apply_read(
+                [&](auth_semilattice_metadata_t const *auth_metadata) {
+                    auto user = auth_metadata->m_users.find(*username);
+                    if (user == auth_metadata->m_users.end() ||
+                            !static_cast<bool>(user->second.get_ref()) ||
+                            !username_selector_function(user->second.get_ref().get())) {
+                        throw auth::permission_error_t(*username, permission_name);
+                    }
+               });
+        }
     } else {
         unreachable();
     }
@@ -207,6 +216,18 @@ std::string user_context_t::to_string() const {
     } else {
         return "internal";
     }
+}
+
+bool user_context_t::operator<(user_context_t const &rhs) const {
+    return std::tie(m_context, m_read_only) < std::tie(rhs.m_context, rhs.m_read_only);
+}
+
+bool user_context_t::operator==(user_context_t const &rhs) const {
+    return std::tie(m_context, m_read_only) == std::tie(rhs.m_context, rhs.m_read_only);
+}
+
+bool user_context_t::operator!=(user_context_t const &rhs) const {
+    return !(*this == rhs);
 }
 
 RDB_IMPL_SERIALIZABLE_2(

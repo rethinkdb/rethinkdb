@@ -20,6 +20,7 @@ public:
 
     bool operator<(username_t const &rhs) const;
     bool operator==(username_t const &rhs) const;
+    bool operator!=(username_t const &rhs) const;
 
     RDB_DECLARE_ME_SERIALIZABLE(username_t);
 

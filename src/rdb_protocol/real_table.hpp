@@ -17,6 +17,7 @@ namespace changefeed {
 class client_t;
 }
 }
+class table_meta_client_t;
 
 /* `real_table_t` is a concrete subclass of `base_table_t` that routes its queries across
 the network via the clustering logic to a B-tree. The administration logic is responsible

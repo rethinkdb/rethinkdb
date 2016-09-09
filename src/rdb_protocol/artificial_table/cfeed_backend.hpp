@@ -4,6 +4,7 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "containers/scoped.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/changefeed.hpp"
 
@@ -31,7 +32,14 @@ public:
 protected:
     class machinery_t : private ql::changefeed::artificial_t {
     public:
-        machinery_t() : last_subscriber_time(current_microtime()) { }
+        machinery_t(
+                namespace_id_t const &table_id,
+                lifetime_t<name_resolver_t const &> name_resolver,
+                auth::user_context_t const &user_context)
+            : ql::changefeed::artificial_t(table_id, name_resolver),
+              m_user_context(user_context),
+              last_subscriber_time(current_microtime()) {
+        }
         virtual ~machinery_t() { }
 
     protected:
@@ -54,6 +62,7 @@ protected:
             signal_t *interruptor) = 0;
 
         new_mutex_t mutex;
+        auth::user_context_t m_user_context;
 
     private:
         friend class cfeed_artificial_table_backend_t;
@@ -65,7 +74,10 @@ protected:
         microtime_t last_subscriber_time;
     };
 
-    cfeed_artificial_table_backend_t();
+    cfeed_artificial_table_backend_t(
+            name_string_t const &table_name,
+            rdb_context_t *rdb_context,
+            lifetime_t<name_resolver_t const &> name_resolver);
     virtual ~cfeed_artificial_table_backend_t();
 
     /* `cfeed_artificial_table_backend_t` guarantees that it will never have two sets of
@@ -73,6 +85,8 @@ protected:
 
     /* Subclasses should override this to return their own subclass of `machinery_t`. */
     virtual scoped_ptr_t<machinery_t> construct_changefeed_machinery(
+        lifetime_t<name_resolver_t const &> name_resolver,
+        auth::user_context_t const &user_context,
         signal_t *interruptor) = 0;
 
     /* The subclass must call this in its destructor. It ensures that the changefeed
@@ -83,7 +97,8 @@ protected:
 
 private:
     void maybe_remove_machinery();
-    scoped_ptr_t<machinery_t> machinery;
+    name_resolver_t const &m_name_resolver;
+    std::map<auth::user_context_t, scoped_ptr_t<machinery_t>> machineries;
     new_mutex_t mutex;
     bool begin_destruction_was_called;
     auto_drainer_t drainer;

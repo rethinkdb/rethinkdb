@@ -27,9 +27,11 @@
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
+#include "clustering/administration/tables/name_resolver.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "containers/lifetime.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -331,6 +333,10 @@ bool do_serve(io_backender_t *io_backender,
                     table_directory_read_manager.get_root_view()));
             }
 
+            artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
+                semilattice_manager_auth.get_root_view(),
+                &rdb_ctx);
+
             /* The `table_meta_client_t` sends messages to the `multi_table_manager_t`s
             on the other servers in the cluster to create, drop, and reconfigure tables,
             as well as request information about them. */
@@ -340,6 +346,11 @@ bool do_serve(io_backender_t *io_backender,
                 &multi_table_manager_directory,
                 table_directory_read_manager.get_root_view(),
                 &server_config_client);
+
+            name_resolver_t name_resolver(
+                semilattice_manager_cluster.get_root_view(),
+                &table_meta_client,
+                make_lifetime(artificial_reql_cluster_interface));
 
             /* The `real_reql_cluster_interface_t` is the interface that the ReQL logic
             uses to create, destroy, and reconfigure databases and tables. */
@@ -351,11 +362,14 @@ bool do_serve(io_backender_t *io_backender,
                 &server_config_client,
                 &table_meta_client,
                 multi_table_manager.get(),
-                table_query_directory_read_manager.get_root_view());
+                table_query_directory_read_manager.get_root_view(),
+                make_lifetime(name_resolver));
 
-            /* `admin_artificial_tables_t` is a container for all of the tables in the
-            `rethinkdb` system database. */
-            admin_artificial_tables_t admin_tables(
+            artificial_reql_cluster_interface.set_next_reql_cluster_interface(
+                &real_reql_cluster_interface);
+
+            artificial_reql_cluster_backends_t artificial_reql_cluster_backends(
+                &artificial_reql_cluster_interface,
                 &real_reql_cluster_interface,
                 semilattice_manager_auth.get_root_view(),
                 semilattice_manager_cluster.get_root_view(),
@@ -364,8 +378,9 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_map_view(),
                 &table_meta_client,
                 &server_config_client,
-                real_reql_cluster_interface.get_namespace_repo(),
-                &mailbox_manager);
+                &mailbox_manager,
+                &rdb_ctx,
+                make_lifetime(name_resolver));
 
             /* Kick off a coroutine to log any outdated indexes. */
             outdated_index_issue_tracker_t::log_outdated_indexes(
@@ -396,14 +411,17 @@ bool do_serve(io_backender_t *io_backender,
             `real_reql_cluster_interface_t` because `table_config` needs to be able to
             run distribution queries. The simplest solution is for them to have
             references to each other. This is the place where we "close the loop". */
-            real_reql_cluster_interface.admin_tables = &admin_tables;
+            real_reql_cluster_interface.artificial_reql_cluster_interface =
+                &artificial_reql_cluster_interface;
 
             /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it
             can find tables and run meta-queries, but the `real_reql_cluster_interface_t`
             needs access to the `rdb_context_t` so that it can construct instances of
             `cluster_namespace_interface_t`. Again, we solve this problem by having a
-            circular reference. */
-            rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
+            circular reference. Note that the cluster interface is a chain of command,
+            the `artificial_reql_cluster_interface` proxies to the
+            `real_reql_cluster_interface`. */
+            rdb_ctx.cluster_interface = &artificial_reql_cluster_interface;
 
             /* `memory_checker` periodically checks to see if we are using swap
                     memory, and will log a warning. */
