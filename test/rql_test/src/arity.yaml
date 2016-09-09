@@ -310,7 +310,7 @@ tests:
         cd: err('ReqlCompileError','Expected 3 arguments but found 4.',[])
         js: err('ReqlCompileError','Expected 2 arguments (not including options) but found 3.',[])
 
-    - cd:
-        - r.now('foo')
-        - r.now(r.args([1,2,3]))
-      ot: err('ReqlCompileError','NOW does not accept any args.')
+    - cd: r.now('foo')
+      ot: err('ReqlServerCompileError','Expected 0 arguments but found 1.')
+    - cd: r.now(r.args([1,2,3]))
+      ot: err('ReqlQueryLogicError','Expected 0 arguments but found 3.')

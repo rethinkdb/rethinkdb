@@ -553,6 +553,13 @@ const std::set<ip_and_port_t>& peer_address_t::ips() const {
     return resolved_ips;
 }
 
+void peer_address_t::erase_ip(const ip_and_port_t &ip) {
+    auto it = resolved_ips.find(ip);
+    if (it != resolved_ips.end()) {
+        resolved_ips.erase(it);
+    }
+}
+
 // Two addresses are considered equal if all of their hosts match
 bool peer_address_t::operator == (const peer_address_t &a) const {
     std::set<host_and_port_t>::const_iterator it, jt;

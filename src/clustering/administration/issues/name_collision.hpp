@@ -15,7 +15,7 @@ class name_collision_issue_tracker_t : public issue_tracker_t {
 public:
     name_collision_issue_tracker_t(
         server_config_client_t *_server_config_client,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         table_meta_client_t *_table_meta_client);
 
@@ -25,7 +25,7 @@ public:
 
 private:
     server_config_client_t *server_config_client;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
     table_meta_client_t *table_meta_client;
 

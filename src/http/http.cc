@@ -22,15 +22,19 @@ http_req_t::resource_t::resource_t() {
 }
 
 http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const http_req_t::resource_t::iterator& resource_start)
-    : val(from.val), val_size(from.val_size), b(resource_start), e(from.e) {
+    : val(from.val), b(resource_start), e(from.e) {
 }
 
 http_req_t::resource_t::resource_t(const std::string &_val) {
-    if (!assign(_val)) throw std::invalid_argument(_val);
+    if (!assign(_val)) {
+        throw std::invalid_argument(_val);
+    }
 }
 
 http_req_t::resource_t::resource_t(const char * _val, size_t size) {
-    if (!assign(_val, size)) throw std::invalid_argument(_val);
+    if (!assign(_val, size)) {
+        throw std::invalid_argument(_val);
+    }
 }
 
 // Returns false if the assignment fails.
@@ -40,13 +44,15 @@ MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
 
 // Returns false if the assignment fails.
 MUST_USE bool http_req_t::resource_t::assign(const char * _val, size_t size) {
-    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) return false;
-    val.reset(new char[size]);
-    memcpy(val.get(), _val, size);
-    val_size = size;
+    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) {
+        return false;
+    }
+    counted_t<shared_buf_t> buf = shared_buf_t::create(size);
+    memcpy(buf->data(), _val, size);
+    val = std::move(buf);
 
     // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.
-    tokenizer t(val.get() + 1, val.get() + size, resource_parts_sep);
+    tokenizer t(val->data() + 1, val->data() + size, resource_parts_sep);
     b = t.begin();
     e = t.end();
     return true;
@@ -66,9 +72,9 @@ std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iter
     } else {
         // -1 for the '/' before the token start
         const char* sub_resource = token_start_position(it) - 1;
-        guarantee(sub_resource >= val.get() && sub_resource < val.get() + val_size);
+        guarantee(sub_resource >= val->data() && sub_resource < val->data() + val->size());
 
-        size_t sub_resource_len = val_size - (sub_resource - val.get());
+        size_t sub_resource_len = val->size() - (sub_resource - val->data());
         return std::string(sub_resource, sub_resource_len);
     }
 }
@@ -79,7 +85,7 @@ std::string http_req_t::resource_t::as_string() const {
 
 const char* http_req_t::resource_t::token_start_position(const http_req_t::resource_t::iterator& it) const {
     if (it == e) {
-        return val.get() + val_size;
+        return val->data() + val->size();
     } else {
         // Ugh, this is quite awful, but boost tokenizer iterator can't give us the pointer to the beginning of the data.
         //

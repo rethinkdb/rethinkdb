@@ -29,6 +29,26 @@ bool sindex_config_t::operator==(const sindex_config_t &o) const {
 RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(sindex_config_t,
     func, func_version, multi, geo);
 
+bool write_hook_config_t::operator==(const write_hook_config_t &o) const {
+    if (func_version != o.func_version) {
+        return false;
+    }
+    /* This is kind of a hack--we compare the functions by serializing them and comparing
+    the serialized values. */
+    write_message_t wm1, wm2;
+    serialize<cluster_version_t::CLUSTER>(&wm1, func);
+    serialize<cluster_version_t::CLUSTER>(&wm2, o.func);
+    vector_stream_t stream1, stream2;
+    int res = send_write_message(&stream1, &wm1);
+    guarantee(res == 0);
+    res = send_write_message(&stream2, &wm2);
+    guarantee(res == 0);
+    return stream1.vector() == stream2.vector();
+}
+
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_4(write_hook_config_t,
+    func, func_version);
+
 void sindex_status_t::accum(const sindex_status_t &other) {
     progress_numerator += other.progress_numerator;
     progress_denominator += other.progress_denominator;
@@ -64,7 +84,7 @@ rdb_context_t::rdb_context_t()
 rdb_context_t::rdb_context_t(
         extproc_pool_t *_extproc_pool,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view)
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
@@ -78,7 +98,7 @@ rdb_context_t::rdb_context_t(
         extproc_pool_t *_extproc_pool,
         mailbox_manager_t *_mailbox_manager,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         perfmon_collection_t *global_stats,
         const std::string &_reql_http_proxy)
@@ -91,7 +111,7 @@ rdb_context_t::rdb_context_t(
 }
 
 void rdb_context_t::init_auth_watchables(
-    boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+    std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
         auth_semilattice_view) {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         m_cross_thread_auth_watchables.emplace_back(

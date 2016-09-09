@@ -3,13 +3,13 @@
 #define RDB_PROTOCOL_CONTEXT_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
@@ -78,6 +78,22 @@ public:
     sindex_geo_bool_t geo;
 };
 RDB_DECLARE_SERIALIZABLE(sindex_config_t);
+
+class write_hook_config_t {
+public:
+    write_hook_config_t() { }
+    write_hook_config_t(const ql::wire_func_t &_func, reql_version_t _func_version) :
+        func(_func), func_version(_func_version) { }
+
+    bool operator==(const write_hook_config_t &o) const;
+    bool operator!=(const write_hook_config_t &o) const {
+        return !(*this == o);
+    }
+
+    ql::wire_func_t func;
+    reql_version_t func_version;
+};
+RDB_DECLARE_SERIALIZABLE(write_hook_config_t);
 
 class sindex_status_t {
 public:
@@ -192,7 +208,9 @@ public:
         ql::env_t *env,
         const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
-        return_changes_t _return_changes, durability_requirement_t durability) = 0;
+        return_changes_t _return_changes,
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook) = 0;
     virtual ql::datum_t write_batched_insert(
         ql::env_t *env,
         std::vector<ql::datum_t> &&inserts,
@@ -200,7 +218,8 @@ public:
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
-        durability_requirement_t durability) = 0;
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook) = 0;
     virtual bool write_sync_depending_on_durability(
         ql::env_t *env,
         durability_requirement_t durability) = 0;
@@ -379,6 +398,22 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out) = 0;
 
+    virtual bool set_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            boost::optional<write_hook_config_t> &config,
+            signal_t *interruptor,
+            admin_err_t *error_out) = 0;
+
+    virtual bool get_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            ql::datum_t *write_hook_datum_out,
+            admin_err_t *error_out) = 0;
+
     virtual bool sindex_create(
             auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
@@ -424,7 +459,7 @@ public:
     // Also used by unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   reql_cluster_interface_t *_cluster_interface,
-                  boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+                  std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
                       auth_semilattice_view);
 
     // The "real" constructor used outside of unit tests.
@@ -432,7 +467,7 @@ public:
         extproc_pool_t *_extproc_pool,
         mailbox_manager_t *_mailbox_manager,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         perfmon_collection_t *global_stats,
         const std::string &_reql_http_proxy);
@@ -470,7 +505,7 @@ public:
 
 private:
     void init_auth_watchables(
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view);
 
     std::vector<std::unique_ptr<cross_thread_watchable_variable_t<

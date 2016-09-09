@@ -39,8 +39,10 @@ struct make_sindex_read_t {
                 region_t::universe(),
                 boost::none,
                 boost::none,
-                ql::global_optargs_t(),
-                auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                serializable_env_t{
+                    ql::global_optargs_t(),
+                    auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                    ql::datum_t()},
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),

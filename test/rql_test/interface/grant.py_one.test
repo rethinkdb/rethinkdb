@@ -136,3 +136,15 @@ with driver.Process() as process:
         assert False, res
     except r.ReqlOpFailedError, err:
         assert err.message == "The permissions of the user `admin` can't be modified.", err
+
+    res = r.db("rethinkdb").grant("test", {"read": True, "write": True}).run(conn)
+    assert res["granted"] == 1, res
+    assert len(res["permissions_changes"]) == 1, res
+    assert res["permissions_changes"][0]["old_val"] == None, res
+    assert res["permissions_changes"][0]["new_val"] == {u'read': True, u'write': True}, res
+
+    res = r.db("rethinkdb").table("stats").grant("test", {"read": True}).run(conn)
+    assert res["granted"] == 1, res
+    assert len(res["permissions_changes"]) == 1, res
+    assert res["permissions_changes"][0]["old_val"] == None, res
+    assert res["permissions_changes"][0]["new_val"] == {u'read': True}, res

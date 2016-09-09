@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "containers/name_string.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/context.hpp"
 
 /* `artificial_table_t` is the subclass of `base_table_t` that represents a table in the
@@ -20,8 +22,10 @@ class artificial_table_backend_t;
 
 class artificial_table_t : public base_table_t {
 public:
-    explicit artificial_table_t(
-        artificial_table_backend_t *_backend, bool check_permissions = true);
+    artificial_table_t(
+        rdb_context_t *rdb_context,
+        database_id_t const &database_id,
+        artificial_table_backend_t *backend);
 
     namespace_id_t get_id() const;
     const std::string &get_pkey() const;
@@ -63,7 +67,9 @@ public:
         ql::env_t *env,
         const std::vector<ql::datum_t> &keys,
         const counted_t<const ql::func_t> &func,
-        return_changes_t _return_changes, durability_requirement_t durability);
+        return_changes_t _return_changes,
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook);
     ql::datum_t write_batched_insert(
         ql::env_t *env,
         std::vector<ql::datum_t> &&inserts,
@@ -71,10 +77,13 @@ public:
         conflict_behavior_t conflict_behavior,
         boost::optional<counted_t<const ql::func_t> > conflict_func,
         return_changes_t return_changes,
-        durability_requirement_t durability);
+        durability_requirement_t durability,
+        ignore_write_hook_t ignore_write_hook);
     bool write_sync_depending_on_durability(
         ql::env_t *env,
         durability_requirement_t durability);
+
+    static const uuid_u base_table_id;
 
 private:
     /* `do_single_update()` can throw `interrupted_exc_t`, but it shouldn't throw query
@@ -91,9 +100,10 @@ private:
         ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout);
 
-    artificial_table_backend_t *backend;
-    std::string primary_key;
-    bool m_check_permissions;
+    rdb_context_t *m_rdb_context;
+    database_id_t m_database_id;
+    artificial_table_backend_t *m_backend;
+    std::string m_primary_key_name;
 };
 
 #endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_ */

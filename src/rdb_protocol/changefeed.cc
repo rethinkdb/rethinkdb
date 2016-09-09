@@ -6,7 +6,7 @@
 #include "boost_utils.hpp"
 #include "btree/reql_specific.hpp"
 #include "clustering/administration/auth/user_context.hpp"
-#include "clustering/table_manager/table_meta_client.hpp"
+#include "clustering/administration/tables/name_resolver.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -870,6 +870,7 @@ limit_manager_t::limit_manager_t(
         drainer.get_drain_signal(),
         std::move(optargs),
         std::move(user_context),
+        datum_t(),
         nullptr);
 
     guarantee(ops.size() == 0);
@@ -1593,7 +1594,7 @@ class limit_sub_t;
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
-    feed_t(namespace_id_t const &, table_meta_client_t *);
+    feed_t(namespace_id_t const &, lifetime_t<name_resolver_t const &>);
     virtual ~feed_t();
 
     void add_point_sub(point_sub_t *sub, const store_key_t &key) THROWS_NOTHING;
@@ -1634,8 +1635,8 @@ public:
         return table_id;
     }
 
-    table_meta_client_t *get_table_meta_client() const {
-        return table_meta_client;
+    name_resolver_t const &get_name_resolver() const {
+        return name_resolver;
     }
 protected:
     bool detached;
@@ -1690,7 +1691,7 @@ private:
     one_per_thread_t<stamps_t> stamps;
 
     namespace_id_t table_id;
-    table_meta_client_t *table_meta_client;
+    name_resolver_t const &name_resolver;
 };
 
 void feed_t::update_stamps(uuid_u server_uuid, uint64_t stamp) {
@@ -1719,7 +1720,7 @@ public:
                 namespace_interface_t *ns_if,
                 namespace_id_t const &table_id,
                 signal_t *interruptor,
-                table_meta_client_t *table_meta_client);
+                lifetime_t<name_resolver_t const &> name_resolver);
     ~real_feed_t();
 
     client_t::addr_t get_addr() const;
@@ -1769,8 +1770,8 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                          namespace_interface_t *ns_if,
                          namespace_id_t const &_table_id,
                          signal_t *interruptor,
-                         table_meta_client_t *_table_meta_client)
-    : feed_t(_table_id, _table_meta_client),
+                         lifetime_t<name_resolver_t const &> _name_resolver)
+    : feed_t(_table_id, _name_resolver),
       client_lock(std::move(_client_lock)),
       client(_client),
       table_id(_table_id),
@@ -2382,8 +2383,10 @@ private:
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
-                outer_env->get_all_optargs(),
-                outer_env->get_user_context(),
+                serializable_env_t{
+                    outer_env->get_all_optargs(),
+                    outer_env->get_user_context(),
+                    outer_env->get_deterministic_time()},
                 nullptr/*don't profile*/);
     }
 
@@ -2739,8 +2742,7 @@ public:
                        uuid,
                        spec,
                        std::move(table),
-                       env->get_all_optargs(),
-                       env->get_user_context(),
+                       env->get_serializable_env(),
                        spec.range.sindex
                            ? region_t::universe()
                            : region_t(
@@ -3337,23 +3339,23 @@ subscription_t::get_els(batcher_t *batcher,
         r_sanity_check(false);
     }
 
-    // FIXME changefeeds on artificial tables
-    if (feed != nullptr &&
-            !feed->get_table_id().is_nil() &&
-            feed->get_table_meta_client() != nullptr &&
-            rdb_context != nullptr) {
+    if (feed != nullptr && rdb_context != nullptr) {
         try {
-            table_basic_config_t table_basic_config;
-            feed->get_table_meta_client()->get_name(
-                feed->get_table_id(), &table_basic_config);
-
-            user_context.require_read_permission(
-                rdb_context, table_basic_config.database, feed->get_table_id());
-        } catch (no_such_table_exc_t const &no_such_table_exc) {
-            stop(
-                std::make_exception_ptr(
-                    datum_exc_t(base_exc_t::OP_FAILED, no_such_table_exc.what())),
-                detach_t::NO);
+            boost::optional<table_basic_config_t> table_basic_config =
+                feed->get_name_resolver().table_id_to_basic_config(
+                    feed->get_table_id());
+            if (!static_cast<bool>(table_basic_config)) {
+                stop(
+                    // The error message below is copied from `no_such_table_exc_t`.
+                    std::make_exception_ptr(
+                        datum_exc_t(
+                            base_exc_t::OP_FAILED,
+                            "There is no table with the given name / UUID.")),
+                    detach_t::NO);
+            } else {
+                user_context.require_read_permission(
+                    rdb_context, table_basic_config->database, feed->get_table_id());
+            }
         } catch (auth::permission_error_t const permission_error) {
             stop(
                 std::make_exception_ptr(
@@ -3715,13 +3717,15 @@ void feed_t::stop_subs(const auto_drainer_t::lock_t &lock) {
     guarantee(num_subs == 0);
 }
 
-feed_t::feed_t(namespace_id_t const &_table_id, table_meta_client_t *_table_meta_client)
+feed_t::feed_t(
+        namespace_id_t const &_table_id,
+        lifetime_t<name_resolver_t const &>_name_resolver)
   : detached(false),
     num_subs(0),
     empty_subs(get_num_threads()),
     range_subs(get_num_threads()),
     table_id(_table_id),
-    table_meta_client(_table_meta_client) { }
+    name_resolver(_name_resolver) { }
 
 feed_t::~feed_t() {
     guarantee(num_subs == 0);
@@ -3734,9 +3738,11 @@ client_t::client_t(
             namespace_interface_access_t(
                 const namespace_id_t &,
                 signal_t *)
-            > &_namespace_source) :
+            > &_namespace_source,
+        lifetime_t<name_resolver_t const &> _name_resolver) :
     manager(_manager),
-    namespace_source(_namespace_source)
+    namespace_source(_namespace_source),
+    name_resolver(_name_resolver)
 {
     guarantee(manager != NULL);
 }
@@ -3829,8 +3835,7 @@ counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     const streamspec_t &ss,
     const namespace_id_t &table_id,
-    backtrace_id_t bt,
-    table_meta_client_t *table_meta_client) {
+    backtrace_id_t bt) {
     bool is_second_try = false;
     uuid_u last_feed_uuid;
     for (;;) {
@@ -3877,8 +3882,13 @@ counted_t<datum_stream_t> client_t::new_stream(
                     // only be run for the first one.  Rather than mess
                     // about, just use the defaults.
                     auto val = make_scoped<real_feed_t>(
-                        lock, this, manager, access.get(), table_id, &interruptor,
-                        table_meta_client);
+                        lock,
+                        this,
+                        manager,
+                        access.get(),
+                        table_id,
+                        &interruptor,
+                        make_lifetime(name_resolver));
                     feed_it = feeds.insert(
                         std::make_pair(table_id, std::move(val))).first;
                 }
@@ -3961,8 +3971,11 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(
 
 class artificial_feed_t : public feed_t {
 public:
-    explicit artificial_feed_t(artificial_t *_parent)
-        : feed_t(nil_uuid(), nullptr),
+    artificial_feed_t(
+            namespace_id_t const &table_id,
+            lifetime_t<name_resolver_t const &> name_resolver,
+            artificial_t *_parent)
+        : feed_t(table_id, name_resolver),
           parent(_parent) { }
     ~artificial_feed_t() { detached = true; }
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
@@ -3981,8 +3994,12 @@ private:
     auto_drainer_t drainer;
 };
 
-artificial_t::artificial_t()
-    : stamp(0), uuid(generate_uuid()), feed(make_scoped<artificial_feed_t>(this)) { }
+artificial_t::artificial_t(
+        namespace_id_t const &table_id,
+        lifetime_t<name_resolver_t const &> name_resolver)
+    : stamp(0),
+      uuid(generate_uuid()),
+      feed(make_scoped<artificial_feed_t>(table_id, name_resolver, this)) { }
 artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(

@@ -96,8 +96,9 @@ class RdbTestCase(TestCaseCompatible):
     replicas = 1
     tables   = 1 # either a number, a name, or a list of names
     
+    use_tls               = False
     server_command_prefix = None
-    server_extra_options = None
+    server_extra_options  = None
     
     cleanTables       = True # set to False if the nothing will be modified in the table
     destructiveTest   = False # if true the cluster should be restarted after this test
@@ -190,7 +191,8 @@ class RdbTestCase(TestCaseCompatible):
             if not server.ready:
                 continue
             try:
-                self.__class__.__conn = self.r.connect(host=server.host, port=server.driver_port)
+                ssl = {'ca_certs':self.Cluster.tlsCertPath} if self.use_tls else None
+                self.__class__.__conn = self.r.connect(host=server.host, port=server.driver_port, ssl=ssl)
                 return self.__class__.__conn
             except Exception as e: pass
         else:        
@@ -254,13 +256,13 @@ class RdbTestCase(TestCaseCompatible):
                     self.cluster.check_and_stop()
                 except Exception: pass
                 self.__class__.__cluster = None
-                self.__class__.__conn = None
-                self.__class__.__table = None
+                self.__class__.__conn    = None
+                self.__class__.__table   = None
         
         # - ensure we have a cluster
         
         if self.cluster is None:
-            self.__class__.__cluster = driver.Cluster()
+            self.__class__.__cluster = driver.Cluster(tls=self.use_tls)
         
         # - make sure we have any named servers
         
@@ -370,7 +372,7 @@ class RdbTestCase(TestCaseCompatible):
                 warnings.warn('Unable to copy server folder into results: %s' % str(e))
             
             self.__class__.__cluster = None
-            self.__class__.__conn = None
+            self.__class__.__conn    = None
             if lastError:
                 raise lastError
         
@@ -378,8 +380,8 @@ class RdbTestCase(TestCaseCompatible):
             try:
                 self.cluster.check_and_stop()
             except Exception: pass
-            self.__class__.__clustercluster = None
-            self.__class__.__conn = None
+            self.__class__.__cluster = None
+            self.__class__.__conn    = None
     
     def makeChanges(self, tableName=None, dbName=None, samplesPerShard=None, connections=None):
         '''make a minor change to records, and return those ids'''

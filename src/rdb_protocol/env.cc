@@ -69,12 +69,10 @@ scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile) 
 env_t::env_t(rdb_context_t *ctx,
              return_empty_normal_batches_t _return_empty_normal_batches,
              signal_t *_interruptor,
-             global_optargs_t optargs,
-             auth::user_context_t user_context,
+             serializable_env_t s_env,
              profile::trace_t *_trace)
-    : global_optargs_(std::move(optargs)),
-      m_user_context(std::move(user_context)),
-      limits_(from_optargs(ctx, _interruptor, &global_optargs_)),
+    : serializable(std::move(s_env)),
+      limits_(from_optargs(ctx, _interruptor, &serializable.global_optargs)),
       reql_version_(reql_version_t::LATEST),
       regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),
@@ -87,14 +85,30 @@ env_t::env_t(rdb_context_t *ctx,
     rassert(interruptor != NULL);
 }
 
+env_t::env_t(rdb_context_t *ctx,
+             return_empty_normal_batches_t _return_empty_normal_batches,
+             signal_t *_interruptor,
+             global_optargs_t _global_optargs,
+             auth::user_context_t _user_context,
+             datum_t _deterministic_time,
+             profile::trace_t *_trace) :
+    env_t(ctx,
+          _return_empty_normal_batches,
+          _interruptor,
+          serializable_env_t{
+                  std::move(_global_optargs),
+                  std::move(_user_context),
+                  std::move(_deterministic_time)},
+          _trace) { }
 
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor,
              return_empty_normal_batches_t _return_empty_normal_batches,
              reql_version_t _reql_version)
-    : global_optargs_(),
-      m_user_context(
-        auth::user_context_t(auth::permissions_t(false, false, false, false))),
+    : serializable{
+        global_optargs_t(),
+        auth::user_context_t(auth::permissions_t(false, false, false, false)),
+        datum_t()},
       reql_version_(_reql_version),
       regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),

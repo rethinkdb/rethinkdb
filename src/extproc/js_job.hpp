@@ -2,11 +2,8 @@
 #ifndef EXTPROC_JS_JOB_HPP_
 #define EXTPROC_JS_JOB_HPP_
 
-#include <vector>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <vector>
 
 #include "utils.hpp"
 #include "containers/archive/archive.hpp"

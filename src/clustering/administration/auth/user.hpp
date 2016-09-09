@@ -21,15 +21,10 @@ class table_meta_client_t;
 
 namespace auth {
 
-// When passed to the constructor of `user_t` it will set the defaults for an admin user
-class admin_t {
-};
-
 class user_t {
 public:
     user_t();
-    user_t(password_t password, admin_t);
-    user_t(password_t password, permissions_t global_permissions);
+    user_t(password_t password, permissions_t global_permissions = permissions_t());
     explicit user_t(ql::datum_t const &datum);
 
     void merge(ql::datum_t const &datum);

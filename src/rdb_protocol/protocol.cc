@@ -885,15 +885,14 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     if (q.transforms.size() != 0 || q.terminal) {
         // This asserts that the optargs have been initialized.  (There is always a
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
-        rassert(q.optargs.has_optarg("db"));
+        rassert(q.serializable_env.global_optargs.has_optarg("db"));
     }
     scoped_ptr_t<profile::trace_t> trace = ql::maybe_make_profile_trace(profile);
     ql::env_t env(
         ctx,
         ql::return_empty_normal_batches_t::NO,
         interruptor,
-        q.optargs,
-        q.m_user_context,
+        q.serializable_env,
         trace.get_or_null());
 
     // Initialize response.
@@ -1221,13 +1220,17 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 shard_keys.push_back(*it);
             }
         }
+        boost::optional<counted_t<const ql::func_t> > temp_write_hook_func;
+        if (br.write_hook) {
+            temp_write_hook_func = br.write_hook->compile_wire_func();
+        }
         if (!shard_keys.empty()) {
             *payload_out = batched_replace_t(
                 std::move(shard_keys),
                 br.pkey,
                 br.f.compile_wire_func(),
-                br.optargs,
-                br.m_user_context,
+                temp_write_hook_func,
+                br.serializable_env,
                 br.return_changes);
             return true;
         } else {
@@ -1250,12 +1253,17 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 temp_conflict_func = bi.conflict_func->compile_wire_func();
             }
 
+            boost::optional<counted_t<const ql::func_t> > temp_write_hook;
+            if (bi.write_hook) {
+                temp_write_hook = bi.write_hook->compile_wire_func();
+            }
             *payload_out = batched_insert_t(std::move(shard_inserts),
                                             bi.pkey,
+                                            temp_write_hook,
                                             bi.conflict_behavior,
                                             temp_conflict_func,
                                             bi.limits,
-                                            bi.m_user_context,
+                                            bi.serializable_env,
                                             bi.return_changes);
             return true;
         } else {
@@ -1309,20 +1317,25 @@ bool write_t::shard(const region_t &region,
 batched_insert_t::batched_insert_t(
         std::vector<ql::datum_t> &&_inserts,
         const std::string &_pkey,
+        const boost::optional<counted_t<const ql::func_t> > &_write_hook,
         conflict_behavior_t _conflict_behavior,
-        boost::optional<counted_t<const ql::func_t> > _conflict_func,
+        const boost::optional<counted_t<const ql::func_t> > &_conflict_func,
         const ql::configured_limits_t &_limits,
-        auth::user_context_t user_context,
+        serializable_env_t s_env,
         return_changes_t _return_changes)
         : inserts(std::move(_inserts)), pkey(_pkey),
           conflict_behavior(_conflict_behavior),
           limits(_limits),
-          m_user_context(std::move(user_context)),
+          serializable_env(std::move(s_env)),
           return_changes(_return_changes) {
     r_sanity_check(inserts.size() != 0);
 
     if (_conflict_func) {
         conflict_func = ql::wire_func_t(*_conflict_func);
+    }
+
+    if (_write_hook) {
+        write_hook = ql::wire_func_t(*_write_hook);
     }
 #ifndef NDEBUG
     // These checks are done above us, but in debug mode we do them
@@ -1474,6 +1487,9 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_response_t, response, event_log, n_shards);
 RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
+    serializable_env_t, global_optargs, user_context, deterministic_time);
+
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
@@ -1485,37 +1501,34 @@ RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(sindex_rangespec_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_13_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(
     rget_read_t,
     stamp,
     region,
     current_shard,
     hints,
     primary_keys,
-    optargs,
-    m_user_context,
+    serializable_env,
     table_name,
     batchspec,
     transforms,
     terminal,
     sindex,
     sorting);
-RDB_IMPL_SERIALIZABLE_10_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
     intersecting_geo_read_t,
     stamp,
     region,
-    optargs,
-    m_user_context,
+    serializable_env,
     table_name,
     batchspec,
     transforms,
     terminal,
     sindex,
     query_geometry);
-RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
     nearest_geo_read_t,
-    optargs,
-    m_user_context,
+    serializable_env,
     center,
     max_dist,
     max_results,
@@ -1528,14 +1541,13 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
         distribution_read_t, max_depth, result_limit, region);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_subscribe_t, addr, shard_region);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
     changefeed_limit_subscribe_t,
     addr,
     uuid,
     spec,
     table,
-    optargs,
-    m_user_context,
+    serializable_env,
     region,
     current_shard);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
@@ -1550,16 +1562,23 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_write_response_t);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_shards);
 
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-        batched_replace_t, keys, pkey, f, optargs, return_changes);
-RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+        batched_replace_t,
+        keys,
+        pkey,
+        f,
+        write_hook,
+        serializable_env,
+        return_changes);
+RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         batched_insert_t,
         inserts,
         pkey,
+        write_hook,
         conflict_behavior,
         conflict_func,
         limits,
-        m_user_context,
+        serializable_env,
         return_changes);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(point_write_t, key, data, overwrite);

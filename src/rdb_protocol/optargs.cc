@@ -64,6 +64,7 @@ static const std::set<std::string> acceptable_optargs({
     "group_format",
     "header",
     "identifier_format",
+    "ignore_write_hook",
     "include_initial",
     "include_offsets",
     "include_states",

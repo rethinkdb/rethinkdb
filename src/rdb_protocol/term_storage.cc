@@ -538,8 +538,15 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2>(
     term_storage_out->init(new wire_term_storage_t(std::move(data), std::move(doc)));
     return archive_result_t::SUCCESS;
 }
+
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3_is_latest>(
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
+}
+
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4_is_latest>(
         read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }

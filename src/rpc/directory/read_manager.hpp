@@ -3,9 +3,7 @@
 #define RPC_DIRECTORY_READ_MANAGER_HPP_
 
 #include <map>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -54,11 +52,11 @@ private:
 
     They assume ownership of `new_value`. Semantically, the argument here is `metadata_t
     &&new_value` but we cannot easily pass that through to the coroutine call, which is
-    why we use `boost::shared_ptr` instead. */
+    why we use `std::shared_ptr` instead. */
     void handle_connection(
             connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
-            const boost::shared_ptr<metadata_t> &new_value,
+            const std::shared_ptr<metadata_t> &new_value,
             fifo_enforcer_state_t metadata_fifo_state,
             auto_drainer_t::lock_t per_thread_keepalive)
             THROWS_NOTHING;
@@ -66,7 +64,7 @@ private:
     void propagate_update(
             connectivity_cluster_t::connection_t *connection,
             auto_drainer_t::lock_t connection_keepalive,
-            const boost::shared_ptr<metadata_t> &new_value,
+            const std::shared_ptr<metadata_t> &new_value,
             fifo_enforcer_write_token_t metadata_fifo_token,
             auto_drainer_t::lock_t per_thread_keepalive)
             THROWS_NOTHING;

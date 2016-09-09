@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 
+#include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/persist/table_interface.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
@@ -42,7 +43,10 @@ private:
         UNUSED signal_t *interruptor,
         business_card_t::return_mailbox_t::address_t const &reply_address);
 
-    void on_job_interrupt(UNUSED signal_t *interruptor, uuid_u const &id);
+    void on_job_interrupt(
+        UNUSED signal_t *interruptor,
+        uuid_u const &id,
+        auth::user_context_t const &user_context);
 
     mailbox_manager_t *mailbox_manager;
     server_id_t server_id;

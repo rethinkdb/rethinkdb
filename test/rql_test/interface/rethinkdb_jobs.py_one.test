@@ -272,6 +272,25 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
             else:
                 self.fail('Timed out after %.1f seconds waiting for backfill to be complete' % self.timeout)
 
+    def test_user(self):
+        self.r.db("rethinkdb").table("users").insert({"id": "test", "password": False}).run(self.conn)
+        self.r.db("rethinkdb").table("jobs").grant("test", {"read": True}).run(self.conn)
+
+        taskLength = self.timeout / 2
+        server     = self.cluster[0]
+        targetConn = self.r.connect(host=server.host, port=server.driver_port, user="test")
+
+        # - start the target query
+
+        self.r.js("while(true) {}", timeout=taskLength).run(self.conn, noreply=True)
+
+        deadline = time.time() + self.timeout
+        while time.time() < deadline:
+            for job in self.r.db("rethinkdb").table("jobs").run(targetConn):
+                self.assertNotEqual(job["info"]["query"], 'r.js("while(true) {}", {"timeout": %d})' % taskLength)
+                self.assertEqual(job["info"]["user"], "test")
+                self.assertEqual(job["type"], "query")
+
 # ===== main
 
 if __name__ == '__main__':

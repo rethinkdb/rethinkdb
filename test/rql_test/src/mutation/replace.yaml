@@ -108,3 +108,5 @@ tests:
       js: tbl.get('sdfjki').replace({'id':'sdfjk'})('errors')
       ot: 1
 
+    - cd: tbl.get('non-existant').replace(null)
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':1,'inserted':0.0})

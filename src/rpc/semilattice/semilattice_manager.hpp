@@ -43,7 +43,7 @@ public:
                           const metadata_t &initial_metadata);
     ~semilattice_manager_t() THROWS_NOTHING;
 
-    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
+    std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
 
 private:
     typedef uint64_t metadata_version_t, sync_from_query_id_t, sync_to_query_id_t;
@@ -77,7 +77,7 @@ private:
     void join_metadata_locally(metadata_t);
     void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 
-    const boost::shared_ptr<root_view_t> root_view;
+    const std::shared_ptr<root_view_t> root_view;
 
     metadata_version_t metadata_version;
     metadata_t metadata;

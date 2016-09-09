@@ -2,10 +2,8 @@
 #include "rpc/semilattice/view/member.hpp"
 
 #include <map>
+#include <memory>
 #include <utility>
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
 
 /* `semilattice_member_read_view_t` and `semilattice_member_readwrite_view_t`
 correspond to some values of a `std::map` contained in another metadata view. */
@@ -14,7 +12,7 @@ template<class key_t, class value_t>
 class semilattice_member_read_view_t : public semilattice_read_view_t<value_t> {
 
 public:
-    semilattice_member_read_view_t(key_t k, boost::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > sv) :
+    semilattice_member_read_view_t(key_t k, std::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > sv) :
         key(k), superview(sv)
     {
         rassert(superview->get().count(key) != 0);
@@ -34,7 +32,7 @@ public:
 
 private:
     key_t key;
-    boost::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > superview;
+    std::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > superview;
     DISABLE_COPYING(semilattice_member_read_view_t);
 };
 
@@ -42,7 +40,7 @@ template<class key_t, class value_t>
 class semilattice_member_readwrite_view_t : public semilattice_readwrite_view_t<value_t> {
 
 public:
-    semilattice_member_readwrite_view_t(key_t k, boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > sv) :
+    semilattice_member_readwrite_view_t(key_t k, std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > sv) :
         key(k), superview(sv)
     {
         rassert(superview->get().count(key) != 0);
@@ -72,32 +70,32 @@ public:
 
 private:
     key_t key;
-    boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > superview;
+    std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > superview;
     DISABLE_COPYING(semilattice_member_readwrite_view_t);
 };
 
 template<class key_t, class value_t>
-boost::shared_ptr<semilattice_read_view_t<value_t> > metadata_member(
+std::shared_ptr<semilattice_read_view_t<value_t> > metadata_member(
     key_t key,
-    boost::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > outer)
+    std::shared_ptr<semilattice_read_view_t<std::map<key_t, value_t> > > outer)
 {
-    return boost::make_shared<semilattice_member_read_view_t<key_t, value_t> >(
+    return std::make_shared<semilattice_member_read_view_t<key_t, value_t> >(
         key, outer);
 }
 
 template<class key_t, class value_t>
-boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_member(
+std::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_member(
     key_t key,
-    boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > outer)
+    std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > outer)
 {
-    return boost::make_shared<semilattice_member_readwrite_view_t<key_t, value_t> >(
+    return std::make_shared<semilattice_member_readwrite_view_t<key_t, value_t> >(
         key, outer);
 }
 
 template<class key_t, class value_t>
-boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
+std::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
     key_t key,
-    boost::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > outer)
+    std::shared_ptr<semilattice_readwrite_view_t<std::map<key_t, value_t> > > outer)
 {
     rassert(outer->get().count(key) == 0);
     std::map<key_t, value_t> new_value;

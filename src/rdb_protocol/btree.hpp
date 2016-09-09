@@ -11,6 +11,7 @@
 #include "btree/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -95,6 +96,13 @@ struct btree_batched_replacer_t {
     virtual ql::datum_t replace(
         const ql::datum_t &d, size_t index) const = 0;
     virtual return_changes_t should_return_changes() const = 0;
+
+    ql::datum_t apply_write_hook(
+        ql::env_t *env,
+        const datum_string_t &pkey,
+        const ql::datum_t &d,
+        const ql::datum_t &res_,
+        const counted_t<const ql::func_t> &write_hook) const;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }

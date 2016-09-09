@@ -20,23 +20,28 @@ with driver.Process() as process:
     database_id = r.db_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
     r.db("test").grant("test", {"read": True, "write": True, "config": True}).run(conn)
 
+    r.db("rethinkdb").grant("test", {"read": True, "write": True}).run(conn)
+
     table_id = r.db("test").table_create("test").run(conn)["config_changes"][0]["new_val"]["id"]
     r.db("test").table("test").grant(
             "test", {"read": True, "write": True, "config": True}
         ).run(conn)
 
+    r.db("rethinkdb").table("stats").grant("test", {"read": True, "write": True}).run(conn)
+
 
     permissions = r.db("rethinkdb").table("permissions")
 
     res = list(permissions.order_by("id").run(conn))
-    assert res == [
-        {
-            "id": ["admin"],
-            "permissions": {"read": True, "write": True, "config": True, "connect": True}
-        },
+    assert res == sorted([
         {
             "id": ["test"],
             "permissions": {"read": True, "write": True, "config": True, "connect": True}
+        },
+        {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+            "permissions": {"read": True, "write": True}
         },
         {
             "database": "test",
@@ -44,12 +49,18 @@ with driver.Process() as process:
             "permissions": {"read": True, "write": True, "config": True}
         },
         {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+            "table": "stats",
+            "permissions": {"read": True, "write": True}
+        },
+        {
             "database": "test",
             "id": ["test", database_id, table_id],
-            "permissions": {"read": True, "write": True, "config": True},
-            "table": "test"
+            "table": "test",
+            "permissions": {"read": True, "write": True, "config": True}
         }
-    ], res
+    ], key=lambda x: x["id"]), res
     res = permissions.get([]).run(conn)
     assert res == None, res
     res = permissions.get("invalid").run(conn)
@@ -131,50 +142,59 @@ with driver.Process() as process:
     r.db("test").table_drop("test").run(conn)
 
     res = list(permissions.order_by("id").run(conn))
-    assert res == [
-        {
-            "id": ["admin"],
-            "permissions": {"read": True, "write": True, "config": True, "connect": True}
-        },
+    assert res == sorted([
         {
             "id": ["test"],
             "permissions": {"read": True, "write": True, "config": True, "connect": True}
+        },
+        {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+            "permissions": {"read": True, "write": True}
         },
         {
             "database": "test",
             "id": ["test", database_id],
             "permissions": {"read": True, "write": True, "config": True}
+        },
+        {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+            "table": "stats",
+            "permissions": {"read": True, "write": True}
         }
-    ], res
+    ], key=lambda x: x["id"]), res
 
     r.db_drop("test").run(conn)
 
     res = list(permissions.order_by("id").run(conn))
-    assert res == [
-        {
-            "id": ["admin"],
-            "permissions": {"read": True, "write": True, "config": True, "connect": True}
-        },
+    assert res == sorted([
         {
             "id": ["test"],
             "permissions": {"read": True, "write": True, "config": True, "connect": True}
         },
         {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+            "permissions": {"read": True, "write": True}
+        },
+        {
             "database": "__deleted_database__",
             "id": ["test", database_id],
             "permissions": {"read": True, "write": True, "config": True}
+        },
+        {
+            "database": "rethinkdb",
+            "id": ["test", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+            "table": "stats",
+            "permissions": {"read": True, "write": True}
         }
-    ], res
+    ], key=lambda x: x["id"]), res
 
     r.db("rethinkdb").table("users").get("test").delete().run(conn)
 
     res = list(permissions.run(conn))
-    assert res == [
-        {
-            "id": ["admin"],
-            "permissions": {"read": True, "write": True, "config": True, "connect": True}
-        }
-    ], res
+    assert res == [], res
 
     r.db("rethinkdb").table("users").insert({"id": "test", "password": False}).run(conn)
     database_id = r.db_create("test").run(conn)["config_changes"][0]["new_val"]["id"]

@@ -12,7 +12,10 @@ row, compares it to the old value, and sends a notification if necessary. */
 class caching_cfeed_artificial_table_backend_t :
     public cfeed_artificial_table_backend_t {
 protected:
-    caching_cfeed_artificial_table_backend_t();
+    caching_cfeed_artificial_table_backend_t(
+            name_string_t const &table_name,
+            rdb_context_t *rdb_context,
+            lifetime_t<name_resolver_t const &> name_resolver);
 
     /* The `caching_cfeed_artificial_table_backend_t` calls `set_notifications()` to tell
     the subclass whether it needs notifications or not. The default is no; it will call
@@ -46,7 +49,11 @@ private:
             all_stop
         };
 
-        explicit caching_machinery_t(caching_cfeed_artificial_table_backend_t *parent);
+        caching_machinery_t(
+                namespace_id_t const &table_id,
+                lifetime_t<name_resolver_t const &> name_resolver,
+                auth::user_context_t const &user_context,
+                caching_cfeed_artificial_table_backend_t *parent);
         ~caching_machinery_t();
 
         bool get_initial_values(
@@ -91,9 +98,12 @@ private:
     };
 
     scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>
-        construct_changefeed_machinery(signal_t *interruptor);
+        construct_changefeed_machinery(
+            lifetime_t<name_resolver_t const &> name_resolver,
+            auth::user_context_t const &user_context,
+            signal_t *interruptor);
 
-    caching_machinery_t *caching_machinery;
+    std::map<auth::user_context_t, caching_machinery_t *> caching_machineries;
 };
 
 /* `timer_cfeed_artificial_table_backend_t` implements changefeeds by simply setting a
@@ -101,6 +111,12 @@ repeating timer and retrieving the contents of the table every time the timer ri
 inefficient, but for many tables it's the most practical choice. */
 class timer_cfeed_artificial_table_backend_t :
     public caching_cfeed_artificial_table_backend_t {
+public:
+    timer_cfeed_artificial_table_backend_t(
+            name_string_t const &table_name,
+            rdb_context_t *rdb_context,
+            lifetime_t<name_resolver_t const &> name_resolver);
+
 private:
     void set_notifications(bool);
     scoped_ptr_t<repeating_timer_t> timer;

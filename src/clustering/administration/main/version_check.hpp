@@ -4,9 +4,6 @@
 
 #include <functional>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"

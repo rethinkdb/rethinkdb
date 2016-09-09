@@ -59,7 +59,7 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
         auth::username_t("admin"),
         versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
             auth_key_ts,
-            boost::make_optional(auth::user_t(std::move(admin_pw), auth::admin_t()))));
+            boost::make_optional(auth::user_t(std::move(admin_pw)))));
     new_metadata.m_users.insert(std::move(admin_pair));
     txn->write(mdkey_auth_semilattices(), new_metadata, interruptor);
 }
@@ -78,6 +78,8 @@ void migrate_metadata_v2_1_to_v2_3(cluster_version_t serialization_version,
     case cluster_version_t::v2_3:
         // This only really needs to migrate auth data, but this should be fine
         migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_3>(txn, interruptor);
+        break;
+    case cluster_version_t::v2_4_is_latest:
         break;
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
