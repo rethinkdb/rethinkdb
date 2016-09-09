@@ -2,10 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 
+#include <memory>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/tables/table_common.hpp"
 
@@ -18,7 +16,7 @@ public:
     debug_table_status_artificial_table_backend_t(
             rdb_context_t *rdb_context,
             lifetime_t<name_resolver_t const &> name_resolver,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             table_meta_client_t *_table_meta_client);
     ~debug_table_status_artificial_table_backend_t();

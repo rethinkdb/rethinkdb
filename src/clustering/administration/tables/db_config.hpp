@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "containers/uuid.hpp"
@@ -29,7 +27,7 @@ public:
     db_config_artificial_table_backend_t(
             rdb_context_t *rdb_context,
             lifetime_t<name_resolver_t const &> name_resolver,
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            std::shared_ptr< semilattice_readwrite_view_t<
             databases_semilattice_metadata_t> > _database_sl_view,
             real_reql_cluster_interface_t *_reql_cluster_interface);
     ~db_config_artificial_table_backend_t();
@@ -59,7 +57,7 @@ public:
 
 private:
     rdb_context_t *rdb_context;
-    boost::shared_ptr< semilattice_readwrite_view_t<
+    std::shared_ptr<semilattice_readwrite_view_t<
         databases_semilattice_metadata_t> > database_sl_view;
     semilattice_read_view_t<databases_semilattice_metadata_t>::subscription_t subs;
     real_reql_cluster_interface_t *reql_cluster_interface;

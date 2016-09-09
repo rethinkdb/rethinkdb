@@ -5,9 +5,6 @@
 #include <map>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"

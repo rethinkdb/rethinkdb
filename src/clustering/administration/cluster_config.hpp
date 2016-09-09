@@ -2,11 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
@@ -26,7 +24,7 @@ public:
     cluster_config_artificial_table_backend_t(
             rdb_context_t *rdb_context,
             lifetime_t<name_resolver_t const &> name_resolver,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 heartbeat_semilattice_metadata_t> > _heartbeat_sl_view);
     ~cluster_config_artificial_table_backend_t();
 
@@ -80,7 +78,7 @@ private:
 
     class heartbeat_doc_t : public doc_t {
     public:
-        explicit heartbeat_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
+        explicit heartbeat_doc_t(std::shared_ptr<semilattice_readwrite_view_t<
             heartbeat_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { }
         bool read(
                 signal_t *interruptor,
@@ -92,7 +90,7 @@ private:
                 admin_err_t *error_out);
         void set_notification_callback(const std::function<void()> &fun);
     private:
-        boost::shared_ptr<
+        std::shared_ptr<
             semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t> > sl_view;
         scoped_ptr_t<
                 semilattice_read_view_t<heartbeat_semilattice_metadata_t>::subscription_t

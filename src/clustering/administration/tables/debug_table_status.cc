@@ -20,7 +20,7 @@ debug_table_status_artificial_table_backend_t::
             debug_table_status_artificial_table_backend_t(
         rdb_context_t *rdb_context,
         lifetime_t<name_resolver_t const &> name_resolver,
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        std::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         table_meta_client_t *_table_meta_client)
     : common_table_artificial_table_backend_t(

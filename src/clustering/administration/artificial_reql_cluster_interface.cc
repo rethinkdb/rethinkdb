@@ -18,7 +18,7 @@
     uuid_u::from_hash(str_to_uuid("39a24924-14ec-4deb-99f1-742eda7aba5e"), "rethinkdb");
 
 artificial_reql_cluster_interface_t::artificial_reql_cluster_interface_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         rdb_context_t *rdb_context):
     m_auth_semilattice_view(auth_semilattice_view),
@@ -644,11 +644,11 @@ bool artificial_reql_cluster_interface_t::next_or_error(admin_err_t *error_out) 
 artificial_reql_cluster_backends_t::artificial_reql_cluster_backends_t(
         artificial_reql_cluster_interface_t *artificial_reql_cluster_interface,
         real_reql_cluster_interface_t *real_reql_cluster_interface,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t>>
             cluster_semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t>>
             heartbeat_semilattice_view,
         clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t>>> directory_view,

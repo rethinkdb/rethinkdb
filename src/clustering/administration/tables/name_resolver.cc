@@ -4,7 +4,7 @@
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 
 name_resolver_t::name_resolver_t(
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
             cluster_semilattice_view,
         table_meta_client_t *table_meta_client,
         lifetime_t<artificial_reql_cluster_interface_t const &>

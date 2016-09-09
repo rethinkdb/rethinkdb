@@ -48,7 +48,7 @@ public:
     static const name_string_t database_name;
 
     artificial_reql_cluster_interface_t(
-            boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+            std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
                 auth_semilattice_view,
             rdb_context_t *rdb_context);
 
@@ -271,7 +271,7 @@ private:
     bool next_or_error(admin_err_t *error_out) const;
 
     table_backends_map_t m_table_backends;
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+    std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
         m_auth_semilattice_view;
     rdb_context_t *m_rdb_context;
     reql_cluster_interface_t *m_next;
@@ -282,11 +282,11 @@ public:
     artificial_reql_cluster_backends_t(
         artificial_reql_cluster_interface_t *artificial_reql_cluster_interface,
         real_reql_cluster_interface_t *real_reql_cluster_interface,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t>>
             cluster_semilattice_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t>>
             heartbeat_semilattice_view,
         clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t>>> directory_view,

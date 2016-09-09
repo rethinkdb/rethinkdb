@@ -55,7 +55,7 @@ class name_resolver_t
 {
 public:
     name_resolver_t(
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>,
+            std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>,
             table_meta_client_t *,
             lifetime_t<artificial_reql_cluster_interface_t const &>);
 
@@ -87,7 +87,7 @@ public:
             name_string_t const &) const noexcept;
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
+    std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
         m_cluster_semilattice_view;
     table_meta_client_t *m_table_meta_client;
     artificial_reql_cluster_interface_t const &m_artificial_reql_cluster_interface;

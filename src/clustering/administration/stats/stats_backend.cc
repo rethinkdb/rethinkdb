@@ -11,7 +11,7 @@ stats_artificial_table_backend_t::stats_artificial_table_backend_t(
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > >
                 &_directory_view,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,

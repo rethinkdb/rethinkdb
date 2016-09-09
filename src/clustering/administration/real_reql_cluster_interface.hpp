@@ -31,9 +31,9 @@ class real_reql_cluster_interface_t :
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 auth_semilattice_metadata_t> > auth_semilattice_view,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > cluster_semilattice_view,
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
@@ -274,9 +274,9 @@ public:
 
 private:
     mailbox_manager_t *m_mailbox_manager;
-    boost::shared_ptr<semilattice_readwrite_view_t<
+    std::shared_ptr<semilattice_readwrite_view_t<
         auth_semilattice_metadata_t> > m_auth_semilattice_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<
+    std::shared_ptr<semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > m_cluster_semilattice_view;
     table_meta_client_t *m_table_meta_client;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<

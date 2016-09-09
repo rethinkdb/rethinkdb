@@ -18,9 +18,9 @@ public:
     permissions_artificial_table_backend_t(
         rdb_context_t *rdb_context,
         lifetime_t<name_resolver_t const &> name_resolver,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
-        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t>>
             cluster_semilattice_view,
         admin_identifier_format_t identifier_format);
 

@@ -5,7 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/cache_balancer.hpp"

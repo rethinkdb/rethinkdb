@@ -8,7 +8,7 @@ namespace auth {
 
 template <typename T>
 bool grant(
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         rdb_context_t *rdb_context,
         auth::user_context_t const &user_context,

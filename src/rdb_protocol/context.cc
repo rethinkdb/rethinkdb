@@ -84,7 +84,7 @@ rdb_context_t::rdb_context_t()
 rdb_context_t::rdb_context_t(
         extproc_pool_t *_extproc_pool,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view)
     : extproc_pool(_extproc_pool),
       cluster_interface(_cluster_interface),
@@ -98,7 +98,7 @@ rdb_context_t::rdb_context_t(
         extproc_pool_t *_extproc_pool,
         mailbox_manager_t *_mailbox_manager,
         reql_cluster_interface_t *_cluster_interface,
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
             auth_semilattice_view,
         perfmon_collection_t *global_stats,
         const std::string &_reql_http_proxy)
@@ -111,7 +111,7 @@ rdb_context_t::rdb_context_t(
 }
 
 void rdb_context_t::init_auth_watchables(
-    boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
+    std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t>>
         auth_semilattice_view) {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         m_cross_thread_auth_watchables.emplace_back(
