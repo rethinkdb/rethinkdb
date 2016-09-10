@@ -118,7 +118,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     // As noted above, we can be sure that buf is valid.
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
 
-    if (mod_info_out != NULL) {
+    if (mod_info_out != nullptr) {
         guarantee(mod_info_out->deleted.second.empty());
 
         mod_info_out->deleted.second.assign(
@@ -166,7 +166,7 @@ kv_location_set(keyvalue_location_t *kv_location,
     if (kv_location->value.has()) {
         deletion_context->in_tree_deleter()->delete_value(
                 buf_parent_t(&kv_location->buf), kv_location->value.get());
-        if (mod_info_out != NULL) {
+        if (mod_info_out != nullptr) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
                     kv_location->value_as<rdb_value_t>()->value_ref(),
@@ -770,7 +770,7 @@ continue_bool_t rget_cb_t::handle_pair(
     // STUFF THAT CAN HAPPEN OUT OF ORDER GOES HERE //
     //////////////////////////////////////////////////
     sampler->new_sample();
-    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
+    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != nullptr) {
         return continue_bool_t::ABORT;
     }
     // Load the key and value.
@@ -1015,7 +1015,7 @@ void rdb_rget_slice(
         sorting_t sorting,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
-    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == nullptr);
     PROFILE_STARTER_IF_ENABLED(
         ql_env->profile() == profile_bool_t::PROFILE,
         "Do range scan on primary index.",
@@ -1090,7 +1090,7 @@ void rdb_rget_secondary_slice(
         const sindex_disk_info_t &sindex_info,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
-    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == nullptr);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
     PROFILE_STARTER_IF_ENABLED(
         ql_env->profile() == profile_bool_t::PROFILE,
@@ -1239,7 +1239,7 @@ void rdb_get_nearest_slice(
         } else {
             auto partial_res = boost::get<nearest_geo_read_response_t::result_t>(
                 &partial_response.results_or_error);
-            guarantee(partial_res != NULL);
+            guarantee(partial_res != nullptr);
             auto full_res = boost::get<nearest_geo_read_response_t::result_t>(
                 &response->results_or_error);
             std::move(partial_res->begin(), partial_res->end(),
@@ -1344,7 +1344,7 @@ bool rdb_modification_report_cb_t::has_pkey_cfeeds(
         auto cservers = store_->access_changefeed_servers();
         for (auto &&pair : *cservers.first) {
             if (pair.first.inner.overlaps(range)
-                && pair.second->has_limit(boost::optional<std::string>(),
+                && pair.second->has_limit(boost::none,
                                           pair.second->get_keepalive())) {
                 return true;
             }
@@ -1358,7 +1358,8 @@ void rdb_modification_report_cb_t::finish(
     auto cservers = store_->access_changefeed_servers();
     for (auto &&pair : *cservers.first) {
         pair.second->foreach_limit(
-            boost::optional<std::string>(),
+            boost::none,
+            boost::none,
             nullptr,
             [&](rwlock_in_line_t *clients_spot,
                 rwlock_in_line_t *limit_clients_spot,
@@ -1405,7 +1406,8 @@ void rdb_modification_report_cb_t::on_mod_report(
         auto cserver = store_->changefeed_server(report.primary_key);
         if (update_pkey_cfeeds && cserver.first != nullptr) {
             cserver.first->foreach_limit(
-                boost::optional<std::string>(),
+                boost::none,
+                boost::none,
                 &report.primary_key,
                 [&](rwlock_in_line_t *clients_spot,
                     rwlock_in_line_t *limit_clients_spot,
@@ -1772,6 +1774,7 @@ void rdb_update_single_sindex(
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
                     sindex->name.name,
+                    sindex->sindex.id,
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1847,6 +1850,7 @@ void rdb_update_single_sindex(
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
                     sindex->name.name,
+                    sindex->sindex.id,
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1918,6 +1922,7 @@ void rdb_update_single_sindex(
     if (cserver.first != nullptr) {
         cserver.first->foreach_limit(
             sindex->name.name,
+            sindex->sindex.id,
             &modification->primary_key,
             [&](rwlock_in_line_t *clients_spot,
                 rwlock_in_line_t *limit_clients_spot,
@@ -1977,15 +1982,15 @@ void rdb_update_sindexes(
                         &counter,
                         auto_drainer_t::lock_t(&drainer),
                         keys_available_cond,
-                        cfeed_old_keys_out == NULL
-                            ? NULL
+                        cfeed_old_keys_out == nullptr
+                            ? nullptr
                             : &(*cfeed_old_keys_out)[sindex->name.name],
-                        cfeed_new_keys_out == NULL
-                            ? NULL
+                        cfeed_new_keys_out == nullptr
+                            ? nullptr
                             : &(*cfeed_new_keys_out)[sindex->name.name]));
             }
         }
-        if (counter == 0 && keys_available_cond != NULL) {
+        if (counter == 0 && keys_available_cond != nullptr) {
             keys_available_cond->pulse();
         }
     }
@@ -2068,9 +2073,9 @@ public:
                                 &mod_report,
                                 wtxn_.get(),
                                 &deletion_context,
-                                NULL,
-                                NULL,
-                                NULL);
+                                nullptr,
+                                nullptr,
+                                nullptr);
         }
 
         // Account for the sindex writes in the stats

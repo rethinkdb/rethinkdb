@@ -399,6 +399,7 @@ public:
         rwlock_in_line_t *clients_lock,
         region_t _region,
         std::string _table,
+        boost::optional<uuid_u> _sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
         auth::user_context_t user_context,
@@ -426,6 +427,7 @@ public:
 
     const region_t region;
     const std::string table;
+    const boost::optional<uuid_u> sindex_id;
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
@@ -472,6 +474,7 @@ public:
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
+        const boost::optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
         auth::user_context_t user_context,
@@ -495,7 +498,8 @@ public:
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
     void foreach_limit(
-        const boost::optional<std::string> &s,
+        const boost::optional<std::string> &sindex_name,
+        const boost::optional<uuid_u> &sindex_id,
         const store_key_t *pkey, // NULL if none
         std::function<void(rwlock_in_line_t *,
                            rwlock_in_line_t *,
@@ -503,7 +507,7 @@ public:
                            limit_manager_t *)> f,
         const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING;
     bool has_limit(
-        const boost::optional<std::string> &s,
+        const boost::optional<std::string> &sindex_name,
         const auto_drainer_t::lock_t &keepalive);
     auto_drainer_t::lock_t get_keepalive();
 private:

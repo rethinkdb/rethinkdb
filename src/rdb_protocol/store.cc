@@ -199,10 +199,14 @@ void do_read(ql::env_t *env,
              real_superblock_t *superblock,
              const rget_read_t &rget,
              rget_read_response_t *res,
-             release_superblock_t release_superblock) {
+             release_superblock_t release_superblock,
+             boost::optional<uuid_u> *sindex_id_out) {
     guarantee(rget.current_shard);
     if (!rget.sindex) {
-        // Normal rget
+        // rget using a primary index
+        if (sindex_id_out != nullptr) {
+            *sindex_id_out = boost::none;
+        }
         rdb_rget_slice(
             btree,
             *rget.current_shard,
@@ -217,6 +221,7 @@ void do_read(ql::env_t *env,
             res,
             release_superblock);
     } else {
+        // rget using a secondary index
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
@@ -230,6 +235,9 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
+            if (sindex_id_out != nullptr) {
+                *sindex_id_out = sindex_uuid;
+            }
             reql_version_t reql_version =
                 sindex_info.mapping_version_info.latest_compatible_reql_version;
             res->reql_version = reql_version;
@@ -300,6 +308,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.serializable_env,
             trace);
         ql::raw_stream_t stream;
+        boost::optional<uuid_u> sindex_id;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
@@ -340,7 +349,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // shortly after this function returns.
             rget_read_response_t resp;
             do_read(&env, store, btree, superblock, rget, &resp,
-                    release_superblock_t::KEEP);
+                    release_superblock_t::KEEP,
+                    &sindex_id);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
             if (gs == NULL) {
                 auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -369,6 +379,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.addr,
             s.region,
             s.table,
+            sindex_id,
             ctx,
             s.serializable_env.global_optargs,
             s.serializable_env.user_context,
@@ -628,7 +639,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.serializable_env,
             trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
-                release_superblock_t::RELEASE);
+                release_superblock_t::RELEASE, nullptr);
     }
 
     void operator()(const distribution_read_t &dg) {
