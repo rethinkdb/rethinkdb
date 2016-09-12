@@ -215,7 +215,7 @@ public:
             auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
-            boost::optional<write_hook_config_t> &config,
+            const boost::optional<write_hook_config_t> &config,
             signal_t *interruptor,
             admin_err_t *error_out);
 

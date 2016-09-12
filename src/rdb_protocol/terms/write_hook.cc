@@ -28,7 +28,7 @@ public:
     set_write_hook_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual deterministic_t is_deterministic() const final {
+    deterministic_t is_deterministic() const final {
         return deterministic_t::no;
     }
 
@@ -154,7 +154,7 @@ public:
     get_write_hook_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual deterministic_t is_deterministic() const final {
+    deterministic_t is_deterministic() const final {
         return deterministic_t::no;
     }
 

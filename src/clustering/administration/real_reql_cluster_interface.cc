@@ -1193,7 +1193,7 @@ bool real_reql_cluster_interface_t::set_write_hook(
     auth::user_context_t const &user_context,
     counted_t<const ql::db_t> db,
     const name_string_t &table,
-    boost::optional<write_hook_config_t> &config,
+    const boost::optional<write_hook_config_t> &config,
     signal_t *interruptor_on_caller,
     admin_err_t *) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),

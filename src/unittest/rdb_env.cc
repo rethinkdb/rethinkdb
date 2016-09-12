@@ -670,7 +670,7 @@ bool test_rdb_env_t::instance_t::set_write_hook(
         UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
-        UNUSED boost::optional<write_hook_config_t> &config,
+        UNUSED const boost::optional<write_hook_config_t> &config,
         UNUSED signal_t *local_interruptor,
         admin_err_t *error_out) {
     *error_out = admin_err_t{

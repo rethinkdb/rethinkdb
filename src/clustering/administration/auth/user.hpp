@@ -24,7 +24,7 @@ namespace auth {
 class user_t {
 public:
     user_t();
-    user_t(password_t password, permissions_t global_permissions = permissions_t());
+    explicit user_t(password_t password, permissions_t global_permissions = permissions_t());
     explicit user_t(ql::datum_t const &datum);
 
     void merge(ql::datum_t const &datum);

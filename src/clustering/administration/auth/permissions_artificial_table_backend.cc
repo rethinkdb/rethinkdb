@@ -155,7 +155,7 @@ bool permissions_artificial_table_backend_t::read_row(
                         row_out);
                 }
                 break;
-        };
+        }
         return true;
     }
 
