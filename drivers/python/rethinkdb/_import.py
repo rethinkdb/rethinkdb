@@ -210,7 +210,7 @@ class SourceFile(object):
         elif primaryKey != self.primary_key:
             raise RuntimeError("Error: table %s.%s primary key was `%s` rather than the expected: %s" % (self.db, table.table, primaryKey, self.primary_key))
     
-    def restore_indexes(self):
+    def restore_indexes(self, warning_queue):
         # recreate secondary indexes - dropping existing on the assumption they are wrong
         if self.indexes:
             existing_indexes = self.query_runner("indexes from: %s.%s" % (self.db, self.table), query.db(self.db).table(self.table).index_list())
@@ -303,7 +303,7 @@ class SourceFile(object):
             
             # - rebuild indexes
             if self.indexes:
-                self.restore_indexes()
+                self.restore_indexes(warning_queue)
             
             # - 
             raise e
