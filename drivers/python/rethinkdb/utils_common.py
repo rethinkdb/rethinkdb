@@ -66,7 +66,7 @@ class RetryQuery(object):
                 testConnection = True
             try:
                 return query.run(conn, **runOptions)
-            except (r.ReqlTimeoutError, errors.ReqlDriverError) as e:
+            except (errors.ReqlTimeoutError, errors.ReqlDriverError) as e:
                 lastError = RuntimeError("Connnection error during '%s': %s" % (name, str(e)))
             # other errors immedately bubble up
         else:
