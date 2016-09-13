@@ -4,7 +4,7 @@
 import os, sys, threading, time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
-import rdb_unittest, utils
+import driver, rdb_unittest, utils
 
 class JobsTableTests(rdb_unittest.RdbTestCase):
     '''Tests the artificial `rethinkdb.jobs` table'''
@@ -57,6 +57,43 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 time.sleep(.01)
         else:
             self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (self.timeout, host, port, str(latestError), utils.pformat(jobsSeen.values())))
+
+    def test_proxy_job_deletion(self):
+        conn_server = self.r.connect(host=self.cluster[0].host, port=self.cluster[0].driver_port)
+
+        # Start up a proxy server
+        proxy      = driver.ProxyProcess(cluster=self.cluster)
+        proxy_id   = proxy.uuid
+        conn_proxy = self.r.connect(host=proxy.host, port=proxy.driver_port)
+
+        result = None
+
+        def query_thread(result):
+            try:
+                self.r.js("while(true) {}", timeout=10).run(conn_proxy)
+                err = RuntimeError("Query should have been interrupted, but returned successfully.")
+            except:
+                (_, err, _) = sys.exc_info()
+            result.append(err)
+
+        result = list() # Use a list as an output parameter
+        worker = threading.Thread(target=query_thread, args=[result])
+        worker.start()
+
+        deadline = time.time() + self.timeout
+        job_filter = self.r.db('rethinkdb').table('jobs').filter(lambda x: x['servers'].contains(proxy_id))
+        while len(list(job_filter.run(conn_server))) != 1 and time.time() < deadline:
+            pass
+
+        self.assertEqual(job_filter.delete()['deleted'].run(conn_server), 1)
+        worker.join()
+        self.assertEqual(len(result), 1)
+        expected = "Query terminated by the `rethinkdb.jobs` table."
+        if not isinstance(result[0], self.r.ReqlRuntimeError) or result[0].message != expected:
+            self.fail('Unexpected error: %s' % str(result[0]))
+
+        # Stop the proxy again
+        proxy.check_and_stop()
 
     def test_job_deletion(self):
         (conn_a, conn_b) = [self.r.connect(host=s.host, port=s.driver_port) for s in self.cluster]
