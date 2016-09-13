@@ -18,13 +18,6 @@ bool grant(
         T permission_selector_function,
         ql::datum_t *result_out,
         admin_err_t *error_out) {
-    if (!user_context.is_admin_user()) {
-        *error_out = admin_err_t{
-            "Only administrators can grant permissions.",
-            query_state_t::FAILED};
-        return false;
-    }
-
     if (username.is_admin()) {
         *error_out = admin_err_t{
             "The permissions of the user `" + username.to_string() +
@@ -53,6 +46,7 @@ bool grant(
         return false;
     }
 
+    user_context.require_read_permission(rdb_context, db->id, table->get_id());
     user_context.require_write_permission(rdb_context, db->id, table->get_id());
 
     auth_semilattice_metadata_t auth_metadata = auth_semilattice_view->get();

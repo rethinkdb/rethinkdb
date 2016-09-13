@@ -1,0 +1,64 @@
+desc: tests the `rethinkdb.users` system table
+tests:
+
+    - def: users = r.db("rethinkdb").table("users")
+
+    - cd: users
+      ot: bag([{"id": "admin", "password": false}, {"id": "test_user", "password": false}])
+    - cd: users.get(null)
+      ot: null
+    - cd: users.get("admin")
+      ot: {"id": "admin", "password": false} 
+    - cd: users.get("admin").delete()
+      ot: partial({"errors": 1, "first_error": "The user `admin` can't be deleted."})
+    - cd: users.get("admin").update({"password": "test"})
+      ot: partial({"replaced": 1})
+    - cd: users.get("admin")
+      ot: {"id": "admin", "password": true}
+    - cd: users.get("admin").update({"password": false})
+      ot: partial({"replaced": 1})
+    - cd: users.get("admin")
+      ot: {"id": "admin", "password": false}
+    - cd: users.get("admin").update({"password": 1})
+      ot: partial({"errors": 1, "first_error": "Expected an object, string or boolean for `password`, got 1."})
+    - cd: users.get("admin").update({"password": true})
+      ot: partial({"errors": 1, "first_error": "Expected an object or string to set the password, or `false` to keep it unset, got true."})
+    - cd: users.get("admin").replace({"id": "admin"})
+      ot: partial({"errors": 1, "first_error": "Expected a field named `password`."})
+    - cd: users.get("admin").replace({"password": false})
+      ot: partial({"errors": 1, "first_error": "Inserted object must have primary key `id`:\n{\n\t\"password\":\tfalse\n}"})
+    - cd: users.get("admin").replace({"id": "admin", "password": false, "test": "test"})
+      ot: partial({"errors": 1, "first_error": "Unexpected key(s) `test`."})
+
+    - cd: users.insert({"password": False})
+      ot: partial({"errors": 1, "first_error": regex('Expected a username as the primary key, got "[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}".')})
+    - cd: users.insert({"id": "test", "password": 1})
+      ot: partial({"errors": 1, "first_error": "Expected an object, string or boolean for `password`, got 1."})
+    - cd: users.insert({"id": "test", "password": True})
+      ot: partial({"errors": 1, "first_error": "Expected an object or string to set the password, or `false` to keep it unset, got true."})
+    - cd: users.insert({"id": "test"})
+      ot: partial({"errors": 1, "first_error": "Expected a field named `password`."})
+    - cd: users.insert({"id": "test", "password": False, "test": "test"})
+      ot: partial({"errors": 1, "first_error": "Unexpected key(s) `test`."})
+    - cd: users.insert({"id": "test", "password": False})
+      ot: partial({"inserted": 1})
+
+    - cd: users.insert({"id": "test-2", "password": {}})
+      ot: partial({"errors": 1, "first_error": "Expected a field named `iterations`."})
+    - cd: users.insert({"id": "test-2", "password": {"iterations": 4096}})
+      ot: partial({"errors": 1, "first_error": "Expected a field named `password`."})
+    - cd: users.insert({"id": "test-2", "password": {"password": "test"}})
+      ot: partial({"errors": 1, "first_error": "Expected a field named `iterations`."})
+    - cd: users.insert({"id": "test-2", "password": {"iterations": 4096, "password": "test", "test": "test"}})
+      ot: partial({"errors": 1, "first_error": "Unexpected key(s) `test`."})
+    - cd: users.insert({"id": "test-2", "password": {"iterations": 4096, "password": "test"}})
+      ot: partial({"inserted": 1})
+
+    - cd: users.get("test").delete()
+      ot: partial({"deleted": 1})
+    - cd: users.get("test")
+      ot: null
+    - cd: users.insert({"id": "test", "password": False})
+      ot: partial({"inserted": 1})
+    - cd: users.get("test")
+      ot: {"id": "test", "password": False}

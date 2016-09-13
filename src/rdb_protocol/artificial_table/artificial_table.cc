@@ -57,12 +57,13 @@ const std::string &artificial_table_t::get_pkey() const {
 
 ql::datum_t artificial_table_t::read_row(ql::env_t *env,
         ql::datum_t pval, UNUSED read_mode_t read_mode) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
-
     ql::datum_t row;
-    admin_err_t error;
+
     try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+
+        admin_err_t error;
         if (!checked_read_row_from_backend(
                 env->get_user_context(),
                 m_backend,
@@ -76,10 +77,7 @@ ql::datum_t artificial_table_t::read_row(ql::env_t *env,
         rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
     }
 
-    if (!row.has()) {
-        row = ql::datum_t::null();
-    }
-    return row;
+    return row.has() ? row : ql::datum_t::null();
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_all(
@@ -90,17 +88,18 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
         UNUSED read_mode_t read_mode) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
-
-    if (get_all_sindex_id != m_primary_key_name) {
-        rfail_datum(ql::base_exc_t::OP_FAILED, "%s",
-            error_message_index_not_found(get_all_sindex_id, table_name).c_str());
-    }
-
     counted_t<ql::datum_stream_t> stream;
-    admin_err_t error;
+
     try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+
+        if (get_all_sindex_id != m_primary_key_name) {
+            rfail_datum(ql::base_exc_t::OP_FAILED, "%s",
+                error_message_index_not_found(get_all_sindex_id, table_name).c_str());
+        }
+
+        admin_err_t error;
         if (!m_backend->read_all_rows_as_stream(
                 env->get_user_context(),
                 bt,
@@ -122,12 +121,13 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         ql::env_t *env,
         const ql::changefeed::streamspec_t &ss,
         ql::backtrace_id_t bt) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
-
     counted_t<ql::datum_stream_t> stream;
-    admin_err_t error;
+
     try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+
+        admin_err_t error;
         if (!m_backend->read_changes(
                 env, ss, bt, env->interruptor, &stream, &error)) {
             REQL_RETHROW_DATUM(error);
@@ -146,8 +146,12 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         const std::string &table_name,
         UNUSED read_mode_t read_mode,
         UNUSED const ql::datum_t &query_geometry) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
+    try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
 
     guarantee(
         sindex != m_primary_key_name,
@@ -167,8 +171,12 @@ ql::datum_t artificial_table_t::read_nearest(
         UNUSED const ellipsoid_spec_t &geo_system,
         UNUSED dist_unit_t dist_unit,
         UNUSED const ql::configured_limits_t &limits) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
+    try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
 
     guarantee(
         sindex != m_primary_key_name,
@@ -184,10 +192,14 @@ ql::datum_t artificial_table_t::write_batched_replace(
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability,
         UNUSED ignore_write_hook_t ignore_write_hook) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
-    env->get_user_context().require_write_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
+    try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+        env->get_user_context().require_write_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
 
     /* Note that we ignore the `durability` optarg. In theory we could assert that it's
     unspecified or specified to be "soft", since durability is irrelevant or effectively
@@ -234,10 +246,14 @@ ql::datum_t artificial_table_t::write_batched_insert(
         return_changes_t return_changes,
         UNUSED durability_requirement_t durability,
         UNUSED ignore_write_hook_t ignore_write_hook) {
-    env->get_user_context().require_read_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
-    env->get_user_context().require_write_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
+    try {
+        env->get_user_context().require_read_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+        env->get_user_context().require_write_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
 
     ql::datum_t stats = ql::datum_t::empty_object();
     std::set<std::string> conditions;
@@ -291,8 +307,12 @@ ql::datum_t artificial_table_t::write_batched_insert(
 bool artificial_table_t::write_sync_depending_on_durability(
         ql::env_t *env,
         UNUSED durability_requirement_t durability) {
-    env->get_user_context().require_write_permission(
-        m_rdb_context, m_database_id, m_backend->get_table_id());
+    try {
+        env->get_user_context().require_write_permission(
+            m_rdb_context, m_database_id, m_backend->get_table_id());
+    } catch (auth::permission_error_t const &permission_error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
+    }
 
     /* Calling `sync()` on an artificial table is a meaningful operation; it would mean
     to flush the metadata to disk. But it would be a lot of trouble to implement in
