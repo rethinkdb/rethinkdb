@@ -174,26 +174,34 @@ class RdbTestCase(TestCaseCompatible):
     def conn(self):
         '''Retrieve a valid connection to some server in the cluster'''
         
+        return self.conn_function()
+    
+    def conn_function(self, alwaysNew=False):
+        '''Retrieve a valid connection to some server in the cluster'''
+        
         # -- check if we already have a good cached connection
-        if self.__class__.__conn and self.__class__.__conn.is_open():
-            try:
-                self.r.expr(1).run(self.__class__.__conn)
-                return self.__class__.__conn
-            except Exception: pass
-        if self.__class__.conn is not None:
-            try:
-                self.__class__.__conn.close()
-            except Exception: pass
-            self.__class__.__conn = None
+        if not alwaysNew:
+            if self.__class__.__conn and self.__class__.__conn.is_open():
+                try:
+                    self.r.expr(1).run(self.__class__.__conn)
+                    return self.__class__.__conn
+                except Exception: pass
+            if self.__class__.conn is not None:
+                try:
+                    self.__class__.__conn.close()
+                except Exception: pass
+                self.__class__.__conn = None
         
         # -- try a new connection to each server in order
         for server in self.cluster:
             if not server.ready:
                 continue
             try:
-                ssl = {'ca_certs':self.Cluster.tlsCertPath} if self.use_tls else None
-                self.__class__.__conn = self.r.connect(host=server.host, port=server.driver_port, ssl=ssl)
-                return self.__class__.__conn
+                ssl  = {'ca_certs':self.Cluster.tlsCertPath} if self.use_tls else None
+                conn = self.r.connect(host=server.host, port=server.driver_port, ssl=ssl)
+                if not alwaysNew:
+                    self.__class__.__conn = conn
+                return conn
             except Exception as e: pass
         else:        
             # fail as we have run out of servers
@@ -411,21 +419,3 @@ class RdbTestCase(TestCaseCompatible):
         
         changedRecordIds.sort()
         return changedRecordIds
-
-# ==== class fixups
-
-if not hasattr(RdbTestCase, 'assertRaisesRegex'):
-    # -- patch the Python2.6 version of unittest to have assertRaisesRegex
-    def assertRaisesRegex_replacement(self, exception, regexp, function, *args, **kwds):
-        result = None
-        try:
-            result = function(*args, **kwds)
-        except Exception as e:
-            if not isinstance(e, exception):
-                raise AssertionError('Got the wrong type of exception: %s vs. expected: %s' % (e.__class__.__name__, exception.__name__))
-            if not re.match(regexp, str(e)):
-                raise AssertionError('Error message: "%s" does not match "%s"' % (str(regexp), str(e)))
-            return
-        else:
-            raise AssertionError('%s not raised for: %s, rather got: %s' % (exception.__name__, repr(function), repr(result)))
-    RdbTestCase.assertRaisesRegex = assertRaisesRegex_replacement

@@ -8,9 +8,9 @@ DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
 START_TIME = Time.now()
 
 def print_debug(message)
-    if DEBUG_ENABLED
-        puts("DEBUG %.2f:\t %s" % [Time.now() - START_TIME, message])
-    end
+  if DEBUG_ENABLED
+    puts("DEBUG %.2f:\t %s" % [Time.now() - START_TIME, message])
+  end
 end
 
 DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || 28015).to_i
@@ -52,18 +52,14 @@ def reql_conn(user='admin')
   return $conn_cache[user]
 end
 
-begin
-  r.db_create('test').run(reql_conn())
-rescue
-end
+# ensure `test` database 
+r.expr(['test']).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run(reql_conn())
 
 # --
 
 $defines = binding
 $defines.eval('conn = reql_conn()') # allow access to default connection
 
-NoError = "<no error>"
-AnyUUID = "<any uuid>"
 Err = Struct.new(:class, :message, :backtrace)
 Bag = Struct.new(:value, :ordered, :partial)
 
@@ -80,8 +76,14 @@ def show(x)
     return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{message}"
   elsif x.is_a?(String)
     return x
+  elsif x == :anything
+    return "<no error>"
   end
   return (PP.pp x, "").chomp
+end
+
+def anything()
+  return :anything
 end
 
 def bag(expected, ordered=nil, partial=nil)
@@ -139,8 +141,22 @@ def arrlen(len, x)
   Array.new(len, x)
 end
 
+class UUID < Regexp
+  def initialize()
+    super('^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
+  end
+  
+  def to_s
+    return "<any uuid>"
+  end
+  
+  def inspect
+    return "<any uuid>"
+  end
+end
+
 def uuid
-  AnyUUID
+  UUID.new()
 end
 
 def regex(pattern)
@@ -193,14 +209,9 @@ end
 def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
   print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>> (#{result.class})")
   
-  # - NoError
-  if expected.object_id == NoError.object_id
-    if result.is_a?(Err) || result.is_a?(Exception) || result.is_a?(RethinkDB::ReqlError)
-      puts result
-      puts result.backtrace
-      return -1
-    end
-    return 0
+  # - Anything (non-error)
+  if expected == :anything
+    return result.is_a?(Err) || result.is_a?(Exception) ? -1 : 0
   end
   
   # - nils in expected or result
@@ -210,13 +221,6 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
     return 1
   elsif expected.nil?
     return -1
-  end
-  
-  # - AnyUUID
-  if expected.object_id == AnyUUID.object_id
-    return -1 if not result.kind_of? String
-    return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
-    return 1
   end
   
   # - unpack Bags
@@ -514,9 +518,45 @@ def test(src, expected, name, runopts=nil, testopts=nil)
     end
 
     # -- process the result
-
-    return check_result(name, src, result, expected, testopts)
-
+    
+    begin
+      # - process expected
+      begin
+        expected = $defines.eval(expected.to_s)
+      rescue Exception => err
+        fail_test(name, src, err, expected, type="COMPARE SETUP ERROR")
+        return false
+      end
+      
+      # - read out cursors
+      if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && not(expected == :anything || testopts.has_key?('variable'))
+        begin
+          result = result.to_a
+        rescue Exception => err
+          result = err
+        end
+      end
+      
+      # - compare the result
+      begin
+        if cmp_test(expected, result, testopts) != 0
+          fail_test(name, src, result, expected)
+          return false
+        end
+      rescue Exception => err
+        fail_test(name, src, err, expected, type="COMPARE ERROR")
+        return false
+      end
+      
+      # - declare victory
+      $success_count += 1
+      return true
+      
+    rescue StandardError, SyntaxError => err
+      fail_test(name, src, err, expected, type="UNEXPECTED COMPARE ERROR")
+      return false
+    end
+  
   rescue StandardError, SyntaxError => err
     fail_test(name, src, err, expected, type="TEST")
   end
@@ -576,50 +616,6 @@ end
 
 at_exit do
   puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
-end
-
-def check_result(name, src, result, expected, testopts={})
-  begin
-    # - process expected
-    begin
-      if expected && expected != ''
-        expected = $defines.eval(expected.to_s)
-      else
-        expected = NoError
-      end
-    rescue Exception => err
-      fail_test(name, src, err, expected, type="COMPARE SETUP ERROR")
-      return false
-    end
-    
-    # - read out cursors
-    if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && not(expected == NoError || testopts.has_key?('variable'))
-      begin
-        result = result.to_a
-      rescue Exception => err
-        result = err
-      end
-    end
-    
-    # - compare the result
-    begin
-      if cmp_test(expected, result, testopts) != 0
-        fail_test(name, src, result, expected)
-        return false
-      end
-    rescue Exception => err
-      fail_test(name, src, err, expected, type="COMPARE ERROR")
-      return false
-    end
-    
-    # - declare victory
-    $success_count += 1
-    return true
-    
-  rescue StandardError, SyntaxError => err
-    fail_test(name, src, err, expected, type="UNEXPECTED COMPARE ERROR")
-    return false
-  end
 end
 
 def fail_test(name, src, result, expected, type="TEST FAILURE")

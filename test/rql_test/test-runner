@@ -724,8 +724,8 @@ class TestGroup(object):
                 try:
                     out.write("test(%(code)s, %(expected)s, %(name)s, %(runopts)s, %(testopts)s)\n" % {
                         'code': lang.translate_query(test_case, name=True),
-                        'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
-                        'name': repr("line %d" % test_case.linenumber) if hasattr(test_case, 'linenumber') else repr(testName),
+                        'expected': '"anything()"' if testCode.expected is None else lang.translate_query(testCode.expected),
+                        'name': '"line %d"' % test_case.linenumber if hasattr(test_case, 'linenumber') else repr(testName),
                         'runopts': lang.translate_query(testCode.runopts, quote=False),
                         'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })

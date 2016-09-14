@@ -7,11 +7,11 @@ tests:
       ot: []
 
     - cd: r.db('rethinkdb').info()
-      ot: ({'type':'DB','name':'rethinkdb','id':null})
+      ot: ({'type':'DB','name':'rethinkdb','id':uuid()})
 
     - cd: r.db('rethinkdb').table('stats').info()
-      ot: partial({'db':{'type':'DB','name':'rethinkdb','id':null},
-                   'type':'TABLE','id':null,'name':'stats',
+      ot: partial({'db':{'type':'DB','name':'rethinkdb','id':uuid()},
+                   'type':'TABLE','id':uuid(),'name':'stats',
                    'indexes':[],'primary_key':'id'})
 
     # Table create

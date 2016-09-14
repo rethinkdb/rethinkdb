@@ -8,9 +8,7 @@ var promise = r._bluebird
 
 // -- global variables
 
-// Tests are stored in list until they can be sequentially evaluated
-var tests = [r.dbCreate('test')]
-
+var tests = [] // Tests are stored to be sequentially evaluated
 var start_time = Date.now()
 var failure_count = 0;
 var tests_run = 0;
@@ -18,7 +16,6 @@ var tests_run = 0;
 var __conn_cache = {} // user -> connection
 
 var defines = {} // Provides a context for variables
-
 
 var tables_to_cleanup = [] // pre-existing tables
 var tables_to_delete = [] // created by this script
@@ -145,7 +142,6 @@ function eq_test(expected, result, compOpts, partial) {
 
 // -- Curried output test functions --
 
-// Equality comparison
 function eq(exp, compOpts) {
     var fun = function eq_inner (val) {
         if (!eq_test(exp, val, compOpts)) {
@@ -158,18 +154,6 @@ function eq(exp, compOpts) {
     fun.toString = function() {
         return JSON.stringify(exp);
     };
-    fun.toJSON = fun.toString;
-    return fun;
-}
-
-function returnTrue() {
-    var fun = function returnTrue_inner (val) {
-        return True;
-    }
-    fun.hasDesc = true;
-    fun.toString = function() {
-        return 'Always true';
-    }
     fun.toJSON = fun.toString;
     return fun;
 }
@@ -340,20 +324,17 @@ function runTest() {
                 
                 // - convert expected value into a function for comparison
                 var exp_fun = null;
-                if (test.expectedSrc !== undefined) {
-                    try {
-                        with (defines) {
-                            regexEscaped = test.expectedSrc.replace(/(regex\((['"])(.*?)\1\))/g, function(match) {return match.replace('\\', '\\\\');})
-                            exp_fun = eval(regexEscaped);
-                        }
-                    } catch (err) {
-                        // Oops, this shouldn't have happened
-                        console.error(test.name);
-                        console.error(test.expectedSrc);
-                        throw err;
+                try {
+                    with (defines) {
+                        regexEscaped = test.expectedSrc.replace(/(regex\((['"])(.*?)\1\))/g, function(match) {return match.replace('\\', '\\\\');})
+                        exp_fun = eval(regexEscaped);
                     }
+                } catch (err) {
+                    // Oops, this shouldn't have happened
+                    console.error(test.name);
+                    console.error(test.expectedSrc);
+                    throw err;
                 }
-                if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
                 
                 test.exp_fun = exp_fun;
@@ -707,8 +688,7 @@ function wait(seconds) {
     return fun;
 }
 
-// Invoked by generated code to define variables to used within
-// subsequent tests
+// Invoked by generated code to define variables to used within subsequent tests
 function define(expr, variable) {
     tests.push(function define_inner(test) {
         TRACE('setting define: ' + variable + ' = '  + expr);
@@ -717,6 +697,19 @@ function define(expr, variable) {
         }
         runTest();
     });
+}
+
+function anything() {
+    var fun = function anything_inner (val) {
+        
+        return True;
+    }
+    fun.hasDesc = true;
+    fun.toString = function() {
+        return '<no error>';
+    }
+    fun.toJSON = fun.toString;
+    return fun;
 }
 
 // Invoked by generated code to support bag comparison on this expected value
@@ -838,7 +831,6 @@ function partial(expected, compOpts) {
 function regex(pattern) {
     regex = new RegExp(pattern)
     var fun = function regexReturn(other) {
-        console.error('a', pattern, regex.test(other), '---', other)
         if (regex.exec(other) === null) {
             return false;
         }
@@ -855,25 +847,6 @@ function regex(pattern) {
 
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
-    return err_predicate(
-        err_name,
-        function(msg) { return (!err_msg || (err_msg === msg)); },
-        err_frames || [],
-        err_name + ": " +err_msg
-    );
-}
-
-function err_regex(err_name, err_pat, err_frames) {
-    return err_predicate(
-        err_name,
-        function(msg) { return (!err_pat || new RegExp(err_pat).test(msg)); },
-        err_frames,
-        err_name + ": " +err_pat
-    );
-}
-errRegex = err_regex
-
-function err_predicate(err_name, err_pred, err_frames, desc) {
     var err_frames = null; // TODO: test for frames
     var err_class = null
     if (err_name.prototype instanceof Error) {
@@ -891,28 +864,35 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
     
     assert(err_class.prototype instanceof Error, 'err_name must be the name of an error class');
     
-    var fun = function err_predicate_return (other) {
-        if (other instanceof Error) {
-            // Strip out "offending object" from err message
-            other.cmpMsg = other.msg || other.message
-            other.cmpMsg = other.cmpMsg.replace(/^([^\n]*?)(?: in)?:\n[\s\S]*$/, '$1:');
-            other.cmpMsg = other.cmpMsg.replace(/\nFailed assertion: .*/, "");
-            other.cmpMsg = other.cmpMsg.replace(/\nStack:\n[\s\S]*$/, "");
-            TRACE("Translate msg: <<" + (other.message || other.msg) + ">> => <<" + other.cmpMsg + ">>")
+    var fun = function err_return (other) {
+        if (!(other instanceof err_class)) return false;
+        
+        // Strip out "offending object" from err message
+        cmpMsg = other.msg || other.message
+        cmpMsg = cmpMsg.replace(/^([^\n]*?)(?: in)?:\n[\s\S]*$/, '$1:');
+        cmpMsg = cmpMsg.replace(/\nFailed assertion: .*/, "");
+        cmpMsg = cmpMsg.replace(/\nStack:\n[\s\S]*$/, "");
+        TRACE("Translate msg: <<" + (other.message || other.msg) + ">> => <<" + cmpMsg + ">>")
+        if (err_msg instanceof RegExp) {
+            if (!err_msg.test(cmpMsg)) { return false; }
+        } else if (err_msg) {
+            if (err_msg != cmpMsg) { return false; }
         }
         
-        if (!(other instanceof err_class)) return false;
-        if (!err_pred(other.cmpMsg)) return false;
         if (err_frames && !(eq_test(err_frames, other.frames))) return false;
         return true;
     }
     fun.isErr = true;
     fun.hasDesc = true;
     fun.toString = function() {
-        return desc;
+        return err_name + ": " + err_msg;
     };
     fun.toJSON = fun.toString;
     return fun;
+}
+
+function err_regex(err_name, err_pat, err_frames) {
+    return err(err_name, RegExp(err_pat), err_frames)
 }
 
 function builtin_err(err_name, err_msg) {
@@ -962,6 +942,9 @@ function the_end() {
     // Start the tests runnning
     runTest()
 }
+
+// ensure the presense of the `test` database
+test('r.expr(["test"]).setDifference(r.dbList()).forEach(r.dbCreate(r.row))', 'anything()', 'Setup', {}, {})
 
 True = true;
 False = false;

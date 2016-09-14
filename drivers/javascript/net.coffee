@@ -94,6 +94,13 @@ aropt = util.aropt
 mkAtom = util.mkAtom
 mkErr = util.mkErr
 
+# These are the default hostname and port used by RethinkDB
+DEFAULT_HOST = 'localhost'
+DEFAULT_PORT = 28015
+
+module.exports.DEFAULT_HOST = DEFAULT_HOST
+module.exports.DEFAULT_PORT = DEFAULT_PORT
+
 # These are strings returned by the server after a handshake
 # request. Since they must match exactly they're defined in
 # "constants" here at the top
@@ -121,10 +128,7 @@ HANDSHAKE_AUTHFAIL = "ERROR: Incorrect authorization key.\n"
 # - `"timeout"` will be emitted by the `TcpConnection` subclass if the
 #    underlying socket times out for any reason.
 class Connection extends events.EventEmitter
-
-    # These are the default hostname and port used by RethinkDB
-    DEFAULT_HOST: 'localhost'
-    DEFAULT_PORT: 28015
+    
     # By default, RethinkDB doesn't use an authorization key.
     DEFAULT_AUTH_KEY: ''
     # Each connection has a timeout (in seconds) for the initial handshake with the
@@ -145,8 +149,8 @@ class Connection extends events.EventEmitter
             host = {host: host}
 
         # Here we set all of the connection parameters to their defaults.
-        @host = host.host || @DEFAULT_HOST
-        @port = host.port || @DEFAULT_PORT
+        @host = host.host || DEFAULT_HOST
+        @port = host.port || DEFAULT_PORT
 
         # One notable exception to defaulting is the db name. If the
         # user doesn't specify it, we leave it undefined. On the

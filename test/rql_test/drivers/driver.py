@@ -122,7 +122,7 @@ class Anything(object):
         return cls.__instance 
     
     def __str__(self):
-        return "anything()"
+        return "<no error>"
     
     def __repr__(self):
         return self.__str__()
@@ -439,12 +439,8 @@ class PyTestDriver(object):
         
         # -- build the expected result
         
-        if expected:
-            exp_val = eval(expected, self.scope)
-        else:
-            # This test might not have come with an expected result, we'll just ensure it doesn't fail
-            exp_val = Anything()
         print_debug('\tExpected: %s' % str(expected))
+        exp_val = eval(unicode(expected), self.scope)
         
         # -- evaluate the command
         
