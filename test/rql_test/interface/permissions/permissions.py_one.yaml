@@ -219,6 +219,7 @@ tests:
           ])
 
     - cd: r.db("rethinkdb").table("users").get("test_user").delete()
+      ot: partial({"errors": 0})
 
     - cd: permissions
       ot: bag([
@@ -288,6 +289,7 @@ tests:
       ot: partial({"errors": 1, "first_error": "The permissions of the user `admin` can't be modified."})
 
     - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
     - cd: r.grant("test_user", {"read": true, "write": true})
     - cd: r.db("rethinkdb").table("stats").count().ge(1)
       runopts:
@@ -300,6 +302,7 @@ tests:
       ot: true
 
     - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
     - cd: r.db("rethinkdb").table("_debug_scratch")
       ot: []
     - cd: r.db("rethinkdb").table("_debug_stats")
@@ -320,6 +323,7 @@ tests:
       ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
 
     - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
     - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
     - cd: r.db_create("source")
     - cd: r.db_create("destination")
@@ -336,6 +340,7 @@ tests:
       ot: partial({"replaced": 1})
 
     - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
     - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
     - cd: tableId4 = r.db("database").table_create("table2").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
     - cd: r.db("rethinkdb").table("table_config").get(tableId4).update({"durability": "soft"})
