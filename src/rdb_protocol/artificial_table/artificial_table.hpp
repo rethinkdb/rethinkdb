@@ -83,6 +83,15 @@ public:
         ql::env_t *env,
         durability_requirement_t durability);
 
+    scoped_ptr_t<ql::reader_t> read_all_with_sindexes(
+        ql::env_t *env,
+        const std::string &sindex,
+        ql::backtrace_id_t bt,
+        const std::string &table_name,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        read_mode_t read_mode) final;
+
     static const uuid_u base_table_id;
 
 private:
