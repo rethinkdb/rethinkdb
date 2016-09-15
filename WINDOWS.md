@@ -7,6 +7,10 @@
 * CMake ("Windows Installer" from https://cmake.org/download/)
 
 * node.js with NPM (https://nodejs.org/en/download/)
+  We need at least NPM 3.x, since earlier versions of NPM will create
+  folder structures that are to deep for Windows
+  (http://stackoverflow.com/a/31315303/2413884).
+  You can upgrade NPM by running `npm install -g npm`.
 
 * Cygwin (https://cygwin.com/install.html)
 
