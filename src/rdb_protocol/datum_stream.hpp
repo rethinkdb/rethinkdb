@@ -798,6 +798,58 @@ private:
     std::string table_name;
 };
 
+class vector_reader_t : public reader_t {
+public:
+    explicit vector_reader_t(std::vector<datum_t> &&_items) :
+        finished(false),
+        items(std::move(_items)) {
+    }
+    virtual ~vector_reader_t() {}
+    virtual void add_transformation(transform_variant_t &&) {
+        r_sanity_fail();
+    }
+    virtual bool add_stamp(changefeed_stamp_t) {
+        r_sanity_fail();
+    }
+    virtual boost::optional<active_state_t> get_active_state() {
+        r_sanity_fail();
+    }
+    virtual void accumulate(env_t *, eager_acc_t *, const terminal_variant_t &) {
+        r_sanity_fail();
+    }
+    virtual void accumulate_all(env_t *, eager_acc_t *) {
+        r_sanity_fail();
+    }
+    virtual std::vector<datum_t> next_batch(env_t *, const batchspec_t &) {
+        r_sanity_check(!finished);
+        finished = true;
+        return std::move(items);
+    }
+    std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) final {
+        r_sanity_check(!finished);
+        std::vector<rget_item_t> rget_items;
+        for (auto it = items.begin(); it != items.end(); ++it) {
+            rget_item_t item;
+            item.data = std::move(*it);
+            rget_items.push_back(std::move(item));
+        }
+        items.clear();
+        finished = true;
+        return std::move(rget_items);
+    }
+    virtual bool is_finished() const {
+        return finished;
+    }
+    virtual changefeed::keyspec_t get_changespec() const {
+        r_sanity_fail();
+    }
+
+private:
+    bool finished;
+    std::vector<datum_t> items;
+};
+
 // For reads that generate read_response_t results.
 class rget_response_reader_t : public reader_t {
 public:
