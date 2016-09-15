@@ -92,6 +92,38 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     return stream;
 }
 
+scoped_ptr_t<ql::reader_t> artificial_table_t::read_all_with_sindexes(
+        ql::env_t *env,
+        const std::string &sindex,
+        ql::backtrace_id_t bt,
+        const std::string &table_name,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        read_mode_t read_mode) {
+    // This is just a read_all for an artificial table, because sindex is always
+    // the primary index. We still need to return a reader_t, this is needed for
+    // eq_join.
+    r_sanity_check(sindex == get_pkey());
+    counted_t<ql::datum_stream_t> datum_stream =
+        read_all(env, sindex, bt, table_name, datumspec, sorting, read_mode);
+
+    scoped_ptr_t<ql::eager_acc_t> to_array = ql::make_to_array();
+    datum_stream->accumulate_all(env, to_array.get());
+    ql::datum_t items = to_array->finish_eager(
+        bt,
+        false,
+        ql::configured_limits_t::unlimited)->as_datum();
+
+    std::vector<ql::datum_t> items_vector;
+
+    guarantee(items.get_type() == ql::datum_t::type_t::R_ARRAY);
+    for (size_t i = 0; i < items.arr_size(); ++i) {
+        items_vector.push_back(std::move(items.get(i)));
+    }
+
+    return make_scoped<ql::vector_reader_t>(std::move(items_vector));
+}
+
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
     ql::env_t *env,
     const ql::changefeed::streamspec_t &ss,
