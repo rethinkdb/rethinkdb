@@ -26,7 +26,6 @@
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store_metainfo.hpp"
-#include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
 

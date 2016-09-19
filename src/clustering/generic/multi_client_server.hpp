@@ -9,7 +9,6 @@
 
 #include "clustering/generic/multi_client_metadata.hpp"
 #include "clustering/generic/registrar.hpp"
-#include "rpc/mailbox/typed.hpp"
 
 /* `multi_client_server_t` is a thin wrapper around a `registrar_t`.
  A `multi_client_client_t` can connect to it to run requests of type `request_type`.

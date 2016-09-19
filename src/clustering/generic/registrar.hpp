@@ -12,7 +12,6 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/wait_any.hpp"
-#include "rpc/mailbox/typed.hpp"
 
 template<class business_card_t, class user_data_type, class registrant_type>
 class registrar_t {

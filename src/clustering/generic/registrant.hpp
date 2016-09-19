@@ -11,7 +11,6 @@
 #include "containers/clone_ptr.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template<class business_card_t>

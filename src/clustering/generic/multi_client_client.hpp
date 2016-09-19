@@ -6,7 +6,6 @@
 
 #include "clustering/generic/multi_client_metadata.hpp"
 #include "concurrency/promise.hpp"
-#include "rpc/mailbox/typed.hpp"
 
 template <class> class registrant_t;
 template <class> class clone_ptr_t;
