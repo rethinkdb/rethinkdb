@@ -150,30 +150,52 @@ void string_push_back(std::vector<std::string> *v, const std::string &pushee) {
     v->push_back(pushee);
 }
 
-TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
+TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailboxNoParams, 3) {
     connectivity_cluster_t c;
     mailbox_manager_t m(&c, 'M');
     test_cluster_run_t r(&c);
 
-    std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m,
-        [&](signal_t *, const std::string &str) {
-            inbox.push_back(str);
+    bool received = false;
+
+    mailbox_t<void()> mbox(&m,
+        [&](signal_t *) {
+            received = true;
         });
 
-    mailbox_addr_t<void(std::string)> addr = mbox.get_address();
+    auto addr = mbox.get_address();
 
-    send(&m, addr, std::string("foo"));
-    send(&m, addr, std::string("bar"));
-    send(&m, addr, std::string("baz"));
+    send(&m, addr);
+
+    let_stuff_happen();
+
+    EXPECT_TRUE(received);
+}
+
+TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailboxWithParams, 3) {
+    connectivity_cluster_t c;
+    mailbox_manager_t m(&c, 'M');
+    test_cluster_run_t r(&c);
+
+    typedef std::tuple<int, bool, std::string> mbox_params_t;
+    std::vector<mbox_params_t> inbox;
+    mailbox_t<void(int, bool, std::string)> mbox(&m,
+        [&](signal_t *, const int & i, const bool & b, const std::string &str) {
+            inbox.emplace_back(i,b,str);
+        });
+
+    auto addr = mbox.get_address();
+
+    send(&m, addr, 0, false, std::string("foo"));
+    send(&m, addr, std::numeric_limits<int>::max(), true, std::string("bar"));
+    send(&m, addr, std::numeric_limits<int>::min(), true, std::string("baz"));
 
     let_stuff_happen();
 
     EXPECT_EQ(3u, inbox.size());
     if (inbox.size() == 3) {
-        EXPECT_EQ(inbox[0], "foo");
-        EXPECT_EQ(inbox[1], "bar");
-        EXPECT_EQ(inbox[2], "baz");
+        EXPECT_EQ(inbox[0], (mbox_params_t{0,false,"foo"}));
+        EXPECT_EQ(inbox[1], (mbox_params_t{std::numeric_limits<int>::max(), true, "bar"}));
+        EXPECT_EQ(inbox[2], (mbox_params_t{std::numeric_limits<int>::min(), true, "baz"}));
     }
 }
 
