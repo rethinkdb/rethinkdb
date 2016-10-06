@@ -9,12 +9,10 @@
 #include <functional>
 #include <string>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "debug.hpp"
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
+#include "errors.hpp"
 
 #ifdef _MSC_VER
 #include <BaseTsd.h>
