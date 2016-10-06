@@ -1,7 +1,0 @@
-syntax:glob
-*.pyc
-*.orig
-core
-
-syntax:regexp
-^obj/
