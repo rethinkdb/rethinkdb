@@ -8,7 +8,7 @@
 
 #include "config/args.hpp"
 #include "errors.hpp"
-#include "utils.hpp"
+#include "memory_utils.hpp"
 
 // Like boost::scoped_ptr only with release, init, no bool conversion, no boost headers!
 template <class T>

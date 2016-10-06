@@ -37,6 +37,7 @@
 #include <cmath>
 
 #include "errors.hpp"
+#include "memory_utils.hpp"
 #include "utils.hpp"
 
 #ifdef __clang__

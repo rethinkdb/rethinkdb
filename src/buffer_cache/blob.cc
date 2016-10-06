@@ -12,6 +12,7 @@
 #include "containers/scoped.hpp"
 #include "math.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 // The maximal number of blocks to traverse concurrently.
 // Roughly equivalent to the maximal number of coroutines that loading a blob

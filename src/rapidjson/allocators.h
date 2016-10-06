@@ -21,7 +21,7 @@
 #ifndef RAPIDJSON_ALLOCATORS_H_
 #define RAPIDJSON_ALLOCATORS_H_
 
-#include "utils.hpp"
+#include "memory_utils.hpp"
 
 RAPIDJSON_NAMESPACE_BEGIN
 

@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 
 #include "rdb_protocol/error.hpp"
+#include "utils.hpp"
 
 namespace pprint {
 
