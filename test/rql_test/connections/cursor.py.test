@@ -5,29 +5,18 @@
 import os, random, re, socket, subprocess, sys, tempfile, unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import driver, utils
-
-try:
-    xrange
-except NameError:
-    xrange = range
+import utils
 
 r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
 rethinkdb_exe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
 
-# -- make sure a server is avalible
+# --
 
 server = None
-serverHost = os.environ.get('RDB_SERVER_HOST')
-serverPort = int(os.environ.get('RDB_DRIVER_PORT')) if 'RDB_DRIVER_PORT' in os.environ else None
-serverOutput = None
-if None in (serverHost, serverPort):
-    serverOutput = tempfile.TemporaryFile(mode='w+')
-    server = driver.Process(executable_path=rethinkdb_exe, console_output=serverOutput)
-    serverHost = server.host
-    serverPort = server.driver_port
+serverHost = os.environ.get('RDB_SERVER_HOST', 'localhost')
+serverPort = int(os.environ.get('RDB_DRIVER_PORT', 28015))
 
 # -- tests
 
@@ -153,7 +142,7 @@ class TestCursorWait(unittest.TestCase):
         cursors = [ ]
         cursor_counts = [ ]
         cursor_timeouts = [ ]
-        for i in xrange(self.num_cursors):
+        for i in range(self.num_cursors):
             cursors.append(r.range().map(r.js("(function (row) {" +
                                                   "end = new Date(new Date().getTime() + 2);" +
                                                   "while (new Date() < end) { }" +
@@ -174,8 +163,8 @@ class TestCursorWait(unittest.TestCase):
 
         # We need to get ahead of pre-fetching for this to get the error we want
         while sum(cursor_counts) < 4000:
-            for cursor_index in xrange(self.num_cursors):
-                for read_count in xrange(random.randint(0, 10)):
+            for cursor_index in range(self.num_cursors):
+                for read_count in range(random.randint(0, 10)):
                     get_next(cursor_index)
 
         [cursor.close() for cursor in cursors]

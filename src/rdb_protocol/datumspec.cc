@@ -104,8 +104,7 @@ key_range_t datum_range_t::to_sindex_keyrange(reql_version_t reql_version) const
     return rdb_protocol::sindex_key_range(
         store_key_t(get_left_bound_trunc_key(reql_version)),
         store_key_t(get_right_bound_trunc_key(reql_version)),
-        right_bound_type,
-        ql::skey_version_from_reql_version(reql_version));
+        right_bound_type);
 }
 
 std::string datum_range_t::get_left_bound_trunc_key(reql_version_t reql_ver) const {

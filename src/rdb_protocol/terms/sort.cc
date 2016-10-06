@@ -83,12 +83,12 @@ private:
         /* Add a sorting to the table if we're doing indexed sorting. */
         } else if (index.has()) {
             rcheck(tbl_slice.has(), base_exc_t::LOGIC,
-                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.");
             rcheck(!seq.has(), base_exc_t::LOGIC,
-                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
+                   "Indexed order_by can only be performed on a TABLE or TABLE_SLICE. Make sure order_by comes before any transformations (such as map) or filters.");
             sorting_t sorting = sorting_t::UNORDERED;
-            if (auto optarg = raw_term.optarg("index")) {
-                sorting = (optarg->type() == Term::DESC) ?
+            if (auto _optarg = raw_term.optarg("index")) {
+                sorting = (_optarg->type() == Term::DESC) ?
                     sorting_t::DESCENDING : sorting_t::ASCENDING;
             }
             r_sanity_check(sorting != sorting_t::UNORDERED);

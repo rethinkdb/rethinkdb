@@ -33,6 +33,10 @@ void server_config_server_t::on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
         const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr) {
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
     if (static_cast<bool>(new_config.cache_size_bytes) &&
             *new_config.cache_size_bytes > get_max_total_cache_size()) {
         send(mailbox_manager, ack_addr, static_cast<uint64_t>(0),
@@ -48,8 +52,10 @@ void server_config_server_t::on_set_config(
         return true;
     });
     {
-        metadata_file_t::write_txn_t write_txn(file, interruptor);
-        write_txn.write(mdkey_server_config(), my_config.get_ref(), interruptor);
+        cond_t non_interruptor;
+        metadata_file_t::write_txn_t write_txn(file, &non_interruptor);
+        write_txn.write(mdkey_server_config(), my_config.get_ref(), &non_interruptor);
+        write_txn.commit();
     }
     if (old_config.name != new_config.name) {
         logINF("Changed server's name from `%s` to `%s`.",

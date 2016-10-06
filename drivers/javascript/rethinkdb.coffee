@@ -12,3 +12,4 @@ rethinkdb.Error = error
 rethinkdb._bluebird = require('bluebird')
 
 module.exports = rethinkdb
+module.exports.net = net

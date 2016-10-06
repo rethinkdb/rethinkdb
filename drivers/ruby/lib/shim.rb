@@ -22,7 +22,7 @@ module RethinkDB
       case x
       when Hash
         if parse_time && x['$reql_type$'] == 'TIME'
-          t = Time.at(x['epoch_time'])
+          t = Time.at((x['epoch_time'] * 1000).to_i / 1000.0)
           tz = x['timezone']
           return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
         elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
@@ -72,6 +72,7 @@ module RethinkDB
             when re::OP_FAILED        then raise ReqlOpFailedError,         r['r'][0]
             when re::OP_INDETERMINATE then raise ReqlOpIndeterminateError,  r['r'][0]
             when re::USER             then raise ReqlUserError,             r['r'][0]
+            when re::PERMISSION_ERROR then raise ReqlPermissionError,       r['r'][0]
             else                           raise ReqlRuntimeError,          r['r'][0]
           end
         when rt::COMPILE_ERROR        then raise ReqlServerCompileError,    r['r'][0]
@@ -134,7 +135,7 @@ module RethinkDB
       when TrueClass then RQL.new(x)
       when NilClass then RQL.new(x)
       when Time then
-        epoch_time = x.to_f
+        epoch_time = (x.to_r * 1000).to_i / 1000.0
         offset = x.utc_offset
         raw_offset = offset.abs
         raw_hours = raw_offset / 3600

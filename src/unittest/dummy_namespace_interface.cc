@@ -5,7 +5,7 @@
 
 namespace unittest {
 
-void dummy_performer_t::read(const read_t &read,
+void dummy_performer_t::read(const read_t &_read,
                              read_response_t *response,
                              DEBUG_VAR state_timestamp_t expected_timestamp,
                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -19,10 +19,10 @@ void dummy_performer_t::read(const read_t &read,
         });
 #endif
 
-    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, &token, interruptor);
+    return store->read(DEBUG_ONLY(metainfo_checker, ) _read, response, &token, interruptor);
 }
 
-void dummy_performer_t::read_outdated(const read_t &read,
+void dummy_performer_t::read_outdated(const read_t &_read,
                                       read_response_t *response,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     read_token_t token;
@@ -33,12 +33,12 @@ void dummy_performer_t::read_outdated(const read_t &read,
         [](const region_t &, const binary_blob_t &) { });
 #endif
 
-    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
+    return store->read(DEBUG_ONLY(metainfo_checker, ) _read, response,
                        &token,
                        interruptor);
 }
 
-void dummy_performer_t::write(const write_t &write,
+void dummy_performer_t::write(const write_t &_write,
                               write_response_t *response,
                               state_timestamp_t timestamp,
                               order_token_t order_token) THROWS_NOTHING {
@@ -55,7 +55,7 @@ void dummy_performer_t::write(const write_t &write,
     store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(timestamp)),
-            write, response, write_durability_t::SOFT, timestamp, order_token, &token, &non_interruptor);
+            _write, response, write_durability_t::SOFT, timestamp, order_token, &token, &non_interruptor);
 }
 
 
@@ -81,18 +81,26 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
         });
 }
 
-void dummy_timestamper_t::read(const read_t &read, read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_timestamper_t::read(const read_t &_read,
+                               read_response_t *response,
+                               order_token_t otok,
+                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     order_sink.check_out(otok);
-    next->read(read, response, current_timestamp, interruptor);
+    next->read(_read, response, current_timestamp, interruptor);
 }
 
-void dummy_timestamper_t::write(const write_t &write, write_response_t *response, order_token_t otok) THROWS_NOTHING {
+void dummy_timestamper_t::write(const write_t &_write,
+                                write_response_t *response,
+                                order_token_t otok) THROWS_NOTHING {
     order_sink.check_out(otok);
     current_timestamp = current_timestamp.next();
-    next->write(write, response, current_timestamp, otok);
+    next->write(_write, response, current_timestamp, otok);
 }
 
-void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) {
+void dummy_sharder_t::read(const read_t &_read,
+                           read_response_t *response,
+                           order_token_t tok,
+                           signal_t *interruptor) {
     if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
     std::vector<read_response_t> responses;
@@ -100,10 +108,10 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
 
     for (auto it = shards.begin(); it != shards.end(); ++it) {
         read_t subread;
-        if (read.shard(it->region, &subread)) {
+        if (_read.shard(it->region, &subread)) {
             responses.push_back(read_response_t());
-            if (read.read_mode == read_mode_t::OUTDATED ||
-                    read.read_mode == read_mode_t::DEBUG_DIRECT) {
+            if (_read.read_mode == read_mode_t::OUTDATED ||
+                _read.read_mode == read_mode_t::DEBUG_DIRECT) {
                 it->performer->read_outdated(subread, &responses.back(), interruptor);
             } else {
                 it->timestamper->read(subread, &responses.back(), tok, interruptor);
@@ -114,10 +122,13 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
         }
     }
 
-    read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+    _read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
 }
 
-void dummy_sharder_t::write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) {
+void dummy_sharder_t::write(const write_t &_write,
+                            write_response_t *response,
+                            order_token_t tok,
+                            signal_t *interruptor) {
     if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
     std::vector<write_response_t> responses;
@@ -125,7 +136,7 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
 
     for (auto it = shards.begin(); it != shards.end(); ++it) {
         write_t subwrite;
-        if (write.shard(it->region, &subwrite)) {
+        if (_write.shard(it->region, &subwrite)) {
             responses.push_back(write_response_t());
             it->timestamper->write(subwrite, &responses.back(), tok);
             if (interruptor->is_pulsed()) {
@@ -134,7 +145,7 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
         }
     }
 
-    write.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+    _write.unshard(responses.data(), responses.size(), response, ctx, interruptor);
 }
 
 dummy_namespace_interface_t::

@@ -5,9 +5,6 @@
 #include <map>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
@@ -21,7 +18,9 @@ public:
     auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
-        server_config_client_t *server_config_client);
+        server_config_client_t *server_config_client,
+        const int join_delay_secs,
+        const int give_up_ms);
 
 private:
     void on_connect_or_disconnect(const peer_id_t &peer_id);
@@ -42,9 +41,8 @@ private:
     connected servers we get from the `connectivity_cluster_t`. */
     std::map<peer_id_t, server_id_t> server_ids;
 
-    /* `stop_conds` contains an entry for each running instance of `try_reconnect()`.
-    It's used to interrupt the coroutines if the server reconnects. */
-    std::multimap<server_id_t, cond_t *> stop_conds;
+    int join_delay_secs;
+    int give_up_ms;
 
     auto_drainer_t drainer;
 

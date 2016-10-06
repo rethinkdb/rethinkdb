@@ -7,7 +7,7 @@
 #include "rdb_protocol/datum.hpp"
 
 struct rdb_value_t {
-    char contents[];
+    char contents[1];
 
 public:
     int inline_size(max_block_size_t bs) const {

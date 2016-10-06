@@ -60,7 +60,7 @@ inline archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *va
         } else if (res == 0) {
             return archive_result_t::SOCK_EOF;
         } else {
-            unreachable();
+            unreachable("deserialize_varint_uint64: read: unexpected result");
         }
     }
 }

@@ -59,12 +59,6 @@ If you need help right now, you can also find us [on Slack](http://slack.rethink
 
 **Join us now:** <a href="http://slack.rethinkdb.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
 
-Need help with something serious like _"production"_? We also offer training and on-demand support in our [support services](https://rethinkdb.com/services/) as provided by the core RethinkDB team (and the Thinker too).
-
-Do you use RethinkDB? Send us a story!
------------------
- We love hearing all the awesome ways people are using RethinkDB. And we want to hear from you too. [Send us your story](https://rethinkdb.com/community/shirts-for-stories) and we'll send a package your way with RethinkDB swag.
-
 Contributing
 -----------------
 

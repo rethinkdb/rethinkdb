@@ -1,10 +1,12 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+#!/usr/bin/env python
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """Manage a cluster of RethinkDB nodes, including simulating netsplits.
 This is designed to simulate normal operations, so does not include support
 for things like `--join`ing to an invalid port."""
 
-import atexit, copy, datetime, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, time, traceback, warnings
+import atexit, copy, datetime, os, platform, random, re, shutil, signal
+import socket, string, subprocess, sys, tempfile, time, traceback, warnings
 
 import utils, resunder
 
@@ -12,10 +14,6 @@ try:
     import thread
 except ImportError:
     import _thread as thread
-try:
-    xrange
-except NameError:
-    xrange = range
 try:
     unicode
 except NameError:
@@ -40,7 +38,11 @@ class Resunder(object):
         
         # - check that resunder is running
         # ToDo: fix this to use the pid file and flock
-        if "resunder" not in subprocess.check_output(["ps", "-A", "-www", "-o", "command"]):
+        psProcess = subprocess.Popen(["ps", "-A", "-www", "-o", "command"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = psProcess.communicate()
+        if psProcess.returncode != 0:
+            raise Exception('Unable to use `ps` command! Code: %s, Output: %s' % (psProcess.returncode, output))
+        elif "resunder" not in output:
             raise Exception('Resunder is not running, please start it as root: `sudo %s/resunder.py start`' % os.path.realpath(os.path.dirname(__file__)))
         
         # - send to resunder
@@ -150,14 +152,17 @@ class Metacluster(object):
 class Cluster(object):
     """A group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
     
-    metacluster = None
-    processes = None
+    tlsKeyPath    = None
+    tlsCertPath   = None # used as the CA and cert
+    
+    metacluster   = None
+    processes     = None
     output_folder = None
     
     _startLock = thread.allocate_lock()
     _hasStartLock = None # the Process that has it
     
-    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
+    def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=False):
         
         # -- input validation
         
@@ -193,6 +198,19 @@ class Cluster(object):
                 initial_servers[i] = str(initial_servers[i])
         else:
             raise ValueError('the initial_servers input must be a number or a list of names/paths, got: %r' % initial_servers)
+        
+        # - tls
+        
+        if tls is True:
+            try:
+                self.tlsKeyPath, self.tlsCertPath = self.generateTlsCerts(self.output_folder)
+            except Exception as e:
+                traceback.print_exc()
+                raise Exception('Unable to create tls key/certificate: %s' % str(e))
+        elif tls is False or None:
+            tls = None
+        elif not hasattr(tls, 'has_key') or not 'key' in tls or not 'cert' in tls:
+            raise ValueError('Incorrect value for tls: %s' % tls)
         
         # -- start servers
         
@@ -243,6 +261,58 @@ class Cluster(object):
         finally:
             for server in self.processes:
                 server.stop()
+    
+    @staticmethod
+    def generateTlsCerts(folder):
+        import OpenSSL
+        
+        assert os.path.isdir(folder)
+        keyPath = os.path.join(folder, 'key.pem')
+        certPath = os.path.join(folder, 'cert.pem')
+        
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        if os.path.exists(keyPath) and not os.path.isfile(keyPath):
+            raise ValueError('Non-file at tls key location: %s' % keyPath)
+        
+        assert not os.path.exists(keyPath)
+        assert not os.path.exists(certPath)
+        
+        # key
+        key = None
+        if not os.path.exists(keyPath):
+            key = OpenSSL.crypto.PKey()
+            key.generate_key(OpenSSL.crypto.TYPE_RSA, 1024)
+            keyPath = os.path.join(folder, 'key.pem')
+            with open(keyPath, 'wb') as keyFile:
+                keyFile.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
+        
+        # ToDo: switch this to create a CA rather than a self-signed cert
+        
+        # certificiate
+        if not os.path.exists(certPath):
+            if key is None:
+                with open(keyPath, 'rb') as keyFile:
+                    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, keyFile.read())
+            
+            cert = OpenSSL.crypto.X509()
+            cert.get_subject().C  = "US"
+            cert.get_subject().ST = "California"
+            cert.get_subject().L  = "Mountain View"
+            cert.get_subject().O  = "RethinkDB"
+            cert.get_subject().OU = "Department of Testing"
+            cert.get_subject().CN = 'localhost'
+            cert.set_serial_number(1)
+            cert.gmtime_adj_notBefore(0)
+            cert.gmtime_adj_notAfter(60*60*24*4) # 4 days
+            cert.set_issuer(cert.get_subject())
+            cert.set_pubkey(key)
+            cert.sign(key, 'sha1')
+            certPath = os.path.join(folder, 'cert.pem')
+            with open(certPath, 'wb') as certFile:
+                certFile.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+        
+        return (keyPath, certPath)
     
     def update_routing(self, target=None):
         '''Update the routing tables that block servers from one cluster from seeing those from another'''
@@ -296,7 +366,7 @@ class Cluster(object):
     
     def __getitem__(self, pos):
         if isinstance(pos, slice):
-            return [self.processes[x] for x in xrange(*pos.indices(len(self.processes)))]
+            return [self.processes[x] for x in range(*pos.indices(len(self.processes)))]
         elif isinstance(pos, int):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
@@ -381,7 +451,6 @@ class Process(object):
         for i, option in enumerate(self.options):
             if option == '--directory' or option.startswith('--directory='):
                 raise ValueError('The --directory should not be provided in extra_options')
-        self.options += ['--directory', self.data_path]
         
         # add 'serve' before the rest of the options
         self.options.insert(0, 'serve')
@@ -396,17 +465,23 @@ class Process(object):
         if not os.path.exists(os.path.join(self.data_path, 'metadata')):
             self._console_file.write("Creating data directory at %s (%s)\n" % (self.data_path, datetime.datetime.now().isoformat()))
             self._console_file.flush()
-            command = self.command_prefix + [self.executable_path] + ['create', '--server-name', self._desired_name, '--directory', self.data_path, '--log-file', str(self.logfile_path)] + server_tags
+            command = self.command_prefix + [self.executable_path] + ['create', '--server-name', self._desired_name, '--directory', utils.translatePath(self.data_path), '--log-file', utils.translatePath(self.logfile_path)] + server_tags
             subprocess.check_call(command, stdout=self._console_file, stderr=subprocess.STDOUT)
     
-    def __init__(self, cluster=None, name=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True):
+    def subclass_options(self, options):
+        options += ['--directory', utils.translatePath(self.data_path)]
+    
+    def __init__(self, cluster=None, name=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=None):
         global runningServers
         
         # -- validate/default input
         
         # - cluster
+        assert tls in (None, False, True), 'tls must be True, False, or None (False)'
         if cluster is None:
-            cluster = Cluster()
+            cluster = Cluster(tls=tls is True)
+        else:
+            assert tls is None or tls is (cluster.tlsCertPath is None), 'A server added to a cluster must have the same tls setting (cluster: %s vs %s)' % (cluster.tlsCertPath is None, tls)
         assert isinstance(cluster, Cluster), 'cluster must be a Cluster or None, got: %r' % cluster
         self.cluster = cluster
         self.cluster.processes.append(self)
@@ -493,49 +568,46 @@ class Process(object):
             self.command_prefix = command_prefix
         
         # - extra_options
-        options = []
+        self.options = []
         if extra_options is None:
-            pass
+            extra_options = []
         elif not hasattr(extra_options, '__iter__'):
             raise ValueError('extra_options must be an array of command line options, got: %r' % extra_options)
         else:
-            options = [str(x) for x in extra_options]
+            extra_options = [str(x) for x in extra_options]
         
-        # -- store values
+        # -- defaults
         
-        if not self.logfile_path:
-            self.logfile_path = os.path.join(self.data_path, "log_file.txt")
+        if not '--bind' in extra_options and not any([x.startswith('--bind=') for x in extra_options]):
+            self.options += ['--bind', 'all']
         
-        # -- set defaults
+        if not '--cluster-port' in extra_options and not any([x.startswith('--cluster-port=') for x in extra_options]):
+            self.options += ['--cluster-port', '0']
         
-        if not '--bind' in options and not any([x.startswith('--bind=') for x in options]):
-            options += ['--bind', 'all']
+        if not '--driver-port' in extra_options and not any([x.startswith('--driver-port=') for x in extra_options]):
+            self.options += ['--driver-port', '0']
         
-        if not '--cluster-port' in options and not any([x.startswith('--cluster-port=') for x in options]):
-            options += ['--cluster-port', '0']
+        if not '--http-port' in extra_options and not any([x.startswith('--http-port=') for x in extra_options]):
+            self.options += ['--http-port', '0']
         
-        if not '--driver-port' in options and not any([x.startswith('--driver-port=') for x in options]):
-            options += ['--driver-port', '0']
-        
-        if not '--http-port' in options and not any([x.startswith('--http-port=') for x in options]):
-            options += ['--http-port', '0']
-        
-        for i in range(len(options)):
-            if options[i] == '--log-file':
-                assert len(options) > i + 1, '--log-file specified in options without a path'
-                self.logfile_path = os.path.realpath(options[i+1])
+        for i, option in enumerate(extra_options or []):
+            if option == '--log-file':
+                assert len(self.options) > i + 1, '--log-file specified in options without a path'
+                self.logfile_path = utils.translatePath(os.path.realpath(extra_options[i + 1]))
+                del extra_options[i + 1]
+                del extra_options[i]
                 break
-            elif options[i].startswith('--log-file='):
-                self.logfile_path = os.path.realpath(options[i][len('--log-file='):].strip('\'"'))
+            elif option.startswith('--log-file='):
+                self.logfile_path = utils.translatePath(os.path.realpath(option[len('--log-file='):].strip('\'"')))
+                del extra_options[i]
                 break
         else:
-            options += ['--log-file', str(self.logfile_path)]
+            self.logfile_path = os.path.join(self.data_path, "log_file.txt")
         
-        if not '--no-update-check' in options:
-            options += ['--no-update-check'] # supress update checks/reporting in
+        if not '--no-update-check' in extra_options:
+            self.options += ['--no-update-check'] # supress update checks/reporting in
         
-        
-        self.options = options
+        self.options += extra_options
         
         # - subclass modifications
         
@@ -557,42 +629,68 @@ class Process(object):
         self.returncode = None
         self.killed = False
         
-        # -- copy the options
+        # -- setup options
+        
+        # - copy the options
         
         options = copy.copy(self.args)
         
-        # -- set the local_cluster_port
+        # - set the local_cluster_port
         
         if not '--client-port' in options and not any([x.startswith('--client-port=') for x in options]):
             # allows resunder to know what port to block
             options += ['--client-port', str(self.local_cluster_port)]
         
-        # -- set to join the cluster
+        # - tls options
         
-        joinOptions = []
-        try:
-            self.cluster._startLock.acquire()
-            self.cluster._hasStartLock = self
-            for peer in self.cluster.processes:
-                if peer != self and peer.ready:
-                    joinOptions += ["--join", peer.host + ":" + str(peer.cluster_port)]
-                    break
-        finally:
-            if joinOptions and self.cluster._hasStartLock is self:
-                self.cluster._hasStartLock = None
-                self.cluster._startLock.release()
+        if self.cluster.tlsKeyPath and self.cluster.tlsCertPath:
+            options += [
+                '--http-tls-key',     utils.translatePath(self.cluster.tlsKeyPath),
+                '--http-tls-cert',    utils.translatePath(self.cluster.tlsCertPath), 
+                '--driver-tls-key',   utils.translatePath(self.cluster.tlsKeyPath),
+                '--driver-tls-cert',  utils.translatePath(self.cluster.tlsCertPath),
+                '--cluster-tls-key',  utils.translatePath(self.cluster.tlsKeyPath),
+                '--cluster-tls-cert', utils.translatePath(self.cluster.tlsCertPath),
+                '--cluster-tls-ca',   utils.translatePath(self.cluster.tlsCertPath)
+            ]
+            if platform.system() == 'Darwin':
+                # because the driver will probably be using the system version of OpenSSL (old), enable TLSv1
+                options += ['--tls-min-protocol', 'TLSv1', '--tls-ciphers', 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:AES256-SHA']
+        
+        # - log file
+        
+        options += ['--log-file', utils.translatePath(str(self.logfile_path))]
         
         # -- get the length of an exiting log file
         
         if os.path.isfile(self.logfile_path):
             self._existing_log_len = os.path.getsize(self.logfile_path)
         
+        # -- set to join the cluster
+        
+        try:
+            self.cluster._startLock.acquire()
+            self.cluster._hasStartLock = self
+            for peer in self.cluster.processes:
+                if peer != self and peer.ready:
+                    options += ["--join", peer.host + ":" + str(peer.cluster_port)]
+                    break
+        finally:
+            # release the lock if we are joining a running cluster
+            if "--join" in options and self.cluster._hasStartLock is self:
+                self.cluster._hasStartLock = None
+                self.cluster._startLock.release()
+        
+        # -- allow subclasses to modify the options array
+        
+        self.subclass_options(options) # in-place edit
+        
         # -- start the process
         
         try:
             self._console_file.write("Launching at %s:\n\t%s\n" % (datetime.datetime.now().isoformat(), " ".join(options)))
             self._console_file.flush()
-            self.process = subprocess.Popen(options + joinOptions, stdout=self._console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(options, stdout=self._console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             if not self in runningServers:
                 runningServers.append(self)
@@ -650,6 +748,14 @@ class Process(object):
         if self._local_cluster_port is None:
             self._local_cluster_port = utils.get_avalible_port()
         return self._local_cluster_port
+    
+    @property
+    def tlsKeyPath(self):
+        return self.cluster.tlsKeyPath
+    
+    @property
+    def tlsCertPath(self):
+        return self.cluster.tlsCertPath
     
     @property
     def name(self):
@@ -870,6 +976,9 @@ class ProxyProcess(Process):
         
         # prepend 'proxy'
         self.options.insert(0, 'proxy')
+
+    def subclass_options(self, options):
+        pass
 
 # == main
 

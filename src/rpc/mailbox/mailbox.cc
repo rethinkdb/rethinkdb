@@ -131,9 +131,9 @@ void send_write(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
 
 static const int MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD = 4;
 
-mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
+mailbox_manager_t::mailbox_manager_t(connectivity_cluster_t *_connectivity_cluster,
         connectivity_cluster_t::message_tag_t message_tag) :
-    cluster_message_handler_t(connectivity_cluster, message_tag),
+    cluster_message_handler_t(_connectivity_cluster, message_tag),
     semaphores(MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD)
     { }
 

@@ -2,7 +2,8 @@
 #include "perfmon/perfmon.hpp"
 
 #include <stdarg.h>
-#include <math.h>
+
+#include <cmath>
 #include <map>
 
 #include "utils.hpp"
@@ -156,10 +157,10 @@ stddev_t::stddev_t()
 #endif
     : N(0), M(NAN), Q(NAN) { }
 
-stddev_t::stddev_t(size_t n, double mean, double variance)
-    : N(n), M(mean), Q(variance * n) {
+stddev_t::stddev_t(size_t n, double _mean, double variance)
+    : N(n), M(_mean), Q(variance * n) {
     if (N == 0)
-        rassert(isnan(M) && isnan(Q));
+        rassert(std::isnan(M) && std::isnan(Q));
 }
 
 void stddev_t::add(double value) {

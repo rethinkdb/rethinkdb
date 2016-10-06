@@ -8,9 +8,12 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "clustering/administration/auth/user_context.hpp"
+#include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/interruptor.hpp"
@@ -23,7 +26,12 @@
 #include "region/region_map.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "utils.hpp"
 #include "version.hpp"
+
+namespace auth {
+class username_t;
+}  // namespace auth
 
 struct backfill_chunk_t;
 struct read_t;
@@ -68,16 +76,21 @@ logic for query routing exposes to the protocol-specific query parser. */
 
 class namespace_interface_t {
 public:
-    virtual void read(const read_t &,
+    virtual void read(auth::user_context_t const &user_context,
+                      const read_t &,
                       read_response_t *response,
                       order_token_t tok,
                       signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const write_t &,
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
+
+    virtual void write(auth::user_context_t const &user_context,
+                       const write_t &,
                        write_response_t *response,
                        order_token_t tok,
                        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
@@ -93,6 +106,34 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
+/* `namespace_interface_access_t` is like a smart pointer to a `namespace_interface_t`.
+This is the format in which `real_table_t` expects to receive its
+`namespace_interface_t *`. This allows the thing that is constructing the `real_table_t`
+to control the lifetime of the `namespace_interface_t`, but also allows the
+`real_table_t` to block it from being destroyed while in use. */
+class namespace_interface_access_t {
+public:
+    class ref_tracker_t {
+    public:
+        virtual void add_ref() = 0;
+        virtual void release() = 0;
+    protected:
+        virtual ~ref_tracker_t() { }
+    };
+    namespace_interface_access_t();
+    namespace_interface_access_t(namespace_interface_t *, ref_tracker_t *, threadnum_t);
+    namespace_interface_access_t(const namespace_interface_access_t &access);
+    namespace_interface_access_t &operator=(const namespace_interface_access_t &access);
+    ~namespace_interface_access_t();
+
+    namespace_interface_t *get();
+
+private:
+    namespace_interface_t *nif;
+    ref_tracker_t *ref_tracker;
+    threadnum_t thread;
+};
+
 // Specifies the desired behavior for insert operations, upon discovering a
 // conflict.
 //  - conflict_behavior_t::ERROR: Signal an error upon conflicts.
@@ -106,6 +147,19 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
                                       int8_t,
                                       conflict_behavior_t::ERROR,
                                       conflict_behavior_t::FUNCTION);
+
+// Specifies whether or not to ignore a write hook on a table while doing an
+// insert or a replace.
+//  - ignore_write_hook_t::YES: Ignores the write hook, requires config permissions.
+//  - ignore_write_hook_t::NO: Applies the write hook as normal.
+enum class ignore_write_hook_t {
+    NO = 0,
+    YES = 1
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(ignore_write_hook_t,
+                                      int8_t,
+                                      ignore_write_hook_t::NO,
+                                      ignore_write_hook_t::YES);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.

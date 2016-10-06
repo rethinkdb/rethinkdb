@@ -145,8 +145,8 @@ public class MutationAtomicGetSet {
 
         {
             // mutation/atomic_get_set.yaml line #20
-            /* ({'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}",'changes':[{'old_val':{'id':0},'new_val':{'id':0}}]}) */
-            Map expected_ = r.hashMap("first_error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L)).with("new_val", r.hashMap("id", 0L))));
+            /* ({'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}",'changes':[{'old_val':{'id':0},'new_val':{'id':0},'error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}"}]}) */
+            Map expected_ = r.hashMap("first_error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L)).with("new_val", r.hashMap("id", 0L)).with("error", "Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}")));
             /* tbl.insert({'id':0}, return_changes='always').pluck('changes', 'first_error') */
             logger.info("About to run line #20: tbl.insert(r.hashMap('id', 0L)).optArg('return_changes', 'always').pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.insert(r.hashMap("id", 0L)).optArg("return_changes", "always").pluck("changes", "first_error"),
@@ -313,8 +313,8 @@ public class MutationAtomicGetSet {
 
         {
             // mutation/atomic_get_set.yaml line #54
-            /* ({'first_error':'a','changes':[{'old_val':{'id':0,'x':2},'new_val':{'id':0,'x':2}}]}) */
-            Map expected_ = r.hashMap("first_error", "a").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L).with("x", 2L)).with("new_val", r.hashMap("id", 0L).with("x", 2L))));
+            /* ({'first_error':'a','changes':[{'old_val':{'id':0,'x':2},'new_val':{'id':0,'x':2},'error':'a'}]}) */
+            Map expected_ = r.hashMap("first_error", "a").with("changes", r.array(r.hashMap("old_val", r.hashMap("id", 0L).with("x", 2L)).with("new_val", r.hashMap("id", 0L).with("x", 2L)).with("error", "a")));
             /* tbl.get(0).replace(lambda y:{'x':r.error('a')}, return_changes='always').pluck('changes', 'first_error') */
             logger.info("About to run line #54: tbl.get(0L).replace(y -> r.hashMap('x', r.error('a'))).optArg('return_changes', 'always').pluck('changes', 'first_error')");
             Object obtained = runOrCatch(tbl.get(0L).replace(y -> r.hashMap("x", r.error("a"))).optArg("return_changes", "always").pluck("changes", "first_error"),
@@ -355,8 +355,8 @@ public class MutationAtomicGetSet {
 
         {
             // mutation/atomic_get_set.yaml line #62
-            /* ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'id':0},'old_val':{'id':0}}, {'new_val':{'id':1},'old_val':{'id':1}}]}) */
-            Map expected_ = r.hashMap("first_error", "Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}").with("changes", r.array(r.hashMap("new_val", r.hashMap("id", 0L)).with("old_val", r.hashMap("id", 0L)), r.hashMap("new_val", r.hashMap("id", 1L)).with("old_val", r.hashMap("id", 1L))));
+            /* ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}", 'changes':[{'new_val':{'id':0},'old_val':{'id':0}, 'error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}"}, {'new_val':{'id':1},'old_val':{'id':1},'error':"Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}"}]}) */
+            Map expected_ = r.hashMap("first_error", "Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}").with("changes", r.array(r.hashMap("new_val", r.hashMap("id", 0L)).with("old_val", r.hashMap("id", 0L)).with("error", "Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}"), r.hashMap("new_val", r.hashMap("id", 1L)).with("old_val", r.hashMap("id", 1L)).with("error", "Inserted object must have primary key `id`:\n{\n\t\"x\":\t1\n}")));
             /* tbl.replace({'x':1}, return_changes='always').pluck('changes', 'first_error').do(lambda d:d.merge({'changes':d['changes'].order_by(lambda a:a['old_val']['id'])})) */
             logger.info("About to run line #62: tbl.replace(r.hashMap('x', 1L)).optArg('return_changes', 'always').pluck('changes', 'first_error').do_(d -> d.merge(r.hashMap('changes', d.bracket('changes').orderBy(a -> a.bracket('old_val').bracket('id')))))");
             Object obtained = runOrCatch(tbl.replace(r.hashMap("x", 1L)).optArg("return_changes", "always").pluck("changes", "first_error").do_(d -> d.merge(r.hashMap("changes", d.bracket("changes").orderBy(a -> a.bracket("old_val").bracket("id"))))),

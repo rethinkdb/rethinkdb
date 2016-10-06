@@ -60,36 +60,44 @@ public:
 
         {
             txn_t txn(cache_conn.get(), write_durability_t::SOFT, 1);
-            buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-            real_superblock_t superblock(std::move(sb_lock));
-            btree_slice_t::init_real_superblock(&superblock, std::vector<char>(), binary_blob_t());
+            {
+                buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+                real_superblock_t superblock(std::move(sb_lock));
+                btree_slice_t::init_real_superblock(
+                    &superblock, std::vector<char>(), binary_blob_t());
+            }
+            txn.commit();
         }
     }
 
     void run_txn_fn(bool readwrite,
-            const std::function<void(scoped_ptr_t<real_superblock_t> &&)> &fn) {
+        const std::function<void(scoped_ptr_t<real_superblock_t> &&)> &fn) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
 
         if (readwrite) {
             get_btree_superblock_and_txn_for_writing(
-                    cache_conn.get(),
-                    nullptr,
-                    write_access_t::write,
-                    1,
-                    write_durability_t::SOFT,
-                    &superblock,
-                    &txn);
+                cache_conn.get(),
+                nullptr,
+                write_access_t::write,
+                1,
+                write_durability_t::SOFT,
+                &superblock,
+                &txn);
         } else {
             get_btree_superblock_and_txn_for_reading(
-                    cache_conn.get(),
-                    CACHE_SNAPSHOTTED_NO,
-                    &superblock,
-                    &txn);
+                cache_conn.get(),
+                CACHE_SNAPSHOTTED_NO,
+                &superblock,
+                &txn);
         }
 
         fn(std::move(superblock));
+
+        if (readwrite) {
+            txn->commit();
+        }
     }
 
     std::string get(const store_key_t &key) {
@@ -205,7 +213,7 @@ public:
         remove(key, repli_timestamp_t::distant_past);
     }
 
-    void range(const key_range_t &range) {
+    void range(const key_range_t &_range) {
         std::map<store_key_t, std::string> bt_map;
 
         run_txn_fn(false, [&](scoped_ptr_t<real_superblock_t> &&superblock){
@@ -215,7 +223,7 @@ public:
 
             btree_depth_first_traversal(
                 superblock.get(),
-                range,
+                _range,
                 &filler_cb,
                 access_t::read,
                 direction_t::FORWARD,
@@ -226,7 +234,7 @@ public:
         std::map<store_key_t, std::string> kv_map;
 
         for (auto it = kv.begin(), last = kv.end(); it != last; ++it) {
-            if (range.contains_key(it->first)) {
+            if (_range.contains_key(it->first)) {
                 kv_map[it->first] = it->second;
             }
         }

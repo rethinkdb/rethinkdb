@@ -1,0 +1,354 @@
+desc: tests the `rethinkdb.permissions` system table
+tests:
+
+    - def: permissions = r.db("rethinkdb").table("permissions")
+
+    - cd: r.grant("test_user", {"read": true, "write": true, "config": true, "connect": true})
+    - cd: databaseId = r.db_create("database").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+    - cd: r.db("database").grant("test_user", {"read": true, "write": true, "config": true})
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+    - cd: tableId = r.db("database").table_create("table").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+    - cd: r.db("database").table("table").grant("test_user", {"read": true, "write": true, "config": true})
+    - cd: r.db("rethinkdb").table("stats").grant("test_user", {"read": true, "write": true})
+
+    - cd: permissions
+      ot: bag([
+            {
+              "id": ["admin"],
+              "permissions": {"config": true, "connect": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["admin", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"config": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "id": ["test_user"],
+              "permissions": {"read": true, "write": true, "config": true, "connect": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            },
+            {
+              "database": "database",
+              "id": ["test_user", databaseId],
+              "permissions": {"read": true, "write": true, "config": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+              "table": "stats",
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            },
+            {
+              "database": "database",
+              "id": ["test_user", databaseId, tableId],
+              "table": "table",
+              "permissions": {"read": true, "write": true, "config": true},
+              "user": "test_user"
+            }
+          ])
+    - cd: permissions.get([])
+      ot: null
+    - cd: permissions.get("invalid")
+      ot: null
+    - cd: permissions.get(["invalid"])
+      ot: null
+    - cd: permissions.get(["test_user"])
+      ot: {
+            "id": ["test_user"],
+            "permissions": {"read": true, "write": true, "config": true, "connect": true},
+            "user": "test_user"
+          }
+    - cd: permissions.get(["invalid", databaseId])
+      ot: null
+    - cd: permissions.get(["invalid", "invalid"])
+      ot: null
+    - cd: permissions.get(["invalid", "test_user"])
+      ot: null
+    - cd: permissions.get(["test_user", databaseId])
+      ot: {
+            "database": "database",
+            "id": ["test_user", databaseId],
+            "permissions": {"read": true, "write": true, "config": true},
+            "user": "test_user"
+          }
+    - cd: permissions.get(["test_user", "invalid"])
+      ot: null
+    - cd: permissions.get(["invalid", "invalid", "invalid"])
+      ot: null
+    - cd: permissions.get(["invalid", databaseId, "invalid"])
+      ot: null
+    - cd: permissions.get(["invalid", "invalid", tableId])
+      ot: null
+    - cd: permissions.get(["invalid", databaseId, tableId])
+      ot: null
+    - cd: permissions.get(["test_user", "invalid", "invalid"])
+      ot: null
+    - cd: permissions.get(["test_user", databaseId, "invalid"])
+      ot: null
+    - cd: permissions.get(["test_user", "invalid", tableId])
+      ot: null
+    - cd: permissions.get(["test_user", databaseId, tableId])
+      ot: {
+            "database": "database",
+            "id": ["test_user", databaseId, tableId],
+            "permissions": {"read": true, "write": true, "config": true},
+            "table": "table",
+            "user": "test_user"
+          }
+    - cd: permissions.get(["test_user", databaseId])
+      runopts:
+        identifier_format: "uuid"
+      ot: {
+            "database": databaseId,
+            "id": ["test_user", databaseId],
+            "permissions": {"read": true, "write": true, "config": true},
+            "user": "test_user"
+          }
+    - cd: permissions.get(["test_user", databaseId, tableId])
+      runopts:
+        identifier_format: "uuid"
+      ot: {
+            "database": databaseId,
+            "id": ["test_user", databaseId, tableId],
+            "permissions": {"read": true, "write": true, "config": true},
+            "table": tableId,
+            "user": "test_user"
+          }
+    - cd: permissions.get(["test_user", databaseId, tableId]).update({"permissions": {"read": false, "write": false, "config": false}})
+      ot: partial({"replaced": 1})
+    - cd: permissions.get(["test_user", databaseId, tableId]).update({"permissions": {"read": null, "write": null, "config": null}})
+      ot: partial({"deleted": 1})
+    - cd: permissions.get(["test_user", databaseId, tableId]).update({"permissions": {"read": true, "write": true, "config": true}})
+      ot: partial({"skipped": 1})
+    - cd: permissions.insert({
+            "id": ["test_user", databaseId, tableId],
+            "permissions": {"read": true, "write": true, "config": true}
+          })
+      ot: partial({"inserted": 1})
+
+    - cd: r.db("database").table_drop("table")
+
+    - cd: permissions
+      ot: bag([
+            {
+              "id": ["admin"],
+              "permissions": {"config": true, "connect": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["admin", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"config": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "id": ["test_user"],
+              "permissions": {"read": true, "write": true, "config": true, "connect": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            },
+            {
+              "database": "database",
+              "id": ["test_user", databaseId],
+              "permissions": {"read": true, "write": true, "config": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+              "table": "stats",
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            }
+          ])
+
+    - cd: r.db_drop("database")
+
+    - cd: permissions
+      ot: bag([
+            {
+              "id": ["admin"],
+              "permissions": {"config": true, "connect": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["admin", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"config": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "id": ["test_user"],
+              "permissions": {"read": true, "write": true, "config": true, "connect": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            },
+            {
+              "database": "__deleted_database__",
+              "id": ["test_user", databaseId],
+              "permissions": {"read": true, "write": true, "config": true},
+              "user": "test_user"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["test_user", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c", "e078b99f-bbc4-5960-bd94-c74a5826a77d"],
+              "table": "stats",
+              "permissions": {"read": true, "write": true},
+              "user": "test_user"
+            }
+          ])
+
+    - cd: r.db("rethinkdb").table("users").get("test_user").delete()
+      ot: partial({"errors": 0})
+
+    - cd: permissions
+      ot: bag([
+            {
+              "id": ["admin"],
+              "permissions": {"config": true, "connect": true, "read": true, "write": true},
+              "user": "admin"
+            },
+            {
+              "database": "rethinkdb",
+              "id": ["admin", "b99b9572-8e53-5fef-9a2b-5e6aba3edf1c"],
+              "permissions": {"config": true, "read": true, "write": true},
+              "user": "admin"
+            }
+          ])
+
+    - cd: r.db("rethinkdb").table("users").insert({"id": "test_user", "password": false})
+    # https://github.com/rethinkdb/rethinkdb/issues/6099
+    - cd: databaseId2 = r.db_create("database").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+    - cd: tableId2 = r.db("database").table_create("table").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+
+    - cd: permissions.insert({})
+      ot: partial({"errors": 1, "first_error": "You must specify a primary key."})
+    - cd: permissions.insert({"id": []})
+      ot: partial({"errors": 1, "first_error": "Expected an array of one to three items in the primary key, got []."})
+    - cd: permissions.insert({"id": [false, false, false, false]})
+      ot: partial({"errors": 1, "first_error": "Expected an array of one to three items in the primary key, got [\n\tfalse,\n\tfalse,\n\tfalse,\n\tfalse\n]."})
+    - cd: permissions.insert({"id": [false]})
+      ot: partial({"errors": 1, "first_error": "Expected a string as the username, got false."})
+    - cd: permissions.insert({"id": ["invalid"]})
+      ot: partial({"errors": 1, "first_error": "No user named `invalid`."})
+    - cd: permissions.insert({"id": ["test_user", "invalid"]})
+      ot: partial({"errors": 1, "first_error": "Expected a UUID as the database, got \"invalid\"."})
+    - cd: permissions.insert({"id": ["test_user", "00000000-0000-0000-0000-000000000000"]})
+      ot: partial({"errors": 1, "first_error": "No database with UUID `00000000-0000-0000-0000-000000000000` exists."})
+    - cd: permissions.insert({"id": ["test_user", databaseId2, "invalid"]})
+      ot: partial({"errors": 1, "first_error": "Expected a UUID as the table, got \"invalid\"."})
+    - cd: permissions.insert({"id": ["test_user", databaseId2, "00000000-0000-0000-0000-000000000000"]})
+      ot: partial({"errors": 1, "first_error": "No table with UUID `00000000-0000-0000-0000-000000000000` exists."})
+    - cd: permissions.insert({"id": ["test_user", databaseId2, tableId2]})
+      ot: partial({"errors": 1, "first_error": "Expected a field `permissions`."})
+    - cd: permissions.insert({
+            "id": ["test_user", databaseId2, tableId2],
+            "permissions": {},
+            "invalid": "invalid"
+          })
+      ot: partial({"errors": 1, "first_error": "Unexpected key(s) `invalid`."})
+    - cd: permissions.insert({
+            "database": "invalid",
+            "id": ["test_user", databaseId2],
+            "permissions": {}
+          })
+      ot: partial({"errors": 1, "first_error": "The key `database` does not match the primary key."})
+    - cd: permissions.insert({
+            "database": "database",
+            "id": ["test_user", databaseId2, tableId2],
+            "permissions": {},
+            "table": "invalid"
+          })
+      ot: partial({"errors": 1, "first_error": "The key `table` does not match the primary key."})
+
+    - cd: permissions.get(["admin"]).update({"config": false})
+      ot: partial({"errors": 1, "first_error": "The permissions of the user `admin` can't be modified."})
+    - cd: permissions.get(["admin", databaseId2]).update({"config": false})
+      ot: partial({"errors": 1, "first_error": "The permissions of the user `admin` can't be modified."})
+    - cd: permissions.get(["admin", databaseId2, tableId2]).update({"config": false})
+      ot: partial({"errors": 1, "first_error": "The permissions of the user `admin` can't be modified."})
+
+    - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
+    - cd: r.grant("test_user", {"read": true, "write": true})
+    - cd: r.db("rethinkdb").table("stats").count().ge(1)
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+    - cd: r.db("rethinkdb").table("stats").count().ge(1)
+      runopts:
+        user: test_user
+      ot: true
+
+    - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
+    - cd: r.db("rethinkdb").table("_debug_scratch")
+      ot: []
+    - cd: r.db("rethinkdb").table("_debug_stats")
+      ot: [partial({"id": uuid()})]
+    - cd: r.db("rethinkdb").table("_debug_table_status")
+      ot: [partial({"id": uuid()})]
+    - cd: r.db("rethinkdb").table("_debug_scratch")
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+    - cd: r.db("rethinkdb").table("_debug_stats")
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+    - cd: r.db("rethinkdb").table("_debug_table_status")
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+
+    - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+    - cd: r.db_create("source")
+    - cd: r.db_create("destination")
+    - cd: tableId3 = r.db("source").table_create("table").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+    - cd: r.db("source").grant("test_user", {"read": true, "write": true, "config": true})
+    - cd: r.db("rethinkdb").table("table_config").get(tableId3).update({"db": "destination"})
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `config` permission.", [])
+    - cd: r.db("destination").grant("test_user", {"read": true, "write": true, "config": true})
+    - cd: r.db("rethinkdb").table("table_config").get(tableId3).update({"db": "destination"})
+      runopts:
+        user: test_user
+      ot: partial({"replaced": 1})
+
+    - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+      ot: partial({"errors": 0})
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+    - cd: tableId4 = r.db("database").table_create("table2").get_field("config_changes").nth(0).get_field("new_val").get_field("id")
+    - cd: r.db("rethinkdb").table("table_config").get(tableId4).update({"durability": "soft"})
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `config` permission.", [])
+    - cd: r.db("database").table("table2").grant("test_user", {"read": true, "write": true, "config": true})
+    - cd: r.db("rethinkdb").table("table_config").get(tableId4).update({"durability": "soft"})
+      runopts:
+        user: test_user
+      ot: partial({"replaced": 1})

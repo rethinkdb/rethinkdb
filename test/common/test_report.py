@@ -1,4 +1,4 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -39,6 +39,13 @@ def generate_html(output_file, reportData):
   pageHTML = test_report_template % {"pagedata": json.dumps(reportData, separators=(',', ':')), 'mustacheContents': mustacheContent}
   file_out.write(pageHTML)
 
+def check_output(command, shell=False):
+    process = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output, _ = process.communicate()
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, command)
+    return output
+
 def gen_report(test_root, tests):
   buildbot = False
   if "BUILD_NUMBER" in os.environ:
@@ -46,11 +53,11 @@ def gen_report(test_root, tests):
       'build_id': os.environ['JOB_NAME'] + ' ' + os.environ["BUILD_NUMBER"],
       'build_link': os.environ['BUILD_URL']
     }
-
+  
   git_info = {
-    'branch': subprocess.check_output(['git symbolic-ref HEAD 2>/dev/null || echo "HEAD"'], shell=True),
-    'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD']),
-    'message': subprocess.check_output(['git', 'show', '-s', '--format=%B'])
+    'branch': check_output(['git symbolic-ref HEAD 2>/dev/null || echo "HEAD"'], shell=True),
+    'commit': check_output(['git', 'rev-parse', 'HEAD']),
+    'message': check_output(['git', 'show', '-s', '--format=%B'])
   }
 
   tests_param = format_tests(test_root, tests)
@@ -58,7 +65,7 @@ def gen_report(test_root, tests):
   total = len(tests_param)
 
   # TODO: use `rethinkdb --version' instead
-  rethinkdb_version = subprocess.check_output([os.path.dirname(__file__) + "/../../scripts/gen-version.sh"])
+  rethinkdb_version = check_output([os.path.dirname(__file__) + "/../../scripts/gen-version.sh"])
   
   reportData = {
     "buildbot": buildbot,

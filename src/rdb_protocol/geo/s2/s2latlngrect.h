@@ -266,15 +266,15 @@ class S2LatLngRect : public S2Region {
   S1Interval lng_;
 };
 
-inline S2LatLngRect::S2LatLngRect(S2LatLng const& lo, S2LatLng const& hi)
-  : lat_(lo.lat().radians(), hi.lat().radians()),
-    lng_(lo.lng().radians(), hi.lng().radians()) {
-  DCHECK(is_valid()) << lo << ", " << hi;
+inline S2LatLngRect::S2LatLngRect(S2LatLng const& _lo, S2LatLng const& _hi)
+  : lat_(_lo.lat().radians(), _hi.lat().radians()),
+    lng_(_lo.lng().radians(), _hi.lng().radians()) {
+  DCHECK(is_valid()) << _lo << ", " << _hi;
 }
 
-inline S2LatLngRect::S2LatLngRect(R1Interval const& lat, S1Interval const& lng)
-  : lat_(lat), lng_(lng) {
-  DCHECK(is_valid()) << lat << ", " << lng;
+inline S2LatLngRect::S2LatLngRect(R1Interval const& _lat, S1Interval const& _lng)
+  : lat_(_lat), lng_(_lng) {
+  DCHECK(is_valid()) << _lat << ", " << _lng;
 }
 
 inline S2LatLngRect::S2LatLngRect()

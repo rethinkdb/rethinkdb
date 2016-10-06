@@ -1,4 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
 #include "clustering/administration/jobs/backend.hpp"
 
 #include <set>
@@ -10,15 +11,19 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
+        rdb_context_t *rdb_context,
+        lifetime_t<name_resolver_t const &> name_resolver,
         mailbox_manager_t *_mailbox_manager,
-        boost::shared_ptr< semilattice_readwrite_view_t<
+        std::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         const clone_ptr_t<watchable_t<change_tracking_map_t<
             peer_id_t, cluster_directory_metadata_t> > > &_directory_view,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format)
-    : mailbox_manager(_mailbox_manager),
+    : timer_cfeed_artificial_table_backend_t(
+        name_string_t::guarantee_valid("jobs"), rdb_context, name_resolver),
+      mailbox_manager(_mailbox_manager),
       semilattice_view(_semilattice_view),
       directory_view(_directory_view),
       server_config_client(_server_config_client),
@@ -45,12 +50,13 @@ void insert_or_merge_jobs(std::vector<T> const &jobs, std::map<uuid_u, T> *jobs_
 }
 
 template <typename T>
-void jobs_to_datums(std::map<uuid_u, T> const &jobs,
-                    admin_identifier_format_t identifier_format,
-                    server_config_client_t *server_config_client,
-                    table_meta_client_t *table_meta_client,
-                    cluster_semilattice_metadata_t const &metadata,
-                    std::map<uuid_u, ql::datum_t> *jobs_out) {
+void jobs_to_datums(
+        std::map<uuid_u, T> const &jobs,
+        admin_identifier_format_t identifier_format,
+        server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
+        cluster_semilattice_metadata_t const &metadata,
+        std::map<uuid_u, ql::datum_t> *jobs_out) {
     ql::datum_t job_out;
     for (auto const &job : jobs) {
         if (job.second.to_datum(identifier_format, server_config_client,
@@ -61,6 +67,7 @@ void jobs_to_datums(std::map<uuid_u, T> const &jobs,
 }
 
 void jobs_artificial_table_backend_t::get_all_job_reports(
+        auth::user_context_t const &user_context,
         signal_t *interruptor,
         std::map<uuid_u, ql::datum_t> *jobs_out) {
     assert_thread();  // Accessing `directory_view`
@@ -104,6 +111,23 @@ void jobs_artificial_table_backend_t::get_all_job_reports(
         throw interrupted_exc_t();
     }
 
+    // FIXME This can be done more efficiently by not fetching the data
+
+    for (auto query_job = query_jobs_map.begin(); query_job != query_jobs_map.end(); ) {
+        if (!user_context.is_admin_user() &&
+                query_job->second.user_context != user_context) {
+            query_job = query_jobs_map.erase(query_job);
+        } else {
+            query_job++;
+        }
+    }
+
+    if (!user_context.is_admin_user()) {
+        disk_compaction_jobs_map.clear();
+        index_construction_jobs_map.clear();
+        backfill_jobs_map.clear();
+    }
+
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     jobs_to_datums(query_jobs_map, identifier_format, server_config_client,
         table_meta_client, metadata, jobs_out);
@@ -116,6 +140,7 @@ void jobs_artificial_table_backend_t::get_all_job_reports(
 }
 
 bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
+        auth::user_context_t const &user_context,
         signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
         UNUSED admin_err_t *error_out) {
@@ -126,6 +151,7 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
 
     std::map<uuid_u, ql::datum_t> job_reports;
     get_all_job_reports(
+        user_context,
         &interruptor_on_home,
         &job_reports);
 
@@ -137,10 +163,12 @@ bool jobs_artificial_table_backend_t::read_all_rows_as_vector(
     return true;
 }
 
-bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
-                                               signal_t *interruptor_on_caller,
-                                               ql::datum_t *row_out,
-                                               UNUSED admin_err_t *error_out) {
+bool jobs_artificial_table_backend_t::read_row(
+        auth::user_context_t const &user_context,
+        ql::datum_t primary_key,
+        signal_t *interruptor_on_caller,
+        ql::datum_t *row_out,
+        UNUSED admin_err_t *error_out) {
     *row_out = ql::datum_t();
 
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -151,6 +179,7 @@ bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
     if (convert_job_type_and_id_from_datum(primary_key, &job_type, &job_id)) {
         std::map<uuid_u, ql::datum_t> job_reports;
         get_all_job_reports(
+            user_context,
             &interruptor_on_home,
             &job_reports);
 
@@ -164,11 +193,13 @@ bool jobs_artificial_table_backend_t::read_row(ql::datum_t primary_key,
     return true;
 }
 
-bool jobs_artificial_table_backend_t::write_row(ql::datum_t primary_key,
-                                                bool pkey_was_autogenerated,
-                                                ql::datum_t *new_value_inout,
-                                                UNUSED signal_t *interruptor_on_caller,
-                                                admin_err_t *error_out) {
+bool jobs_artificial_table_backend_t::write_row(
+        auth::user_context_t const &user_context,
+        ql::datum_t primary_key,
+        bool pkey_was_autogenerated,
+        ql::datum_t *new_value_inout,
+        UNUSED signal_t *interruptor_on_caller,
+        admin_err_t *error_out) {
     on_thread_t rethreader(home_thread());
 
     if (new_value_inout->has()) {
@@ -195,7 +226,8 @@ bool jobs_artificial_table_backend_t::write_row(ql::datum_t primary_key,
         pmap(peers.begin(), peers.end(), [&](peers_t::value_type const &peer) {
             send(mailbox_manager,
                  peer.second.jobs_mailbox.job_interrupt_mailbox_address,
-                 id);
+                 id,
+                 user_context);
         });
     }
 

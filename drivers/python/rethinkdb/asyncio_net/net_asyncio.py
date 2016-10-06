@@ -1,12 +1,13 @@
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2015-2016 RethinkDB, all rights reserved.
 
 import asyncio
 import contextlib
 import socket
+import ssl
 import struct
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile
+from .net import Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -117,6 +118,7 @@ class AsyncioCursor(Cursor):
 class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
+    _reader_task  = None
 
     def __init__(self, parent, io_loop=None):
         self._parent = parent
@@ -128,41 +130,63 @@ class ConnectionInstance(object):
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
+    def client_port(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('sockname')[1]
+    def client_address(self):
+        if self.is_open():
+            return self._streamwriter.get_extra_info('sockname')[0]
+
     @asyncio.coroutine
     def connect(self, timeout):
         try:
-            self._streamreader, self._streamwriter = yield from \
-                asyncio.open_connection(self._parent.host, self._parent.port,
-                                        loop=self._io_loop)
-            self._streamwriter.get_extra_info('socket').setsockopt(
-                                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._streamwriter.get_extra_info('socket').setsockopt(
-                                socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            ssl_context = None
+            if len(self._parent.ssl) > 0:
+                ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                if hasattr(ssl_context, "options"):
+                    ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
+                    ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+                ssl_context.check_hostname = True # redundant with match_hostname
+                ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
+                
+            self._streamreader, self._streamwriter = yield from asyncio.open_connection(self._parent.host, self._parent.port, loop=self._io_loop, ssl=ssl_context)
+            self._streamwriter.get_extra_info('socket').setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            self._streamwriter.get_extra_info('socket').setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
+                                  (self._parent.host, self._parent.port, str(err)))
 
         try:
-            self._streamwriter.write(self._parent.handshake)
+            self._parent.handshake.reset()
+            response = None
             with translate_timeout_errors():
-                response = yield from asyncio.wait_for(
-                    _read_until(self._streamreader, b'\0'),
-                    timeout, loop=self._io_loop,
-                )
-        except Exception as err:
+                while True:
+                    request = self._parent.handshake.next_message(response)
+                    if request is None:
+                        break
+                    # This may happen in the `V1_0` protocol where we send two requests as
+                    # an optimization, then need to read each separately
+                    if request is not "":
+                        self._streamwriter.write(request)
+
+                    response = yield from asyncio.wait_for(
+                        _read_until(self._streamreader, b'\0'),
+                        timeout, loop=self._io_loop,
+                    )
+                    response = response[:-1]
+        except ReqlAuthError:
+            yield from self.close()
+            raise
+        except ReqlTimeoutError as err:
+            yield from self.close()
             raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
-
-        message = decodeUTF(response[:-1]).split('\n')[0]
-
-        if message != 'SUCCESS':
-            self.close(False, None)
-            if message == "ERROR: Incorrect authorization key":
-                raise ReqlAuthError(self._parent.host, self._parent.port)
-            else:
-                raise ReqlDriverError('Server dropped connection with message: "%s"' %
-                    (message, ))
+        except Exception as err:
+            yield from self.close()
+            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
+                                  (self._parent.host, self._parent.port, str(err)))
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
@@ -173,7 +197,7 @@ class ConnectionInstance(object):
         return not (self._closing or self._streamreader.at_eof())
 
     @asyncio.coroutine
-    def close(self, noreply_wait, token, exception=None):
+    def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -195,7 +219,10 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
-        yield from self._reader_task
+        # We must not wait for the _reader_task if we got an exception, because that
+        # means that we were called from it. Waiting would lead to a deadlock.
+        if self._reader_task and exception is None:
+            yield from self._reader_task
 
         return None
 
@@ -248,12 +275,12 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield from self.close(False, None, ex)
+                yield from self.close(exception=ex)
 
 
 class Connection(ConnectionBase):
     def __init__(self, *args, **kwargs):
-        ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
         try:
             self.port = int(self.port)
         except ValueError:

@@ -3,11 +3,9 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <set>
 #include <utility>
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
@@ -20,11 +18,11 @@
 
 template<class metadata_t>
 semilattice_manager_t<metadata_t>::semilattice_manager_t(
-        connectivity_cluster_t *connectivity_cluster,
+        connectivity_cluster_t *_connectivity_cluster,
         connectivity_cluster_t::message_tag_t message_tag,
         const metadata_t &initial_metadata) :
-    cluster_message_handler_t(connectivity_cluster, message_tag),
-    root_view(boost::make_shared<root_view_t>(this)),
+    cluster_message_handler_t(_connectivity_cluster, message_tag),
+    root_view(std::make_shared<root_view_t>(this)),
     metadata_version(0),
     metadata(initial_metadata),
     next_sync_from_query_id(0), next_sync_to_query_id(0),
@@ -44,7 +42,7 @@ semilattice_manager_t<metadata_t>::~semilattice_manager_t() THROWS_NOTHING {
 }
 
 template<class metadata_t>
-boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
+std::shared_ptr<semilattice_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
     assert_thread();
     return root_view;
 }

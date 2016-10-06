@@ -16,6 +16,7 @@ __all__ = [
             "ReqlAvailabilityError",
                 "ReqlOpFailedError",
                 "ReqlOpIndeterminateError",
+            "ReqlPermissionError",
         "ReqlDriverError", "RqlDriverError", "RqlClientError",
             "ReqlAuthError"
 ]
@@ -68,6 +69,9 @@ class ReqlError(Exception):
                 self.message.rstrip("."),
                 self.query_printer.print_query(),
                 self.query_printer.print_carrots()))
+    
+    def __repr__(self):
+        return "<%s instance: %s >" % (self.__class__.__name__, str(self))
 
 RqlError = ReqlError
 
@@ -122,6 +126,10 @@ class ReqlOpIndeterminateError(ReqlAvailabilityError):
     pass
 
 
+class ReqlPermissionError(ReqlRuntimeError):
+    pass
+
+
 class ReqlDriverError(ReqlError):
     pass
 
@@ -129,13 +137,13 @@ RqlClientError = ReqlDriverError
 RqlDriverError = ReqlDriverError
 
 class ReqlAuthError(ReqlDriverError):
-    def __init__(self, host=None, port=None):
+    def __init__(self, msg, host=None, port=None):
         if host is None or port is None:
-            super(ReqlDriverError, self).__init__("Incorrect authentication key.")
+            super(ReqlDriverError, self).__init__(msg)
         else:
             super(ReqlDriverError, self).__init__(
-                "Could not connect to %s:%d, incorrect authentication key." %
-                (host, port))
+                "Could not connect to %s:%d: %s" %
+                (host, port, msg))
 
 
 try:

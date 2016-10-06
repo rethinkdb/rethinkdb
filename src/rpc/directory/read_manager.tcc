@@ -16,9 +16,9 @@
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(
-        connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t tag)
+        connectivity_cluster_t *cm, connectivity_cluster_t::message_tag_t _tag)
         THROWS_NOTHING :
-    cluster_message_handler_t(cm, tag),
+    cluster_message_handler_t(cm, _tag),
     variable(change_tracking_map_t<peer_id_t, metadata_t>())
 {
     guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
@@ -50,7 +50,7 @@ void directory_read_manager_t<metadata_t>::on_message(
     switch (code) {
         case 'I': {
             /* Initial message from another peer */
-            boost::shared_ptr<metadata_t> initial_value(new metadata_t());
+            std::shared_ptr<metadata_t> initial_value(new metadata_t());
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 archive_result_t res =
@@ -73,7 +73,7 @@ void directory_read_manager_t<metadata_t>::on_message(
 
         case 'U': {
             /* Update from another peer */
-            boost::shared_ptr<metadata_t> new_value(new metadata_t());
+            std::shared_ptr<metadata_t> new_value(new metadata_t());
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 archive_result_t res =
@@ -102,7 +102,7 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::handle_connection(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
-        const boost::shared_ptr<metadata_t> &new_value,
+        const std::shared_ptr<metadata_t> &new_value,
         fifo_enforcer_state_t metadata_fifo_state,
         auto_drainer_t::lock_t per_thread_keepalive)
         THROWS_NOTHING
@@ -176,7 +176,7 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::propagate_update(
         connectivity_cluster_t::connection_t *connection,
         auto_drainer_t::lock_t connection_keepalive,
-        const boost::shared_ptr<metadata_t> &new_value,
+        const std::shared_ptr<metadata_t> &new_value,
         fifo_enforcer_write_token_t metadata_fifo_token,
         auto_drainer_t::lock_t per_thread_keepalive)
         THROWS_NOTHING

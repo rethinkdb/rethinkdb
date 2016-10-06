@@ -178,10 +178,7 @@ public:
         --p;
         while (p->first > median && p != kv_.begin()) {
             right->kv_[p->first] = p->second;
-            std::map<store_key_t, std::string>::iterator prev = p;
-            --p;
-            kv_.erase(prev);
-            EXPECT_TRUE(right->ShouldHave((*prev).first));
+            kv_.erase(p--);
         }
 
         Verify();

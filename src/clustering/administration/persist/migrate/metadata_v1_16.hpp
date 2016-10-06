@@ -12,7 +12,7 @@
 
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/auth_key.hpp"
+#include "clustering/administration/persist/migrate/metadata_v1_14.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "region/region_map.hpp"
@@ -170,7 +170,7 @@ struct cluster_semilattice_metadata_t {
 RDB_DECLARE_SERIALIZABLE(cluster_semilattice_metadata_t);
 
 struct auth_semilattice_metadata_t {
-    versioned_t<auth_key_t> auth_key;
+    versioned_t<metadata_v1_14::auth_key_t> auth_key;
 };
 
 RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);

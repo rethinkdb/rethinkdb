@@ -29,6 +29,8 @@ INSTANTIATE_DESERIALIZE_SINCE_v1_13(namespaces_semilattice_metadata_t);
 RDB_IMPL_SERIALIZABLE_4(cluster_semilattice_metadata_t,
                         rdb_namespaces, machines, datacenters, databases);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(cluster_semilattice_metadata_t);
+RDB_IMPL_SERIALIZABLE_1(auth_key_t, key);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(auth_key_t);
 RDB_IMPL_SERIALIZABLE_1(auth_semilattice_metadata_t, auth_key);
 INSTANTIATE_DESERIALIZE_SINCE_v1_13(auth_semilattice_metadata_t);
 

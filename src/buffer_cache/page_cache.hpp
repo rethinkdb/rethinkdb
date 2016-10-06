@@ -47,8 +47,8 @@ enum class block_type_t { normal, aux };
 
 class cache_conn_t {
 public:
-    explicit cache_conn_t(cache_t *cache)
-        : cache_(cache),
+    explicit cache_conn_t(cache_t *_cache)
+        : cache_(_cache),
           newest_txn_(nullptr) { }
     ~cache_conn_t();
 
@@ -335,6 +335,8 @@ public:
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
             std::function<void(throttler_acq_t *)> on_flush_complete);
+    // More efficient version of `flush_and_destroy_txn` for read transactions.
+    void end_read_txn(scoped_ptr_t<page_txn_t> txn);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(
@@ -400,7 +402,7 @@ private:
 
     friend class page_txn_t;
     static void do_flush_changes(page_cache_t *page_cache,
-                                 const std::map<block_id_t, block_change_t> &changes,
+                                 std::map<block_id_t, block_change_t> &&changes,
                                  const std::vector<page_txn_t *> &txns,
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,

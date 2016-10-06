@@ -49,6 +49,8 @@ public:
     ~session_t() {
         guarantee(!done_cond.is_pulsed() || items_mem_size_unacked == 0,
             "we seem to have leaked some semaphore credits");
+
+        parent->progress_tracker->is_ready = true;
     }
 
     /* `backfillee_t()` calls these callbacks when it receives messages from the

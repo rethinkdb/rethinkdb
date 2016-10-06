@@ -235,16 +235,6 @@ MUST_USE bool str_to_uuid(const std::string &str, uuid_u *uuid) {
     return true;
 }
 
-bool is_uuid(const std::string& str) {
-    try {
-        str_to_uuid(str);
-    } catch (...) {
-        return false;
-    }
-    return true;
-}
-
-
 /*
  For part of this file below:
 

@@ -38,10 +38,13 @@ TPTEST(BTreeSindex, LowLevelOps) {
 
     {
         txn_t txn(&cache_conn, write_durability_t::HARD, 1);
-        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        real_superblock_t superblock(std::move(sb_lock));
-        btree_slice_t::init_real_superblock(&superblock,
-                                            std::vector<char>(), binary_blob_t());
+        {
+            buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+            real_superblock_t superblock(std::move(sb_lock));
+            btree_slice_t::init_real_superblock(
+                &superblock, std::vector<char>(), binary_blob_t());
+        }
+        txn.commit();
     }
 
     order_source_t order_source;
@@ -50,17 +53,20 @@ TPTEST(BTreeSindex, LowLevelOps) {
 
     {
         scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
-                                                 write_access_t::write, 1,
-                                                 write_durability_t::SOFT,
-                                                 &superblock, &txn);
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+            get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                write_access_t::write, 1,
+                write_durability_t::SOFT,
+                &superblock, &txn);
 
-        buf_lock_t sindex_block(superblock->expose_buf(),
-                                superblock->get_sindex_block_id(),
-                                access_t::write);
+            buf_lock_t sindex_block(superblock->expose_buf(),
+                superblock->get_sindex_block_id(),
+                access_t::write);
 
-        initialize_secondary_indexes(&sindex_block);
+            initialize_secondary_indexes(&sindex_block);
+        }
+        txn->commit();
     }
 
     for (int i = 0; i < 100; ++i) {
@@ -75,48 +81,64 @@ TPTEST(BTreeSindex, LowLevelOps) {
         mirror[name] = s;
 
         scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
-                                                 write_access_t::write, 1,
-                                                 write_durability_t::SOFT,
-                                                 &superblock, &txn);
-        buf_lock_t sindex_block(superblock->expose_buf(),
-                                superblock->get_sindex_block_id(),
-                                access_t::write);
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+            get_btree_superblock_and_txn_for_writing(
+                &cache_conn,
+                nullptr,
+                write_access_t::write,
+                1,
+                write_durability_t::SOFT,
+                &superblock,
+                &txn);
+            buf_lock_t sindex_block(
+                superblock->expose_buf(),
+                superblock->get_sindex_block_id(),
+                access_t::write);
 
-        set_secondary_index(&sindex_block, name, s);
+            set_secondary_index(&sindex_block, name, s);
+        }
+        txn->commit();
     }
 
     {
         scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
-                                                 write_access_t::write, 1,
-                                                 write_durability_t::SOFT,
-                                                 &superblock, &txn);
-        buf_lock_t sindex_block(superblock->expose_buf(),
-                                superblock->get_sindex_block_id(),
-                                access_t::write);
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+            get_btree_superblock_and_txn_for_writing(
+                &cache_conn,
+                nullptr,
+                write_access_t::write,
+                1,
+                write_durability_t::SOFT,
+                &superblock,
+                &txn);
+            buf_lock_t sindex_block(
+                superblock->expose_buf(),
+                superblock->get_sindex_block_id(),
+                access_t::write);
 
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(&sindex_block, &sindexes);
+            std::map<sindex_name_t, secondary_index_t> sindexes;
+            get_secondary_indexes(&sindex_block, &sindexes);
 
-        auto it = sindexes.begin();
-        auto jt = mirror.begin();
+            auto it = sindexes.begin();
+            auto jt = mirror.begin();
 
-        for (;;) {
-            if (it == sindexes.end()) {
-                ASSERT_TRUE(jt == mirror.end());
-                break;
+            for (;;) {
+                if (it == sindexes.end()) {
+                    ASSERT_TRUE(jt == mirror.end());
+                    break;
+                }
+                ASSERT_TRUE(jt != mirror.end());
+
+                ASSERT_TRUE(it->first == jt->first);
+                ASSERT_TRUE(it->second.superblock == jt->second.superblock &&
+                    it->second.opaque_definition == jt->second.opaque_definition);
+                ++it;
+                ++jt;
             }
-            ASSERT_TRUE(jt != mirror.end());
-
-            ASSERT_TRUE(it->first == jt->first);
-            ASSERT_TRUE(it->second.superblock == jt->second.superblock &&
-                        it->second.opaque_definition == jt->second.opaque_definition);
-            ++it;
-            ++jt;
         }
+        txn->commit();
     }
 }
 
@@ -162,19 +184,23 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
-            scoped_ptr_t<real_superblock_t> super_block;
+            {
+                scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(
+                store.acquire_superblock_for_write(
                     1, write_durability_t::SOFT, &token,
                     &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block(super_block->expose_buf(),
-                                    super_block->get_sindex_block_id(),
-                                    access_t::write);
+                buf_lock_t sindex_block(
+                    super_block->expose_buf(),
+                    super_block->get_sindex_block_id(),
+                    access_t::write);
 
-            index_id = store.add_sindex_internal(
-                name, std::vector<char>(), &sindex_block);
-            guarantee(index_id);
+                index_id = store.add_sindex_internal(
+                    name, std::vector<char>(), &sindex_block);
+                guarantee(index_id);
+            }
+            txn->commit();
         }
 
         {
@@ -182,16 +208,21 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
-            scoped_ptr_t<real_superblock_t> super_block;
+            {
+                scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(1, write_durability_t::SOFT, &token,
-                                               &txn, &super_block, &dummy_interruptor);
+                store.acquire_superblock_for_write(
+                    1, write_durability_t::SOFT, &token,
+                    &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block(super_block->expose_buf(),
-                                    super_block->get_sindex_block_id(),
-                                    access_t::write);
+                buf_lock_t sindex_block(
+                    super_block->expose_buf(),
+                    super_block->get_sindex_block_id(),
+                    access_t::write);
 
-            store.mark_index_up_to_date(*index_id, &sindex_block, key_range_t::empty());
+                store.mark_index_up_to_date(*index_id, &sindex_block, key_range_t::empty());
+            }
+            txn->commit();
         }
 
         store_key_t key(ql::datum_t::compose_secondary(
@@ -206,34 +237,37 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
-            scoped_ptr_t<real_superblock_t> super_block;
+            {
+                scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(
+                store.acquire_superblock_for_write(
                     1, write_durability_t::SOFT,
                     &token, &txn, &super_block,
                     &dummy_interruptor);
 
-            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
-            uuid_u sindex_uuid;
+                scoped_ptr_t<sindex_superblock_t> sindex_super_block;
+                uuid_u sindex_uuid;
 
-            bool sindex_exists = store.acquire_sindex_superblock_for_write(
+                bool sindex_exists = store.acquire_sindex_superblock_for_write(
                     name,
                     "",
                     super_block.get(),
                     &sindex_super_block,
                     &sindex_uuid);
-            ASSERT_TRUE(sindex_exists);
+                ASSERT_TRUE(sindex_exists);
 
-            ql::datum_t data = ql::datum_t(1.0);
+                ql::datum_t data = ql::datum_t(1.0);
 
-            point_write_response_t response;
-            rdb_modification_info_t mod_info;
+                point_write_response_t response;
+                rdb_modification_info_t mod_info;
 
-            rdb_live_deletion_context_t deletion_context;
-            rdb_set(key, data, true, store.get_sindex_slice(sindex_uuid),
+                rdb_live_deletion_context_t deletion_context;
+                rdb_set(key, data, true, store.get_sindex_slice(sindex_uuid),
                     repli_timestamp_t::distant_past,
                     sindex_super_block.get(), &deletion_context, &response,
-                    &mod_info, static_cast<profile::trace_t *>(NULL));
+                    &mod_info, static_cast<profile::trace_t *>(nullptr));
+            }
+            txn->commit();
         }
 
         {

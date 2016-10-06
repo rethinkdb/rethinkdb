@@ -31,6 +31,9 @@ public:
 };
 
 perfmon_collection_t::perfmon_collection_t() : constituents_access(true) { }
+perfmon_collection_t::perfmon_collection_t(threadnum_t tid)
+    : home_thread_mixin_t(tid),
+      constituents_access(true) { }
 perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
@@ -149,7 +152,7 @@ perfmon_collection_t &get_global_perfmon_collection() {
 
     // FIXME: probably use "new" to create the perfmon_collection_t. For more info
     // check out C++ FAQ Lite answer 10.16.
-    static perfmon_collection_t collection;
+    static perfmon_collection_t collection(threadnum_t(0));
     return collection;
 }
 

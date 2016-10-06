@@ -1,5 +1,5 @@
 #!/user/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 import collections, os, subprocess, sys
 
@@ -20,10 +20,13 @@ class AllUnitTests(test_framework.Test):
         if not os.access(unit_executable, os.X_OK):
             sys.stderr.write('Warning: no useable rethinkdb-unittest executable at: %s\n' % unit_executable)
             return test_framework.TestTree()
-        output = subprocess.check_output([unit_executable, "--gtest_list_tests"])
+        gtestProcess = subprocess.Popen([unit_executable, "--gtest_list_tests"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = gtestProcess.communicate()
+        if gtestProcess.returncode != 0:
+            raise subprocess.CalledProcessError(gtestProcess.returncode, [unit_executable, "--gtest_list_tests"])
         key = None
         dict = collections.defaultdict(list)
-        for line in output.split("\n"):
+        for line in output.split():
             if not line:
                 continue
             elif line[-1] == '.':
@@ -48,7 +51,10 @@ class UnitTest(test_framework.Test):
         filter = self.test
         if self.child_tests:
             filter = filter + ".*"
-        subprocess.check_call([self.unit_executable, "--gtest_filter=" + filter])
+        command = self.unit_executable + " --gtest_filter=" + filter
+        exit_code = os.system(command)
+        if exit_code:
+            raise Exception("command failed (" + str(exit_code) + "): " + command)
 
     def filter(self, filter):
         if filter.all_same() or not self.child_tests:

@@ -65,6 +65,7 @@ void real_branch_history_manager_t::create_branch(
                 uuid_to_str(table_id) + "/" + uuid_to_str(branch_id)),
             bc,
             &non_interruptor);
+        write_txn.commit();
     }
     cache.branches.insert(std::make_pair(branch_id, bc));
 }
@@ -86,6 +87,7 @@ void real_branch_history_manager_t::import_branch_history(
                 cache.branches.insert(pair);
             }
         }
+        write_txn.commit();
     }
 }
 
@@ -112,5 +114,6 @@ void real_branch_history_manager_t::perform_gc(
             cache.branches.erase(bid);
         }
     }
+    write_txn.commit();
 }
 

@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved
 #include "rdb_protocol/real_table.hpp"
 
+#include "clustering/administration/auth/permission_error.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "math.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/distances.hpp"
@@ -11,62 +14,9 @@
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-namespace_interface_access_t::namespace_interface_access_t() :
-    nif(NULL), ref_tracker(NULL), thread(INVALID_THREAD)
-    { }
 
-namespace_interface_access_t::namespace_interface_access_t(
-        const namespace_interface_access_t& access) :
-    nif(access.nif), ref_tracker(access.ref_tracker), thread(access.thread)
-{
-    if (ref_tracker != NULL) {
-        rassert(get_thread_id() == thread);
-        ref_tracker->add_ref();
-    }
-}
-
-namespace_interface_access_t::namespace_interface_access_t(namespace_interface_t *_nif,
-        ref_tracker_t *_ref_tracker, threadnum_t _thread) :
-    nif(_nif), ref_tracker(_ref_tracker), thread(_thread)
-{
-    if (ref_tracker != NULL) {
-        rassert(get_thread_id() == thread);
-        ref_tracker->add_ref();
-    }
-}
-
-namespace_interface_access_t &namespace_interface_access_t::operator=(
-        const namespace_interface_access_t &access) {
-    if (this != &access) {
-        if (ref_tracker != NULL) {
-            rassert(get_thread_id() == thread);
-            ref_tracker->release();
-        }
-        nif = access.nif;
-        ref_tracker = access.ref_tracker;
-        thread = access.thread;
-        if (ref_tracker != NULL) {
-            rassert(get_thread_id() == thread);
-            ref_tracker->add_ref();
-        }
-    }
-    return *this;
-}
-
-namespace_interface_access_t::~namespace_interface_access_t() {
-    if (ref_tracker != NULL) {
-        rassert(get_thread_id() == thread);
-        ref_tracker->release();
-    }
-}
-
-namespace_interface_t *namespace_interface_access_t::get() {
-    rassert(thread == get_thread_id());
-    return nif;
-}
-
-ql::datum_t real_table_t::get_id() const {
-    return ql::datum_t(datum_string_t(uuid_to_str(uuid)));
+namespace_id_t real_table_t::get_id() const {
+    return uuid;
 }
 
 const std::string &real_table_t::get_pkey() const {
@@ -92,7 +42,10 @@ scoped_ptr_t<ql::reader_t> real_table_t::read_all_with_sindexes(
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode) {
-    // This alternative behavior exists to make eqJoin work.
+    // This is a separate method because we need the sindex values from the rget_reader_t
+    // in order to make the algorithm in eq_join work. The other method sometimes does
+    // not fill in this information.
+
     if (datumspec.is_empty()) {
         return make_scoped<ql::empty_reader_t>(
             counted_t<real_table_t>(this),
@@ -150,9 +103,9 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_changes(
-    ql::env_t *env,
-    const ql::changefeed::streamspec_t &ss,
-    ql::backtrace_id_t bt) {
+        ql::env_t *env,
+        const ql::changefeed::streamspec_t &ss,
+        ql::backtrace_id_t bt) {
     return changefeed_client->new_stream(env, ss, uuid, bt);
 }
 
@@ -185,15 +138,23 @@ ql::datum_t real_table_t::read_nearest(
         const ql::configured_limits_t &limits) {
 
     nearest_geo_read_t geo_read(
-        region_t::universe(), center, max_dist, max_results,
-        geo_system, table_name, sindex, env->get_all_optargs());
+        region_t::universe(),
+        center,
+        max_dist,
+        max_results,
+        geo_system,
+        table_name,
+        sindex,
+        env->get_serializable_env());
     read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
-        namespace_access.get()->read(read, &res, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_user_context(), read, &res, order_token_t::ignore, env->interruptor);
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", ex.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
 
     nearest_geo_read_response_t *g_res =
@@ -256,12 +217,32 @@ std::vector<std::vector<T> > split(std::vector<T> &&v) {
     return out;
 }
 
+boost::optional<counted_t<const ql::func_t> > real_table_t::get_write_hook(
+    ql::env_t *env,
+    ignore_write_hook_t ignore_write_hook) {
+    boost::optional<counted_t<const ql::func_t> > write_hook;
+    table_config_and_shards_t config;
+
+    m_table_meta_client->get_config(uuid, env->interruptor, &config);
+
+    if (config.config.write_hook &&
+        ignore_write_hook == ignore_write_hook_t::NO) {
+        write_hook = config.config.write_hook->func.compile_wire_func();
+    }
+    return write_hook;
+}
+
 ql::datum_t real_table_t::write_batched_replace(
     ql::env_t *env,
     const std::vector<ql::datum_t> &keys,
     const counted_t<const ql::func_t> &func,
     return_changes_t return_changes,
-    durability_requirement_t durability) {
+    durability_requirement_t durability,
+    ignore_write_hook_t ignore_write_hook) {
+
+    // Get write_hook function
+    boost::optional<counted_t<const ql::func_t> > write_hook =
+        get_write_hook(env, ignore_write_hook);
 
     std::vector<store_key_t> store_keys;
     store_keys.reserve(keys.size());
@@ -275,8 +256,13 @@ ql::datum_t real_table_t::write_batched_replace(
     bool batch_succeeded = false;
     for (auto &&batch : batches) {
         try {
-            batched_replace_t write(std::move(batch), pkey, func,
-                                    env->get_all_optargs(), return_changes);
+            batched_replace_t write(
+                std::move(batch),
+                pkey,
+                func,
+                write_hook,
+                env->get_serializable_env(),
+                return_changes);
             write_t w(std::move(write), durability, env->profile(), env->limits());
             write_response_t response;
             write_with_profile(env, &w, &response);
@@ -309,7 +295,12 @@ ql::datum_t real_table_t::write_batched_insert(
     conflict_behavior_t conflict_behavior,
     boost::optional<counted_t<const ql::func_t> > conflict_func,
     return_changes_t return_changes,
-    durability_requirement_t durability) {
+    durability_requirement_t durability,
+    ignore_write_hook_t ignore_write_hook) {
+
+    // Get write_hook function
+    boost::optional<counted_t<const ql::func_t> > write_hook =
+        get_write_hook(env, ignore_write_hook);
 
     ql::datum_t stats((std::map<datum_string_t, ql::datum_t>()));
     std::set<std::string> conditions;
@@ -318,9 +309,11 @@ ql::datum_t real_table_t::write_batched_insert(
         batched_insert_t write(
             std::move(batch),
             pkey,
+            write_hook,
             conflict_behavior,
             conflict_func,
             env->limits(),
+            env->get_serializable_env(),
             return_changes);
         write_t w(std::move(write), durability, env->profile(), env->limits());
         write_response_t response;
@@ -357,13 +350,21 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     r_sanity_check(read.profile == env->profile());
+
     /* Do the actual read. */
     try {
-        namespace_access.get()->read(read, response, order_token_t::ignore,
-                                     env->interruptor);
+        namespace_access.get()->read(
+            env->get_user_context(),
+            read,
+            response,
+            order_token_t::ignore,
+            env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
@@ -375,9 +376,14 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     write->profile = env->profile();
+
     /* Do the actual write. */
     try {
-        namespace_access.get()->write(*write, response, order_token_t::ignore,
+        namespace_access.get()->write(
+            env->get_user_context(),
+            *write,
+            response,
+            order_token_t::ignore,
             env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         ql::base_exc_t::type_t type;
@@ -391,7 +397,10 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
         default: unreachable();
         }
         rfail_datum(type, "Cannot perform write: %s", e.what());
+    } catch (auth::permission_error_t const &error) {
+        rfail_datum(ql::base_exc_t::PERMISSION_ERROR, "%s", error.what());
     }
+
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }

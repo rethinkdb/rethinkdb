@@ -25,10 +25,10 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DIST_SUPPORT_PACKAGES := re2 gtest v8
+DIST_SUPPORT_PACKAGES := re2 gtest v8 jemalloc
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf jemalloc boost
+  DIST_SUPPORT_PACKAGES += protobuf boost
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -46,7 +46,7 @@ DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
 
 ifneq (1,$(BUILD_PORTABLE))
-  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, libjemalloc-dev
+  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -160,7 +160,7 @@ $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 	$P ECHO "> $@"
 	echo -n $(RETHINKDB_CODE_VERSION) > $@
 
-PRECOMPILED_ASSETS := $(DIST_DIR)/precompiled/web_assets/web_assets.cc
+PRECOMPILED_ASSETS := $(DIST_DIR)/precompiled/bundle_assets/web_assets.cc
 PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.h
 PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.cc
 

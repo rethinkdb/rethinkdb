@@ -87,7 +87,7 @@ public:
     insert_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"conflict", "durability", "return_vals",
-                                  "return_changes"})) { }
+                                  "return_changes", "ignore_write_hook"})) { }
 
 private:
     static void maybe_generate_key(counted_t<table_t> tbl,
@@ -139,19 +139,35 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));
 
+        scoped_ptr_t<val_t> ignore_write_hook_arg =
+            args->optarg(env, "ignore_write_hook");
+        ignore_write_hook_t ignore_write_hook = ignore_write_hook_t::NO;
+        if (ignore_write_hook_arg.has()) {
+            ignore_write_hook =
+                ignore_write_hook_arg->as_bool() ?
+                ignore_write_hook_t::YES :
+                ignore_write_hook_t::NO;
+            if (ignore_write_hook == ignore_write_hook_t::YES) {
+                env->env->get_user_context().require_config_permission(
+                    env->env->get_rdb_ctx(),
+                    t->db->id,
+                    t->get_id());
+            }
+        }
         if (conflict_behavior == conflict_behavior_t::FUNCTION) {
             conflict_func = conflict_optarg->as_func();
-            // Check correct arity on function
-            rcheck((*conflict_func)->arity().get() == 0 ||
-                   (*conflict_func)->arity().get() == 3,
-                   base_exc_t::LOGIC,
-                   strprintf("The conflict function passed to `insert` should "
-                             "expect 3 arguments."));
+
             // Check that insert function is atomic.
             rcheck((*conflict_func)->is_deterministic() == deterministic_t::always,
                    base_exc_t::LOGIC,
                    strprintf("The conflict function passed to `insert` must "
                              "be deterministic."));
+            // Check correct arity on function
+            boost::optional<size_t> arity = (*conflict_func)->arity();
+            rcheck(static_cast<bool>(arity) && (arity.get() == 0 || arity.get() == 3),
+                   base_exc_t::LOGIC,
+                   strprintf("The conflict function passed to `insert` should "
+                             "expect 3 arguments."));
         }
 
         bool done = false;
@@ -182,7 +198,8 @@ private:
                     conflict_behavior,
                     conflict_func,
                     durability_requirement,
-                    return_changes);
+                    return_changes,
+                    ignore_write_hook);
                 stats = stats.merge(
                     replace_stats, stats_merge, env->env->limits(), &conditions);
                 done = true;
@@ -221,7 +238,8 @@ private:
                     conflict_behavior,
                     conflict_func,
                     durability_requirement,
-                    return_changes);
+                    return_changes,
+                    ignore_write_hook);
                 stats = stats.merge(
                     replace_stats, stats_merge, env->env->limits(), &conditions);
             }
@@ -260,7 +278,8 @@ public:
     replace_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"non_atomic", "durability",
-                                  "return_vals", "return_changes"})) { }
+                                "return_vals", "return_changes",
+                                "ignore_write_hook"})) { }
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -273,6 +292,16 @@ private:
 
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));
+
+        scoped_ptr_t<val_t> ignore_write_hook_arg =
+            args->optarg(env, "ignore_write_hook");
+        ignore_write_hook_t ignore_write_hook = ignore_write_hook_t::NO;
+        if (ignore_write_hook_arg.has()) {
+            ignore_write_hook =
+                ignore_write_hook_arg->as_bool() ?
+                ignore_write_hook_t::YES :
+                ignore_write_hook_t::NO;
+        }
 
         if (!nondet_ok) {
             rcheck(args->arg_is_deterministic(1) == deterministic_t::always,
@@ -292,8 +321,19 @@ private:
         std::set<std::string> conditions;
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             counted_t<single_selection_t> sel = v0->as_single_selection();
+
+            if (ignore_write_hook == ignore_write_hook_t::YES) {
+                env->env->get_user_context().require_config_permission(
+                    env->env->get_rdb_ctx(),
+                    sel->get_tbl()->db->id,
+                    sel->get_tbl()->get_id());
+            }
             datum_t replace_stats = sel->replace(
-                f, nondet_ok, durability_requirement, return_changes);
+                f,
+                nondet_ok,
+                durability_requirement,
+                return_changes,
+                ignore_write_hook);
             stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
                                 &conditions);
         } else {
@@ -301,6 +341,12 @@ private:
             counted_t<table_t> tbl = tblrows->table;
             counted_t<datum_stream_t> ds = tblrows->seq;
 
+            if (ignore_write_hook == ignore_write_hook_t::YES) {
+                env->env->get_user_context().require_config_permission(
+                    env->env->get_rdb_ctx(),
+                    tbl->db->id,
+                    tbl->get_id());
+            }
             if (f->is_deterministic() == deterministic_t::always) {
                 // Attach a transformation to `ds` to pull out the primary key.
                 minidriver_t r(backtrace());
@@ -331,7 +377,11 @@ private:
                 }
                 datum_t replace_stats = tbl->batched_replace(
                     env->env, vals, keys.has() ? *keys : vals,
-                    f, nondet_ok, durability_requirement, return_changes);
+                    f,
+                    nondet_ok,
+                    durability_requirement,
+                    return_changes,
+                    ignore_write_hook);
                 stats = stats.merge(replace_stats, stats_merge, env->env->limits(),
                                     &conditions);
             }

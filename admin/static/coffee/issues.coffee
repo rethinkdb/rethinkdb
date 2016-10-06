@@ -199,7 +199,8 @@ render_memory_error = (issue) ->
             "Please fix the problem that is causing the "
             util.pluralize_noun("server", issue.info.servers.length)
             " to use swap memory. This issue will go away "
-            "after an hour has passed since swap memory was used,"
+            "after ten minutes have passed since a significant amount "
+            "of swap memory was used,"
             " or after you restart RethinkDB."
         ]
     ]

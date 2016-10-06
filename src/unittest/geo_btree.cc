@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 
+#include "random.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/geo/indexing.hpp"
 #include "unittest/gtest.hpp"

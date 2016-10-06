@@ -134,6 +134,12 @@ int64_t pool_diskmgr_t::action_t::perform_read_write(iovec *vecs,
                    "%" PRIi64 " bytes. Assuming we ran out of disk space.",
                    total_bytes, partial_offset);
             return -ENOSPC;
+        } else if (res == 0 && type == ACTION_READ) {
+            // A 0 result from a read means that we've tried to read
+            // behind the file.
+            logERR("Failed I/O: we tried to read from behind the end of the file. "
+                   "Either the file got truncated, or there is a bug in RethinkDB.");
+            return -EINVAL;
         }
 
         // Advance the vector in DEVICE_BLOCK_SIZE chunks and update our offset
@@ -154,18 +160,11 @@ void pool_diskmgr_t::action_t::run() {
     switch (type) {
     case ACTION_RESIZE: {
 #ifdef _WIN32
-        LARGE_INTEGER offset_;
-        offset_.QuadPart = offset;
-        DWORD res = SetFilePointer(fd, offset_.LowPart, &offset_.HighPart, FILE_BEGIN);
-        if (res == INVALID_SET_FILE_POINTER && GetLastError() != ERROR_SUCCESS) {
-            logERR("SetFilePointer failed: %s", winerr_string(GetLastError()).c_str());
-            io_result = -EIO;
-            return;
-        }
-        // TODO WINDOWS: MSDN comments suggest that SetEndOfFile doesn't work on handles opened for overlapped io
-        BOOL res2 = SetEndOfFile(fd);
-        if (!res2) {
-            logERR("SetEndOfFile failed: %s", winerr_string(GetLastError()).c_str());
+        FILE_END_OF_FILE_INFO new_eof;
+        new_eof.EndOfFile.QuadPart = offset;
+        BOOL res = SetFileInformationByHandle(fd, FileEndOfFileInfo, &new_eof, sizeof(new_eof));
+        if (!res) {
+            logWRN("SetFileInformationByHandle failed: %s", winerr_string(GetLastError()).c_str());
             io_result = -EIO;
             return;
         }

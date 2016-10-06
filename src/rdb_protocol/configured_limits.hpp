@@ -18,9 +18,9 @@ public:
     configured_limits_t() :
         changefeed_queue_size_(default_changefeed_queue_size),
         array_size_limit_(default_array_size_limit) {}
-    configured_limits_t(size_t changefeed_queue_size, size_t array_size_limit)
-        : changefeed_queue_size_(changefeed_queue_size),
-          array_size_limit_(array_size_limit) {}
+    configured_limits_t(size_t _changefeed_queue_size, size_t _array_size_limit)
+        : changefeed_queue_size_(_changefeed_queue_size),
+          array_size_limit_(_array_size_limit) {}
 
     static const size_t default_changefeed_queue_size = 100000;
     static const size_t default_array_size_limit = 100000;

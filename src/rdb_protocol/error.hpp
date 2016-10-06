@@ -40,7 +40,8 @@ public:
         OP_INDETERMINATE, // It is unknown whether an operation failed or not.
         USER, // An error caused by `r.error` with arguments.
         EMPTY_USER, // An error caused by `r.error` with no arguments.
-        NON_EXISTENCE // An error related to the absence of an expected value.
+        NON_EXISTENCE, // An error related to the absence of an expected value.
+        PERMISSION_ERROR // An error related to the user permissions.
     };
     explicit base_exc_t(type_t _type) : type(_type) { }
     virtual ~base_exc_t() throw () { }
@@ -57,6 +58,7 @@ public:
         case OP_INDETERMINATE:    return Response::OP_INDETERMINATE;
         case USER:                return Response::USER;
         case NON_EXISTENCE:       return Response::NON_EXISTENCE;
+        case PERMISSION_ERROR:    return Response::PERMISSION_ERROR;
         default: unreachable();
         }
         unreachable();
@@ -66,7 +68,7 @@ protected:
     type_t type;
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::NON_EXISTENCE);
+    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::PERMISSION_ERROR);
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
@@ -118,6 +120,9 @@ private:
     backtrace_id_t bt;
 };
 
+// Helper function for formatting array over size error message.
+std::string format_array_size_error(size_t limit);
+
 // Use these macros to return errors to users.
 // TODO: all these arguments should be in parentheses inside the expansion.
 #define rcheck_target(target, pred, type, msg) do {                  \
@@ -148,14 +153,14 @@ private:
         auto _limit = (limit);                                          \
         rcheck_datum((arr).size() <= _limit.array_size_limit(),         \
                      ql::base_exc_t::RESOURCE,                          \
-                     strprintf("Array over size limit `%zu`.",          \
-                               _limit.array_size_limit()).c_str());     \
+                     format_array_size_error(_limit     \
+                              .array_size_limit()).c_str());     \
     } while (0)
 #define rcheck_array_size(arr, limit) do {                              \
         auto _limit = (limit);                                          \
         rcheck((arr).size() <= _limit.array_size_limit(), ql::base_exc_t::RESOURCE, \
-               strprintf("Array over size limit `%zu`.",                \
-                         _limit.array_size_limit()).c_str());           \
+                    format_array_size_error(_limit     \
+                        .array_size_limit()).c_str());     \
     } while (0)
 #define rcheck(pred, type, msg) rcheck_target(this, pred, type, msg)
 #define rcheck_toplevel(pred, type, msg) \
@@ -218,17 +223,17 @@ class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &_message,
+    exc_t(base_exc_t::type_t _type, const std::string &_message,
           backtrace_id_t _bt, size_t _dummy_frames = 0)
-        : base_exc_t(type), message(_message), bt(_bt), dummy_frames_(_dummy_frames) { }
+        : base_exc_t(_type), message(_message), bt(_bt), dummy_frames_(_dummy_frames) { }
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
         : base_exc_t(e.get_type()), message(e.what()),
           bt(_bt), dummy_frames_(_dummy_frames) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
-    void rethrow_with_type(base_exc_t::type_t type) const final {
-        throw exc_t(type, message, bt, dummy_frames_);
+    void rethrow_with_type(base_exc_t::type_t _type) const final {
+        throw exc_t(_type, message, bt, dummy_frames_);
     }
 
     backtrace_id_t backtrace() const { return bt; }
@@ -248,13 +253,13 @@ private:
 class datum_exc_t : public base_exc_t {
 public:
     datum_exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
-    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_message)
-        : base_exc_t(type), message(_message) { }
+    explicit datum_exc_t(base_exc_t::type_t _type, const std::string &_message)
+        : base_exc_t(_type), message(_message) { }
     virtual ~datum_exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
-    void rethrow_with_type(base_exc_t::type_t type) const final {
-        throw datum_exc_t(type, message);
+    void rethrow_with_type(base_exc_t::type_t _type) const final {
+        throw datum_exc_t(_type, message);
     }
     RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:

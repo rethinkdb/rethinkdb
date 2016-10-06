@@ -6,10 +6,10 @@
 #include "containers/archive/stl_types.hpp"
 #include "debug.hpp"
 
-const char *const name_string_t::valid_char_msg = "Use A-Za-z0-9_ only";
+const char *const name_string_t::valid_char_msg = "Use A-Z, a-z, 0-9, _ and - only";
 
 bool is_acceptable_name_character(int ch) {
-    return isalpha(ch) || isdigit(ch) || ch == '_';
+    return isalpha(ch) || isdigit(ch) || ch == '_' || ch == '-';
 }
 
 name_string_t::name_string_t() { }

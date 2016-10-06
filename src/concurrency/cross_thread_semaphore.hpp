@@ -135,12 +135,12 @@ void cross_thread_semaphore_t<value_t>::pass_value_coroutine(request_node_t *req
 
 template <class value_t>
 value_t *cross_thread_semaphore_t<value_t>::lock(signal_t *interruptor) {
-    system_mutex_t::lock_t lock(&mutex);
+    system_mutex_t::lock_t _lock(&mutex);
     value_t *result = nullptr;
 
     if (available_value_index == values.size()) {
         request_t request(this);
-        lock.unlock();
+        _lock.unlock();
         result = request.wait_and_get(interruptor);
     } else {
         result = values[available_value_index];
@@ -154,7 +154,7 @@ value_t *cross_thread_semaphore_t<value_t>::lock(signal_t *interruptor) {
 
 template <class value_t>
 void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
-    system_mutex_t::lock_t lock(&mutex);
+    system_mutex_t::lock_t _lock(&mutex);
 
     if (request_queue.size() > 0) {
         request_node_t *request = nullptr;

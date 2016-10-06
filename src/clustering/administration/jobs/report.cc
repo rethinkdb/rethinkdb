@@ -226,10 +226,12 @@ query_job_report_t::query_job_report_t(
         double _duration,
         server_id_t const &_server_id,
         ip_and_port_t const &_client_addr_port,
-        std::string const &_query)
+        std::string const &_query,
+        auth::user_context_t const &_user_context)
     : job_report_base_t<query_job_report_t>("query", _id, _duration, _server_id),
       client_addr_port(_client_addr_port),
-      query(_query) { }
+      query(_query),
+      user_context(_user_context) { }
 
 void query_job_report_t::merge_derived(query_job_report_t const &) { }
 
@@ -244,12 +246,14 @@ bool query_job_report_t::info_derived(
     info_builder_out->overwrite("client_port",
         convert_port_to_datum(client_addr_port.port().value()));
     info_builder_out->overwrite("query", convert_string_to_datum(query));
+    info_builder_out->overwrite(
+        "user", convert_string_to_datum(user_context.to_string()));
 
     return true;
 }
 
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
-    query_job_report_t, type, id, duration, servers, client_addr_port, query);
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
+    query_job_report_t, type, id, duration, servers, client_addr_port, query, user_context);
 
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
                                     get_job_reports_mailbox_address,

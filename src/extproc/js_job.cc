@@ -2,9 +2,10 @@
 #include "extproc/js_job.hpp"
 
 #include <v8.h>
+#include <libplatform/libplatform.h>
 
 #include <stdint.h>
-#include <libplatform/libplatform.h>
+
 #include <limits>
 
 #include "containers/archive/boost_types.hpp"
@@ -31,6 +32,23 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
 
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
+class array_buffer_allocator_t : public v8::ArrayBuffer::Allocator {
+public:
+    void *Allocate(size_t length) {
+        void *data = rmalloc(length);
+        memset(data, 0, length);
+        return data;
+    }
+    void *AllocateUninitialized(size_t length) {
+        return rmalloc(length);
+    }
+    void Free(void *data, UNUSED size_t length) {
+        free(data);
+    }
+};
+#endif
+
 // Each worker process should have a single instance of this class before using the v8 API
 class js_instance_t {
 public:
@@ -47,6 +65,9 @@ private:
     v8::Isolate *isolate_;
 
     scoped_ptr_t<v8::Platform> platform;
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
+    array_buffer_allocator_t array_buffer_allocator;
+#endif
 };
 
 js_instance_t *js_instance_t::instance = nullptr;
@@ -56,7 +77,13 @@ js_instance_t::js_instance_t() {
     platform.init(v8::platform::CreateDefaultPlatform());
     v8::V8::InitializePlatform(platform.get());
     v8::V8::Initialize();
+#ifdef V8_NEEDS_BUFFER_ALLOCATOR
+    v8::Isolate::CreateParams params;
+    params.array_buffer_allocator = &array_buffer_allocator;
+    isolate_ = v8::Isolate::New(params);
+#else
     isolate_ = v8::Isolate::New();
+#endif
     isolate_->Enter();
 }
 
@@ -103,10 +130,10 @@ public:
 
 private:
     js_id_t remember_value(const v8::Handle<v8::Value> &value);
-    const boost::shared_ptr<persistent_value_t> find_value(js_id_t id);
+    const std::shared_ptr<persistent_value_t> find_value(js_id_t id);
 
     js_id_t next_id;
-    std::map<js_id_t, boost::shared_ptr<persistent_value_t> > values;
+    std::map<js_id_t, std::shared_ptr<persistent_value_t> > values;
 };
 
 // Cleans the worker process's environment when instantiated
@@ -447,15 +474,15 @@ js_id_t js_env_t::remember_value(const v8::Handle<v8::Value> &value) {
     // Save this value in a persistent handle so it isn't deallocated when
     // its scope is destructed.
 
-    boost::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
+    std::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
     persistent_handle->value.Reset(js_instance_t::isolate(), value);
 
     values.insert(std::make_pair(id, persistent_handle));
     return id;
 }
 
-const boost::shared_ptr<persistent_value_t> js_env_t::find_value(js_id_t id) {
-    std::map<js_id_t, boost::shared_ptr<persistent_value_t> >::iterator it = values.find(id);
+const std::shared_ptr<persistent_value_t> js_env_t::find_value(js_id_t id) {
+    std::map<js_id_t, std::shared_ptr<persistent_value_t> >::iterator it = values.find(id);
     guarantee(it != values.end());
     return it->second;
 }
@@ -496,7 +523,7 @@ js_result_t js_env_t::call(js_id_t id,
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
-    const boost::shared_ptr<persistent_value_t> found_value = find_value(id);
+    const std::shared_ptr<persistent_value_t> found_value = find_value(id);
     guarantee(!found_value->value.IsEmpty());
 
     v8::Isolate *isolate = js_instance_t::isolate();

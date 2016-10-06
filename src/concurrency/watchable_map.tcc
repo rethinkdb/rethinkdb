@@ -259,8 +259,10 @@ void watchable_map_var_t<key_t, value_t>::set_key_no_equals(
 template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::delete_key(const key_t &key) {
     rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
-    map.erase(key);
-    watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+    size_t res = map.erase(key);
+    if (res == 1) {
+        watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+    }
 }
 
 template<class key_t, class value_t>

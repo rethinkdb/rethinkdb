@@ -54,8 +54,8 @@ class text_t : public document_t {
 public:
     std::string text;
 
-    explicit text_t(const std::string &str) : text(str) {}
-    explicit text_t(std::string &&str) : text(str) {}
+    explicit text_t(const std::string &_str) : text(_str) {}
+    explicit text_t(std::string &&_str) : text(std::move(_str)) {}
     ~text_t() override {}
 
     size_t width() const override { return text.length(); }
@@ -321,8 +321,8 @@ class text_element_t : public stream_element_t {
 public:
     std::string payload;
 
-    text_element_t(const std::string &text, size_t hpos)
-        : stream_element_t(hpos), payload(text) {}
+    text_element_t(const std::string &text, size_t _hpos)
+        : stream_element_t(_hpos), payload(text) {}
     explicit text_element_t(const std::string &text)
         : stream_element_t(), payload(text) {}
     ~text_element_t() override {}
@@ -340,8 +340,8 @@ public:
     cond_element_t(std::string l, std::string t, std::string r)
         : stream_element_t(), small(std::move(l)), tail(std::move(t)),
           cont(std::move(r)) {}
-    cond_element_t(std::string l, std::string t, std::string r, size_t hpos)
-        : stream_element_t(hpos), small(std::move(l)), tail(std::move(t)),
+    cond_element_t(std::string l, std::string t, std::string r, size_t _hpos)
+        : stream_element_t(_hpos), small(std::move(l)), tail(std::move(t)),
           cont(std::move(r)) {}
     ~cond_element_t() override {}
     std::string str() const override {
@@ -355,7 +355,7 @@ public:
 class crlf_element_t : public stream_element_t {
 public:
     crlf_element_t() : stream_element_t() {}
-    explicit crlf_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit crlf_element_t(size_t _hpos) : stream_element_t(_hpos) {}
     ~crlf_element_t() override {}
 
     void visit(stream_element_visitor_t *v) override { (*v)(this); }
@@ -367,7 +367,7 @@ public:
 class nbeg_element_t : public stream_element_t {
 public:
     nbeg_element_t() : stream_element_t() {}
-    explicit nbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit nbeg_element_t(size_t _hpos) : stream_element_t(_hpos) {}
     ~nbeg_element_t() override {}
 
     void visit(stream_element_visitor_t *v) override { (*v)(this); }
@@ -379,7 +379,7 @@ public:
 class nend_element_t : public stream_element_t {
 public:
     nend_element_t() : stream_element_t() {}
-    explicit nend_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit nend_element_t(size_t _hpos) : stream_element_t(_hpos) {}
     ~nend_element_t() override {}
 
     void visit(stream_element_visitor_t *v) override { (*v)(this); }
@@ -391,7 +391,7 @@ public:
 class gbeg_element_t : public stream_element_t {
 public:
     gbeg_element_t() : stream_element_t() {}
-    explicit gbeg_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit gbeg_element_t(size_t _hpos) : stream_element_t(_hpos) {}
     ~gbeg_element_t() override {}
 
     void visit(stream_element_visitor_t *v) override { (*v)(this); }
@@ -403,7 +403,7 @@ public:
 class gend_element_t : public stream_element_t {
 public:
     gend_element_t() : stream_element_t() {}
-    explicit gend_element_t(size_t hpos) : stream_element_t(hpos) {}
+    explicit gend_element_t(size_t _hpos) : stream_element_t(_hpos) {}
     ~gend_element_t() override {}
 
     void visit(stream_element_visitor_t *v) override { (*v)(this); }

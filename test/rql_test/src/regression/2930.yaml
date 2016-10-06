@@ -6,7 +6,7 @@ tests:
   - py: tbl.coerce_to('array')
     runopts:
       array_limit: 500
-    ot: err("ReqlResourceLimitError", "Array over size limit `500`.", [0])
+    ot: err("ReqlResourceLimitError", "Array over size limit `500`.  To raise the number of allowed elements, modify the `array_limit` option to `.run` (not available in the Data Explorer), or use an index.", [0])
   - py: tbl.group('mod').coerce_to('array')
     runopts:
       array_limit: 500

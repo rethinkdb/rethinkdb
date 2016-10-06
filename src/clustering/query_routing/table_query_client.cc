@@ -16,12 +16,14 @@ table_query_client_t::table_query_client_t(
         mailbox_manager_t *mm,
         watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t> *d,
         multi_table_manager_t *mtm,
-        rdb_context_t *_ctx)
+        rdb_context_t *_ctx,
+        table_meta_client_t *table_meta_client)
     : table_id(_table_id),
       mailbox_manager(mm),
       directory(d),
       multi_table_manager(mtm),
       ctx(_ctx),
+      m_table_meta_client(table_meta_client),
       start_count(0),
       starting_up(true),
       subs(directory,
@@ -46,7 +48,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_response_t res;
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::OUTDATED);
-                read(r, &res, order_token_t::ignore, interruptor);
+                read(
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    r,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::reads:
@@ -54,7 +61,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_response_t res;
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::SINGLE);
-                read(r, &res, order_token_t::ignore, interruptor);
+                read(
+                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    r,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::finished: // Fallthrough in release mode, better than a crash
@@ -63,7 +75,12 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 write_response_t res;
                 write_t w(dummy_write_t(), profile_bool_t::DONT_PROFILE,
                           ql::configured_limits_t::unlimited);
-                write(w, &res, order_token_t::ignore, interruptor);
+                write(
+                    auth::user_context_t(auth::permissions_t(true, true, false, false)),
+                    w,
+                    &res,
+                    order_token_t::ignore,
+                    interruptor);
             }
             break;
         case table_readiness_t::unavailable:
@@ -79,11 +96,23 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
 }
 
 void table_query_client_t::read(
+        auth::user_context_t const &user_context,
         const read_t &r,
         read_response_t *response,
         order_token_t order_token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
+    table_basic_config_t table_basic_config;
+    try {
+        m_table_meta_client->get_name(table_id, &table_basic_config);
+    } catch (no_such_table_exc_t const &) {
+        throw cannot_perform_query_exc_t(
+            "Failed to retrieve the table configuration", query_state_t::FAILED);
+    }
+
+    user_context.require_read_permission(ctx, table_basic_config.database, table_id);
+
     order_token.assert_read_mode();
     if (r.read_mode == read_mode_t::OUTDATED) {
         guarantee(!r.route_to_primary());
@@ -103,11 +132,23 @@ void table_query_client_t::read(
 }
 
 void table_query_client_t::write(
+        auth::user_context_t const &user_context,
         const write_t &w,
         write_response_t *response,
         order_token_t order_token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(
+            interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) {
+    table_basic_config_t table_basic_config;
+    try {
+        m_table_meta_client->get_name(table_id, &table_basic_config);
+    } catch (no_such_table_exc_t const &) {
+        throw cannot_perform_query_exc_t(
+            "Failed to retrieve the table configuration", query_state_t::FAILED);
+    }
+
+    user_context.require_write_permission(ctx, table_basic_config.database, table_id);
+
     order_token.assert_write_mode();
     dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(
         &primary_query_client_t::new_write_token,
@@ -166,7 +207,12 @@ void table_query_client_t::dispatch_immediate_op(
         if (op.shard(reg, &new_op_info->sharded_op)) {
             relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
-                if ((*jt)->primary_client) {
+                // If some shards are currently intersecting (this should only happen
+                // temporarily while resharding). `reg` might be a subset of the region
+                // of the relationships in `rels`.
+                // We need to test for that, so we don't send operations to a shard with
+                // the wrong boundaries.
+                if ((*jt)->primary_client && (*jt)->region == reg) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t(
                             "too many primary replicas available",
@@ -302,7 +348,9 @@ void table_query_client_t::dispatch_outdated_read(
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = nullptr;
             for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
-                if ((*jt)->direct_bcard != nullptr) {
+                // See the comment in `dispatch_immediate_op` about why we need to
+                // check that `region` and the relationship's region are the same.
+                if ((*jt)->direct_bcard != nullptr && (*jt)->region == region) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
                         break;
@@ -313,8 +361,7 @@ void table_query_client_t::dispatch_outdated_read(
             }
             if (!chosen_relationship && !potential_relationships.empty()) {
                 chosen_relationship
-                    = potential_relationships[
-                        distributor_rng.randint(potential_relationships.size())];
+                    = potential_relationships[randint(potential_relationships.size())];
             }
             if (!chosen_relationship) {
                 /* Don't bother looking for masters; if there are no direct
@@ -458,6 +505,10 @@ class region_map_set_membership_t {
 public:
     region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
+        // Note that `visit_mutable` might split the region up if there are existing
+        // partially overlapping entries (e.g. during a rebalance).
+        // Once those entries go away, `region_map_t` should automatically merge the
+        // regions again.
         map->visit_mutable(region, [&](const region_t &, std::set<value_t> *set) {
             rassert(set->count(value) == 0);
             set->insert(value);

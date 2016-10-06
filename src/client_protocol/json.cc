@@ -113,8 +113,7 @@ void write_response_internal(ql::response_t *response,
         if (response->data().size() > PARALLELIZATION_THRESHOLD) {
             int64_t num_threads = std::min<int64_t>(16, get_num_db_threads());
             int32_t thread_offset = get_thread_id().threadnum;
-            std::vector<rapidjson::StringBuffer> buffers;
-            buffers.resize(num_threads);
+            std::vector<rapidjson::StringBuffer> buffers(num_threads);
 
             size_t per_thread = response->data().size() / num_threads;
             pmap(num_threads, [&](int64_t m) {

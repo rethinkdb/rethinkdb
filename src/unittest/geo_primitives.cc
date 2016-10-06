@@ -78,7 +78,7 @@ void test_in_ex_radius(const ellipsoid_spec_t e, rng_t *rng) {
     // A very large one
     try {
         test_in_ex_radius(minor_radius, e, rng);
-    } catch (const geo_range_exception_t &e) {
+    } catch (const geo_range_exception_t &) {
         // Ignore. This one is too large for the more extreme ellipsoids.
     }
 }

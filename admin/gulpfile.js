@@ -33,7 +33,7 @@ var ROOT_DIR = path.resolve(__dirname, '..'),
     JS_DIR = STATIC_DIR+'/js',
     DRIVER_BUILD_DIR = BUILD_DIR+'/packages/js',
     VERSION_FILE = WEB_OBJ_DIR+'/version.coffee',
-    BROWSERIFY_BUNDLE_ENTRY_POINT = COFFEE_DIR+'/body.coffee',
+    BROWSERIFY_BUNDLE_ENTRY_POINT = (COFFEE_DIR+'/body.coffee').replace(/\//g, path.sep),
     BROWSERIFY_CACHE_FILE = WEB_OBJ_DIR+'/browserify-cache.json',
     INDEX_FILE = WEBUI_DIR+'/templates/cluster.html';
 

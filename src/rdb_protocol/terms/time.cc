@@ -68,10 +68,10 @@ public:
     now_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(0)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        // This should never get called because we rewrite `now` calls to a
-        // constant so that they're deterministic.
-        r_sanity_fail();
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+        // Return the deterministic time from the env
+        r_sanity_check(env->env->get_deterministic_time().has());
+        return new_val(env->env->get_deterministic_time());
     }
     virtual deterministic_t is_deterministic() const { return deterministic_t::no; }
     virtual const char *name() const { return "now"; }

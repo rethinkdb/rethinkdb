@@ -80,27 +80,27 @@ public:
 private:
     void write(const std::string &key, const std::string &value,
             order_token_t otok, signal_t *interruptor) {
-        write_t write;
+        write_t _write;
         if (!value.empty()) {
             ql::datum_object_builder_t doc;
             doc.overwrite("id", ql::datum_t(datum_string_t(key)));
             doc.overwrite("value", ql::datum_t(datum_string_t(value)));
             doc.overwrite("padding", ql::datum_t(datum_string_t(
                 std::string(value_padding_length, 'a'))));
-            write = write_t(
+            _write = write_t(
                     point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
                     DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         } else {
-            write = write_t(
+            _write = write_t(
                     point_delete_t(store_key_t(key)),
                     DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         }
         simple_write_callback_t write_callback;
-        dispatcher->spawn_write(write, otok, &write_callback);
+        dispatcher->spawn_write(_write, otok, &write_callback);
         wait_interruptible(&write_callback, interruptor);
     }
     std::string read(const std::string &key, order_token_t otok, signal_t *interruptor) {
@@ -219,7 +219,8 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, nullptr);
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+    rdb_context_t ctx(&extproc_pool, nullptr, auth_manager.get_view());
     cond_t non_interruptor;
 
     in_memory_branch_history_manager_t bhm;

@@ -373,26 +373,37 @@ private:
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", datum_t(datum_string_t(v->as_db()->name.str())));
-            b |= info.add("id",
-                          v->as_db()->id.is_nil() ?
-                              datum_t::null() :
-                              datum_t(datum_string_t(uuid_to_str(v->as_db()->id))));
+            counted_t<const db_t> database = v->as_db();
+            r_sanity_check(!database->id.is_nil());
+
+            b |= info.add("name", datum_t(database->name.str()));
+            b |= info.add("id", datum_t(uuid_to_str(database->id)));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info.add("name", datum_t(datum_string_t(table->name)));
-            b |= info.add("primary_key",
-                          datum_t(datum_string_t(table->get_pkey())));
+            r_sanity_check(!table->get_id().is_nil());
+
+            b |= info.add("name", datum_t(table->name));
+            b |= info.add("primary_key", datum_t(table->get_pkey()));
             b |= info.add("db", val_info(env, new_val(table->db)));
-            b |= info.add("id", table->get_id());
-            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
+            b |= info.add("id", datum_t(uuid_to_str(table->get_id())));
+            name_string_t table_name =
+                name_string_t::guarantee_valid(table->name.c_str());
             {
-                admin_err_t error;
                 std::vector<int64_t> doc_counts;
-                if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
-                        table->db, name, env->env, &doc_counts, &error)) {
-                    REQL_RETHROW(error);
+                try {
+                    admin_err_t error;
+                    if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
+                            env->env->get_user_context(),
+                            table->db,
+                            table_name,
+                            env->env,
+                            &doc_counts,
+                            &error)) {
+                        REQL_RETHROW(error);
+                    }
+                } catch (auth::permission_error_t const &permission_error) {
+                    rfail(ql::base_exc_t::PERMISSION_ERROR, "%s", permission_error.what());
                 }
                 datum_array_builder_t arr(configured_limits_t::unlimited);
                 for (int64_t i : doc_counts) {
@@ -405,7 +416,7 @@ private:
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
                     configs_and_statuses;
                 if (!env->env->reql_cluster_interface()->sindex_list(
-                        table->db, name, env->env->interruptor,
+                        table->db, table_name, env->env->interruptor,
                         &error, &configs_and_statuses)) {
                     REQL_RETHROW(error);
                 }

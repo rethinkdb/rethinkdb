@@ -19,7 +19,7 @@ namespace ql {
 // The minimum amount of stack space we require to be available on a coroutine
 // before attempting to compile or evaluate a term.
 const size_t MIN_COMPILE_STACK_SPACE = 16 * KILOBYTE;
-const size_t MIN_EVAL_STACK_SPACE = 16 * KILOBYTE;
+const size_t MIN_EVAL_STACK_SPACE = 32 * KILOBYTE;
 
 counted_t<const term_t> compile_on_current_stack(
         compile_env_t *env,
@@ -121,6 +121,9 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::RECONFIGURE:        return make_reconfigure_term(env, t);
     case Term::REBALANCE:          return make_rebalance_term(env, t);
     case Term::SYNC:               return make_sync_term(env, t);
+    case Term::GRANT:              return make_grant_term(env, t);
+    case Term::SET_WRITE_HOOK:     return make_set_write_hook_term(env, t);
+    case Term::GET_WRITE_HOOK:     return make_get_write_hook_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);
@@ -217,8 +220,8 @@ counted_t<const term_t> compile_term(compile_env_t *env, const raw_term_t &t) {
         }, MIN_COMPILE_STACK_SPACE);
 }
 
-runtime_term_t::runtime_term_t(backtrace_id_t bt)
-    : bt_rcheckable_t(bt) { }
+runtime_term_t::runtime_term_t(backtrace_id_t _bt)
+    : bt_rcheckable_t(_bt) { }
 
 runtime_term_t::~runtime_term_t() { }
 

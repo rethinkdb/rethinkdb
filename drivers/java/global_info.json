@@ -63,7 +63,8 @@
                 "reql_availability_error": {
                     "reql_op_failed_error": {},
                     "reql_op_indeterminate_error": {}
-                }
+                },
+                "reql_permission_error": {}
             },
             "reql_driver_error": {
                 "reql_auth_error": {}

@@ -71,7 +71,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
       extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(nullptr) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
-    rassert(mb_buffer.get());
+    rassert(mb_buffer.has());
     mb_buffer_in_use = false;
 
     /* Build the list of metablock locations in the file */
@@ -146,8 +146,10 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_16)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_0)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_1)
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_2)
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_3)
         || disk_format_version ==
-            static_cast<uint32_t>(cluster_version_t::v2_2_is_latest);
+            static_cast<uint32_t>(cluster_version_t::v2_4_is_latest);
 }
 
 

@@ -96,9 +96,16 @@ btree_sindex_block_magic_t<cluster_version_t::v2_1>::value
     = { { 's', 'i', 'n', 'i' } };
 template <>
 const block_magic_t
-btree_sindex_block_magic_t<cluster_version_t::v2_2_is_latest_disk>::value
+btree_sindex_block_magic_t<cluster_version_t::v2_2>::value
     = { { 's', 'i', 'n', 'j' } };
-
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v2_3>::value
+    = { { 's', 'i', 'n', 'k' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v2_4_is_latest_disk>::value
+    = { { 's', 'i', 'n', 'l' } };
 
 cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     if (data->magic == v1_13_sindex_block_magic) {
@@ -121,9 +128,16 @@ cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
                == btree_sindex_block_magic_t<cluster_version_t::v2_1>::value) {
         return cluster_version_t::v2_1;
     } else if (data->magic
+               == btree_sindex_block_magic_t<cluster_version_t::v2_2>::value) {
+        return cluster_version_t::v2_2;
+    } else if (data->magic
                == btree_sindex_block_magic_t<
-                   cluster_version_t::v2_2_is_latest_disk>::value) {
-        return cluster_version_t::v2_2_is_latest_disk;
+                   cluster_version_t::v2_3>::value) {
+        return cluster_version_t::v2_3;
+    } else if (data->magic
+               == btree_sindex_block_magic_t<
+                   cluster_version_t::v2_4_is_latest_disk>::value) {
+        return cluster_version_t::v2_4_is_latest_disk;
     } else {
         crash("Unexpected magic in btree_sindex_block_t.");
     }

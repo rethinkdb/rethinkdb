@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
+#include "utils.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
 #include "region/region.hpp"
-#include "utils.hpp"
 
 /* `region_map_t` is a mapping from contiguous non-overlapping `region_t`s to `value_t`s.
 It will automatically merge contiguous regions with the same value (in most cases).
@@ -267,7 +267,7 @@ void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
 
 template<cluster_version_t W, class V>
 void serialize(write_message_t *wm, const region_map_t<V> &map) {
-    static_assert(W == cluster_version_t::v2_2_is_latest,
+    static_assert(W == cluster_version_t::v2_4_is_latest,
         "serialize() is only supported for the latest version");
     serialize<W>(wm, map.inner);
     serialize<W>(wm, map.hash_beg);
@@ -277,7 +277,9 @@ void serialize(write_message_t *wm, const region_map_t<V> &map) {
 template<cluster_version_t W, class V>
 MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
     switch (W) {
-        case cluster_version_t::v2_2_is_latest:
+        case cluster_version_t::v2_4_is_latest:
+        case cluster_version_t::v2_3:
+        case cluster_version_t::v2_2:
         case cluster_version_t::v2_1: {
             archive_result_t res;
             res = deserialize<W>(s, &map->inner);
@@ -305,6 +307,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
                 std::move(regions), std::move(values));
             return archive_result_t::SUCCESS;
         }
+    default:
+        unreachable();
     }
 }
 

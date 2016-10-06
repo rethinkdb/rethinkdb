@@ -167,6 +167,24 @@ void server_config_client_t::on_directory_change(
         const peer_id_t &peer_id,
         const cluster_directory_metadata_t *metadata) {
     if (metadata != nullptr) {
+        // This is so we don't track servers inaccurately
+        // if metadata updates after connections.
+        peer_connections_map->read_all(
+            [&] (const std::pair<peer_id_t, server_id_t> &connection,
+                 const empty_value_t *value) {
+                if (connection.first == peer_id) {
+                    // This connection matches the directory view change
+                    if (value != nullptr) {
+                    connections_map.set_key(
+                        std::make_pair(metadata->server_id, connection.second),
+                        empty_value_t());
+                    } else {
+                        connections_map.delete_key(
+                            std::make_pair(metadata->server_id, connection.second));
+                    }
+                }
+            });
+
         if (metadata->peer_type != SERVER_PEER) {
             return;
         }

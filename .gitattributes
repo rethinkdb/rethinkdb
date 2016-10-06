@@ -1,4 +1,4 @@
-# Auto-detect text files
+# Auto-detect other text files
 *  text=auto
 
 # Always text
@@ -7,7 +7,7 @@
 *.h    text
 *.tcc  text
 
-# Shell scripts should keep unix line endings on Windows
-*.sh                text eol=lf
-./configure         text eol=lf
-./mk/support/pkg/*  text eol=lf
+# Ensure shell scripts keep unix line endings
+*.sh       text eol=lf
+configure  text eol=lf
+mk/support/pkg/* text eol=lf

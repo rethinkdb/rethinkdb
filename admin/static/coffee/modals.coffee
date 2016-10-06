@@ -293,7 +293,10 @@ class RemoveTableModal extends ui_modals.AbstractModal
         super
 
         # Build feedback message
-        message = "The tables "
+        if @tables_to_delete.length is 1
+            message = "The table "
+        else
+            message = "The tables "
         for table, index in @tables_to_delete
             message += "#{table.database}.#{table.table}"
             if index < @tables_to_delete.length-1

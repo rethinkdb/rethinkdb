@@ -11,11 +11,11 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
 #include "btree/secondary_operations.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
@@ -133,19 +133,6 @@ struct rget_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 
-struct intersecting_geo_read_response_t {
-    boost::variant<ql::datum_t, ql::exc_t> results_or_error;
-
-    intersecting_geo_read_response_t() { }
-    intersecting_geo_read_response_t(
-            const ql::datum_t &_results)
-        : results_or_error(_results) { }
-    intersecting_geo_read_response_t(
-            const ql::exc_t &_error)
-        : results_or_error(_error) { }
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(intersecting_geo_read_response_t);
-
 struct nearest_geo_read_response_t {
     typedef std::pair<double, ql::datum_t> dist_pair_t;
     typedef std::vector<dist_pair_t> result_t;
@@ -215,6 +202,22 @@ struct dummy_read_response_t {
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(dummy_read_response_t);
+
+struct serializable_env_t {
+    // The global optargs values passed to .run(...) in the Python, Ruby, and JS
+    // drivers.
+    ql::global_optargs_t global_optargs;
+
+    // The user that's evaluating this query
+    auth::user_context_t user_context;
+
+    // The time that the most recent request started processing, set in fill_response
+    // in query_cache.cc
+    // Used to evaluate r.now in a deterministic way.
+    ql::datum_t deterministic_time;
+};
+
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(serializable_env_t);
 
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
@@ -297,7 +300,7 @@ public:
                 region_t _region,
                 boost::optional<std::map<region_t, store_key_t> > _hints,
                 boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
-                ql::global_optargs_t _optargs,
+                serializable_env_t s_env,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
                 std::vector<ql::transform_variant_t> _transforms,
@@ -308,7 +311,7 @@ public:
       region(std::move(_region)),
       hints(std::move(_hints)),
       primary_keys(std::move(_primary_keys)),
-      optargs(std::move(_optargs)),
+      serializable_env(std::move(s_env)),
       table_name(std::move(_table_name)),
       batchspec(std::move(_batchspec)),
       transforms(std::move(_transforms)),
@@ -326,7 +329,7 @@ public:
     // efficient, and it's legal to pass duplicate keys to `get_all`.
     boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
 
-    ql::global_optargs_t optargs;
+    serializable_env_t serializable_env;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -350,7 +353,7 @@ public:
     intersecting_geo_read_t(
         boost::optional<changefeed_stamp_t> &&_stamp,
         region_t _region,
-        ql::global_optargs_t _optargs,
+        serializable_env_t s_env,
         std::string _table_name,
         ql::batchspec_t _batchspec,
         std::vector<ql::transform_variant_t> _transforms,
@@ -359,7 +362,7 @@ public:
         ql::datum_t _query_geometry)
         : stamp(std::move(_stamp)),
           region(std::move(_region)),
-          optargs(std::move(_optargs)),
+          serializable_env(s_env),
           table_name(std::move(_table_name)),
           batchspec(std::move(_batchspec)),
           transforms(std::move(_transforms)),
@@ -370,7 +373,7 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // Primary key range. We need this because of sharding.
-    ql::global_optargs_t optargs;
+    serializable_env_t serializable_env;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
@@ -390,17 +393,23 @@ public:
 
     nearest_geo_read_t(
             const region_t &_region,
-            lon_lat_point_t _center, double _max_dist, uint64_t _max_results,
-            const ellipsoid_spec_t &_geo_system, const std::string &_table_name,
+            lon_lat_point_t _center,
+            double _max_dist,
+            uint64_t _max_results,
+            const ellipsoid_spec_t &_geo_system,
+            const std::string &_table_name,
             const std::string &_sindex_id,
-            ql::global_optargs_t _optargs)
-        : optargs(std::move(_optargs)),
-          center(_center), max_dist(_max_dist),
-          max_results(_max_results), geo_system(_geo_system),
-          region(_region), table_name(_table_name),
+            serializable_env_t s_env)
+        : serializable_env(std::move(s_env)),
+          center(_center),
+          max_dist(_max_dist),
+          max_results(_max_results),
+          geo_system(_geo_system),
+          region(_region),
+          table_name(_table_name),
           sindex_id(_sindex_id) { }
 
-    ql::global_optargs_t optargs;
+    serializable_env_t serializable_env;
 
     lon_lat_point_t center;
     double max_dist;
@@ -433,9 +442,9 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distribution_read_t);
 struct changefeed_subscribe_t {
     changefeed_subscribe_t() { }
     explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
-        : addr(_addr), region(region_t::universe()) { }
+        : addr(_addr), shard_region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
-    region_t region;
+    region_t shard_region;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_t);
 
@@ -446,19 +455,19 @@ struct changefeed_limit_subscribe_t {
         uuid_u _uuid,
         ql::changefeed::keyspec_t::limit_t _spec,
         std::string _table,
-        ql::global_optargs_t _optargs,
+        serializable_env_t s_env,
         region_t pkey_region)
         : addr(std::move(_addr)),
           uuid(std::move(_uuid)),
           spec(std::move(_spec)),
           table(std::move(_table)),
-          optargs(std::move(_optargs)),
+          serializable_env(std::move(s_env)),
           region(std::move(pkey_region)) { }
     ql::changefeed::client_t::addr_t addr;
     uuid_u uuid;
     ql::changefeed::keyspec_t::limit_t spec;
     std::string table;
-    ql::global_optargs_t optargs;
+    serializable_env_t serializable_env;
     region_t region;
     boost::optional<region_t> current_shard;
 };
@@ -567,17 +576,26 @@ struct batched_replace_t {
             std::vector<store_key_t> &&_keys,
             const std::string &_pkey,
             const counted_t<const ql::func_t> &func,
-            ql::global_optargs_t _optargs,
+            const boost::optional<counted_t<const ql::func_t> > &wh,
+            serializable_env_t s_env,
             return_changes_t _return_changes)
-        : keys(std::move(_keys)), pkey(_pkey), f(func),
-          optargs(std::move(_optargs)),
+        : keys(std::move(_keys)),
+          pkey(_pkey),
+          f(func),
+          serializable_env(std::move(s_env)),
           return_changes(_return_changes) {
         r_sanity_check(keys.size() != 0);
+
+        if (wh) {
+            write_hook = ql::wire_func_t(*wh);
+        }
+
     }
     std::vector<store_key_t> keys;
     std::string pkey;
     ql::wire_func_t f;
-    ql::global_optargs_t optargs;
+    boost::optional<ql::wire_func_t> write_hook;
+    serializable_env_t serializable_env;
     return_changes_t return_changes;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_replace_t);
@@ -587,16 +605,20 @@ struct batched_insert_t {
     batched_insert_t(
         std::vector<ql::datum_t> &&_inserts,
         const std::string &_pkey,
+        const boost::optional<counted_t<const ql::func_t> > &_write_hook,
         conflict_behavior_t _conflict_behavior,
-        boost::optional<counted_t<const ql::func_t> > _conflict_func,
+        const boost::optional<counted_t<const ql::func_t> > &_conflict_func,
         const ql::configured_limits_t &_limits,
+        serializable_env_t s_env,
         return_changes_t _return_changes);
 
     std::vector<ql::datum_t> inserts;
     std::string pkey;
+    boost::optional<ql::wire_func_t> write_hook;
     conflict_behavior_t conflict_behavior;
     boost::optional<ql::wire_func_t> conflict_func;
     ql::configured_limits_t limits;
+    serializable_env_t serializable_env;
     return_changes_t return_changes;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(batched_insert_t);
@@ -694,11 +716,11 @@ struct write_t {
      *  durability. */
     template<class T>
     write_t(T &&t,
-            durability_requirement_t durability,
+            durability_requirement_t _durability,
             profile_bool_t _profile,
             const ql::configured_limits_t &_limits)
         : write(std::forward<T>(t)),
-          durability_requirement(durability), profile(_profile),
+          durability_requirement(_durability), profile(_profile),
           limits(_limits) { }
     template<class T>
     write_t(T &&t, profile_bool_t _profile,
@@ -722,8 +744,7 @@ region_t monokey_region(const store_key_t &k);
 // TODO consider relocating this
 key_range_t sindex_key_range(const store_key_t &start,
                              const store_key_t &end,
-                             key_range_t::bound_t end_type,
-                             ql::skey_version_t skey_version);
+                             key_range_t::bound_t end_type);
 }  // namespace rdb_protocol
 
 

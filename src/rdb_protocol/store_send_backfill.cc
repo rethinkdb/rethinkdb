@@ -67,12 +67,12 @@ continue_bool_t store_t::send_backfill_pre(
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
     start_point.visit(
         start_point.get_domain(),
-            [&](const region_t &region, const state_timestamp_t &tstamp) {
-            guarantee(region.beg == get_region().beg && region.end == get_region().end,
+            [&](const region_t &sp_region, const state_timestamp_t &tstamp) {
+            guarantee(sp_region.beg == get_region().beg && sp_region.end == get_region().end,
                 "start_point should be homogeneous with respect to hash shard because "
                 "this implementation ignores hashes");
             reference_timestamps.push_back(std::make_pair(
-                region.inner, tstamp.to_repli_timestamp()));
+                sp_region.inner, tstamp.to_repli_timestamp()));
         });
     /* Sort the sub-regions so we can apply them from left to right */
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
@@ -232,12 +232,12 @@ continue_bool_t store_t::send_backfill(
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
     start_point.visit(
         start_point.get_domain(),
-        [&](const region_t &region, const state_timestamp_t &tstamp) {
-            guarantee(region.beg == get_region().beg && region.end == get_region().end,
+        [&](const region_t &sp_region, const state_timestamp_t &tstamp) {
+            guarantee(sp_region.beg == get_region().beg && sp_region.end == get_region().end,
                 "start_point should be homogeneous with respect to hash shard because "
                 "this implementation ignores hashes");
             reference_timestamps.push_back(std::make_pair(
-                region.inner, tstamp.to_repli_timestamp()));
+                sp_region.inner, tstamp.to_repli_timestamp()));
         });
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,

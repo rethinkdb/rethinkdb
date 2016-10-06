@@ -4,13 +4,15 @@
 #include "arch/io/network.hpp"
 
 tcp_conn_stream_t::tcp_conn_stream_t(
-    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
     signal_t *interruptor, int local_port
 ) :
     conn_(
-        (nullptr == tls_ctx) ?
-        new tcp_conn_t(host, port, interruptor, local_port) :
-        new secure_tcp_conn_t(tls_ctx, host, port, interruptor, local_port)
+#ifdef ENABLE_TLS
+        (nullptr != tls_ctx) ?
+        new secure_tcp_conn_t(tls_ctx, host, port, interruptor, local_port) :
+#endif
+        new tcp_conn_t(host, port, interruptor, local_port)
     ) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
@@ -101,7 +103,7 @@ int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n)
 
 
 keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(
-    SSL_CTX *tls_ctx, const ip_address_t &host, int port,
+    tls_ctx_t *tls_ctx, const ip_address_t &host, int port,
     signal_t *interruptor, int local_port
 ) :
     tcp_conn_stream_t(tls_ctx, host, port, interruptor, local_port),

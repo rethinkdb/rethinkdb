@@ -99,7 +99,7 @@ class S2Loop : public S2Region {
   // depth 1, shells within those holes have depth 2, etc.  This field is only
   // used by the S2Polygon implementation.
   int depth() const { return depth_; }
-  void set_depth(int depth) { depth_ = depth; }
+  void set_depth(int _depth) { depth_ = _depth; }
 
   // Return true if this loop represents a hole in its containing polygon.
   bool is_hole() const { return (depth_ & 1) != 0; }

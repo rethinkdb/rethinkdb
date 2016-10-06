@@ -181,7 +181,7 @@ describe("JavaScript Callback style", function() {
             afterEach(function() {
                                 return withConnection()
                                 .then(function() {
-                                return r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key:null}).run(reqlConn);
+                                return r.db('rethinkdb').table('users').get('admin').update({password:false}).run(reqlConn);
                 }).then(function(result) {
                     assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                 })
@@ -191,13 +191,12 @@ describe("JavaScript Callback style", function() {
                 r.connect(
                     {host:serverHost, port:driverPort, authKey: "hunter2"},
                     givesError("ReqlAuthError",
-                               "Could not connect to "+serverHost+":"+driverPort+
-                               ", incorrect authentication key.", done)
+                               "Wrong password", done)
                 );
             });
 
             it("suceeds with correct key", function(done){
-                r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter3"}).run(reqlConn, function(err, result) {
+                r.db('rethinkdb').table('users').get('admin').update({password: "hunter3"}).run(reqlConn, function(err, result) {
                     assert.ifError(err);
                     assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                     r.connect({host:serverHost, port:driverPort, authKey: "hunter3"}, function(err, authConn) {
@@ -212,14 +211,13 @@ describe("JavaScript Callback style", function() {
             });
 
             it("fails with wrong authentication key", function(done){
-                r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter4"}).run(reqlConn, function(err, result) {
+                r.db('rethinkdb').table('users').get('admin').update({password: "hunter4"}).run(reqlConn, function(err, result) {
                     assert.ifError(err);
                     assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                     r.connect(
                         {host:serverHost, port:driverPort, authKey: "hunter-bad"},
                         givesError("ReqlAuthError",
-                                   "Could not connect to "+serverHost+":"+driverPort+
-                                   ", incorrect authentication key.", done)
+                                   "Wrong password", done)
                     );
                 });
             });
@@ -234,6 +232,17 @@ describe("JavaScript Callback style", function() {
         it("fails queries after close", function(done) {
             reqlConn.close({noreplyWait: false});
             r.expr(1).run(reqlConn, givesError("ReqlDriverError", "Connection is closed.", done));
+        });
+
+        it("gets clientPort", function(done){
+            assert(reqlConn.clientPort() != null);
+            done();
+        });
+
+
+        it("gets clientAddress", function(done){
+            assert(reqlConn.clientAddress() != null);
+            done();
         });
 
         describe('noreplyWait', function(){

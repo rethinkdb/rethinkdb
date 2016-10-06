@@ -70,26 +70,26 @@ S2RegionCoverer::~S2RegionCoverer() {
   // Need to declare explicitly because of scoped pointers.
 }
 
-void S2RegionCoverer::set_min_level(int min_level) {
-  DCHECK_GE(min_level, 0);
-  DCHECK_LE(min_level, S2CellId::kMaxLevel);
-  min_level_ = max(0, min(S2CellId::kMaxLevel, min_level));
+void S2RegionCoverer::set_min_level(int _min_level) {
+  DCHECK_GE(_min_level, 0);
+  DCHECK_LE(_min_level, S2CellId::kMaxLevel);
+  min_level_ = max(0, min(S2CellId::kMaxLevel, _min_level));
 }
 
-void S2RegionCoverer::set_max_level(int max_level) {
-  DCHECK_GE(max_level, 0);
-  DCHECK_LE(max_level, S2CellId::kMaxLevel);
-  max_level_ = max(0, min(S2CellId::kMaxLevel, max_level));
+void S2RegionCoverer::set_max_level(int _max_level) {
+  DCHECK_GE(_max_level, 0);
+  DCHECK_LE(_max_level, S2CellId::kMaxLevel);
+  max_level_ = max(0, min(S2CellId::kMaxLevel, _max_level));
 }
 
-void S2RegionCoverer::set_level_mod(int level_mod) {
-  DCHECK_GE(level_mod, 1);
-  DCHECK_LE(level_mod, 3);
-  level_mod_ = max(1, min(3, level_mod));
+void S2RegionCoverer::set_level_mod(int _level_mod) {
+  DCHECK_GE(_level_mod, 1);
+  DCHECK_LE(_level_mod, 3);
+  level_mod_ = max(1, min(3, _level_mod));
 }
 
-void S2RegionCoverer::set_max_cells(int max_cells) {
-  max_cells_ = max_cells;
+void S2RegionCoverer::set_max_cells(int _max_cells) {
+  max_cells_ = _max_cells;
 }
 
 S2RegionCoverer::Candidate* S2RegionCoverer::NewCandidate(S2Cell const& cell) {

@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 // Cannot include utils.hpp, we are included by utils.hpp.
 #include "errors.hpp"
@@ -27,7 +27,7 @@ public:
 
     char *data() const { return ptr_; }
     const char *c_str() const { return ptr_; }
-    int size() const { return length_; }
+    int64_t size() const { return length_; }
 
     static const int STATIC_DATA_SIZE = 1000;
 

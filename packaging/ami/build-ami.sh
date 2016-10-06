@@ -104,8 +104,8 @@ create_rethinkdb_ami () {
 
 check_env () {
     [ -n "${EC2_URL:-}" ] || error "\$EC2_URL must contain the ec2 region url (e.g. https://ec2.us-east-1.amazonaws.com)"
-    [ -n "${EC2_PRIVATE_KEY:-}" ] || error "\$EC2_PRIVATE_KEY must contain the path to your ec2 private key file"
-    [ -n "${EC2_CERT:-}" ] || error "\$EC2_CERT must contain the path to your ec2 certificate"
+    [ -n "${AWS_SECRET_KEY:-}" ] || error "\$AWS_SECRET_KEY must contain your AWS secret key"
+    [ -n "${AWS_ACCESS_KEY:-}" ] || error "\$AWS_ACCESS_KEY must contain your AWS access key"
     [ -n "${SSH_AUTH_SOCK:-}" ] || error "ssh-agent must be setup and loaded with your ec2 ssh key"
 }
 

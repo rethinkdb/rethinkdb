@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import atexit, collections, fcntl, os, pprint, random, re, shutil, signal
+import atexit, collections, fcntl, os, pprint, platform, random, re, shutil, signal
 import socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
@@ -132,7 +132,7 @@ def latest_build_dir(check_executable=True, mode=None):
         candidateMtime = None
         for name in os.listdir(masterBuildDir):
             path = os.path.join(masterBuildDir, name)
-            if os.path.isdir(path) and any(map(lambda x: name.startswith(x + '_') or name.lower() == x, mode)):
+            if os.path.isdir(path) and any(map(lambda x: name.lower().startswith(x + '_') or name.lower() == x, mode)):
                 if check_executable == True:
                     if not os.path.isfile(os.path.join(path, 'rethinkdb')):
                         continue
@@ -335,13 +335,12 @@ def get_test_db_table(tableName=None, dbName='test', index=0):
         
         # - interpreter version
         
-        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])
-    
-    else:
-        tableName = tableName.replace(".","_").replace("/","_")
+        tableName += '_py' + '_'.join([str(x) for x in sys.version_info[:3]])        
     
     if index != 0:
         tableName += '_tbl%s' % str(index)
+    
+    tableName = tableName.replace(".","_").replace("/","_").replace("\\","_")
     
     # -
     
@@ -906,3 +905,17 @@ class RePrint(pprint.PrettyPrinter, object):
             return (('%r' % item)[1:], True, False) # string, readable, recursed
         else:
             return super(RePrint, self).format(item, context, maxlevels, level)
+pprint  = RePrint.pprint
+pformat = RePrint.pformat
+
+def translatePath(path):
+    '''Translate a path for cygwin purposes'''
+    
+    if 'cygwin' in platform.system().lower():
+        process = subprocess.Popen(['cygpath', '-w', str(path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _ = process.communicate()
+        if process.returncode is not 0:
+            raise Exception('Could not translate cygpath: %s' % stdout)
+        return stdout.strip()
+    else:
+        return str(path)

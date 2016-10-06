@@ -8,6 +8,7 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "logger.hpp"
+#include "random.hpp"
 #include "utils.hpp"
 
 // Set this to 1 if you would like some "unordered" messages to be unordered.

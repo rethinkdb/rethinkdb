@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Optional;
@@ -42,9 +43,10 @@ public class SocketWrapper {
     /**
      * @param handshake
      */
-    void connect(ByteBuffer handshake) {
+    void connect(Handshake handshake) {
         final Optional<Long> deadline = timeout.map(Util::deadline);
         try {
+            handshake.reset();
             // establish connection
             final InetSocketAddress addr = new InetSocketAddress(hostname, port);
             socket = socketFactory.createSocket();
@@ -73,11 +75,17 @@ public class SocketWrapper {
             }
 
             // execute RethinkDB handshake
-            writeStream.write(handshake.array());
-            final String msg = readNullTerminatedString(deadline);
-            if (!msg.equals("SUCCESS")) {
-                throw new ReqlDriverError(
-                        "Server dropped connection with message: \"%s\"", msg);
+
+            // initialize handshake
+            Optional<ByteBuffer> toWrite = handshake.nextMessage(null);
+            // Sit in the handshake until it's completed. Exceptions will be thrown if
+            // anything goes wrong.
+            while(!handshake.isFinished()) {
+                if (toWrite.isPresent()) {
+                    write(toWrite.get());
+                }
+                String serverMsg = readNullTerminatedString(deadline);
+                toWrite = handshake.nextMessage(serverMsg);
             }
         } catch (IOException e) {
             throw new ReqlDriverError("Connection timed out.", e);
@@ -147,6 +155,19 @@ public class SocketWrapper {
         return ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN);
     }
 
+    public Optional<Integer> clientPort() {
+        Optional<Integer> ret;
+        if (socket != null) {
+            ret = Optional.ofNullable(socket.getLocalPort());
+        } else {
+            ret = Optional.empty();
+        }
+        return ret;
+    }
+
+    public Optional<SocketAddress> clientAddress() {
+        return Optional.ofNullable(socket.getLocalSocketAddress());
+    }
     /**
      * Tells whether we have a working connection or not.
      *

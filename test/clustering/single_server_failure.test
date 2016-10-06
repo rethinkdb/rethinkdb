@@ -111,7 +111,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
             newTableInfo.append(thisTableInfo)
         res = self.r.db("rethinkdb").table("table_config").insert(newTableInfo).run(self.conn)
         self.assertEqual(res['inserted'], len(tables), 'Table creation was not sucessfull:\n%sFor config:\n%s' % (pprint.pformat(res), pprint.pformat(newTableInfo)))
-        self.db.wait().run(self.conn)
+        self.db.wait(wait_for="all_replicas_ready").run(self.conn)
         
         # - fill each with a small amount of data
         
@@ -133,9 +133,9 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
         
         deadline = time.time() + 20
         while time.time() < deadline:
-            roundActualIssues = list(self.r.db('rethinkdb').table('current_issues').run(self.conn))
+            roundActualIssues = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
             roundExpectedIssues = copy.copy(expectedIssues)
-            roundExtraIssues = [] # there are other transition messages, quick enogh that we might not see them
+            roundExtraIssues = [] # there are other transition messages, quick enough that we might not see them
             
             for actualIssue in roundActualIssues:
                 if actualIssue['description'] not in roundExpectedIssues:
@@ -195,7 +195,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
         
         utils.print_with_time("Re-animating KingHamlet")
         self.cluster['KingHamlet'].start()
-        self.db.wait().run(self.conn)
+        self.db.wait(wait_for="all_replicas_ready").run(self.conn)
         
         # -- check that all issues are resolved
         
@@ -203,7 +203,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
         
         # - check that all issues are resolved
         
-        issues = list(self.r.db('rethinkdb').table('current_issues').run(self.conn))
+        issues = list(self.r.db('rethinkdb').table('current_issues').filter(self.r.row["type"] != "memory_error").run(self.conn))
         self.assertEqual(issues, [])
         
         # - check that all tables are fully available

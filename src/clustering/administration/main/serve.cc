@@ -27,9 +27,11 @@
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/servers/network_logger.hpp"
+#include "clustering/administration/tables/name_resolver.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "containers/lifetime.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -94,7 +96,10 @@ bool do_serve(io_backender_t *io_backender,
               const base_path_t &base_path,
               metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
-              os_signal_cond_t *stop_cond) {
+              os_signal_cond_t *stop_cond,
+              /* For regular servers, the initial password is already set in the
+              metadata and this will be empty. */
+              const std::string &proxy_initial_password = "") {
     /* This coroutine is responsible for creating and destroying most of the important
     components of the server. */
 
@@ -119,6 +124,7 @@ bool do_serve(io_backender_t *io_backender,
         heartbeat_semilattice_metadata_t heartbeat_metadata;
         server_id_t server_id;
         if (metadata_file != nullptr) {
+            guarantee(proxy_initial_password.empty());
             cond_t non_interruptor;
             metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
             cluster_metadata = txn.read(mdkey_cluster_semilattices(), &non_interruptor);
@@ -129,6 +135,9 @@ bool do_serve(io_backender_t *io_backender,
         } else {
             // We are a proxy, generate a temporary proxy server id.
             server_id = server_id_t::generate_proxy_id();
+            auth_metadata.m_users.insert(
+                auth_semilattice_metadata_t::create_initial_admin_pair(
+                    proxy_initial_password));
         }
 
 #ifndef NDEBUG
@@ -221,9 +230,11 @@ bool do_serve(io_backender_t *io_backender,
                 server_id,
                 serve_info.ports.local_addresses_cluster,
                 serve_info.ports.canonical_addresses,
+                serve_info.join_delay_secs,
                 serve_info.ports.port,
                 serve_info.ports.client_port,
                 semilattice_manager_heartbeat.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
                 serve_info.tls_configs.cluster.get()));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
@@ -241,7 +252,9 @@ bool do_serve(io_backender_t *io_backender,
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            &server_config_client);
+            &server_config_client,
+            serve_info.join_delay_secs,
+            serve_info.node_reconnect_timeout_secs * 1000); // in ms
 
         /* `initial_joiner` sets up the initial connections to the peers that were
         specified with the `--join` flag on the command line. */
@@ -249,7 +262,8 @@ bool do_serve(io_backender_t *io_backender,
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
                                                      connectivity_cluster_run.get(),
-                                                     serve_info.peers));
+                                                     serve_info.peers,
+                                                     serve_info.join_delay_secs));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -319,6 +333,10 @@ bool do_serve(io_backender_t *io_backender,
                     table_directory_read_manager.get_root_view()));
             }
 
+            artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
+                semilattice_manager_auth.get_root_view(),
+                &rdb_ctx);
+
             /* The `table_meta_client_t` sends messages to the `multi_table_manager_t`s
             on the other servers in the cluster to create, drop, and reconfigure tables,
             as well as request information about them. */
@@ -329,30 +347,40 @@ bool do_serve(io_backender_t *io_backender,
                 table_directory_read_manager.get_root_view(),
                 &server_config_client);
 
+            name_resolver_t name_resolver(
+                semilattice_manager_cluster.get_root_view(),
+                &table_meta_client,
+                make_lifetime(artificial_reql_cluster_interface));
+
             /* The `real_reql_cluster_interface_t` is the interface that the ReQL logic
             uses to create, destroy, and reconfigure databases and tables. */
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
+                semilattice_manager_auth.get_root_view(),
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
                 &table_meta_client,
                 multi_table_manager.get(),
-                table_query_directory_read_manager.get_root_view());
+                table_query_directory_read_manager.get_root_view(),
+                make_lifetime(name_resolver));
 
-            /* `admin_artificial_tables_t` is a container for all of the tables in the
-            `rethinkdb` system database. */
-            admin_artificial_tables_t admin_tables(
+            artificial_reql_cluster_interface.set_next_reql_cluster_interface(
+                &real_reql_cluster_interface);
+
+            artificial_reql_cluster_backends_t artificial_reql_cluster_backends(
+                &artificial_reql_cluster_interface,
                 &real_reql_cluster_interface,
-                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_auth.get_root_view(),
+                semilattice_manager_cluster.get_root_view(),
                 semilattice_manager_heartbeat.get_root_view(),
                 directory_read_manager.get_root_view(),
                 directory_read_manager.get_root_map_view(),
                 &table_meta_client,
                 &server_config_client,
-                real_reql_cluster_interface.get_namespace_repo(),
-                &mailbox_manager);
+                &mailbox_manager,
+                &rdb_ctx,
+                make_lifetime(name_resolver));
 
             /* Kick off a coroutine to log any outdated indexes. */
             outdated_index_issue_tracker_t::log_outdated_indexes(
@@ -383,14 +411,17 @@ bool do_serve(io_backender_t *io_backender,
             `real_reql_cluster_interface_t` because `table_config` needs to be able to
             run distribution queries. The simplest solution is for them to have
             references to each other. This is the place where we "close the loop". */
-            real_reql_cluster_interface.admin_tables = &admin_tables;
+            real_reql_cluster_interface.artificial_reql_cluster_interface =
+                &artificial_reql_cluster_interface;
 
             /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it
             can find tables and run meta-queries, but the `real_reql_cluster_interface_t`
             needs access to the `rdb_context_t` so that it can construct instances of
             `cluster_namespace_interface_t`. Again, we solve this problem by having a
-            circular reference. */
-            rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
+            circular reference. Note that the cluster interface is a chain of command,
+            the `artificial_reql_cluster_interface` proxies to the
+            `real_reql_cluster_interface`. */
+            rdb_ctx.cluster_interface = &artificial_reql_cluster_interface;
 
             /* `memory_checker` periodically checks to see if we are using swap
                     memory, and will log a warning. */
@@ -631,20 +662,7 @@ bool do_serve(io_backender_t *io_backender,
                     /* This is the end of the startup process. `stop_cond` will be pulsed
                     when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
-#ifndef _WIN32
-                    if (stop_cond->get_source_signo() == SIGINT) {
-                        logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-                    } else if (stop_cond->get_source_signo() == SIGTERM) {
-                        logNTC("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-
-                    } else {
-                        logNTC("Server got signal %d from pid %d, uid %d; shutting down...\n",
-                               stop_cond->get_source_signo(),
-                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
-                    }
-#endif
+                    logNTC("Server got %s; shutting down...", stop_cond->format().c_str());
                 }
 
                 cond_t non_interruptor;
@@ -685,6 +703,7 @@ bool serve(io_backender_t *io_backender,
 }
 
 bool serve_proxy(const serve_info_t &serve_info,
+                 const std::string &initial_password,
                  os_signal_cond_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
@@ -693,5 +712,6 @@ bool serve_proxy(const serve_info_t &serve_info,
                     base_path_t(""),
                     nullptr,
                     serve_info,
-                    stop_cond);
+                    stop_cond,
+                    initial_password);
 }

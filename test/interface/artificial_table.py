@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 '''This runs a bunch of the ReQL tests against the `rethinkdb._debug_scratch` artificial table to check that `artificial_table_t` works properly.'''
 
-import os, subprocess, sys, time
-
-startTime = time.time()
+import os, subprocess, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -32,8 +30,8 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
         'control', 'joins', 'match',
         'mutation/atomic_get_set', 'mutation/delete', 'mutation/insert',
         'mutation/replace', 'mutation/update', 'polymorphism'])
-    command_line.extend('polyglot/regression/%d' % issue_number for issue_number in [
-        309, 453, 522, 545, 568, 678, 1155, 1179, 1468, 2399, 2697,
+    command_line.extend('polyglot/regression/%s' % issue_number for issue_number in [
+        309, 453, '522.py', 545, 568, 678, 1155, 1179, 1468, 2399, 2697,
         2709, 2838, 2930])
     
     utils.print_with_time('Ensuring that db "test" exists for secondary table')

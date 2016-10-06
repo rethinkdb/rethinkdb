@@ -1,0 +1,69 @@
+desc: tests the `r.grant` term
+tests:
+    - cd: r.grant("test_user", {"read": 1})
+      ot: err("ReqlOpFailedError", "Expected a boolean or nu" + "ll for `read`, got 1.", [])
+    - cd: r.grant("test_user", {"invalid": "invalid"})
+      ot: err("ReqlOpFailedError", "Unexpected key(s) `invalid`.", [])
+    - cd: r.grant("test_user", {"read": null, "write": null, "config": null, "connect": null})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": {"read": true, "write": true, "config": true, "connect": true}, "new_val": null}]}
+    - cd: r.grant("test_user", {"read": true, "write": true, "config": true, "connect": true})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true, "write": true, "config": true, "connect": true}}]}
+    - cd: r.grant("test_user", {"read": false, "write": false})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": {"read": true, "write": true, "config": true, "connect": true}, "new_val": {"read": false, "write": false, "config": true, "connect": true}}]}
+    - cd: r.grant("test_user", {"read": null})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": {"read": false, "write": false, "config": true, "connect": true}, "new_val": {"write": false, "config": true, "connect": true}}]}
+    - cd: r.grant("test_user", {})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": {"write": false, "config": true, "connect": true}, "new_val": {"write": false, "config": true, "connect": true}}]}
+
+    - cd: r.db_create("database")
+
+    - cd: r.db("database").grant("test_user", {"connect": true})
+      ot: err("ReqlOpFailedError", "The `connect` permission is only valid at the global scope.", [])
+    - cd: r.db("database").grant("test_user", {"invalid": "invalid"})
+      ot: err("ReqlOpFailedError", "Unexpected key(s) `invalid`.", [])
+    - cd: r.db("database").grant("test_user", {"read": true, "write": true, "config": true})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true, "write": true, "config": true}}]}
+
+    - cd: r.db("database").table_create("table")
+
+    - cd: r.db("database").table("table").grant("test_user", {"connect": true})
+      ot: err("ReqlOpFailedError", "The `connect` permission is only valid at the global scope.", [])
+    - cd: r.db("database").table("table").grant("test_user", {"invalid": "invalid"})
+      ot: err("ReqlOpFailedError", "Unexpected key(s) `invalid`.", [])
+    - cd: r.db("database").table("table").grant("test_user", {"read": true, "write": true, "config": true})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true, "write": true, "config": true}}]} 
+
+    - cd: r.grant("admin", {"config": false})
+      ot: err("ReqlOpFailedError", "The permissions of the user `admin` can't be modified.", [])
+    - cd: r.db("database").grant("admin", {"config": false})
+      ot: err("ReqlOpFailedError", "The permissions of the user `admin` can't be modified.", [])
+    - cd: r.db("database").table("table").grant("admin", {"config": false})
+      ot: err("ReqlOpFailedError", "The permissions of the user `admin` can't be modified.", [])
+
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true, "write": true}}]}
+    - cd: r.db("rethinkdb").table("stats").grant("test_user", {"read": true})
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true}}]}
+
+    - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
+    - cd: r.grant("test_user", {"read": true})
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+    - cd: r.grant("test_user", {"read": true, "write": true})
+    - cd: r.grant("test_user", {"read": true})
+      runopts:
+        user: test_user
+      ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
+    - cd: r.grant("test_user", {"read": null, "write": null})
+    - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
+    - cd: r.grant("test_user", {"read": true})
+      runopts:
+        user: test_user
+      ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true}}]}
+    - cd: r.db("rethinkdb").grant("test_user", {"read": null, "write": null})
+    - cd: r.db("rethinkdb").table("permissions").grant("test_user", {"read": true, "write": true})
+    - cd: r.grant("test_user", {"write": true})
+      runopts:
+        user: test_user
+      ot: {"granted": 1, "permissions_changes": [{"old_val": {"read": true}, "new_val": {"read": true, "write": true}}]}

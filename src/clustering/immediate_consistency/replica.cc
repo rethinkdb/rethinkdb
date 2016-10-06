@@ -28,6 +28,14 @@ void replica_t::do_read(
     rassert(region_is_superset(store->get_region(), read.get_region()));
     rassert(!region_is_empty(read.get_region()));
 
+    if (boost::get<dummy_read_t>(&read.read) != nullptr) {
+        read_response_t response;
+        response.response = dummy_read_response_t();
+        response.n_shards = 1;
+        *response_out = std::move(response);
+        return;
+    }
+
     // Wait until all writes that the read needs to see have completed.
     end_enforcer.wait_all_before(min_timestamp, interruptor);
 

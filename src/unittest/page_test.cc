@@ -50,10 +50,10 @@ class test_txn_t;
 
 class test_cache_t : public page_cache_t {
 public:
-    test_cache_t(serializer_t *serializer,
+    test_cache_t(serializer_t *_serializer,
                  cache_balancer_t *balancer,
                  alt_txn_throttler_t *throttler)
-        : page_cache_t(serializer, balancer, throttler),
+        : page_cache_t(_serializer, balancer, throttler),
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
@@ -78,17 +78,19 @@ public:
 class current_test_acq_t : public current_page_acq_t {
 public:
     current_test_acq_t(page_txn_t *txn,
-                       block_id_t block_id,
-                       access_t access,
+                       block_id_t _block_id,
+                       access_t _access,
                        page_create_t create = page_create_t::no)
-        : current_page_acq_t(txn, block_id, access, create) { }
+        : current_page_acq_t(txn, _block_id, _access, create) { }
+
     current_test_acq_t(page_txn_t *txn,
                        alt_create_t create)
         : current_page_acq_t(txn, create, block_type_t::normal) { }
+
     current_test_acq_t(page_cache_t *cache,
-                       block_id_t block_id,
+                       block_id_t _block_id,
                        read_access_t read)
-        : current_page_acq_t(cache, block_id, read) { }
+        : current_page_acq_t(cache, _block_id, read) { }
 
     page_t *current_page_for_write() {
         return current_page_acq_t::current_page_for_write(
@@ -104,8 +106,8 @@ public:
 class test_acq_t : public page_acq_t {
 public:
     test_acq_t() : page_acq_t() { }
-    void init(page_t *page, page_cache_t *page_cache) {
-        page_acq_t::init(page, page_cache, page_cache->default_reads_account());
+    void init(page_t *page, page_cache_t *_page_cache) {
+        page_acq_t::init(page, _page_cache, _page_cache->default_reads_account());
     }
 
     void *get_buf_write() {

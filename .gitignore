@@ -48,5 +48,7 @@ last_tested_versions
 /windows_deps/
 /x64/
 /RethinkDB.sdf
-/RethinkDB.vcxproj.*
+/RethinkDB.vcxproj.filters
+/RethinkDB.vcxproj.user
+/RethinkDB.vcxproj.xml
 /precompiled

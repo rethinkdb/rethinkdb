@@ -2,10 +2,54 @@
 #ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
+#ifdef _WIN32
+
+#include "concurrency/signal.hpp"
+#include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
+#include "arch/io/event_watcher.hpp"
+#include "arch/runtime/runtime.hpp"
+
+class blocking_fd_watcher_t { };
+
+class socket_stream_t :
+    public read_stream_t,
+    public write_stream_t {
+public:
+    socket_stream_t(fd_t fd_, scoped_ptr_t<blocking_fd_watcher_t>)
+        : fd(fd_),
+          interruptor(nullptr),
+          event_watcher(nullptr) { }
+    socket_stream_t(fd_t fd_, windows_event_watcher_t *ew)
+        : fd(fd_),
+          event_watcher(ew),
+          interruptor(nullptr) {
+        rassert(ew != nullptr);
+        rassert(ew->current_thread() == get_thread_id());
+    }
+
+    socket_stream_t(const socket_stream_t &) = default;
+
+    int64_t read(void *buf, int64_t count);
+    int64_t write(const void *buf, int64_t count);
+    void wait_for_pipe_client(signal_t *interruptor);
+
+    void set_interruptor(signal_t *_interruptor) { interruptor = _interruptor; }
+
+private:
+    fd_t fd;
+    signal_t *interruptor;
+    windows_event_watcher_t *event_watcher;
+};
+
+#else
+
+#include "concurrency/signal.hpp"
+#include "containers/archive/archive.hpp"
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
 #include "concurrency/cond_var.hpp"
-#include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
@@ -103,7 +147,8 @@ class socket_stream_t :
     public write_stream_t,
     private linux_event_callback_t {
 public:
-    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = nullptr);
+    explicit socket_stream_t(fd_t fd);
+    explicit socket_stream_t(fd_t fd, scoped_ptr_t<fd_watcher_t> &&watcher);
     virtual ~socket_stream_t();
 
     // interruptible {read,write}_stream_t functions
@@ -145,5 +190,7 @@ private:
 
     DISABLE_COPYING(socket_stream_t);
 };
+
+#endif // _WIN32
 
 #endif  // CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_

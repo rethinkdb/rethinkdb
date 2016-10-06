@@ -69,7 +69,7 @@ class S2CellId {
   static int const kPosBits = 2 * kMaxLevel + 1;
   static int const kMaxSize = 1 << kMaxLevel;
 
-  inline explicit S2CellId(uint64 id) : id_(id) {}
+  inline explicit S2CellId(uint64 _id) : id_(_id) {}
 
   // The default constructor returns an invalid cell id.
   inline S2CellId() : id_(0) {}
@@ -381,9 +381,9 @@ inline bool S2CellId::is_face() const {
   return (id_ & (lsb_for_level(0) - 1)) == 0;
 }
 
-inline int S2CellId::child_position(int level) const {
+inline int S2CellId::child_position(int _level) const {
   DCHECK(is_valid());
-  return static_cast<int>(id_ >> (2 * (kMaxLevel - level) + 1)) & 3;
+  return static_cast<int>(id_ >> (2 * (kMaxLevel - _level) + 1)) & 3;
 }
 
 inline S2CellId S2CellId::range_min() const {
@@ -406,11 +406,11 @@ inline bool S2CellId::intersects(S2CellId const& other) const {
   return other.range_min() <= range_max() && other.range_max() >= range_min();
 }
 
-inline S2CellId S2CellId::parent(int level) const {
+inline S2CellId S2CellId::parent(int _level) const {
   DCHECK(is_valid());
-  DCHECK_GE(level, 0);
-  DCHECK_LE(level, this->level());
-  uint64 new_lsb = lsb_for_level(level);
+  DCHECK_GE(_level, 0);
+  DCHECK_LE(_level, this->level());
+  uint64 new_lsb = lsb_for_level(_level);
   return S2CellId((id_ & -new_lsb) | new_lsb);
 }
 
@@ -439,11 +439,11 @@ inline S2CellId S2CellId::child_begin() const {
   return S2CellId(id_ - old_lsb + (old_lsb >> 2));
 }
 
-inline S2CellId S2CellId::child_begin(int level) const {
+inline S2CellId S2CellId::child_begin(int _level) const {
   DCHECK(is_valid());
-  DCHECK_GE(level, this->level());
-  DCHECK_LE(level, kMaxLevel);
-  return S2CellId(id_ - lsb() + lsb_for_level(level));
+  DCHECK_GE(_level, this->level());
+  DCHECK_LE(_level, kMaxLevel);
+  return S2CellId(id_ - lsb() + lsb_for_level(_level));
 }
 
 inline S2CellId S2CellId::child_end() const {
@@ -453,11 +453,11 @@ inline S2CellId S2CellId::child_end() const {
   return S2CellId(id_ + old_lsb + (old_lsb >> 2));
 }
 
-inline S2CellId S2CellId::child_end(int level) const {
+inline S2CellId S2CellId::child_end(int _level) const {
   DCHECK(is_valid());
-  DCHECK_GE(level, this->level());
-  DCHECK_LE(level, kMaxLevel);
-  return S2CellId(id_ + lsb() + lsb_for_level(level));
+  DCHECK_GE(_level, this->level());
+  DCHECK_LE(_level, kMaxLevel);
+  return S2CellId(id_ + lsb() + lsb_for_level(_level));
 }
 
 inline S2CellId S2CellId::next() const {

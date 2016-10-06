@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 # Check the style of C++ code using cpplint
 #
@@ -12,7 +12,7 @@ set -o pipefail
 DIR=`dirname $0`
 SRC_DIR=`dirname "$DIR"`/src
 ARG_COUNT=$#
-XARGS_FLAGS="-n 20 -P `nproc`" # Run multiple cpplint in parallel
+XARGS_FLAGS="-n 20 -P `python -c 'import multiprocessing; print(multiprocessing.cpu_count())'`" # Run multiple cpplint in parallel
 
 all_files () {
     find "$SRC_DIR" -name \*.h -o -name \*.hpp -o -name \*.cc -o -name \*.tcc

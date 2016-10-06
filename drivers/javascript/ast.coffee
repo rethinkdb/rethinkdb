@@ -347,6 +347,10 @@ class RDBVal extends TermBase
         new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
+
+    setWriteHook: (args...) -> new SetWriteHook {}, @, args...
+    getWriteHook: () -> new GetWriteHook {}, @
+
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
@@ -370,6 +374,8 @@ class RDBVal extends TermBase
     rebalance: () -> new Rebalance {}, @
 
     sync: (args...) -> new Sync {}, @, args...
+
+    grant: (args...) -> new Grant {}, @, args...
 
     toISO8601: (args...) -> new ToISO8601 {}, @, args...
     toEpochTime: (args...) -> new ToEpochTime {}, @, args...
@@ -941,6 +947,14 @@ class TableList extends RDBOp
     tt: protoTermType.TABLE_LIST
     mt: 'tableList'
 
+class SetWriteHook extends RDBOp
+    tt: protoTermType.SET_WRITE_HOOK
+    mt: 'setWriteHook'
+
+class GetWriteHook extends RDBOp
+    tt: protoTermType.GET_WRITE_HOOK
+    mt: 'getWriteHook'
+
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
     mt: 'indexCreate'
@@ -988,6 +1002,10 @@ class Rebalance extends RDBOp
 class Sync extends RDBOp
     tt: protoTermType.SYNC
     mt: 'sync'
+
+class Grant extends RDBOp
+    tt: protoTermType.GRANT
+    mt: 'grant'
 
 class FunCall extends RDBOp
     tt: protoTermType.FUNCALL
@@ -1267,6 +1285,8 @@ rethinkdb.dbList = (args...) -> new DbList {}, args...
 rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
 rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
+
+rethinkdb.grant = (args...) -> new Grant {}, args...
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...

@@ -23,8 +23,60 @@
 #include "thread_local.hpp"
 
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(struct timespec, tv_sec, tv_nsec);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(log_message_t, timestamp, uptime, level, message);
+
+// `struct timestamp` has platform-dependent integers, which is not good for
+// serialization. We serialize them as fixed types that are compatible with the types
+// we have on AMD64 Linux.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const struct timespec &ts) {
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_sec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_sec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_sec));
+    static_assert(
+        std::numeric_limits<decltype(ts.tv_nsec)>::min()
+            >= std::numeric_limits<int64_t>::min()
+        && std::numeric_limits<decltype(ts.tv_nsec)>::max()
+            <= std::numeric_limits<int64_t>::max(),
+        "incompatible timespec type");
+    serialize<W>(wm, static_cast<int64_t>(ts.tv_nsec));
+}
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, struct timespec *ts_out) {
+    archive_result_t res = archive_result_t::SUCCESS;
+
+    int64_t tv_sec;
+    res = deserialize<W>(s, &tv_sec);
+    if (bad(res)) { return res; }
+    if(!(tv_sec >= std::numeric_limits<decltype(ts_out->tv_sec)>::min()
+         && tv_sec <= std::numeric_limits<decltype(ts_out->tv_sec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    ts_out->tv_sec = tv_sec;
+
+    int64_t tv_nsec;
+    res = deserialize<W>(s, &tv_nsec);
+    if (bad(res)) { return res; }
+    if(!(tv_nsec >= std::numeric_limits<decltype(ts_out->tv_nsec)>::min()
+         && tv_nsec <= std::numeric_limits<decltype(ts_out->tv_nsec)>::max())) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    ts_out->tv_nsec = tv_nsec;
+
+    return res;
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(struct timespec);
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
@@ -320,7 +372,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     filename = base_path_t(logfile_name);
 
 #ifdef _WIN32
-    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     fd.reset(h);
 
     if (fd.get() == INVALID_FD) {
@@ -390,30 +442,21 @@ log_message_t fallback_log_writer_t::assemble_log_message(
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg) + "\n";
 
-#ifdef _MSC_VER
-    static int STDOUT_FILENO = -1;
-    static int STDERR_FILENO = -1;
-    if (STDOUT_FILENO == -1) {
-        STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
-        STDERR_FILENO = STDOUT_FILENO;
-    }
-#endif
-
     FILE* write_stream = nullptr;
-    int fileno = -1;
+    fd_t filefd = INVALID_FD;
     switch (msg.level) {
         case log_level_info:
             // no message on stdout/stderr
             break;
         case log_level_notice:
             write_stream = stdout;
-            fileno = STDOUT_FILENO;
+            filefd = STDOUT_FD;
             break;
         case log_level_debug:
         case log_level_warn:
         case log_level_error:
             write_stream = stderr;
-            fileno = STDERR_FILENO;
+            filefd = STDERR_FD;
             break;
         default:
             unreachable();
@@ -429,21 +472,16 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         flockfile(write_stream);
 #endif
 
-#ifdef _WIN32
-        size_t write_res = fwrite(console_formatted.data(), 1, console_formatted.length(), stderr);
-#else
-        ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
-#endif
-        if (write_res != static_cast<decltype(write_res)>(console_formatted.length())) {
+        size_t write_res = ::fwrite(console_formatted.data(), 1, console_formatted.length(), write_stream);
+        if (write_res != console_formatted.length()) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
 
-
 #ifdef _WIN32
         // WINDOWS TODO
 #else
-        int fsync_res = fsync(fileno);
+        int fsync_res = fsync(filefd);
         if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL ||
                 get_errno() == ENOTSUP)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
@@ -455,7 +493,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 
     if (fd.get() == INVALID_FD) {
-        error_out->assign("cannot open or find log file");
+        error_out->assign("logging module is not yet initialized");
         return false;
     }
 #ifndef _WIN32
@@ -609,7 +647,11 @@ void thread_pool_log_writer_t::tail_blocking(
     try {
         scoped_fd_t fd;
 #ifdef _WIN32
-        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+        if (fd.get() == INVALID_FD) {
+            logWRN("CreateFile failed: %s", winerr_string(GetLastError()).c_str());
+            set_errno(EIO);
+        }
 #else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));

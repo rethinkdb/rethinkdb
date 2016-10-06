@@ -10,6 +10,7 @@
 #include "containers/object_buffer.hpp"
 #include "containers/scoped.hpp"
 #include "containers/archive/socket_stream.hpp"
+#include "containers/archive/archive.hpp"
 
 class extproc_spawner_t;
 
@@ -43,10 +44,14 @@ private:
     void spawn_internal();
 
     extproc_spawner_t *spawner;
-    pid_t worker_pid;
+    process_id_t worker_pid;
     scoped_fd_t socket;
 
     object_buffer_t<socket_stream_t> socket_stream;
+
+#ifdef _WIN32
+    object_buffer_t<windows_event_watcher_t> socket_event_watcher;
+#endif
 
     signal_t *interruptor;
 };

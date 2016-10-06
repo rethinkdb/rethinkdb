@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import os, sys
 
@@ -33,7 +33,7 @@ class ChangePrimary(rdb_unittest.RdbTestCase):
         server.check_and_stop()
         server.start()
         self.cluster.check()
-        self.r.db(self.dbName).wait().run(self.conn)
+        self.r.db(self.dbName).wait(wait_for="all_replicas_ready").run(self.conn)
         
         utils.print_with_time("Running second workload")
         workload_runner.run(opts["workload2"], server, opts["timeout"], db_name=self.dbName, table_name=self.tableName)

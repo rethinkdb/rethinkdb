@@ -144,6 +144,7 @@ void table_raft_storage_interface_t::write_current_term_and_voted_for(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         table_raft_stored_header_t::from_state(state),
         &non_interruptor);
+    txn.commit();
 }
 
 void table_raft_storage_interface_t::write_commit_index(
@@ -155,6 +156,7 @@ void table_raft_storage_interface_t::write_commit_index(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         table_raft_stored_header_t::from_state(state),
         &non_interruptor);
+    txn.commit();
 }
 
 void table_raft_storage_interface_t::write_log_replace_tail(
@@ -181,6 +183,7 @@ void table_raft_storage_interface_t::write_log_replace_tail(
     for (raft_log_index_t i = first_replaced; i <= source.get_latest_index(); ++i) {
         state.log.append(source.get_entry_ref(i));
     }
+    txn.commit();
 }
 
 void table_raft_storage_interface_t::write_log_append_one(
@@ -194,6 +197,7 @@ void table_raft_storage_interface_t::write_log_append_one(
         entry,
         &non_interruptor);
     state.log.append(entry);
+    txn.commit();
 }
 
 void table_raft_storage_interface_t::write_snapshot(
@@ -235,5 +239,6 @@ void table_raft_storage_interface_t::write_snapshot(
     } else {
         state.log.delete_entries_to(log_prev_index, log_prev_term);
     }
+    txn.commit();
 }
 

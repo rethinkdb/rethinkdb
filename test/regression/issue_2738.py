@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -45,7 +45,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     for i in xrange(1, 501):
         r.db_create("db2").run(conn2)
         r.db_drop("db2").run(conn2)
-        issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
+        issues = list(r.db('rethinkdb').table('current_issues').filter(r.row["type"] != "memory_error").run(conn2))
         assert len(issues) == 0, 'Issues detected during testing: %s' % issues
         if i % 50 == 0 or i == 1:
             print(str(i), end='.. ')

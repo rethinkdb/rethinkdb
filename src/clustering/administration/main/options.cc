@@ -12,34 +12,39 @@
 
 namespace options {
 
-option_count_error_t::option_count_error_t(std::string source, std::string option_name,
+option_count_error_t::option_count_error_t(std::string _source, std::string _option_name,
                                            size_t min_appearances, size_t max_appearances,
                                            size_t actual_appearances)
-    : named_error_t(source, option_name,
-                    actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", option_name.c_str())
-                    : min_appearances == 1 ? strprintf("Option '%s' must be specified.", option_name.c_str())
-                    : strprintf("Option '%s' specified too few times.", option_name.c_str())) {
+    : named_error_t(_source, _option_name,
+                    actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", _option_name.c_str())
+                    : min_appearances == 1 ? strprintf("Option '%s' must be specified.", _option_name.c_str())
+                    : strprintf("Option '%s' specified too few times.", _option_name.c_str())) {
     rassert(min_appearances <= max_appearances);
     rassert(actual_appearances < min_appearances || actual_appearances > max_appearances);
 }
 
-missing_parameter_error_t::missing_parameter_error_t(std::string source, std::string option_name)
-    : named_error_t(source, option_name,
-                    strprintf("Option '%s' is missing its parameter.", option_name.c_str())) { }
+missing_parameter_error_t::missing_parameter_error_t(std::string _source,
+                                                     std::string _option_name)
+    : named_error_t(_source, _option_name,
+                    strprintf("Option '%s' is missing its parameter.", _option_name.c_str())) { }
 
-value_error_t::value_error_t(std::string source, std::string option_name, std::string msg)
-    : named_error_t(source, option_name, msg) { }
+value_error_t::value_error_t(std::string _source,
+                             std::string _option_name,
+                             std::string msg)
+    : named_error_t(_source, _option_name, msg) { }
 
-unrecognized_option_error_t::unrecognized_option_error_t(std::string source, std::string option_name)
-    : option_error_t(source, strprintf("Unrecognized option '%s'.", option_name.c_str())),
-      unrecognized_option_name_(option_name) { }
+unrecognized_option_error_t::unrecognized_option_error_t(std::string _source,
+                                                         std::string _option_name)
+    : option_error_t(_source, strprintf("Unrecognized option '%s'.", _option_name.c_str())),
+      unrecognized_option_name_(_option_name) { }
 
-positional_parameter_error_t::positional_parameter_error_t(std::string source, std::string parameter_value)
-    : option_error_t(source,
+positional_parameter_error_t::positional_parameter_error_t(std::string _source,
+                                                           std::string _parameter_value)
+    : option_error_t(_source,
                      strprintf("Unexpected positional parameter '%s' (did you forget the "
                                "option name, or forget to quote a parameter list?).",
-                               parameter_value.c_str())),
-      parameter_value_(parameter_value) { }
+                               _parameter_value.c_str())),
+      parameter_value_(_parameter_value) { }
 
 
 option_t::option_t(const names_t _names, const appearance_t appearance)

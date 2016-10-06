@@ -5,8 +5,11 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifdef ENABLE_TLS
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -30,13 +33,16 @@
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
+#include "arch/io/openssl.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/exponential_backoff.hpp"
 #include "containers/intrusive_list.hpp"
+#include "crypto/error.hpp"
 #include "perfmon/types.hpp"
 
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
@@ -47,17 +53,13 @@ class linux_tcp_conn_t :
 public:
     friend class linux_tcp_conn_descriptor_t;
 
-    void enable_keepalive();
+    void enable_keepalive() THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
     class connect_failed_exc_t : public std::exception {
     public:
         explicit connect_failed_exc_t(int en) :
             error(en),
             info("Could not make connection: " + errno_string(error)) { }
-
-        connect_failed_exc_t(int en, const std::string &err_str) :
-            error(en),
-            info(err_str) { }
 
         const char *what() const throw () {
             return info.c_str();
@@ -69,8 +71,13 @@ public:
         const std::string info;
     };
 
-    // NB. interruptor cannot be NULL.
-    linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = ANY_PORT) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    // NB. interruptor cannot be nullptr.
+    linux_tcp_conn_t(
+        const ip_address_t &host,
+        int port,
+        signal_t *interruptor,
+        int local_port = ANY_PORT)
+        THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
 
@@ -162,7 +169,7 @@ public:
 
     bool getpeername(ip_and_port_t *ip_and_port);
 
-    linux_event_watcher_t *get_event_watcher() {
+    event_watcher_t *get_event_watcher() {
         return event_watcher.get();
     }
 
@@ -246,12 +253,12 @@ private:
     };
 
     /* Note that this only gets called to handle error-events. Read and write
-    events are handled through the linux_event_watcher_t. */
+    events are handled through the event_watcher_t. */
     void on_event(int events);
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
-    scoped_ptr_t<linux_event_watcher_t> event_watcher;
+    scoped_ptr_t<event_watcher_t> event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
@@ -340,20 +347,23 @@ private:
     virtual void perform_write(const void *buffer, size_t size);
 };
 
+#ifdef ENABLE_TLS
+
 /* tls_conn_wrapper_t wraps a TLS connection. */
 class tls_conn_wrapper_t {
 public:
-    explicit tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(
-        linux_tcp_conn_t::connect_failed_exc_t);
+    explicit tls_conn_wrapper_t(SSL_CTX *tls_ctx) THROWS_ONLY(crypto::openssl_error_t);
 
     ~tls_conn_wrapper_t();
 
-    void set_fd(fd_t sock) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t);
+    void set_fd(fd_t sock) THROWS_ONLY(crypto::openssl_error_t);
 
     SSL *get() { return conn; }
 
 private:
     SSL *conn;
+
+    DISABLE_COPYING(tls_conn_wrapper_t);
 };
 
 class linux_secure_tcp_conn_t :
@@ -366,7 +376,7 @@ public:
     linux_secure_tcp_conn_t(
         SSL_CTX *tls_ctx, const ip_address_t &host, int port,
         signal_t *interruptor, int local_port = ANY_PORT
-    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    ) THROWS_ONLY(connect_failed_exc_t, crypto::openssl_error_t, interrupted_exc_t);
 
     ~linux_secure_tcp_conn_t() THROWS_NOTHING;
 
@@ -384,10 +394,10 @@ private:
     // Server connection constructor.
     linux_secure_tcp_conn_t(
         SSL_CTX *tls_ctx, fd_t _sock, signal_t *interruptor
-    ) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    ) THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t);
 
     void perform_handshake(signal_t *interruptor) THROWS_ONLY(
-        linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
+        crypto::openssl_error_t, interrupted_exc_t);
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple
     wrapper around ::read(). Returns the number of bytes read or throws
@@ -409,19 +419,21 @@ private:
     cond_t closed;
 };
 
+#endif /* ENABLE_TLS */
+
 class linux_tcp_conn_descriptor_t {
 public:
     ~linux_tcp_conn_descriptor_t();
 
     void make_server_connection(
-        SSL_CTX *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer
-    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
+        tls_ctx_t *tls_ctx, scoped_ptr_t<linux_tcp_conn_t> *tcp_conn, signal_t *closer)
+        THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the server connection on.
     void make_server_connection(
-        SSL_CTX *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer
-    ) THROWS_ONLY(linux_tcp_conn_t::connect_failed_exc_t, interrupted_exc_t);
+        tls_ctx_t *tls_ctx, linux_tcp_conn_t **tcp_conn_out, signal_t *closer)
+        THROWS_ONLY(crypto::openssl_error_t, interrupted_exc_t);
 
 private:
     friend class linux_nonthrowing_tcp_listener_t;
@@ -466,7 +478,14 @@ private:
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
     void accept_loop(auto_drainer_t::lock_t lock);
+
+#ifdef _WIN32
+    void accept_loop_single(const auto_drainer_t::lock_t &lock,
+                            exponential_backoff_t backoff,
+                            windows_event_watcher_t *event_watcher);
+#else
     fd_t wait_for_any_socket(const auto_drainer_t::lock_t &lock);
+#endif
     scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
@@ -490,7 +509,7 @@ private:
     size_t last_used_socket_index;
 
     // Sentries representing our registrations with the event loop, one per socket
-    scoped_array_t<scoped_ptr_t<linux_event_watcher_t> > event_watchers;
+    scoped_array_t<scoped_ptr_t<event_watcher_t> > event_watchers;
 
     bool log_next_error;
 };

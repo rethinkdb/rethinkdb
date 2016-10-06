@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <google/protobuf/stubs/common.h>
 
 #ifdef _WIN32
 #include "windows.hpp"
@@ -26,10 +27,6 @@
 #include <sys/resource.h>
 #include <ftw.h>
 #endif
-
-#include <google/protobuf/stubs/common.h>
-
-#include <random>
 
 #include "errors.hpp"
 #include <boost/date_time.hpp>
@@ -45,11 +42,17 @@
 #include "debug.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     // Make sure stderr is non-buffered
     setvbuf(stderr, nullptr, _IONBF, 0);
+
+#ifdef _WIN32
+    // When running in Cygwin on Windows, line-buffering
+    // doesn't appear to work properly. So we disable buffering
+    // on `stdout` on Windows as well.
+    setvbuf(stdout, nullptr, _IONBF, 0);
+#endif
 
     install_generic_crash_handler();
     install_new_oom_handler();
@@ -121,7 +124,7 @@ void print_hexdump(const void *vbuf, size_t offset, size_t ulength) {
                               0xBD, 0xBD, 0xBD, 0xBD,
                               0xBD, 0xBD, 0xBD, 0xBD };
     uint8_t zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint8_t ff_sample[16] = { 0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
                               0xff, 0xff, 0xff, 0xff,
@@ -255,7 +258,7 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = nullptr;
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
-    if (ptr == nullptr) {
+    if (UNLIKELY(ptr == nullptr)) {
         crash_oom();
     }
 #else
@@ -289,7 +292,7 @@ void raw_free_aligned(void *ptr) {
 
 void *rmalloc(size_t size) {
     void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == nullptr && size != 0) {
+    if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }
     return res;
@@ -297,7 +300,7 @@ void *rmalloc(size_t size) {
 
 void *rrealloc(void *ptr, size_t size) {
     void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
-    if (res == nullptr && size != 0) {
+    if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }
     return res;
@@ -308,56 +311,6 @@ bool risfinite(double arg) {
     using namespace std; // NOLINT(build/namespaces) due to platform variation
     return isfinite(arg);
 }
-
-rng_t::rng_t(int seed) {
-#ifndef NDEBUG
-    if (seed == -1) {
-        seed = std::random_device{}();
-    }
-#else
-    seed = 314159;
-#endif
-#ifdef _WIN32
-    state.seed(seed);
-#else
-    state[2] = seed / (1 << 16);
-    state[1] = seed % (1 << 16);
-    state[0] = 0x330E;
-#endif
-}
-
-int rng_t::randint(int n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifdef _WIN32
-    unsigned long x = state(); // NOLINT(runtime/int)
-#else
-    long x = nrand48(state.data());  // NOLINT(runtime/int)
-#endif
-    return x % static_cast<unsigned int>(n);
-}
-
-uint64_t rng_t::randuint64(uint64_t n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-#ifdef _WIN32
-    std::uniform_int_distribution<uint64_t> dist(0, n);
-    return dist(state);
-#else
-    uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
-    uint64_t x = x_high;
-    x <<= 32;
-    x += x_low;
-    return x % n;
-#endif
-}
-
-double rng_t::randdouble() {
-    uint64_t x = rng_t::randuint64(1LL << 53);
-    double res = x;
-    return res / (1LL << 53);
-}
-
-TLS_ptr_with_constructor(rng_t, rng)
 
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifdef _WIN32
@@ -374,31 +327,6 @@ void system_random_bytes(void *out, int64_t nbytes) {
     int64_t readres = force_read(&urandom, out, nbytes);
     guarantee(readres == nbytes);
 #endif
-}
-
-int randint(int n) {
-    return TLS_ptr_rng()->randint(n);
-}
-
-uint64_t randuint64(uint64_t n) {
-    return TLS_ptr_rng()->randuint64(n);
-}
-
-size_t randsize(size_t n) {
-    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
-    size_t ret = 0;
-    size_t i = SIZE_MAX;
-    while (i != 0) {
-        int x = randint(0x10000);
-        ret = ret * 0x10000 + x;
-        i /= 0x10000;
-    }
-    return ret % n;
-}
-
-double randdouble() {
-    return TLS_ptr_rng()->randdouble();
-
 }
 
 bool begins_with_minus(const char *string) {
@@ -452,10 +380,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
         *out_result = result;
         return true;
     }
-}
-
-bool notf(bool x) {
-    return !x;
 }
 
 std::string vstrprintf(const char *format, va_list ap) {
@@ -629,12 +553,13 @@ int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED
 void remove_directory_recursive(const char *dirpath) {
 #ifdef _MSC_VER
     using namespace std::tr2; // NOLINT
-    std::function<void(sys::path)> go = [go](sys::path dir){
+    std::function<void(sys::path)> go = [&go](sys::path dir){
         for (auto it : sys::directory_iterator(dir)) {
             if (sys::is_directory(it.status())) {
                 go(it.path());
+            } else {
+                remove_directory_helper(it.path().string().c_str());
             }
-            remove_directory_helper(it.path().string().c_str());
         }
         remove_directory_helper(dir.string().c_str());
     };
@@ -652,7 +577,7 @@ void remove_directory_recursive(const char *dirpath) {
 #endif
 }
 
-base_path_t::base_path_t(const std::string &path) : path_(path) { }
+base_path_t::base_path_t(const std::string &_path) : path_(_path) { }
 
 void base_path_t::make_absolute() {
 #ifdef _WIN32
@@ -730,4 +655,5 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 // * RETHINKDB_VERSION=""
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
+
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));

@@ -17,14 +17,20 @@
 #include "clustering/administration/tables/table_config.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/administration/issues/issues_backend.hpp"
+#include "clustering/administration/auth/permissions_artificial_table_backend.hpp"
+#include "clustering/administration/auth/users_artificial_table_backend.hpp"
 #include "clustering/administration/logs/logs_backend.hpp"
 #include "clustering/administration/jobs/backend.hpp"
+#include "containers/map_sentries.hpp"
 #include "containers/name_string.hpp"
+#include "containers/scoped.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
 class namespace_repo_t;
+class name_resolver_t;
 class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
@@ -34,27 +40,30 @@ class table_meta_client_t;
 `real_reql_cluster_interface_t`; queries go first to the `artificial_...`, and if they
 aren't related to the `rethinkdb` database, they get passed on to the `real_...`. */
 
-class artificial_reql_cluster_interface_t : public reql_cluster_interface_t {
+class artificial_reql_cluster_interface_t
+    : public reql_cluster_interface_t,
+      public home_thread_mixin_t {
 public:
-    artificial_reql_cluster_interface_t(
-            /* This is the name of the special database; i.e. `rethinkdb` */
-            name_string_t _database,
-            /* These are the tables that live in the special database. For each pair, the
-            first value will be used if `identifier_format` is unspecified or "name", and
-            the second value will be used if `identifier_format` is "uuid". */
-            const std::map<name_string_t,
-                std::pair<artificial_table_backend_t *, artificial_table_backend_t *>
-                > &_tables,
-            /* This is the `real_reql_cluster_interface_t` that we're proxying. */
-            reql_cluster_interface_t *_next) :
-        database(_database),
-        tables(_tables),
-        next(_next) { }
+    static const uuid_u database_id;
+    static const name_string_t database_name;
 
-    bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+    artificial_reql_cluster_interface_t(
+            std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+                auth_semilattice_view,
+            rdb_context_t *rdb_context);
+
+    bool db_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool db_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool db_list(
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -62,18 +71,30 @@ public:
             signal_t *interruptor,
             counted_t<const ql::db_t> *db_out, admin_err_t *error_out);
     bool db_config(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
             admin_err_t *error_out);
 
-    bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
+    bool table_create(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
-            const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
-    bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
+            const std::string &primary_key,
+            write_durability_t durability,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool table_drop(
+            auth::user_context_t const &user_context,
+            const name_string_t &name,
+            counted_t<const ql::db_t> db,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
     bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out);
@@ -82,12 +103,14 @@ public:
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
             std::vector<int64_t> *doc_counts_out,
             admin_err_t *error_out);
     bool table_config(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
@@ -117,6 +140,7 @@ public:
             admin_err_t *error_out);
 
     bool table_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             const table_generate_config_params_t &params,
@@ -125,6 +149,7 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_reconfigure(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
@@ -133,6 +158,7 @@ public:
             admin_err_t *error_out);
 
     bool table_emergency_repair(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             emergency_repair_mode_t,
@@ -142,18 +168,62 @@ public:
             admin_err_t *error_out);
 
     bool table_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
     bool db_rebalance(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
+    bool grant_global(
+            auth::user_context_t const &user_context,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_database(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+    bool grant_table(
+            auth::user_context_t const &user_context,
+            database_id_t const &database_id,
+            namespace_id_t const &table_id,
+            auth::username_t username,
+            ql::datum_t permissions,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            admin_err_t *error_out);
+
+    bool set_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const boost::optional<write_hook_config_t> &config,
+            signal_t *interruptor,
+            admin_err_t *error_out);
+
+    bool get_write_hook(
+        auth::user_context_t const &user_context,
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        signal_t *interruptor,
+        ql::datum_t *write_hook_datum_out,
+        admin_err_t *error_out);
+
     bool sindex_create(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -161,12 +231,14 @@ public:
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_drop(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
             admin_err_t *error_out);
     bool sindex_rename(
+            auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
@@ -182,63 +254,100 @@ public:
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
                 *configs_and_statuses_out);
 
+    void set_next_reql_cluster_interface(reql_cluster_interface_t *next);
+
+    artificial_table_backend_t *get_table_backend(
+            name_string_t const &,
+            admin_identifier_format_t) const;
+
+    using table_backends_map_t = std::map<
+        name_string_t,
+        std::pair<artificial_table_backend_t *, artificial_table_backend_t *>>;
+
+    table_backends_map_t *get_table_backends_map_mutable();
+    table_backends_map_t const &get_table_backends_map() const;
+
 private:
-    name_string_t database;
-    std::map<name_string_t,
-        std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > tables;
-    reql_cluster_interface_t *next;
+    bool next_or_error(admin_err_t *error_out) const;
+
+    table_backends_map_t m_table_backends;
+    std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+        m_auth_semilattice_view;
+    rdb_context_t *m_rdb_context;
+    reql_cluster_interface_t *m_next;
 };
 
-/* `admin_artificial_tables_t` constructs the `artificial_reql_cluster_interface_t` along
-with all of the tables that will go in it. */
-
-class admin_artificial_tables_t {
+class artificial_reql_cluster_backends_t {
 public:
-    admin_artificial_tables_t(
-            real_reql_cluster_interface_t *_next_reql_cluster_interface,
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                cluster_semilattice_metadata_t> > _semilattice_view,
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                auth_semilattice_metadata_t> > _auth_view,
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                heartbeat_semilattice_metadata_t> > _heartbeat_view,
-            clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
-                cluster_directory_metadata_t> > > _directory_view,
-            watchable_map_t<peer_id_t, cluster_directory_metadata_t>
-                *_directory_map_view,
-            table_meta_client_t *_table_meta_client,
-            server_config_client_t *_server_config_client,
-            namespace_repo_t *_namespace_repo,
-            mailbox_manager_t *_mailbox_manager);
-    reql_cluster_interface_t *get_reql_cluster_interface() {
-        return reql_cluster_interface.get();
-    }
+    artificial_reql_cluster_backends_t(
+        artificial_reql_cluster_interface_t *artificial_reql_cluster_interface,
+        real_reql_cluster_interface_t *real_reql_cluster_interface,
+        std::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t>>
+            auth_semilattice_view,
+        std::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t>>
+            cluster_semilattice_view,
+        std::shared_ptr<semilattice_readwrite_view_t<heartbeat_semilattice_metadata_t>>
+            heartbeat_semilattice_view,
+        clone_ptr_t<watchable_t<change_tracking_map_t<
+            peer_id_t, cluster_directory_metadata_t>>> directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_map_view,
+        table_meta_client_t *table_meta_client,
+        server_config_client_t *server_config_client,
+        mailbox_manager_t *mailbox_manager,
+        rdb_context_t *rdb_context,
+        lifetime_t<name_resolver_t const &> name_resolver);
 
-    /* These variables exist only to manage the lifetimes of the various backends; they
-    are initialized in the constructor and then passed to the `reql_cluster_interface`,
-    but not used after that.
+private:
+    using backend_sentry_t = map_insertion_sentry_t<
+        artificial_reql_cluster_interface_t::table_backends_map_t::key_type,
+        artificial_reql_cluster_interface_t::table_backends_map_t::mapped_type>;
 
-    The arrays of two backends are used when the contents of the table depends on the
-    identifier format; one backend uses names and the other uses UUIDs. */
+    scoped_ptr_t<auth::permissions_artificial_table_backend_t>
+        permissions_backend[2];
+    backend_sentry_t permissions_sentry;
+
+    scoped_ptr_t<auth::users_artificial_table_backend_t> users_backend;
+    backend_sentry_t users_sentry;
 
     scoped_ptr_t<cluster_config_artificial_table_backend_t> cluster_config_backend;
+    backend_sentry_t cluster_config_sentry;
+
     scoped_ptr_t<db_config_artificial_table_backend_t> db_config_backend;
+    backend_sentry_t db_config_sentry;
+
     scoped_ptr_t<issues_artificial_table_backend_t> issues_backend[2];
+    backend_sentry_t issues_sentry;
+
     scoped_ptr_t<logs_artificial_table_backend_t> logs_backend[2];
+    backend_sentry_t logs_sentry;
+
     scoped_ptr_t<server_config_artificial_table_backend_t> server_config_backend;
-    scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend;
+    backend_sentry_t server_config_sentry;
+
+    scoped_ptr_t<server_status_artificial_table_backend_t> server_status_backend[2];
+    backend_sentry_t server_status_sentry;
+
     scoped_ptr_t<stats_artificial_table_backend_t> stats_backend[2];
+    backend_sentry_t stats_sentry;
+
     scoped_ptr_t<table_config_artificial_table_backend_t> table_config_backend[2];
+    backend_sentry_t table_config_sentry;
+
     scoped_ptr_t<table_status_artificial_table_backend_t> table_status_backend[2];
+    backend_sentry_t table_status_sentry;
+
+    scoped_ptr_t<jobs_artificial_table_backend_t> jobs_backend[2];
+    backend_sentry_t jobs_sentry;
 
     scoped_ptr_t<in_memory_artificial_table_backend_t> debug_scratch_backend;
+    backend_sentry_t debug_scratch_sentry;
+
     scoped_ptr_t<debug_stats_artificial_table_backend_t> debug_stats_backend;
+    backend_sentry_t debug_stats_sentry;
+
     scoped_ptr_t<debug_table_status_artificial_table_backend_t>
         debug_table_status_backend;
-
-    scoped_ptr_t<artificial_reql_cluster_interface_t> reql_cluster_interface;
-    scoped_ptr_t<jobs_artificial_table_backend_t> jobs_backend[2];
+    backend_sentry_t debug_table_status_sentry;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ARTIFICIAL_REQL_CLUSTER_INTERFACE_HPP_ */
-

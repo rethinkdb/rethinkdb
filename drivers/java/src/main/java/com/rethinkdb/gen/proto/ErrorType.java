@@ -15,7 +15,8 @@ public enum ErrorType {
     NON_EXISTENCE(3100000),
     OP_FAILED(4100000),
     OP_INDETERMINATE(4200000),
-    USER(5000000);
+    USER(5000000),
+    PERMISSION_ERROR(6000000);
 
     public final int value;
 
@@ -32,6 +33,7 @@ public enum ErrorType {
             case 4100000: return ErrorType.OP_FAILED;
             case 4200000: return ErrorType.OP_INDETERMINATE;
             case 5000000: return ErrorType.USER;
+            case 6000000: return ErrorType.PERMISSION_ERROR;
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for ErrorType", value));

@@ -12,10 +12,8 @@ import org.json.simple.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.util.*;
 import java.nio.ByteBuffer;
-import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 
 
@@ -32,10 +30,11 @@ class Response {
     static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public static Response parseFrom(long token, ByteBuffer buf) {
-        Response.logger.debug("JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
-        InputStreamReader codepointReader =
-            new InputStreamReader(new ByteArrayInputStream(buf.array()));
-        JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
+        if (Response.logger.isDebugEnabled()) {
+            Response.logger.debug(
+                    "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
+        }
+        JSONObject jsonResp = Util.toJSON(buf);
         ResponseType responseType = ResponseType.fromValue(
                 ((Long) jsonResp.get("t")).intValue()
         );

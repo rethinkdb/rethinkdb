@@ -35,15 +35,15 @@ private:
 class constant_term_t : public op_term_t {
 public:
     constant_term_t(compile_env_t *env, const raw_term_t &term,
-                    double constant, const char *name)
-        : op_term_t(env, term, argspec_t(0)), _constant(constant), _name(name) { }
+                    double constant, const char *_name)
+        : op_term_t(env, term, argspec_t(0)), constant_(constant), name_(_name) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(datum_t(_constant));
+        return new_val(datum_t(constant_));
     }
-    virtual const char *name() const { return _name; }
-    const double _constant;
-    const char *const _name;
+    virtual const char *name() const { return name_; }
+    const double constant_;
+    const char *const name_;
 };
 
 class make_array_term_t : public op_term_t {
@@ -80,11 +80,11 @@ public:
                base_exc_t::LOGIC,
                "MAKE_OBJ term must not have any args.");
 
-        term.each_optarg([&](const raw_term_t &o, const std::string &name) {
+        term.each_optarg([&](const raw_term_t &o, const std::string &arg_name) {
                 counted_t<const term_t> t = compile_term(env, o);
-                auto res = optargs.insert(std::make_pair(name, std::move(t)));
+                auto res = optargs.insert(std::make_pair(arg_name, std::move(t)));
                 rcheck(res.second, base_exc_t::LOGIC,
-                       strprintf("Duplicate object key: %s.", name.c_str()));
+                       strprintf("Duplicate object key: %s.", arg_name.c_str()));
             });
     }
 

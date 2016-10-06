@@ -1,6 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "clustering/administration/metadata.hpp"
 #include "containers/archive/archive.hpp"
@@ -47,15 +46,9 @@ void assign(T *target, T value) {
 
 /* `SingleMetadata` tests metadata's properties on a single node. */
 TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
-    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
-    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
-        heartbeat_manager(heartbeat_semilattice_metadata);
-
     connectivity_cluster_t c;
     semilattice_manager_t<sl_int_t> slm(&c, 'S', sl_int_t(2));
-    connectivity_cluster_t::run_t cr(
-        &c, server_id_t::generate_server_id(), get_unittest_addresses(),
-        peer_address_t(), ANY_PORT, 0, heartbeat_manager.get_view(), nullptr);
+    test_cluster_run_t cr(&c);
 
     /* Make sure that metadata works properly when passed to the constructor */
     EXPECT_EQ(2u, slm.get_root_view()->get().i);
@@ -69,24 +62,16 @@ TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
 /* `MetadataExchange` makes sure that metadata is correctly exchanged between
 nodes. */
 TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
-    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
-    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
-        heartbeat_manager(heartbeat_semilattice_metadata);
-
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
                                     slm2(&cluster2, 'S', sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view(), nullptr);
-    connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view(), nullptr);
+    test_cluster_run_t run1(&cluster1);
+    test_cluster_run_t run2(&cluster2);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
 
-    run1.join(get_cluster_local_address(&cluster2));
+    run1.join(get_cluster_local_address(&cluster2), 0);
 
     /* Block until the connection is established */
     signal_timer_t timeout;
@@ -111,19 +96,11 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
 }
 
 TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
-    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
-    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
-        heartbeat_manager(heartbeat_semilattice_metadata);
-
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
                                     slm2(&cluster2, 'S', sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view(), nullptr);
-    connectivity_cluster_t::run_t run2(&cluster2, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view(), nullptr);
+    test_cluster_run_t run1(&cluster1);
+    test_cluster_run_t run2(&cluster2);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -133,7 +110,7 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     EXPECT_THROW(slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
     EXPECT_THROW(slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
 
-    run1.join(get_cluster_local_address(&cluster2));
+    run1.join(get_cluster_local_address(&cluster2), 0);
 
     /* Block until the connection is established */
     signal_timer_t timeout;
@@ -154,15 +131,9 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
 changes. */
 
 TPTEST(RPCSemilatticeTest, Watcher, 2) {
-    heartbeat_semilattice_metadata_t heartbeat_semilattice_metadata;
-    dummy_semilattice_controller_t<heartbeat_semilattice_metadata_t>
-        heartbeat_manager(heartbeat_semilattice_metadata);
-
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, 'S', sl_int_t(2));
-    connectivity_cluster_t::run_t run(&cluster, server_id_t::generate_server_id(),
-        get_unittest_addresses(), peer_address_t(), ANY_PORT, 0,
-        heartbeat_manager.get_view(), nullptr);
+    test_cluster_run_t run(&cluster);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
@@ -201,7 +172,7 @@ TPTEST_MULTITHREAD(RPCSemilatticeTest, FieldView, 3) {
     dummy_semilattice_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
-    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
+    std::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
         metadata_field(&sl_pair_t::x, controller.get_view());
 
     EXPECT_EQ(8u, x_view->get().i);
@@ -226,7 +197,7 @@ TPTEST_MULTITHREAD(RPCSemilatticeTest, MemberView, 3) {
     dummy_semilattice_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
-    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
+    std::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
         metadata_member(std::string("foo"), controller.get_view());
 
     EXPECT_EQ(8u, foo_view->get().i);

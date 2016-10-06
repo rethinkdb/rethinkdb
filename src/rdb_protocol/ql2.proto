@@ -48,6 +48,7 @@ message VersionDummy { // We need to wrap it like this for some
         V0_2      = 0x723081e1; // Authorization key during handshake
         V0_3      = 0x5f75e83e; // Authorization key and protocol during handshake
         V0_4      = 0x400c2d20; // Queries execute in parallel
+        V1_0      = 0x34c2bdc3; // Users and permissions
     }
 
     // The protocol to use after the handshake, specified in V0_3
@@ -149,6 +150,7 @@ message Response {
         OP_FAILED = 4100000;
         OP_INDETERMINATE = 4200000;
         USER = 5000000;
+        PERMISSION_ERROR = 6000000;
     }
     optional ErrorType error_type = 7;
 
@@ -552,6 +554,11 @@ message Term {
         // written to disk.
         SYNC          = 138; // Table -> OBJECT
 
+        // Set global, database, or table-specific permissions
+        GRANT         = 188; //          -> OBJECT
+                             // Database -> OBJECT
+                             // Table    -> OBJECT
+
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
         INDEX_CREATE = 75; // Table, STRING, Function(1), {multi:BOOL} -> OBJECT
@@ -568,6 +575,12 @@ message Term {
         INDEX_WAIT = 140; // Table, STRING... -> ARRAY
         // Renames the given index to a new name
         INDEX_RENAME = 156; // Table, STRING, STRING, {overwrite:BOOL} -> OBJECT
+
+        // * Write hook Function OPs
+        // Creates a new write hook function with a particular definition
+        SET_WRITE_HOOK = 189; // Table, Function(2)
+        // Gets an existing write hook function on a table
+        GET_WRITE_HOOK = 190; // Table
 
         // * Control Operators
         // Calls a function on data

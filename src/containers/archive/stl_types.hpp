@@ -4,6 +4,7 @@
 
 #include <inttypes.h>
 
+#include <array>
 #include <deque>
 #include <limits>
 #include <list>  // ugh
@@ -18,9 +19,7 @@
 #include "containers/archive/varint.hpp"
 #include "version.hpp"
 
-namespace std {
-
-// Implementations for deque, pair, map, set, string, and vector.
+// Implementations for deque, pair, map, set, string, vector, and array.
 
 template <cluster_version_t W, class T, class U>
 size_t serialized_size(const std::pair<T, U> &p) {
@@ -239,6 +238,37 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::list<T> *v) {
     return archive_result_t::SUCCESS;
 }
 
-}  /* namespace std */
+template <cluster_version_t W, class T, std::size_t N>
+void serialize(write_message_t *write_message, std::array<T, N> const &values) {
+    serialize_varint_uint64(write_message, N);
+    for (T const & value : values) {
+        serialize<W>(write_message, value);
+    }
+}
+
+template <cluster_version_t W, class T, std::size_t N>
+MUST_USE archive_result_t deserialize(read_stream_t *read_stream, std::array<T, N> *values) {
+    uint64_t sz = 0;
+    archive_result_t archive_result = deserialize_varint_uint64(read_stream, &sz);
+    if (bad(archive_result)) {
+        return archive_result;
+    }
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    size_t size = static_cast<size_t>(sz);
+    if (size != N) {
+        return archive_result_t::RANGE_ERROR;
+    }
+
+    for (std::size_t i = 0; i < size; ++i) {
+        archive_result = deserialize<W>(read_stream, &((*values)[i]));
+        if (bad(archive_result)) {
+            return archive_result;
+        }
+    }
+
+    return archive_result_t::SUCCESS;
+}
 
 #endif  // CONTAINERS_ARCHIVE_STL_TYPES_HPP_

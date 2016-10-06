@@ -14,10 +14,12 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
+#include "containers/lifetime.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -36,12 +38,14 @@ class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
 class namespace_interface_access_t;
+class name_resolver_t;
 class real_superblock_t;
 class sindex_superblock_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
-typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+// The string is the btree index key
+typedef std::pair<ql::datum_t, std::string> index_pair_t;
 typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
 
 namespace ql {
@@ -132,6 +136,7 @@ struct keyspec_t {
         boost::optional<std::string> sindex;
         sorting_t sorting;
         datumspec_t datumspec;
+        boost::optional<datum_t> intersect_geometry;
     };
     struct empty_t { };
     struct limit_t {
@@ -210,19 +215,20 @@ public:
             namespace_interface_access_t(
                 const namespace_id_t &,
                 signal_t *)
-            > &_namespace_source
-        );
+            > &_namespace_source,
+        lifetime_t<name_resolver_t const &> _name_resolver);
     ~client_t();
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
         const streamspec_t &ss,
-        const namespace_id_t &uuid,
+        const namespace_id_t &table_id,
         backtrace_id_t bt);
     void maybe_remove_feed(
         const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
     scoped_ptr_t<real_feed_t> detach_feed(
-        const auto_drainer_t::lock_t &lock, const namespace_id_t &uuid);
+        const auto_drainer_t::lock_t &lock,
+        real_feed_t *expected_feed);
 private:
     friend class subscription_t;
     mailbox_manager_t *const manager;
@@ -231,6 +237,7 @@ private:
             const namespace_id_t &,
             signal_t *)
         > const namespace_source;
+    name_resolver_t const &name_resolver;
     std::map<namespace_id_t, scoped_ptr_t<real_feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_stream` is called, and needs to be written to whenever
@@ -271,6 +278,10 @@ public:
     typedef typename
     std::set<diterator, std::function<bool(const diterator &,
                                            const diterator &)> >::iterator iterator;
+    typedef typename
+    std::set<diterator, std::function<bool(const diterator &,
+                                           const diterator &)> >::const_iterator
+    const_iterator;
 
     explicit index_queue_t(Gt gt) : index(gt) { }
 
@@ -289,7 +300,6 @@ public:
             guarantee(pair.second);
             it = pair.first;
         } else {
-            guarantee(k == p.first->second.first);
             it = index.find(p.first);
             guarantee(it != index.end());
         }
@@ -297,13 +307,15 @@ public:
         return std::make_pair(it, p.second);
     }
 
-    size_t size() {
+    size_t size() const {
         guarantee(data.size() == index.size());
         return data.size();
     }
 
     iterator begin() { return index.begin(); }
     iterator end() { return index.end(); }
+    const_iterator begin() const { return index.begin(); }
+    const_iterator end() const { return index.end(); }
     // This is sometimes called after `**raw_it` has been invalidated, so we
     // can't just dispatch to the `erase(diterator)` implementation above.
     void erase(const iterator &raw_it) {
@@ -387,8 +399,10 @@ public:
         rwlock_in_line_t *clients_lock,
         region_t _region,
         std::string _table,
+        boost::optional<uuid_u> _sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -413,14 +427,13 @@ public:
 
     const region_t region;
     const std::string table;
+    const boost::optional<uuid_u> sindex_id;
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
     std::vector<item_t> read_more(
         const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-        sorting_t sorting,
-        const boost::optional<item_queue_t::iterator> &start,
-        size_t n);
+        const boost::optional<item_t> &start);
     void send(msg_t &&msg);
 
     scoped_ptr_t<env_t> env;
@@ -434,8 +447,8 @@ private:
     limit_order_t gt;
     item_queue_t item_queue;
 
-    std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > > added;
-    std::vector<std::string> deleted;
+    std::map<std::string, std::pair<datum_t, datum_t> > added;
+    std::set<std::string> deleted;
 
     bool aborted;
 public:
@@ -461,8 +474,10 @@ public:
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
+        const boost::optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
+        auth::user_context_t user_context,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -483,7 +498,8 @@ public:
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
     void foreach_limit(
-        const boost::optional<std::string> &s,
+        const boost::optional<std::string> &sindex_name,
+        const boost::optional<uuid_u> &sindex_id,
         const store_key_t *pkey, // NULL if none
         std::function<void(rwlock_in_line_t *,
                            rwlock_in_line_t *,
@@ -491,7 +507,7 @@ public:
                            limit_manager_t *)> f,
         const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING;
     bool has_limit(
-        const boost::optional<std::string> &s,
+        const boost::optional<std::string> &sindex_name,
         const auto_drainer_t::lock_t &keepalive);
     auto_drainer_t::lock_t get_keepalive();
 private:
@@ -567,7 +583,9 @@ private:
 class artificial_feed_t;
 class artificial_t : public home_thread_mixin_t {
 public:
-    artificial_t();
+    artificial_t(
+        namespace_id_t const &table_id,
+        lifetime_t<name_resolver_t const &> name_resolver);
     virtual ~artificial_t();
 
     /* Rules for synchronization between `subscribe()` and `send_all()`:

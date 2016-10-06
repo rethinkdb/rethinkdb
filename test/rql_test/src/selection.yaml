@@ -84,10 +84,10 @@ tests:
 
     # db and table name validation
     - cd: r.db('%')
-      ot: err("ReqlQueryLogicError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("ReqlQueryLogicError", 'Database name `%` invalid (Use A-Z, a-z, 0-9, _ and - only).', [0])
 
     - cd: r.db('test').table('%')
-      ot: err("ReqlQueryLogicError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("ReqlQueryLogicError", 'Table name `%` invalid (Use A-Z, a-z, 0-9, _ and - only).', [0])
 
     # Access a table from default db
     - cd: tbl.count()

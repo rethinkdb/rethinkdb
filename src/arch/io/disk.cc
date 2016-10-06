@@ -112,13 +112,13 @@ public:
                                a));
     }
 
-    void submit_resize(fd_t fd, int64_t new_size,
+    void submit_resize(fd_t fd, int64_t old_size, int64_t new_size,
                       void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
         threadnum_t calling_thread = get_thread_id();
 
         action_t *a = new action_t(calling_thread, cb);
-        a->make_resize(fd, new_size, wrap_in_datasyncs);
+        a->make_resize(fd, old_size, new_size, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
 
         do_on_thread(home_thread(),
@@ -230,9 +230,7 @@ int64_t linux_file_t::get_file_size() {
     return file_size;
 }
 
-/* If you want to use this for downsizing a file, please check the WARNING about
-`set_file_size()` in disk.hpp. */
-void linux_file_t::set_file_size(int64_t size) {
+void linux_file_t::set_file_size(int64_t new_size) {
     assert_thread();
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
@@ -250,17 +248,19 @@ void linux_file_t::set_file_size(int64_t size) {
     };
     rs_callback_t *rs_callback = new rs_callback_t();
     rs_callback->lock = file_size_ops_drainer.lock();
-    diskmgr->submit_resize(fd.get(), size, default_account->get_account(),
+    diskmgr->submit_resize(fd.get(), file_size, new_size,
+                           default_account->get_account(),
                            rs_callback, true);
 
-    file_size = size;
+    file_size = new_size;
 }
 
 // For growing in large chunks at a time.
 int64_t chunk_factor(int64_t size) {
-    // x is at most 6.25% of size.
-    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 16)) * DEFAULT_EXTENT_SIZE;
-    return clamp<int64_t>(x, DEVICE_BLOCK_SIZE * 128, DEFAULT_EXTENT_SIZE * 64);
+    // x is at most 12.5% of size. Overall we align to chunks no larger than
+    // 64 extents.
+    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 8)) * DEFAULT_EXTENT_SIZE;
+    return clamp<int64_t>(x, DEFAULT_EXTENT_SIZE, DEFAULT_EXTENT_SIZE * 64);
 }
 
 void linux_file_t::set_file_size_at_least(int64_t size) {
@@ -430,14 +430,31 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         crash("Bad file access mode.");
     }
 
-    // TODO WINDOWS: is all this sharing necessary? According to issue #5165, it doesn't even work
+    // TODO WINDOWS: is all this sharing necessary?
     DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
-    fd.reset(CreateFile(path, access_mode, share_mode, nullptr, create_mode, FILE_ATTRIBUTE_NORMAL, nullptr));
+    DWORD attributes = FILE_ATTRIBUTE_NORMAL;
+
+    // Supporting fully unbuffered file i/o on Windows would require
+    // aligning all reads and writes to the sector size of the volume
+    // (See docs for FILE_FLAG_NO_BUFFERING).
+    //
+    // Instead we only use FILE_FLAG_WRITE_THROUGH
+    DWORD flags =
+        backender->get_direct_io_mode() == file_direct_io_mode_t::direct_desired
+        ? FILE_FLAG_WRITE_THROUGH
+        : 0;
+
+    fd.reset(CreateFile(path, access_mode, share_mode, nullptr, create_mode, flags | attributes, nullptr));
     if (fd.get() == INVALID_FD) {
         logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
         return file_open_result_t(file_open_result_t::ERROR, EIO);
     }
+
+    file_open_result_t open_res = file_open_result_t(flags & FILE_FLAG_WRITE_THROUGH
+                                                     ? file_open_result_t::DIRECT
+                                                     : file_open_result_t::BUFFERED,
+                                                     0);
 
 #else
     // Construct file flags
@@ -495,7 +512,6 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     if (fd.get() == INVALID_FD) {
         return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
-#endif
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
@@ -556,6 +572,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     default:
         unreachable();
     }
+#endif
 
     const int64_t file_size = get_file_size(fd.get());
 
@@ -594,8 +611,11 @@ int perform_datasync(fd_t fd) {
 
 #elif defined(_WIN32)
 
-    // TODO WINDOWS
-    (void) fd;
+    BOOL res = FlushFileBuffers(fd);
+    if (!res) {
+        logWRN("FlushFileBuffers failed: %s", winerr_string(GetLastError()).c_str());
+        return EIO;
+    }
     return 0;
 
 #elif defined(__linux__)

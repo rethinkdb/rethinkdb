@@ -22,7 +22,7 @@ with driver.Cluster(initial_servers=["a", "b"], output_folder='.', command_prefi
     res = r.table_create("test", replicas=2).run(conn)
     table_uuid = res["config_changes"][0]["new_val"]["id"]
     
-    r.table("test").wait().run(conn)
+    r.table("test").wait(wait_for="all_replicas_ready").run(conn)
     r.table("test").insert(r.range(1000).map({"value": r.row})).run(conn)
     
     assert os.path.exists(os.path.join(cluster[0].data_path, table_uuid))

@@ -95,13 +95,13 @@ S2R2Rect S2R2Rect::Union(S2R2Rect const& other) const {
 }
 
 S2R2Rect S2R2Rect::Intersection(S2R2Rect const& other) const {
-  R1Interval x = x_.Intersection(other.x_);
-  R1Interval y = y_.Intersection(other.y_);
-  if (x.is_empty() || y.is_empty()) {
+  R1Interval _x = x_.Intersection(other.x_);
+  R1Interval _y = y_.Intersection(other.y_);
+  if (_x.is_empty() || _y.is_empty()) {
     // The x/y ranges must either be both empty or both non-empty.
     return Empty();
   }
-  return S2R2Rect(x, y);
+  return S2R2Rect(_x, _y);
 }
 
 bool S2R2Rect::ApproxEquals(S2R2Rect const& other, double max_error) const {

@@ -28,7 +28,7 @@ class S2Cell : public S2Region {
 
   // An S2Cell always corresponds to a particular S2CellId.  The other
   // constructors are just convenience methods.
-  explicit S2Cell(S2CellId const& id) { Init(id); }
+  explicit S2Cell(S2CellId const& _id) { Init(_id); }
 
   static S2Cell FromFacePosLevel(int face, uint64 pos, int level) {
     // This is a static method in order to provide named parameters.

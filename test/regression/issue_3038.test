@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2014-2016 RethinkDB, all rights reserved.
 
 # issue-url: https://github.com/rethinkdb/rethinkdb/issues/3038
 # issue-description: when a primary replica suddenly dies changefeed requests to that server are not cleaned up correctly
@@ -45,7 +45,7 @@ with driver.Cluster(initial_servers=2, console_output=True) as cluster:
         {'primary_replica':sacrificeServer.name, 'replicas':[sacrificeServer.name]}
     ]
     assert (r.db(dbName).table(tableName).config().update({'shards':shardPlan}).run(conn))['errors'] == 0
-    r.db(dbName).table(tableName).wait().run(conn)
+    r.db(dbName).table(tableName).wait(wait_for="all_replicas_ready").run(conn)
     
     # == open a changefeed
     

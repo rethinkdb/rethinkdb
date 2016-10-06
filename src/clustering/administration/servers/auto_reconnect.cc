@@ -12,10 +12,14 @@
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
-        server_config_client_t *server_config_client_) :
+        server_config_client_t *server_config_client_,
+        const int join_delay_secs_,
+        const int give_up_ms_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
     server_config_client(server_config_client_),
+    join_delay_secs(join_delay_secs_),
+    give_up_ms(give_up_ms_),
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
@@ -58,7 +62,6 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
-    static const int give_up_ms = 24 * 60 * 60 * 1000;
     signal_timer_t give_up_timer;
     give_up_timer.start(give_up_ms);
 
@@ -79,12 +82,54 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
         },
         initial_call_t::YES);
 
-    wait_any_t interruptor(&reconnected, &give_up_timer, keepalive.get_drain_signal());
-
+    cond_t join_failed;
+    wait_any_t interruptor(
+        &reconnected, &give_up_timer, keepalive.get_drain_signal(), &join_failed);
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
+        // These can be safely passed into the coroutine below.
+        // They will be reset to `nullptr` by the assignment_sentry_ts when this function
+        // call ends.
+        std::shared_ptr<cond_t *> join_failed_out(new cond_t *(nullptr));
+        std::shared_ptr<peer_address_t *> last_known_address_out(
+            new peer_address_t *(nullptr));
+        assignment_sentry_t<cond_t *> join_failed_out_assignment(
+            join_failed_out.get(), &join_failed);
+        assignment_sentry_t<peer_address_t *> last_known_address_out_assignment(
+            last_known_address_out.get(), &last_known_address);
+
         while (!interruptor.is_pulsed()) {
-            connectivity_cluster_run->join(last_known_address);
+            // This coroutine can keep running even after this function has returned
+            // or the auto_reconnector_t was destructed. So we must pass everything
+            // we need by value.
+
+            coro_t::spawn_now_dangerously(
+                [this, last_known_address, server, join_failed_out, last_known_address_out]() {
+                auto connectivity_cluster_run_local = connectivity_cluster_run;
+                auto join_delay_secs_local = join_delay_secs;
+
+                join_results_t results =
+                    connectivity_cluster_run_local->join_blocking(
+                        last_known_address, boost::none, server,
+                        join_delay_secs_local,
+                        auto_drainer_t::lock_t(&connectivity_cluster_run_local->drainer));
+
+                // Check if the `try_reconnect` function that spawned us is still alive
+                if (*join_failed_out != nullptr && *last_known_address_out != nullptr) {
+                    ASSERT_NO_CORO_WAITING;
+
+                    for (auto r = results.begin(); r != results.end(); ++r) {
+                        if (r->second != join_result_t::PERMANENT_ERROR) continue;
+                        (*last_known_address_out)->erase_ip(r->first);
+                        if (last_known_address.ips().empty()) {
+                            logNTC("Unrecoverable connection error to remote server: %s",
+                                server.print().c_str());
+                            (*join_failed_out)->pulse_if_not_already_pulsed();
+                        }
+                    }
+                }
+            });
+
             backoff.failure(&interruptor);
         }
     } catch (const interrupted_exc_t &) {

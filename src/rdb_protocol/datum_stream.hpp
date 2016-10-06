@@ -127,8 +127,8 @@ private:
 
 class eager_datum_stream_t : public datum_stream_t {
 protected:
-    explicit eager_datum_stream_t(backtrace_id_t bt)
-        : datum_stream_t(bt) { }
+    explicit eager_datum_stream_t(backtrace_id_t _bt)
+        : datum_stream_t(_bt) { }
     virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
 
@@ -311,10 +311,12 @@ private:
         profile::sampler_t *merge_sampler;
         lt_cmp_t *merge_lt_cmp;
         bool operator()(const merge_cache_item_t &a, const merge_cache_item_t &b) {
-            return !merge_lt_cmp->operator()(merge_env,
-                                             merge_sampler,
-                                             a.value,
-                                             b.value);
+            // We swap `a` and `b` intentionally here, so that the
+            // `priority_queue` has the *smallest* element on top.
+            return merge_lt_cmp->operator()(merge_env,
+                                            merge_sampler,
+                                            b.value,
+                                            a.value);
         }
     };
 
@@ -448,6 +450,7 @@ private:
     // changefeed stream and return a partial batch.  (We still time out and
     // return partial batches, or even empty batches, for the web UI in the case
     // of a changefeed stream.)
+    std::vector<std::deque<datum_t> > cache;
     std::vector<datum_t> args;
 };
 
@@ -536,7 +539,7 @@ void debug_print(printf_buffer_t *buf, const active_ranges_t &ar);
 class readgen_t {
 public:
     explicit readgen_t(
-        global_optargs_t global_optargs,
+        serializable_env_t s_env,
         std::string table_name,
         profile_bool_t profile,
         read_mode_t read_mode,
@@ -572,7 +575,7 @@ public:
     // Returns `sorting_` unless the batchspec overrides it.
     sorting_t sorting(const batchspec_t &batchspec) const;
 protected:
-    const global_optargs_t global_optargs;
+    const serializable_env_t serializable_env;
     const std::string table_name;
     const profile_bool_t profile;
     const read_mode_t read_mode;
@@ -582,7 +585,7 @@ protected:
 class rget_readgen_t : public readgen_t {
 public:
     explicit rget_readgen_t(
-        global_optargs_t global_optargs,
+        serializable_env_t s_env,
         std::string table_name,
         const datumspec_t &datumspec,
         profile_bool_t profile,
@@ -625,7 +628,7 @@ public:
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
-    primary_readgen_t(global_optargs_t global_optargs,
+    primary_readgen_t(serializable_env_t s_env,
                       std::string table_name,
                       const datumspec_t &datumspec,
                       profile_bool_t profile,
@@ -668,7 +671,7 @@ public:
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 private:
     sindex_readgen_t(
-        global_optargs_t global_optargs,
+        serializable_env_t s_env,
         std::string table_name,
         const std::string &sindex,
         const datumspec_t &datumspec,
@@ -684,7 +687,7 @@ private:
         const batchspec_t &batchspec) const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-            std::vector<transform_variant_t> transforms) const;
+        std::vector<transform_variant_t> transforms) const;
 
     const std::string sindex;
     bool sent_first_read;
@@ -719,14 +722,11 @@ public:
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
-        std::vector<transform_variant_t>) const {
-        rfail_datum(base_exc_t::LOGIC,
-                    "%s", "Cannot call `changes` on an intersection read.");
-        unreachable();
-    }
+        std::vector<transform_variant_t>) const;
+
 private:
     intersecting_readgen_t(
-        global_optargs_t global_optargs,
+        serializable_env_t s_env,
         std::string table_name,
         const std::string &sindex,
         const datum_t &query_geometry,
@@ -794,6 +794,58 @@ public:
 private:
     counted_t<real_table_t> table;
     std::string table_name;
+};
+
+class vector_reader_t : public reader_t {
+public:
+    explicit vector_reader_t(std::vector<datum_t> &&_items) :
+        finished(false),
+        items(std::move(_items)) {
+    }
+    virtual ~vector_reader_t() {}
+    virtual void add_transformation(transform_variant_t &&) {
+        r_sanity_fail();
+    }
+    virtual bool add_stamp(changefeed_stamp_t) {
+        r_sanity_fail();
+    }
+    virtual boost::optional<active_state_t> get_active_state() {
+        r_sanity_fail();
+    }
+    virtual void accumulate(env_t *, eager_acc_t *, const terminal_variant_t &) {
+        r_sanity_fail();
+    }
+    virtual void accumulate_all(env_t *, eager_acc_t *) {
+        r_sanity_fail();
+    }
+    virtual std::vector<datum_t> next_batch(env_t *, const batchspec_t &) {
+        r_sanity_check(!finished);
+        finished = true;
+        return std::move(items);
+    }
+    std::vector<rget_item_t> raw_next_batch(
+        env_t *, const batchspec_t &) final {
+        r_sanity_check(!finished);
+        std::vector<rget_item_t> rget_items;
+        for (auto it = items.begin(); it != items.end(); ++it) {
+            rget_item_t item;
+            item.data = std::move(*it);
+            rget_items.push_back(std::move(item));
+        }
+        items.clear();
+        finished = true;
+        return rget_items;
+    }
+    virtual bool is_finished() const {
+        return finished;
+    }
+    virtual changefeed::keyspec_t get_changespec() const {
+        r_sanity_fail();
+    }
+
+private:
+    bool finished;
+    std::vector<datum_t> items;
 };
 
 // For reads that generate read_response_t results.
@@ -883,8 +935,11 @@ protected:
 private:
     std::vector<rget_item_t> do_intersecting_read(env_t *env, const read_t &read);
 
-    // To detect duplicates
-    std::set<store_key_t> processed_pkeys;
+    // Each secondary index value might be inserted into a geospatial index multiple
+    // times, and we need to remove those duplicates across batches.
+    // We keep track of pairs of primary key and optional multi-index tags in order
+    // to detect and remove such duplicates.
+    std::set<std::pair<std::string, boost::optional<uint64_t> > > processed_pkey_tags;
 };
 
 class lazy_datum_stream_t;

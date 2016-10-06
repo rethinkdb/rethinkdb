@@ -124,13 +124,13 @@ S2LatLngRect S2LatLngRect::Union(S2LatLngRect const& other) const {
 }
 
 S2LatLngRect S2LatLngRect::Intersection(S2LatLngRect const& other) const {
-  R1Interval lat = lat_.Intersection(other.lat_);
-  S1Interval lng = lng_.Intersection(other.lng_);
-  if (lat.is_empty() || lng.is_empty()) {
+  R1Interval _lat = lat_.Intersection(other.lat_);
+  S1Interval _lng = lng_.Intersection(other.lng_);
+  if (_lat.is_empty() || _lng.is_empty()) {
     // The lat/lng ranges must either be both empty or both non-empty.
     return Empty();
   }
-  return S2LatLngRect(lat, lng);
+  return S2LatLngRect(_lat, _lng);
 }
 
 S2LatLngRect S2LatLngRect::ConvolveWithCap(S1Angle const& angle) const {
@@ -226,12 +226,12 @@ bool S2LatLngRect::Decode(Decoder* decoder) {
   unsigned char version = decoder->get8();
   if (version > kCurrentEncodingVersionNumber) return false;
 
-  double lat_lo = decoder->getdouble();
-  double lat_hi = decoder->getdouble();
-  lat_ = R1Interval(lat_lo, lat_hi);
-  double lng_lo = decoder->getdouble();
-  double lng_hi = decoder->getdouble();
-  lng_ = S1Interval(lng_lo, lng_hi);
+  double _lat_lo = decoder->getdouble();
+  double _lat_hi = decoder->getdouble();
+  lat_ = R1Interval(_lat_lo, _lat_hi);
+  double _lng_lo = decoder->getdouble();
+  double _lng_hi = decoder->getdouble();
+  lng_ = S1Interval(_lng_lo, _lng_hi);
 
   DCHECK(is_valid());
 
@@ -365,15 +365,15 @@ S1Angle S2LatLngRect::GetDistance(S2LatLngRect const& other) const {
     // interval. This means the shortest path travels along some line of
     // longitude connecting the high-latitude of the lower rect with the
     // low-latitude of the higher rect.
-    S1Angle lo, hi;
+    S1Angle _lo, _hi;
     if (a.lat().lo() > b.lat().hi()) {
-      lo = b.lat_hi();
-      hi = a.lat_lo();
+      _lo = b.lat_hi();
+      _hi = a.lat_lo();
     } else {
-      lo = a.lat_hi();
-      hi = b.lat_lo();
+      _lo = a.lat_hi();
+      _hi = b.lat_lo();
     }
-    return hi - lo;
+    return _hi - _lo;
   }
 
   // The longitude intervals don't overlap. In this case, the closest points
@@ -428,11 +428,11 @@ S1Angle S2LatLngRect::GetDistance(S2LatLng const& p) const {
   } else {
     a_lng = a.lng().lo();
   }
-  S2Point lo = S2LatLng::FromRadians(a.lat().lo(), a_lng).ToPoint();
-  S2Point hi = S2LatLng::FromRadians(a.lat().hi(), a_lng).ToPoint();
+  S2Point _lo = S2LatLng::FromRadians(a.lat().lo(), a_lng).ToPoint();
+  S2Point _hi = S2LatLng::FromRadians(a.lat().hi(), a_lng).ToPoint();
   S2Point lo_cross_hi =
       S2LatLng::FromRadians(0, a_lng - M_PI_2).Normalized().ToPoint();
-  return S2EdgeUtil::GetDistance(p.ToPoint(), lo, hi, lo_cross_hi);
+  return S2EdgeUtil::GetDistance(p.ToPoint(), _lo, _hi, lo_cross_hi);
 }
 
 S1Angle S2LatLngRect::GetHausdorffDistance(S2LatLngRect const& other) const {

@@ -6,6 +6,7 @@
 
 #include "arch/address.hpp"
 #include "btree/secondary_operations.hpp"
+#include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -138,7 +139,8 @@ public:
             double duration,
             server_id_t const &server_id,
             ip_and_port_t const &client_addr_port,
-            std::string const &query);
+            std::string const &query,
+            auth::user_context_t const &user_context);
 
     void merge_derived(query_job_report_t const &job_report);
 
@@ -151,6 +153,7 @@ public:
 
     ip_and_port_t client_addr_port;
     std::string query;
+    auth::user_context_t user_context;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(query_job_report_t);
 
@@ -161,7 +164,7 @@ public:
                            std::vector<index_construction_job_report_t>,
                            std::vector<backfill_job_report_t>)> return_mailbox_t;
     typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_reports_mailbox_t;
-    typedef mailbox_t<void(uuid_u)> job_interrupt_mailbox_t;
+    typedef mailbox_t<void(uuid_u, auth::user_context_t)> job_interrupt_mailbox_t;
 
     get_job_reports_mailbox_t::address_t get_job_reports_mailbox_address;
     job_interrupt_mailbox_t::address_t job_interrupt_mailbox_address;

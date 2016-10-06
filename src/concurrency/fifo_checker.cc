@@ -41,8 +41,11 @@ bool order_bucket_t::valid() const {
 
 order_token_t::order_token_t() : bucket_(order_bucket_t::invalid()), value_(ORDER_INVALID) { }
 
-order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string &tag)
-    : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(tag) { }
+order_token_t::order_token_t(order_bucket_t bucket,
+                             int64_t x,
+                             bool read_mode,
+                             const std::string &_tag)
+    : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(_tag) { }
 
 order_token_t order_token_t::with_read_mode() const {
     return order_token_t(bucket_, value_, true, tag_);

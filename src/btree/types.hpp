@@ -21,4 +21,6 @@ protected:
 
 enum class release_superblock_t {RELEASE, KEEP};
 
+enum class is_stamp_read_t { NO, YES };
+
 #endif /* BTREE_TYPES_HPP_ */

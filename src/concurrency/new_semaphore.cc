@@ -1,9 +1,9 @@
 #include "concurrency/new_semaphore.hpp"
 
-new_semaphore_t::new_semaphore_t(int64_t capacity)
-    : capacity_(capacity), current_(0)
+new_semaphore_t::new_semaphore_t(int64_t _capacity)
+    : capacity_(_capacity), current_(0)
 {
-    guarantee(capacity > 0);
+    guarantee(_capacity > 0);
 }
 
 new_semaphore_t::~new_semaphore_t() {
@@ -64,17 +64,17 @@ void new_semaphore_in_line_t::reset() {
 new_semaphore_in_line_t::new_semaphore_in_line_t()
     : semaphore_(nullptr), count_(0) { }
 
-new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_t *semaphore, int64_t count)
+new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_t *semaphore, int64_t _count)
     : semaphore_(nullptr), count_(0) {
-    init(semaphore, count);
+    init(semaphore, _count);
 }
 
-void new_semaphore_in_line_t::init(new_semaphore_t *semaphore, int64_t count) {
+void new_semaphore_in_line_t::init(new_semaphore_t *semaphore, int64_t _count) {
     guarantee(semaphore_ == nullptr);
     rassert(count_ == 0);
-    guarantee(count >= 0);
+    guarantee(_count >= 0);
     semaphore_ = semaphore;
-    count_ = count;
+    count_ = _count;
     semaphore_->add_acquirer(this);
 }
 

@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"
@@ -23,17 +20,22 @@ class common_server_artificial_table_backend_t :
     public caching_cfeed_artificial_table_backend_t {
 public:
     common_server_artificial_table_backend_t(
+            name_string_t const &table_name,
+            rdb_context_t *rdb_context,
+            lifetime_t<name_resolver_t const &> name_resolver,
             server_config_client_t *_server_config_client,
             watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory);
 
     std::string get_primary_key_name();
 
     bool read_all_rows_as_vector(
+            auth::user_context_t const &user_context,
             signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
             admin_err_t *error_out);
 
     bool read_row(
+            auth::user_context_t const &user_context,
             ql::datum_t primary_key,
             signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
@@ -41,6 +43,7 @@ public:
 
 protected:
     virtual bool format_row(
+            auth::user_context_t const &user_context,
             server_id_t const & server_id,
             peer_id_t const & peer_id,
             cluster_directory_metadata_t const & directory_entry,
