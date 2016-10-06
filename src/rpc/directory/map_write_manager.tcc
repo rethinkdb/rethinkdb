@@ -4,9 +4,6 @@
 
 #include "rpc/directory/map_write_manager.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/boost_types.hpp"
 

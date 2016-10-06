@@ -8,7 +8,6 @@
 #include <re2/re2.h>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
@@ -358,8 +357,8 @@ http_server_t::http_server_t(
     try {
         tcp_listener.init(new tcp_listener_t(
             local_addresses, port,
-            boost::bind(
-                &http_server_t::handle_conn, this, _1,
+            std::bind(
+                &http_server_t::handle_conn, this, ph::_1,
                 auto_drainer_t::lock_t(&auto_drainer)
             )
         ));

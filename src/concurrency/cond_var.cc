@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/cond_var.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 

@@ -1,9 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/func.hpp"

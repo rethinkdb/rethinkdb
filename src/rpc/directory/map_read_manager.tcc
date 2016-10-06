@@ -4,9 +4,6 @@
 
 #include "rpc/directory/map_read_manager.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/boost_types.hpp"
 
@@ -47,7 +44,7 @@ void directory_map_read_manager_t<key_t, value_t>::on_message(
         throw fake_archive_exc_t();
     }
     auto_drainer_t::lock_t this_keepalive(per_thread_drainers.get());
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &directory_map_read_manager_t::do_update, this,
         connection->get_peer_id(), connection_keepalive, this_keepalive,
         timestamp, key, value));

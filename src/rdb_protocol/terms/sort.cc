@@ -4,9 +4,6 @@
 #include <string>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
@@ -118,7 +115,7 @@ private:
                 rcheck_array_size(to_sort, env->env->limits());
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
-            auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
+            auto fn = std::bind(lt_cmp, env->env, &sampler, ph::_1, ph::_2);
             std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
                 datum_t(std::move(to_sort), env->env->limits()),

@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/auto_reconnect.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/exponential_backoff.hpp"

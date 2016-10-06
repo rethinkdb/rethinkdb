@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/initial_join.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 
@@ -88,7 +85,7 @@ initial_joiner_t::initial_joiner_t(
         grace_period_timer.start(timeout_ms);
     }
 
-    coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
+    coro_t::spawn_sometime(std::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
 }
 
 static const int initial_retry_interval_ms = 200;
