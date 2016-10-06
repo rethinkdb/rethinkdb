@@ -4,12 +4,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-#include <array>
 #include <functional>
 #include <string>
 
-#include "debug.hpp"
 #include "arch/compiler.hpp"
 #include "config/args.hpp"
 #include "errors.hpp"

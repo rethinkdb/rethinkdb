@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <limits>
 
 #include "buffer_cache/alt.hpp"

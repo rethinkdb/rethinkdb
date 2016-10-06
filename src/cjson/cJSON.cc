@@ -25,14 +25,17 @@
 /* JSON parser in C. */
 
 #include "cjson/cJSON.hpp"
+
 #include <ctype.h>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cmath>
+
 #include "errors.hpp"
 #include "utils.hpp"
 

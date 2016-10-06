@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/keys.hpp"
 
+#include <algorithm>
+
 #include "debug.hpp"
 #include "utils.hpp"
 

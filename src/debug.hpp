@@ -5,7 +5,6 @@
 #include <string>
 
 #include "containers/printf_buffer.hpp"
-#include "stl_utils.hpp"
 #include "time.hpp"
 
 #ifndef NDEBUG

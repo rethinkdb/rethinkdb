@@ -1,5 +1,6 @@
 #include "clustering/administration/main/cache_size.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <string>
 
