@@ -4,6 +4,7 @@
 
 #include <utility>
 
+#include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/datum.hpp"

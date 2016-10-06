@@ -14,7 +14,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "btree/keys.hpp"
 #include "cjson/json.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
@@ -34,6 +33,8 @@
 class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
+
+struct store_key_t;
 
 namespace ql {
 
