@@ -160,7 +160,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"),
@@ -180,7 +180,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"),
@@ -286,7 +286,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -307,7 +307,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -338,7 +338,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -358,7 +358,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -400,7 +400,7 @@ void populate_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in(
@@ -462,7 +462,7 @@ void fuzz_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::fuzz_sindex(rdb_protocol.cc"),
@@ -590,7 +590,7 @@ void read_sindex(namespace_interface_t *nsi,
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"),
@@ -770,7 +770,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->write(
-                    auth::user_context_t(auth::permissions_t(true, true, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
                     write,
                     &response,
                     osource->check_in(
@@ -794,7 +794,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->read(
-                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                     read,
                     &response,
                     osource->check_in(
@@ -856,7 +856,7 @@ void run_sindex_missing_attr_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in(

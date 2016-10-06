@@ -45,7 +45,7 @@ bool permissions_artificial_table_backend_t::read_all_rows_as_vector(
         ql::datum_t row;
         if (global_to_datum(
                 username_t("admin"),
-                permissions_t(true, true, true, true),
+                permissions_t(tribool::True, tribool::True, tribool::True, tribool::True),
                 &row)) {
             rows_out->push_back(std::move(row));
         }
@@ -56,7 +56,7 @@ bool permissions_artificial_table_backend_t::read_all_rows_as_vector(
         if (database_to_datum(
                 username_t("admin"),
                 artificial_reql_cluster_interface_t::database_id,
-                permissions_t(true, true, true),
+                permissions_t(tribool::True, tribool::True, tribool::True),
                 cluster_metadata,
                 &row)) {
             rows_out->push_back(std::move(row));
@@ -142,7 +142,7 @@ bool permissions_artificial_table_backend_t::read_row(
             case 1:
                 global_to_datum(
                     username,
-                    permissions_t(true, true, true, true),
+                    permissions_t(tribool::True, tribool::True, tribool::True, tribool::True),
                     row_out);
                 break;
             case 2:
@@ -150,7 +150,7 @@ bool permissions_artificial_table_backend_t::read_row(
                     database_to_datum(
                         username,
                         database_id,
-                        permissions_t(true, true, true),
+                        permissions_t(tribool::True, tribool::True, tribool::True),
                         cluster_metadata,
                         row_out);
                 }
@@ -428,10 +428,10 @@ bool permissions_artificial_table_backend_t::write_row(
                 user->second.apply_write([](boost::optional<auth::user_t> *inner_user) {
                     inner_user->get().set_global_permissions(
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
             case 2:
@@ -439,9 +439,9 @@ bool permissions_artificial_table_backend_t::write_row(
                     inner_user->get().set_database_permissions(
                         database_id_primary,
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
             case 3:
@@ -449,9 +449,9 @@ bool permissions_artificial_table_backend_t::write_row(
                     inner_user->get().set_table_permissions(
                         table_id_primary,
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
         }

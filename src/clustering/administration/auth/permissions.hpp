@@ -4,9 +4,7 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include <boost/logic/tribool.hpp>
-
+#include "containers/tribool.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -19,29 +17,29 @@ public:
     // The two constructors below are for the non-global and global scopes
     // respectively
     permissions_t(
-        boost::tribool read,
-        boost::tribool write,
-        boost::tribool config);
+        tribool read,
+        tribool write,
+        tribool config);
     permissions_t(
-        boost::tribool read,
-        boost::tribool write,
-        boost::tribool config,
-        boost::tribool connect);
+        tribool read,
+        tribool write,
+        tribool config,
+        tribool connect);
     permissions_t(ql::datum_t const &datum, bool global);
 
     void merge(ql::datum_t const &datum);
 
-    boost::tribool get_read() const;
-    boost::tribool get_write() const;
-    boost::tribool get_config() const;
-    boost::tribool get_connect() const;
+    tribool get_read() const;
+    tribool get_write() const;
+    tribool get_config() const;
+    tribool get_connect() const;
 
     bool is_indeterminate() const;
 
-    void set_read(boost::tribool);
-    void set_write(boost::tribool);
-    void set_config(boost::tribool);
-    void set_connect(boost::tribool);
+    void set_read(tribool);
+    void set_write(tribool);
+    void set_config(tribool);
+    void set_connect(tribool);
 
     ql::datum_t to_datum() const;
 
@@ -53,12 +51,12 @@ public:
 private:
     std::tuple<int8_t, int8_t, int8_t, boost::optional<int8_t>> to_tuple() const;
 
-    boost::tribool m_read;
-    boost::tribool m_write;
-    boost::tribool m_config;
+    tribool m_read;
+    tribool m_write;
+    tribool m_config;
 
     // The `connect` permission is only available at the global scope
-    boost::optional<boost::tribool> m_connect;
+    boost::optional<tribool> m_connect;
 };
 
 }  // namespace auth

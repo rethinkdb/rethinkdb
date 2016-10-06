@@ -304,7 +304,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
             &interruptor,
             serializable_env_t{
                 ql::global_optargs_t(),
-                auth::user_context_t(auth::permissions_t(true, true, true, true)),
+                auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::True, tribool::True)),
                 ql::datum_t()},
             nullptr /* no profile trace */));
 

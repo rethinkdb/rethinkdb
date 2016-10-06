@@ -41,7 +41,7 @@ struct make_sindex_read_t {
                 boost::none,
                 serializable_env_t{
                     ql::global_optargs_t(),
-                    auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
                     ql::datum_t()},
                 "",
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),

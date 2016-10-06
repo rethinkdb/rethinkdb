@@ -104,7 +104,7 @@ env_t::env_t(signal_t *_interruptor,
              reql_version_t _reql_version)
     : serializable{
         global_optargs_t(),
-        auth::user_context_t(auth::permissions_t(false, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
         datum_t()},
       reql_version_(_reql_version),
       regex_cache_(LRU_CACHE_SIZE),

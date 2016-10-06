@@ -84,8 +84,7 @@ void user_context_t::require_read_permission(
         false,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_read() == true;
+            return permissions.get_read() == tribool::True;
         },
         [&](user_t const &user) -> bool {
             return user.has_read_permission(database_id, table_id);
@@ -102,8 +101,8 @@ void user_context_t::require_write_permission(
         m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_read() == true && permissions.get_write() == true;
+            return permissions.get_read() == tribool::True
+                && permissions.get_write() == tribool::True;
         },
         [&](user_t const &user) -> bool {
             return user.has_read_permission(database_id, table_id) &&
@@ -119,8 +118,7 @@ void user_context_t::require_config_permission(
         m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() == true;
+            return permissions.get_config() == tribool::True;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission();
@@ -136,8 +134,7 @@ void user_context_t::require_config_permission(
         m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() == true;
+            return permissions.get_config() == tribool::True;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id);
@@ -154,8 +151,7 @@ void user_context_t::require_config_permission(
         m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() == true;
+            return permissions.get_config() == tribool::True;
         },
         [&](auth::user_t const &user) -> bool {
             return user.has_config_permission(database_id, table_id);
@@ -172,8 +168,7 @@ void user_context_t::require_config_permission(
         m_read_only,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_config() == true;
+            return permissions.get_config() == tribool::True;
         },
         [&](auth::user_t const &user) -> bool {
             // First check the permissions on the database
@@ -201,8 +196,7 @@ void user_context_t::require_connect_permission(
         false,
         rdb_context,
         [&](permissions_t const &permissions) -> bool {
-            // Note this returns a boost::tribool, thus be careful of bool coercion
-            return permissions.get_connect() == true;
+            return permissions.get_connect() == tribool::True;
         },
         [&](user_t const &user) -> bool {
             return user.has_connect_permission();

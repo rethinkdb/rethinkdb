@@ -7,8 +7,8 @@
 #include <string>
 #include <type_traits>
 
-#include "containers/printf_buffer.hpp"
 #include "containers/intrusive_list.hpp"
+#include "containers/printf_buffer.hpp"
 #include "version.hpp"
 #include "valgrind.hpp"
 

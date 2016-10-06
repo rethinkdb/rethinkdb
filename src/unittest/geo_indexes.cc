@@ -139,7 +139,7 @@ void insert_data(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::insert_data(geo_indexes.cc"),
@@ -203,7 +203,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
             idx_name,
             serializable_env_t{
                 ql::global_optargs_t(),
-                auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                 ql::datum_t()}),
         profile_bool_t::PROFILE,
         read_mode_t::SINGLE);
@@ -211,7 +211,7 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
@@ -333,7 +333,7 @@ std::vector<datum_t> perform_get_intersecting(
             region_t::universe(),
             serializable_env_t{
                 ql::global_optargs_t(),
-                auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                 datum_t()},
             table_name,
             ql::batchspec_t::all(),
@@ -352,7 +352,7 @@ std::vector<datum_t> perform_get_intersecting(
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),

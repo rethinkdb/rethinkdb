@@ -1801,7 +1801,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
                     profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
         ns_if->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &read_resp,
             order_token_t::ignore,
