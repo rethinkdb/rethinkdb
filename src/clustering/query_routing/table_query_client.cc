@@ -49,7 +49,7 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::OUTDATED);
                 read(
-                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                     r,
                     &res,
                     order_token_t::ignore,
@@ -62,7 +62,7 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
                          read_mode_t::SINGLE);
                 read(
-                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                     r,
                     &res,
                     order_token_t::ignore,
@@ -76,7 +76,7 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
                 write_t w(dummy_write_t(), profile_bool_t::DONT_PROFILE,
                           ql::configured_limits_t::unlimited);
                 write(
-                    auth::user_context_t(auth::permissions_t(true, true, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
                     w,
                     &res,
                     order_token_t::ignore,
