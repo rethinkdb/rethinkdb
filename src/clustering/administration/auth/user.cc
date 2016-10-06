@@ -23,15 +23,15 @@ namespace auth {
 user_t::user_t()
     : m_password(),
       m_global_permissions(
-        boost::indeterminate,
-        boost::indeterminate,
-        boost::indeterminate,
-        boost::indeterminate) {
+        tribool::Indeterminate,
+        tribool::Indeterminate,
+        tribool::Indeterminate,
+        tribool::Indeterminate) {
 }
 
 user_t::user_t(password_t password, admin_t)
     : m_password(std::move(password)),
-      m_global_permissions(true, true, true, true) {
+      m_global_permissions(tribool::True, tribool::True, tribool::True, tribool::True) {
 }
 
 user_t::user_t(password_t password, permissions_t global_permissions)
@@ -42,10 +42,10 @@ user_t::user_t(password_t password, permissions_t global_permissions)
 user_t::user_t(ql::datum_t const &datum)
     : m_password(password_t("")),
       m_global_permissions(
-        boost::indeterminate,
-        boost::indeterminate,
-        boost::indeterminate,
-        boost::indeterminate) {
+        tribool::Indeterminate,
+        tribool::Indeterminate,
+        tribool::Indeterminate,
+        tribool::Indeterminate) {
     merge(datum);
 }
 
@@ -131,7 +131,7 @@ permissions_t user_t::get_database_permissions(database_id_t const &database_id)
         return iter->second;
     } else {
         return permissions_t(
-            boost::indeterminate, boost::indeterminate, boost::indeterminate);
+            tribool::Indeterminate, tribool::Indeterminate, tribool::Indeterminate);
     }
 }
 
@@ -140,9 +140,9 @@ permissions_t &user_t::get_database_permissions(database_id_t const &database_id
         std::make_pair(
             database_id,
             permissions_t(
-                boost::indeterminate,
-                boost::indeterminate,
-                boost::indeterminate))).first->second;
+                tribool::Indeterminate,
+                tribool::Indeterminate,
+                tribool::Indeterminate))).first->second;
 }
 
 void user_t::set_database_permissions(
@@ -165,7 +165,7 @@ permissions_t user_t::get_table_permissions(namespace_id_t const &table_id) cons
         return iter->second;
     } else {
         return permissions_t(
-            boost::indeterminate, boost::indeterminate, boost::indeterminate);
+            tribool::Indeterminate, tribool::Indeterminate, tribool::Indeterminate);
     }
 }
 
@@ -174,9 +174,9 @@ permissions_t &user_t::get_table_permissions(namespace_id_t const &table_id) {
         std::make_pair(
             table_id,
             permissions_t(
-                boost::indeterminate,
-                boost::indeterminate,
-                boost::indeterminate))).first->second;
+                tribool::Indeterminate,
+                tribool::Indeterminate,
+                tribool::Indeterminate))).first->second;
 }
 
 void user_t::set_table_permissions(
@@ -194,21 +194,21 @@ bool user_t::has_read_permission(
         namespace_id_t const &table_id) const {
     auto table = m_table_permissions.find(table_id);
     if (table != m_table_permissions.end()) {
-        boost::tribool table_permission = table->second.get_read();
-        if (!indeterminate(table_permission)) {
-            return table_permission;
+        tribool table_permission = table->second.get_read();
+        if (table_permission != tribool::Indeterminate) {
+            return table_permission == tribool::True;
         }
     }
 
     auto database = m_database_permissions.find(database_id);
     if (database != m_database_permissions.end()) {
-        boost::tribool database_permission = database->second.get_read();
-        if (!indeterminate(database_permission)) {
-            return database_permission;
+        tribool database_permission = database->second.get_read();
+        if (database_permission != tribool::Indeterminate) {
+            return database_permission == tribool::True;
         }
     }
 
-    return m_global_permissions.get_read() || false;
+    return m_global_permissions.get_read() == tribool::True;
 }
 
 bool user_t::has_write_permission(
@@ -216,34 +216,34 @@ bool user_t::has_write_permission(
         namespace_id_t const &table_id) const {
     auto table = m_table_permissions.find(table_id);
     if (table != m_table_permissions.end()) {
-        boost::tribool table_permission = table->second.get_write();
-        if (!indeterminate(table_permission)) {
-            return table_permission;
+        tribool table_permission = table->second.get_write();
+        if (table_permission != tribool::Indeterminate) {
+            return table_permission == tribool::True;
         }
     }
 
     auto database = m_database_permissions.find(database_id);
     if (database != m_database_permissions.end()) {
-        boost::tribool database_permission = database->second.get_write();
-        if (!indeterminate(database_permission)) {
-            return database_permission;
+        tribool database_permission = database->second.get_write();
+        if (database_permission != tribool::Indeterminate) {
+            return database_permission == tribool::True;
         }
     }
 
-    return m_global_permissions.get_write() || false;
+    return m_global_permissions.get_write() == tribool::True;
 }
 
 bool user_t::has_config_permission() const {
-    return m_global_permissions.get_config() || false;
+    return m_global_permissions.get_config() == tribool::True;
 }
 
 bool user_t::has_config_permission(
         database_id_t const &database_id) const {
     auto database = m_database_permissions.find(database_id);
     if (database != m_database_permissions.end()) {
-        boost::tribool database_permission = database->second.get_config();
-        if (!indeterminate(database_permission)) {
-            return database_permission;
+        tribool database_permission = database->second.get_config();
+        if (database_permission != tribool::Indeterminate) {
+            return database_permission == tribool::True;
         }
     }
 
@@ -255,9 +255,9 @@ bool user_t::has_config_permission(
         namespace_id_t const &table_id) const {
     auto table = m_table_permissions.find(table_id);
     if (table != m_table_permissions.end()) {
-        boost::tribool table_permission = table->second.get_config();
-        if (!indeterminate(table_permission)) {
-            return table_permission;
+        tribool table_permission = table->second.get_config();
+        if (table_permission != tribool::Indeterminate) {
+            return table_permission == tribool::True;
         }
     }
 
@@ -265,7 +265,7 @@ bool user_t::has_config_permission(
 }
 
 bool user_t::has_connect_permission() const {
-    return m_global_permissions.get_connect() || false;
+    return m_global_permissions.get_connect() == tribool::True;
 }
 
 bool user_t::operator==(user_t const &rhs) const {

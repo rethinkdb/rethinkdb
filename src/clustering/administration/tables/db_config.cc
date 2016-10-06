@@ -234,7 +234,7 @@ bool db_config_artificial_table_backend_t::write_row(
             // `db_drop_uuid` asserts we're on its home thread
             // https://github.com/rethinkdb/rethinkdb/issues/5598
             reql_cluster_interface->db_drop_uuid(
-                auth::user_context_t(auth::permissions_t(false, false, true, false)),
+                auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::True, tribool::False)),
                 database_id,
                 it->second.get_ref().name.get_ref(),
                 &interruptor_on_home_thread,

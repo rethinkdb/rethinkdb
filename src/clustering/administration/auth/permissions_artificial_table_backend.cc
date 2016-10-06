@@ -362,10 +362,10 @@ bool permissions_artificial_table_backend_t::write_row(
                 user->second.apply_write([](boost::optional<auth::user_t> *inner_user) {
                     inner_user->get().set_global_permissions(
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
             case 2:
@@ -373,9 +373,9 @@ bool permissions_artificial_table_backend_t::write_row(
                     inner_user->get().set_database_permissions(
                         database_id_primary,
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
             case 3:
@@ -383,9 +383,9 @@ bool permissions_artificial_table_backend_t::write_row(
                     inner_user->get().set_table_permissions(
                         table_id_primary,
                         permissions_t(
-                            boost::indeterminate,
-                            boost::indeterminate,
-                            boost::indeterminate));
+                            tribool::Indeterminate,
+                            tribool::Indeterminate,
+                            tribool::Indeterminate));
                 });
                 break;
         }
