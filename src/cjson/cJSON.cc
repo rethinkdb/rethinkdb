@@ -38,7 +38,7 @@
 
 #include "errors.hpp"
 #include "memory_utils.hpp"
-#include "utils.hpp"
+#include "math.hpp"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunreachable-code"

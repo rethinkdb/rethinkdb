@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 
+#include "assignment_sentry.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/wait_any.hpp"

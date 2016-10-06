@@ -22,6 +22,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
 #include "logger.hpp"
+#include "paths.hpp"
 #include "utils.hpp"
 
 #ifndef __MACH__

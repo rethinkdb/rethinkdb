@@ -12,7 +12,7 @@
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
-#include "utils.hpp"
+#include "math.hpp"
 
 static const char *const resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);

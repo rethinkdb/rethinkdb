@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "debug.hpp"
+#include "math.hpp"
 #include "utils.hpp"
 
 std::string key_range_t::print() const {

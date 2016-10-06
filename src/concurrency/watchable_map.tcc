@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_map.hpp"
 
+#include "assignment_sentry.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/interruptor.hpp"
 

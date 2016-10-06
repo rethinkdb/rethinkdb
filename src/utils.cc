@@ -1,8 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
-#include <math.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <locale.h>
 #include <signal.h>
@@ -252,12 +250,6 @@ with_priority_t::~with_priority_t() {
     coro_t::self()->set_priority(previous_priority);
 }
 
-bool risfinite(double arg) {
-    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
-    using namespace std; // NOLINT(build/namespaces) due to platform variation
-    return isfinite(arg);
-}
-
 void system_random_bytes(void *out, int64_t nbytes) {
 #ifdef _WIN32
     HCRYPTPROV hProv;
@@ -348,103 +340,6 @@ std::string strprintf(const char *format, ...) {
 
     return ret;
 }
-
-bool hex_to_int(char c, int *out) {
-    if (c >= '0' && c <= '9') {
-        *out = c - '0';
-        return true;
-    } else if (c >= 'a' && c <= 'f') {
-        *out = c - 'a' + 10;
-        return true;
-    } else if (c >= 'A' && c <= 'F') {
-        *out = c - 'A' + 10;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-char int_to_hex(int x) {
-    rassert(x >= 0 && x < 16);
-    if (x < 10) {
-        return '0' + x;
-    } else {
-        return 'A' + x - 10;
-    }
-}
-
-bool blocking_read_file(const char *path, std::string *contents_out) {
-#ifdef _WIN32
-    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE) return false;
-    LARGE_INTEGER fileSize;
-    BOOL res = GetFileSizeEx(hFile, &fileSize);
-    if (!res) {
-        CloseHandle(hFile);
-        return false;
-    }
-    DWORD remaining = fileSize.QuadPart;
-    std::string ret;
-    ret.resize(remaining);
-    size_t index = 0;
-    while (remaining > 0) {
-        DWORD consumed;
-        res = ReadFile(hFile, &ret[index], remaining, &consumed, nullptr);
-        if (!res) {
-            CloseHandle(hFile);
-            return false;
-        }
-        remaining -= consumed;
-        index += consumed;
-    }
-    CloseHandle(hFile);
-    *contents_out = std::move(ret);
-    return true;
-#else
-    scoped_fd_t fd;
-
-    {
-        int res;
-        do {
-            res = open(path, O_RDONLY);
-        } while (res == -1 && get_errno() == EINTR);
-
-        if (res == -1) {
-            return false;
-        }
-        fd.reset(res);
-    }
-
-    std::string ret;
-
-    char buf[4096];
-    for (;;) {
-        ssize_t res;
-        do {
-            res = read(fd.get(), buf, sizeof(buf));
-        } while (res == -1 && get_errno() == EINTR);
-
-        if (res == -1) {
-            return false;
-        }
-
-        if (res == 0) {
-            *contents_out = std::move(ret);
-            return true;
-        }
-
-        ret.append(buf, buf + res);
-    }
-#endif
-}
-
-std::string blocking_read_file(const char *path) {
-    std::string ret;
-    bool success = blocking_read_file(path, &ret);
-    guarantee(success);
-    return ret;
-}
-
 
 std::string sanitize_for_logger(const std::string &s) {
     std::string sanitized = s;

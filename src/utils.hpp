@@ -35,9 +35,6 @@ struct const_charslice {
     const_charslice() : beg(nullptr), end(nullptr) { }
 };
 
-/* Forwards to the isfinite macro, or std::isfinite. */
-bool risfinite(double);
-
 enum class query_state_t { FAILED, INDETERMINATE };
 
 // Reads from /dev/urandom.  Use this sparingly, please.
@@ -86,58 +83,6 @@ public:
     ~with_priority_t();
 private:
     int previous_priority;
-};
-
-
-template <class InputIterator, class UnaryPredicate>
-bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
-    bool res = true;
-    for (; begin != end; begin++) {
-        res &= f(*begin);
-    }
-    return res;
-}
-
-template <class T, class UnaryPredicate>
-bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
-    return all_match_predicate(container.begin(), container.end(), f);
-}
-
-bool notf(bool x);
-
-/* Translates to and from `0123456789ABCDEF`. */
-bool hex_to_int(char c, int *out);
-char int_to_hex(int i);
-
-std::string blocking_read_file(const char *path);
-bool blocking_read_file(const char *path, std::string *contents_out);
-
-template <class T>
-class assignment_sentry_t {
-public:
-    assignment_sentry_t() : var(nullptr), old_value() { }
-    assignment_sentry_t(T *v, const T &value) :
-            var(v), old_value(*var) {
-        *var = value;
-    }
-    ~assignment_sentry_t() {
-        reset();
-    }
-    void reset(T *v, const T &value) {
-        reset();
-        var = v;
-        old_value = *var;
-        *var = value;
-    }
-    void reset() {
-        if (var != nullptr) {
-            *var = old_value;
-            var = nullptr;
-        }
-    }
-private:
-    T *var;
-    T old_value;
 };
 
 std::string errno_string(int errsv);

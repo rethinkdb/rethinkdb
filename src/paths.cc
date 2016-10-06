@@ -1,5 +1,6 @@
 #include "paths.hpp"
 
+#include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
 
@@ -146,5 +147,77 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     // Call fsync() on the parent directory to guarantee that the newly
     // created directory's directory entry is persisted to disk.
     warn_fsync_parent_directory(path.path().c_str());
+}
+
+bool blocking_read_file(const char *path, std::string *contents_out) {
+#ifdef _WIN32
+    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    LARGE_INTEGER fileSize;
+    BOOL res = GetFileSizeEx(hFile, &fileSize);
+    if (!res) {
+        CloseHandle(hFile);
+        return false;
+    }
+    DWORD remaining = fileSize.QuadPart;
+    std::string ret;
+    ret.resize(remaining);
+    size_t index = 0;
+    while (remaining > 0) {
+        DWORD consumed;
+        res = ReadFile(hFile, &ret[index], remaining, &consumed, nullptr);
+        if (!res) {
+            CloseHandle(hFile);
+            return false;
+        }
+        remaining -= consumed;
+        index += consumed;
+    }
+    CloseHandle(hFile);
+    *contents_out = std::move(ret);
+    return true;
+#else
+    scoped_fd_t fd;
+
+    {
+        int res;
+        do {
+            res = open(path, O_RDONLY);
+        } while (res == -1 && get_errno() == EINTR);
+
+        if (res == -1) {
+            return false;
+        }
+        fd.reset(res);
+    }
+
+    std::string ret;
+
+    char buf[4096];
+    for (;;) {
+        ssize_t res;
+        do {
+            res = read(fd.get(), buf, sizeof(buf));
+        } while (res == -1 && get_errno() == EINTR);
+
+        if (res == -1) {
+            return false;
+        }
+
+        if (res == 0) {
+            *contents_out = std::move(ret);
+            return true;
+        }
+
+        ret.append(buf, buf + res);
+    }
+#endif
+}
+
+std::string blocking_read_file(const char *path) {
+    std::string ret;
+    bool success = blocking_read_file(path, &ret);
+    guarantee(success);
+    return ret;
 }
 

@@ -64,4 +64,7 @@ void recreate_temporary_directory(const base_path_t& base_path);
 
 void remove_directory_recursive(const char *path);
 
+std::string blocking_read_file(const char *path);
+bool blocking_read_file(const char *path, std::string *contents_out);
+
 #endif  // PATHS_HPP_

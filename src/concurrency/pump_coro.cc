@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "concurrency/pump_coro.hpp"
 
+#include "assignment_sentry.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/map_sentries.hpp"
