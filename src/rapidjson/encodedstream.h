@@ -21,7 +21,7 @@
 #ifndef RAPIDJSON_ENCODEDSTREAM_H_
 #define RAPIDJSON_ENCODEDSTREAM_H_
 
-#include "rapidjson.h"
+#include "rapidjson/rapidjson.h"
 
 #ifdef __GNUC__
 RAPIDJSON_DIAG_PUSH

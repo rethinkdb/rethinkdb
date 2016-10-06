@@ -26,7 +26,6 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/real_table.hpp"
 #include "rdb_protocol/shards.hpp"
-#include "rdb_protocol/val.hpp"
 
 namespace ql {
 
@@ -34,6 +33,7 @@ class env_t;
 class scope_env_t;
 class func_t;
 class response_t;
+class val_t;
 
 enum class return_empty_normal_batches_t { NO, YES };
 

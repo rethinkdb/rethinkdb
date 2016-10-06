@@ -19,9 +19,9 @@
 // THE SOFTWARE.
 
 #ifndef RAPIDJSON_FILEWRITESTREAM_H_
-#define RAPIDJSON_FILEWRITESTREAM_H_
+#define RAPIDJSON_FILEWRITESTREAM_H
 
-#include "rapidjson.h"
+#include "rapidjson/rapidjson.h"
 #include <cstdio>
 
 RAPIDJSON_NAMESPACE_BEGIN

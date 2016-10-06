@@ -2,7 +2,7 @@
 #ifndef PPRINT_JS_PPRINT_HPP_
 #define PPRINT_JS_PPRINT_HPP_
 
-#include "pprint.hpp"
+#include "pprint/pprint.hpp"
 
 namespace ql {
 class raw_term_t;

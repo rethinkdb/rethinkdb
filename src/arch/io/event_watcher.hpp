@@ -9,7 +9,6 @@
 #include "concurrency/interruptor.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/event_queue_types.hpp"
-#include "arch/io/event_watcher.hpp"
 #include "errors.hpp"
 
 class windows_event_watcher_t;

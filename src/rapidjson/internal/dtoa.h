@@ -26,8 +26,8 @@
 #define RAPIDJSON_DTOA_
 
 #include <cmath> // RethinkDB: for std::signbit
-#include "itoa.h" // GetDigitsLut()
-#include "diyfp.h"
+#include "rapidjson/internal/itoa.h" // GetDigitsLut()
+#include "rapidjson/internal/diyfp.h"
 
 RAPIDJSON_NAMESPACE_BEGIN
 namespace internal {
