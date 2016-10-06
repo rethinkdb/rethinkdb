@@ -17,7 +17,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/scoped.hpp"
-
+#include "paths.hpp"
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"

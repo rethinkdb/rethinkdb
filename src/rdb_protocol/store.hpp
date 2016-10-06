@@ -22,6 +22,7 @@
 #include "containers/map_sentries.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
+#include "paths.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
