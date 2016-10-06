@@ -9,6 +9,8 @@
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/datum_stream/lazy.hpp"
+#include "rdb_protocol/datum_stream/readers.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"

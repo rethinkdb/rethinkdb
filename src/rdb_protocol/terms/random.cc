@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "math.hpp"
+#include "rdb_protocol/datum_stream/array.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/math_utils.hpp"

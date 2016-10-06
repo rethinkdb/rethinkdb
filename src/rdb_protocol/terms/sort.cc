@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/datum_stream/array.hpp"
+#include "rdb_protocol/datum_stream/indexed_sort.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"

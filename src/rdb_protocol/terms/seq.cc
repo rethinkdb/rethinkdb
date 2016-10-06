@@ -6,6 +6,13 @@
 #include <vector>
 
 #include "parsing/utf8.hpp"
+#include "rdb_protocol/datum_stream/eq_join.hpp"
+#include "rdb_protocol/datum_stream/fold.hpp"
+#include "rdb_protocol/datum_stream/map.hpp"
+#include "rdb_protocol/datum_stream/ordered_union.hpp"
+#include "rdb_protocol/datum_stream/range.hpp"
+#include "rdb_protocol/datum_stream/union.hpp"
+#include "rdb_protocol/datum_stream/vector.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/math_utils.hpp"

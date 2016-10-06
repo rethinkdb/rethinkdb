@@ -5,6 +5,7 @@
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/datum_stream/vector.hpp"
 
 const uuid_u artificial_table_backend_t::base_table_id =
     str_to_uuid("0eabef01-6deb-4069-9a2d-448db057ab1e");

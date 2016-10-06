@@ -6,6 +6,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/table_common.hpp"
+#include "rdb_protocol/datum_stream/readers.hpp"
 
 /* Determines how many coroutines we spawn for a batched replace or insert. */
 static const int max_parallel_ops = 10;
