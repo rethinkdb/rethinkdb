@@ -173,10 +173,17 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     metablock_t metablock;
     memset(&metablock, 0, sizeof(metablock));
 
-    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
+    extent_manager_t::metablock_mixin_t extent_manager_part;
+    extent_manager_t::prepare_initial_metablock(&extent_manager_part);
+    metablock.extent_manager_part = extent_manager_part;
 
-    data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
-    lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
+    data_block_manager::metablock_mixin_t data_block_manager_part;
+    data_block_manager_t::prepare_initial_metablock(&data_block_manager_part);
+    metablock.data_block_manager_part = data_block_manager_part;
+
+    lba_list_t::metablock_mixin_t lba_index_part;
+    lba_list_t::prepare_initial_metablock(&lba_index_part);
+    metablock.lba_index_part = lba_index_part;
 
     mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
@@ -320,7 +327,7 @@ struct ls_start_existing_fsm_t :
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
 
-            ser->extent_manager->start_existing(&metablock_buffer.extent_manager_part);
+            ser->extent_manager->start_existing();
 
             start_existing_state = state_finish;
         }
@@ -931,9 +938,18 @@ void log_serializer_t::on_datablock_manager_shutdown() {
 void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     assert_thread();
     memset(mb_buffer, 0, sizeof(*mb_buffer));
-    extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
-    data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
-    lba_index->prepare_metablock(&mb_buffer->lba_index_part);
+
+    extent_manager_t::metablock_mixin_t extent_manager_part;
+    extent_manager->prepare_metablock(&extent_manager_part);
+    mb_buffer->extent_manager_part = extent_manager_part;
+
+    data_block_manager::metablock_mixin_t data_block_manager_part;
+    data_block_manager->prepare_metablock(&data_block_manager_part);
+    mb_buffer->data_block_manager_part = data_block_manager_part;
+
+    lba_list_t::metablock_mixin_t lba_index_part;
+    lba_index->prepare_metablock(&lba_index_part);
+    mb_buffer->lba_index_part = lba_index_part;
 }
 
 

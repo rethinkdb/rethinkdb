@@ -438,7 +438,7 @@ void data_block_manager_t::end_reconstruct() {
 }
 
 void data_block_manager_t::start_existing(file_t *file,
-                                          data_block_manager::metablock_mixin_t *last_metablock) {
+                                          const data_block_manager::metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
