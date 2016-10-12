@@ -78,7 +78,7 @@ class RetryQuery(object):
                 return query_str.run(conn, **run_options)
             except (errors.ReqlTimeoutError, errors.ReqlDriverError) as e:
                 last_error = RuntimeError("Connection error during '%s': %s" % (name, str(e)))
-            # other errors immedately bubble up
+            # other errors immediately bubble up
 
         else:
             raise last_error
@@ -127,7 +127,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
         
         # -- Type Checkers
         
-        def check_tls_option(option, opt_str, value):
+        def check_tls_option(opt_str, value):
             value = str(value)
 
             if os.path.isfile(value):
@@ -135,7 +135,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             else:
                 raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt_str, value))
         
-        def check_db_table_option(option, opt_str, value):
+        def check_db_table_option(value):
             res = _tableNameRegex.match(value)
 
             if not res:
@@ -145,7 +145,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             return DbTable(res.group('db'), res.group('table'))
         
-        def check_positive_int(option, opt_str, value):
+        def check_positive_int(opt_str, value):
             try:
                 int_value = int(value)
                 assert int_value >= 1
@@ -153,13 +153,13 @@ class CommonOptionsParser(optparse.OptionParser, object):
             except (AssertionError, ValueError):
                 raise optparse.OptionValueError('%s value must be an integer greater that 1: %s' % (opt_str, value))
         
-        def check_existing_file(option, opt_str, value):
+        def check_existing_file(opt_str, value):
             if not os.path.isfile(value):
                 raise optparse.OptionValueError('%s value was not an existing file: %s' % (opt_str, value))
 
             return os.path.realpath(value)
         
-        def check_new_file_location(option, opt_str, value):
+        def check_new_file_location(opt_str, value):
             try:
                 real_value = os.path.realpath(value)
             except Exception:
@@ -170,7 +170,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             
             return real_value
         
-        def file_contents(option, opt_str, value):
+        def file_contents(opt_str, value):
             if not os.path.isfile(value):
                 raise optparse.OptionValueError('%s value is not an existing file: %r' % (opt_str, value))
             
@@ -182,7 +182,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
         
         # -- Callbacks
         
-        def combined_connect_action(option, opt_str, value, parser):
+        def combined_connect_action(value, parser):
             res = self.__connectRegex.match(value)
             if not res:
                 raise optparse.OptionValueError("Invalid 'host:port' format: %s" % value)
