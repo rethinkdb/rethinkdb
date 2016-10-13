@@ -57,6 +57,7 @@ tests:
         js: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 0.", [])
         rb: err("ArgumentError", 'wrong number of arguments (0 for 1)', [])
         rb2: err("ArgumentError", 'wrong number of arguments (0 for 1..2)', [])
+        rb2.3: err("ArgumentError", 'wrong number of arguments (given 0, expected 1..2)', [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:
@@ -214,6 +215,7 @@ tests:
         js: err('ReqlCompileError', "Expected 1 argument but found 2.", [])
         py: err('ReqlQueryLogicError', 'Expected NUMBER or STRING as second argument to `bracket` but found ARRAY.')
         rb: err('ArgumentError', 'wrong number of arguments (2 for 1)')
+        rb2.3: err('ArgumentError', 'wrong number of arguments (given 2, expected 1)')
 
     - cd: tbl.insert([{'id':0},{'id':1},{'id':2},{'id':3},{'id':4},{'id':5},{'id':6},{'id':7},{'id':8},{'id':9}]).get_field('inserted')
       ot: 10
