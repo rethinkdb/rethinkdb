@@ -14,6 +14,8 @@ import java.lang.reflect.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -53,6 +55,12 @@ public class Util {
                 : (T) toPojo(pojoClass.get(), (Map<String, Object>) value);
     }
 
+    public static <T> T convertToPojo(Object value, Class pojoClass) {
+        return !(value instanceof Map)
+                ? (T) value
+                : (T) toPojo(pojoClass, (Map<String, Object>) value);
+    }
+
     public static byte[] toUTF8(String s) {
         return s.getBytes(StandardCharsets.UTF_8);
     }
@@ -80,6 +88,67 @@ public class Util {
         try {
             if (map == null) {
                 return null;
+            }
+
+            if (LocalDate.class.equals(pojoClass)) {
+                return (T) LocalDate.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue());
+            }
+            else if (LocalTime.class.equals(pojoClass)) {
+                return (T) LocalTime.of(
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue());
+            }
+            else if (LocalDateTime.class.equals(pojoClass)) {
+                return (T) LocalDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue());
+            }
+            else if (OffsetDateTime.class.equals(pojoClass)) {
+                String zoneOffsetId = (String)((Map<String, Object>) map.get("offset")).get("id");
+                return (T) OffsetDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue(),
+                        ZoneOffset.of(zoneOffsetId)
+                );
+            }
+            else if (ZonedDateTime.class.equals(pojoClass)) {
+                String zoneId = (String)((Map<String, Object>) map.get("zone")).get("id");
+                return (T) ZonedDateTime.of(
+                        ((Long) map.get("year")).intValue(),
+                        ((Long) map.get("monthValue")).intValue(),
+                        ((Long) map.get("dayOfMonth")).intValue(),
+                        ((Long) map.get("hour")).intValue(),
+                        ((Long) map.get("minute")).intValue(),
+                        ((Long) map.get("second")).intValue(),
+                        ((Long) map.get("nano")).intValue(),
+                        ZoneId.of(zoneId)
+                );
+            }
+            else if (Date.class.isAssignableFrom(pojoClass)) {
+                /**
+                 * map: { date: 27, day: 0, hours: 2, minutes: 50, month: 2, seconds: 46,
+                 *       time: 1459014646488, year: 116, timezoneOffset: -540 }
+                 * if not do conversion explicitly here, then later logic in constructViaPublicParameterlessConstructor
+                 * will treat Date as a normal java bean, ridiculously, it will call 8 setXxx to the Date instance,
+                 * e.g. d.setDate(27);d.setDay(0);d.setHours(2)......
+                 */
+                long epochMilli = (Long) map.get("time");
+                return (T) new Date(epochMilli);
             }
 
             if (!Modifier.isPublic(pojoClass.getModifiers())) {
@@ -131,14 +200,173 @@ public class Util {
             if (writer != null && writer.getDeclaringClass() == pojoClass) {
                 Object value = map.get(propertyName);
                 Class valueClass = writer.getParameterTypes()[0];
-
+                /**
+                 * If the property of a java bean(or says POJO) is a generic List class, e.g.
+                 *  java.util.List<com.rethinkdb.TestPojoInner>
+                 * So far rethinkdb java driver will only convert db data to following type for us:
+                 *  java.util.List<HashMap<String, Object>>
+                 * So it's better convert each item in the list to com.rethinkdb.TestPojoInner.
+                 *
+                 * I do want to directly convert the `value` to the generic type, but unfortunately,
+                 * Java can not load generic class by Class.forName("java.util.List<com.rethinkdb.TestPojoInner>"),
+                 * so i have to use the fixed class java.util.List, and pass listItemClassName to smartCast
+                 * and let it convert each HashMap to TestPojoInner
+                 */
+                String listItemClassName = null;
+                if (value instanceof List) {
+                    String genName = descriptor.getWriteMethod().getGenericParameterTypes()[0].getTypeName();
+                    int len = valueClass.getName().length();
+                    int genLen = genName.length();
+                    if (genLen > len + 2 && genName.charAt(len) == '<' && genName.charAt(genLen - 1) == '>') {
+                        listItemClassName = genName.substring(len + 1, genLen - 1);
+                    }
+                }
                 writer.invoke(pojo, value instanceof Map
                         ? toPojo(valueClass, (Map<String, Object>) value)
-                        : valueClass.cast(value));
+                        : smartCast(valueClass, value, listItemClassName));
             }
         }
 
         return pojo;
+    }
+
+    static java.text.SimpleDateFormat dtf = new java.text.SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
+
+    private static Object smartCast(Class valueClass, Object value, String listItemClassName) {
+        try {
+            value = valueClass.cast(value);
+
+            if (listItemClassName != null) {
+                /**
+                 * convert each list element to wanted item class
+                 */
+                if (value instanceof List) {
+
+                    Class innerClass = null;
+                    try {
+                        innerClass = Class.forName(listItemClassName);
+                    } catch (ClassNotFoundException e) {
+                        e = e; //just for setting breakpoint easier
+                    }
+
+                    if (innerClass != null) {
+                        List list = (List) value;
+                        int len = list.size();
+                        for (int i = 0; i < len; i++) {
+                            Object obj = list.get(i);
+                            Object convertedObj = convertToPojo(obj, innerClass);
+                            if (convertedObj != obj)
+                                list.set(i, convertedObj);
+                        }
+                    }
+                }
+            }
+            return value;
+        }
+        catch (ClassCastException ex) {
+            if (valueClass.isEnum()) {
+                try {
+                    return Enum.valueOf(valueClass, value.toString());
+                } catch(IllegalArgumentException e) {
+                    return Enum.valueOf(valueClass, value.toString().toUpperCase());
+                }
+            }
+            else if (OffsetDateTime.class.equals(valueClass)) {
+                return OffsetDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
+            }
+            else if (LocalDateTime.class.equals(valueClass)) {
+                return LocalDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
+            }
+            else if (LocalDate.class.equals(valueClass)) {
+                return LocalDateTime.ofInstant(parseDate(value), ZoneId.systemDefault()).toLocalDate();
+            }
+            else if (LocalTime.class.equals(valueClass)) {
+                try {
+                    return LocalTime.parse(value.toString());
+                } catch (DateTimeParseException e) {
+                    throw new ClassCastException("Can not convert \"" + value + "\" to LocalTime. Valid data samples: 23:59:59.007");
+                }
+            }
+            else if (ZonedDateTime.class.equals(valueClass)) {
+                return ZonedDateTime.ofInstant(parseDate(value), ZoneId.systemDefault());
+            }
+            else if (Boolean.class.equals(valueClass) || boolean.class.equals(valueClass)) {
+                return Boolean.valueOf(value.toString());
+            }
+            else if (Integer.class.equals(valueClass) || int.class.equals(valueClass)) {
+                return Integer.valueOf(value.toString());
+            }
+            else if (Long.class.equals(valueClass) || long.class.equals(valueClass)) {
+                return Double.valueOf(value.toString()).longValue();
+            }
+            else if (Double.class.equals(valueClass) || double.class.equals(valueClass)) {
+                return Double.valueOf(value.toString());
+            }
+            else if (Float.class.equals(valueClass) || float.class.equals(valueClass)) {
+                return Float.valueOf(value.toString());
+            }
+            else if (Short.class.equals(valueClass) || short.class.equals(valueClass)) {
+                return Short.valueOf(value.toString());
+            }
+            else if (Byte.class.equals(valueClass) || byte.class.equals(valueClass)) {
+                return Byte.valueOf(value.toString());
+            }
+            else if (java.math.BigDecimal.class.isAssignableFrom(valueClass)) {
+                return new java.math.BigDecimal(value.toString());
+            }
+            else if (java.math.BigInteger.class.isAssignableFrom(valueClass)) {
+                return new java.math.BigInteger(value.toString());
+            }
+            else if (java.util.Date.class.isAssignableFrom(valueClass)) {
+                return new Date(parseDate(value).toEpochMilli());
+            }
+            else if (valueClass.isArray() && value instanceof List) {
+                List list = (List)value;
+                int len = list.size();
+                Class aryComponentType = valueClass.getComponentType();
+                Object[] ary = (Object[])Array.newInstance(aryComponentType, list.size());
+                for(int i = 0; i < len; i++) {
+                    ary[i] = convertToPojo(list.get(i), aryComponentType);
+                }
+                return ary;
+            }
+            else
+                throw ex;
+        }
+    }
+
+    private static Instant parseDate(Object value) {
+        try {
+            return Instant.ofEpochMilli((long) value);
+        } catch (ClassCastException e) {
+            String sValue = value.toString();
+            try {
+                //try "2016-03-16"
+                return LocalDate.parse(sValue).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            } catch (DateTimeParseException e1) {
+                try {
+                    //try 2016-03-16T09:58:59.007
+                    return LocalDateTime.parse(sValue).atZone(ZoneId.systemDefault()).toInstant();
+                } catch (DateTimeParseException e2) {
+                    try {
+                        //try 2016-03-16T09:58:59.007+09:00
+                        return OffsetDateTime.parse(sValue).toInstant();
+                    } catch (DateTimeParseException e3) {
+                        try {
+                            //try 2016-03-16T09:58:59.007+09:00[Asia/Tokyo]
+                            return ZonedDateTime.parse(value.toString()).toInstant();
+                        } catch (DateTimeParseException e4) {
+                            try {
+                                //try "Sat Dec 30 09:58:59 JST 2016"  (the result of new Date().toString())
+                                return dtf.parse(sValue).toInstant();
+                            } catch (java.text.ParseException e5) {
+                                throw new ClassCastException("Can not convert \"" + sValue + "\" to date related type. Valid data samples: 2016-03-16, 2016-03-16T09:58:59, 2016-03-16T09:58:59.007, 2016-03-16T09:58:59.007+09:00, Sat Dec 30 09:58:59 JST 2016");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static Constructor[] getSuitablePublicParametrizedConstructors(Constructor[] allConstructors, Map<String, Object> map) {
