@@ -72,9 +72,9 @@ bool debug_stats_artificial_table_backend_t::stats_for_server(
         signal_t *interruptor_on_home,
         ql::datum_t *stats_out,
         admin_err_t *error_out) {
-    boost::optional<peer_id_t> peer_id =
+    optional<peer_id_t> peer_id =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer_id)) {
+    if (!peer_id.has_value()) {
         *error_out = admin_err_t{"Server is not connected.", query_state_t::FAILED};
         return false;
     }

@@ -20,7 +20,7 @@ public:
 
     typename rpc_mailbox_t::address_t rpc;
 
-    boost::optional<raft_term_t> virtual_heartbeats;
+    optional<raft_term_t> virtual_heartbeats;
 
     RDB_MAKE_ME_SERIALIZABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
@@ -55,8 +55,8 @@ private:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
     void send_virtual_heartbeats(
-        const boost::optional<raft_term_t> &term);
-    watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
+        const optional<raft_term_t> &term);
+    watchable_map_t<raft_member_id_t, optional<raft_term_t> >
         *get_connected_members();
 
     /* The `on_rpc()` methods are mailbox callbacks. */
@@ -71,7 +71,7 @@ private:
     /* This transforms the `watchable_map_t` that we got through our constructor into a
     value suitable for returning from `get_connected_members()` */
     watchable_map_value_transform_t<raft_member_id_t,
-        raft_business_card_t<state_t>, boost::optional<raft_term_t> >
+        raft_business_card_t<state_t>, optional<raft_term_t> >
             peers_map_transformer;
 
     raft_member_t<state_t> member;

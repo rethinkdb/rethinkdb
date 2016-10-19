@@ -35,7 +35,7 @@ private:
         const server_config_t &new_config,
         const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr);
 
-    void update_actual_cache_size(const boost::optional<uint64_t> &setting);
+    void update_actual_cache_size(const optional<uint64_t> &setting);
 
     mailbox_manager_t *const mailbox_manager;
     metadata_file_t *const file;

@@ -250,8 +250,8 @@ public:
         join_result_t connect_to_peer(const peer_address_t *address,
                              ip_and_port_t selected_addr,
                              int index,
-                             boost::optional<peer_id_t> expected_id,
-                             boost::optional<server_id_t> expected_server_id,
+                             optional<peer_id_t> expected_id,
+                             optional<server_id_t> expected_server_id,
                              auto_drainer_t::lock_t drainer_lock,
                              bool *successful_join_inout,
                              const int join_delay_secs,
@@ -262,8 +262,8 @@ public:
         directly by the auto_reconnector_t. For cases where it is used directly, it
         returns a join_result_t, indicating whether the join was successful or not. */
         join_results_t join_blocking(const peer_address_t &peer,
-                           boost::optional<peer_id_t> expected_id,
-                           boost::optional<server_id_t> expected_server_id,
+                           optional<peer_id_t> expected_id,
+                           optional<server_id_t> expected_server_id,
                            const int join_delay_secs,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
 
@@ -282,9 +282,9 @@ public:
         disconnect-notification. It returns a join_result_t indicating the outcome
         of the attempted join. */
         join_result_t handle(keepalive_tcp_conn_stream_t *c,
-            boost::optional<peer_id_t> expected_id,
-            boost::optional<peer_address_t> expected_address,
-            boost::optional<server_id_t> expected_server_id,
+            optional<peer_id_t> expected_id,
+            optional<peer_address_t> expected_address,
+            optional<server_id_t> expected_server_id,
             auto_drainer_t::lock_t,
             bool *successful_join_inout,
             const int join_delay_secs) THROWS_NOTHING;

@@ -98,10 +98,10 @@ void merger_serializer_t::do_index_write() {
 void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_merged,
                                                index_write_op_t *into_out) const {
     rassert(to_be_merged.block_id == into_out->block_id);
-    if (to_be_merged.token.is_initialized()) {
+    if (to_be_merged.token.has_value()) {
         into_out->token = to_be_merged.token;
     }
-    if (to_be_merged.recency.is_initialized()) {
+    if (to_be_merged.recency.has_value()) {
         into_out->recency = to_be_merged.recency;
     }
 }

@@ -31,7 +31,7 @@ contract_coordinator_t::contract_coordinator_t(
     config_pumper.notify();
 }
 
-boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
+optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
     assert_thread();
@@ -49,22 +49,22 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
             is_noop = (change.new_config == state->state.config);
         });
         if (is_noop) {
-            return boost::make_optional(log_index);
+            return make_optional(log_index);
         }
         change_token = raft->propose_change(
             &change_lock, table_raft_state_t::change_t(change));
         log_index += 1;
     }
     if (!change_token.has()) {
-        return boost::none;
+        return r_nullopt;
     }
     contract_pumper.notify();
     config_pumper.notify();
     wait_interruptible(change_token->get_ready_signal(), interruptor);
     if (!change_token->wait()) {
-        return boost::none;
+        return r_nullopt;
     }
-    return boost::make_optional(log_index);
+    return make_optional(log_index);
 }
 
 bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
@@ -218,7 +218,7 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
 
         /* Calculate changes to `table_raft_state_t::member_ids` */
         table_raft_state_t::change_t::new_member_ids_t member_ids_change;
-        boost::optional<raft_config_t> config_change;
+        optional<raft_config_t> config_change;
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
             raft_config_t new_config;
@@ -237,7 +237,7 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
                         new_config != sc->config.config) ||
                     (sc->config.is_joint_consensus() &&
                         new_config != *sc->config.new_config)) {
-                config_change = boost::make_optional(new_config);
+                config_change = make_optional(new_config);
             }
         });
 

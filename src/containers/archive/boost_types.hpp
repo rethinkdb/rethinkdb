@@ -3,7 +3,6 @@
 #define CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
 #include "containers/archive/archive.hpp"
@@ -113,33 +112,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<BOOST_VAR
     if (bad(res)) { return res; }
 
     return variant_deserializer<W, 1, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)>, BOOST_VARIANT_ENUM_PARAMS(T)>::deserialize_variant(n, s, x);
-}
-
-
-template <cluster_version_t W, class T>
-void serialize(write_message_t *wm, const boost::optional<T> &x) {
-    const T *ptr = x.get_ptr();
-    bool exists = ptr;
-    serialize<W>(wm, exists);
-    if (exists) {
-        serialize<W>(wm, *ptr);
-    }
-}
-
-template <cluster_version_t W, class T>
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
-    bool exists;
-
-    archive_result_t res = deserialize<W>(s, &exists);
-    if (bad(res)) { return res; }
-    if (exists) {
-        x->reset(T());
-        res = deserialize<W>(s, x->get_ptr());
-        return res;
-    } else {
-        x->reset();
-        return archive_result_t::SUCCESS;
-    }
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

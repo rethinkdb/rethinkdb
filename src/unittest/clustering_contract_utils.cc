@@ -75,8 +75,7 @@ cpu_contracts_t quick_contract_simple(
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
-        res.contracts[i].primary =
-            boost::make_optional(contract_t::primary_t { primary, boost::none } );
+        res.contracts[i].primary.set(contract_t::primary_t { primary, r_nullopt } );
     }
     return res;
 }
@@ -88,8 +87,7 @@ cpu_contracts_t quick_contract_extra_replicas(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].replicas.insert(extras.begin(), extras.end());
-        res.contracts[i].primary =
-            boost::make_optional(contract_t::primary_t { primary, boost::none } );
+        res.contracts[i].primary.set(contract_t::primary_t { primary, r_nullopt } );
     }
     return res;
 }
@@ -99,7 +97,7 @@ cpu_contracts_t quick_contract_no_primary(
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
-        res.contracts[i].primary = boost::none;
+        res.contracts[i].primary.reset();
     }
     return res;
 }
@@ -110,9 +108,8 @@ cpu_contracts_t quick_contract_hand_over(
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
-        res.contracts[i].primary =
-            boost::make_optional(contract_t::primary_t {
-                primary, boost::make_optional(hand_over) } );
+        res.contracts[i].primary.set(contract_t::primary_t {
+                primary, make_optional(hand_over) } );
     }
     return res;
 }
@@ -124,9 +121,8 @@ cpu_contracts_t quick_contract_temp_voters(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].replicas.insert(temp_voters.begin(), temp_voters.end());
-        res.contracts[i].temp_voters = boost::make_optional(temp_voters);
-        res.contracts[i].primary =
-            boost::make_optional(contract_t::primary_t { primary, boost::none } );
+        res.contracts[i].temp_voters.set(temp_voters);
+        res.contracts[i].primary.set(contract_t::primary_t { primary, r_nullopt } );
     }
     return res;
 }
@@ -139,10 +135,9 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].replicas.insert(temp_voters.begin(), temp_voters.end());
-        res.contracts[i].temp_voters = boost::make_optional(temp_voters);
-        res.contracts[i].primary =
-            boost::make_optional(contract_t::primary_t {
-                primary, boost::make_optional(hand_over) } );
+        res.contracts[i].temp_voters.set(temp_voters);
+        res.contracts[i].primary.set(contract_t::primary_t {
+                primary, make_optional(hand_over) } );
     }
     return res;
 }

@@ -96,8 +96,8 @@ into a single object for convenience. */
 class table_query_bcard_t {
 public:
     region_t region;
-    boost::optional<primary_query_bcard_t> primary;
-    boost::optional<direct_query_bcard_t> direct;
+    optional<primary_query_bcard_t> primary;
+    optional<direct_query_bcard_t> direct;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_query_bcard_t);

@@ -40,7 +40,7 @@ bool grant(
     if (!rdb_context->cluster_interface->table_find(
             name_string_t::guarantee_valid("permissions"),
             db,
-            boost::make_optional(admin_identifier_format_t::uuid),
+            make_optional(admin_identifier_format_t::uuid),
             interruptor,
             &table,
             error_out)) {
@@ -62,7 +62,7 @@ bool grant(
     ql::datum_t old_permissions;
     ql::datum_t new_permissions;
     try {
-        grantee->second.apply_write([&](boost::optional<auth::user_t> *user) {
+        grantee->second.apply_write([&](optional<auth::user_t> *user) {
             auth::permissions_t &permissions_ref = permission_selector_function(user->get());
             old_permissions = permissions_ref.to_datum();
             permissions_ref.merge(permissions);

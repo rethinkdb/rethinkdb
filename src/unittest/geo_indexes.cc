@@ -329,7 +329,7 @@ std::vector<datum_t> perform_get_intersecting(
     std::string idx_name = "geo";
     read_t read(
         intersecting_geo_read_t(
-            boost::optional<changefeed_stamp_t>(),
+            optional<changefeed_stamp_t>(),
             region_t::universe(),
             serializable_env_t{
                 ql::global_optargs_t(),
@@ -338,10 +338,10 @@ std::vector<datum_t> perform_get_intersecting(
             table_name,
             ql::batchspec_t::all(),
             std::vector<ql::transform_variant_t>(),
-            boost::optional<ql::terminal_variant_t>(),
+            optional<ql::terminal_variant_t>(),
             sindex_rangespec_t(
                 idx_name,
-                region_t::universe(),
+                make_optional(region_t::universe()),
                 ql::datumspec_t(
                     ql::datum_range_t::universe()),
                 require_sindexes_t::NO),

@@ -6,6 +6,7 @@
 #include "debug.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 /* serializer_multiplexer_t */
 
@@ -67,9 +68,10 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf,
-                                      CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
-    op.recency = repli_timestamp_t::invalid;
+    op.token = make_optional(
+            serializer_block_write(ser, buf,
+                                   CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT));
+    op.recency = make_optional(repli_timestamp_t::invalid);
     {
         std::vector<index_write_op_t> ops;
         ops.push_back(std::move(op));

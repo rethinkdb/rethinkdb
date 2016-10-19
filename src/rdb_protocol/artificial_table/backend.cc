@@ -77,7 +77,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     ql::changefeed::keyspec_t::range_t range_keyspec;
     range_keyspec.sorting = sorting;
     range_keyspec.datumspec = datumspec;
-    boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
+    optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
         counted_t<base_table_t>(
             new artificial_table_t(

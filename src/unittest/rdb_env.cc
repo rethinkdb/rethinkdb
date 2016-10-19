@@ -459,7 +459,7 @@ class fake_ref_tracker_t : public namespace_interface_access_t::ref_tracker_t {
 
 bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
         counted_t<const ql::db_t> db,
-        boost::optional<admin_identifier_format_t> identifier_format,
+        optional<admin_identifier_format_t> identifier_format,
         UNUSED signal_t *local_interruptor, counted_t<base_table_t> *table_out,
         admin_err_t *error_out) {
     auto it = tables.find(std::make_pair(db->id, name));
@@ -469,7 +469,7 @@ bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
             query_state_t::FAILED};
         return false;
     } else {
-        if (static_cast<bool>(identifier_format)) {
+        if (identifier_format.has_value()) {
             *error_out = admin_err_t{
                 "identifier_format doesn't make sense for "
                 "test_rdb_env_t::instance_t",
@@ -670,7 +670,7 @@ bool test_rdb_env_t::instance_t::set_write_hook(
         UNUSED auth::user_context_t const &user_context,
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &table,
-        UNUSED const boost::optional<write_hook_config_t> &config,
+        UNUSED const optional<write_hook_config_t> &config,
         UNUSED signal_t *local_interruptor,
         admin_err_t *error_out) {
     *error_out = admin_err_t{

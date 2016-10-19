@@ -6,13 +6,11 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "btree/keys.hpp"
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
+#include "containers/optional.hpp"
 #include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -50,7 +48,7 @@ public:
     public:
         store_key_t key;
         repli_timestamp_t recency;
-        boost::optional<std::vector<char> > value;   /* empty indicates deletion */
+        optional<std::vector<char> > value;   /* empty indicates deletion */
         size_t get_mem_size() const {
             size_t s = sizeof(pair_t);
             if (static_cast<bool>(value)) {

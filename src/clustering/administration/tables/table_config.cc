@@ -341,7 +341,7 @@ ql::datum_t convert_sindexes_to_datum(
 }
 
 ql::datum_t convert_write_hook_to_datum(
-    const boost::optional<write_hook_config_t> &write_hook) {
+    const optional<write_hook_config_t> &write_hook) {
 
     ql::datum_t res = ql::datum_t::null();
     if (write_hook) {

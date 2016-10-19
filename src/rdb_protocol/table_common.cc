@@ -203,7 +203,7 @@ ql::datum_t resolve_insert_conflict(
     ql::datum_t old_row,
     ql::datum_t insert_row,
     conflict_behavior_t conflict_behavior,
-    boost::optional<counted_t<const ql::func_t> > conflict_func) {
+    optional<counted_t<const ql::func_t> > conflict_func) {
 
     if (old_row.get_type() == ql::datum_t::R_NULL) {
         return insert_row;
@@ -216,8 +216,7 @@ ql::datum_t resolve_insert_conflict(
         args.push_back(ql::datum_t(datum_string_t(primary_key)));
         args.push_back(old_row);
         args.push_back(insert_row);
-        return (*conflict_func)->call(env,
-                                      args)->as_datum();
+        return conflict_func.get()->call(env, args)->as_datum();
     } else {
         rfail_target(&old_row, ql::base_exc_t::OP_FAILED,
                      "Duplicate primary key `%s`:\n%s\n%s",

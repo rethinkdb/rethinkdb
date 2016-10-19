@@ -99,7 +99,7 @@ bool permissions_artificial_table_backend_t::read_all_rows_as_vector(
             ql::datum_t row;
             if (table_to_datum(
                     user.first,
-                    boost::none,
+                    r_nullopt,
                     table.first,
                     table.second,
                     cluster_metadata,
@@ -185,7 +185,7 @@ bool permissions_artificial_table_backend_t::read_row(
         case 3:
             table_to_datum(
                 username,
-                database_id,
+                make_optional(database_id),
                 table_id,
                 user->second.get_ref()->get_table_permissions(table_id),
                 cluster_metadata,
@@ -328,9 +328,9 @@ bool permissions_artificial_table_backend_t::write_row(
                                 return false;
                             }
 
-                            boost::optional<table_basic_config_t> table_basic_config =
+                            optional<table_basic_config_t> table_basic_config =
                                 m_name_resolver.table_id_to_basic_config(
-                                    table_id_primary, database_id_primary);
+                                    table_id_primary, make_optional(database_id_primary));
                             if (!static_cast<bool>(table_basic_config) ||
                                     table_basic_config->name != table_name) {
                                 *error_out = admin_err_t{
@@ -370,7 +370,7 @@ bool permissions_artificial_table_backend_t::write_row(
                 switch (array_size) {
                     case 1:
                         user->second.apply_write(
-                            [&](boost::optional<auth::user_t> *inner_user) {
+                            [&](optional<auth::user_t> *inner_user) {
                                 auto &permissions_ref =
                                     inner_user->get().get_global_permissions();
 
@@ -380,7 +380,7 @@ bool permissions_artificial_table_backend_t::write_row(
                         break;
                     case 2:
                         user->second.apply_write(
-                            [&](boost::optional<auth::user_t> *inner_user) {
+                            [&](optional<auth::user_t> *inner_user) {
                                 auto &permissions_ref =
                                     inner_user->get().get_database_permissions(
                                         database_id_primary);
@@ -391,7 +391,7 @@ bool permissions_artificial_table_backend_t::write_row(
                         break;
                     case 3:
                         user->second.apply_write(
-                            [&](boost::optional<auth::user_t> *inner_user) {
+                            [&](optional<auth::user_t> *inner_user) {
                                 auto &permissions_ref =
                                     inner_user->get().get_table_permissions(
                                         table_id_primary);
@@ -425,7 +425,7 @@ bool permissions_artificial_table_backend_t::write_row(
     } else {
         switch (array_size) {
             case 1:
-                user->second.apply_write([](boost::optional<auth::user_t> *inner_user) {
+                user->second.apply_write([](optional<auth::user_t> *inner_user) {
                     inner_user->get().set_global_permissions(
                         permissions_t(
                             tribool::Indeterminate,
@@ -435,7 +435,7 @@ bool permissions_artificial_table_backend_t::write_row(
                 });
                 break;
             case 2:
-                user->second.apply_write([&](boost::optional<auth::user_t> *inner_user) {
+                user->second.apply_write([&](optional<auth::user_t> *inner_user) {
                     inner_user->get().set_database_permissions(
                         database_id_primary,
                         permissions_t(
@@ -445,7 +445,7 @@ bool permissions_artificial_table_backend_t::write_row(
                 });
                 break;
             case 3:
-                user->second.apply_write([&](boost::optional<auth::user_t> *inner_user) {
+                user->second.apply_write([&](optional<auth::user_t> *inner_user) {
                     inner_user->get().set_table_permissions(
                         table_id_primary,
                         permissions_t(
@@ -504,7 +504,7 @@ uint8_t permissions_artificial_table_backend_t::parse_primary_key(
             return 0;
         }
 
-        boost::optional<name_string_t> database_name =
+        optional<name_string_t> database_name =
             m_name_resolver.database_id_to_name(*database_id_out, cluster_metadata);
         if (!static_cast<bool>(database_name)) {
             if (admin_err_out != nullptr) {
@@ -530,7 +530,7 @@ uint8_t permissions_artificial_table_backend_t::parse_primary_key(
             return 0;
         }
 
-        boost::optional<table_basic_config_t> table_basic_config =
+        optional<table_basic_config_t> table_basic_config =
             m_name_resolver.table_id_to_basic_config(*table_id_out);
         if (!static_cast<bool>(table_basic_config)) {
             if (admin_err_out != nullptr) {
@@ -598,10 +598,10 @@ bool permissions_artificial_table_backend_t::database_to_datum(
         switch (m_identifier_format) {
             case admin_identifier_format_t::name:
                 {
-                    boost::optional<name_string_t> database_name =
+                    optional<name_string_t> database_name =
                         m_name_resolver.database_id_to_name(
                             database_id, cluster_metadata);
-                    database_name_or_uuid = ql::datum_t(database_name.get_value_or(
+                    database_name_or_uuid = ql::datum_t(database_name.value_or(
                         name_string_t::guarantee_valid("__deleted_database__")).str());
                 }
                 break;
@@ -624,12 +624,12 @@ bool permissions_artificial_table_backend_t::database_to_datum(
 
 bool permissions_artificial_table_backend_t::table_to_datum(
         username_t const &username,
-        boost::optional<database_id_t> const &database_id,
+        optional<database_id_t> const &database_id,
         namespace_id_t const &table_id,
         permissions_t const &permissions,
         cluster_semilattice_metadata_t const &cluster_metadata,
         ql::datum_t *datum_out) {
-    boost::optional<table_basic_config_t> table_basic_config =
+    optional<table_basic_config_t> table_basic_config =
         m_name_resolver.table_id_to_basic_config(table_id, database_id);
     if (!static_cast<bool>(table_basic_config)) {
         return false;
@@ -649,10 +649,10 @@ bool permissions_artificial_table_backend_t::table_to_datum(
         switch (m_identifier_format) {
             case admin_identifier_format_t::name:
                 {
-                    boost::optional<name_string_t> database_name =
+                    optional<name_string_t> database_name =
                         m_name_resolver.database_id_to_name(
                             table_basic_config->database, cluster_metadata);
-                    database_name_or_uuid = ql::datum_t(database_name.get_value_or(
+                    database_name_or_uuid = ql::datum_t(database_name.value_or(
                         name_string_t::guarantee_valid("__deleted_database__")).str());
                     table_name_or_uuid = ql::datum_t(table_basic_config->name.str());
                 }

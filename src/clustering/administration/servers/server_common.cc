@@ -97,9 +97,9 @@ bool common_server_artificial_table_backend_t::lookup(
     if (!convert_server_id_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
     }
-    boost::optional<peer_id_t> peer_id =
+    optional<peer_id_t> peer_id =
         server_config_client->get_server_to_peer_map()->get_key(*server_id_out);
-    if (!static_cast<bool>(peer_id)) {
+    if (!peer_id.has_value()) {
         return false;
     }
     *peer_id_out = *peer_id;

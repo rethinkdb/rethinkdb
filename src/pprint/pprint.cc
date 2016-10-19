@@ -8,9 +8,7 @@
 #include <memory>
 #include <string>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
+#include "containers/optional.hpp"
 #include "rdb_protocol/error.hpp"
 #include "utils.hpp"
 
@@ -306,7 +304,7 @@ class stream_element_t : public single_threaded_countable_t<stream_element_t> {
 public:
     friend class annotate_stream_visitor_t;
     friend class correct_gbeg_visitor_t;
-    boost::optional<size_t> hpos;
+    optional<size_t> hpos;
 
     stream_element_t() : hpos() {}
     explicit stream_element_t(size_t n) : hpos(n) {}
@@ -490,18 +488,18 @@ public:
 
     void operator()(text_element_t *t) override {
         position += t->payload.size();
-        t->hpos = position;
+        t->hpos.set(position);
         (*fn)(t->counted_from_this());
     }
 
     void operator()(crlf_element_t *e) override {
-        e->hpos = position;
+        e->hpos.set(position);
         (*fn)(e->counted_from_this());
     }
 
     void operator()(cond_element_t *c) override {
         position += c->small.size();
-        c->hpos = position;
+        c->hpos.set(position);
         (*fn)(c->counted_from_this());
     }
 
@@ -511,7 +509,7 @@ public:
     }
 
     void operator()(gend_element_t *e) override {
-        e->hpos = position;
+        e->hpos.set(position);
         (*fn)(e->counted_from_this());
     }
 
@@ -521,7 +519,7 @@ public:
     }
 
     void operator()(nend_element_t *e) override {
-        e->hpos = position;
+        e->hpos.set(position);
         (*fn)(e->counted_from_this());
     }
 };

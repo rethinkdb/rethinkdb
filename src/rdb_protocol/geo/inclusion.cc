@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "rdb_protocol/geo/geojson.hpp"
 #include "rdb_protocol/geo/geo_visitor.hpp"
 #include "rdb_protocol/geo/intersection.hpp"

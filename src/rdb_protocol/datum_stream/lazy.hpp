@@ -24,7 +24,7 @@ public:
     virtual bool add_stamp(changefeed_stamp_t stamp) {
         return reader->add_stamp(std::move(stamp));
     }
-    virtual boost::optional<active_state_t> get_active_state() {
+    virtual optional<active_state_t> get_active_state() {
         return reader->get_active_state();
     }
 

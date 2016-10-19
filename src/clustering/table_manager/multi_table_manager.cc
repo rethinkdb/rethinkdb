@@ -84,7 +84,7 @@ multi_table_manager_t::multi_table_manager_t(
     table_manager_directory(_table_manager_directory),
     connections_map(nullptr),
     persistence_interface(nullptr),
-    base_path(boost::none),
+    base_path(r_nullopt),
     io_backender(nullptr),
     perfmon_collection_repo(nullptr)
 {
@@ -270,11 +270,11 @@ void multi_table_manager_t::on_action(
         const namespace_id_t &table_id,
         const multi_table_manager_timestamp_t &timestamp,
         multi_table_manager_bcard_t::status_t action_status,
-        const boost::optional<table_basic_config_t> &basic_config,
-        const boost::optional<raft_member_id_t> &raft_member_id,
-        const boost::optional<raft_persistent_state_t<table_raft_state_t> >
+        const optional<table_basic_config_t> &basic_config,
+        const optional<raft_member_id_t> &raft_member_id,
+        const optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_raft_state,
-        const boost::optional<raft_start_election_immediately_t>
+        const optional<raft_start_election_immediately_t>
             &start_election_immediately,
         const mailbox_t<void()>::address_t &ack_addr) {
     typedef multi_table_manager_bcard_t::status_t action_status_t;
@@ -556,7 +556,7 @@ void multi_table_manager_t::do_sync(
         const namespace_id_t &table_id,
         const table_t &table,
         const server_id_t &other_server_id,
-        const boost::optional<table_manager_bcard_t> &table_bcard,
+        const optional<table_manager_bcard_t> &table_bcard,
         const multi_table_manager_bcard_t &table_manager_bcard) {
     typedef multi_table_manager_bcard_t::status_t action_status_t;
 
@@ -564,9 +564,9 @@ void multi_table_manager_t::do_sync(
         multi_table_manager_timestamp_t timestamp;
         timestamp.epoch = table.active->manager.epoch;
         action_status_t action_status;
-        boost::optional<table_basic_config_t> basic_config;
-        boost::optional<raft_member_id_t> raft_member_id;
-        boost::optional<raft_persistent_state_t<table_raft_state_t> >
+        optional<table_basic_config_t> basic_config;
+        optional<raft_member_id_t> raft_member_id;
+        optional<raft_persistent_state_t<table_raft_state_t> >
             initial_raft_state;
         {
             cond_t non_interruptor;
@@ -578,19 +578,19 @@ void multi_table_manager_t::do_sync(
                     auto it = st->state.member_ids.find(other_server_id);
                     if (it != st->state.member_ids.end()) {
                         action_status = action_status_t::ACTIVE;
-                        raft_member_id = boost::make_optional(it->second);
-                        initial_raft_state = boost::make_optional(
+                        raft_member_id = make_optional(it->second);
+                        initial_raft_state = make_optional(
                             table.active->get_raft()->get_state_for_init(
                                 raft_change_lock));
                     } else {
                         action_status = action_status_t::INACTIVE;
                         basic_config =
-                            boost::make_optional(st->state.config.config.basic);
+                            make_optional(st->state.config.config.basic);
                     }
                 });
         }
 
-        if (static_cast<bool>(table_bcard)) {
+        if (table_bcard.has_value()) {
             /* If the peer already has an entry in the directory, we can use that to
             avoid sending unnecessary updates to save network traffic. */
             if (action_status == action_status_t::ACTIVE
@@ -607,11 +607,11 @@ void multi_table_manager_t::do_sync(
             basic_config,
             raft_member_id,
             initial_raft_state,
-            boost::optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
+            optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
             mailbox_t<void()>::address_t());
 
     } else if (table.status == table_t::status_t::INACTIVE) {
-        if (static_cast<bool>(table_bcard)) {
+        if (table_bcard.has_value()) {
             /* No point in sending a `MAYBE_ACTIVE` message to a server that's actually
             hosting the table already (it would be a noop) */
             return;
@@ -621,11 +621,11 @@ void multi_table_manager_t::do_sync(
             table_id,
             table.basic_configs_entry->get_value().second,
             action_status_t::MAYBE_ACTIVE,
-            boost::optional<table_basic_config_t>(
+            optional<table_basic_config_t>(
                 table.basic_configs_entry->get_value().first),
-            boost::optional<raft_member_id_t>(),
-            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-            boost::optional<raft_start_election_immediately_t>(),
+            optional<raft_member_id_t>(),
+            optional<raft_persistent_state_t<table_raft_state_t> >(),
+            optional<raft_start_election_immediately_t>(),
             mailbox_t<void()>::address_t());
 
     } else if (table.status == table_t::status_t::DELETED) {
@@ -633,10 +633,10 @@ void multi_table_manager_t::do_sync(
             table_id,
             multi_table_manager_timestamp_t::deletion(),
             action_status_t::DELETED,
-            boost::optional<table_basic_config_t>(),
-            boost::optional<raft_member_id_t>(),
-            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-            boost::optional<raft_start_election_immediately_t>(),
+            optional<table_basic_config_t>(),
+            optional<raft_member_id_t>(),
+            optional<raft_persistent_state_t<table_raft_state_t> >(),
+            optional<raft_start_election_immediately_t>(),
             mailbox_t<void()>::address_t());
 
     } else {
@@ -682,10 +682,10 @@ void multi_table_manager_t::schedule_sync(
                     /* Removing `peer` from `table->to_sync_set` isn't strictly
                     necessary, but it sometimes reduces redundant traffic */
                     table->to_sync_set.erase(peer);
-                    boost::optional<multi_table_manager_bcard_t>
+                    optional<multi_table_manager_bcard_t>
                         multi_table_manager_bcard =
                             multi_table_manager_directory->get_key(peer);
-                    if (!static_cast<bool>(multi_table_manager_bcard)) {
+                    if (!multi_table_manager_bcard.has_value()) {
                         /* Peer is not connected. */
                         continue;
                     }

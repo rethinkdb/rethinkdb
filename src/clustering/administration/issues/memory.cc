@@ -73,12 +73,12 @@ std::vector<memory_issue_t> memory_issue_tracker_t::get_issues() {
 
 void memory_issue_tracker_t::report_success() {
     assert_thread();
-    error_message = boost::none;
+    error_message = r_nullopt;
 }
 
 void memory_issue_tracker_t::report_error(const std::string &message) {
     assert_thread();
-    error_message = boost::make_optional(message);
+    error_message = make_optional(message);
 }
 
 void memory_issue_tracker_t::combine(

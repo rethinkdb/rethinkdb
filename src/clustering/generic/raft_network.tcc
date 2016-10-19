@@ -22,7 +22,7 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
     rpc_mailbox(mailbox_manager,
         std::bind(&raft_networked_member_t::on_rpc, this, ph::_1, ph::_2, ph::_3)),
     business_card(raft_business_card_t<state_t> {
-        rpc_mailbox.get_address(), boost::optional<raft_term_t>() })
+        rpc_mailbox.get_address(), optional<raft_term_t>() })
     { }
 
 template<class state_t>
@@ -32,8 +32,8 @@ bool raft_networked_member_t<state_t>::send_rpc(
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out) {
     /* Find the given member's mailbox address */
-    boost::optional<raft_business_card_t<state_t> > bcard = peers->get_key(dest);
-    if (!static_cast<bool>(bcard)) {
+    optional<raft_business_card_t<state_t> > bcard = peers->get_key(dest);
+    if (!bcard.has_value()) {
         /* The member is not connected */
         return false;
     }
@@ -54,7 +54,7 @@ bool raft_networked_member_t<state_t>::send_rpc(
 
 template<class state_t>
 void raft_networked_member_t<state_t>::send_virtual_heartbeats(
-        const boost::optional<raft_term_t> &term) {
+        const optional<raft_term_t> &term) {
     business_card.apply_atomic_op(
         [&](raft_business_card_t<state_t> *bcard) {
             if (bcard->virtual_heartbeats != term) {
@@ -67,7 +67,7 @@ void raft_networked_member_t<state_t>::send_virtual_heartbeats(
 }
 
 template<class state_t>
-watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> > *
+watchable_map_t<raft_member_id_t, optional<raft_term_t> > *
         raft_networked_member_t<state_t>::get_connected_members() {
     return &peers_map_transformer;
 }

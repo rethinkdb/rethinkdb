@@ -28,16 +28,16 @@ public:
                              const batchspec_t &batchspec) const = 0;
 
     virtual read_t next_read(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange(reql_version_t rv) const = 0;
     virtual void restrict_active_ranges(
         sorting_t sorting, active_ranges_t *ranges_inout) const = 0;
-    virtual boost::optional<std::string> sindex_name() const = 0;
+    virtual optional<std::string> sindex_name() const = 0;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const = 0;
@@ -71,17 +71,17 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
 private:
     virtual rget_read_t next_read_impl(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transforms,
         const batchspec_t &batchspec) const = 0;
 
@@ -107,22 +107,22 @@ private:
                       read_mode_t read_mode,
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec,
                              const batchspec_t &batchspec) const;
     virtual key_range_t original_keyrange(reql_version_t rv) const;
-    virtual boost::optional<std::string> sindex_name() const;
+    virtual optional<std::string> sindex_name() const;
     void restrict_active_ranges(
         sorting_t sorting, active_ranges_t *active_ranges_inout) const final;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
             std::vector<transform_variant_t> transforms) const;
 
-    boost::optional<std::map<store_key_t, uint64_t> > store_keys;
+    optional<std::map<store_key_t, uint64_t> > store_keys;
 };
 
 class sindex_readgen_t : public rget_readgen_t {
@@ -139,7 +139,7 @@ public:
     virtual void sindex_sort(std::vector<rget_item_t> *vec,
                              const batchspec_t &batchspec) const;
     virtual key_range_t original_keyrange(reql_version_t rv) const;
-    virtual boost::optional<std::string> sindex_name() const;
+    virtual optional<std::string> sindex_name() const;
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 private:
     sindex_readgen_t(
@@ -152,9 +152,9 @@ private:
         sorting_t sorting,
         require_sindexes_t require_sindex_val);
     virtual rget_read_t next_read_impl(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
@@ -181,16 +181,16 @@ public:
         const batchspec_t &batchspec) const;
 
     virtual read_t next_read(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     virtual void sindex_sort(std::vector<rget_item_t> *vec,
                              const batchspec_t &batchspec) const;
     virtual key_range_t original_keyrange(reql_version_t rv) const;
-    virtual boost::optional<std::string> sindex_name() const;
+    virtual optional<std::string> sindex_name() const;
     void restrict_active_ranges(sorting_t, active_ranges_t *) const final { }
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
@@ -208,9 +208,9 @@ private:
     // Analogue to rget_readgen_t::next_read_impl(), but generates an intersecting
     // geo read.
     intersecting_geo_read_t next_read_impl(
-        const boost::optional<active_ranges_t> &active_ranges,
-        const boost::optional<reql_version_t> &reql_version,
-        boost::optional<changefeed_stamp_t> stamp,
+        const optional<active_ranges_t> &active_ranges,
+        const optional<reql_version_t> &reql_version,
+        optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transforms,
         const batchspec_t &batchspec) const;
 

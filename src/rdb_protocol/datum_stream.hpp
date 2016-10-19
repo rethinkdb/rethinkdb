@@ -12,10 +12,8 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "containers/counted.hpp"
+#include "containers/optional.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -49,8 +47,8 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 
 struct active_state_t {
     std::map<uuid_u, std::pair<key_range_t, uint64_t> > shard_last_read_stamps;
-    boost::optional<reql_version_t> reql_version; // none for pkey
-    DEBUG_ONLY(boost::optional<std::string> sindex;)
+    optional<reql_version_t> reql_version; // none for pkey
+    DEBUG_ONLY(optional<std::string> sindex;)
 };
 
 struct changespec_t {
@@ -71,7 +69,7 @@ public:
     virtual std::vector<changespec_t> get_changespecs() = 0;
     virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp);
-    virtual boost::optional<active_state_t> get_active_state();
+    virtual optional<active_state_t> get_active_state();
     void add_grouping(transform_variant_t &&tv,
                       backtrace_id_t bt);
 

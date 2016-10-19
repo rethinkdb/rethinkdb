@@ -3,7 +3,6 @@
 
 #include <queue>
 
-#include "boost_utils.hpp"
 #include "btree/reql_specific.hpp"
 #include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/tables/name_resolver.hpp"
@@ -29,13 +28,13 @@ namespace changefeed {
 struct indexed_datum_t {
     indexed_datum_t(
             datum_t _val,
-            boost::optional<std::string> _btree_index_key)
+            optional<std::string> _btree_index_key)
         : val(std::move(_val)),
           btree_index_key(std::move(_btree_index_key)) {
         guarantee(val.has());
     }
     datum_t val;
-    boost::optional<std::string> btree_index_key;
+    optional<std::string> btree_index_key;
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
@@ -70,9 +69,9 @@ void debug_print(printf_buffer_t *buf, const stamped_range_t &rng) {
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
                  store_key_t _pkey,
-                 boost::optional<indexed_datum_t> _old_val,
-                 boost::optional<indexed_datum_t> _new_val
-                 DEBUG_ONLY(, boost::optional<std::string> _sindex))
+                 optional<indexed_datum_t> _old_val,
+                 optional<indexed_datum_t> _new_val
+                 DEBUG_ONLY(, optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
           pkey(std::move(_pkey)),
           old_val(std::move(_old_val)),
@@ -87,8 +86,8 @@ struct change_val_t {
     }
     std::pair<uuid_u, uint64_t> source_stamp;
     store_key_t pkey;
-    boost::optional<indexed_datum_t> old_val, new_val;
-    DEBUG_ONLY(boost::optional<std::string> sindex;);
+    optional<indexed_datum_t> old_val, new_val;
+    DEBUG_ONLY(optional<std::string> sindex;);
     // This should be true, but older versions of boost don't support `move`
     // well in optionals.
     // MOVABLE_BUT_NOT_COPYABLE(change_val_t);
@@ -108,7 +107,7 @@ std::string print(const indexed_datum_t &d) {
                      print(d.val).c_str(),
                      d.btree_index_key
                      ? key_to_debug_str(store_key_t(*d.btree_index_key)).c_str()
-                     : "boost::none");
+                     : "r_nullopt");
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -124,7 +123,7 @@ std::string print(const std::pair<A, B> &p) {
     return strprintf("pair(%s, %s)", print(p.first).c_str(), print(p.second).c_str());
 }
 template<class T>
-std::string print(const boost::optional<T> &t) {
+std::string print(const optional<T> &t) {
     return strprintf("opt(%s)\n", t ? print(*t).c_str() : "");
 }
 std::string print(const msg_t::limit_change_t &change) {
@@ -282,7 +281,7 @@ private:
     std::list<store_key_t> queue_order;
 };
 
-boost::optional<datum_t> apply_ops(
+optional<datum_t> apply_ops(
     const datum_t &val,
     const std::vector<scoped_ptr_t<op_t> > &ops,
     env_t *env,
@@ -300,9 +299,9 @@ boost::optional<datum_t> apply_ops(
         // TODO: when we support `.concatmap.changes` this will need to change.
         guarantee(vec->size() <= 1);
         if (vec->size() == 1) {
-            return (*vec)[0];
+            return make_optional((*vec)[0]);
         } else {
-            return boost::none;
+            return r_nullopt;
         }
     } catch (const base_exc_t &) {
         // Do nothing.  This is similar to index behavior where we drop a row if
@@ -310,12 +309,17 @@ boost::optional<datum_t> apply_ops(
         // case, if you change the value of a row so that one of the
         // transformations errors on it, we report the row as being deleted from
         // the selection you asked for changes on.)
-        return boost::none;
+        return r_nullopt;
     }
 }
 
+// TODO: The code here's probably too abstract.
+bool opt_str_lt(const optional<std::string> &s, const optional<std::string> &t) {
+    return s < t;
+}
+
 server_t::client_info_t::client_info_t()
-    : limit_clients(&opt_lt<std::string>),
+    : limit_clients(&opt_str_lt),
       limit_clients_lock(new rwlock_t()) { }
 
 server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)
@@ -344,7 +348,7 @@ void server_t::stop_mailbox_cb(signal_t *, client_t::addr_t addr) {
 
 void server_t::limit_stop_mailbox_cb(signal_t *,
                                      client_t::addr_t addr,
-                                     boost::optional<std::string> sindex,
+                                     optional<std::string> sindex,
                                      uuid_u limit_uuid) {
     std::vector<scoped_ptr_t<limit_manager_t> > destroyable_lms;
     auto_drainer_t::lock_t lock(&drainer);
@@ -429,7 +433,7 @@ void server_t::add_limit_client(
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
-        const boost::optional<uuid_u> &sindex_id,
+        const optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
         auth::user_context_t user_context,
@@ -560,7 +564,7 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
     return limit_stop_mailbox.get_address();
 }
 
-boost::optional<uint64_t> server_t::get_stamp(
+optional<uint64_t> server_t::get_stamp(
         const client_t::addr_t &addr,
         const auto_drainer_t::lock_t &keepalive) {
     keepalive.assert_is_holding(&drainer);
@@ -568,9 +572,9 @@ boost::optional<uint64_t> server_t::get_stamp(
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
-        return boost::none;
+        return r_nullopt;
     } else {
-        return it->second.stamp;
+        return make_optional(it->second.stamp);
     }
 }
 
@@ -579,7 +583,7 @@ uuid_u server_t::get_uuid() {
 }
 
 bool server_t::has_limit(
-        const boost::optional<std::string> &sindex_name,
+        const optional<std::string> &sindex_name,
         const auto_drainer_t::lock_t &keepalive) {
     keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
@@ -603,8 +607,8 @@ auto_drainer_t::lock_t server_t::get_keepalive() {
 }
 
 void server_t::foreach_limit(
-        const boost::optional<std::string> &sindex_name,
-        const boost::optional<uuid_u> &sindex_id,
+        const optional<std::string> &sindex_name,
+        const optional<uuid_u> &sindex_id,
         const store_key_t *pkey,
         std::function<void(rwlock_in_line_t *,
                            rwlock_in_line_t *,
@@ -634,13 +638,13 @@ void server_t::foreach_limit(
             auto_drainer_t::lock_t lc_lock(&(*lc)->drainer);
             rwlock_in_line_t lc_spot(&(*lc)->lock, access_t::write);
             lc_spot.write_signal()->wait_lazily_unordered();
-            boost::optional<exc_t> error;
+            optional<exc_t> error;
             try {
                 if ((*lc)->sindex_id != sindex_id) {
                     // Abort limit managers that don't match the index ID.
                     // This can happen if an index is replaced by a different
                     // index under the same name.
-                    r_sanity_check(sindex_name != boost::none);
+                    r_sanity_check(sindex_name.has_value());
                     rfail_toplevel(
                         base_exc_t::OP_FAILED,
                         "The secondary index `%s` was replaced by a different one.",
@@ -648,7 +652,7 @@ void server_t::foreach_limit(
                 }
                 f(spot.get(), &lspot, &lc_spot, (*lc).get());
             } catch (const exc_t &e) {
-                error = e;
+                error.set(e);
             }
             if (error) {
                 (*lc)->abort(*error);
@@ -674,7 +678,7 @@ void server_t::prune_dead_limit(
     auto_drainer_t::lock_t *stealable_lock,
     scoped_ptr_t<rwlock_in_line_t> *stealable_clients_read_lock,
     client_info_t *info,
-    boost::optional<std::string> sindex,
+    optional<std::string> sindex,
     size_t offset) {
     std::vector<scoped_ptr_t<limit_manager_t> > destroyable_lms;
 
@@ -739,7 +743,7 @@ std::string key_to_mangled_primary(store_key_t store_key, is_primary_t is_primar
         }
     }
     s.push_back(1); // Append regardless of whether there's a tag.
-    if (components.tag_num) {
+    if (components.tag_num.has_value()) {
         uint64_t u = *components.tag_num;
         // Shamelessly stolen from datum.cc.
         s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(uint64_t) * 2), u);
@@ -860,7 +864,7 @@ limit_manager_t::limit_manager_t(
     rwlock_in_line_t *clients_lock,
     region_t _region,
     std::string _table,
-    boost::optional<uuid_u> _sindex_id,
+    optional<uuid_u> _sindex_id,
     rdb_context_t *ctx,
     global_optargs_t optargs,
     auth::user_context_t user_context,
@@ -915,7 +919,7 @@ void limit_manager_t::add(
     guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
     if ((is_primary == is_primary_t::YES && region.inner.contains_key(sk))
         || (is_primary == is_primary_t::NO && spec.range.datumspec.copies(key) != 0)) {
-        if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
+        if (optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
             auto pair = added.insert(
                 std::make_pair(
                     key_to_mangled_primary(sk, is_primary),
@@ -949,7 +953,7 @@ public:
                   const key_range_t *_pk_range,
                   const keyspec_t::limit_t *_spec,
                   sorting_t _sorting,
-                  boost::optional<item_t> _start,
+                  optional<item_t> _start,
                   const item_queue_t *_item_queue)
         : env(_env),
           ops(_ops),
@@ -985,12 +989,12 @@ public:
             ref.btree,
             region_t(),
             range,
-            boost::none,
+            r_nullopt,
             ref.superblock,
             env,
             batchspec_t::all(),
             std::vector<transform_variant_t>(),
-            boost::optional<terminal_variant_t>(
+            optional<terminal_variant_t>(
                 limit_read_t{
                     is_primary_t::YES,
                     n,
@@ -1068,7 +1072,7 @@ public:
             env,
             batchspec_t::all(), // Terminal takes care of early termination
             std::vector<transform_variant_t>(),
-            boost::optional<terminal_variant_t>(limit_read_t{
+            optional<terminal_variant_t>(limit_read_t{
                     is_primary_t::NO,
                     n,
                     // This code uses the same generic code path as a normal
@@ -1111,13 +1115,13 @@ private:
     const key_range_t *pk_range;
     const keyspec_t::limit_t *spec;
     sorting_t sorting;
-    boost::optional<item_t> start;
+    optional<item_t> start;
     const item_queue_t *item_queue;
 };
 
 std::vector<item_t> limit_manager_t::read_more(
     const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-    const boost::optional<item_t> &start) {
+    const optional<item_t> &start) {
     guarantee(item_queue.size() < spec.limit);
     ref_visitor_t visitor(
         env.get(), &ops, &region.inner, &spec, spec.range.sorting, start, &item_queue);
@@ -1136,10 +1140,10 @@ void limit_manager_t::commit(
     // the data that didn't make it into the set.  Anything <= that according to
     // our ordering could never be kicked out of the set because of a read from
     // disk.
-    boost::optional<item_t> active_boundary;
+    optional<item_t> active_boundary;
     auto item_queue_it = item_queue.begin();
     if (item_queue_it != item_queue.end()) {
-        active_boundary = **item_queue_it;
+        active_boundary.set(**item_queue_it);
     }
 
     item_queue_t real_added(gt);
@@ -1185,11 +1189,11 @@ void limit_manager_t::commit(
     bool anything_on_disk = real_deleted.size() != 0 || added_on_disk;
     if (item_queue.size() < spec.limit && anything_on_disk) {
         std::vector<item_t> s;
-        boost::optional<exc_t> exc;
+        optional<exc_t> exc;
         try {
             s = read_more(sindex_ref, active_boundary);
         } catch (const exc_t &e) {
-            exc = e;
+            exc.set(e);
         }
         // We need to do it this way because we can't do anything
         // coroutine-related in an exception handler.
@@ -1224,8 +1228,8 @@ void limit_manager_t::commit(
         if (it != real_added.end()) {
             msg_t::limit_change_t msg;
             msg.sub = uuid;
-            msg.old_key = id;
-            msg.new_val = std::move(**it);
+            msg.old_key.set(id);
+            msg.new_val.set(std::move(**it));
             real_added.erase(it);
             send(msg_t(std::move(msg)));
         } else {
@@ -1237,10 +1241,10 @@ void limit_manager_t::commit(
     for (const auto &id : remaining_deleted) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
-        msg.old_key = id;
+        msg.old_key.set(id);
         auto it = real_added.begin();
         if (it != real_added.end()) {
-            msg.new_val = std::move(**it);
+            msg.new_val.set(std::move(**it));
             real_added.erase(it);
         }
         send(msg_t(std::move(msg)));
@@ -1249,7 +1253,7 @@ void limit_manager_t::commit(
     for (auto &&it : real_added) {
         msg_t::limit_change_t msg;
         msg.sub = uuid;
-        msg.new_val = std::move(*it);
+        msg.new_val.set(std::move(*it));
         send(msg_t(std::move(msg)));
     }
     real_added.clear();
@@ -1475,8 +1479,8 @@ datum_t vals_to_change(
     bool discard_new_val = false,
     bool include_type = false,
     bool include_offsets = false,
-    boost::optional<size_t> old_offset = boost::none,
-    boost::optional<size_t> new_offset = boost::none) {
+    optional<size_t> old_offset = r_nullopt,
+    optional<size_t> new_offset = r_nullopt) {
     change_type_t change_type;
 
     if (discard_old_val && !discard_new_val) {
@@ -1561,9 +1565,9 @@ public:
         const uuid_u &shard_uuid,
         uint64_t stamp,
         const store_key_t &pkey,
-        const boost::optional<std::string> &DEBUG_ONLY(sindex),
-        boost::optional<indexed_datum_t> old_val,
-        boost::optional<indexed_datum_t> new_val) {
+        const optional<std::string> &DEBUG_ONLY(sindex),
+        optional<indexed_datum_t> old_val,
+        optional<indexed_datum_t> new_val) {
         if (!active()) return;
         auto stamp_pair = std::make_pair(shard_uuid, stamp);
         if (stamp_pair == last_stamp || update_stamp(shard_uuid, stamp)) {
@@ -2043,7 +2047,7 @@ public:
                                        false,
                                        include_types);
         }
-        initial_val = boost::none;
+        initial_val.reset();
         state = state_t::READY;
         return ret;
     }
@@ -2078,16 +2082,16 @@ public:
             env->interruptor);
         auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
         guarantee(res != nullptr);
-        rcheck_datum(res->resp, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(res->resp.has_value(), base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve start stamp.  (Did you just reshard?)");
         auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
-        initial_val = change_val_t(
+        initial_val.set(change_val_t(
                resp->stamp,
                store_key_t(pkey.print_primary()),
-               boost::none,
-               indexed_datum_t(resp->initial_val, boost::none)
-               DEBUG_ONLY(, boost::none));
+               r_nullopt,
+               make_optional(indexed_datum_t(resp->initial_val, r_nullopt))
+               DEBUG_ONLY(, r_nullopt)));
         if (start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear();
@@ -2133,19 +2137,19 @@ public:
                 break;
             }
         }
-        initial_val = change_val_t(
+        initial_val.set(change_val_t(
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
-            boost::none,
-            indexed_datum_t(initial, boost::none)
-            DEBUG_ONLY(, boost::none));
+            r_nullopt,
+            make_optional(indexed_datum_t(initial, r_nullopt))
+            DEBUG_ONLY(, r_nullopt)));
         started = true;
 
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
     datum_t pkey;
-    boost::optional<change_val_t> initial_val;
+    optional<change_val_t> initial_val;
     uint64_t stamp;
     bool started;
     state_t state, sent_state;
@@ -2195,8 +2199,8 @@ public:
             ops.push_back(make_op(transform));
         }
         store_keys = spec.datumspec.primary_key_map();
-        if (!store_keys) {
-            store_key_range = spec.datumspec.covering_range().to_primary_keyrange();
+        if (!store_keys.has_value()) {
+            store_key_range.set(spec.datumspec.covering_range().to_primary_keyrange());
         }
         _feed->add_range_sub(this);
     }
@@ -2204,7 +2208,7 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    boost::optional<std::string> sindex() const { return spec.sindex; }
+    optional<std::string> sindex() const { return spec.sindex; }
     size_t copies(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
         if (spec.intersect_geometry) {
@@ -2222,8 +2226,7 @@ public:
     }
     size_t copies(const store_key_t &pkey) const {
         guarantee(!spec.sindex);
-        if (store_keys) {
-            guarantee(store_keys);
+        if (store_keys.has_value()) {
             auto it = store_keys->find(pkey);
             return it != store_keys->end() ? it->second : 0;
         } else {
@@ -2234,7 +2237,7 @@ public:
 
     bool has_ops() { return ops.size() != 0; }
 
-    boost::optional<datum_t> apply_ops(datum_t val) {
+    optional<datum_t> apply_ops(datum_t val) {
         guarantee(active());
         guarantee(env.has());
         guarantee(has_ops());
@@ -2249,8 +2252,8 @@ public:
         // `r.current_index` term we'll need to make this smarter.
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
-    boost::optional<datum_t> maybe_apply_ops(datum_t val) {
-        return has_ops() ? apply_ops(std::move(val)) : std::move(val);
+    optional<datum_t> maybe_apply_ops(datum_t val) {
+        return has_ops() ? apply_ops(std::move(val)) : make_optional(std::move(val));
     }
 
     bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) final {
@@ -2324,7 +2327,7 @@ public:
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != nullptr);
-        rcheck_datum(resp->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
+        rcheck_datum(resp->stamp_infos.has_value(), base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
         std::map<uuid_u, uint64_t> purge_stamps;
         for (const auto &pair : *resp->stamp_infos) {
@@ -2377,7 +2380,7 @@ public:
             state = state_t::INITIALIZING;
             datum_string_t pk(pkey_name);
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                if (boost::optional<datum_t> d = maybe_apply_ops(*it)) {
+                if (optional<datum_t> d = maybe_apply_ops(*it)) {
                     for (size_t i = 0;
                          i < spec.datumspec.copies(it->get_field(pk));
                          ++i) {
@@ -2417,8 +2420,8 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> orig_stamps, next_stamps;
     keyspec_t::range_t spec;
-    boost::optional<std::map<store_key_t, uint64_t> > store_keys;
-    boost::optional<key_range_t> store_key_range;
+    optional<std::map<store_key_t, uint64_t> > store_keys;
+    optional<key_range_t> store_key_range;
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
     bool artificial_include_initial;
@@ -2430,7 +2433,7 @@ private:
 class limit_sub_t : public subscription_t {
     struct limit_change_t {
         datum_t old_d, new_d;
-        boost::optional<size_t> old_offset, new_offset;
+        optional<size_t> old_offset, new_offset;
     };
 public:
     // Throws QL exceptions.
@@ -2602,8 +2605,8 @@ public:
     }
 
     virtual void note_change(
-        const boost::optional<std::string> &old_key,
-        const boost::optional<item_t> &new_val) {
+        const optional<std::string> &old_key,
+        const optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
         // If we aren't done initializing, or if we're squashing, just queue up
@@ -2625,25 +2628,25 @@ public:
     }
 
     template<class T>
-    boost::optional<size_t> slow_active_offset(const T &it) {
+    optional<size_t> slow_active_offset(const T &it) {
         size_t i = 0;
         for (auto ft = active_data.begin();
              ft != active_data.end();
              ++ft, ++i) {
             if (*ft == it) {
-                return active_data.size() - (i + 1);
+                return make_optional(active_data.size() - (i + 1));
             }
         }
-        return boost::none;
+        return r_nullopt;
     }
 
     limit_change_t note_change_impl(
-        const boost::optional<std::string> &old_key,
-        const boost::optional<item_t> &new_val) {
+        const optional<std::string> &old_key,
+        const optional<item_t> &new_val) {
         ASSERT_NO_CORO_WAITING;
 
-        boost::optional<item_t> old_send, new_send;
-        boost::optional<size_t> old_offset, new_offset;
+        optional<item_t> old_send, new_send;
+        optional<size_t> old_offset, new_offset;
         if (old_key) {
             auto it = item_queue.find_id(*old_key);
             guarantee(it != item_queue.end());
@@ -2656,7 +2659,7 @@ public:
                 if (include_offsets) {
                     guarantee(old_offset);
                 }
-                old_send = **it;
+                old_send.set(**it);
             } else {
                 if (include_offsets) {
                     guarantee(!old_offset);
@@ -2682,7 +2685,7 @@ public:
                     new_offset = slow_active_offset(it);
                     guarantee(new_offset);
                 }
-                new_send = **it;
+                new_send.set(**it);
             }
         }
         if (active_data.size() > spec.limit) {
@@ -2692,9 +2695,9 @@ public:
             guarantee(new_send && !old_send && !old_offset);
             if (include_offsets) {
                 // We subtract two here because `new_val` was already inserted.
-                old_offset = active_data.size() - 2;
+                old_offset.set(active_data.size() - 2);
             }
-            old_send = **last;
+            old_send.set(**last);
             active_data.erase(last);
         } else if (active_data.size() < spec.limit) {
             // The set is too small.
@@ -2712,9 +2715,9 @@ public:
                 --it;
                 active_data.insert(it);
                 if (include_offsets) {
-                    new_offset = active_data.size() - 1;
+                    new_offset.set(active_data.size() - 1);
                 }
-                new_send = **it;
+                new_send.set(**it);
             }
         }
         guarantee(active_data.size() == spec.limit
@@ -2724,7 +2727,8 @@ public:
         datum_t new_d = new_send ? (*new_send).second.second : datum_t();
         if (old_d.has() && new_d.has() && old_d == new_d && old_offset == new_offset) {
             old_d = new_d = datum_t();
-            old_offset = new_offset = boost::none;
+            old_offset = r_nullopt;
+            new_offset = r_nullopt;
         }
         return limit_change_t{old_d, new_d, old_offset, new_offset};
     }
@@ -2804,7 +2808,7 @@ public:
     std::set<data_it_t, data_it_lt_t> active_data;
 
     std::deque<datum_t> els;
-    std::vector<std::pair<boost::optional<std::string>, boost::optional<item_t> > >
+    std::vector<std::pair<optional<std::string>, optional<item_t> > >
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
     bool include_initial;
@@ -2856,13 +2860,13 @@ public:
             bool trivial = false;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
-                    if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
+                    if (optional<datum_t> d = sub->apply_ops(change.new_val)) {
                         new_val = *d;
                     }
                 }
                 if (!sub->active()) return;
                 if (change.old_val.has()) {
-                    if (boost::optional<datum_t> d = sub->apply_ops(change.old_val)) {
+                    if (optional<datum_t> d = sub->apply_ops(change.old_val)) {
                         old_val = *d;
                     }
                 }
@@ -2881,14 +2885,15 @@ public:
                 }
             }
             ASSERT_NO_CORO_WAITING;
-            boost::optional<std::string> sindex = sub->sindex();
+            optional<std::string> sindex = sub->sindex();
             if (sindex) {
                 std::vector<indexed_datum_t> old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            old_idxs.push_back(indexed_datum_t(old_val, idx.second));
+                            old_idxs.push_back(
+                                indexed_datum_t(old_val, make_optional(idx.second)));
                         }
                     }
                 }
@@ -2896,15 +2901,16 @@ public:
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
-                            new_idxs.push_back(indexed_datum_t(new_val, idx.second));
+                            new_idxs.push_back(
+                                indexed_datum_t(new_val, make_optional(idx.second)));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     if (!trivial) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    std::move(old_idxs.back()),
-                                    std::move(new_idxs.back()));
+                                    make_optional(std::move(old_idxs.back())),
+                                    make_optional(std::move(new_idxs.back())));
                     }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2913,8 +2919,8 @@ public:
                     guarantee(new_idxs.size() == 0);
                     if (old_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    std::move(old_idxs.back()),
-                                    boost::none);
+                                    make_optional(std::move(old_idxs.back())),
+                                    r_nullopt);
                     }
                     old_idxs.pop_back();
                 }
@@ -2922,8 +2928,8 @@ public:
                     guarantee(old_idxs.size() == 0);
                     if (new_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    boost::none,
-                                    std::move(new_idxs.back()));
+                                    r_nullopt,
+                                    make_optional(std::move(new_idxs.back())));
                     }
                     new_idxs.pop_back();
                 }
@@ -2931,8 +2937,8 @@ public:
                 if (!trivial) {
                     for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(old_val, boost::none),
-                                    indexed_datum_t(new_val, boost::none));
+                                    make_optional(indexed_datum_t(old_val, r_nullopt)),
+                                    make_optional(indexed_datum_t(new_val, r_nullopt)));
                     }
                 }
             }
@@ -2946,15 +2952,15 @@ public:
                 std::cref(server_uuid),
                 stamp,
                 change.pkey,
-                boost::none,
+                r_nullopt,
                 change.old_val.has()
-                    ? boost::optional<indexed_datum_t>(
-                        indexed_datum_t(change.old_val, boost::none))
-                    : boost::none,
+                    ? optional<indexed_datum_t>(
+                        indexed_datum_t(change.old_val, r_nullopt))
+                    : r_nullopt,
                 change.new_val.has()
-                    ? boost::optional<indexed_datum_t>(
-                        indexed_datum_t(change.new_val, boost::none))
-                    : boost::none));
+                    ? optional<indexed_datum_t>(
+                        indexed_datum_t(change.new_val, r_nullopt))
+                    : r_nullopt));
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
@@ -3144,7 +3150,7 @@ private:
 
     void maybe_skip_to_feed() {
         const std::map<uuid_u, uint64_t> *sub_stamps = &sub->get_next_stamps();
-        boost::optional<std::map<uuid_u, uint64_t> > feed_stamps;
+        optional<std::map<uuid_u, uint64_t> > feed_stamps;
         for (auto &&pair : stamped_ranges) {
             auto it = sub_stamps->find(pair.first);
             r_sanity_check(it != sub_stamps->end());
@@ -3154,7 +3160,7 @@ private:
             // latest it's decided whether or not to pass to the subscription.
             if (pair.second.next_expected_stamp >= sub_stamp) {
                 if (!feed_stamps) {
-                    feed_stamps = sub->parent_feed()->get_stamps();
+                    feed_stamps.set(sub->parent_feed()->get_stamps());
                 }
                 auto ft = feed_stamps->find(pair.first);
                 if (ft != feed_stamps->end()) {
@@ -3231,7 +3237,7 @@ private:
 
     bool read_once, cached_ready;
     counted_t<datum_stream_t> src;
-    boost::optional<active_state_t> active_state;
+    optional<active_state_t> active_state;
     std::map<uuid_u, stamped_range_t> stamped_ranges;
 };
 
@@ -3360,7 +3366,7 @@ subscription_t::get_els(batcher_t *batcher,
 
     if (feed != nullptr && rdb_context != nullptr) {
         try {
-            boost::optional<table_basic_config_t> table_basic_config =
+            optional<table_basic_config_t> table_basic_config =
                 feed->get_name_resolver().table_id_to_basic_config(
                     feed->get_table_id());
             if (!static_cast<bool>(table_basic_config)) {

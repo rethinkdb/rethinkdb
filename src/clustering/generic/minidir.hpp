@@ -35,8 +35,8 @@ public:
         minidir_link_id_t link_id,
         fifo_enforcer_write_token_t fifo_token,
         bool closing_link,
-        boost::optional<key_t> key,
-        boost::optional<value_t> value
+        optional<key_t> key,
+        optional<value_t> value
         )> update_mailbox_t;
     typename update_mailbox_t::address_t update_mailbox;
 
@@ -99,8 +99,8 @@ private:
         const minidir_link_id_t &link_id,
         fifo_enforcer_write_token_t token,
         bool closing_link,
-        const boost::optional<key_t> &key,
-        const boost::optional<value_t> &value);
+        const optional<key_t> &key,
+        const optional<value_t> &value);
 
     mailbox_manager_t *const mailbox_manager;
 
@@ -183,7 +183,7 @@ private:
     void spawn_update(
         typename peer_data_t::link_data_t *link_data,
         const key_t &key,
-        const boost::optional<value_t> &value);
+        const optional<value_t> &value);
     void spawn_closing_link(
         typename peer_data_t::link_data_t *link_data);
 

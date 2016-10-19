@@ -36,18 +36,18 @@ void multi_client_client_t<request_type>::spawn_request(
 }
 
 template <class request_type>
-boost::optional<boost::optional<registrar_business_card_t<typename multi_client_business_card_t<
+optional<optional<registrar_business_card_t<typename multi_client_business_card_t<
             request_type>::client_business_card_t> > >
 multi_client_client_t<request_type>::extract_registrar_business_card(
-        const boost::optional<boost::optional<mc_business_card_t> > &bcard) {
+        const optional<optional<mc_business_card_t> > &bcard) {
     if (bcard) {
         if (bcard.get()) {
-            return boost::make_optional(boost::make_optional(bcard.get().get().registrar));
+            return make_optional(make_optional(bcard.get().get().registrar));
         } else {
-            return boost::make_optional(boost::optional<registrar_business_card_t<client_business_card_t> >());
+            return make_optional(optional<registrar_business_card_t<client_business_card_t> >());
         }
     }
-    return boost::none;
+    return r_nullopt;
 }
 
 

@@ -1,11 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <deque>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "unittest/gtest.hpp"
-
+#include "containers/optional.hpp"
 #include "containers/range_map.hpp"
 #include "random.hpp"
 #include "utils.hpp"
@@ -47,14 +44,14 @@ public:
     template<class callable_t>
     void visit(int l, int r, const callable_t &cb) const {
         int cursor = l;
-        boost::optional<char> prev;
+        optional<char> prev;
         inner.visit(l, r, [&](int l2, int r2, char v) {
             EXPECT_EQ(cursor, l2);
             cursor = r2;
             if (static_cast<bool>(prev)) {
                 EXPECT_NE(*prev, v);
             }
-            prev = boost::make_optional(v);
+            prev = make_optional(v);
             for (int i = l2; i < r2; ++i) {
                 EXPECT_EQ(ref.at(i - ref_offset), v);
             }
@@ -145,14 +142,14 @@ public:
     template<class callable_t>
     void visit_mutable(int l, int r, const callable_t &cb) {
         int cursor = l;
-        boost::optional<char> prev;
+        optional<char> prev;
         inner.visit_mutable(l, r, [&](int l2, int r2, char *v) {
             EXPECT_EQ(cursor, l2) << "visit_mutable() ranges should be adjacent";
             cursor = r2;
             if (static_cast<bool>(prev)) {
                 EXPECT_NE(*prev, *v) << "adjacent ranges should be coalesced";
             }
-            prev = boost::make_optional(*v);
+            prev = make_optional(*v);
             for (int i = l2; i < r2; ++i) {
                 EXPECT_EQ(ref.at(i - ref_offset), *v);
             }

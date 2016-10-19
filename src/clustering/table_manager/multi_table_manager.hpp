@@ -7,6 +7,7 @@
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_manager/table_manager.hpp"
 #include "concurrency/rwlock.hpp"
+#include "containers/optional.hpp"
 
 /* There is one `multi_table_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -331,11 +332,11 @@ private:
         const namespace_id_t &table_id,
         const multi_table_manager_timestamp_t &timestamp,
         multi_table_manager_bcard_t::status_t status,
-        const boost::optional<table_basic_config_t> &basic_config,
-        const boost::optional<raft_member_id_t> &raft_member_id,
-        const boost::optional<raft_persistent_state_t<table_raft_state_t> >
+        const optional<table_basic_config_t> &basic_config,
+        const optional<raft_member_id_t> &raft_member_id,
+        const optional<raft_persistent_state_t<table_raft_state_t> >
             &initial_raft_state,
-        const boost::optional<raft_start_election_immediately_t>
+        const optional<raft_start_election_immediately_t>
             &start_election_immediately,
         const mailbox_t<void()>::address_t &ack_addr);
 
@@ -364,7 +365,7 @@ private:
         const server_id_t &server_id,
         /* This is the other server's directory entry for this table, or an empty
         optional if there is no entry. */
-        const boost::optional<table_manager_bcard_t> &table_bcard,
+        const optional<table_manager_bcard_t> &table_bcard,
         /* This is the other server's global directory entry. If the other server is not
         connected, don't call `do_sync()`. */
         const multi_table_manager_bcard_t &table_manager_bcard);
@@ -393,7 +394,7 @@ private:
         * const connections_map;
     table_persistence_interface_t *persistence_interface;
 
-    boost::optional<base_path_t> base_path;
+    optional<base_path_t> base_path;
     io_backender_t *io_backender;
 
     perfmon_collection_repo_t *perfmon_collection_repo;

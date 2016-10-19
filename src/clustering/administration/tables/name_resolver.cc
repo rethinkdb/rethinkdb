@@ -18,41 +18,41 @@ cluster_semilattice_metadata_t name_resolver_t::get_cluster_metadata() const noe
     return m_cluster_semilattice_view->get();
 }
 
-boost::optional<name_string_t> name_resolver_t::database_id_to_name(
+optional<name_string_t> name_resolver_t::database_id_to_name(
         database_id_t const &database_id) const noexcept {
     return database_id_to_name(database_id, get_cluster_metadata());
 }
 
-boost::optional<name_string_t> name_resolver_t::database_id_to_name(
+optional<name_string_t> name_resolver_t::database_id_to_name(
         database_id_t const &database_id,
         cluster_semilattice_metadata_t const &cluster_metadata) const noexcept {
     if (artificial_reql_cluster_interface_t::database_id == database_id) {
-        return artificial_reql_cluster_interface_t::database_name;
+        return make_optional(artificial_reql_cluster_interface_t::database_name);
     }
 
     auto iterator = cluster_metadata.databases.databases.find(database_id);
     if (iterator != cluster_metadata.databases.databases.end() &&
             !iterator->second.is_deleted()) {
-        return iterator->second.get_ref().name.get_ref();
+        return make_optional(iterator->second.get_ref().name.get_ref());
     }
 
-    return boost::none;
+    return r_nullopt;
 }
 
-boost::optional<table_basic_config_t> name_resolver_t::table_id_to_basic_config(
+optional<table_basic_config_t> name_resolver_t::table_id_to_basic_config(
         namespace_id_t const &table_id,
-        boost::optional<database_id_t> const &database_id) const noexcept {
+        optional<database_id_t> const &database_id) const noexcept {
     if (!static_cast<bool>(database_id) ||
             artificial_reql_cluster_interface_t::database_id == database_id.get()) {
         for (auto const &table_backend :
                 m_artificial_reql_cluster_interface.get_table_backends_map()) {
             if (table_backend.second.first != nullptr &&
                     table_backend.second.first->get_table_id() == table_id) {
-                return table_basic_config_t{
+                return make_optional(table_basic_config_t{
                         table_backend.first,
                         artificial_reql_cluster_interface_t::database_id,
                         table_backend.second.first->get_primary_key_name()
-                    };
+                    });
             }
         }
     }
@@ -62,17 +62,17 @@ boost::optional<table_basic_config_t> name_resolver_t::table_id_to_basic_config(
         try {
             m_table_meta_client->get_name(table_id, &table_basic_config);
         } catch (no_such_table_exc_t const &) {
-            return boost::none;
+            return r_nullopt;
         }
 
         if (static_cast<bool>(database_id) &&
                 table_basic_config.database != database_id.get()) {
-            return boost::none;
+            return r_nullopt;
         }
 
-        return table_basic_config;
+        return make_optional(table_basic_config);
     } else {
-        return boost::none;
+        return r_nullopt;
     }
 }
 

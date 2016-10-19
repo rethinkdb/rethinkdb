@@ -10,7 +10,7 @@ public:
     vector_datum_stream_t(
             backtrace_id_t bt,
             std::vector<datum_t> &&_rows,
-            boost::optional<changefeed::keyspec_t> &&_changespec);
+            optional<changefeed::keyspec_t> &&_changespec);
 private:
     datum_t next(env_t *env, const batchspec_t &bs);
     datum_t next_impl(env_t *);
@@ -28,7 +28,7 @@ private:
 
     std::vector<datum_t> rows;
     size_t index;
-    boost::optional<changefeed::keyspec_t> changespec;
+    optional<changefeed::keyspec_t> changespec;
 };
 
 }  // namespace ql

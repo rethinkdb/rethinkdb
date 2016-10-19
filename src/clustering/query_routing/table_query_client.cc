@@ -239,7 +239,7 @@ void table_query_client_t::dispatch_immediate_op(
     });
 
     std::vector<op_response_type> results(primaries_to_contact.size());
-    std::vector<boost::optional<cannot_perform_query_exc_t> >
+    std::vector<optional<cannot_perform_query_exc_t> >
         failures(primaries_to_contact.size());
     pmap(primaries_to_contact.size(), std::bind(
              &table_query_client_t::template perform_immediate_op<
@@ -256,7 +256,7 @@ void table_query_client_t::dispatch_immediate_op(
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     bool seen_non_failure = false;
-    boost::optional<cannot_perform_query_exc_t> first_failure;
+    optional<cannot_perform_query_exc_t> first_failure;
     for (size_t i = 0; i < primaries_to_contact.size(); ++i) {
         if (failures[i]) {
             switch (failures[i]->get_query_state()) {
@@ -297,7 +297,7 @@ void table_query_client_t::perform_immediate_op(
     std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > >
         *primaries_to_contact,
     std::vector<op_response_type> *results,
-    std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
+    std::vector<optional<cannot_perform_query_exc_t> > *failures,
     order_token_t order_token,
     size_t i,
     signal_t *interruptor)
@@ -315,7 +315,7 @@ void table_query_client_t::perform_immediate_op(
             &primary_to_contact->enforcement_token,
             &waiter);
     } catch (const cannot_perform_query_exc_t& e) {
-        (*failures)[i] = e;
+        (*failures)[i].set(e);
     } catch (const interrupted_exc_t&) {
         if (interruptor->is_pulsed()) {
             /* Return immediately. `dispatch_immediate_op()` will notice that the
@@ -324,9 +324,9 @@ void table_query_client_t::perform_immediate_op(
         } else {
             /* `keepalive.get_drain_signal()` was pulsed because the other server
             disconnected or stopped being a primary */
-            (*failures)[i] = cannot_perform_query_exc_t(
+            (*failures)[i].set(cannot_perform_query_exc_t(
                 "lost contact with primary replica",
-                query_state_t::INDETERMINATE);
+                query_state_t::INDETERMINATE));
         }
     }
 }

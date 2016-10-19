@@ -2,7 +2,8 @@
 #ifndef RPC_SEMILATTICE_JOINS_DELETABLE_HPP_
 #define RPC_SEMILATTICE_JOINS_DELETABLE_HPP_
 
-#include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
+#include "containers/optional.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class printf_buffer_t;
@@ -20,7 +21,7 @@ public:
         return !t;
     }
     void mark_deleted() {
-        t = boost::optional<T>();
+        t = optional<T>();
     }
 
     /* return an object which when joined in will cause the object to be deleted */
@@ -47,7 +48,7 @@ public:
 
     typedef T value_t;
     typedef T value_type;
-    boost::optional<T> t;
+    optional<T> t;
     RDB_MAKE_ME_SERIALIZABLE_1(deletable_t, t);
 };
 

@@ -94,11 +94,12 @@ private:
     virtual bool uses_idx() const { return true; }
     virtual scoped_ptr_t<val_t> on_idx(
         env_t *env, counted_t<table_t> tbl, scoped_ptr_t<val_t> idx) const {
-        boost::optional<std::string> idx_str;
+        optional<std::string> idx_str;
         if (idx.has()) {
-            idx_str = idx->as_str().to_std();
+            idx_str.set(idx->as_str().to_std());
         }
-        counted_t<table_slice_t> slice(new table_slice_t(tbl, idx_str, sorting()));
+        counted_t<table_slice_t> slice(
+            new table_slice_t(tbl, idx_str, sorting()));
         return term_t::new_val(single_selection_t::from_slice(
             env,
             term_t::backtrace(),
@@ -158,7 +159,7 @@ private:
             if (v1->get_type().is_convertible(val_t::type_t::FUNC)) {
                 counted_t<datum_stream_t> stream = v0->as_seq(env->env);
                 stream->add_transformation(
-                        filter_wire_func_t(v1->as_func(), boost::none),
+                        filter_wire_func_t(v1->as_func(), r_nullopt),
                         backtrace());
                 return stream->run_terminal(env->env, count_wire_func_t());
             } else {
@@ -166,7 +167,7 @@ private:
                     new_eq_comparison_func(v1->as_datum(), backtrace());
                 counted_t<datum_stream_t> stream = v0->as_seq(env->env);
                 stream->add_transformation(
-                        filter_wire_func_t(f, boost::none), backtrace());
+                        filter_wire_func_t(f, r_nullopt), backtrace());
 
                 return stream->run_terminal(env->env, count_wire_func_t());
             }
@@ -191,7 +192,7 @@ private:
 
         counted_t<const func_t> func =
             args->arg(env, args->num_args() - 1)->as_func();
-        boost::optional<std::size_t> func_arity = func->arity();
+        optional<std::size_t> func_arity = func->arity();
         if (!!func_arity) {
             rcheck(func_arity.get() == 0 || func_arity.get() == args->num_args() - 1,
                    base_exc_t::LOGIC,
@@ -278,7 +279,7 @@ private:
 
         counted_t<const func_t> acc_func =
             args->arg(env, 2)->as_func();
-        boost::optional<std::size_t> acc_func_arity = acc_func->arity();
+        optional<std::size_t> acc_func_arity = acc_func->arity();
 
         if (static_cast<bool>(acc_func_arity)) {
             rcheck(acc_func_arity.get() == 0 || acc_func_arity.get() == 2,
@@ -384,10 +385,10 @@ private:
             if (index_str == tbl->get_pkey()) {
                 auto field = index->as_datum();
                 funcs.push_back(new_get_field_func(field, backtrace()));
-                slice = make_counted<table_slice_t>(tbl, index_str);
+                slice = make_counted<table_slice_t>(tbl, make_optional(index_str));
             } else {
                 slice = make_counted<table_slice_t>(
-                    tbl, index_str, sorting_t::ASCENDING);
+                    tbl, make_optional(index_str), sorting_t::ASCENDING);
                 append_index = true;
             }
             r_sanity_check(slice.has());
@@ -426,9 +427,9 @@ private:
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
         scoped_ptr_t<val_t> v1 = args->arg(env, 1, LITERAL_OK);
         counted_t<const func_t> f = v1->as_func(CONSTANT_SHORTCUT);
-        boost::optional<wire_func_t> defval;
+        optional<wire_func_t> defval;
         if (default_filter_term.has()) {
-            defval = wire_func_t(default_filter_term->eval_to_func(env->scope));
+            defval.set(wire_func_t(default_filter_term->eval_to_func(env->scope)));
         }
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -487,7 +488,7 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
     }
     void operator()(const filter_wire_func_t &f) const {
         check_f(f.filter_func);
-        if (f.default_filter_val) {
+        if (f.default_filter_val.has_value()) {
             check_f(*f.default_filter_val);
         }
     }
@@ -637,7 +638,7 @@ private:
                             // because we get the initial values from the stamp
                             // read instead.
                             ? make_counted<vector_datum_stream_t>(
-                                sel->get_bt(), std::vector<datum_t>(), boost::none)
+                                sel->get_bt(), std::vector<datum_t>(), r_nullopt)
                             : counted_t<vector_datum_stream_t>(),
                         sel->get_tbl()->display_name(),
                         include_offsets,
@@ -717,7 +718,7 @@ private:
         if (sindex.has()) {
             idx = sindex->as_str().to_std();
         } else {
-            boost::optional<std::string> old_idx = tbl_slice->get_idx();
+            optional<std::string> old_idx = tbl_slice->get_idx();
             idx = old_idx ? *old_idx : tbl_slice->get_tbl()->get_pkey();
         }
         return new_val(
@@ -748,7 +749,7 @@ private:
             streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
 
-        boost::optional<raw_term_t> r_interleave_arg_op = get_src().optarg("interleave");
+        optional<raw_term_t> r_interleave_arg_op = get_src().optarg("interleave");
 
         std::vector<scoped_ptr_t<val_t> > evaluated_interleave_args;
 

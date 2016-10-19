@@ -200,12 +200,12 @@ void do_read(ql::env_t *env,
              const rget_read_t &rget,
              rget_read_response_t *res,
              release_superblock_t release_superblock,
-             boost::optional<uuid_u> *sindex_id_out) {
-    guarantee(rget.current_shard);
-    if (!rget.sindex) {
+             optional<uuid_u> *sindex_id_out) {
+    guarantee(rget.current_shard.has_value());
+    if (!rget.sindex.has_value()) {
         // rget using a primary index
         if (sindex_id_out != nullptr) {
-            *sindex_id_out = boost::none;
+            *sindex_id_out = r_nullopt;
         }
         rdb_rget_slice(
             btree,
@@ -236,12 +236,12 @@ void do_read(ql::env_t *env,
                     &sindex_info,
                     &sindex_uuid);
             if (sindex_id_out != nullptr) {
-                *sindex_id_out = sindex_uuid;
+                *sindex_id_out = make_optional(sindex_uuid);
             }
             reql_version_t reql_version =
                 sindex_info.mapping_version_info.latest_compatible_reql_version;
             res->reql_version = reql_version;
-            if (static_cast<bool>(rget.sindex->region)) {
+            if (rget.sindex->region.has_value()) {
                 sindex_range = rget.sindex->region->inner;
             } else {
                 sindex_range =
@@ -308,7 +308,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.serializable_env,
             trace);
         ql::raw_stream_t stream;
-        boost::optional<uuid_u> sindex_id;
+        optional<uuid_u> sindex_id;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
@@ -320,7 +320,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             if (s.spec.range.sindex) {
-                rget.terminal = ql::limit_read_t{
+                rget.terminal.set(ql::limit_read_t{
                     is_primary_t::NO,
                     s.spec.limit,
                     s.region,
@@ -328,13 +328,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         ? store_key_t::min()
                         : store_key_t::max(),
                     s.spec.range.sorting,
-                    &ops};
-                rget.sindex = sindex_rangespec_t(
+                    &ops});
+                rget.sindex.set(sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    boost::none, // We just want to use whole range.
-                    s.spec.range.datumspec);
+                    r_nullopt, // We just want to use whole range.
+                    s.spec.range.datumspec));
             } else {
-                rget.terminal = ql::limit_read_t{
+                rget.terminal.set(ql::limit_read_t{
                     is_primary_t::YES,
                     s.spec.limit,
                     s.region,
@@ -342,7 +342,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         ? store_key_t::min()
                         : store_key_t::max(),
                     s.spec.range.sorting,
-                    &ops};
+                    &ops});
             }
             rget.sorting = s.spec.range.sorting;
             // The superblock will instead be released in `store_t::read`
@@ -372,7 +372,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        guarantee(s.current_shard);
+        guarantee(s.current_shard.has_value());
         auto cserver = store->get_or_make_changefeed_server(*s.current_shard);
         guarantee(cserver.first != nullptr);
         cserver.first->add_limit_client(
@@ -402,10 +402,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         auto cserver = store->changefeed_server(s.region);
         if (cserver.first != nullptr) {
-            if (boost::optional<uint64_t> stamp
+            if (optional<uint64_t> stamp
                     = cserver.first->get_stamp(s.addr, cserver.second)) {
                 changefeed_stamp_response_t out;
-                out.stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
+                out.stamp_infos.set(std::map<uuid_u, shard_stamp_info_t>());
                 (*out.stamp_infos)[cserver.first->get_uuid()] = shard_stamp_info_t{
                     *stamp,
                     current_shard,
@@ -429,9 +429,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
         auto cserver = store->changefeed_server(s.key);
         if (cserver.first != nullptr) {
-            res->resp = changefeed_point_stamp_response_t::valid_response_t();
+            res->resp.set(changefeed_point_stamp_response_t::valid_response_t());
             auto *vres = &*res->resp;
-            if (boost::optional<uint64_t> stamp
+            if (optional<uint64_t> stamp
                     = cserver.first->get_stamp(s.addr, cserver.second)) {
                 vres->stamp = std::make_pair(cserver.first->get_uuid(), *stamp);
             } else {
@@ -443,7 +443,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_get(s.key, btree, superblock, &val, trace);
             vres->initial_val = val.data;
         } else {
-            res->resp = boost::none;
+            res->resp.reset();
         }
     }
 
@@ -466,8 +466,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
 
-        if (geo_read.stamp) {
-            res->stamp_response = changefeed_stamp_response_t();
+        if (geo_read.stamp.has_value()) {
+            res->stamp_response.set(changefeed_stamp_response_t());
 
             store_key_t read_left = geo_read.sindex.region
                 ? geo_read.sindex.region->inner.left
@@ -478,7 +478,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 geo_read.region,
                 read_left);
             if (r.stamp_infos) {
-                res->stamp_response = r;
+                res->stamp_response.set(r);
             } else {
                 res->result = ql::exc_t(
                     ql::base_exc_t::OP_FAILED,
@@ -591,7 +591,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto *res = boost::get<rget_read_response_t>(&response->response);
 
         if (rget.stamp) {
-            res->stamp_response = changefeed_stamp_response_t();
+            res->stamp_response.set(changefeed_stamp_response_t());
             r_sanity_check(rget.current_shard);
             r_sanity_check(rget.sorting == sorting_t::UNORDERED);
             store_key_t read_left;
@@ -610,7 +610,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 *rget.current_shard,
                 read_left);
             if (r.stamp_infos) {
-                res->stamp_response = r;
+                res->stamp_response.set(r);
             } else {
                 res->result = ql::exc_t(
                     ql::base_exc_t::OP_FAILED,
@@ -760,10 +760,10 @@ public:
           conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey),
           return_changes(bi.return_changes) {
-        if (bi.conflict_func) {
-            conflict_func = bi.conflict_func->compile_wire_func();
+        if (bi.conflict_func.has_value()) {
+            conflict_func.set(bi.conflict_func->compile_wire_func());
         }
-        if (bi.write_hook) {
+        if (bi.write_hook.has_value()) {
             write_hook = bi.write_hook->compile_wire_func();
         }
     }
@@ -790,7 +790,7 @@ private:
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
-    boost::optional<counted_t<const ql::func_t> > conflict_func;
+    optional<counted_t<const ql::func_t> > conflict_func;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -806,7 +806,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             auto_drainer_t::lock_t(&store->drainer));
 
         counted_t<const ql::func_t> write_hook;
-        if (br.write_hook) {
+        if (br.write_hook.has_value()) {
             write_hook = br.write_hook->compile_wire_func();
         }
 

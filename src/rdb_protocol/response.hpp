@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -27,11 +24,11 @@ public:
 
     // Getters
     Response::ResponseType type() const;
-    const boost::optional<Response::ErrorType> &error_type() const;
+    const optional<Response::ErrorType> &error_type() const;
     const std::vector<ql::datum_t> &data() const;
-    const boost::optional<ql::datum_t> &profile() const;
+    const optional<ql::datum_t> &profile() const;
     const std::vector<Response::ResponseNote> &notes() const;
-    const boost::optional<ql::datum_t> &backtrace() const;
+    const optional<ql::datum_t> &backtrace() const;
 
     // Clears the response and writes a valid error
     void fill_error(Response::ResponseType _type,
@@ -45,9 +42,9 @@ private:
     Response::ResponseType type_;
     std::vector<ql::datum_t> data_;
     std::vector<Response::ResponseNote> notes_;
-    boost::optional<Response::ErrorType> error_type_;
-    boost::optional<ql::datum_t> backtrace_;
-    boost::optional<ql::datum_t> profile_;
+    optional<Response::ErrorType> error_type_;
+    optional<ql::datum_t> backtrace_;
+    optional<ql::datum_t> profile_;
 
     DISABLE_COPYING(response_t);
 };

@@ -1,6 +1,7 @@
 #ifndef RDB_PROTOCOL_DATUM_STREAM_READERS_HPP_
 #define RDB_PROTOCOL_DATUM_STREAM_READERS_HPP_
 
+#include "containers/optional.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/datum_stream/readgens.hpp"
 #include "rdb_protocol/real_table.hpp"
@@ -12,7 +13,7 @@ public:
     virtual ~reader_t() { }
     virtual void add_transformation(transform_variant_t &&tv) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp) = 0;
-    virtual boost::optional<active_state_t> get_active_state() = 0;
+    virtual optional<active_state_t> get_active_state() = 0;
     virtual void accumulate(env_t *env, eager_acc_t *acc,
                             const terminal_variant_t &tv) = 0;
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
@@ -35,7 +36,7 @@ public:
     virtual bool add_stamp(changefeed_stamp_t) {
         r_sanity_fail();
     }
-    virtual boost::optional<active_state_t> get_active_state() {
+    virtual optional<active_state_t> get_active_state() {
         r_sanity_fail();
     }
     virtual void accumulate(env_t *, eager_acc_t *, const terminal_variant_t &) {}
@@ -70,7 +71,7 @@ public:
     virtual bool add_stamp(changefeed_stamp_t) {
         r_sanity_fail();
     }
-    virtual boost::optional<active_state_t> get_active_state() {
+    virtual optional<active_state_t> get_active_state() {
         r_sanity_fail();
     }
     virtual void accumulate(env_t *, eager_acc_t *, const terminal_variant_t &) {
@@ -117,7 +118,7 @@ public:
         scoped_ptr_t<readgen_t> &&readgen);
     virtual void add_transformation(transform_variant_t &&tv);
     virtual bool add_stamp(changefeed_stamp_t stamp);
-    virtual boost::optional<active_state_t> get_active_state();
+    virtual optional<active_state_t> get_active_state();
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
@@ -139,7 +140,7 @@ protected:
     }
     void mark_shards_exhausted() {
         r_sanity_check(!active_ranges);
-        active_ranges = active_ranges_t();
+        active_ranges.set(active_ranges_t());
     }
 
     // Returns `true` if there's data in `items`.
@@ -149,12 +150,12 @@ protected:
 
     counted_t<real_table_t> table;
     std::vector<transform_variant_t> transforms;
-    boost::optional<changefeed_stamp_t> stamp;
+    optional<changefeed_stamp_t> stamp;
 
     bool started;
     const scoped_ptr_t<const readgen_t> readgen;
-    boost::optional<active_ranges_t> active_ranges;
-    boost::optional<reql_version_t> reql_version;
+    optional<active_ranges_t> active_ranges;
+    optional<reql_version_t> reql_version;
     std::map<uuid_u, shard_stamp_info_t> shard_stamp_infos;
 
     // We need this to handle the SINDEX_CONSTANT case.
@@ -200,7 +201,7 @@ private:
     // times, and we need to remove those duplicates across batches.
     // We keep track of pairs of primary key and optional multi-index tags in order
     // to detect and remove such duplicates.
-    std::set<std::pair<std::string, boost::optional<uint64_t> > > processed_pkey_tags;
+    std::set<std::pair<std::string, optional<uint64_t> > > processed_pkey_tags;
 };
 
 }  // namespace ql

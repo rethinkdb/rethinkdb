@@ -2,8 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_AUTH_PERMISSIONS_HPP
 #define CLUSTERING_ADMINISTRATION_AUTH_PERMISSIONS_HPP
 
-#include <string>
-
+#include "containers/optional.hpp"
 #include "containers/tribool.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -49,14 +48,14 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE(permissions_t);
 
 private:
-    std::tuple<int8_t, int8_t, int8_t, boost::optional<int8_t>> to_tuple() const;
+    std::tuple<int8_t, int8_t, int8_t, optional<int8_t>> to_tuple() const;
 
     tribool m_read;
     tribool m_write;
     tribool m_config;
 
     // The `connect` permission is only available at the global scope
-    boost::optional<tribool> m_connect;
+    optional<tribool> m_connect;
 };
 
 }  // namespace auth

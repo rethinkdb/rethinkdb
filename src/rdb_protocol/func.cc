@@ -87,8 +87,8 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
     }
 }
 
-boost::optional<size_t> reql_func_t::arity() const {
-    return arg_names.size();
+optional<size_t> reql_func_t::arity() const {
+    return make_optional(arg_names.size());
 }
 
 deterministic_t reql_func_t::is_deterministic() const {
@@ -136,8 +136,8 @@ scoped_ptr_t<val_t> js_func_t::call(
     }
 }
 
-boost::optional<size_t> js_func_t::arity() const {
-    return boost::none;
+optional<size_t> js_func_t::arity() const {
+    return r_nullopt;
 }
 
 deterministic_t js_func_t::is_deterministic() const {

@@ -1313,9 +1313,9 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
 
                     index_write_ops.push_back(
                         index_write_op_t(block_id,
-                            to_standard_block_token(
-                                block_id,
-                                iw.new_block_tokens[i])));
+                            make_optional(to_standard_block_token(
+                                                  block_id,
+                                                  iw.new_block_tokens[i]))));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced

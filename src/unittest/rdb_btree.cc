@@ -162,7 +162,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
         &dummy_env, // env_t
         ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
         std::vector<ql::transform_variant_t>(),
-        boost::optional<ql::terminal_variant_t>(),
+        optional<ql::terminal_variant_t>(),
         key_range_t::universe(),
         sorting_t::ASCENDING,
         require_sindexes_t::NO,

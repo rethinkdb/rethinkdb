@@ -120,7 +120,7 @@ public:
         guarantee(st == contract_ack_t::state_t::secondary_need_primary);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             contract_ack_t ack(st);
-            ack.version = boost::make_optional(quick_cpu_version_map(i, version));
+            ack.version.set(quick_cpu_version_map(i, version));
             ack.branch_history = branch_history;
             acks[contracts.contract_ids[i]][server] = ack;
         }
@@ -134,7 +134,7 @@ public:
         guarantee(st == contract_ack_t::state_t::primary_need_branch);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             contract_ack_t ack(st);
-            ack.branch = boost::make_optional(branch->branch_ids[i]);
+            ack.branch.set(branch->branch_ids[i]);
             ack.branch_history = branch_history;
             acks[contracts.contract_ids[i]][server] = ack;
         }
@@ -224,7 +224,7 @@ public:
                 const contract_t &actual = pair.second.second;
                 EXPECT_EQ(expect.replicas, actual.replicas);
                 EXPECT_EQ(expect.voters, actual.voters);
-                // Compare the boost::optional in two steps, to avoid #4257
+                // Compare the optional in two steps, to avoid #4257
                 EXPECT_EQ(static_cast<bool>(expect.temp_voters),
                     static_cast<bool>(actual.temp_voters));
                 if (static_cast<bool>(expect.temp_voters) &&

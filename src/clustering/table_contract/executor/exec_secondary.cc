@@ -77,7 +77,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             contract_ack_t initial_ack(contract_ack_t::state_t::secondary_need_primary);
             read_token_t token;
             store->new_read_token(&token);
-            initial_ack.version = boost::make_optional(to_version_map(
+            initial_ack.version.set(to_version_map(
                 store->get_metainfo(
                     order_source.check_in("secondary_execution_t").with_read_mode(),
                     &token, region, &interruptor_on_store_thread)));
@@ -98,7 +98,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             {
                 table_query_bcard_t tq_bcard;
                 tq_bcard.region = region;
-                tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
+                tq_bcard.direct = make_optional(direct_query_server.get_bcard());
                 directory_entry.create(
                     context->local_table_query_bcards, generate_uuid(), tq_bcard);
             }
@@ -201,7 +201,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             {
                 table_query_bcard_t tq_bcard;
                 tq_bcard.region = region;
-                tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
+                tq_bcard.direct = make_optional(direct_query_server.get_bcard());
                 directory_entry.create(
                     context->local_table_query_bcards, generate_uuid(), tq_bcard);
             }
@@ -218,6 +218,6 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 void secondary_execution_t::send_ack(const contract_ack_t &ca) {
     assert_thread();
     params->send_ack(contract_id, ca);
-    last_ack = boost::make_optional(ca);
+    last_ack = make_optional(ca);
 }
 

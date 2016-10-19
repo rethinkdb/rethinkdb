@@ -29,7 +29,7 @@ void serialize(write_message_t *wm, const table_config_t &tc) {
     std::map<std::string, sindex_config_t> sindexes = tc.sindexes;
     serialize<W>(wm, sindexes);
 
-    boost::optional<write_hook_config_t> write_hook = tc.write_hook;
+    optional<write_hook_config_t> write_hook = tc.write_hook;
     serialize<W>(wm, write_hook);
 
     write_ack_config_t write_ack_config = tc.write_ack_config;
@@ -92,7 +92,7 @@ archive_result_t deserialize(
     res = deserialize<W>(s, &sindexes);
     if (bad(res)) { return res; }
 
-    boost::optional<write_hook_config_t> write_hook;
+    optional<write_hook_config_t> write_hook;
     res = deserialize<W>(s, &write_hook);
     if (bad(res)) { return res; }
 
