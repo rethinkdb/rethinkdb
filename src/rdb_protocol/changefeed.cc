@@ -313,13 +313,8 @@ optional<datum_t> apply_ops(
     }
 }
 
-// TODO: The code here's probably too abstract.
-bool opt_str_lt(const optional<std::string> &s, const optional<std::string> &t) {
-    return s < t;
-}
-
 server_t::client_info_t::client_info_t()
-    : limit_clients(&opt_str_lt),
+    : limit_clients(),
       limit_clients_lock(new rwlock_t()) { }
 
 server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)

@@ -535,12 +535,7 @@ private:
         uint64_t stamp;
         std::vector<region_t> regions;
         std::map<optional<std::string>,
-                 std::vector<scoped_ptr_t<limit_manager_t> >,
-                 // Be careful not to remove this, since optionals are
-                 // convertible to bool.
-                 std::function<
-                     bool(const optional<std::string> &,
-                          const optional<std::string> &)> > limit_clients;
+                 std::vector<scoped_ptr_t<limit_manager_t>>> limit_clients;
         scoped_ptr_t<rwlock_t> limit_clients_lock;
     };
     std::map<client_t::addr_t, client_info_t> clients;
