@@ -854,7 +854,7 @@ continue_bool_t rget_cb_t::handle_pair(
                     sindex->func->call(sindex_env.get(), val)->as_datum();
                 if (sindex->multi == sindex_multi_bool_t::MULTI
                     && sindex_val_cache.get_type() == ql::datum_t::R_ARRAY) {
-                    boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
+                    boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key);
                     guarantee(tag);
                     sindex_val_cache = sindex_val_cache.get(*tag, ql::NOTHROW);
                     guarantee(sindex_val_cache.has());
