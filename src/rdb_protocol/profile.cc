@@ -54,7 +54,6 @@ ql::datum_t construct_start(
         ql::datum_t(datum_string_t(description));
     res[datum_string_t("sub_tasks")] = sub_tasks;
     return ql::datum_t(std::move(res));
-    return ql::datum_t();
 }
 
 ql::datum_t construct_split(
@@ -62,7 +61,6 @@ ql::datum_t construct_split(
     std::map<datum_string_t, ql::datum_t> res;
     res[datum_string_t("parallel_tasks")] = par_tasks;
     return ql::datum_t(std::move(res));
-    return ql::datum_t();
 }
 
 ql::datum_t construct_sample(
