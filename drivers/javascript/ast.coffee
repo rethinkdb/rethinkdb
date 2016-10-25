@@ -70,7 +70,7 @@ class TermBase
         # Depreciated syntaxes are
         # optionsWithConnection, callback
 
-        if net.isConnection(connection) is true
+        if net.isConnection(connection) is true or not connection?
             # Handle run(connection, callback)
             if typeof options is "function"
                 if callback is undefined
