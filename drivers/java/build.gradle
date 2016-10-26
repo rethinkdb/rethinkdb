@@ -54,6 +54,8 @@ dependencies {
     testRuntime 'ch.qos.logback:logback-classic:1.1.3'
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'com.googlecode.json-simple:json-simple:1.1.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.0.1'
+
 }
 
 test {

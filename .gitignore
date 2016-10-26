@@ -52,3 +52,4 @@ last_tested_versions
 /RethinkDB.vcxproj.user
 /RethinkDB.vcxproj.xml
 /precompiled
+*.xml
