@@ -70,6 +70,16 @@ rwlock_in_line_t::rwlock_in_line_t(rwlock_t *lock, access_t access)
     lock_->add_acq(this);
 }
 
+rwlock_in_line_t::rwlock_in_line_t(rwlock_in_line_t &&other)
+    : lock_(other.lock_),
+      access_(other.access_),
+      read_cond_(std::move(other.read_cond_)),
+      write_cond_(std::move(other.write_cond_)) {
+    other.lock_ = nullptr;
+    other.access_ = valgrind_undefined(access_t::read);
+}
+
+
 rwlock_in_line_t::~rwlock_in_line_t() {
     reset();
 }
