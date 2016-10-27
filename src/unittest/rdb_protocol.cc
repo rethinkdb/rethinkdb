@@ -1,10 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/rdb_protocol.hpp"
 
+#include <functional>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/cache_balancer.hpp"
@@ -33,7 +31,7 @@
 namespace unittest {
 
 void run_with_namespace_interface(
-        boost::function<void(
+        std::function<void(
             namespace_interface_t *,
             order_source_t *,
             const std::vector<scoped_ptr_t<store_t> > *
@@ -117,7 +115,7 @@ void run_with_namespace_interface(
 }
 
 void run_in_thread_pool_with_namespace_interface(
-        boost::function<void(
+        std::function<void(
             namespace_interface_t *,
             order_source_t *,
             const std::vector<scoped_ptr_t<store_t> > *)> fun,

@@ -7,7 +7,7 @@
 #include "errors.hpp"
 
 /* The below classes may be used to create a generic callable object without
-  boost::function so as to avoid the heap allocation that boost::functions use.
+  std::function so as to avoid the heap allocation that std::functions use.
   Allocate a callable_action_wrapper_t (preferrably on the stack), then assign
   any callable object into it.  The wrapper will only use the heap if it can't
   fit inside the internal pre-allocated buffer. */
